@@ -1,0 +1,180 @@
+name: Auto-triage
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: auto-triage-${{ github.event_name }}-${{ github.event.number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const isIssue = context.eventName === 'issues';
+            const item = isIssue ? context.payload.issue : context.payload.pull_request;
+            const number = item.number;
+            const title = item.title || '';
+            const body = item.body || '';
+            const isNew = context.payload.action === 'opened';
+            const REF_RE = /(?:([\w.-]+)\/([\w.-]+)|([\w.-]+))?#(\d+)/g;
+
+            const repoLabels = new Set(
+              (await github.paginate(github.rest.issues.listLabelsForRepo, { owner, repo, per_page: 100 }))
+                .map((l) => l.name)
+            );
+
+            const LABEL_ALIASES = { documentation: ['docs'] };
+            const NO_AUTO_LABELS = new Set([
+              'invalid', 'question', 'duplicate', 'wontfix', 'setup',
+              'enhancement', 'good first issue', 'help wanted',
+            ]);
+
+            function labelPattern(name) {
+              const parts = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+              if (parts.length === 0) return null;
+              const words = [parts, ...((LABEL_ALIASES[name.toLowerCase()] || []).map((a) => [...parts.slice(0, -1), a]))];
+              const variants = new Set();
+              const add = (w) => variants.add(w.join('[\\s_/-]*'));
+              for (const w of words) {
+                add(w);
+                const last = w[w.length - 1];
+                if (/ing$/.test(last) && last.length > 4) add([...w.slice(0, -1), last.slice(0, -3)]);
+                if (/ation$/.test(last) && last.length > 5) add([...w.slice(0, -1), last.slice(0, -5)]);
+              }
+              const alt = [...variants].map((v) => `(?<![a-z0-9])${v}(?:s|es)?(?![a-z0-9])`);
+              return new RegExp(`(?:${alt.join('|')})`);
+            }
+
+            function inferLabels(text) {
+              const t = (text || '').toLowerCase();
+              const found = [];
+              for (const name of repoLabels) {
+                if (NO_AUTO_LABELS.has(name.toLowerCase())) continue;
+                const re = labelPattern(name);
+                if (re && re.test(t)) found.push(name);
+              }
+              return found;
+            }
+
+            async function getIssue(num, refOwner, refRepo) {
+              try {
+                return (
+                  await github.rest.issues.get({
+                    owner: refOwner || owner,
+                    repo: refRepo || repo,
+                    issue_number: num,
+                  })
+                ).data;
+              } catch (e) {
+                return null;
+              }
+            }
+
+            async function applyLabels(labels) {
+              const current = new Set((item.labels || []).map((l) => l.name));
+              const toAdd = [...new Set(labels)].filter((l) => repoLabels.has(l) && !current.has(l));
+              if (toAdd.length === 0) return;
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: toAdd });
+            }
+
+            async function setMilestone(milestoneNumber) {
+              if (item.milestone || milestoneNumber == null) return;
+              await github.rest.issues.update({ owner, repo, issue_number: number, milestone: milestoneNumber });
+            }
+
+            async function ensureAssignee() {
+              if ((item.assignees || []).length > 0) return;
+              for (const login of [item.user.login, owner]) {
+                try {
+                  await github.rest.issues.addAssignees({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    assignees: [login],
+                  });
+                  return;
+                } catch (e) {
+                  core.info(`Could not assign ${login}: ${e.message}`);
+                }
+              }
+            }
+
+            if (isIssue) {
+              const labels = inferLabels(title);
+              let milestone = null;
+              const parentLines = body.split('\n').filter((l) => /parent\s+issue/i.test(l));
+              for (const line of parentLines) {
+                for (const m of line.matchAll(REF_RE)) {
+                  const refOwner = m[1] || owner;
+                  const refRepo = m[2] || m[3] || repo;
+                  const parent = await getIssue(parseInt(m[4], 10), refOwner, refRepo);
+                  if (!parent) continue;
+                  for (const l of parent.labels || []) {
+                    if (repoLabels.has(l.name) && !NO_AUTO_LABELS.has(l.name.toLowerCase())) labels.push(l.name);
+                  }
+                  if (refOwner === owner && refRepo === repo && parent.milestone) {
+                    milestone = parent.milestone.number;
+                  }
+                }
+              }
+              await applyLabels(labels);
+              await setMilestone(milestone);
+            } else {
+              const linked = new Set();
+              const closingRe = /\b(clos(?:e|es|ed|ing)|fix(?:es|ed|ing)?|resolv(?:e|es|ed|ing))\b/i;
+              const ownRefRe = new RegExp(`(?:${owner}/${repo})?#(\\d+)`, 'g');
+              const closingLines = body
+                .split('\n')
+                .filter((l) => closingRe.test(l) && ownRefRe.test(l));
+              for (const line of closingLines) {
+                for (const m of line.matchAll(ownRefRe)) {
+                  linked.add(parseInt(m[2], 10));
+                }
+              }
+              const branchRef = (item.head && item.head.ref) || '';
+              const branchMatch = branchRef.match(/^vibe\/(\d+)-/);
+              if (isNew && branchMatch) {
+                linked.add(parseInt(branchMatch[1], 10));
+              }
+              const issues = [];
+              for (const num of linked) {
+                const issue = await getIssue(num);
+                if (issue && !issue.pull_request) issues.push(issue);
+              }
+              const labels = [];
+              for (const issue of issues) {
+                for (const l of issue.labels || []) {
+                  if (!NO_AUTO_LABELS.has(l.name.toLowerCase())) labels.push(l.name);
+                }
+              }
+              if (labels.length === 0) labels.push(...inferLabels(title));
+              await applyLabels(labels);
+              if (issues.length > 0) await setMilestone(issues[0].milestone ? issues[0].milestone.number : null);
+              if (isNew && branchMatch) {
+                const branchIssue = parseInt(branchMatch[1], 10);
+                const mentioned = new Set([...body.matchAll(/#(\d+)/g)].map((m) => parseInt(m[1], 10)));
+                if (issues.some((i) => i.number === branchIssue) && !mentioned.has(branchIssue)) {
+                  await github.rest.issues.update({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    body: `${body}\n\nCloses #${branchIssue}`,
+                  });
+                }
+              }
+            }
+
+            await ensureAssignee();
