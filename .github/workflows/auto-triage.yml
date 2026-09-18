@@ -37,6 +37,10 @@ jobs:
             );
 
             const LABEL_ALIASES = { documentation: ['docs'] };
+            const NO_AUTO_LABELS = new Set([
+              'invalid', 'question', 'duplicate', 'wontfix', 'setup',
+              'enhancement', 'good first issue', 'help wanted',
+            ]);
 
             function labelPattern(name) {
               const parts = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
@@ -58,6 +62,7 @@ jobs:
               const t = (text || '').toLowerCase();
               const found = [];
               for (const name of repoLabels) {
+                if (NO_AUTO_LABELS.has(name.toLowerCase())) continue;
                 const re = labelPattern(name);
                 if (re && re.test(t)) found.push(name);
               }
@@ -108,7 +113,7 @@ jobs:
             }
 
             if (isIssue) {
-              const labels = inferLabels(`${title}\n${body}`);
+              const labels = inferLabels(title);
               let milestone = null;
               const parentLines = body.split('\n').filter((l) => /parent\s+issue/i.test(l));
               for (const line of parentLines) {
@@ -118,7 +123,7 @@ jobs:
                   const parent = await getIssue(parseInt(m[4], 10), refOwner, refRepo);
                   if (!parent) continue;
                   for (const l of parent.labels || []) {
-                    if (repoLabels.has(l.name)) labels.push(l.name);
+                    if (repoLabels.has(l.name) && !NO_AUTO_LABELS.has(l.name.toLowerCase())) labels.push(l.name);
                   }
                   if (refOwner === owner && refRepo === repo && parent.milestone) {
                     milestone = parent.milestone.number;
@@ -151,9 +156,11 @@ jobs:
               }
               const labels = [];
               for (const issue of issues) {
-                for (const l of issue.labels || []) labels.push(l.name);
+                for (const l of issue.labels || []) {
+                  if (!NO_AUTO_LABELS.has(l.name.toLowerCase())) labels.push(l.name);
+                }
               }
-              if (labels.length === 0) labels.push(...inferLabels(`${title}\n${body}`));
+              if (labels.length === 0) labels.push(...inferLabels(title));
               await applyLabels(labels);
               if (issues.length > 0) await setMilestone(issues[0].milestone ? issues[0].milestone.number : null);
               if (isNew && branchMatch) {
