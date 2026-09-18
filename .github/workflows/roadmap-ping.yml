@@ -1,15 +1,15 @@
 name: Roadmap ping
 
 # Notifies merlin-pinpin/kingdoms when an issue changes in this repo so its
-# sync-roadmap workflow can update ROADMAP.md (kingdoms#27). Requires the
+# sync-roadmap workflow can update ROADMAP.md (kingdoms#27). Roadmap
+# statuses are driven by issue state changes only: a merged PR closes its
+# linked issue, which fires the issue event here. Requires the
 # ROADMAP_DISPATCH_PAT secret (a fine-grained PAT with "Contents: read" on
 # merlin-pinpin/kingdoms); until then, the kingdoms weekly schedule and manual
 # workflow_dispatch act as the fallback.
 
 on:
   issues:
-    types: [opened, reopened, closed]
-  pull_request:
     types: [opened, reopened, closed]
 
 permissions:
