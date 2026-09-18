@@ -130,12 +130,13 @@ jobs:
             } else {
               const linked = new Set();
               const closingRe = /\b(clos(?:e|es|ed|ing)|fix(?:es|ed|ing)?|resolv(?:e|es|ed|ing))\b/i;
+              const ownRefRe = new RegExp(`(?:${owner}/${repo})?#(\\d+)`, 'g');
               const closingLines = body
                 .split('\n')
-                .filter((l) => closingRe.test(l) && /#\d+/.test(l));
+                .filter((l) => closingRe.test(l) && ownRefRe.test(l));
               for (const line of closingLines) {
-                for (const m of line.matchAll(/#(\d+)/g)) {
-                  linked.add(parseInt(m[1], 10));
+                for (const m of line.matchAll(ownRefRe)) {
+                  linked.add(parseInt(m[2], 10));
                 }
               }
               const branchRef = (item.head && item.head.ref) || '';
