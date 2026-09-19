@@ -1,0 +1,32 @@
+name: Roadmap ping
+
+# Notifies merlin-pinpin/kingdoms when an issue changes in this repo so its
+# sync-roadmap workflow can update ROADMAP.md (kingdoms#27). Roadmap
+# statuses are driven by issue state changes only: a merged PR closes its
+# linked issue, which fires the issue event here. Requires the
+# ROADMAP_DISPATCH_PAT secret (a fine-grained PAT with "Contents: read" on
+# merlin-pinpin/kingdoms); until then, the kingdoms weekly schedule and manual
+# workflow_dispatch act as the fallback.
+
+on:
+  issues:
+    types: [opened, reopened, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger roadmap sync in merlin-pinpin/kingdoms
+        if: env.PAT_SET == 'true'
+        env:
+          PAT_SET: ${{ secrets.ROADMAP_DISPATCH_PAT != '' }}
+        run: |
+          response=$(curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.ROADMAP_DISPATCH_PAT }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/merlin-pinpin/kingdoms/dispatches" \
+            -d '{"event_type": "roadmap-sync", "client_payload": {"source": "${{ github.event_name }}#${{ github.event.number }}"}}')
+          echo "Dispatch sent: ${response}"
