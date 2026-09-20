@@ -19,13 +19,19 @@ core services, Discord platform implementation, mods, YAML configs.
 - All code, comments, documentation, commit messages, PR titles and PR
   descriptions are written in **English**.
 - Python 3.12, type hints everywhere, `ruff` + `mypy` clean.
-- Never merge to `main`, tag, or release without explicit developer approval.
+- Merges to `main`, tags and releases are gated by the repository rulesets
+  and required checks (enforced by GitHub, not by this document).
 - **Never commit secrets** (tokens, passwords, API keys, private keys,
   `.env` values): real credentials live only in GitHub secrets or in
   host-provisioned `.env` files; repositories carry `.env.example`
   placeholders only. Before making any repository public, scan the full
-  git history for leaked secrets (`git log -p | grep -E "ghp_|github_pat_|AKIA|PRIVATE KEY"`)
-  and get merlin-pinpin's approval.
+  git history for leaked secrets (`git log -p | grep -E "ghp_|github_pat_|AKIA|PRIVATE KEY"`).
+- **Anyone can run the tests locally**: `make lint`, `make typecheck` and
+  `make test` require only a public clone — no credentials, no Discord
+  token, no external services. Keep it that way.
+- Authorized contributors (per the GitHub environment protection rules)
+  can deploy to the **dev** environment; higher environments are gated
+  by their own deployment triggers.
 - Keep the documentation in `kingdoms` in sync: a code change without its doc
   update is incomplete. Reference issues fully qualified
   (e.g. `kingdoms-services#12`) since cross-repo references are common.
