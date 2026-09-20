@@ -73,3 +73,76 @@ def test_workflow_state_defaults() -> None:
         status="IN_PROGRESS",
     )
     assert state.payload == {}
+
+
+def test_user_model_mongo_round_trip() -> None:
+    user = UserModel(
+        _id="user-1",
+        platform="discord",
+        platform_user_id="123456789",
+        display_name="PlayerOne",
+        game_profiles={"aoe2": GameProfile(game_id="aoe2", in_game_name="PlayerOne")},
+    )
+    doc = user.to_mongo()
+    assert "_id" in doc
+    assert "id" not in doc
+    assert doc["_id"] == "user-1"
+    restored = UserModel.from_mongo(doc)
+    assert restored == user
+
+
+def test_guild_model_mongo_round_trip() -> None:
+    guild = GuildModel(
+        _id="guild-1",
+        platform="discord",
+        locale="fr",
+        channel_categories={"announce": "987654321"},
+        role_keys={"admin": "111111111"},
+    )
+    doc = guild.to_mongo()
+    assert doc["_id"] == "guild-1"
+    assert GuildModel.from_mongo(doc) == guild
+
+
+def test_channel_model_mongo_round_trip() -> None:
+    channel = ChannelModel(
+        _id="channel-1",
+        guild_id="guild-1",
+        platform="discord",
+        category="example:announce",
+        channel_id="987654321",
+        name="Annonces",
+    )
+    doc = channel.to_mongo()
+    assert doc["_id"] == "channel-1"
+    assert ChannelModel.from_mongo(doc) == channel
+
+
+def test_workflow_state_mongo_round_trip() -> None:
+    state = WorkflowState(
+        _id="wf-1",
+        workflow_name="registration",
+        guild_id="guild-1",
+        user_id="user-1",
+        current_step="ask_name",
+        status="IN_PROGRESS",
+        payload={"name": "PlayerOne", "attempts": 2},
+    )
+    doc = state.to_mongo()
+    assert doc["_id"] == "wf-1"
+    assert WorkflowState.from_mongo(doc) == state
+
+
+def test_workflow_state_from_mongo_rejects_strict_type_violations() -> None:
+    with pytest.raises(ValidationError):
+        WorkflowState.from_mongo(
+            {
+                "_id": "wf-1",
+                "workflow_name": "registration",
+                "guild_id": "guild-1",
+                "user_id": "user-1",
+                "current_step": 42,
+                "status": "IN_PROGRESS",
+                "payload": {"attempts": 2},
+            }
+        )
