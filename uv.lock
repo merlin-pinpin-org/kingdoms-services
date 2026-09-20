@@ -655,6 +655,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+    { name = "simcord", extra = ["pytest"] },
     { name = "types-pyyaml" },
     { name = "types-redis" },
 ]
@@ -678,6 +679,7 @@ dev = [
     { name = "pytest", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
     { name = "ruff", specifier = ">=0.1.6" },
+    { name = "simcord", extras = ["pytest"], specifier = ">=2.1.0" },
     { name = "types-pyyaml", specifier = ">=6.0" },
     { name = "types-redis", specifier = ">=4.5.5" },
 ]
@@ -1397,6 +1399,24 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3d/02/7f10ef4700bc223c30a3fdd10631a29830c45524b810a3c7ed947af64591/ruff-0.16.8-py3-none-win32.whl", hash = "sha256:55793ba85c69921e89be061426d91a78652d6e50317c962240922747a4eb713f", size = 10093472, upload-time = "2026-09-16T15:54:37.47Z" },
     { url = "https://files.pythonhosted.org/packages/1e/5d/a509c07d714b6da88f2c518b4637cf6f1d46b074be8f0f1e5fb9ff5126fe/ruff-0.16.8-py3-none-win_amd64.whl", hash = "sha256:a6b85621fd3c81e31fc5f5add09c9c078b430db3595ca632efafdec9e64ebfaa", size = 10586899, upload-time = "2026-09-16T15:54:40.488Z" },
     { url = "https://files.pythonhosted.org/packages/fe/a0/50787329e4f20bf9dc9f6230015d46ec69c51a97ace5bc202dae4755365d/ruff-0.16.8-py3-none-win_arm64.whl", hash = "sha256:d075e820af612102ce217f07cc93e69f9490b10ec13ea85fa87bd03d996cef8a", size = 10386316, upload-time = "2026-09-16T15:54:43.332Z" },
+]
+
+[[package]]
+name = "simcord"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "discord-py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/9c/3d82222cd935b08f6954e34e2c2b4b2060a60837ee3afb3176b652df1282/simcord-2.1.0.tar.gz", hash = "sha256:278413c72449176c89117464d6b617acba9c8646b2b663fd10f175f2bad2b594", size = 1323062, upload-time = "2026-09-19T16:35:24.001Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/9f/016062bc09682921677b10d68cc3f3444dd2a807cdf49eca13c9018c8089/simcord-2.1.0-py3-none-any.whl", hash = "sha256:7e7530ffb0cb0d577ca46f592674ad097736e6488692953650ca685c21913b0c", size = 144036, upload-time = "2026-09-19T16:35:22.586Z" },
+]
+
+[package.optional-dependencies]
+pytest = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [[package]]

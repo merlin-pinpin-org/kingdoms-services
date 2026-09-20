@@ -56,6 +56,28 @@ core services, Discord platform implementation, mods, YAML configs.
   When a check cannot run locally, add or extend the workflow that validates
   it — never leave it unverified.
 
+## Testing rules
+
+The testing strategy is defined in
+[kingdoms/docs/architecture/testing.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/architecture/testing.md)
+(hybrid pyramid). The short version — use the **right double for the right
+depth**:
+
+- **No Discord at all** for core tests (`src/kingdoms/core/` is
+  platform-agnostic; use plain fixtures, in-memory stores).
+- **MockDiscord** (`tests/mocks/discord_mock.py`, kingdoms-services#2) for
+  adapter and UI-builder unit tests: mock objects subclassing the real
+  discord.py classes, recording both UI surfaces per ADR-0009.
+- **SimCord** (dev-dependency `simcord[pytest]`, behavioral journeys in
+  `tests/integration/test_simcord_journeys.py`) for anything that depends
+  on discord.py dispatch: slash commands, buttons, selects, modals,
+  permissions, view timeouts, Components V2. Drive the bot as a user
+  (`alice.slash()`, `alice.click()`, `alice.submit_modal()`), never call a
+  command callback directly. No token, no network, no sleeps —
+  `env.advance_time()` fires timeouts.
+- Never use `MagicMock` as a substitute for Discord permissions or cache
+  state; never call `bot.run()` in a test.
+
 ## Roadmap
 
 `ROADMAP.md` lives in the `kingdoms` repo and is synced by the `/roadmap`
