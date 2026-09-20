@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.mod_registry</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.mod_registry</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/workspace/github__merlin-pinpin__kingdoms-services/src/kingdoms/core/services/mod_registry.py">/workspace/github__merlin-pinpin__kingdoms-services/src/kingdoms/core/services/mod_registry.py</a></td></tr></table>
+    <p><span class="code"><a href="#ModRegistry">ModRegistry</a>:&nbsp;the&nbsp;catalog&nbsp;of&nbsp;installed&nbsp;mods&nbsp;and&nbsp;their&nbsp;declarations.<br>
+&nbsp;<br>
+Reads&nbsp;mod&nbsp;declarations&nbsp;from&nbsp;``config/mods/*.yaml``&nbsp;at&nbsp;startup.&nbsp;It&nbsp;contains<br>
+no&nbsp;game&nbsp;logic:&nbsp;it&nbsp;answers&nbsp;"which&nbsp;mods&nbsp;exist,&nbsp;which&nbsp;are&nbsp;enabled,&nbsp;and&nbsp;what&nbsp;do<br>
+they&nbsp;declare?".&nbsp;ChannelService/RoleService&nbsp;consume&nbsp;these&nbsp;declarations&nbsp;to<br>
+provision&nbsp;channels&nbsp;and&nbsp;roles&nbsp;automatically.<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#26,&nbsp;docs/architecture/mods.md&nbsp;(kingdoms&nbsp;repo).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.mod_registry.html#ModRegistry">ModRegistry</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModRegistry">class <strong>ModRegistry</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModRegistry">ModRegistry</a>(definitions:&nbsp;'ModDefs&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Runtime&nbsp;catalog&nbsp;of&nbsp;installed&nbsp;mods;&nbsp;populated&nbsp;at&nbsp;bot&nbsp;startup.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModRegistry-__init__"><strong>__init__</strong></a>(self, definitions: 'ModDefs | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ModRegistry-all"><strong>all</strong></a>(self) -&gt; 'dict[str, ModDefinition]'</dt><dd><span class="code">All&nbsp;declared&nbsp;mod&nbsp;definitions.</span></dd></dl>
+
+<dl><dt><a name="ModRegistry-enabled"><strong>enabled</strong></a>(self) -&gt; 'dict[str, ModDefinition]'</dt><dd><span class="code">All&nbsp;enabled&nbsp;mod&nbsp;definitions.</span></dd></dl>
+
+<dl><dt><a name="ModRegistry-get"><strong>get</strong></a>(self, mod_name: 'str') -&gt; 'ModDefinition | None'</dt><dd><span class="code">Return&nbsp;a&nbsp;mod&nbsp;definition&nbsp;by&nbsp;name,&nbsp;or&nbsp;None.</span></dd></dl>
+
+<dl><dt><a name="ModRegistry-register"><strong>register</strong></a>(self, definition: 'ModDefinition') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;mod&nbsp;declaration&nbsp;(idempotent,&nbsp;last&nbsp;wins).</span></dd></dl>
+
+<dl><dt><a name="ModRegistry-require"><strong>require</strong></a>(self, mod_name: 'str') -&gt; 'ModDefinition'</dt><dd><span class="code">Return&nbsp;a&nbsp;mod&nbsp;definition,&nbsp;fail&nbsp;loudly&nbsp;if&nbsp;not&nbsp;declared.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-load_mod_definitions"><strong>load_mod_definitions</strong></a>(config_dir: 'Path') -&gt; 'ModDefs'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;every&nbsp;mod&nbsp;declaration&nbsp;in&nbsp;a&nbsp;config&nbsp;directory.<br>
+&nbsp;<br>
+An&nbsp;invalid&nbsp;declaration&nbsp;raises:&nbsp;a&nbsp;broken&nbsp;mod&nbsp;must&nbsp;fail&nbsp;startup&nbsp;loudly,<br>
+never&nbsp;load&nbsp;half-initialized&nbsp;(docs/architecture/mods.md).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ModDefs</strong> = dict[str, kingdoms.core.services.mod_definition.ModDefinition]<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.services.mod_registry (WARNING)&gt;</td></tr></table>
+</body></html>

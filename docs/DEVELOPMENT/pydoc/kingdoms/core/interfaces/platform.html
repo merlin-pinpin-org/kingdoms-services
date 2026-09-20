@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.interfaces.platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.interfaces.html" class="white">interfaces</a>.platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/workspace/github__merlin-pinpin__kingdoms-services/src/kingdoms/core/interfaces/platform.py">/workspace/github__merlin-pinpin__kingdoms-services/src/kingdoms/core/interfaces/platform.py</a></td></tr></table>
+    <p><span class="code">Platform&nbsp;abstraction&nbsp;contracts&nbsp;(<a href="#IPlatform">IPlatform</a>,&nbsp;<a href="#IMessage">IMessage</a>,&nbsp;<a href="#IChannel">IChannel</a>,&nbsp;<a href="#IUser">IUser</a>,&nbsp;<a href="#IWorkflow">IWorkflow</a>).<br>
+&nbsp;<br>
+Reference:&nbsp;docs/ARCHITECTURE.md&nbsp;(kingdoms&nbsp;repo)&nbsp;and&nbsp;kingdoms-services#3.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="abc.html#ABC">abc.ABC</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IChannel">IChannel</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IMessage">IMessage</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IPlatform">IPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IUser">IUser</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IWorkflow">IWorkflow</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IChannel">class <strong>IChannel</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;channel.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.interfaces.platform.html#IChannel">IChannel</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Platform-specific&nbsp;unique&nbsp;channel&nbsp;identifier.</span></dd>
+</dl>
+<dl><dt><strong>name</strong></dt>
+<dd><span class="code">Human-readable&nbsp;channel&nbsp;name.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'id', 'name'})</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IMessage">class <strong>IMessage</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;message&nbsp;exchanged&nbsp;between&nbsp;the&nbsp;core&nbsp;and&nbsp;a&nbsp;platform.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.interfaces.platform.html#IMessage">IMessage</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>author</strong></dt>
+<dd><span class="code">Message&nbsp;author.</span></dd>
+</dl>
+<dl><dt><strong>channel</strong></dt>
+<dd><span class="code">Channel&nbsp;the&nbsp;message&nbsp;was&nbsp;sent&nbsp;in.</span></dd>
+</dl>
+<dl><dt><strong>content</strong></dt>
+<dd><span class="code">Message&nbsp;text&nbsp;content.</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Platform-specific&nbsp;unique&nbsp;message&nbsp;identifier.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'author', 'channel', 'content', 'id'})</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IPlatform">class <strong>IPlatform</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Platform&nbsp;abstraction:&nbsp;messaging,&nbsp;channel&nbsp;management,&nbsp;roles,&nbsp;DMs.<br>
+&nbsp;<br>
+First&nbsp;implementation:&nbsp;DiscordPlatform&nbsp;(kingdoms-services#11).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.interfaces.platform.html#IPlatform">IPlatform</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="IPlatform-assign_role"><strong>assign_role</strong></a>(self, user: 'IUser', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;a&nbsp;role&nbsp;(referenced&nbsp;by&nbsp;logical&nbsp;role&nbsp;key)&nbsp;to&nbsp;a&nbsp;user.</span></dd></dl>
+
+<dl><dt>async <a name="IPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Create&nbsp;a&nbsp;channel&nbsp;in&nbsp;a&nbsp;guild&nbsp;under&nbsp;a&nbsp;channel&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="IPlatform-send_dm"><strong>send_dm</strong></a>(self, user: 'IUser', content: 'str') -&gt; 'IMessage'</dt><dd><span class="code">Send&nbsp;a&nbsp;direct&nbsp;message&nbsp;to&nbsp;a&nbsp;user.</span></dd></dl>
+
+<dl><dt>async <a name="IPlatform-send_message"><strong>send_message</strong></a>(self, channel: 'IChannel', content: 'str') -&gt; 'IMessage'</dt><dd><span class="code">Send&nbsp;a&nbsp;text&nbsp;message&nbsp;to&nbsp;a&nbsp;channel.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'assign_role', 'create_channel', 'send_dm', 'send_message'})</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IUser">class <strong>IUser</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;user&nbsp;identity.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.interfaces.platform.html#IUser">IUser</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>display_name</strong></dt>
+<dd><span class="code">Human-readable&nbsp;user&nbsp;name.</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Platform-specific&nbsp;unique&nbsp;user&nbsp;identifier.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'display_name', 'id'})</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IWorkflow">class <strong>IWorkflow</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&nbsp;the&nbsp;WorkflowEngine.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.interfaces.platform.html#IWorkflow">IWorkflow</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="IWorkflow-handle_interaction"><strong>handle_interaction</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Handle&nbsp;a&nbsp;user&nbsp;interaction&nbsp;event&nbsp;and&nbsp;drive&nbsp;step&nbsp;transitions.</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflow-start"><strong>start</strong></a>(self, context: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Start&nbsp;the&nbsp;workflow&nbsp;with&nbsp;an&nbsp;initial&nbsp;context.</span></dd></dl>
+
+<dl><dt><a name="IWorkflow-steps"><strong>steps</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;ordered&nbsp;step&nbsp;names&nbsp;of&nbsp;the&nbsp;workflow.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'handle_interaction', 'start', 'steps'})</dl>
+
+</td></tr></table></td></tr></table>
+</body></html>

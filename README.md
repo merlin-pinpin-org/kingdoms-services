@@ -7,6 +7,9 @@ Python code for the Kingdoms Discord bot platform.
 
 - **Auto-triage** (`.github/workflows/auto-triage.yml`): assigns, labels and
   links every new issue/PR.
+- **Docs** (`.github/workflows/docs.yml`): this repo hosts its own generated
+  technical documentation (`docs/DEVELOPMENT/pydoc/`, regenerated with
+  `make docs`); every PR fails when the committed copy is stale.
 - **PR commands**: generated artifacts in `merlin-pinpin/kingdoms`
   (`ROADMAP.md`, `docs/DEPENDENCIES.md`, generated dev docs) are refreshed
   by PR comment commands (`/roadmap`, `/dependencies`, `/generate-docs`)

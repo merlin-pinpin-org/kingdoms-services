@@ -1,0 +1,38 @@
+name: Docs
+# Generates the technical documentation (pydoc HTML) from this repo's own
+# source into docs/DEVELOPMENT/pydoc/ — the source repo hosts its generated
+# docs. On every PR, a freshness step fails when the committed copy is stale
+# (fix: run `make docs` locally, or python3 scripts/generate_pydoc.py, and
+# commit the result). Fail-closed: the freshness check is a required gate.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Generate and check pydoc freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync || true
+      - name: Check pydoc freshness
+        run: |
+          python3 scripts/generate_pydoc.py \
+            --source src/kingdoms \
+            --output /tmp/pydoc-fresh
+          if diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc \
+            --exclude=.gitkeep > /tmp/pydoc-diff.txt 2>&1; then
+            echo "Generated docs are fresh"
+          else
+            echo "::error::docs/DEVELOPMENT/pydoc is stale — regenerate with 'make docs' and commit"
+            cat /tmp/pydoc-diff.txt
+            exit 1
+          fi
