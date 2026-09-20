@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from kingdoms.core.interfaces.platform import IChannel, IMessage, IPlatform, IUser, IWorkflow
+from kingdoms.core.models.workflow import WorkflowStatus, WorkflowTransition
 
 
 class FakeUser:
@@ -58,11 +59,20 @@ class FakePlatform:
 
 
 class FakeWorkflow:
-    async def start(self, context: dict[str, object]) -> None:
-        return None
+    @property
+    def name(self) -> str:
+        return "fake"
 
-    async def handle_interaction(self, event: dict[str, object]) -> None:
-        return None
+    async def start(self, context: dict[str, object]) -> WorkflowTransition:
+        return WorkflowTransition(current_step="start", status=WorkflowStatus.PENDING)
+
+    async def handle_interaction(
+        self, state: WorkflowTransition, event: dict[str, object]
+    ) -> WorkflowTransition:
+        return WorkflowTransition(current_step="next", status=WorkflowStatus.IN_PROGRESS)
+
+    async def on_timeout(self, state: WorkflowTransition) -> WorkflowTransition:
+        return WorkflowTransition(current_step=state.current_step, status=WorkflowStatus.TIMED_OUT)
 
     def steps(self) -> list[str]:
         return ["start", "ask_name", "confirm"]

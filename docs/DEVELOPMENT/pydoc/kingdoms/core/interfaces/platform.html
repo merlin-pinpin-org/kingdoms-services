@@ -319,7 +319,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#IWorkflow">IWorkflow</a>(*args,&nbsp;**kwargs)<br>
 &nbsp;<br>
-Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&nbsp;the&nbsp;WorkflowEngine.<br>&nbsp;</span></td></tr>
+Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&nbsp;the&nbsp;WorkflowEngine.<br>
+&nbsp;<br>
+Workflows&nbsp;are&nbsp;stateless&nbsp;executors:&nbsp;the&nbsp;engine&nbsp;passes&nbsp;the&nbsp;current&nbsp;state<br>
+in&nbsp;the&nbsp;envelope&nbsp;and&nbsp;applies&nbsp;the&nbsp;returned&nbsp;transition&nbsp;to&nbsp;persistence.<br>
+Reference:&nbsp;docs/architecture/core.md&nbsp;§1,&nbsp;ADR-0002.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IWorkflow">IWorkflow</a></dd>
@@ -331,16 +335,23 @@ Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&n
 Methods defined here:<br>
 <dl><dt><a name="IWorkflow-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="IWorkflow-handle_interaction"><strong>handle_interaction</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Handle&nbsp;a&nbsp;user&nbsp;interaction&nbsp;event&nbsp;and&nbsp;drive&nbsp;step&nbsp;transitions.</span></dd></dl>
+<dl><dt>async <a name="IWorkflow-handle_interaction"><strong>handle_interaction</strong></a>(self, state: 'WorkflowTransition', event: 'dict[str, Any]') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Apply&nbsp;one&nbsp;interaction&nbsp;to&nbsp;the&nbsp;current&nbsp;state;&nbsp;return&nbsp;the&nbsp;next&nbsp;transition.</span></dd></dl>
 
-<dl><dt>async <a name="IWorkflow-start"><strong>start</strong></a>(self, context: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Start&nbsp;the&nbsp;workflow&nbsp;with&nbsp;an&nbsp;initial&nbsp;context.</span></dd></dl>
+<dl><dt>async <a name="IWorkflow-on_timeout"><strong>on_timeout</strong></a>(self, state: 'WorkflowTransition') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Return&nbsp;the&nbsp;transition&nbsp;to&nbsp;apply&nbsp;when&nbsp;the&nbsp;current&nbsp;step&nbsp;times&nbsp;out.</span></dd></dl>
 
-<dl><dt><a name="IWorkflow-steps"><strong>steps</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;ordered&nbsp;step&nbsp;names&nbsp;of&nbsp;the&nbsp;workflow.</span></dd></dl>
+<dl><dt>async <a name="IWorkflow-start"><strong>start</strong></a>(self, context: 'dict[str, Any]') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Return&nbsp;the&nbsp;initial&nbsp;transition&nbsp;(first&nbsp;step,&nbsp;PENDING/IN_PROGRESS).</span></dd></dl>
+
+<dl><dt><a name="IWorkflow-steps"><strong>steps</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Ordered&nbsp;step&nbsp;names;&nbsp;the&nbsp;first&nbsp;is&nbsp;the&nbsp;entry&nbsp;step.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
 <dl><dt><a name="IWorkflow-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
 
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>name</strong></dt>
+<dd><span class="code">Unique&nbsp;workflow&nbsp;name&nbsp;(registration&nbsp;key&nbsp;for&nbsp;the&nbsp;engine).</span></dd>
+</dl>
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
@@ -355,11 +366,11 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__non_callable_proto_members__</strong> = set()</dl>
+<dl><dt><strong>__non_callable_proto_members__</strong> = {'name'}</dl>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'handle_interaction', 'start', 'steps'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'handle_interaction', 'name', 'on_timeout', 'start', 'steps'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -376,5 +387,11 @@ when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`
 However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
 classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
-</td></tr></table></td></tr></table>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False</td></tr></table>
 </body></html>

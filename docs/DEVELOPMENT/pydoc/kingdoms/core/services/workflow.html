@@ -11,34 +11,91 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/workflow.py">SOURCE_ROOT/core/services/workflow.py</a></td></tr></table>
     <p><span class="code"><a href="#WorkflowEngine">WorkflowEngine</a>:&nbsp;workflow&nbsp;execution.<br>
 &nbsp;<br>
-Loads&nbsp;workflow&nbsp;definitions,&nbsp;drives&nbsp;step&nbsp;transitions,&nbsp;persists&nbsp;state&nbsp;through<br>
-StateService&nbsp;and&nbsp;dispatches&nbsp;UI&nbsp;events.&nbsp;Implemented&nbsp;in&nbsp;kingdoms-services#6.</span></p>
+Loads&nbsp;workflow&nbsp;definitions&nbsp;(``IWorkflow``),&nbsp;drives&nbsp;step&nbsp;transitions&nbsp;under&nbsp;a<br>
+distributed&nbsp;lock,&nbsp;persists&nbsp;every&nbsp;transition&nbsp;as&nbsp;a&nbsp;durable&nbsp;``WorkflowState``<br>
+document&nbsp;(MongoDB)&nbsp;with&nbsp;a&nbsp;hot&nbsp;copy&nbsp;in&nbsp;Redis,&nbsp;enforces&nbsp;per-step&nbsp;timeouts&nbsp;and<br>
+resumes&nbsp;in-progress&nbsp;instances&nbsp;on&nbsp;startup.<br>
+&nbsp;<br>
+Workflows&nbsp;are&nbsp;stateless&nbsp;executors:&nbsp;they&nbsp;receive&nbsp;the&nbsp;current&nbsp;state&nbsp;and<br>
+return&nbsp;the&nbsp;next&nbsp;``WorkflowTransition``;&nbsp;the&nbsp;engine&nbsp;owns&nbsp;persistence,&nbsp;so<br>
+flows&nbsp;survive&nbsp;restarts&nbsp;by&nbsp;construction&nbsp;(ADR-0002,&nbsp;docs/architecture/core.md&nbsp;§1).<br>
+&nbsp;<br>
+Storage&nbsp;seams&nbsp;are&nbsp;structural&nbsp;protocols&nbsp;(ADR-0011):&nbsp;production&nbsp;wires<br>
+``<a href="#MongoWorkflowStore">MongoWorkflowStore</a>``&nbsp;and&nbsp;``RedisStateStore``,&nbsp;tests&nbsp;wire&nbsp;in-memory<br>
+substitutes&nbsp;(docs/architecture/testing.md).<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#6,&nbsp;ADR-0002.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="uuid.html">uuid</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
     
 <tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#Exception">builtins.Exception</a>(<a href="builtins.html#BaseException">builtins.BaseException</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.workflow.html#WorkflowNotFoundError">WorkflowNotFoundError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.workflow.html#WorkflowNotRegisteredError">WorkflowNotRegisteredError</a>
+</dt></dl>
+</dd>
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.core.services.workflow.html#WorkflowEngine">WorkflowEngine</a>
+<dt class="heading-text"><a href="kingdoms.core.services.workflow.html#MongoWorkflowStore">MongoWorkflowStore</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.workflow.html#WorkflowEngine">WorkflowEngine</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.workflow.html#IWorkflowStore">IWorkflowStore</a>
 </dt></dl>
 </dd>
 </dl>
  <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="WorkflowEngine">class <strong>WorkflowEngine</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IWorkflowStore">class <strong>IWorkflowStore</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Execute&nbsp;workflows&nbsp;and&nbsp;persist&nbsp;their&nbsp;state.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IWorkflowStore">IWorkflowStore</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Durable&nbsp;persistence&nbsp;seam&nbsp;for&nbsp;workflow&nbsp;instances.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
-<td class="singlecolumn">Methods defined here:<br>
-<dl><dt>async <a name="WorkflowEngine-handle_interaction"><strong>handle_interaction</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Dispatch&nbsp;an&nbsp;interaction&nbsp;event&nbsp;to&nbsp;the&nbsp;right&nbsp;running&nbsp;workflow.</span></dd></dl>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.workflow.html#IWorkflowStore">IWorkflowStore</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IWorkflowStore-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="WorkflowEngine-start_workflow"><strong>start_workflow</strong></a>(self, workflow: 'IWorkflow', context: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Start&nbsp;a&nbsp;workflow&nbsp;with&nbsp;an&nbsp;initial&nbsp;context.</span></dd></dl>
+<dl><dt>async <a name="IWorkflowStore-delete"><strong>delete</strong></a>(self, workflow_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;an&nbsp;instance;&nbsp;returns&nbsp;True&nbsp;when&nbsp;a&nbsp;document&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflowStore-get"><strong>get</strong></a>(self, workflow_id: 'str') -&gt; 'WorkflowState | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;workflow&nbsp;instance;&nbsp;returns&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflowStore-list_by_status"><strong>list_by_status</strong></a>(self, status: 'WorkflowStatus') -&gt; 'list[WorkflowState]'</dt><dd><span class="code">List&nbsp;instances&nbsp;in&nbsp;the&nbsp;given&nbsp;status&nbsp;(restart&nbsp;recovery&nbsp;scan).</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflowStore-save"><strong>save</strong></a>(self, state: 'WorkflowState') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;update&nbsp;a&nbsp;workflow&nbsp;instance&nbsp;document.</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflowStore-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;to&nbsp;the&nbsp;durable&nbsp;store.</span></dd></dl>
+
+<dl><dt>async <a name="IWorkflowStore-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Release&nbsp;the&nbsp;durable&nbsp;store's&nbsp;resources.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IWorkflowStore-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -48,5 +105,240 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
-</td></tr></table></td></tr></table>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = set()</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete', 'get', 'list_by_status', 'save', 'start', 'stop'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IWorkflowStore-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IWorkflowStore-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoWorkflowStore">class <strong>MongoWorkflowStore</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoWorkflowStore">MongoWorkflowStore</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+<a href="#IWorkflowStore">IWorkflowStore</a>&nbsp;implementation&nbsp;backed&nbsp;by&nbsp;MongoDB&nbsp;(``workflow_states``).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoWorkflowStore-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;database&nbsp;handle;&nbsp;the&nbsp;collection&nbsp;is&nbsp;accessed&nbsp;lazily.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-delete"><strong>delete</strong></a>(self, workflow_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;an&nbsp;instance&nbsp;document.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-get"><strong>get</strong></a>(self, workflow_id: 'str') -&gt; 'WorkflowState | None'</dt><dd><span class="code">Read&nbsp;an&nbsp;instance&nbsp;document.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-list_by_status"><strong>list_by_status</strong></a>(self, status: 'WorkflowStatus') -&gt; 'list[WorkflowState]'</dt><dd><span class="code">List&nbsp;instance&nbsp;documents&nbsp;in&nbsp;the&nbsp;given&nbsp;status.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-save"><strong>save</strong></a>(self, state: 'WorkflowState') -&gt; 'None'</dt><dd><span class="code">Upsert&nbsp;the&nbsp;instance&nbsp;document.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;collection&nbsp;and&nbsp;its&nbsp;status&nbsp;index&nbsp;exist.</span></dd></dl>
+
+<dl><dt>async <a name="MongoWorkflowStore-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Nothing&nbsp;to&nbsp;release:&nbsp;the&nbsp;shared&nbsp;client&nbsp;owns&nbsp;the&nbsp;connection.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>COLLECTION</strong> = 'workflow_states'</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="WorkflowEngine">class <strong>WorkflowEngine</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#WorkflowEngine">WorkflowEngine</a>(store:&nbsp;'<a href="#IWorkflowStore">IWorkflowStore</a>',&nbsp;state:&nbsp;'StateService',&nbsp;step_timeout:&nbsp;'float'&nbsp;=&nbsp;180.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Execute&nbsp;registered&nbsp;workflows&nbsp;and&nbsp;persist&nbsp;their&nbsp;state.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="WorkflowEngine-__init__"><strong>__init__</strong></a>(self, store: 'IWorkflowStore', state: 'StateService', step_timeout: 'float' = 180.0) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;durable&nbsp;store,&nbsp;the&nbsp;hot-state&nbsp;service&nbsp;and&nbsp;the&nbsp;step&nbsp;timeout.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-cancel"><strong>cancel</strong></a>(self, workflow_id: 'str') -&gt; 'WorkflowState'</dt><dd><span class="code">Mark&nbsp;a&nbsp;non-terminal&nbsp;instance&nbsp;CANCELLED&nbsp;and&nbsp;stop&nbsp;its&nbsp;timeout.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-get_state"><strong>get_state</strong></a>(self, workflow_id: 'str') -&gt; 'WorkflowState'</dt><dd><span class="code">Read&nbsp;the&nbsp;durable&nbsp;state&nbsp;of&nbsp;an&nbsp;instance.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-handle_interaction"><strong>handle_interaction</strong></a>(self, workflow_id: 'str', event: 'dict[str, Any]') -&gt; 'WorkflowState'</dt><dd><span class="code">Dispatch&nbsp;an&nbsp;interaction&nbsp;to&nbsp;the&nbsp;running&nbsp;instance&nbsp;under&nbsp;its&nbsp;lock.</span></dd></dl>
+
+<dl><dt><a name="WorkflowEngine-register_workflow"><strong>register_workflow</strong></a>(self, workflow: 'IWorkflow') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;workflow&nbsp;definition&nbsp;under&nbsp;its&nbsp;name.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-resume"><strong>resume</strong></a>(self, workflow_id: 'str') -&gt; 'WorkflowState'</dt><dd><span class="code">Reload&nbsp;an&nbsp;instance&nbsp;from&nbsp;the&nbsp;durable&nbsp;store&nbsp;and&nbsp;restart&nbsp;its&nbsp;step&nbsp;timeout.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;the&nbsp;store&nbsp;and&nbsp;resume&nbsp;in-progress&nbsp;instances&nbsp;(never&nbsp;drop&nbsp;them).</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-start_workflow"><strong>start_workflow</strong></a>(self, workflow_name: 'str', guild_id: 'str', user_id: 'str', context: 'dict[str, Any] | None' = None) -&gt; 'str'</dt><dd><span class="code">Start&nbsp;a&nbsp;workflow&nbsp;instance&nbsp;for&nbsp;a&nbsp;user;&nbsp;returns&nbsp;its&nbsp;ID.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Cancel&nbsp;step&nbsp;timeouts&nbsp;and&nbsp;release&nbsp;the&nbsp;store.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>step_timeout</strong></dt>
+<dd><span class="code">Seconds&nbsp;of&nbsp;inactivity&nbsp;before&nbsp;a&nbsp;step&nbsp;times&nbsp;out.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="WorkflowNotFoundError">class <strong>WorkflowNotFoundError</strong></a>(<a href="builtins.html#Exception">builtins.Exception</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">No&nbsp;instance&nbsp;exists&nbsp;for&nbsp;the&nbsp;given&nbsp;workflow&nbsp;ID.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.workflow.html#WorkflowNotFoundError">WorkflowNotFoundError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="WorkflowNotFoundError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="WorkflowNotFoundError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="WorkflowNotFoundError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#WorkflowNotFoundError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotFoundError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#WorkflowNotFoundError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="WorkflowNotRegisteredError">class <strong>WorkflowNotRegisteredError</strong></a>(<a href="builtins.html#Exception">builtins.Exception</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">No&nbsp;workflow&nbsp;definition&nbsp;is&nbsp;registered&nbsp;under&nbsp;the&nbsp;requested&nbsp;name.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.workflow.html#WorkflowNotRegisteredError">WorkflowNotRegisteredError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="WorkflowNotRegisteredError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="WorkflowNotRegisteredError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="WorkflowNotRegisteredError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#WorkflowNotRegisteredError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="WorkflowNotRegisteredError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#WorkflowNotRegisteredError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>HOT_STATE_SCOPE</strong> = 'workflow'<br>
+<strong>HOT_TTL_GRACE_SECONDS</strong> = 300</td></tr></table>
 </body></html>
