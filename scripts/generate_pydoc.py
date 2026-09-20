@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import argparse
 import html
-import re
 import importlib
 import pydoc
+import re
 import sys
 from pathlib import Path
 
@@ -43,7 +43,7 @@ def import_all(modules: list[str]) -> list[tuple[str, object]]:
     for name in modules:
         try:
             imported.append((name, importlib.import_module(name)))
-        except Exception as exc:  # noqa: BLE001 - generation must not stop on one module
+        except Exception as exc:
             print(f"warning: could not import {name}: {exc}", file=sys.stderr)
     return imported
 
@@ -54,13 +54,18 @@ def write_pages(
     src_root: Path,
 ) -> list[tuple[str, Path]]:
     """Render each module to docs/DEVELOPMENT/pydoc/<mirrored-path>.html."""
-    package = src_root.name
     written: list[tuple[str, Path]] = []
     for name, module in imported:
         content = pydoc.html.page(name, pydoc.html.document(module, name))
         content = re.sub(
             r"0x[0-9a-f]+|\b\d{12,}\b",
             "0xMEMORY_ADDRESS",
+            content,
+        )
+        src_prefix = re.escape(str(src_root.resolve()))
+        content = re.sub(
+            rf"{src_prefix}",
+            "SOURCE_ROOT",
             content,
         )
         rel_dir = Path(*name.split(".")[:-1])
