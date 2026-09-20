@@ -44,6 +44,7 @@ ignore = ["D203", "D213", "D107", "S603"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "S101", "SLF"]
 "scripts/**" = ["D", "S101", "T201"]
+"src/kingdoms/discord/bot/main.py" = ["T201", "T203"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -76,6 +76,16 @@ jobs:
             --entrypoint python \
             kingdoms-bot:ci /app/smoke_test.py
 
+      - name: Bot preflight via the real entrypoint (startup path check)
+        env:
+          MONGO_URI: mongodb://kingdoms-mongo:27017
+          REDIS_URI: redis://kingdoms-redis:6379
+          DISCORD_TOKEN: dummy-token-for-smoke
+        run: |
+          docker run --rm --network kingdoms-ci \
+            -e MONGO_URI -e REDIS_URI -e DISCORD_TOKEN \
+            kingdoms-bot:ci --preflight
+
       - name: Show dependency logs on failure
         if: failure()
         run: |
