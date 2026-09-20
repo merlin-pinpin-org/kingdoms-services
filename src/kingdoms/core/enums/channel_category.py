@@ -1,6 +1,8 @@
 """Channel categories: routing keys used by ChannelService.
 
-Reference: ADR-0003 (channel categories). Extended in kingdoms-services#7.
+Core defines only platform-level categories. Mods declare their own
+categories via their mod definitions (kingdoms-services#26); the core never
+enumerates mod-specific channels. Reference: ADR-0003.
 """
 
 from __future__ import annotations
@@ -9,9 +11,8 @@ from enum import StrEnum
 
 
 class ChannelCategory(StrEnum):
-    """Logical channel categories; mods ask for channels by category."""
+    """Platform-level channel categories; mods add their own per mod."""
 
     ADMIN = "admin"
     REPORTS = "reports"
-    LADDER = "ladder"
-    REGISTRATION = "registration"
+    LOGS = "logs"

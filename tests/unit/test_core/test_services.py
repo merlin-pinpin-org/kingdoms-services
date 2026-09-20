@@ -12,7 +12,7 @@ from kingdoms.core.services.workflow import WorkflowEngine
 async def test_channel_service_raises_until_implemented() -> None:
     service = ChannelService(platform=None)  # type: ignore[arg-type]
     with pytest.raises(NotImplementedError):
-        await service.get_channel_for_category("guild-1", "registration")
+        await service.get_channel_for_category("guild-1", "ladder:ladder_rankings")
 
 
 async def test_workflow_engine_raises_until_implemented() -> None:

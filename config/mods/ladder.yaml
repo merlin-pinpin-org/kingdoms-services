@@ -3,3 +3,18 @@ enabled: true
 settings:
   initial_rating: 1000
   k_factor: 32
+channels:
+  - key: ladder_admin
+    display_name: Ladder Admins
+    description: Admin notifications for the ladder mod (disputes, moderation)
+  - key: ladder_rankings
+    display_name: Classement
+    description: Rankings and match results
+  - key: ladder_info
+    display_name: Infos Ladder
+    description: Rules, matchmaking info and announcements
+roles:
+  - key: ladder_participant
+    display_name: Ladder Participant
+  - key: ladder_admin
+    display_name: Ladder Admin

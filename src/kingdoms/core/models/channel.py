@@ -1,4 +1,4 @@
-"""Channel model: channel registry keyed by ChannelCategory.
+"""Channel model: channel registry keyed by mod-scoped channel category.
 
 Reference: kingdoms-services#4.
 """

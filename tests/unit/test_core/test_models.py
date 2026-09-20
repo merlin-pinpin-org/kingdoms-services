@@ -51,17 +51,17 @@ def test_channel_model_fields() -> None:
         _id="channel-1",
         guild_id="guild-1",
         platform="discord",
-        category="registration",
+        category="ladder:ladder_rankings",
         channel_id="987654321",
-        name="registration",
+        name="Classement",
     )
-    assert channel.category == "registration"
+    assert channel.category == "ladder:ladder_rankings"
 
 
 def test_workflow_state_defaults() -> None:
     state = WorkflowState(
         _id="wf-1",
-        workflow_name="registration",
+        workflow_name="Classement",
         guild_id="guild-1",
         user_id="user-1",
         current_step="ask_name",

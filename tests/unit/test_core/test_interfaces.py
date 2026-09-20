@@ -72,7 +72,7 @@ class FakeWorkflow(IWorkflow):
 
 async def test_ipatform_contract_can_be_implemented() -> None:
     platform = FakePlatform()
-    channel = await platform.create_channel("guild-1", "registration")
+    channel = await platform.create_channel("guild-1", "ladder:ladder_rankings")
     assert channel.id == "channel-1"
 
 

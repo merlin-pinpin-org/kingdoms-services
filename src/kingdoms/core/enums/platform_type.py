@@ -10,4 +10,3 @@ class PlatformType(StrEnum):
 
     DISCORD = "discord"
     TWITCH = "twitch"
-    TELEGRAM = "telegram"
