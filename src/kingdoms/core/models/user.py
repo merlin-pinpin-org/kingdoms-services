@@ -10,6 +10,7 @@ Reference: kingdoms-services#4.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,3 +41,12 @@ class UserModel(BaseModel):
     locale: str = "en"
     registered_at: str | None = None
     game_profiles: dict[str, GameProfile] = Field(default_factory=dict)
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document (``_id`` is the document key)."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> UserModel:
+        """Build from a MongoDB document."""
+        return cls.model_validate(data)
