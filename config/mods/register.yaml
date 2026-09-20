@@ -1,0 +1,6 @@
+id: register
+enabled: true
+settings:
+  require_approval: false
+  allowed_games:
+    - aoe2

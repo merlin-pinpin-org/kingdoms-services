@@ -1,0 +1,13 @@
+en:
+  common:
+    greeting: "Welcome to Kingdoms!"
+    error: "Something went wrong. Please try again."
+    cancel: "Cancel"
+    confirm: "Confirm"
+  register:
+    title: "Registration"
+    ask_name: "What is your in-game name?"
+    success: "Registration confirmed. Welcome aboard!"
+  ladder:
+    title: "Ladder"
+    ranking: "Ranking"
