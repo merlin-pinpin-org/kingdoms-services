@@ -29,9 +29,9 @@ def test_user_model_accepts_game_profiles() -> None:
         platform="discord",
         platform_user_id="123456789",
         display_name="PlayerOne",
-        game_profiles={"aoe2": GameProfile(game_id="aoe2", in_game_name="PlayerOne", rating=1200)},
+        game_profiles={"aoe2": GameProfile(game_id="aoe2", data={"rating": 1200})},
     )
-    assert user.game_profiles["aoe2"].rating == 1200
+    assert user.game_profiles["aoe2"].data["rating"] == 1200
 
 
 def test_user_model_requires_fields() -> None:
@@ -51,17 +51,17 @@ def test_channel_model_fields() -> None:
         _id="channel-1",
         guild_id="guild-1",
         platform="discord",
-        category="ladder:ladder_rankings",
+        category="example:announce",
         channel_id="987654321",
-        name="Classement",
+        name="Annonces",
     )
-    assert channel.category == "ladder:ladder_rankings"
+    assert channel.category == "example:announce"
 
 
 def test_workflow_state_defaults() -> None:
     state = WorkflowState(
         _id="wf-1",
-        workflow_name="Classement",
+        workflow_name="Annonces",
         guild_id="guild-1",
         user_id="user-1",
         current_step="ask_name",

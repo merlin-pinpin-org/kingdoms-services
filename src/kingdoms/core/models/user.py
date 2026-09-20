@@ -5,15 +5,16 @@ Reference: kingdoms-services#4.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class GameProfile(BaseModel):
-    """Per-game player profile."""
+    """Per-game player profile; game-specific fields live in `data`."""
 
     game_id: str
-    in_game_name: str | None = None
-    rating: int = 1000
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class UserModel(BaseModel):

@@ -36,15 +36,17 @@ def check_imports() -> None:
 
 
 def check_config() -> None:
-    import yaml
+    from pathlib import Path
 
-    with open("config/locales/en.yaml") as fh:
-        en = yaml.safe_load(fh)
-    assert "register" in en["en"], "en.yaml missing register keys"
-    with open("config/locales/fr.yaml") as fh:
-        fr = yaml.safe_load(fh)
-    assert "register" in fr["fr"], "fr.yaml missing register keys"
-    print("YAML configs load OK (en, fr)")
+    import yaml
+    for locale in ("en", "fr"):
+        with open(f"config/locales/{locale}.yaml") as fh:
+            catalog = yaml.safe_load(fh)
+        assert locale in catalog and "common" in catalog[locale], f"{locale}.yaml missing common keys"
+    from kingdoms.core.services.mod_registry import load_mod_definitions
+    mods = load_mod_definitions(Path("config"))
+    assert isinstance(mods, dict), "mod declarations failed to load"
+    print(f"YAML configs load OK (en, fr); {len(mods)} mod declaration(s) valid")
 
 
 def main() -> int:
