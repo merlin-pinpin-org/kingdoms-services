@@ -315,6 +315,7 @@ class StateService:
         """Build the raw-message callback decoding the event envelope."""
 
         async def dispatch(raw: str) -> None:
+            """Decode a raw event envelope and fan it out to callbacks."""
             envelope = json.loads(raw)
             event = str(envelope["event"])
             payload = dict(envelope["payload"])

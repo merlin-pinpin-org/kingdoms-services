@@ -10,11 +10,11 @@ Python code for the Kingdoms Discord bot platform.
 - **Docs** (`.github/workflows/docs.yml`): this repo hosts its own generated
   technical documentation (`docs/DEVELOPMENT/pydoc/`, regenerated with
   `make docs`); every PR fails when the committed copy is stale.
-- **PR commands**: generated artifacts in `merlin-pinpin/kingdoms`
-  (`ROADMAP.md`, `docs/DEPENDENCIES.md`, generated dev docs) are refreshed
-  by PR comment commands (`/roadmap`, `/dependencies`, `/generate-docs`)
-  documented in
-  [docs/SKILLS/pr-commands.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/pr-commands.md).
+- **Generated artifacts in `kingdoms`**: `ROADMAP.md` and
+  `docs/DEPENDENCIES.md` are refreshed by the sync skills
+  ([Update roadmap](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/update-roadmap.md),
+  [Update dependencies](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/update-dependencies.md)):
+  the sync scripts run locally and the result is committed to the PR branch.
   The former `roadmap-ping.yml`/`dependencies-ping.yml` dispatch pings and
   the `ROADMAP_DISPATCH_PAT` secret are no longer used and can be deleted.
 
