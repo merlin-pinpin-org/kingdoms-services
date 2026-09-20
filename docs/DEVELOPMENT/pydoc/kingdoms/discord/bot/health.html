@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.bot.health</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.bot.html" class="white">bot</a>.health</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/bot/health.py">SOURCE_ROOT/discord/bot/health.py</a></td></tr></table>
+    <p><span class="code">Container&nbsp;health&nbsp;endpoint:&nbsp;a&nbsp;minimal&nbsp;asyncio&nbsp;HTTP&nbsp;server&nbsp;for&nbsp;``/healthz``.<br>
+&nbsp;<br>
+The&nbsp;bot&nbsp;image&nbsp;(``Dockerfile``)&nbsp;declares&nbsp;a&nbsp;``HEALTHCHECK``&nbsp;probing<br>
+``<a href="http://localhost:8000/healthz">http://localhost:8000/healthz</a>``&nbsp;and&nbsp;the&nbsp;infra&nbsp;deployment&nbsp;gate<br>
+(``kingdoms-infra/scripts/deploy.sh``)&nbsp;waits&nbsp;on&nbsp;compose&nbsp;health&nbsp;status.<br>
+The&nbsp;bot&nbsp;is&nbsp;the&nbsp;only&nbsp;process&nbsp;in&nbsp;the&nbsp;container,&nbsp;so&nbsp;a&nbsp;liveness&nbsp;signal&nbsp;is<br>
+enough:&nbsp;if&nbsp;the&nbsp;process&nbsp;is&nbsp;up,&nbsp;Docker&nbsp;keeps&nbsp;restarting&nbsp;it&nbsp;when&nbsp;it&nbsp;dies,&nbsp;and<br>
+the&nbsp;health&nbsp;gate&nbsp;detects&nbsp;a&nbsp;crash-looping&nbsp;bot&nbsp;as&nbsp;``unhealthy``.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.bot.health.html#HealthServer">HealthServer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="HealthServer">class <strong>HealthServer</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#HealthServer">HealthServer</a>(port:&nbsp;'int'&nbsp;=&nbsp;8000,&nbsp;probe:&nbsp;'HealthStatus&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Serve&nbsp;``/healthz``&nbsp;on&nbsp;localhost;&nbsp;everything&nbsp;else&nbsp;is&nbsp;404.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="HealthServer-__init__"><strong>__init__</strong></a>(self, port: 'int' = 8000, probe: 'HealthStatus | None' = None) -&gt; 'None'</dt><dd><span class="code">Prepare&nbsp;the&nbsp;server;&nbsp;call&nbsp;:meth:`start`&nbsp;to&nbsp;bind&nbsp;the&nbsp;port.</span></dd></dl>
+
+<dl><dt>async <a name="HealthServer-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;health&nbsp;port&nbsp;on&nbsp;localhost&nbsp;and&nbsp;start&nbsp;serving.</span></dd></dl>
+
+<dl><dt>async <a name="HealthServer-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Close&nbsp;the&nbsp;listener&nbsp;and&nbsp;wait&nbsp;for&nbsp;pending&nbsp;handlers&nbsp;to&nbsp;drain.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>port</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;port&nbsp;the&nbsp;server&nbsp;binds&nbsp;(exposed&nbsp;for&nbsp;tests).</span></dd>
+</dl>
+<dl><dt><strong>running</strong></dt>
+<dd><span class="code">Return&nbsp;whether&nbsp;the&nbsp;server&nbsp;is&nbsp;accepting&nbsp;connections.</span></dd>
+</dl>
+<dl><dt><strong>sockets</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;listening&nbsp;sockets&nbsp;(tests&nbsp;read&nbsp;the&nbsp;bound&nbsp;port&nbsp;from&nbsp;them).</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_PORT</strong> = 8000<br>
+<strong>HEALTH_PATH</strong> = '/healthz'<br>
+<strong>HealthStatus</strong> = collections.abc.Callable[[], collections.abc.Awaitable[bool]]<br>
+<strong>logger</strong> = &lt;Logger kingdoms.bot.health (WARNING)&gt;</td></tr></table>
+</body></html>
