@@ -68,6 +68,11 @@ def write_pages(
             "SOURCE_ROOT",
             content,
         )
+        content = re.sub(
+            r"('[A-Za-z_.]+':\s*'[A-Za-z_.]+:)\d{7,11}'",
+            r"\g<1>MEMORY_ADDRESS'",
+            content,
+        )
         rel_dir = Path(*name.split(".")[:-1])
         out_dir = output_dir / rel_dir
         out_dir.mkdir(parents=True, exist_ok=True)
