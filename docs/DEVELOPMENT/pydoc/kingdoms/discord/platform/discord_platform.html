@@ -9,9 +9,10 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.platform.html" class="white">platform</a>.discord_platform</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/platform/discord_platform.py">SOURCE_ROOT/discord/platform/discord_platform.py</a></td></tr></table>
-    <p><span class="code"><a href="#DiscordPlatform">DiscordPlatform</a>:&nbsp;<a href="kingdoms.core.interfaces.platform.html#IPlatform">IPlatform</a>&nbsp;implementation&nbsp;on&nbsp;top&nbsp;of&nbsp;discord.py.<br>
+    <p><span class="code"><a href="#DiscordPlatform">DiscordPlatform</a>:&nbsp;IPlatform&nbsp;implementation&nbsp;on&nbsp;top&nbsp;of&nbsp;discord.py.<br>
 &nbsp;<br>
-Implemented&nbsp;in&nbsp;kingdoms-services#11.</span></p>
+Implemented&nbsp;in&nbsp;kingdoms-services#11.&nbsp;Satisfies&nbsp;the&nbsp;IPlatform&nbsp;Protocol<br>
+structurally&nbsp;(ADR-0011),&nbsp;without&nbsp;explicit&nbsp;inheritance.</span></p>
 <p>
 <table class="section">
 <tr class="decor index-decor heading-text">
@@ -19,7 +20,7 @@ Implemented&nbsp;in&nbsp;kingdoms-services#11.</span></p>
     
 <tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl>
-<dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IPlatform">kingdoms.core.interfaces.platform.IPlatform</a>(<a href="abc.html#ABC">abc.ABC</a>)
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.platform.discord_platform.html#DiscordPlatform">DiscordPlatform</a>
@@ -29,19 +30,12 @@ Implemented&nbsp;in&nbsp;kingdoms-services#11.</span></p>
  <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="DiscordPlatform">class <strong>DiscordPlatform</strong></a>(<a href="kingdoms.core.interfaces.platform.html#IPlatform">kingdoms.core.interfaces.platform.IPlatform</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="DiscordPlatform">class <strong>DiscordPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Discord&nbsp;implementation&nbsp;of&nbsp;<a href="kingdoms.core.interfaces.platform.html#IPlatform">IPlatform</a>.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code">Discord&nbsp;implementation&nbsp;of&nbsp;the&nbsp;IPlatform&nbsp;Protocol.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
-<dd><a href="kingdoms.discord.platform.discord_platform.html#DiscordPlatform">DiscordPlatform</a></dd>
-<dd><a href="kingdoms.core.interfaces.platform.html#IPlatform">kingdoms.core.interfaces.platform.IPlatform</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
-<dd><a href="builtins.html#object">builtins.object</a></dd>
-</dl>
-<hr>
-Methods defined here:<br>
+<td class="singlecolumn">Methods defined here:<br>
 <dl><dt>async <a name="DiscordPlatform-assign_role"><strong>assign_role</strong></a>(self, user: 'IUser', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;a&nbsp;Discord&nbsp;role&nbsp;referenced&nbsp;by&nbsp;logical&nbsp;role&nbsp;key.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Create&nbsp;a&nbsp;Discord&nbsp;channel&nbsp;under&nbsp;a&nbsp;channel&nbsp;category.</span></dd></dl>
@@ -51,11 +45,7 @@ Methods defined here:<br>
 <dl><dt>async <a name="DiscordPlatform-send_message"><strong>send_message</strong></a>(self, channel: 'IChannel', content: 'str') -&gt; 'IMessage'</dt><dd><span class="code">Send&nbsp;a&nbsp;text&nbsp;message&nbsp;to&nbsp;a&nbsp;Discord&nbsp;channel.</span></dd></dl>
 
 <hr>
-Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
-
-<hr>
-Data descriptors inherited from <a href="kingdoms.core.interfaces.platform.html#IPlatform">kingdoms.core.interfaces.platform.IPlatform</a>:<br>
+Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
 <dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
 </dl>
