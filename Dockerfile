@@ -20,7 +20,6 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 COPY --from=build /app/.venv ./.venv
-COPY --from=deps /app/.venv/bin/uv /usr/local/bin/uv || true
 COPY src/ ./src/
 COPY config/ ./config/
 COPY docker/entrypoint.sh ./entrypoint.sh
