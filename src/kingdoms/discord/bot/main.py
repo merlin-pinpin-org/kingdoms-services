@@ -26,7 +26,7 @@ def preflight() -> int:
             return 1
 
     try:
-        client: pymongo.MongoClient = pymongo.MongoClient(
+        client: pymongo.MongoClient[dict[str, object]] = pymongo.MongoClient(
             os.environ["MONGO_URI"], serverSelectionTimeoutMS=5000
         )
         ping = client.admin.command("ping")
