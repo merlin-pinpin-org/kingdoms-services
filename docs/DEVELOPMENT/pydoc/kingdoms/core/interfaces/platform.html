@@ -11,6 +11,11 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/interfaces/platform.py">SOURCE_ROOT/core/interfaces/platform.py</a></td></tr></table>
     <p><span class="code">Platform&nbsp;abstraction&nbsp;contracts&nbsp;(<a href="#IPlatform">IPlatform</a>,&nbsp;<a href="#IMessage">IMessage</a>,&nbsp;<a href="#IChannel">IChannel</a>,&nbsp;<a href="#IUser">IUser</a>,&nbsp;<a href="#IWorkflow">IWorkflow</a>).<br>
 &nbsp;<br>
+Structural&nbsp;typing&nbsp;via&nbsp;``typing.<a href="typing.html#Protocol">Protocol</a>``&nbsp;(ADR-0011):&nbsp;implementations&nbsp;do&nbsp;not<br>
+inherit&nbsp;from&nbsp;these&nbsp;classes,&nbsp;they&nbsp;just&nbsp;satisfy&nbsp;the&nbsp;shape,&nbsp;checked&nbsp;by&nbsp;mypy.<br>
+``@runtime_checkable``&nbsp;enables&nbsp;lightweight&nbsp;isinstance&nbsp;checks&nbsp;(member<br>
+presence&nbsp;only,&nbsp;not&nbsp;signatures).<br>
+&nbsp;<br>
 Reference:&nbsp;docs/ARCHITECTURE.md&nbsp;(kingdoms&nbsp;repo)&nbsp;and&nbsp;kingdoms-services#3.</span></p>
 <p>
 <table class="section">
@@ -19,7 +24,7 @@ Reference:&nbsp;docs/ARCHITECTURE.md&nbsp;(kingdoms&nbsp;repo)&nbsp;and&nbsp;kin
     
 <tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl>
-<dt class="heading-text"><a href="abc.html#ABC">abc.ABC</a>(<a href="builtins.html#object">builtins.object</a>)
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IChannel">IChannel</a>
@@ -33,16 +38,27 @@ Reference:&nbsp;docs/ARCHITECTURE.md&nbsp;(kingdoms&nbsp;repo)&nbsp;and&nbsp;kin
  <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="IChannel">class <strong>IChannel</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IChannel">class <strong>IChannel</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;channel.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IChannel">IChannel</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Platform-agnostic&nbsp;channel.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IChannel">IChannel</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IChannel-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IChannel-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>id</strong></dt>
@@ -61,21 +77,55 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset({'id', 'name'})</dl>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = {'id', 'name'}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'id', 'name'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IChannel-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IChannel-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="IMessage">class <strong>IMessage</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IMessage">class <strong>IMessage</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;message&nbsp;exchanged&nbsp;between&nbsp;the&nbsp;core&nbsp;and&nbsp;a&nbsp;platform.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IMessage">IMessage</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Platform-agnostic&nbsp;message&nbsp;exchanged&nbsp;between&nbsp;the&nbsp;core&nbsp;and&nbsp;a&nbsp;platform.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IMessage">IMessage</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IMessage-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IMessage-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>author</strong></dt>
@@ -100,25 +150,53 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset({'author', 'channel', 'content', 'id'})</dl>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = {'author', 'channel', 'content', 'id'}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'author', 'channel', 'content', 'id'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IMessage-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IMessage-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="IPlatform">class <strong>IPlatform</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IPlatform">class <strong>IPlatform</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Platform&nbsp;abstraction:&nbsp;messaging,&nbsp;channel&nbsp;management,&nbsp;roles,&nbsp;DMs.<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IPlatform">IPlatform</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Platform&nbsp;abstraction:&nbsp;messaging,&nbsp;channel&nbsp;management,&nbsp;roles,&nbsp;DMs.<br>
 &nbsp;<br>
 First&nbsp;implementation:&nbsp;DiscordPlatform&nbsp;(kingdoms-services#11).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IPlatform">IPlatform</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
 <hr>
 Methods defined here:<br>
+<dl><dt><a name="IPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
 <dl><dt>async <a name="IPlatform-assign_role"><strong>assign_role</strong></a>(self, user: 'IUser', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;a&nbsp;role&nbsp;(referenced&nbsp;by&nbsp;logical&nbsp;role&nbsp;key)&nbsp;to&nbsp;a&nbsp;user.</span></dd></dl>
 
 <dl><dt>async <a name="IPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Create&nbsp;a&nbsp;channel&nbsp;in&nbsp;a&nbsp;guild&nbsp;under&nbsp;a&nbsp;channel&nbsp;category.</span></dd></dl>
@@ -126,6 +204,10 @@ Methods defined here:<br>
 <dl><dt>async <a name="IPlatform-send_dm"><strong>send_dm</strong></a>(self, user: 'IUser', content: 'str') -&gt; 'IMessage'</dt><dd><span class="code">Send&nbsp;a&nbsp;direct&nbsp;message&nbsp;to&nbsp;a&nbsp;user.</span></dd></dl>
 
 <dl><dt>async <a name="IPlatform-send_message"><strong>send_message</strong></a>(self, channel: 'IChannel', content: 'str') -&gt; 'IMessage'</dt><dd><span class="code">Send&nbsp;a&nbsp;text&nbsp;message&nbsp;to&nbsp;a&nbsp;channel.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -137,21 +219,55 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset({'assign_role', 'create_channel', 'send_dm', 'send_message'})</dl>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = set()</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'assign_role', 'create_channel', 'send_dm', 'send_message'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IPlatform-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IPlatform-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="IUser">class <strong>IUser</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IUser">class <strong>IUser</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Platform-agnostic&nbsp;user&nbsp;identity.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IUser">IUser</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Platform-agnostic&nbsp;user&nbsp;identity.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IUser">IUser</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IUser-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IUser-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>display_name</strong></dt>
@@ -170,28 +286,60 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset({'display_name', 'id'})</dl>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = {'display_name', 'id'}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'display_name', 'id'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IUser-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IUser-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="IWorkflow">class <strong>IWorkflow</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IWorkflow">class <strong>IWorkflow</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&nbsp;the&nbsp;WorkflowEngine.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IWorkflow">IWorkflow</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Contract&nbsp;for&nbsp;an&nbsp;interaction&nbsp;sequence&nbsp;executed&nbsp;by&nbsp;the&nbsp;WorkflowEngine.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.core.interfaces.platform.html#IWorkflow">IWorkflow</a></dd>
-<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
 <hr>
 Methods defined here:<br>
+<dl><dt><a name="IWorkflow-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
 <dl><dt>async <a name="IWorkflow-handle_interaction"><strong>handle_interaction</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Handle&nbsp;a&nbsp;user&nbsp;interaction&nbsp;event&nbsp;and&nbsp;drive&nbsp;step&nbsp;transitions.</span></dd></dl>
 
 <dl><dt>async <a name="IWorkflow-start"><strong>start</strong></a>(self, context: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Start&nbsp;the&nbsp;workflow&nbsp;with&nbsp;an&nbsp;initial&nbsp;context.</span></dd></dl>
 
 <dl><dt><a name="IWorkflow-steps"><strong>steps</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;ordered&nbsp;step&nbsp;names&nbsp;of&nbsp;the&nbsp;workflow.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IWorkflow-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -203,7 +351,30 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__abstractmethods__</strong> = frozenset({'handle_interaction', 'start', 'steps'})</dl>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = set()</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'handle_interaction', 'start', 'steps'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IWorkflow-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IWorkflow-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
 </td></tr></table></td></tr></table>
 </body></html>
