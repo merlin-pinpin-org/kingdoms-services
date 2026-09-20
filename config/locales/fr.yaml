@@ -1,0 +1,6 @@
+fr:
+  common:
+    greeting: "Bienvenue sur Kingdoms !"
+    error: "Une erreur est survenue. Veuillez réessayer."
+    cancel: "Annuler"
+    confirm: "Confirmer"

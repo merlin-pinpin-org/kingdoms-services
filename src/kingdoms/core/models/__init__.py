@@ -1,0 +1,1 @@
+"""MongoDB persistence models (Pydantic)."""

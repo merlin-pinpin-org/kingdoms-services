@@ -25,6 +25,29 @@ core services, Discord platform implementation, mods, YAML configs.
 - Link PRs to their issue with a closing keyword in the description
   (`Closes #N`): this populates the GitHub "Development" section and closes
   the issue on merge.
+- All user-facing strings go through the **i18n system**
+  (`kingdoms-services#17`): English default (`config/locales/en.yaml`),
+  French available (`config/locales/fr.yaml`). Never hardcode user-facing
+  text.
+- The core (`src/kingdoms/core/`) is **platform-agnostic**: no discord.py
+  imports in core. Discord code lives in `src/kingdoms/discord/` and
+  implements `IPlatform`.
+- Mods declare their channel categories and roles via `ModRegistry`
+  (`kingdoms-services#26`); they never create channels/roles directly.
+- Mods and game providers reference **logical role keys**, never hardcoded
+  Discord role IDs (`kingdoms-services#26`).
+- Every mod or game provider added to this repo must have its documentation
+  updated in `kingdoms` (source of truth).
+- Daily workflow uses **Makefile tasks** (`make lint`, `make test`,
+  `make typecheck`), not ad-hoc Python scripts.
+- Custom IDs follow the convention `<mod>:<component>:<payload>`
+  (see `kingdoms` docs, Discord components guide).
+- Run `make lint` and `make test` before pushing. All tests must pass.
+- **Sandbox limits are covered by GitHub Actions**: anything that cannot run
+  in the dev sandbox (Docker Compose boot, image build, real MongoDB/Redis,
+  entrypoint/preflight paths) must be exercised by a CI workflow instead.
+  When a check cannot run locally, add or extend the workflow that validates
+  it — never leave it unverified.
 
 ## Roadmap
 

@@ -1,0 +1,106 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build and test the image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the multi-stage image (load)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: kingdoms-bot:pr
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Inspect the image (entrypoint, user, layers)
+        run: |
+          docker image inspect kingdoms-bot:pr --format 'Entrypoint: {{json .Config.Entrypoint}} User: {{json .Config.User}}'
+          test "$(docker image inspect kingdoms-bot:pr --format '{{.Config.User}}')" = "65534:65534"
+          test "$(docker history kingdoms-bot:pr --format '{{.Size}}' | wc -l)" -ge 3
+
+      - name: Smoke test the image (with MongoDB and Redis)
+        run: |
+          docker network create kingdoms-ci
+          docker run -d --name kingdoms-mongo --network kingdoms-ci mongo:7.0
+          docker run -d --name kingdoms-redis --network kingdoms-ci redis:7.2
+          timeout 60 bash -c 'until docker exec kingdoms-mongo mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
+          timeout 60 bash -c 'until docker exec kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done'
+
+          cat > /tmp/kingdoms-smoke.py <<'PY'
+          import os
+          import pymongo
+          import redis
+
+          client = pymongo.MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=5000)
+          assert client.admin.command("ping")["ok"] == 1, "MongoDB ping failed"
+          r = redis.Redis.from_url(os.environ["REDIS_URI"], socket_connect_timeout=5)
+          assert r.ping() is True, "Redis ping failed"
+          import kingdoms
+          print(f"kingdoms imports OK: {kingdoms.__version__}")
+          print("SMOKE OK")
+          PY
+
+          docker run --rm --network kingdoms-ci \
+            -e MONGO_URI=mongodb://kingdoms-mongo:27017 \
+            -e REDIS_URI=redis://kingdoms-redis:6379 \
+            -e DISCORD_TOKEN=dummy-token-for-smoke \
+            -v /tmp/kingdoms-smoke.py:/smoke.py:ro \
+            --entrypoint /bin/bash \
+            kingdoms-bot:pr -c 'python /smoke.py'
+
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        if: github.event_name == 'push'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=sha-
+
+      - name: Push the image to GHCR
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f kingdoms-mongo kingdoms-redis 2>/dev/null || true
+          docker network rm kingdoms-ci 2>/dev/null || true
