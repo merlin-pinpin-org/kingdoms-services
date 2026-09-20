@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.bot.factory</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.bot.html" class="white">bot</a>.factory</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/bot/factory.py">SOURCE_ROOT/discord/bot/factory.py</a></td></tr></table>
+    <p><span class="code">Bot&nbsp;assembly:&nbsp;builds&nbsp;the&nbsp;runnable&nbsp;Kingdoms&nbsp;bot&nbsp;(kingdoms-services#12).<br>
+&nbsp;<br>
+The&nbsp;factory&nbsp;wires,&nbsp;in&nbsp;order:&nbsp;Discord&nbsp;client&nbsp;+&nbsp;command&nbsp;tree,&nbsp;core&nbsp;services<br>
+(registry,&nbsp;status),&nbsp;the&nbsp;``/status``&nbsp;command,&nbsp;and&nbsp;—&nbsp;as&nbsp;their&nbsp;issues&nbsp;land&nbsp;—<br>
+the&nbsp;platform&nbsp;adapter&nbsp;and&nbsp;the&nbsp;core&nbsp;service&nbsp;trio&nbsp;(StateService,<br>
+WorkflowEngine,&nbsp;ChannelService).&nbsp;Everything&nbsp;that&nbsp;is&nbsp;not&nbsp;wired&nbsp;yet&nbsp;is<br>
+optional,&nbsp;so&nbsp;the&nbsp;bot&nbsp;merges&nbsp;incrementally&nbsp;while&nbsp;``--preflight``&nbsp;stays<br>
+green&nbsp;in&nbsp;CI&nbsp;(re-scoping&nbsp;note&nbsp;on&nbsp;kingdoms-services#12).<br>
+&nbsp;<br>
+The&nbsp;bot&nbsp;class&nbsp;itself&nbsp;is&nbsp;thin:&nbsp;no&nbsp;manual&nbsp;interaction&nbsp;dispatch&nbsp;(CommandTree<br>
+and&nbsp;discord.py&nbsp;Views&nbsp;already&nbsp;route),&nbsp;platform&nbsp;logic&nbsp;stays&nbsp;in<br>
+``DiscordPlatform``,&nbsp;and&nbsp;the&nbsp;``KINGDOMS_BOT_READY``&nbsp;log&nbsp;contract&nbsp;of&nbsp;the<br>
+smoke&nbsp;CI&nbsp;is&nbsp;preserved&nbsp;(kingdoms-services#34).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.bot.factory.html#BotConfig">BotConfig</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.client.html#Client">discord.client.Client</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.bot.factory.html#KingdomsBot">KingdomsBot</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BotConfig">class <strong>BotConfig</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BotConfig">BotConfig</a>(mongo_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;redis_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;discord_token:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;bot_admins:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;sync_guild_id:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;log_level:&nbsp;'str'&nbsp;=&nbsp;'INFO',&nbsp;config_dir:&nbsp;'Path'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Environment-driven&nbsp;bot&nbsp;configuration.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="BotConfig-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__init__"><strong>__init__</strong></a>(self, mongo_uri: 'str' = '', redis_uri: 'str' = '', discord_token: 'str' = '', bot_admins: 'str' = '', sync_guild_id: 'str' = '', log_level: 'str' = 'INFO', config_dir: 'Path' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="BotConfig-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="BotConfig-from_env"><strong>from_env</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'BotConfig'</dt><dd><span class="code">Read&nbsp;the&nbsp;configuration&nbsp;from&nbsp;the&nbsp;environment&nbsp;(or&nbsp;a&nbsp;copy&nbsp;for&nbsp;tests).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>bot_admins</strong></dt>
+</dl>
+<dl><dt><strong>config_dir</strong></dt>
+</dl>
+<dl><dt><strong>discord_token</strong></dt>
+</dl>
+<dl><dt><strong>log_level</strong></dt>
+</dl>
+<dl><dt><strong>mongo_uri</strong></dt>
+</dl>
+<dl><dt><strong>redis_uri</strong></dt>
+</dl>
+<dl><dt><strong>sync_guild_id</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'bot_admins': 'str', 'config_dir': 'Path', 'discord_token': 'str', 'log_level': 'str', 'mongo_uri': 'str', 'redis_uri': 'str', 'sync_guild_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'bot_admins': Field(name='bot_admins',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'config_dir': Field(name='config_dir',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'discord_token': Field(name='discord_token',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD), 'log_level': Field(name='log_level',type='str',default='INFO'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mongo_uri': Field(name='mongo_uri',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'redis_uri': Field(name='redis_uri',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync_guild_id': Field(name='sync_guild_id',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('mongo_uri', 'redis_uri', 'discord_token', 'bot_admins', 'sync_guild_id', 'log_level', 'config_dir')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KingdomsBot">class <strong>KingdomsBot</strong></a>(<a href="discord.client.html#Client">discord.client.Client</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsBot">KingdomsBot</a>(config:&nbsp;'<a href="#BotConfig">BotConfig</a>',&nbsp;status:&nbsp;'StatusService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Discord&nbsp;client&nbsp;with&nbsp;a&nbsp;command&nbsp;tree;&nbsp;core&nbsp;services&nbsp;are&nbsp;attached,&nbsp;not&nbsp;inherited.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.bot.factory.html#KingdomsBot">KingdomsBot</a></dd>
+<dd><a href="discord.client.html#Client">discord.client.Client</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="KingdomsBot-__init__"><strong>__init__</strong></a>(self, config: 'BotConfig', status: 'StatusService') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;client,&nbsp;the&nbsp;command&nbsp;tree&nbsp;and&nbsp;attach&nbsp;the&nbsp;services.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.client.html#Client">discord.client.Client</a>:<br>
+<dl><dt>async <a name="KingdomsBot-__aenter__"><strong>__aenter__</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<dl><dt>async <a name="KingdomsBot-__aexit__"><strong>__aexit__</strong></a>(self, exc_type: 'Optional[Type[BaseException]]', exc_value: 'Optional[BaseException]', traceback: 'Optional[TracebackType]') -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="KingdomsBot-add_dynamic_items"><strong>add_dynamic_items</strong></a>(self, *items: 'Type[DynamicItem[Item[Any]]]') -&gt; 'None'</dt><dd><span class="code">Registers&nbsp;:class:`~discord.ui.DynamicItem`&nbsp;classes&nbsp;for&nbsp;persistent&nbsp;listening.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;accepts&nbsp;*class&nbsp;types*&nbsp;rather&nbsp;than&nbsp;instances.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+\*items:&nbsp;Type[:class:`~discord.ui.DynamicItem`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;classes&nbsp;of&nbsp;dynamic&nbsp;items&nbsp;to&nbsp;add.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;class&nbsp;is&nbsp;not&nbsp;a&nbsp;subclass&nbsp;of&nbsp;:class:`~discord.ui.DynamicItem`.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-add_view"><strong>add_view</strong></a>(self, view: 'BaseView', *, message_id: 'Optional[int]' = None) -&gt; 'None'</dt><dd><span class="code">Registers&nbsp;a&nbsp;:class:`~discord.ui.View`&nbsp;for&nbsp;persistent&nbsp;listening.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;should&nbsp;be&nbsp;used&nbsp;for&nbsp;when&nbsp;a&nbsp;view&nbsp;is&nbsp;comprised&nbsp;of&nbsp;components<br>
+that&nbsp;last&nbsp;longer&nbsp;than&nbsp;the&nbsp;lifecycle&nbsp;of&nbsp;the&nbsp;program.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Parameters<br>
+------------<br>
+view:&nbsp;Union[:class:`discord.ui.View`,&nbsp;:class:`discord.ui.LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;view&nbsp;to&nbsp;register&nbsp;for&nbsp;dispatching.<br>
+message_id:&nbsp;Optional[:class:`int`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;ID&nbsp;that&nbsp;the&nbsp;view&nbsp;is&nbsp;attached&nbsp;to.&nbsp;This&nbsp;is&nbsp;currently&nbsp;used&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;refresh&nbsp;the&nbsp;view's&nbsp;state&nbsp;during&nbsp;message&nbsp;update&nbsp;events.&nbsp;If&nbsp;not&nbsp;given<br>
+&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;message&nbsp;update&nbsp;events&nbsp;are&nbsp;not&nbsp;propagated&nbsp;for&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;view&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;view&nbsp;is&nbsp;not&nbsp;persistent&nbsp;or&nbsp;is&nbsp;already&nbsp;finished.&nbsp;A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;no&nbsp;timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;all&nbsp;their&nbsp;components&nbsp;have&nbsp;an&nbsp;explicitly&nbsp;provided&nbsp;custom_id.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-application_info"><strong>application_info</strong></a>(self) -&gt; 'AppInfo'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;the&nbsp;bot's&nbsp;application&nbsp;information.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;information&nbsp;failed&nbsp;somehow.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.AppInfo`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;bot's&nbsp;application&nbsp;information.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-before_identify_hook"><strong>before_identify_hook</strong></a>(self, shard_id: 'Optional[int]', *, initial: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;hook&nbsp;that&nbsp;is&nbsp;called&nbsp;before&nbsp;IDENTIFYing&nbsp;a&nbsp;session.&nbsp;This&nbsp;is&nbsp;useful<br>
+if&nbsp;you&nbsp;wish&nbsp;to&nbsp;have&nbsp;more&nbsp;control&nbsp;over&nbsp;the&nbsp;synchronization&nbsp;of&nbsp;multiple<br>
+IDENTIFYing&nbsp;clients.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;sleeps&nbsp;for&nbsp;5&nbsp;seconds.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.4<br>
+&nbsp;<br>
+Parameters<br>
+------------<br>
+shard_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;shard&nbsp;ID&nbsp;that&nbsp;requested&nbsp;being&nbsp;IDENTIFY'd<br>
+initial:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;this&nbsp;IDENTIFY&nbsp;is&nbsp;the&nbsp;first&nbsp;initial&nbsp;IDENTIFY.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-change_presence"><strong>change_presence</strong></a>(self, *, activity: 'Optional[BaseActivity]' = None, status: 'Optional[Status]' = None) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Changes&nbsp;the&nbsp;client's&nbsp;presence.<br>
+&nbsp;<br>
+Example<br>
+---------<br>
+&nbsp;<br>
+..&nbsp;code-block::&nbsp;python3<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;game&nbsp;=&nbsp;discord.Game("with&nbsp;the&nbsp;API")<br>
+&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;client.<a href="#KingdomsBot-change_presence">change_presence</a>(status=discord.Status.idle,&nbsp;activity=game)<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Removed&nbsp;the&nbsp;``afk``&nbsp;keyword-only&nbsp;parameter.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;function&nbsp;will&nbsp;now&nbsp;raise&nbsp;:exc:`TypeError`&nbsp;instead&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``InvalidArgument``.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+activity:&nbsp;Optional[:class:`.BaseActivity`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;activity&nbsp;being&nbsp;done.&nbsp;``None``&nbsp;if&nbsp;no&nbsp;currently&nbsp;active&nbsp;activity&nbsp;is&nbsp;done.<br>
+status:&nbsp;Optional[:class:`.Status`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Indicates&nbsp;what&nbsp;status&nbsp;to&nbsp;change&nbsp;to.&nbsp;If&nbsp;``None``,&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Status.online`&nbsp;is&nbsp;used.<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;``activity``&nbsp;parameter&nbsp;is&nbsp;not&nbsp;the&nbsp;proper&nbsp;type.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-clear"><strong>clear</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Clears&nbsp;the&nbsp;internal&nbsp;state&nbsp;of&nbsp;the&nbsp;bot.<br>
+&nbsp;<br>
+After&nbsp;this,&nbsp;the&nbsp;bot&nbsp;can&nbsp;be&nbsp;considered&nbsp;"re-opened",&nbsp;i.e.&nbsp;:meth:`is_closed`<br>
+and&nbsp;:meth:`is_ready`&nbsp;both&nbsp;return&nbsp;``False``&nbsp;along&nbsp;with&nbsp;the&nbsp;bot's&nbsp;internal<br>
+cache&nbsp;cleared.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-close"><strong>close</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Closes&nbsp;the&nbsp;connection&nbsp;to&nbsp;Discord.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-connect"><strong>connect</strong></a>(self, *, reconnect: 'bool' = True) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Creates&nbsp;a&nbsp;websocket&nbsp;connection&nbsp;and&nbsp;lets&nbsp;the&nbsp;websocket&nbsp;listen<br>
+to&nbsp;messages&nbsp;from&nbsp;Discord.&nbsp;This&nbsp;is&nbsp;a&nbsp;loop&nbsp;that&nbsp;runs&nbsp;the&nbsp;entire<br>
+event&nbsp;system&nbsp;and&nbsp;miscellaneous&nbsp;aspects&nbsp;of&nbsp;the&nbsp;library.&nbsp;Control<br>
+is&nbsp;not&nbsp;resumed&nbsp;until&nbsp;the&nbsp;WebSocket&nbsp;connection&nbsp;is&nbsp;terminated.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+reconnect:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;we&nbsp;should&nbsp;attempt&nbsp;reconnecting,&nbsp;either&nbsp;due&nbsp;to&nbsp;internet<br>
+&nbsp;&nbsp;&nbsp;&nbsp;failure&nbsp;or&nbsp;a&nbsp;specific&nbsp;failure&nbsp;on&nbsp;Discord's&nbsp;part.&nbsp;Certain<br>
+&nbsp;&nbsp;&nbsp;&nbsp;disconnects&nbsp;that&nbsp;lead&nbsp;to&nbsp;bad&nbsp;state&nbsp;will&nbsp;not&nbsp;be&nbsp;handled&nbsp;(such&nbsp;as<br>
+&nbsp;&nbsp;&nbsp;&nbsp;invalid&nbsp;sharding&nbsp;payloads&nbsp;or&nbsp;bad&nbsp;tokens).<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+GatewayNotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;gateway&nbsp;to&nbsp;connect&nbsp;to&nbsp;Discord&nbsp;is&nbsp;not&nbsp;found.&nbsp;Usually&nbsp;if&nbsp;this<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;thrown&nbsp;then&nbsp;there&nbsp;is&nbsp;a&nbsp;Discord&nbsp;API&nbsp;outage.<br>
+ConnectionClosed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;websocket&nbsp;connection&nbsp;has&nbsp;been&nbsp;terminated.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-create_application_emoji"><strong>create_application_emoji</strong></a>(self, *, name: 'str', image: 'bytes') -&gt; 'Emoji'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Create&nbsp;an&nbsp;emoji&nbsp;for&nbsp;the&nbsp;current&nbsp;application.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+name:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;emoji&nbsp;name.&nbsp;Must&nbsp;be&nbsp;between&nbsp;2&nbsp;and&nbsp;32&nbsp;characters&nbsp;long.<br>
+image:&nbsp;:class:`bytes`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;:term:`py:bytes-like&nbsp;<a href="builtins.html#object">object</a>`&nbsp;representing&nbsp;the&nbsp;image&nbsp;data&nbsp;to&nbsp;use.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;JPG,&nbsp;PNG&nbsp;and&nbsp;GIF&nbsp;images&nbsp;are&nbsp;supported.<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Creating&nbsp;the&nbsp;emoji&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+:class:`.Emoji`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;emoji&nbsp;that&nbsp;was&nbsp;created.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-create_dm"><strong>create_dm</strong></a>(self, user: 'Snowflake') -&gt; 'DMChannel'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Creates&nbsp;a&nbsp;:class:`.DMChannel`&nbsp;with&nbsp;this&nbsp;user.<br>
+&nbsp;<br>
+This&nbsp;should&nbsp;be&nbsp;rarely&nbsp;called,&nbsp;as&nbsp;this&nbsp;is&nbsp;done&nbsp;transparently&nbsp;for&nbsp;most<br>
+people.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+user:&nbsp;:class:`~discord.abc.Snowflake`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;user&nbsp;to&nbsp;create&nbsp;a&nbsp;DM&nbsp;with.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+:class:`.DMChannel`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;channel&nbsp;that&nbsp;was&nbsp;created.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-create_entitlement"><strong>create_entitlement</strong></a>(self, sku: 'Snowflake', owner: 'Snowflake', owner_type: 'EntitlementOwnerType') -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Creates&nbsp;a&nbsp;test&nbsp;:class:`.Entitlement`&nbsp;for&nbsp;the&nbsp;application.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+sku:&nbsp;:class:`~discord.abc.Snowflake`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;SKU&nbsp;to&nbsp;create&nbsp;the&nbsp;entitlement&nbsp;for.<br>
+owner:&nbsp;:class:`~discord.abc.Snowflake`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;owner.<br>
+owner_type:&nbsp;:class:`.EntitlementOwnerType`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;type&nbsp;of&nbsp;the&nbsp;owner.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;SKU&nbsp;or&nbsp;owner&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Creating&nbsp;the&nbsp;entitlement&nbsp;failed.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-create_guild"><strong>create_guild</strong></a>(self, *, name: 'str', icon: 'bytes' = ..., code: 'str' = ...) -&gt; 'Guild'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Creates&nbsp;a&nbsp;:class:`.Guild`.<br>
+&nbsp;<br>
+Bot&nbsp;accounts&nbsp;in&nbsp;more&nbsp;than&nbsp;10&nbsp;guilds&nbsp;are&nbsp;not&nbsp;allowed&nbsp;to&nbsp;create&nbsp;guilds.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``name``&nbsp;and&nbsp;``icon``&nbsp;parameters&nbsp;are&nbsp;now&nbsp;keyword-only.&nbsp;The&nbsp;``region``&nbsp;parameter&nbsp;has&nbsp;been&nbsp;removed.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;function&nbsp;will&nbsp;now&nbsp;raise&nbsp;:exc:`ValueError`&nbsp;instead&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``InvalidArgument``.<br>
+&nbsp;<br>
+..&nbsp;deprecated::&nbsp;2.6<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;function&nbsp;is&nbsp;deprecated&nbsp;and&nbsp;will&nbsp;be&nbsp;removed&nbsp;in&nbsp;a&nbsp;future&nbsp;version.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+name:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;guild.<br>
+icon:&nbsp;Optional[:class:`bytes`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;:term:`py:bytes-like&nbsp;<a href="builtins.html#object">object</a>`&nbsp;representing&nbsp;the&nbsp;icon.&nbsp;See&nbsp;:meth:`.ClientUser.edit`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;more&nbsp;details&nbsp;on&nbsp;what&nbsp;is&nbsp;expected.<br>
+code:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;code&nbsp;for&nbsp;a&nbsp;template&nbsp;to&nbsp;create&nbsp;the&nbsp;guild&nbsp;with.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;1.4<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Guild&nbsp;creation&nbsp;failed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Invalid&nbsp;icon&nbsp;image&nbsp;format&nbsp;given.&nbsp;Must&nbsp;be&nbsp;PNG&nbsp;or&nbsp;JPG.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+:class:`.Guild`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;created.&nbsp;This&nbsp;is&nbsp;not&nbsp;the&nbsp;same&nbsp;guild&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;added&nbsp;to&nbsp;cache.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-delete_invite"><strong>delete_invite</strong></a>(self, invite: 'Union[Invite, str]', /, *, reason: 'Optional[str]' = None) -&gt; 'Invite'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Revokes&nbsp;an&nbsp;:class:`.Invite`,&nbsp;URL,&nbsp;or&nbsp;ID&nbsp;to&nbsp;an&nbsp;invite.<br>
+&nbsp;<br>
+You&nbsp;must&nbsp;have&nbsp;:attr:`~.Permissions.manage_channels`&nbsp;in<br>
+the&nbsp;associated&nbsp;guild&nbsp;to&nbsp;do&nbsp;this.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``invite``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+invite:&nbsp;Union[:class:`.Invite`,&nbsp;:class:`str`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;invite&nbsp;to&nbsp;revoke.<br>
+reason:&nbsp;Optional[:class:`str`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;reason&nbsp;for&nbsp;deleting&nbsp;the&nbsp;invite.&nbsp;Shows&nbsp;up&nbsp;on&nbsp;the&nbsp;audit&nbsp;log.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+Forbidden<br>
+&nbsp;&nbsp;&nbsp;&nbsp;You&nbsp;do&nbsp;not&nbsp;have&nbsp;permissions&nbsp;to&nbsp;revoke&nbsp;invites.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;invite&nbsp;is&nbsp;invalid&nbsp;or&nbsp;expired.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Revoking&nbsp;the&nbsp;invite&nbsp;failed.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-dispatch"><strong>dispatch</strong></a>(self, event: 'str', /, *args: 'Any', **kwargs: 'Any') -&gt; 'None'</dt></dl>
+
+<dl><dt>async <a name="KingdomsBot-entitlements"><strong>entitlements</strong></a>(self, *, limit: 'Optional[int]' = 100, before: 'Optional[SnowflakeTime]' = None, after: 'Optional[SnowflakeTime]' = None, skus: 'Optional[Sequence[Snowflake]]' = None, user: 'Optional[Snowflake]' = None, guild: 'Optional[Snowflake]' = None, exclude_ended: 'bool' = False, exclude_deleted: 'bool' = True) -&gt; 'AsyncIterator[Entitlement]'</dt><dd><span class="code">Retrieves&nbsp;an&nbsp;:term:`asynchronous&nbsp;iterator`&nbsp;of&nbsp;the&nbsp;:class:`.Entitlement`&nbsp;that&nbsp;applications&nbsp;has.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Examples<br>
+---------<br>
+&nbsp;<br>
+Usage&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;async&nbsp;for&nbsp;entitlement&nbsp;in&nbsp;client.<a href="#KingdomsBot-entitlements">entitlements</a>(limit=100):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(entitlement.user_id,&nbsp;entitlement.ends_at)<br>
+&nbsp;<br>
+Flattening&nbsp;into&nbsp;a&nbsp;list&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;entitlements&nbsp;=&nbsp;[entitlement&nbsp;async&nbsp;for&nbsp;entitlement&nbsp;in&nbsp;client.<a href="#KingdomsBot-entitlements">entitlements</a>(limit=100)]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;entitlements&nbsp;is&nbsp;now&nbsp;a&nbsp;list&nbsp;of&nbsp;Entitlement...<br>
+&nbsp;<br>
+All&nbsp;parameters&nbsp;are&nbsp;optional.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+limit:&nbsp;Optional[:class:`int`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;number&nbsp;of&nbsp;entitlements&nbsp;to&nbsp;retrieve.&nbsp;If&nbsp;``None``,&nbsp;it&nbsp;retrieves&nbsp;every&nbsp;entitlement&nbsp;for&nbsp;this&nbsp;application.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Note,&nbsp;however,&nbsp;that&nbsp;this&nbsp;would&nbsp;make&nbsp;it&nbsp;a&nbsp;slow&nbsp;operation.&nbsp;Defaults&nbsp;to&nbsp;``100``.<br>
+before:&nbsp;Optional[Union[:class:`~discord.abc.Snowflake`,&nbsp;:class:`datetime.datetime`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieve&nbsp;entitlements&nbsp;before&nbsp;this&nbsp;date&nbsp;or&nbsp;entitlement.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;datetime&nbsp;is&nbsp;provided,&nbsp;it&nbsp;is&nbsp;recommended&nbsp;to&nbsp;use&nbsp;a&nbsp;UTC&nbsp;aware&nbsp;datetime.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;datetime&nbsp;is&nbsp;naive,&nbsp;it&nbsp;is&nbsp;assumed&nbsp;to&nbsp;be&nbsp;local&nbsp;time.<br>
+after:&nbsp;Optional[Union[:class:`~discord.abc.Snowflake`,&nbsp;:class:`datetime.datetime`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieve&nbsp;entitlements&nbsp;after&nbsp;this&nbsp;date&nbsp;or&nbsp;entitlement.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;datetime&nbsp;is&nbsp;provided,&nbsp;it&nbsp;is&nbsp;recommended&nbsp;to&nbsp;use&nbsp;a&nbsp;UTC&nbsp;aware&nbsp;datetime.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;datetime&nbsp;is&nbsp;naive,&nbsp;it&nbsp;is&nbsp;assumed&nbsp;to&nbsp;be&nbsp;local&nbsp;time.<br>
+skus:&nbsp;Optional[Sequence[:class:`~discord.abc.Snowflake`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;SKUs&nbsp;to&nbsp;filter&nbsp;by.<br>
+user:&nbsp;Optional[:class:`~discord.abc.Snowflake`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;user&nbsp;to&nbsp;filter&nbsp;by.<br>
+guild:&nbsp;Optional[:class:`~discord.abc.Snowflake`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;to&nbsp;filter&nbsp;by.<br>
+exclude_ended:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;exclude&nbsp;ended&nbsp;entitlements.&nbsp;Defaults&nbsp;to&nbsp;``False``.<br>
+exclude_deleted:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;exclude&nbsp;deleted&nbsp;entitlements.&nbsp;Defaults&nbsp;to&nbsp;``True``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Fetching&nbsp;the&nbsp;entitlements&nbsp;failed.<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Both&nbsp;``after``&nbsp;and&nbsp;``before``&nbsp;were&nbsp;provided,&nbsp;as&nbsp;Discord&nbsp;does&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;support&nbsp;this&nbsp;type&nbsp;of&nbsp;pagination.<br>
+&nbsp;<br>
+Yields<br>
+--------<br>
+:class:`.Entitlement`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;entitlement&nbsp;with&nbsp;the&nbsp;application.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-event"><strong>event</strong></a>(self, coro: 'CoroT', /) -&gt; 'CoroT'</dt><dd><span class="code">A&nbsp;decorator&nbsp;that&nbsp;registers&nbsp;an&nbsp;event&nbsp;to&nbsp;listen&nbsp;to.<br>
+&nbsp;<br>
+You&nbsp;can&nbsp;find&nbsp;more&nbsp;info&nbsp;about&nbsp;the&nbsp;events&nbsp;on&nbsp;the&nbsp;:ref:`documentation&nbsp;below&nbsp;&lt;discord-api-events&gt;`.<br>
+&nbsp;<br>
+The&nbsp;events&nbsp;must&nbsp;be&nbsp;a&nbsp;:ref:`coroutine&nbsp;&lt;coroutine&gt;`,&nbsp;if&nbsp;not,&nbsp;:exc:`TypeError`&nbsp;is&nbsp;raised.<br>
+&nbsp;<br>
+Example<br>
+---------<br>
+&nbsp;<br>
+..&nbsp;code-block::&nbsp;python3<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;@client.event<br>
+&nbsp;&nbsp;&nbsp;&nbsp;async&nbsp;def&nbsp;<a href="#KingdomsBot-on_ready">on_ready</a>():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print('Ready!')<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``coro``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;coroutine&nbsp;passed&nbsp;is&nbsp;not&nbsp;actually&nbsp;a&nbsp;coroutine.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_application_emoji"><strong>fetch_application_emoji</strong></a>(self, emoji_id: 'int', /) -&gt; 'Emoji'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;an&nbsp;emoji&nbsp;for&nbsp;the&nbsp;current&nbsp;application.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+emoji_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;emoji&nbsp;ID&nbsp;to&nbsp;retrieve.<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;emoji&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+:class:`.Emoji`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;emoji&nbsp;requested.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_application_emojis"><strong>fetch_application_emojis</strong></a>(self) -&gt; 'List[Emoji]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;all&nbsp;emojis&nbsp;for&nbsp;the&nbsp;current&nbsp;application.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;emojis&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+List[:class:`.Emoji`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;list&nbsp;of&nbsp;emojis&nbsp;for&nbsp;the&nbsp;current&nbsp;application.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_channel"><strong>fetch_channel</strong></a>(self, channel_id: 'int', /) -&gt; 'Union[GuildChannel, PrivateChannel, Thread]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`.abc.GuildChannel`,&nbsp;:class:`.abc.PrivateChannel`,&nbsp;or&nbsp;:class:`.Thread`&nbsp;with&nbsp;the&nbsp;specified&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;an&nbsp;API&nbsp;call.&nbsp;For&nbsp;general&nbsp;usage,&nbsp;consider&nbsp;:meth:`get_channel`&nbsp;instead.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.2<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``channel_id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+InvalidData<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;unknown&nbsp;channel&nbsp;type&nbsp;was&nbsp;received&nbsp;from&nbsp;Discord.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;channel&nbsp;failed.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Invalid&nbsp;Channel&nbsp;ID.<br>
+Forbidden<br>
+&nbsp;&nbsp;&nbsp;&nbsp;You&nbsp;do&nbsp;not&nbsp;have&nbsp;permission&nbsp;to&nbsp;fetch&nbsp;this&nbsp;channel.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Union[:class:`.abc.GuildChannel`,&nbsp;:class:`.abc.PrivateChannel`,&nbsp;:class:`.Thread`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;channel&nbsp;from&nbsp;the&nbsp;ID.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_entitlement"><strong>fetch_entitlement</strong></a>(self, entitlement_id: 'int', /) -&gt; 'Entitlement'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`.Entitlement`&nbsp;with&nbsp;the&nbsp;specified&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+entitlement_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;entitlement's&nbsp;ID&nbsp;to&nbsp;fetch&nbsp;from.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;entitlement&nbsp;with&nbsp;this&nbsp;ID&nbsp;does&nbsp;not&nbsp;exist.<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Fetching&nbsp;the&nbsp;entitlement&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.Entitlement`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;entitlement&nbsp;you&nbsp;requested.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_guild"><strong>fetch_guild</strong></a>(self, guild_id: 'int', /, *, with_counts: 'bool' = True) -&gt; 'Guild'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`.Guild`&nbsp;from&nbsp;an&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Using&nbsp;this,&nbsp;you&nbsp;will&nbsp;**not**&nbsp;receive&nbsp;:attr:`.Guild.channels`,&nbsp;:attr:`.Guild.members`,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Member.activity`&nbsp;and&nbsp;:attr:`.Member.voice`&nbsp;per&nbsp;:class:`.Member`.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;an&nbsp;API&nbsp;call.&nbsp;For&nbsp;general&nbsp;usage,&nbsp;consider&nbsp;:meth:`get_guild`&nbsp;instead.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``guild_id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+guild_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild's&nbsp;ID&nbsp;to&nbsp;fetch&nbsp;from.<br>
+with_counts:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;include&nbsp;count&nbsp;information&nbsp;in&nbsp;the&nbsp;guild.&nbsp;This&nbsp;fills&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Guild.approximate_member_count`&nbsp;and&nbsp;:attr:`.Guild.approximate_presence_count`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;attributes&nbsp;without&nbsp;needing&nbsp;any&nbsp;privileged&nbsp;intents.&nbsp;Defaults&nbsp;to&nbsp;``True``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;doesn't&nbsp;exist&nbsp;or&nbsp;you&nbsp;got&nbsp;no&nbsp;access&nbsp;to&nbsp;it.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;guild&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.Guild`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;from&nbsp;the&nbsp;ID.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_guild_preview"><strong>fetch_guild_preview</strong></a>(self, guild_id: 'int') -&gt; 'GuildPreview'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;preview&nbsp;of&nbsp;a&nbsp;:class:`.Guild`&nbsp;from&nbsp;an&nbsp;ID.&nbsp;If&nbsp;the&nbsp;guild&nbsp;is&nbsp;discoverable,<br>
+you&nbsp;don't&nbsp;have&nbsp;to&nbsp;be&nbsp;a&nbsp;member&nbsp;of&nbsp;it.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;doesn't&nbsp;exist,&nbsp;or&nbsp;is&nbsp;not&nbsp;discoverable&nbsp;and&nbsp;you&nbsp;are&nbsp;not&nbsp;in&nbsp;it.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;guild&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.GuildPreview`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;preview&nbsp;from&nbsp;the&nbsp;ID.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_guilds"><strong>fetch_guilds</strong></a>(self, *, limit: 'Optional[int]' = 200, before: 'Optional[SnowflakeTime]' = None, after: 'Optional[SnowflakeTime]' = None, with_counts: 'bool' = True) -&gt; 'AsyncIterator[Guild]'</dt><dd><span class="code">Retrieves&nbsp;an&nbsp;:term:`asynchronous&nbsp;iterator`&nbsp;that&nbsp;enables&nbsp;receiving&nbsp;your&nbsp;guilds.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Using&nbsp;this,&nbsp;you&nbsp;will&nbsp;only&nbsp;receive&nbsp;:attr:`.Guild.owner`,&nbsp;:attr:`.Guild.icon`,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Guild.id`,&nbsp;:attr:`.Guild.name`,&nbsp;:attr:`.Guild.approximate_member_count`,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;:attr:`.Guild.approximate_presence_count`&nbsp;per&nbsp;:class:`.Guild`.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;an&nbsp;API&nbsp;call.&nbsp;For&nbsp;general&nbsp;usage,&nbsp;consider&nbsp;:attr:`guilds`&nbsp;instead.<br>
+&nbsp;<br>
+Examples<br>
+---------<br>
+&nbsp;<br>
+Usage&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;async&nbsp;for&nbsp;guild&nbsp;in&nbsp;client.<a href="#KingdomsBot-fetch_guilds">fetch_guilds</a>(limit=150):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(guild.name)<br>
+&nbsp;<br>
+Flattening&nbsp;into&nbsp;a&nbsp;list&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;guilds&nbsp;=&nbsp;[guild&nbsp;async&nbsp;for&nbsp;guild&nbsp;in&nbsp;client.<a href="#KingdomsBot-fetch_guilds">fetch_guilds</a>(limit=150)]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;guilds&nbsp;is&nbsp;now&nbsp;a&nbsp;list&nbsp;of&nbsp;Guild...<br>
+&nbsp;<br>
+All&nbsp;parameters&nbsp;are&nbsp;optional.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+limit:&nbsp;Optional[:class:`int`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;number&nbsp;of&nbsp;guilds&nbsp;to&nbsp;retrieve.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``None``,&nbsp;it&nbsp;retrieves&nbsp;every&nbsp;guild&nbsp;you&nbsp;have&nbsp;access&nbsp;to.&nbsp;Note,&nbsp;however,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;this&nbsp;would&nbsp;make&nbsp;it&nbsp;a&nbsp;slow&nbsp;operation.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Defaults&nbsp;to&nbsp;``200``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;default&nbsp;has&nbsp;been&nbsp;changed&nbsp;to&nbsp;200.<br>
+&nbsp;<br>
+before:&nbsp;Union[:class:`.abc.Snowflake`,&nbsp;:class:`datetime.datetime`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieves&nbsp;guilds&nbsp;before&nbsp;this&nbsp;date&nbsp;or&nbsp;<a href="builtins.html#object">object</a>.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;datetime&nbsp;is&nbsp;provided,&nbsp;it&nbsp;is&nbsp;recommended&nbsp;to&nbsp;use&nbsp;a&nbsp;UTC&nbsp;aware&nbsp;datetime.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;datetime&nbsp;is&nbsp;naive,&nbsp;it&nbsp;is&nbsp;assumed&nbsp;to&nbsp;be&nbsp;local&nbsp;time.<br>
+after:&nbsp;Union[:class:`.abc.Snowflake`,&nbsp;:class:`datetime.datetime`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieve&nbsp;guilds&nbsp;after&nbsp;this&nbsp;date&nbsp;or&nbsp;<a href="builtins.html#object">object</a>.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;datetime&nbsp;is&nbsp;provided,&nbsp;it&nbsp;is&nbsp;recommended&nbsp;to&nbsp;use&nbsp;a&nbsp;UTC&nbsp;aware&nbsp;datetime.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;datetime&nbsp;is&nbsp;naive,&nbsp;it&nbsp;is&nbsp;assumed&nbsp;to&nbsp;be&nbsp;local&nbsp;time.<br>
+with_counts:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;include&nbsp;count&nbsp;information&nbsp;in&nbsp;the&nbsp;guilds.&nbsp;This&nbsp;fills&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Guild.approximate_member_count`&nbsp;and&nbsp;:attr:`.Guild.approximate_presence_count`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;attributes&nbsp;without&nbsp;needing&nbsp;any&nbsp;privileged&nbsp;intents.&nbsp;Defaults&nbsp;to&nbsp;``True``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.3<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;guilds&nbsp;failed.<br>
+&nbsp;<br>
+Yields<br>
+--------<br>
+:class:`.Guild`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;with&nbsp;the&nbsp;guild&nbsp;data&nbsp;parsed.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_invite"><strong>fetch_invite</strong></a>(self, url: 'Union[Invite, str]', *, with_counts: 'bool' = True, with_expiration: 'bool' = True, scheduled_event_id: 'Optional[int]' = None) -&gt; 'Invite'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Gets&nbsp;an&nbsp;:class:`.Invite`&nbsp;from&nbsp;a&nbsp;discord.gg&nbsp;URL&nbsp;or&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;invite&nbsp;is&nbsp;for&nbsp;a&nbsp;guild&nbsp;you&nbsp;have&nbsp;not&nbsp;joined,&nbsp;the&nbsp;guild&nbsp;and&nbsp;channel<br>
+&nbsp;&nbsp;&nbsp;&nbsp;attributes&nbsp;of&nbsp;the&nbsp;returned&nbsp;:class:`.Invite`&nbsp;will&nbsp;be&nbsp;:class:`.PartialInviteGuild`&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`.PartialInviteChannel`&nbsp;respectively.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+url:&nbsp;Union[:class:`.Invite`,&nbsp;:class:`str`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;Discord&nbsp;invite&nbsp;ID&nbsp;or&nbsp;URL&nbsp;(must&nbsp;be&nbsp;a&nbsp;discord.gg&nbsp;URL).<br>
+with_counts:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;include&nbsp;count&nbsp;information&nbsp;in&nbsp;the&nbsp;invite.&nbsp;This&nbsp;fills&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Invite.approximate_member_count`&nbsp;and&nbsp;:attr:`.Invite.approximate_presence_count`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fields.<br>
+with_expiration:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;include&nbsp;the&nbsp;expiration&nbsp;date&nbsp;of&nbsp;the&nbsp;invite.&nbsp;This&nbsp;fills&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`.Invite.expires_at`&nbsp;field.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;deprecated::&nbsp;2.6<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;parameter&nbsp;is&nbsp;deprecated&nbsp;and&nbsp;will&nbsp;be&nbsp;removed&nbsp;in&nbsp;a&nbsp;future&nbsp;version&nbsp;as&nbsp;it&nbsp;is&nbsp;no<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;longer&nbsp;needed&nbsp;to&nbsp;fill&nbsp;the&nbsp;:attr:`.Invite.expires_at`&nbsp;field.<br>
+scheduled_event_id:&nbsp;Optional[:class:`int`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;scheduled&nbsp;event&nbsp;this&nbsp;invite&nbsp;is&nbsp;for.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;It&nbsp;is&nbsp;not&nbsp;possible&nbsp;to&nbsp;provide&nbsp;a&nbsp;url&nbsp;that&nbsp;contains&nbsp;an&nbsp;``event_id``&nbsp;parameter<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;when&nbsp;using&nbsp;this&nbsp;parameter.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;url&nbsp;contains&nbsp;an&nbsp;``event_id``,&nbsp;but&nbsp;``scheduled_event_id``&nbsp;has&nbsp;also&nbsp;been&nbsp;provided.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;invite&nbsp;has&nbsp;expired&nbsp;or&nbsp;is&nbsp;invalid.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;invite&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.Invite`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;invite&nbsp;from&nbsp;the&nbsp;URL/ID.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_premium_sticker_pack"><strong>fetch_premium_sticker_pack</strong></a>(self, sticker_pack_id: 'int', /) -&gt; 'StickerPack'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;premium&nbsp;sticker&nbsp;pack&nbsp;with&nbsp;the&nbsp;specified&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+sticker_pack_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;sticker&nbsp;pack's&nbsp;ID&nbsp;to&nbsp;fetch&nbsp;from.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;sticker&nbsp;pack&nbsp;with&nbsp;this&nbsp;ID&nbsp;does&nbsp;not&nbsp;exist.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;sticker&nbsp;pack&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+:class:`.StickerPack`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;retrieved&nbsp;premium&nbsp;sticker&nbsp;pack.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_premium_sticker_packs"><strong>fetch_premium_sticker_packs</strong></a>(self) -&gt; 'List[StickerPack]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;all&nbsp;available&nbsp;premium&nbsp;sticker&nbsp;packs.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;sticker&nbsp;packs&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+List[:class:`.StickerPack`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;available&nbsp;premium&nbsp;sticker&nbsp;packs.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_skus"><strong>fetch_skus</strong></a>(self) -&gt; 'List[SKU]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;the&nbsp;bot's&nbsp;available&nbsp;SKUs.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+MissingApplicationID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;application&nbsp;ID&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;SKUs&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+List[:class:`.SKU`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;bot's&nbsp;available&nbsp;SKUs.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_soundboard_default_sounds"><strong>fetch_soundboard_default_sounds</strong></a>(self) -&gt; 'List[SoundboardDefaultSound]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;all&nbsp;default&nbsp;soundboard&nbsp;sounds.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;default&nbsp;soundboard&nbsp;sounds&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+List[:class:`.SoundboardDefaultSound`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;default&nbsp;soundboard&nbsp;sounds.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_stage_instance"><strong>fetch_stage_instance</strong></a>(self, channel_id: 'int', /) -&gt; 'StageInstance'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Gets&nbsp;a&nbsp;:class:`.StageInstance`&nbsp;for&nbsp;a&nbsp;stage&nbsp;channel&nbsp;id.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+channel_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;stage&nbsp;channel&nbsp;ID.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;stage&nbsp;instance&nbsp;or&nbsp;channel&nbsp;could&nbsp;not&nbsp;be&nbsp;found.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;stage&nbsp;instance&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.StageInstance`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;stage&nbsp;instance&nbsp;from&nbsp;the&nbsp;stage&nbsp;channel&nbsp;ID.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_sticker"><strong>fetch_sticker</strong></a>(self, sticker_id: 'int', /) -&gt; 'Union[StandardSticker, GuildSticker]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`.Sticker`&nbsp;with&nbsp;the&nbsp;specified&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;sticker&nbsp;failed.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Invalid&nbsp;sticker&nbsp;ID.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Union[:class:`.StandardSticker`,&nbsp;:class:`.GuildSticker`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;sticker&nbsp;you&nbsp;requested.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_template"><strong>fetch_template</strong></a>(self, code: 'Union[Template, str]') -&gt; 'Template'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Gets&nbsp;a&nbsp;:class:`.Template`&nbsp;from&nbsp;a&nbsp;discord.new&nbsp;URL&nbsp;or&nbsp;code.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+code:&nbsp;Union[:class:`.Template`,&nbsp;:class:`str`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;Discord&nbsp;Template&nbsp;Code&nbsp;or&nbsp;URL&nbsp;(must&nbsp;be&nbsp;a&nbsp;discord.new&nbsp;URL).<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;template&nbsp;is&nbsp;invalid.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Getting&nbsp;the&nbsp;template&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.Template`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;template&nbsp;from&nbsp;the&nbsp;URL/code.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_user"><strong>fetch_user</strong></a>(self, user_id: 'int', /) -&gt; 'User'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`~discord.User`&nbsp;based&nbsp;on&nbsp;their&nbsp;ID.<br>
+You&nbsp;do&nbsp;not&nbsp;have&nbsp;to&nbsp;share&nbsp;any&nbsp;guilds&nbsp;with&nbsp;the&nbsp;user&nbsp;to&nbsp;get&nbsp;this&nbsp;information,<br>
+however&nbsp;many&nbsp;operations&nbsp;do&nbsp;require&nbsp;that&nbsp;you&nbsp;do.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;an&nbsp;API&nbsp;call.&nbsp;If&nbsp;you&nbsp;have&nbsp;:attr:`discord.Intents.members`&nbsp;and&nbsp;member&nbsp;cache&nbsp;enabled,&nbsp;consider&nbsp;:meth:`get_user`&nbsp;instead.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``user_id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+user_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;user's&nbsp;ID&nbsp;to&nbsp;fetch&nbsp;from.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;user&nbsp;with&nbsp;this&nbsp;ID&nbsp;does&nbsp;not&nbsp;exist.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Fetching&nbsp;the&nbsp;user&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`~discord.User`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;user&nbsp;you&nbsp;requested.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_webhook"><strong>fetch_webhook</strong></a>(self, webhook_id: 'int', /) -&gt; 'Webhook'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Retrieves&nbsp;a&nbsp;:class:`.Webhook`&nbsp;with&nbsp;the&nbsp;specified&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``webhook_id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;webhook&nbsp;failed.<br>
+NotFound<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Invalid&nbsp;webhook&nbsp;ID.<br>
+Forbidden<br>
+&nbsp;&nbsp;&nbsp;&nbsp;You&nbsp;do&nbsp;not&nbsp;have&nbsp;permission&nbsp;to&nbsp;fetch&nbsp;this&nbsp;webhook.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`.Webhook`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;webhook&nbsp;you&nbsp;requested.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-fetch_widget"><strong>fetch_widget</strong></a>(self, guild_id: 'int', /) -&gt; 'Widget'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Gets&nbsp;a&nbsp;:class:`.Widget`&nbsp;from&nbsp;a&nbsp;guild&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;must&nbsp;have&nbsp;the&nbsp;widget&nbsp;enabled&nbsp;to&nbsp;get&nbsp;this&nbsp;information.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``guild_id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+guild_id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;guild.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+Forbidden<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;widget&nbsp;for&nbsp;this&nbsp;guild&nbsp;is&nbsp;disabled.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Retrieving&nbsp;the&nbsp;widget&nbsp;failed.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.Widget`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild's&nbsp;widget.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_all_channels"><strong>get_all_channels</strong></a>(self) -&gt; 'Generator[GuildChannel, None, None]'</dt><dd><span class="code">A&nbsp;generator&nbsp;that&nbsp;retrieves&nbsp;every&nbsp;:class:`.abc.GuildChannel`&nbsp;the&nbsp;client&nbsp;can&nbsp;'access'.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;equivalent&nbsp;to:&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;guild&nbsp;in&nbsp;client.guilds:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;channel&nbsp;in&nbsp;guild.channels:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield&nbsp;channel<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Just&nbsp;because&nbsp;you&nbsp;receive&nbsp;a&nbsp;:class:`.abc.GuildChannel`&nbsp;does&nbsp;not&nbsp;mean&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;can&nbsp;communicate&nbsp;in&nbsp;said&nbsp;channel.&nbsp;:meth:`.abc.GuildChannel.permissions_for`&nbsp;should<br>
+&nbsp;&nbsp;&nbsp;&nbsp;be&nbsp;used&nbsp;for&nbsp;that.<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`.abc.GuildChannel`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;channel&nbsp;the&nbsp;client&nbsp;can&nbsp;'access'.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_all_members"><strong>get_all_members</strong></a>(self) -&gt; 'Generator[Member, None, None]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;generator&nbsp;with&nbsp;every&nbsp;:class:`.Member`&nbsp;the&nbsp;client&nbsp;can&nbsp;see.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;equivalent&nbsp;to:&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;guild&nbsp;in&nbsp;client.guilds:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;member&nbsp;in&nbsp;guild.members:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield&nbsp;member<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`.Member`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;member&nbsp;the&nbsp;client&nbsp;can&nbsp;see.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_channel"><strong>get_channel</strong></a>(self, id: 'int', /) -&gt; 'Optional[Union[GuildChannel, Thread, PrivateChannel]]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;channel&nbsp;or&nbsp;thread&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[Union[:class:`.abc.GuildChannel`,&nbsp;:class:`.Thread`,&nbsp;:class:`.abc.PrivateChannel`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;returned&nbsp;channel&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_emoji"><strong>get_emoji</strong></a>(self, id: 'int', /) -&gt; 'Optional[Emoji]'</dt><dd><span class="code">Returns&nbsp;an&nbsp;emoji&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`.Emoji`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;custom&nbsp;emoji&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_guild"><strong>get_guild</strong></a>(self, id: 'int', /) -&gt; 'Optional[Guild]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;guild&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`.Guild`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;guild&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_partial_messageable"><strong>get_partial_messageable</strong></a>(self, id: 'int', *, guild_id: 'Optional[int]' = None, type: 'Optional[ChannelType]' = None) -&gt; 'PartialMessageable'</dt><dd><span class="code">Returns&nbsp;a&nbsp;partial&nbsp;messageable&nbsp;with&nbsp;the&nbsp;given&nbsp;channel&nbsp;ID.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;have&nbsp;a&nbsp;channel_id&nbsp;but&nbsp;don't&nbsp;want&nbsp;to&nbsp;do&nbsp;an&nbsp;API&nbsp;call<br>
+to&nbsp;send&nbsp;messages&nbsp;to&nbsp;it.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;channel&nbsp;ID&nbsp;to&nbsp;create&nbsp;a&nbsp;partial&nbsp;messageable&nbsp;for.<br>
+guild_id:&nbsp;Optional[:class:`int`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;optional&nbsp;guild&nbsp;ID&nbsp;to&nbsp;create&nbsp;a&nbsp;partial&nbsp;messageable&nbsp;for.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;not&nbsp;required&nbsp;to&nbsp;actually&nbsp;send&nbsp;messages,&nbsp;but&nbsp;it&nbsp;does&nbsp;allow&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:meth:`~discord.PartialMessageable.jump_url`&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:attr:`~discord.PartialMessageable.guild`&nbsp;properties&nbsp;to&nbsp;function&nbsp;properly.<br>
+type:&nbsp;Optional[:class:`.ChannelType`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;underlying&nbsp;channel&nbsp;type&nbsp;for&nbsp;the&nbsp;partial&nbsp;messageable.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`.PartialMessageable`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;partial&nbsp;messageable</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_soundboard_sound"><strong>get_soundboard_sound</strong></a>(self, id: 'int', /) -&gt; 'Optional[SoundboardSound]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;soundboard&nbsp;sound&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`.SoundboardSound`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;soundboard&nbsp;sound&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_stage_instance"><strong>get_stage_instance</strong></a>(self, id: 'int', /) -&gt; 'Optional[StageInstance]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;stage&nbsp;instance&nbsp;with&nbsp;the&nbsp;given&nbsp;stage&nbsp;channel&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`.StageInstance`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;stage&nbsp;instance&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_sticker"><strong>get_sticker</strong></a>(self, id: 'int', /) -&gt; 'Optional[GuildSticker]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;guild&nbsp;sticker&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;To&nbsp;retrieve&nbsp;standard&nbsp;stickers,&nbsp;use&nbsp;:meth:`.fetch_sticker`.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;:meth:`.fetch_premium_sticker_packs`.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`.GuildSticker`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;sticker&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-get_user"><strong>get_user</strong></a>(self, id: 'int', /) -&gt; 'Optional[User]'</dt><dd><span class="code">Returns&nbsp;a&nbsp;user&nbsp;with&nbsp;the&nbsp;given&nbsp;ID.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``id``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;to&nbsp;search&nbsp;for.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Optional[:class:`~discord.User`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;user&nbsp;or&nbsp;``None``&nbsp;if&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-is_closed"><strong>is_closed</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Indicates&nbsp;if&nbsp;the&nbsp;websocket&nbsp;connection&nbsp;is&nbsp;closed.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-is_ready"><strong>is_ready</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Specifies&nbsp;if&nbsp;the&nbsp;client's&nbsp;internal&nbsp;cache&nbsp;is&nbsp;ready&nbsp;for&nbsp;use.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-is_ws_ratelimited"><strong>is_ws_ratelimited</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;websocket&nbsp;is&nbsp;currently&nbsp;rate&nbsp;limited.<br>
+&nbsp;<br>
+This&nbsp;can&nbsp;be&nbsp;useful&nbsp;to&nbsp;know&nbsp;when&nbsp;deciding&nbsp;whether&nbsp;you&nbsp;should&nbsp;query&nbsp;members<br>
+using&nbsp;HTTP&nbsp;or&nbsp;via&nbsp;the&nbsp;gateway.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.6</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-login"><strong>login</strong></a>(self, token: 'str') -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Logs&nbsp;in&nbsp;the&nbsp;client&nbsp;with&nbsp;the&nbsp;specified&nbsp;credentials&nbsp;and<br>
+calls&nbsp;the&nbsp;:meth:`setup_hook`.<br>
+&nbsp;<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+token:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;authentication&nbsp;token.&nbsp;Do&nbsp;not&nbsp;prefix&nbsp;this&nbsp;token&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;anything&nbsp;as&nbsp;the&nbsp;library&nbsp;will&nbsp;do&nbsp;it&nbsp;for&nbsp;you.<br>
+&nbsp;<br>
+Raises<br>
+------<br>
+LoginFailure<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;wrong&nbsp;credentials&nbsp;are&nbsp;passed.<br>
+HTTPException<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;unknown&nbsp;HTTP&nbsp;related&nbsp;error&nbsp;occurred,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;usually&nbsp;when&nbsp;it&nbsp;isn't&nbsp;200&nbsp;or&nbsp;the&nbsp;known&nbsp;incorrect&nbsp;credentials<br>
+&nbsp;&nbsp;&nbsp;&nbsp;passing&nbsp;status&nbsp;code.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'Any', **kwargs: 'Any') -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;error&nbsp;handler&nbsp;provided&nbsp;by&nbsp;the&nbsp;client.<br>
+&nbsp;<br>
+By&nbsp;default&nbsp;this&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger&nbsp;however&nbsp;it&nbsp;could&nbsp;be<br>
+overridden&nbsp;to&nbsp;have&nbsp;a&nbsp;different&nbsp;implementation.<br>
+Check&nbsp;:func:`~discord.on_error`&nbsp;for&nbsp;more&nbsp;details.<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``event_method``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;instead&nbsp;of&nbsp;writing&nbsp;to&nbsp;``sys.stderr``&nbsp;it&nbsp;logs&nbsp;instead.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-remove_dynamic_items"><strong>remove_dynamic_items</strong></a>(self, *items: 'Type[DynamicItem[Item[Any]]]') -&gt; 'None'</dt><dd><span class="code">Removes&nbsp;:class:`~discord.ui.DynamicItem`&nbsp;classes&nbsp;from&nbsp;persistent&nbsp;listening.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;accepts&nbsp;*class&nbsp;types*&nbsp;rather&nbsp;than&nbsp;instances.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+\*items:&nbsp;Type[:class:`~discord.ui.DynamicItem`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;classes&nbsp;of&nbsp;dynamic&nbsp;items&nbsp;to&nbsp;remove.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;class&nbsp;is&nbsp;not&nbsp;a&nbsp;subclass&nbsp;of&nbsp;:class:`~discord.ui.DynamicItem`.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-run"><strong>run</strong></a>(self, token: 'str', *, reconnect: 'bool' = True, log_handler: 'Optional[logging.Handler]' = ..., log_formatter: 'logging.Formatter' = ..., log_level: 'int' = ..., root_logger: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">A&nbsp;blocking&nbsp;call&nbsp;that&nbsp;abstracts&nbsp;away&nbsp;the&nbsp;event&nbsp;loop<br>
+initialisation&nbsp;from&nbsp;you.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;want&nbsp;more&nbsp;control&nbsp;over&nbsp;the&nbsp;event&nbsp;loop&nbsp;then&nbsp;this<br>
+function&nbsp;should&nbsp;not&nbsp;be&nbsp;used.&nbsp;Use&nbsp;:meth:`start`&nbsp;coroutine<br>
+or&nbsp;:meth:`connect`&nbsp;+&nbsp;:meth:`login`.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;also&nbsp;sets&nbsp;up&nbsp;the&nbsp;logging&nbsp;library&nbsp;to&nbsp;make&nbsp;it&nbsp;easier<br>
+for&nbsp;beginners&nbsp;to&nbsp;know&nbsp;what&nbsp;is&nbsp;going&nbsp;on&nbsp;with&nbsp;the&nbsp;library.&nbsp;For&nbsp;more<br>
+advanced&nbsp;users,&nbsp;this&nbsp;can&nbsp;be&nbsp;disabled&nbsp;by&nbsp;passing&nbsp;``None``&nbsp;to<br>
+the&nbsp;``log_handler``&nbsp;parameter.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;function&nbsp;must&nbsp;be&nbsp;the&nbsp;last&nbsp;function&nbsp;to&nbsp;call&nbsp;due&nbsp;to&nbsp;the&nbsp;fact&nbsp;that&nbsp;it<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;blocking.&nbsp;That&nbsp;means&nbsp;that&nbsp;registration&nbsp;of&nbsp;events&nbsp;or&nbsp;anything&nbsp;being<br>
+&nbsp;&nbsp;&nbsp;&nbsp;called&nbsp;after&nbsp;this&nbsp;function&nbsp;call&nbsp;will&nbsp;not&nbsp;execute&nbsp;until&nbsp;it&nbsp;returns.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+token:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;authentication&nbsp;token.&nbsp;Do&nbsp;not&nbsp;prefix&nbsp;this&nbsp;token&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;anything&nbsp;as&nbsp;the&nbsp;library&nbsp;will&nbsp;do&nbsp;it&nbsp;for&nbsp;you.<br>
+reconnect:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;we&nbsp;should&nbsp;attempt&nbsp;reconnecting,&nbsp;either&nbsp;due&nbsp;to&nbsp;internet<br>
+&nbsp;&nbsp;&nbsp;&nbsp;failure&nbsp;or&nbsp;a&nbsp;specific&nbsp;failure&nbsp;on&nbsp;Discord's&nbsp;part.&nbsp;Certain<br>
+&nbsp;&nbsp;&nbsp;&nbsp;disconnects&nbsp;that&nbsp;lead&nbsp;to&nbsp;bad&nbsp;state&nbsp;will&nbsp;not&nbsp;be&nbsp;handled&nbsp;(such&nbsp;as<br>
+&nbsp;&nbsp;&nbsp;&nbsp;invalid&nbsp;sharding&nbsp;payloads&nbsp;or&nbsp;bad&nbsp;tokens).<br>
+log_handler:&nbsp;Optional[:class:`logging.Handler`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;log&nbsp;handler&nbsp;to&nbsp;use&nbsp;for&nbsp;the&nbsp;library's&nbsp;logger.&nbsp;If&nbsp;this&nbsp;is&nbsp;``None``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;the&nbsp;library&nbsp;will&nbsp;not&nbsp;set&nbsp;up&nbsp;anything&nbsp;logging&nbsp;related.&nbsp;Logging<br>
+&nbsp;&nbsp;&nbsp;&nbsp;will&nbsp;still&nbsp;work&nbsp;if&nbsp;``None``&nbsp;is&nbsp;passed,&nbsp;though&nbsp;it&nbsp;is&nbsp;your&nbsp;responsibility<br>
+&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;set&nbsp;it&nbsp;up.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;default&nbsp;log&nbsp;handler&nbsp;if&nbsp;not&nbsp;provided&nbsp;is&nbsp;:class:`logging.StreamHandler`.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+log_formatter:&nbsp;:class:`logging.Formatter`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;formatter&nbsp;to&nbsp;use&nbsp;with&nbsp;the&nbsp;given&nbsp;log&nbsp;handler.&nbsp;If&nbsp;not&nbsp;provided&nbsp;then&nbsp;it<br>
+&nbsp;&nbsp;&nbsp;&nbsp;defaults&nbsp;to&nbsp;a&nbsp;colour&nbsp;based&nbsp;logging&nbsp;formatter&nbsp;(if&nbsp;available).<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+log_level:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;default&nbsp;log&nbsp;level&nbsp;for&nbsp;the&nbsp;library's&nbsp;logger.&nbsp;This&nbsp;is&nbsp;only&nbsp;applied&nbsp;if&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``log_handler``&nbsp;parameter&nbsp;is&nbsp;not&nbsp;``None``.&nbsp;Defaults&nbsp;to&nbsp;``logging.INFO``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0<br>
+root_logger:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;set&nbsp;up&nbsp;the&nbsp;root&nbsp;logger&nbsp;rather&nbsp;than&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;By&nbsp;default,&nbsp;only&nbsp;the&nbsp;library&nbsp;logger&nbsp;(``'discord'``)&nbsp;is&nbsp;set&nbsp;up.&nbsp;If&nbsp;this<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;set&nbsp;to&nbsp;``True``&nbsp;then&nbsp;the&nbsp;root&nbsp;logger&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;well.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Defaults&nbsp;to&nbsp;``False``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-setup_hook"><strong>setup_hook</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;coroutine&nbsp;to&nbsp;be&nbsp;called&nbsp;to&nbsp;setup&nbsp;the&nbsp;bot,&nbsp;by&nbsp;default&nbsp;this&nbsp;is&nbsp;blank.<br>
+&nbsp;<br>
+To&nbsp;perform&nbsp;asynchronous&nbsp;setup&nbsp;after&nbsp;the&nbsp;bot&nbsp;is&nbsp;logged&nbsp;in&nbsp;but&nbsp;before<br>
+it&nbsp;has&nbsp;connected&nbsp;to&nbsp;the&nbsp;Websocket,&nbsp;overwrite&nbsp;this&nbsp;coroutine.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;only&nbsp;called&nbsp;once,&nbsp;in&nbsp;:meth:`login`,&nbsp;and&nbsp;will&nbsp;be&nbsp;called&nbsp;before<br>
+any&nbsp;events&nbsp;are&nbsp;dispatched,&nbsp;making&nbsp;it&nbsp;a&nbsp;better&nbsp;solution&nbsp;than&nbsp;doing&nbsp;such<br>
+setup&nbsp;in&nbsp;the&nbsp;:func:`~discord.on_ready`&nbsp;event.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Since&nbsp;this&nbsp;is&nbsp;called&nbsp;*before*&nbsp;the&nbsp;websocket&nbsp;connection&nbsp;is&nbsp;made&nbsp;therefore<br>
+&nbsp;&nbsp;&nbsp;&nbsp;anything&nbsp;that&nbsp;waits&nbsp;for&nbsp;the&nbsp;websocket&nbsp;will&nbsp;deadlock,&nbsp;this&nbsp;includes&nbsp;things<br>
+&nbsp;&nbsp;&nbsp;&nbsp;like&nbsp;:meth:`wait_for`&nbsp;and&nbsp;:meth:`wait_until_ready`.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-start"><strong>start</strong></a>(self, token: 'str', *, reconnect: 'bool' = True) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;shorthand&nbsp;coroutine&nbsp;for&nbsp;:meth:`login`&nbsp;+&nbsp;:meth:`connect`.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+token:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;authentication&nbsp;token.&nbsp;Do&nbsp;not&nbsp;prefix&nbsp;this&nbsp;token&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;anything&nbsp;as&nbsp;the&nbsp;library&nbsp;will&nbsp;do&nbsp;it&nbsp;for&nbsp;you.<br>
+reconnect:&nbsp;:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;we&nbsp;should&nbsp;attempt&nbsp;reconnecting,&nbsp;either&nbsp;due&nbsp;to&nbsp;internet<br>
+&nbsp;&nbsp;&nbsp;&nbsp;failure&nbsp;or&nbsp;a&nbsp;specific&nbsp;failure&nbsp;on&nbsp;Discord's&nbsp;part.&nbsp;Certain<br>
+&nbsp;&nbsp;&nbsp;&nbsp;disconnects&nbsp;that&nbsp;lead&nbsp;to&nbsp;bad&nbsp;state&nbsp;will&nbsp;not&nbsp;be&nbsp;handled&nbsp;(such&nbsp;as<br>
+&nbsp;&nbsp;&nbsp;&nbsp;invalid&nbsp;sharding&nbsp;payloads&nbsp;or&nbsp;bad&nbsp;tokens).<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;unexpected&nbsp;keyword&nbsp;argument&nbsp;was&nbsp;received.</span></dd></dl>
+
+<dl><dt><a name="KingdomsBot-wait_for"><strong>wait_for</strong></a>(self, event: 'str', /, *, check: 'Optional[Callable[..., bool]]' = None, timeout: 'Optional[float]' = None) -&gt; 'Coro[Any]'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;for&nbsp;a&nbsp;WebSocket&nbsp;event&nbsp;to&nbsp;be&nbsp;dispatched.<br>
+&nbsp;<br>
+This&nbsp;could&nbsp;be&nbsp;used&nbsp;to&nbsp;wait&nbsp;for&nbsp;a&nbsp;user&nbsp;to&nbsp;reply&nbsp;to&nbsp;a&nbsp;message,<br>
+or&nbsp;to&nbsp;react&nbsp;to&nbsp;a&nbsp;message,&nbsp;or&nbsp;to&nbsp;edit&nbsp;a&nbsp;message&nbsp;in&nbsp;a&nbsp;self-contained<br>
+way.<br>
+&nbsp;<br>
+The&nbsp;``timeout``&nbsp;parameter&nbsp;is&nbsp;passed&nbsp;onto&nbsp;:func:`asyncio.wait_for`.&nbsp;By&nbsp;default,<br>
+it&nbsp;does&nbsp;not&nbsp;timeout.&nbsp;Note&nbsp;that&nbsp;this&nbsp;does&nbsp;propagate&nbsp;the<br>
+:exc:`asyncio.TimeoutError`&nbsp;for&nbsp;you&nbsp;in&nbsp;case&nbsp;of&nbsp;timeout&nbsp;and&nbsp;is&nbsp;provided&nbsp;for<br>
+ease&nbsp;of&nbsp;use.<br>
+&nbsp;<br>
+In&nbsp;case&nbsp;the&nbsp;event&nbsp;returns&nbsp;multiple&nbsp;arguments,&nbsp;a&nbsp;:class:`tuple`&nbsp;containing&nbsp;those<br>
+arguments&nbsp;is&nbsp;returned&nbsp;instead.&nbsp;Please&nbsp;check&nbsp;the<br>
+:ref:`documentation&nbsp;&lt;discord-api-events&gt;`&nbsp;for&nbsp;a&nbsp;list&nbsp;of&nbsp;events&nbsp;and&nbsp;their<br>
+parameters.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;**first&nbsp;event&nbsp;that&nbsp;meets&nbsp;the&nbsp;requirements**.<br>
+&nbsp;<br>
+Examples<br>
+---------<br>
+&nbsp;<br>
+Waiting&nbsp;for&nbsp;a&nbsp;user&nbsp;reply:&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;@client.event<br>
+&nbsp;&nbsp;&nbsp;&nbsp;async&nbsp;def&nbsp;on_message(message):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;message.content.startswith('$greet'):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;channel&nbsp;=&nbsp;message.channel<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;channel.send('Say&nbsp;hello!')<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;def&nbsp;check(m):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;m.content&nbsp;==&nbsp;'hello'&nbsp;and&nbsp;m.channel&nbsp;==&nbsp;channel<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg&nbsp;=&nbsp;await&nbsp;client.<a href="#KingdomsBot-wait_for">wait_for</a>('message',&nbsp;check=check)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;channel.send(f'Hello&nbsp;{msg.author}!')<br>
+&nbsp;<br>
+Waiting&nbsp;for&nbsp;a&nbsp;thumbs&nbsp;up&nbsp;reaction&nbsp;from&nbsp;the&nbsp;message&nbsp;author:&nbsp;::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;@client.event<br>
+&nbsp;&nbsp;&nbsp;&nbsp;async&nbsp;def&nbsp;on_message(message):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;message.content.startswith('$thumb'):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;channel&nbsp;=&nbsp;message.channel<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;channel.send('Send&nbsp;me&nbsp;that&nbsp;👍&nbsp;reaction,&nbsp;mate')<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;def&nbsp;check(reaction,&nbsp;user):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;user&nbsp;==&nbsp;message.author&nbsp;and&nbsp;str(reaction.emoji)&nbsp;==&nbsp;'👍'<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reaction,&nbsp;user&nbsp;=&nbsp;await&nbsp;client.<a href="#KingdomsBot-wait_for">wait_for</a>('reaction_add',&nbsp;timeout=60.0,&nbsp;check=check)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;except&nbsp;asyncio.TimeoutError:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;channel.send('👎')<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;channel.send('👍')<br>
+&nbsp;<br>
+..&nbsp;versionchanged::&nbsp;2.0<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``event``&nbsp;parameter&nbsp;is&nbsp;now&nbsp;positional-only.<br>
+&nbsp;<br>
+&nbsp;<br>
+Parameters<br>
+------------<br>
+event:&nbsp;:class:`str`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;event&nbsp;name,&nbsp;similar&nbsp;to&nbsp;the&nbsp;:ref:`event&nbsp;reference&nbsp;&lt;discord-api-events&gt;`,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;but&nbsp;without&nbsp;the&nbsp;``on_``&nbsp;prefix,&nbsp;to&nbsp;wait&nbsp;for.<br>
+check:&nbsp;Optional[Callable[...,&nbsp;:class:`bool`]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;predicate&nbsp;to&nbsp;check&nbsp;what&nbsp;to&nbsp;wait&nbsp;for.&nbsp;The&nbsp;arguments&nbsp;must&nbsp;meet&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;parameters&nbsp;of&nbsp;the&nbsp;event&nbsp;being&nbsp;waited&nbsp;for.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;number&nbsp;of&nbsp;seconds&nbsp;to&nbsp;wait&nbsp;before&nbsp;timing&nbsp;out&nbsp;and&nbsp;raising<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:exc:`asyncio.TimeoutError`.<br>
+&nbsp;<br>
+Raises<br>
+-------<br>
+asyncio.TimeoutError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;timeout&nbsp;is&nbsp;provided&nbsp;and&nbsp;it&nbsp;was&nbsp;reached.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+Any<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Returns&nbsp;no&nbsp;arguments,&nbsp;a&nbsp;single&nbsp;argument,&nbsp;or&nbsp;a&nbsp;:class:`tuple`&nbsp;of&nbsp;multiple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;arguments&nbsp;that&nbsp;mirrors&nbsp;the&nbsp;parameters&nbsp;passed&nbsp;in&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:ref:`event&nbsp;reference&nbsp;&lt;discord-api-events&gt;`.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-wait_until_ready"><strong>wait_until_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;client's&nbsp;internal&nbsp;cache&nbsp;is&nbsp;all&nbsp;ready.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Calling&nbsp;this&nbsp;inside&nbsp;:meth:`setup_hook`&nbsp;can&nbsp;lead&nbsp;to&nbsp;a&nbsp;deadlock.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.client.html#Client">discord.client.Client</a>:<br>
+<dl><dt><strong>application</strong></dt>
+<dd><span class="code">Optional[:class:`~discord.AppInfo`]:&nbsp;The&nbsp;client's&nbsp;application&nbsp;info.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;retrieved&nbsp;on&nbsp;:meth:`~discord.Client.login`&nbsp;and&nbsp;is&nbsp;not&nbsp;updated<br>
+afterwards.&nbsp;This&nbsp;allows&nbsp;populating&nbsp;the&nbsp;application_id&nbsp;without&nbsp;requiring&nbsp;a<br>
+gateway&nbsp;connection.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;``None``&nbsp;if&nbsp;accessed&nbsp;before&nbsp;:meth:`~discord.Client.login`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+..&nbsp;seealso::&nbsp;The&nbsp;:meth:`~discord.Client.application_info`&nbsp;API&nbsp;call<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd>
+</dl>
+<dl><dt><strong>application_flags</strong></dt>
+<dd><span class="code">:class:`~discord.ApplicationFlags`:&nbsp;The&nbsp;client's&nbsp;application&nbsp;flags.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd>
+</dl>
+<dl><dt><strong>application_id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;client's&nbsp;application&nbsp;ID.<br>
+&nbsp;<br>
+If&nbsp;this&nbsp;is&nbsp;not&nbsp;passed&nbsp;via&nbsp;``__init__``&nbsp;then&nbsp;this&nbsp;is&nbsp;retrieved<br>
+through&nbsp;the&nbsp;gateway&nbsp;when&nbsp;an&nbsp;event&nbsp;contains&nbsp;the&nbsp;data&nbsp;or&nbsp;after&nbsp;a&nbsp;call<br>
+to&nbsp;:meth:`~discord.Client.login`.&nbsp;Usually&nbsp;after&nbsp;:func:`~discord.on_connect`<br>
+is&nbsp;called.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd>
+</dl>
+<dl><dt><strong>cached_messages</strong></dt>
+<dd><span class="code">Sequence[:class:`.Message`]:&nbsp;Read-only&nbsp;list&nbsp;of&nbsp;messages&nbsp;the&nbsp;connected&nbsp;client&nbsp;has&nbsp;cached.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.1</span></dd>
+</dl>
+<dl><dt><strong>emojis</strong></dt>
+<dd><span class="code">Sequence[:class:`.Emoji`]:&nbsp;The&nbsp;emojis&nbsp;that&nbsp;the&nbsp;connected&nbsp;client&nbsp;has.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;does&nbsp;not&nbsp;include&nbsp;the&nbsp;emojis&nbsp;that&nbsp;are&nbsp;owned&nbsp;by&nbsp;the&nbsp;application.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;:meth:`.fetch_application_emoji`&nbsp;to&nbsp;get&nbsp;those.</span></dd>
+</dl>
+<dl><dt><strong>guilds</strong></dt>
+<dd><span class="code">Sequence[:class:`.Guild`]:&nbsp;The&nbsp;guilds&nbsp;that&nbsp;the&nbsp;connected&nbsp;client&nbsp;is&nbsp;a&nbsp;member&nbsp;of.</span></dd>
+</dl>
+<dl><dt><strong>intents</strong></dt>
+<dd><span class="code">:class:`~discord.Intents`:&nbsp;The&nbsp;intents&nbsp;configured&nbsp;for&nbsp;this&nbsp;connection.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.5</span></dd>
+</dl>
+<dl><dt><strong>latency</strong></dt>
+<dd><span class="code">:class:`float`:&nbsp;Measures&nbsp;latency&nbsp;between&nbsp;a&nbsp;HEARTBEAT&nbsp;and&nbsp;a&nbsp;HEARTBEAT_ACK&nbsp;in&nbsp;seconds.<br>
+&nbsp;<br>
+This&nbsp;could&nbsp;be&nbsp;referred&nbsp;to&nbsp;as&nbsp;the&nbsp;Discord&nbsp;WebSocket&nbsp;protocol&nbsp;latency.</span></dd>
+</dl>
+<dl><dt><strong>persistent_views</strong></dt>
+<dd><span class="code">Sequence[Union[:class:`.View`,&nbsp;:class:`.LayoutView`]]:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;persistent&nbsp;views&nbsp;added&nbsp;to&nbsp;the&nbsp;client.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd>
+</dl>
+<dl><dt><strong>private_channels</strong></dt>
+<dd><span class="code">Sequence[:class:`.abc.PrivateChannel`]:&nbsp;The&nbsp;private&nbsp;channels&nbsp;that&nbsp;the&nbsp;connected&nbsp;client&nbsp;is&nbsp;participating&nbsp;on.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;returns&nbsp;only&nbsp;up&nbsp;to&nbsp;128&nbsp;most&nbsp;recent&nbsp;private&nbsp;channels&nbsp;due&nbsp;to&nbsp;an&nbsp;internal&nbsp;working<br>
+&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;how&nbsp;Discord&nbsp;deals&nbsp;with&nbsp;private&nbsp;channels.</span></dd>
+</dl>
+<dl><dt><strong>soundboard_sounds</strong></dt>
+<dd><span class="code">List[:class:`.SoundboardSound`]:&nbsp;The&nbsp;soundboard&nbsp;sounds&nbsp;that&nbsp;the&nbsp;connected&nbsp;client&nbsp;has.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.5</span></dd>
+</dl>
+<dl><dt><strong>stickers</strong></dt>
+<dd><span class="code">Sequence[:class:`.GuildSticker`]:&nbsp;The&nbsp;stickers&nbsp;that&nbsp;the&nbsp;connected&nbsp;client&nbsp;has.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.0</span></dd>
+</dl>
+<dl><dt><strong>user</strong></dt>
+<dd><span class="code">Optional[:class:`.ClientUser`]:&nbsp;Represents&nbsp;the&nbsp;connected&nbsp;client.&nbsp;``None``&nbsp;if&nbsp;not&nbsp;logged&nbsp;in.</span></dd>
+</dl>
+<dl><dt><strong>users</strong></dt>
+<dd><span class="code">List[:class:`~discord.User`]:&nbsp;Returns&nbsp;a&nbsp;list&nbsp;of&nbsp;all&nbsp;the&nbsp;users&nbsp;the&nbsp;bot&nbsp;can&nbsp;see.</span></dd>
+</dl>
+<dl><dt><strong>voice_clients</strong></dt>
+<dd><span class="code">List[:class:`.VoiceProtocol`]:&nbsp;Represents&nbsp;a&nbsp;list&nbsp;of&nbsp;voice&nbsp;connections.<br>
+&nbsp;<br>
+These&nbsp;are&nbsp;usually&nbsp;:class:`.VoiceClient`&nbsp;instances.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.client.html#Client">discord.client.Client</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>activity</strong></dt>
+<dd><span class="code">Optional[:class:`.BaseActivity`]:&nbsp;The&nbsp;activity&nbsp;being&nbsp;used&nbsp;upon<br>
+logging&nbsp;in.</span></dd>
+</dl>
+<dl><dt><strong>allowed_mentions</strong></dt>
+<dd><span class="code">Optional[:class:`~discord.AllowedMentions`]:&nbsp;The&nbsp;allowed&nbsp;mention&nbsp;configuration.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;1.4</span></dd>
+</dl>
+<dl><dt><strong>status</strong></dt>
+<dd><span class="code">:class:`.Status`:<br>
+The&nbsp;status&nbsp;being&nbsp;used&nbsp;upon&nbsp;logging&nbsp;on&nbsp;to&nbsp;Discord.<br>
+&nbsp;<br>
+..&nbsp;versionadded:&nbsp;2.0</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-create_bot"><strong>create_bot</strong></a>(config: 'BotConfig | None' = None) -&gt; 'KingdomsBot'</dt><dd><span class="code">Build&nbsp;the&nbsp;Kingdoms&nbsp;bot:&nbsp;client,&nbsp;tree,&nbsp;core&nbsp;services&nbsp;and&nbsp;commands.</span></dd></dl>
+ <dl><dt><a name="-run_bot"><strong>run_bot</strong></a>(config: 'BotConfig | None' = None) -&gt; 'None'</dt><dd><span class="code">Build&nbsp;the&nbsp;bot&nbsp;and&nbsp;block&nbsp;until&nbsp;the&nbsp;gateway&nbsp;connection&nbsp;ends.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>READY_LOG_LINE</strong> = 'KINGDOMS_BOT_READY'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.bot (WARNING)&gt;</td></tr></table>
+</body></html>

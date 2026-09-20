@@ -36,16 +36,13 @@ def test_parse_bot_admins_ignores_garbage_and_empty() -> None:
 
 
 def test_status_service_report_shape() -> None:
-    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins("42"),
-                            games=("aoe2",))
+    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins("42"), games=("aoe2",))
     report = service.report()
     assert report["version"]
     assert report["uptime_seconds"] == 0.0
     assert report["bot_admins"] == ("42",)
     assert report["games"] == ("aoe2",)
-    assert report["enabled_mods"] == {
-        "example": {"channels": ("announce",), "roles": ("member",)}
-    }
+    assert report["enabled_mods"] == {"example": {"channels": ("announce",), "roles": ("member",)}}
 
 
 def test_status_service_disabled_mods_excluded() -> None:
@@ -59,8 +56,7 @@ def test_status_service_uptime_uses_injected_clock() -> None:
     def clock() -> float:
         return ticks[0]
 
-    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins(""),
-                            clock=clock)
+    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins(""), clock=clock)
     ticks[0] = 65.0
     assert service.uptime_seconds() == 65.0
 

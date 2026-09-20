@@ -172,9 +172,7 @@ class WorkflowEngine:
                 return state
             workflow = self._require_definition(state.workflow_name)
             transition = await drive(workflow, state.as_transition())
-            return await self._apply(
-                workflow_id, state.workflow_name, state.guild_id, state.user_id, transition
-            )
+            return await self._apply(workflow_id, state.workflow_name, state.guild_id, state.user_id, transition)
 
     async def _apply(
         self,
@@ -246,9 +244,7 @@ class WorkflowEngine:
                         status=WorkflowStatus.TIMED_OUT,
                         payload=dict(state.payload),
                     )
-                    await self._apply(
-                        state.id, state.workflow_name, state.guild_id, state.user_id, transition
-                    )
+                    await self._apply(state.id, state.workflow_name, state.guild_id, state.user_id, transition)
                 else:
                     self._arm_timeout(state.id)
 
@@ -279,9 +275,7 @@ class MongoWorkflowStore:
 
     async def save(self, state: WorkflowState) -> None:
         """Upsert the instance document."""
-        await self._collection.update_one(
-            {"_id": state.id}, {"$set": state.to_mongo()}, upsert=True
-        )
+        await self._collection.update_one({"_id": state.id}, {"$set": state.to_mongo()}, upsert=True)
 
     async def get(self, workflow_id: str) -> WorkflowState | None:
         """Read an instance document."""

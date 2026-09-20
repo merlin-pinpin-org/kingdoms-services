@@ -27,11 +27,7 @@ def parse_bot_admins(raw: str | None) -> BotAdmins:
     """Parse the BOT_ADMINS environment value; empty means no operator."""
     if raw is None or not raw.strip():
         return BotAdmins()
-    return BotAdmins(
-        user_ids=tuple(
-            uid.strip() for uid in raw.split(",") if uid.strip() and uid.strip().isdigit()
-        )
-    )
+    return BotAdmins(user_ids=tuple(uid.strip() for uid in raw.split(",") if uid.strip() and uid.strip().isdigit()))
 
 
 class StatusService:

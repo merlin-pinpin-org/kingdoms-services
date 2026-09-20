@@ -53,8 +53,7 @@ class ModDefinition:
             if cat.key == key:
                 return cat
         raise KeyError(
-            f"Mod '{self.name}' does not declare channel category '{key}'. "
-            "Add it to config/mods/" + self.name + ".yaml"
+            f"Mod '{self.name}' does not declare channel category '{key}'. Add it to config/mods/" + self.name + ".yaml"
         )
 
     def role(self, key: str) -> RoleDef:
@@ -62,7 +61,4 @@ class ModDefinition:
         for role in self.roles:
             if role.key == key:
                 return role
-        raise KeyError(
-            f"Mod '{self.name}' does not declare role '{key}'. "
-            "Add it to config/mods/" + self.name + ".yaml"
-        )
+        raise KeyError(f"Mod '{self.name}' does not declare role '{key}'. Add it to config/mods/" + self.name + ".yaml")

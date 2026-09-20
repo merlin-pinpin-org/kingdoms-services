@@ -159,16 +159,12 @@ class MockMember(discord.Member):
     def roles(self) -> list[MockRole]:
         return list(self._roles)
 
-    async def add_roles(
-        self, *roles: discord.Role, reason: str | None = None, atomic: bool = True
-    ) -> None:
+    async def add_roles(self, *roles: discord.Role, reason: str | None = None, atomic: bool = True) -> None:
         for role in roles:
             if role not in self._roles:
                 self._roles.append(role)  # type: ignore[arg-type]
 
-    async def remove_roles(
-        self, *roles: discord.Role, reason: str | None = None, atomic: bool = True
-    ) -> None:
+    async def remove_roles(self, *roles: discord.Role, reason: str | None = None, atomic: bool = True) -> None:
         for role in roles:
             if role in self._roles:
                 self._roles.remove(role)  # type: ignore[arg-type]
@@ -308,9 +304,7 @@ class MockTextChannel(discord.TextChannel):
     ) -> None:
         self._permissions[(target.id, isinstance(target, discord.Role))] = overwrite
 
-    def permission_overwrite_for(
-        self, target: discord.Member | discord.Role
-    ) -> discord.PermissionOverwrite | None:
+    def permission_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
         return self._permissions.get((target.id, isinstance(target, discord.Role)))
 
     def __repr__(self) -> str:

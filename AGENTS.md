@@ -77,7 +77,11 @@ depth**:
 - **SimCord** (dev-dependency `simcord[pytest]`, behavioral journeys in
   `tests/integration/test_simcord_journeys.py`) for anything that depends
   on discord.py dispatch: slash commands, buttons, selects, modals,
-  permissions, view timeouts, Components V2. Drive the bot as a user
+  permissions, view timeouts, Components V2. Since kingdoms-services#12
+  the shared `simcord_bot` fixture (`tests/conftest.py`) builds the real
+  bot via the production factory `create_bot()` — journeys exercise the
+  actual dispatch, tree and wiring; UI-pattern journeys may register
+  ad-hoc commands on the real tree. Drive the bot as a user
   (`alice.slash()`, `alice.click()`, `alice.submit_modal()`), never call a
   command callback directly. No token, no network, no sleeps —
   `env.advance_time()` fires timeouts.

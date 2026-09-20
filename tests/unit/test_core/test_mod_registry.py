@@ -47,7 +47,7 @@ def test_registry_register_get_require_enabled() -> None:
 
 
 def test_registry_disabled_mods_are_not_enabled() -> None:
-    registry = ModRegistry({ disabled.name: disabled for disabled in [ModDefinition(name="off", enabled=False)] })
+    registry = ModRegistry({disabled.name: disabled for disabled in [ModDefinition(name="off", enabled=False)]})
     assert registry.get("off") is not None
     assert registry.enabled() == {}
     assert registry.all() == {"off": registry.get("off")}
@@ -75,8 +75,7 @@ def test_load_mod_definitions_validates_schema(tmp_path: Path) -> None:
 def test_load_mod_definitions_fails_loudly_on_invalid(tmp_path: Path) -> None:
     mods_dir = tmp_path / "mods"
     mods_dir.mkdir()
-    (mods_dir / "bad.yaml").write_text("id: bad\nchannels:\n  - key: no_display\n",
-                                       encoding="utf-8")
+    (mods_dir / "bad.yaml").write_text("id: bad\nchannels:\n  - key: no_display\n", encoding="utf-8")
     with pytest.raises(ValueError, match=r"key.*and.*display_name"):
         load_mod_definitions(tmp_path)
 

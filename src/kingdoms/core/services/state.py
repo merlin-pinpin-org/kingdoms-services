@@ -244,9 +244,7 @@ class StateService:
         raw = await self._store.get(state_key(scope, key))
         return json.loads(raw) if raw is not None else None
 
-    async def set_state(
-        self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None
-    ) -> None:
+    async def set_state(self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None) -> None:
         """Write a hot-state entry with an optional TTL in seconds."""
         await self._store.set(state_key(scope, key), json.dumps(value), ttl=ttl)
 
