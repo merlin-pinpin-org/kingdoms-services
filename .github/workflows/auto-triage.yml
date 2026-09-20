@@ -138,16 +138,11 @@ jobs:
               const ownRefRe = new RegExp(`(?:${owner}/${repo})?#(\\d+)`, 'g');
               const closingLines = body
                 .split('\n')
-                .filter((l) => closingRe.test(l) && ownRefRe.test(l));
+                .filter((l) => closingRe.test(l) && new RegExp(ownRefRe.source).test(l));
               for (const line of closingLines) {
-                for (const m of line.matchAll(ownRefRe)) {
-                  linked.add(parseInt(m[2], 10));
+                for (const m of line.matchAll(new RegExp(ownRefRe.source, 'g'))) {
+                  linked.add(parseInt(m[1], 10));
                 }
-              }
-              const branchRef = (item.head && item.head.ref) || '';
-              const branchMatch = branchRef.match(/^vibe\/(\d+)-/);
-              if (isNew && branchMatch) {
-                linked.add(parseInt(branchMatch[1], 10));
               }
               const issues = [];
               for (const num of linked) {
@@ -163,18 +158,6 @@ jobs:
               if (labels.length === 0) labels.push(...inferLabels(title));
               await applyLabels(labels);
               if (issues.length > 0) await setMilestone(issues[0].milestone ? issues[0].milestone.number : null);
-              if (isNew && branchMatch) {
-                const branchIssue = parseInt(branchMatch[1], 10);
-                const mentioned = new Set([...body.matchAll(/#(\d+)/g)].map((m) => parseInt(m[1], 10)));
-                if (issues.some((i) => i.number === branchIssue) && !mentioned.has(branchIssue)) {
-                  await github.rest.issues.update({
-                    owner,
-                    repo,
-                    issue_number: number,
-                    body: `${body}\n\nCloses #${branchIssue}`,
-                  });
-                }
-              }
             }
 
             await ensureAssignee();
