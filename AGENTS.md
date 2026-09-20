@@ -37,8 +37,37 @@ requires the `ROADMAP_DISPATCH_PAT` secret (fine-grained PAT, "Contents:
 read and write" on `merlin-pinpin/kingdoms`); the workflow reports the HTTP
 error explicitly if the token is missing or mis-scoped.
 
+## Session checklist (do this by default)
+
+At the end of every session:
+
+1. **Docs vs code**: update the docs in `kingdoms` that describe what you
+   changed (architecture, ADRs, MODS docs).
+2. **Issues**: make sure the issues you touched reflect reality — acceptance
+   criteria, state, and the `## Dependencies` checkboxes.
+3. **Labels**: every issue you open must carry exactly one `size/*`
+   (XS/S/M/L/XL), one `priority/P0-P3` and a `phase-N` label, plus a
+   `## Dependencies` section (see
+   [kingdoms/docs/SKILLS/update-dependencies.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/update-dependencies.md)).
+4. **Dependency graph**: `kingdoms/docs/DEPENDENCIES.md` regenerates
+   automatically from issue `## Dependencies` sections (via the
+   `Dependencies ping` workflow); verify after issue edits that the graph
+   matches intent.
+
+## Dependencies
+
+`docs/DEPENDENCIES.md` lives in the `kingdoms` repo and is synced
+**automatically** by its `Sync dependencies` workflow: whenever an issue in
+this repo is opened, edited, reopened or closed, the `Dependencies ping`
+workflow (`.github/workflows/dependencies-ping.yml`) notifies `kingdoms` via
+`repository_dispatch` (same `ROADMAP_DISPATCH_PAT` secret as the roadmap
+ping). Priorities (`priority/P0-P3` labels) come from critical-path analysis
+and are maintained by `scripts/sync_dependencies.py` — do not set them by
+hand unless the analysis is wrong; fix the dependencies or sizes instead.
+
 ## See also
 
 - [kingdoms/AGENTS.md](https://github.com/merlin-pinpin/kingdoms/blob/main/AGENTS.md)
 - [kingdoms/docs/ARCHITECTURE.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/ARCHITECTURE.md)
 - [kingdoms/ROADMAP.md](https://github.com/merlin-pinpin/kingdoms/blob/main/ROADMAP.md)
+- [kingdoms/docs/DEPENDENCIES.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/DEPENDENCIES.md) — dependency graph, critical path, priorities
