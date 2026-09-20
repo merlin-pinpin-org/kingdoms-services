@@ -1,0 +1,56 @@
+name: CLA Check
+
+# Lightweight CLA check: maintainers (repo collaborators/owner) are exempt.
+# External contributors must acknowledge the CLA by commenting `/cla` on the
+# PR (or by checking the CLA box in the PR template, which requires a
+# subsequent `/cla` comment for the automated check).
+# The `/cla` comment is the recorded acknowledgment.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  cla:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CLA acknowledgment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exempt = context.payload.pull_request.author_association === "OWNER"
+              || context.payload.pull_request.author_association === "COLLABORATOR"
+              || context.payload.pull_request.author_association === "MEMBER";
+
+            if (exempt) {
+              core.info("Maintainer PR — CLA not required.");
+              return;
+            }
+
+            const author = context.payload.pull_request.user.login;
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            const accepted = comments.data.some(
+              (c) => c.user.login === author && /^\/cla\b/i.test(c.body.trim())
+            );
+
+            if (!accepted) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `Hi @${author}, thank you for the PR! Before it can be merged, please accept the [CLA](../${context.repo.repo}/blob/main/CLA.md) by commenting \`/cla\` on this pull request.`,
+              });
+              core.setFailed("CLA not accepted: the PR author must comment /cla.");
+            } else {
+              core.info(`CLA accepted by @${author}.`);
+            }
