@@ -72,10 +72,9 @@ jobs:
         run: |
           docker run --rm --network kingdoms-ci \
             -e MONGO_URI -e REDIS_URI -e LOG_LEVEL=DEBUG \
-            -v "$PWD/config:/app/config" \
             -v "$PWD/scripts/smoke_test.py:/app/smoke_test.py:ro" \
-            --entrypoint uv \
-            kingdoms-bot:ci run python smoke_test.py
+            --entrypoint python \
+            kingdoms-bot:ci /app/smoke_test.py
 
       - name: Show dependency logs on failure
         if: failure()
