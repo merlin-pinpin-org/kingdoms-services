@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from kingdoms.core.services.channel import ChannelService
-from kingdoms.core.services.state import StateService
 from kingdoms.core.services.workflow import WorkflowEngine
 
 
@@ -25,11 +24,3 @@ async def test_workflow_engine_raises_until_implemented() -> None:
     engine = WorkflowEngine()
     with pytest.raises(NotImplementedError):
         await engine.start_workflow(None, {})  # type: ignore[arg-type]
-
-
-async def test_state_service_raises_until_implemented() -> None:
-    service = StateService()
-    with pytest.raises(NotImplementedError):
-        await service.get("wf-1")
-    with pytest.raises(NotImplementedError):
-        await service.set("wf-1", {"step": "ask_name"})
