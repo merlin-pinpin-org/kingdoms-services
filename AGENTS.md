@@ -16,7 +16,8 @@ core services, Discord platform implementation, mods, YAML configs.
 
 - **Read first:** [kingdoms/docs/VIBEWORKFLOW.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
   describes the operating model (roles, session loop, approvals).
-- All code and comments are written in **English**.
+- All code, comments, documentation, commit messages, PR titles and PR
+  descriptions are written in **English**.
 - Python 3.12, type hints everywhere, `ruff` + `mypy` clean.
 - Never merge to `main`, tag, or release without explicit developer approval.
 - **Never commit secrets** (tokens, passwords, API keys, private keys,
