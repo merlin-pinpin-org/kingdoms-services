@@ -1,0 +1,24 @@
+# Example mod declaration. Copy as config/mods/<mod>.yaml to add a mod.
+# Schema (validated by kingdoms.core.services.mod_registry at startup):
+#   id            required, simple slug, must match the mod package name
+#   enabled       bool (default true); disabled mods are never loaded
+#   settings      free-form, mod-specific
+#   channels      list of {key, display_name, description, per_instance}
+#   roles         list of {key, display_name, color, hoisted}
+#   workflows     list of workflow names implemented by the mod
+#   commands      list of command names implemented by the mod
+#   dependencies  list of mod ids this mod depends on
+# Channels are addressed at runtime as "mod:key" (e.g. "example:announce").
+id: example
+enabled: false
+settings: {}
+channels:
+  - key: announce
+    display_name: Annonces
+    description: Where the example mod posts announcements
+roles:
+  - key: example_member
+    display_name: Example Member
+workflows: []
+commands: []
+dependencies: []

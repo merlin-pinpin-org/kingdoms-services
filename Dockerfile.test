@@ -1,0 +1,19 @@
+# Multi-stage test image: same dependency resolution as the runtime image,
+# with dev tools installed and the test suite copied in.
+
+FROM python:3.12-slim AS deps
+WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project
+
+FROM python:3.12-slim AS test
+WORKDIR /app
+COPY --from=deps /app/.venv ./.venv
+ENV PATH="/app/.venv/bin:$PATH"
+COPY pyproject.toml uv.lock ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY scripts/ ./scripts/
+COPY config/ ./config/
+CMD ["pytest"]
