@@ -58,6 +58,11 @@ def write_pages(
     for name, module in imported:
         content = pydoc.html.page(name, pydoc.html.document(module, name))
         content = re.sub(
+            r"('[A-Za-z_.]+':\s*'[A-Za-z_.]+:)\d{7,}'",
+            r"\g<1>MEMORY_ADDRESS'",
+            content,
+        )
+        content = re.sub(
             r"0x[0-9a-f]+|\b\d{12,}\b",
             "0xMEMORY_ADDRESS",
             content,
@@ -66,11 +71,6 @@ def write_pages(
         content = re.sub(
             rf"{src_prefix}",
             "SOURCE_ROOT",
-            content,
-        )
-        content = re.sub(
-            r"('[A-Za-z_.]+':\s*'[A-Za-z_.]+:)\d{7,11}'",
-            r"\g<1>MEMORY_ADDRESS'",
             content,
         )
         rel_dir = Path(*name.split(".")[:-1])
