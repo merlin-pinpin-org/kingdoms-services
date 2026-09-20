@@ -2,14 +2,14 @@
 
 The ``--preflight`` mode exercises the real startup path (environment,
 MongoDB, Redis, locale catalogs) without connecting to the Discord gateway,
-which requires a valid token. The default mode connects to the gateway and
-logs a distinctive ready line that CI smoke tests assert on
+which requires a valid token. The default mode builds the bot through
+``create_bot`` (kingdoms-services#12) and connects to the gateway, logging
+a distinctive ready line that CI smoke tests assert on
 (kingdoms-services#12, kingdoms-services#34).
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import sys
@@ -73,67 +73,25 @@ def preflight() -> int:
             print(f"PREFLIGHT FAIL: invalid locale catalog {path}")
             return 1
     print("Locale catalogs OK (en, fr)")
+
     print(f"PREFLIGHT PASS (kingdoms {__version__})")
     return 0
 
 
 async def run_bot() -> None:
-    """Connect the bot to the Discord gateway and block until shutdown."""
-    import discord
-    from discord import app_commands
+    """Build the bot through the factory and connect to the gateway."""
+    from kingdoms.discord.bot.factory import BotConfig, create_bot
 
-    from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
-    from kingdoms.core.services.status import StatusService, parse_bot_admins
-    from kingdoms.discord.status import register_status_command
-
-    token = os.environ["DISCORD_TOKEN"]
-    intents = discord.Intents.default()
-    client = discord.Client(intents=intents)
-    tree = app_commands.CommandTree(client)
-    logger = _build_logger()
-
-    from pathlib import Path
-
-    registry = ModRegistry(load_mod_definitions(Path("config")))
-    status_service = StatusService(
-        registry=registry,
-        bot_admins=parse_bot_admins(os.environ.get("BOT_ADMINS")),
-    )
-
-    @client.event
-    async def on_ready() -> None:
-        """Log the startup summary and sync slash commands once the client is ready."""
-        logger.info(
-            "%s version=%s user=%s guilds=%d",
-            READY_LOG_LINE,
-            __version__,
-            client.user,
-            len(client.guilds),
-        )
-        try:
-            guild_id = os.environ.get("CICD_GUILD_ID") or ""
-            if guild_id.strip().isdigit():
-                guild = discord.Object(id=int(guild_id))
-                await tree.sync(guild=guild)
-                logger.info("Slash commands synced to guild %s", guild_id)
-            else:
-                await tree.sync()
-                logger.info("Slash commands synced globally")
-        except Exception:
-            logger.exception("SLASH COMMAND SYNC FAILED")
-
-    register_status_command(tree, status_service)
-
-    try:
-        await client.login(token)
-    except Exception:
-        logger.exception("DISCORD LOGIN FAILED (invalid token or network)")
-        raise
-    await client.connect()
+    bot = create_bot(BotConfig.from_env())
+    await bot.login(os.environ["DISCORD_TOKEN"])
+    await bot.connect()
 
 
 def main() -> None:
     """Run the Kingdoms Discord bot."""
+    import asyncio
+
+    _build_logger()
     try:
         asyncio.run(run_bot())
     except (KeyboardInterrupt, SystemExit):

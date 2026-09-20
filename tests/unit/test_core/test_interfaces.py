@@ -66,9 +66,7 @@ class FakeWorkflow:
     async def start(self, context: dict[str, object]) -> WorkflowTransition:
         return WorkflowTransition(current_step="start", status=WorkflowStatus.PENDING)
 
-    async def handle_interaction(
-        self, state: WorkflowTransition, event: dict[str, object]
-    ) -> WorkflowTransition:
+    async def handle_interaction(self, state: WorkflowTransition, event: dict[str, object]) -> WorkflowTransition:
         return WorkflowTransition(current_step="next", status=WorkflowStatus.IN_PROGRESS)
 
     async def on_timeout(self, state: WorkflowTransition) -> WorkflowTransition:

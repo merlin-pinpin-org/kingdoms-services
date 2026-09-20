@@ -43,9 +43,7 @@ class ScriptedWorkflow:
         self.started_with = context
         return self._script[0]
 
-    async def handle_interaction(
-        self, state: WorkflowTransition, event: dict[str, Any]
-    ) -> WorkflowTransition:
+    async def handle_interaction(self, state: WorkflowTransition, event: dict[str, Any]) -> WorkflowTransition:
         """Record the event and return the next scripted transition."""
         self.interactions.append(event)
         index = min(
@@ -100,9 +98,7 @@ async def state_service(state_store: InMemoryStateStore) -> StateService:
 
 
 @pytest.fixture
-async def engine(
-    store: InMemoryWorkflowStore, state_service: StateService
-) -> WorkflowEngine:
+async def engine(store: InMemoryWorkflowStore, state_service: StateService) -> WorkflowEngine:
     """An engine with a fast step timeout and no registered workflows."""
     return WorkflowEngine(store=store, state=state_service, step_timeout=0.05)
 
@@ -116,14 +112,10 @@ async def test_start_workflow_unknown_name_raises(engine: WorkflowEngine) -> Non
         await engine.start_workflow("registration", "guild-1", "user-1")
 
 
-async def test_start_workflow_persists_first_transition(
-    engine: WorkflowEngine, store: InMemoryWorkflowStore
-) -> None:
+async def test_start_workflow_persists_first_transition(engine: WorkflowEngine, store: InMemoryWorkflowStore) -> None:
     workflow = ScriptedWorkflow("registration", registration_script())
     engine.register_workflow(workflow)
-    workflow_id = await engine.start_workflow(
-        "registration", "guild-1", "user-1", {"locale": "fr"}
-    )
+    workflow_id = await engine.start_workflow("registration", "guild-1", "user-1", {"locale": "fr"})
     state = await engine.get_state(workflow_id)
     assert state.workflow_name == "registration"
     assert state.guild_id == "guild-1"
@@ -134,9 +126,7 @@ async def test_start_workflow_persists_first_transition(
     assert store.documents[workflow_id].status == WorkflowStatus.PENDING.value
 
 
-async def test_start_workflow_mirrors_hot_state(
-    engine: WorkflowEngine, state_service: StateService
-) -> None:
+async def test_start_workflow_mirrors_hot_state(engine: WorkflowEngine, state_service: StateService) -> None:
     engine.register_workflow(ScriptedWorkflow("registration", registration_script()))
     workflow_id = await engine.start_workflow("registration", "guild-1", "user-1")
     hot = await state_service.get_state("workflow", workflow_id)
@@ -179,9 +169,7 @@ async def test_handle_interaction_unknown_instance_raises(engine: WorkflowEngine
         await engine.handle_interaction("registration:user-1:nope", {"name": "PlayerOne"})
 
 
-async def test_cancel_marks_cancelled(
-    engine: WorkflowEngine, state_service: StateService
-) -> None:
+async def test_cancel_marks_cancelled(engine: WorkflowEngine, state_service: StateService) -> None:
     engine.register_workflow(ScriptedWorkflow("registration", registration_script()))
     workflow_id = await engine.start_workflow("registration", "guild-1", "user-1")
 
@@ -192,9 +180,7 @@ async def test_cancel_marks_cancelled(
     assert await state_service.get_state("workflow", workflow_id) is None
 
 
-async def test_terminal_state_clears_hot_copy(
-    engine: WorkflowEngine, state_service: StateService
-) -> None:
+async def test_terminal_state_clears_hot_copy(engine: WorkflowEngine, state_service: StateService) -> None:
     engine.register_workflow(ScriptedWorkflow("registration", registration_script()))
     workflow_id = await engine.start_workflow("registration", "guild-1", "user-1")
     await engine.handle_interaction(workflow_id, {"name": "PlayerOne"})
@@ -202,9 +188,7 @@ async def test_terminal_state_clears_hot_copy(
     assert await state_service.get_state("workflow", workflow_id) is None
 
 
-async def test_step_timeout_marks_timed_out(
-    engine: WorkflowEngine, store: InMemoryWorkflowStore
-) -> None:
+async def test_step_timeout_marks_timed_out(engine: WorkflowEngine, store: InMemoryWorkflowStore) -> None:
     import asyncio
 
     workflow = ScriptedWorkflow("registration", registration_script())
@@ -216,9 +200,7 @@ async def test_step_timeout_marks_timed_out(
     assert workflow.timeouts == 1
 
 
-async def test_resume_reloads_and_rearms(
-    store: InMemoryWorkflowStore, state_service: StateService
-) -> None:
+async def test_resume_reloads_and_rearms(store: InMemoryWorkflowStore, state_service: StateService) -> None:
     import asyncio
 
     engine = WorkflowEngine(store=store, state=state_service, step_timeout=10)
@@ -234,15 +216,11 @@ async def test_resume_reloads_and_rearms(
     assert state.current_step == "ask_game"
     assert state.status == WorkflowStatus.IN_PROGRESS.value
     await asyncio.sleep(0.12)
-    [state2] = [
-        s for s in store.documents.values() if s.id == workflow_id
-    ]
+    [state2] = [s for s in store.documents.values() if s.id == workflow_id]
     assert state2.status == WorkflowStatus.TIMED_OUT.value
 
 
-async def test_startup_times_out_unknown_definition(
-    store: InMemoryWorkflowStore, state_service: StateService
-) -> None:
+async def test_startup_times_out_unknown_definition(store: InMemoryWorkflowStore, state_service: StateService) -> None:
     from kingdoms.core.models.workflow import WorkflowState
 
     orphan = WorkflowState(
@@ -260,9 +238,7 @@ async def test_startup_times_out_unknown_definition(
     assert store.documents["legacy:user-1:abc"].status == WorkflowStatus.TIMED_OUT.value
 
 
-async def test_idempotent_replay_after_restart(
-    store: InMemoryWorkflowStore, state_service: StateService
-) -> None:
+async def test_idempotent_replay_after_restart(store: InMemoryWorkflowStore, state_service: StateService) -> None:
     engine = WorkflowEngine(store=store, state=state_service, step_timeout=10)
     engine.register_workflow(ScriptedWorkflow("registration", registration_script()))
     workflow_id = await engine.start_workflow("registration", "guild-1", "user-1")

@@ -61,9 +61,7 @@ async def test_get_state_missing_returns_none(service: StateService) -> None:
     assert await service.get_state("workflow", "missing") is None
 
 
-async def test_set_state_ttl_expires(
-    service: StateService, clock: FakeClock, store: InMemoryStateStore
-) -> None:
+async def test_set_state_ttl_expires(service: StateService, clock: FakeClock, store: InMemoryStateStore) -> None:
     await service.set_state("workflow", "wf-1", {"step": "ask_name"}, ttl=60)
     clock.advance(59)
     assert await service.get_state("workflow", "wf-1") == {"step": "ask_name"}
@@ -133,9 +131,7 @@ async def test_rate_limit_allows_under_limit(service: StateService) -> None:
     assert await service.check_rate_limit("mod", "cmd:user-1", limit=3, window=60) is False
 
 
-async def test_rate_limit_window_resets(
-    service: StateService, clock: FakeClock
-) -> None:
+async def test_rate_limit_window_resets(service: StateService, clock: FakeClock) -> None:
     for _ in range(3):
         assert await service.check_rate_limit("mod", "cmd:user-1", limit=3, window=60) is True
     assert await service.check_rate_limit("mod", "cmd:user-1", limit=3, window=60) is False
