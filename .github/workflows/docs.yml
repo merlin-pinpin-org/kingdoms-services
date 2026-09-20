@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: uv sync || true
+        run: uv sync --frozen
       - name: Check pydoc freshness
         run: |
-          python3 scripts/generate_pydoc.py \
+          uv run python scripts/generate_pydoc.py \
             --source src/kingdoms \
             --output /tmp/pydoc-fresh
           if diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc \
