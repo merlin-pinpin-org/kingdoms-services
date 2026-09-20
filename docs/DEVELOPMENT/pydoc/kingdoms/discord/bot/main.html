@@ -34,7 +34,11 @@ a&nbsp;distinctive&nbsp;ready&nbsp;line&nbsp;that&nbsp;CI&nbsp;smoke&nbsp;tests&
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'None'</dt><dd><span class="code">Run&nbsp;the&nbsp;Kingdoms&nbsp;Discord&nbsp;bot.</span></dd></dl>
  <dl><dt><a name="-preflight"><strong>preflight</strong></a>() -&gt; 'int'</dt><dd><span class="code">Validate&nbsp;the&nbsp;startup&nbsp;path:&nbsp;environment,&nbsp;dependencies&nbsp;and&nbsp;configs.</span></dd></dl>
- <dl><dt>async <a name="-run_bot"><strong>run_bot</strong></a>() -&gt; 'None'</dt><dd><span class="code">Build&nbsp;the&nbsp;bot&nbsp;through&nbsp;the&nbsp;factory&nbsp;and&nbsp;connect&nbsp;to&nbsp;the&nbsp;gateway.</span></dd></dl>
+ <dl><dt>async <a name="-run_bot"><strong>run_bot</strong></a>() -&gt; 'None'</dt><dd><span class="code">Build&nbsp;the&nbsp;bot&nbsp;through&nbsp;the&nbsp;factory&nbsp;and&nbsp;connect&nbsp;to&nbsp;the&nbsp;gateway.<br>
+&nbsp;<br>
+The&nbsp;health&nbsp;endpoint&nbsp;(``/healthz``&nbsp;on&nbsp;port&nbsp;8000)&nbsp;runs&nbsp;for&nbsp;the&nbsp;whole&nbsp;bot<br>
+lifetime:&nbsp;the&nbsp;container&nbsp;healthcheck&nbsp;(Dockerfile)&nbsp;and&nbsp;the&nbsp;infra<br>
+deployment&nbsp;health&nbsp;gate&nbsp;(kingdoms-infra#4)&nbsp;rely&nbsp;on&nbsp;it.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
