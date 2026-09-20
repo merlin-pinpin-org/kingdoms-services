@@ -79,12 +79,23 @@ def preflight() -> int:
 
 
 async def run_bot() -> None:
-    """Build the bot through the factory and connect to the gateway."""
-    from kingdoms.discord.bot.factory import BotConfig, create_bot
+    """Build the bot through the factory and connect to the gateway.
 
+    The health endpoint (``/healthz`` on port 8000) runs for the whole bot
+    lifetime: the container healthcheck (Dockerfile) and the infra
+    deployment health gate (kingdoms-infra#4) rely on it.
+    """
+    from kingdoms.discord.bot.factory import BotConfig, create_bot
+    from kingdoms.discord.bot.health import HealthServer
+
+    health = HealthServer()
+    await health.start()
     bot = create_bot(BotConfig.from_env())
-    await bot.login(os.environ["DISCORD_TOKEN"])
-    await bot.connect()
+    try:
+        await bot.login(os.environ["DISCORD_TOKEN"])
+        await bot.connect()
+    finally:
+        await health.stop()
 
 
 def main() -> None:
