@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.state</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.state</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/state.py">SOURCE_ROOT/core/services/state.py</a></td></tr></table>
+    <p><span class="code"><a href="#StateService">StateService</a>:&nbsp;hot&nbsp;state&nbsp;in&nbsp;Redis&nbsp;with&nbsp;MongoDB&nbsp;as&nbsp;durable&nbsp;backing&nbsp;store.<br>
+&nbsp;<br>
+Reference:&nbsp;ADR-0005.&nbsp;Implemented&nbsp;in&nbsp;kingdoms-services#9.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.state.html#StateService">StateService</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StateService">class <strong>StateService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Manage&nbsp;short-lived&nbsp;workflow&nbsp;state&nbsp;in&nbsp;Redis.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt>async <a name="StateService-get"><strong>get</strong></a>(self, key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;state&nbsp;entry;&nbsp;returns&nbsp;None&nbsp;when&nbsp;missing.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-set"><strong>set</strong></a>(self, key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Write&nbsp;a&nbsp;state&nbsp;entry&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>

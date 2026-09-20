@@ -1,4 +1,4 @@
-.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup
+.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check
 
 # Dev
 dev:
@@ -25,6 +25,16 @@ format:
 
 typecheck:
 	@uv run mypy src/
+
+# Docs (generated into this repo, fail-closed freshness check in CI)
+docs:
+	@uv run python scripts/generate_pydoc.py --source src/kingdoms --output docs/DEVELOPMENT/pydoc
+
+docs-check:
+	@uv run python scripts/generate_pydoc.py --source src/kingdoms --output /tmp/pydoc-fresh
+	@diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc --exclude=.gitkeep \
+	  && echo "Generated docs are fresh" \
+	  || (echo "ERROR: docs/DEVELOPMENT/pydoc is stale — run 'make docs' and commit"; exit 1)
 
 # Setup
 setup:
