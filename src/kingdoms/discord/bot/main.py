@@ -102,6 +102,7 @@ async def run_bot() -> None:
 
     @client.event
     async def on_ready() -> None:
+        """Log the startup summary and sync slash commands once the client is ready."""
         logger.info(
             "%s version=%s user=%s guilds=%d",
             READY_LOG_LINE,

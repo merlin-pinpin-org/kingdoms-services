@@ -111,5 +111,6 @@ def register_status_command(
 
     @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
     async def status_command(interaction: discord.Interaction) -> None:
+        """Answer the /status interaction with the current status embed."""
         embed = build_status_embed(status, interaction.guild)
         await interaction.response.send_message(embed=embed, ephemeral=True)
