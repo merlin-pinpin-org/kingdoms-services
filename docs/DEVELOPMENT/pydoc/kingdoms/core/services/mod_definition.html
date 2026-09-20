@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.mod_definition</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.mod_definition</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/mod_definition.py">SOURCE_ROOT/core/services/mod_definition.py</a></td></tr></table>
+    <p><span class="code">Mod&nbsp;declaration&nbsp;contracts:&nbsp;what&nbsp;a&nbsp;mod&nbsp;needs&nbsp;from&nbsp;the&nbsp;platform.<br>
+&nbsp;<br>
+A&nbsp;mod&nbsp;declares&nbsp;its&nbsp;channel&nbsp;categories,&nbsp;roles,&nbsp;workflows&nbsp;and&nbsp;commands&nbsp;in&nbsp;its<br>
+YAML&nbsp;config&nbsp;(``config/mods/&lt;mod&gt;.yaml``);&nbsp;the&nbsp;core&nbsp;provisions&nbsp;them<br>
+automatically.&nbsp;Mods&nbsp;never&nbsp;extend&nbsp;core&nbsp;enums&nbsp;and&nbsp;never&nbsp;hardcode&nbsp;platform&nbsp;IDs.<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#26,&nbsp;ADR-0003&nbsp;(channel&nbsp;categories).</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.mod_definition.html#ChannelCategoryDef">ChannelCategoryDef</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.mod_definition.html#ModDefinition">ModDefinition</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.mod_definition.html#RoleDef">RoleDef</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelCategoryDef">class <strong>ChannelCategoryDef</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelCategoryDef">ChannelCategoryDef</a>(key:&nbsp;'str',&nbsp;display_name:&nbsp;'str',&nbsp;description:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;per_instance:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;channel&nbsp;category&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod.<br>
+&nbsp;<br>
+Addressed&nbsp;at&nbsp;runtime&nbsp;as&nbsp;``mod:key``&nbsp;(e.g.&nbsp;``ladder:ladder_rankings``).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ChannelCategoryDef-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__init__"><strong>__init__</strong></a>(self, key: 'str', display_name: 'str', description: 'str' = '', per_instance: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ChannelCategoryDef-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>description</strong></dt>
+</dl>
+<dl><dt><strong>display_name</strong></dt>
+</dl>
+<dl><dt><strong>key</strong></dt>
+</dl>
+<dl><dt><strong>per_instance</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'description': 'str', 'display_name': 'str', 'key': 'str', 'per_instance': 'bool'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'description': Field(name='description',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'display_name': Field(name='display_name',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'per_instance': Field(name='per_instance',type='bool',default=Fa...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'display_name', 'description', 'per_instance')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModDefinition">class <strong>ModDefinition</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModDefinition">ModDefinition</a>(name:&nbsp;'str',&nbsp;enabled:&nbsp;'bool'&nbsp;=&nbsp;True,&nbsp;channel_categories:&nbsp;'tuple[<a href="#ChannelCategoryDef">ChannelCategoryDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;roles:&nbsp;'tuple[<a href="#RoleDef">RoleDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;workflows:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;commands:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;dependencies:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;mod's&nbsp;complete&nbsp;declaration:&nbsp;the&nbsp;core&nbsp;provisions&nbsp;from&nbsp;this&nbsp;only.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModDefinition-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__init__"><strong>__init__</strong></a>(self, name: 'str', enabled: 'bool' = True, channel_categories: 'tuple[ChannelCategoryDef, ...]' = &lt;factory&gt;, roles: 'tuple[RoleDef, ...]' = &lt;factory&gt;, workflows: 'tuple[str, ...]' = &lt;factory&gt;, commands: 'tuple[str, ...]' = &lt;factory&gt;, dependencies: 'tuple[str, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="ModDefinition-channel_category"><strong>channel_category</strong></a>(self, key: 'str') -&gt; 'ChannelCategoryDef'</dt><dd><span class="code">Return&nbsp;the&nbsp;declared&nbsp;channel&nbsp;category&nbsp;for&nbsp;a&nbsp;key,&nbsp;fail&nbsp;loudly.</span></dd></dl>
+
+<dl><dt><a name="ModDefinition-role"><strong>role</strong></a>(self, key: 'str') -&gt; 'RoleDef'</dt><dd><span class="code">Return&nbsp;the&nbsp;declared&nbsp;role&nbsp;for&nbsp;a&nbsp;key,&nbsp;fail&nbsp;loudly.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>channel_categories</strong></dt>
+</dl>
+<dl><dt><strong>commands</strong></dt>
+</dl>
+<dl><dt><strong>dependencies</strong></dt>
+</dl>
+<dl><dt><strong>enabled</strong></dt>
+</dl>
+<dl><dt><strong>name</strong></dt>
+</dl>
+<dl><dt><strong>roles</strong></dt>
+</dl>
+<dl><dt><strong>workflows</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'channel_categories': 'tuple[ChannelCategoryDef, ...]', 'commands': 'tuple[str, ...]', 'dependencies': 'tuple[str, ...]', 'enabled': 'bool', 'name': 'str', 'roles': 'tuple[RoleDef, ...]', 'workflows': 'tuple[str, ...]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'channel_categories': Field(name='channel_categories',type='tuple[Chan...appingproxy({}),kw_only=False,_field_type=_FIELD), 'commands': Field(name='commands',type='tuple[str, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'dependencies': Field(name='dependencies',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'enabled': Field(name='enabled',type='bool',default=True,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'roles': Field(name='roles',type='tuple[RoleDef, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'workflows': Field(name='workflows',type='tuple[str, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'enabled', 'channel_categories', 'roles', 'workflows', 'commands', 'dependencies')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoleDef">class <strong>RoleDef</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoleDef">RoleDef</a>(key:&nbsp;'str',&nbsp;display_name:&nbsp;'str',&nbsp;color:&nbsp;'int'&nbsp;=&nbsp;10070709,&nbsp;hoisted:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;role&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod,&nbsp;referenced&nbsp;by&nbsp;logical&nbsp;role&nbsp;key.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RoleDef-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__init__"><strong>__init__</strong></a>(self, key: 'str', display_name: 'str', color: 'int' = 10070709, hoisted: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="RoleDef-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>color</strong></dt>
+</dl>
+<dl><dt><strong>display_name</strong></dt>
+</dl>
+<dl><dt><strong>hoisted</strong></dt>
+</dl>
+<dl><dt><strong>key</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'color': 'int', 'display_name': 'str', 'hoisted': 'bool', 'key': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'color': Field(name='color',type='int',default=10070709,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'display_name': Field(name='display_name',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'hoisted': Field(name='hoisted',type='bool',default=False,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'display_name', 'color', 'hoisted')</dl>
+
+</td></tr></table></td></tr></table>
+</body></html>

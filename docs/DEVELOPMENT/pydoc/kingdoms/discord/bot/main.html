@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.bot.main</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.bot.html" class="white">bot</a>.main</strong> (version 0.1.0)</td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/bot/main.py">SOURCE_ROOT/discord/bot/main.py</a></td></tr></table>
+    <p><span class="code">Bot&nbsp;entry&nbsp;point:&nbsp;loads&nbsp;config,&nbsp;wires&nbsp;core&nbsp;services,&nbsp;starts&nbsp;the&nbsp;Discord&nbsp;client.<br>
+&nbsp;<br>
+The&nbsp;``--preflight``&nbsp;mode&nbsp;exercises&nbsp;the&nbsp;real&nbsp;startup&nbsp;path&nbsp;(environment,<br>
+MongoDB,&nbsp;Redis,&nbsp;locale&nbsp;catalogs)&nbsp;without&nbsp;connecting&nbsp;to&nbsp;the&nbsp;Discord&nbsp;gateway,<br>
+which&nbsp;requires&nbsp;a&nbsp;valid&nbsp;token.&nbsp;The&nbsp;default&nbsp;mode&nbsp;connects&nbsp;to&nbsp;the&nbsp;gateway&nbsp;and<br>
+logs&nbsp;a&nbsp;distinctive&nbsp;ready&nbsp;line&nbsp;that&nbsp;CI&nbsp;smoke&nbsp;tests&nbsp;assert&nbsp;on<br>
+(kingdoms-services#12,&nbsp;kingdoms-services#34).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'None'</dt><dd><span class="code">Run&nbsp;the&nbsp;Kingdoms&nbsp;Discord&nbsp;bot.</span></dd></dl>
+ <dl><dt><a name="-preflight"><strong>preflight</strong></a>() -&gt; 'int'</dt><dd><span class="code">Validate&nbsp;the&nbsp;startup&nbsp;path:&nbsp;environment,&nbsp;dependencies&nbsp;and&nbsp;configs.</span></dd></dl>
+ <dl><dt>async <a name="-run_bot"><strong>run_bot</strong></a>() -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;the&nbsp;bot&nbsp;to&nbsp;the&nbsp;Discord&nbsp;gateway&nbsp;and&nbsp;block&nbsp;until&nbsp;shutdown.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>READY_LOG_LINE</strong> = 'KINGDOMS_BOT_READY'</td></tr></table>
+</body></html>

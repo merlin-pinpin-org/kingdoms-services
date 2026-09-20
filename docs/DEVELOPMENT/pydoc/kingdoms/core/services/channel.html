@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.channel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.channel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/channel.py">SOURCE_ROOT/core/services/channel.py</a></td></tr></table>
+    <p><span class="code"><a href="#ChannelService">ChannelService</a>:&nbsp;channel&nbsp;category&nbsp;management.<br>
+&nbsp;<br>
+Resolves&nbsp;any&nbsp;category&nbsp;key&nbsp;—&nbsp;platform-level&nbsp;(ChannelCategory&nbsp;enum)&nbsp;or<br>
+mod-scoped&nbsp;(``mod:key``,&nbsp;declared&nbsp;in&nbsp;mod&nbsp;YAML&nbsp;and&nbsp;exposed&nbsp;by&nbsp;ModRegistry)<br>
+—&nbsp;to&nbsp;a&nbsp;concrete&nbsp;channel.&nbsp;Resolution&nbsp;order:&nbsp;cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;platform<br>
+creation.&nbsp;The&nbsp;service&nbsp;is&nbsp;generic:&nbsp;it&nbsp;never&nbsp;enumerates&nbsp;mod&nbsp;categories.<br>
+&nbsp;<br>
+Implemented&nbsp;in&nbsp;kingdoms-services#5.&nbsp;Mod-scoped&nbsp;categories:<br>
+kingdoms-services#26,&nbsp;ADR-0003.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.channel.html#ChannelService">ChannelService</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelService">class <strong>ChannelService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelService">ChannelService</a>(platform:&nbsp;'IPlatform')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Manage&nbsp;channels&nbsp;by&nbsp;category;&nbsp;never&nbsp;by&nbsp;name&nbsp;or&nbsp;ID.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ChannelService-__init__"><strong>__init__</strong></a>(self, platform: 'IPlatform') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelService-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;platform&nbsp;creation).</span></dd></dl>
+
+<dl><dt>async <a name="ChannelService-setup_mod_channels"><strong>setup_mod_channels</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, IChannel]'</dt><dd><span class="code">Provision&nbsp;every&nbsp;channel&nbsp;category&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod.<br>
+&nbsp;<br>
+Generic:&nbsp;reads&nbsp;the&nbsp;mod's&nbsp;declaration&nbsp;via&nbsp;ModRegistry&nbsp;and&nbsp;resolves<br>
+each&nbsp;``mod:key``&nbsp;category&nbsp;with&nbsp;the&nbsp;same&nbsp;flow&nbsp;as&nbsp;any&nbsp;other&nbsp;category.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.workflow</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.workflow</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/workflow.py">SOURCE_ROOT/core/services/workflow.py</a></td></tr></table>
+    <p><span class="code"><a href="#WorkflowEngine">WorkflowEngine</a>:&nbsp;workflow&nbsp;execution.<br>
+&nbsp;<br>
+Loads&nbsp;workflow&nbsp;definitions,&nbsp;drives&nbsp;step&nbsp;transitions,&nbsp;persists&nbsp;state&nbsp;through<br>
+StateService&nbsp;and&nbsp;dispatches&nbsp;UI&nbsp;events.&nbsp;Implemented&nbsp;in&nbsp;kingdoms-services#6.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.workflow.html#WorkflowEngine">WorkflowEngine</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="WorkflowEngine">class <strong>WorkflowEngine</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Execute&nbsp;workflows&nbsp;and&nbsp;persist&nbsp;their&nbsp;state.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt>async <a name="WorkflowEngine-handle_interaction"><strong>handle_interaction</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Dispatch&nbsp;an&nbsp;interaction&nbsp;event&nbsp;to&nbsp;the&nbsp;right&nbsp;running&nbsp;workflow.</span></dd></dl>
+
+<dl><dt>async <a name="WorkflowEngine-start_workflow"><strong>start_workflow</strong></a>(self, workflow: 'IWorkflow', context: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Start&nbsp;a&nbsp;workflow&nbsp;with&nbsp;an&nbsp;initial&nbsp;context.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>
