@@ -80,11 +80,25 @@ def preflight() -> int:
 async def run_bot() -> None:
     """Connect the bot to the Discord gateway and block until shutdown."""
     import discord
+    from discord import app_commands
+
+    from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
+    from kingdoms.core.services.status import StatusService, parse_bot_admins
+    from kingdoms.discord.status import register_status_command
 
     token = os.environ["DISCORD_TOKEN"]
     intents = discord.Intents.default()
     client = discord.Client(intents=intents)
+    tree = app_commands.CommandTree(client)
     logger = _build_logger()
+
+    from pathlib import Path
+
+    registry = ModRegistry(load_mod_definitions(Path("config")))
+    status_service = StatusService(
+        registry=registry,
+        bot_admins=parse_bot_admins(os.environ.get("BOT_ADMINS")),
+    )
 
     @client.event
     async def on_ready() -> None:
@@ -95,6 +109,19 @@ async def run_bot() -> None:
             client.user,
             len(client.guilds),
         )
+        try:
+            guild_id = os.environ.get("CICD_GUILD_ID") or ""
+            if guild_id.strip().isdigit():
+                guild = discord.Object(id=int(guild_id))
+                await tree.sync(guild=guild)
+                logger.info("Slash commands synced to guild %s", guild_id)
+            else:
+                await tree.sync()
+                logger.info("Slash commands synced globally")
+        except Exception:
+            logger.exception("SLASH COMMAND SYNC FAILED")
+
+    register_status_command(tree, status_service)
 
     try:
         await client.login(token)

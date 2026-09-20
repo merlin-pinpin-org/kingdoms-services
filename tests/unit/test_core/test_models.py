@@ -29,9 +29,14 @@ def test_user_model_accepts_game_profiles() -> None:
         platform="discord",
         platform_user_id="123456789",
         display_name="PlayerOne",
-        game_profiles={"aoe2": GameProfile(game_id="aoe2", data={"rating": 1200})},
+        game_profiles={
+            "aoe2": GameProfile(game_id="aoe2", in_game_name="PlayerOne"),
+            "chess": GameProfile(game_id="chess"),
+        },
     )
-    assert user.game_profiles["aoe2"].data["rating"] == 1200
+    assert user.game_profiles["aoe2"].in_game_name == "PlayerOne"
+    assert user.game_profiles["chess"].in_game_name is None
+    assert user.game_profiles["chess"].joined_at is not None
 
 
 def test_user_model_requires_fields() -> None:

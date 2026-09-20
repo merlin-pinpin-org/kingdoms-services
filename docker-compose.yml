@@ -11,6 +11,7 @@ services:
       - MONGO_URI=mongodb://kingdoms-mongo:27017
       - REDIS_URI=redis://kingdoms-redis:6379
       - DISCORD_TOKEN=${DISCORD_TOKEN:-}
+      - BOT_ADMINS=${BOT_ADMINS:-}
     depends_on:
       - kingdoms-mongo
       - kingdoms-redis

@@ -1,20 +1,31 @@
 """User model: platform identity, registration data, per-game profiles.
 
+GameProfile is the association between a user and a game. Game-specific
+metrics (ELO rating, rank, ...) are mod/game data: they live in the mod's
+own collections, keyed by this profile, not as core model fields.
+
 Reference: kingdoms-services#4.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class GameProfile(BaseModel):
-    """Per-game player profile; game-specific fields live in `data`."""
+    """A user's association with a game.
+
+    Core fields describe the association only (identity in the game, when
+    it started); game-specific data belongs to the owning mod.
+    """
+
+    model_config = ConfigDict(strict=True)
 
     game_id: str
-    data: dict[str, Any] = Field(default_factory=dict)
+    in_game_name: str | None = None
+    joined_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class UserModel(BaseModel):
