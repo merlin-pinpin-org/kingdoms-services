@@ -11,33 +11,102 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/state.py">SOURCE_ROOT/core/services/state.py</a></td></tr></table>
     <p><span class="code"><a href="#StateService">StateService</a>:&nbsp;hot&nbsp;state&nbsp;in&nbsp;Redis&nbsp;with&nbsp;MongoDB&nbsp;as&nbsp;durable&nbsp;backing&nbsp;store.<br>
 &nbsp;<br>
-Reference:&nbsp;ADR-0005.&nbsp;Implemented&nbsp;in&nbsp;kingdoms-services#9.</span></p>
+The&nbsp;single&nbsp;gateway&nbsp;to&nbsp;Redis:&nbsp;core&nbsp;services&nbsp;and&nbsp;mods&nbsp;never&nbsp;issue&nbsp;raw&nbsp;Redis<br>
+commands,&nbsp;they&nbsp;call&nbsp;the&nbsp;typed&nbsp;accessors&nbsp;below.&nbsp;Everything&nbsp;written&nbsp;through<br>
+<a href="#StateService">StateService</a>&nbsp;must&nbsp;be&nbsp;reproducible&nbsp;from&nbsp;durable&nbsp;data&nbsp;(MongoDB&nbsp;or&nbsp;YAML<br>
+config):&nbsp;Redis&nbsp;loss&nbsp;degrades&nbsp;performance,&nbsp;never&nbsp;correctness.<br>
+&nbsp;<br>
+Keys&nbsp;follow&nbsp;the&nbsp;``kingdoms:{scope}:{key}``&nbsp;convention&nbsp;(ADR-0005).&nbsp;The<br>
+storage&nbsp;seam&nbsp;is&nbsp;the&nbsp;structural&nbsp;``<a href="#IStateStore">IStateStore</a>``&nbsp;protocol&nbsp;(ADR-0011):<br>
+production&nbsp;wires&nbsp;``<a href="#RedisStateStore">RedisStateStore</a>``,&nbsp;tests&nbsp;wire&nbsp;an&nbsp;in-memory&nbsp;substitute<br>
+with&nbsp;a&nbsp;controllable&nbsp;clock&nbsp;(docs/architecture/testing.md).<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#9,&nbsp;ADR-0005,&nbsp;docs/architecture/core.md&nbsp;§3.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="uuid.html">uuid</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
     
 <tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#Exception">builtins.Exception</a>(<a href="builtins.html#BaseException">builtins.BaseException</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.state.html#StateServiceError">StateServiceError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.state.html#LockNotAcquiredError">LockNotAcquiredError</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.core.services.state.html#StateService">StateService</a>
+<dt class="heading-text"><a href="kingdoms.core.services.state.html#RedisStateStore">RedisStateStore</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.state.html#StateService">StateService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.state.html#IStateStore">IStateStore</a>
 </dt></dl>
 </dd>
 </dl>
  <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="StateService">class <strong>StateService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><a name="IStateStore">class <strong>IStateStore</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">Manage&nbsp;short-lived&nbsp;workflow&nbsp;state&nbsp;in&nbsp;Redis.<br>&nbsp;</span></td></tr>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IStateStore">IStateStore</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;storage&nbsp;seam&nbsp;the&nbsp;<a href="#StateService">StateService</a>&nbsp;depends&nbsp;on.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
-<td class="singlecolumn">Methods defined here:<br>
-<dl><dt>async <a name="StateService-get"><strong>get</strong></a>(self, key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;state&nbsp;entry;&nbsp;returns&nbsp;None&nbsp;when&nbsp;missing.</span></dd></dl>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.state.html#IStateStore">IStateStore</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IStateStore-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="StateService-set"><strong>set</strong></a>(self, key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Write&nbsp;a&nbsp;state&nbsp;entry&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL.</span></dd></dl>
+<dl><dt>async <a name="IStateStore-compare_delete"><strong>compare_delete</strong></a>(self, key: 'str', expected: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;the&nbsp;key&nbsp;only&nbsp;when&nbsp;it&nbsp;still&nbsp;holds&nbsp;the&nbsp;expected&nbsp;value.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-delete"><strong>delete</strong></a>(self, key: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;a&nbsp;raw&nbsp;value;&nbsp;returns&nbsp;True&nbsp;when&nbsp;a&nbsp;key&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-get"><strong>get</strong></a>(self, key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;raw&nbsp;value;&nbsp;returns&nbsp;None&nbsp;when&nbsp;missing&nbsp;or&nbsp;expired.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-increment"><strong>increment</strong></a>(self, key: 'str', window: 'int | None' = None) -&gt; 'int'</dt><dd><span class="code">Increment&nbsp;a&nbsp;counter,&nbsp;expiring&nbsp;it&nbsp;``window``&nbsp;seconds&nbsp;after&nbsp;creation.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-publish"><strong>publish</strong></a>(self, channel: 'str', message: 'str') -&gt; 'int'</dt><dd><span class="code">Publish&nbsp;a&nbsp;raw&nbsp;message;&nbsp;returns&nbsp;the&nbsp;subscriber&nbsp;count.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-set"><strong>set</strong></a>(self, key: 'str', value: 'str', ttl: 'int | None' = None, only_if_absent: 'bool' = False) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;a&nbsp;raw&nbsp;value&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL&nbsp;in&nbsp;seconds.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;and&nbsp;verify&nbsp;the&nbsp;store&nbsp;is&nbsp;reachable.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Release&nbsp;the&nbsp;store's&nbsp;resources.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-subscribe"><strong>subscribe</strong></a>(self, channel: 'str', callback: 'RawStateCallback') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;callback&nbsp;receiving&nbsp;raw&nbsp;messages&nbsp;on&nbsp;a&nbsp;channel.</span></dd></dl>
+
+<dl><dt>async <a name="IStateStore-unsubscribe"><strong>unsubscribe</strong></a>(self, channel: 'str', callback: 'RawStateCallback') -&gt; 'None'</dt><dd><span class="code">Unregister&nbsp;a&nbsp;callback&nbsp;from&nbsp;a&nbsp;channel.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IStateStore-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -47,5 +116,257 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
-</td></tr></table></td></tr></table>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__non_callable_proto_members__</strong> = set()</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'compare_delete', 'delete', 'get', 'increment', 'publish', 'set', ...}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IStateStore-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IStateStore-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LockNotAcquiredError">class <strong>LockNotAcquiredError</strong></a>(<a href="kingdoms.core.services.state.html#StateServiceError">StateServiceError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">A&nbsp;distributed&nbsp;lock&nbsp;could&nbsp;not&nbsp;be&nbsp;acquired.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.state.html#LockNotAcquiredError">LockNotAcquiredError</a></dd>
+<dd><a href="kingdoms.core.services.state.html#StateServiceError">StateServiceError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.services.state.html#StateServiceError">StateServiceError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="LockNotAcquiredError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="LockNotAcquiredError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LockNotAcquiredError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LockNotAcquiredError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LockNotAcquiredError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LockNotAcquiredError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="LockNotAcquiredError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="LockNotAcquiredError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#LockNotAcquiredError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LockNotAcquiredError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#LockNotAcquiredError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RedisStateStore">class <strong>RedisStateStore</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RedisStateStore">RedisStateStore</a>(redis_uri:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+<a href="#IStateStore">IStateStore</a>&nbsp;implementation&nbsp;backed&nbsp;by&nbsp;redis-py&nbsp;(``redis.asyncio``).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RedisStateStore-__init__"><strong>__init__</strong></a>(self, redis_uri: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;URI;&nbsp;the&nbsp;client&nbsp;connects&nbsp;lazily&nbsp;on&nbsp;``<a href="#RedisStateStore-start">start</a>()``.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-compare_delete"><strong>compare_delete</strong></a>(self, key: 'str', expected: 'str') -&gt; 'bool'</dt><dd><span class="code">Atomically&nbsp;delete&nbsp;the&nbsp;key&nbsp;only&nbsp;when&nbsp;it&nbsp;still&nbsp;holds&nbsp;the&nbsp;expected&nbsp;value.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-delete"><strong>delete</strong></a>(self, key: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;a&nbsp;raw&nbsp;value;&nbsp;returns&nbsp;True&nbsp;when&nbsp;a&nbsp;key&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-get"><strong>get</strong></a>(self, key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;raw&nbsp;value;&nbsp;returns&nbsp;None&nbsp;when&nbsp;missing&nbsp;or&nbsp;expired.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-increment"><strong>increment</strong></a>(self, key: 'str', window: 'int | None' = None) -&gt; 'int'</dt><dd><span class="code">Increment&nbsp;a&nbsp;counter;&nbsp;``window``&nbsp;sets&nbsp;the&nbsp;TTL&nbsp;on&nbsp;creation&nbsp;only&nbsp;(EXPIRE&nbsp;NX).</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-publish"><strong>publish</strong></a>(self, channel: 'str', message: 'str') -&gt; 'int'</dt><dd><span class="code">Publish&nbsp;a&nbsp;raw&nbsp;message;&nbsp;returns&nbsp;the&nbsp;subscriber&nbsp;count.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-set"><strong>set</strong></a>(self, key: 'str', value: 'str', ttl: 'int | None' = None, only_if_absent: 'bool' = False) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;a&nbsp;raw&nbsp;value&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL&nbsp;in&nbsp;seconds.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;the&nbsp;client&nbsp;and&nbsp;verify&nbsp;Redis&nbsp;is&nbsp;reachable.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;listener&nbsp;and&nbsp;close&nbsp;the&nbsp;client.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-subscribe"><strong>subscribe</strong></a>(self, channel: 'str', callback: 'RawStateCallback') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;raw-message&nbsp;callback;&nbsp;the&nbsp;listener&nbsp;starts&nbsp;lazily.</span></dd></dl>
+
+<dl><dt>async <a name="RedisStateStore-unsubscribe"><strong>unsubscribe</strong></a>(self, channel: 'str', callback: 'RawStateCallback') -&gt; 'None'</dt><dd><span class="code">Unregister&nbsp;a&nbsp;raw-message&nbsp;callback&nbsp;and&nbsp;drop&nbsp;idle&nbsp;subscriptions.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StateService">class <strong>StateService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StateService">StateService</a>(store:&nbsp;'<a href="#IStateStore">IStateStore</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;redis_uri:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Typed&nbsp;gateway&nbsp;to&nbsp;hot&nbsp;state;&nbsp;the&nbsp;only&nbsp;entry&nbsp;point&nbsp;to&nbsp;Redis.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StateService-__init__"><strong>__init__</strong></a>(self, store: 'IStateStore | None' = None, redis_uri: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Use&nbsp;the&nbsp;injected&nbsp;store,&nbsp;or&nbsp;a&nbsp;``<a href="#RedisStateStore">RedisStateStore</a>``&nbsp;built&nbsp;from&nbsp;``redis_uri``/``REDIS_URI``.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-acquire_lock"><strong>acquire_lock</strong></a>(self, scope: 'str', key: 'str', ttl: 'int' = 30) -&gt; 'str | None'</dt><dd><span class="code">Acquire&nbsp;a&nbsp;distributed&nbsp;lock;&nbsp;returns&nbsp;its&nbsp;token,&nbsp;or&nbsp;None&nbsp;when&nbsp;held.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-check_rate_limit"><strong>check_rate_limit</strong></a>(self, scope: 'str', key: 'str', limit: 'int', window: 'int') -&gt; 'bool'</dt><dd><span class="code">Count&nbsp;a&nbsp;hit&nbsp;against&nbsp;a&nbsp;fixed-window&nbsp;rate&nbsp;limit;&nbsp;True&nbsp;when&nbsp;still&nbsp;allowed.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-close"><strong>close</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Release&nbsp;the&nbsp;underlying&nbsp;store's&nbsp;resources.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;a&nbsp;hot-state&nbsp;entry;&nbsp;returns&nbsp;True&nbsp;when&nbsp;a&nbsp;key&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;hot-state&nbsp;entry;&nbsp;returns&nbsp;None&nbsp;when&nbsp;missing&nbsp;or&nbsp;expired.</span></dd></dl>
+
+<dl><dt><a name="StateService-lock"><strong>lock</strong></a>(self, scope: 'str', key: 'str', ttl: 'int' = 30) -&gt; 'AsyncIterator[None]'</dt><dd><span class="code">Hold&nbsp;a&nbsp;distributed&nbsp;lock&nbsp;for&nbsp;the&nbsp;duration&nbsp;of&nbsp;the&nbsp;context.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-publish"><strong>publish</strong></a>(self, scope: 'str', event: 'str', payload: 'dict[str, Any]') -&gt; 'int'</dt><dd><span class="code">Publish&nbsp;an&nbsp;event&nbsp;to&nbsp;the&nbsp;scope's&nbsp;channel;&nbsp;returns&nbsp;the&nbsp;subscriber&nbsp;count.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-release_lock"><strong>release_lock</strong></a>(self, scope: 'str', key: 'str', token: 'str') -&gt; 'bool'</dt><dd><span class="code">Release&nbsp;a&nbsp;lock;&nbsp;only&nbsp;the&nbsp;token&nbsp;returned&nbsp;by&nbsp;``acquire_lock``&nbsp;succeeds.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL&nbsp;in&nbsp;seconds.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;the&nbsp;underlying&nbsp;store.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-subscribe"><strong>subscribe</strong></a>(self, scope: 'str', callback: 'StateEventCallback') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;an&nbsp;async&nbsp;callback&nbsp;for&nbsp;events&nbsp;published&nbsp;in&nbsp;a&nbsp;scope.</span></dd></dl>
+
+<dl><dt>async <a name="StateService-unsubscribe"><strong>unsubscribe</strong></a>(self, scope: 'str', callback: 'StateEventCallback') -&gt; 'None'</dt><dd><span class="code">Unregister&nbsp;an&nbsp;event&nbsp;callback&nbsp;and&nbsp;drop&nbsp;the&nbsp;raw&nbsp;subscription&nbsp;when&nbsp;idle.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StateServiceError">class <strong>StateServiceError</strong></a>(<a href="builtins.html#Exception">builtins.Exception</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">A&nbsp;state&nbsp;store&nbsp;operation&nbsp;failed.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.state.html#StateServiceError">StateServiceError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="StateServiceError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="StateServiceError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="StateServiceError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StateServiceError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="StateServiceError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StateServiceError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="StateServiceError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="StateServiceError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#StateServiceError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="StateServiceError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code"><a href="builtins.html#Exception">Exception</a>.<a href="#StateServiceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-state_key"><strong>state_key</strong></a>(scope: 'str', key: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;namespaced&nbsp;key:&nbsp;``kingdoms:{scope}:{key}``.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_REDIS_URI</strong> = 'redis://localhost:6379'<br>
+<strong>RawStateCallback</strong> = collections.abc.Callable[[str], collections.abc.Awaitable[None]]<br>
+<strong>STATE_KEY_PREFIX</strong> = 'kingdoms'<br>
+<strong>StateEventCallback</strong> = collections.abc.Callable[[str, dict[str, typing.Any]], collections.abc.Awaitable[None]]</td></tr></table>
 </body></html>
