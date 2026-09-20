@@ -26,7 +26,9 @@ def preflight() -> int:
             return 1
 
     try:
-        client = pymongo.MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=5000)
+        client: pymongo.MongoClient = pymongo.MongoClient(
+            os.environ["MONGO_URI"], serverSelectionTimeoutMS=5000
+        )
         ping = client.admin.command("ping")
         if ping.get("ok") != 1:
             print(f"PREFLIGHT FAIL: MongoDB ping failed: {ping}")
