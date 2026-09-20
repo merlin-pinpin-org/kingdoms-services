@@ -45,6 +45,24 @@ jobs:
           uv sync
           uv run pytest
 
+  compose:
+    name: Validate and boot docker-compose.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the compose manifest
+        run: docker compose config --quiet
+      - name: Boot the stack (bot excluded until kingdoms-services#12)
+        run: |
+          cp .env.example .env
+          docker compose up -d kingdoms-mongo kingdoms-redis
+          timeout 60 bash -c 'until docker exec kingdoms-mongo-1 mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
+          timeout 60 bash -c 'until docker exec kingdoms-redis-1 redis-cli ping | grep -q PONG; do sleep 2; done'
+          echo "COMPOSE STACK BOOTS OK"
+      - name: Tear down
+        if: always()
+        run: docker compose down -v || true
+
   smoke:
     name: Smoke test (bot image + MongoDB + Redis)
     runs-on: ubuntu-latest

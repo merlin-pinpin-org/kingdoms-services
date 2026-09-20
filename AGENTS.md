@@ -43,6 +43,11 @@ core services, Discord platform implementation, mods, YAML configs.
 - Custom IDs follow the convention `<mod>:<component>:<payload>`
   (see `kingdoms` docs, Discord components guide).
 - Run `make lint` and `make test` before pushing. All tests must pass.
+- **Sandbox limits are covered by GitHub Actions**: anything that cannot run
+  in the dev sandbox (Docker Compose boot, image build, real MongoDB/Redis,
+  entrypoint/preflight paths) must be exercised by a CI workflow instead.
+  When a check cannot run locally, add or extend the workflow that validates
+  it — never leave it unverified.
 
 ## Roadmap
 
