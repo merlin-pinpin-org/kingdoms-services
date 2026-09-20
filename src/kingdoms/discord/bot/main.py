@@ -111,6 +111,7 @@ def main() -> None:
     except (KeyboardInterrupt, SystemExit):
         pass
     except Exception:
+        logging.getLogger("kingdoms.bot").exception("BOT STARTUP FAILED")
         sys.exit(1)
 
 
