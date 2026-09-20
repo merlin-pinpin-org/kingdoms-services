@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.models.db</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.models.html" class="white">models</a>.db</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/models/db.py">SOURCE_ROOT/core/models/db.py</a></td></tr></table>
+    <p><span class="code">MongoDB&nbsp;client&nbsp;and&nbsp;database&nbsp;setup&nbsp;for&nbsp;Kingdoms.<br>
+&nbsp;<br>
+Singleton&nbsp;sync&nbsp;(``MongoClient``)&nbsp;and&nbsp;async&nbsp;(``AsyncMongoClient``,&nbsp;the&nbsp;native<br>
+pymongo&nbsp;async&nbsp;API&nbsp;available&nbsp;since&nbsp;pymongo&nbsp;4.9&nbsp;—&nbsp;no&nbsp;Motor&nbsp;dependency)&nbsp;clients,<br>
+configured&nbsp;from&nbsp;the&nbsp;``MONGO_URI``&nbsp;and&nbsp;``MONGO_DB``&nbsp;environment&nbsp;variables.<br>
+Reference:&nbsp;kingdoms-services#4&nbsp;and&nbsp;ADR-0004&nbsp;(MongoDB&nbsp;schema&nbsp;design).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-close_async_client"><strong>close_async_client</strong></a>() -&gt; 'None'</dt><dd><span class="code">Close&nbsp;the&nbsp;asynchronous&nbsp;MongoDB&nbsp;client,&nbsp;if&nbsp;it&nbsp;was&nbsp;created.</span></dd></dl>
+ <dl><dt><a name="-close_sync_client"><strong>close_sync_client</strong></a>() -&gt; 'None'</dt><dd><span class="code">Close&nbsp;the&nbsp;synchronous&nbsp;MongoDB&nbsp;client,&nbsp;if&nbsp;it&nbsp;was&nbsp;created.</span></dd></dl>
+ <dl><dt><a name="-get_async_client"><strong>get_async_client</strong></a>() -&gt; 'AsyncMongoClient[Document]'</dt><dd><span class="code">Get&nbsp;or&nbsp;create&nbsp;the&nbsp;asynchronous&nbsp;MongoDB&nbsp;client.</span></dd></dl>
+ <dl><dt><a name="-get_async_database"><strong>get_async_database</strong></a>() -&gt; 'AsyncDatabase[Document]'</dt><dd><span class="code">Get&nbsp;the&nbsp;MongoDB&nbsp;database&nbsp;(async).</span></dd></dl>
+ <dl><dt><a name="-get_database"><strong>get_database</strong></a>() -&gt; 'Database[Document]'</dt><dd><span class="code">Get&nbsp;the&nbsp;MongoDB&nbsp;database&nbsp;(sync).</span></dd></dl>
+ <dl><dt><a name="-get_sync_client"><strong>get_sync_client</strong></a>() -&gt; 'MongoClient[Document]'</dt><dd><span class="code">Get&nbsp;or&nbsp;create&nbsp;the&nbsp;synchronous&nbsp;MongoDB&nbsp;client.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_MONGO_DB</strong> = 'kingdoms'<br>
+<strong>DEFAULT_MONGO_URI</strong> = 'mongodb://localhost:27017'<br>
+<strong>Document</strong> = dict[str, object]<br>
+<strong>__annotations__</strong> = {'_async_client': 'AsyncMongoClient[Document] | None', '_sync_client': 'MongoClient[Document] | None'}</td></tr></table>
+</body></html>
