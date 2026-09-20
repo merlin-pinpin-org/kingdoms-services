@@ -7,11 +7,13 @@ Python code for the Kingdoms Discord bot platform.
 
 - **Auto-triage** (`.github/workflows/auto-triage.yml`): assigns, labels and
   links every new issue/PR.
-- **Roadmap ping** (`.github/workflows/roadmap-ping.yml`): notifies
-  `merlin-pinpin/kingdoms` (via `repository_dispatch`) whenever an issue
-  changes state here, so `ROADMAP.md` stays in sync automatically. Requires
-  the `ROADMAP_DISPATCH_PAT` repository secret: a fine-grained PAT with
-  **"Contents: read and write"** on `merlin-pinpin/kingdoms`.
+- **PR commands**: generated artifacts in `merlin-pinpin/kingdoms`
+  (`ROADMAP.md`, `docs/DEPENDENCIES.md`, generated dev docs) are refreshed
+  by PR comment commands (`/roadmap`, `/dependencies`, `/generate-docs`)
+  documented in
+  [docs/SKILLS/pr-commands.md](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/pr-commands.md).
+  The former `roadmap-ping.yml`/`dependencies-ping.yml` dispatch pings and
+  the `ROADMAP_DISPATCH_PAT` secret are no longer used and can be deleted.
 
 ## Rules
 
