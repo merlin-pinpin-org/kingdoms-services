@@ -36,10 +36,3 @@ jobs:
             cat /tmp/pydoc-diff.txt
             exit 1
           fi
-      - name: Upload the freshly generated pydoc (diff debugging)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pydoc-fresh
-          path: /tmp/pydoc-fresh
-          retention-days: 7
