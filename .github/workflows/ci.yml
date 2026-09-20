@@ -56,8 +56,8 @@ jobs:
         run: |
           cp .env.example .env
           docker compose up -d kingdoms-mongo kingdoms-redis
-          timeout 60 bash -c 'until docker exec kingdoms-mongo-1 mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
-          timeout 60 bash -c 'until docker exec kingdoms-redis-1 redis-cli ping | grep -q PONG; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose exec -T kingdoms-mongo mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done'
           echo "COMPOSE STACK BOOTS OK"
       - name: Tear down
         if: always()
