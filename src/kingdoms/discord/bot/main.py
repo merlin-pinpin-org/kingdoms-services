@@ -1,17 +1,30 @@
 """Bot entry point: loads config, wires core services, starts the Discord client.
 
-The full bot startup is implemented in kingdoms-services#12. The `--preflight`
-mode exercises the real startup path (environment, MongoDB, Redis, locale
-catalogs) without connecting to the Discord gateway, which requires a valid
-token.
+The ``--preflight`` mode exercises the real startup path (environment,
+MongoDB, Redis, locale catalogs) without connecting to the Discord gateway,
+which requires a valid token. The default mode connects to the gateway and
+logs a distinctive ready line that CI smoke tests assert on
+(kingdoms-services#12, kingdoms-services#34).
 """
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 import sys
 
 from kingdoms import __version__
+
+READY_LOG_LINE = "KINGDOMS_BOT_READY"
+
+
+def _build_logger() -> logging.Logger:
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    return logging.getLogger("kingdoms.bot")
 
 
 def preflight() -> int:
@@ -60,14 +73,45 @@ def preflight() -> int:
             print(f"PREFLIGHT FAIL: invalid locale catalog {path}")
             return 1
     print("Locale catalogs OK (en, fr)")
-
     print(f"PREFLIGHT PASS (kingdoms {__version__})")
     return 0
 
 
+async def run_bot() -> None:
+    """Connect the bot to the Discord gateway and block until shutdown."""
+    import discord
+
+    token = os.environ["DISCORD_TOKEN"]
+    intents = discord.Intents.default()
+    client = discord.Client(intents=intents)
+    logger = _build_logger()
+
+    @client.event
+    async def on_ready() -> None:
+        logger.info(
+            "%s version=%s user=%s guilds=%d",
+            READY_LOG_LINE,
+            __version__,
+            client.user,
+            len(client.guilds),
+        )
+
+    try:
+        await client.login(token)
+    except Exception:
+        logger.exception("DISCORD LOGIN FAILED (invalid token or network)")
+        raise
+    await client.connect()
+
+
 def main() -> None:
     """Run the Kingdoms Discord bot."""
-    raise NotImplementedError("Implemented in kingdoms-services#12")
+    try:
+        asyncio.run(run_bot())
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    except Exception:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
