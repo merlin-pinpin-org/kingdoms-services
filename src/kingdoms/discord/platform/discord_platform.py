@@ -1,15 +1,16 @@
 """DiscordPlatform: IPlatform implementation on top of discord.py.
 
-Implemented in kingdoms-services#11.
+Implemented in kingdoms-services#11. Satisfies the IPlatform Protocol
+structurally (ADR-0011), without explicit inheritance.
 """
 
 from __future__ import annotations
 
-from kingdoms.core.interfaces.platform import IChannel, IMessage, IPlatform, IUser
+from kingdoms.core.interfaces.platform import IChannel, IMessage, IUser
 
 
-class DiscordPlatform(IPlatform):
-    """Discord implementation of IPlatform."""
+class DiscordPlatform:
+    """Discord implementation of the IPlatform Protocol."""
 
     async def send_message(self, channel: IChannel, content: str) -> IMessage:
         """Send a text message to a Discord channel."""
