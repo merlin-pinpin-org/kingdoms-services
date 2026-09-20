@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.status</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.status</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/status.py">SOURCE_ROOT/discord/status.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;/status&nbsp;command:&nbsp;bot&nbsp;and&nbsp;per-guild&nbsp;operational&nbsp;report.<br>
+&nbsp;<br>
+Generic&nbsp;bot&nbsp;capability&nbsp;(not&nbsp;a&nbsp;mod):&nbsp;it&nbsp;reports&nbsp;uptime,&nbsp;version,&nbsp;configured<br>
+games,&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channels&nbsp;and&nbsp;roles,&nbsp;bot&nbsp;admins<br>
+(BOT_ADMINS)&nbsp;and&nbsp;the&nbsp;invoking&nbsp;guild's&nbsp;admins.<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#35&nbsp;(bot&nbsp;vs&nbsp;guild&nbsp;admins).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_status_embed"><strong>build_status_embed</strong></a>(status: 'StatusService', guild: 'discord.Guild | None') -&gt; 'discord.Embed'</dt><dd><span class="code">Build&nbsp;the&nbsp;/status&nbsp;embed&nbsp;from&nbsp;the&nbsp;core&nbsp;report&nbsp;+&nbsp;guild&nbsp;context.</span></dd></dl>
+ <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
+ <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
+ <dl><dt><a name="-status_version"><strong>status_version</strong></a>(report: 'dict[str, object]') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;version&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
+</td></tr></table>
+</body></html>
