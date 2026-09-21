@@ -38,6 +38,11 @@ core services, Discord platform implementation, mods, YAML configs.
 - Link PRs to their issue with a closing keyword in the description
   (`Closes #N`): this populates the GitHub "Development" section and closes
   the issue on merge.
+- **PR draft status is the merge-readiness signal** (see
+  `kingdoms/docs/VIBEWORKFLOW.md`): always open PRs as drafts; mark a PR
+  ready for review only when, from your point of view, it can be merged
+  (checks green, implementation complete, self-review done, docs updated);
+  keep or return it to draft (`gh pr ready --undo`) while work remains.
 - All user-facing strings go through the **i18n system**
   (`kingdoms-services#17`): English default (`config/locales/en.yaml`),
   French available (`config/locales/fr.yaml`). Never hardcode user-facing
