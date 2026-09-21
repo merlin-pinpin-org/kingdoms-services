@@ -29,6 +29,10 @@ jobs:
       github.event.issue.pull_request &&
       github.event.comment.body == '/deploy-test'
     runs-on: ubuntu-latest
+    # The deploy token lives in the 'deploy-test' environment (not a repo
+    # secret): only workflows that declare this environment can read it, and
+    # environment protection rules can further gate who may run them.
+    environment: deploy-test
     steps:
       - name: Fetch the PR head
         id: pr
