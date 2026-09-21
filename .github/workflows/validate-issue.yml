@@ -1,0 +1,45 @@
+name: Validate issue
+# Enforces the issue templates in .github/ISSUE_TEMPLATE/ (blank issues are
+# disabled by config.yml). Every issue must carry the required "##" sections
+# of its template; non-compliant issues are labeled "invalid" with a comment
+# naming the missing sections, and the label is removed once fixed.
+on:
+  issues:
+    types: [opened, edited, reopened]
+permissions:
+  issues: write
+concurrency:
+  group: validate-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+            const number = issue.number;
+            const body = issue.body || '';
+            const headings = new Set(
+              (body.match(/^## (.+)$/gm) || []).map((h) => h.replace(/^## /, '').trim().toLowerCase())
+            );
+            // Union of the required sections across all templates of this repo.
+            const REQUIRED = ['objective', 'context', 'specifications', 'acceptance criteria', 'dependencies'];
+            const missing = REQUIRED.filter((s) => !headings.has(s));
+            const hasInvalid = (issue.labels || []).some((l) => l.name === 'invalid');
+            if (missing.length > 0) {
+              if (!hasInvalid) {
+                await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: ['invalid'] });
+              }
+              const list = missing.map((s) => `- \`## ${s.charAt(0).toUpperCase() + s.slice(1)}\``).join('\n');
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: `This issue does not follow the [issue templates](https://github.com/${owner}/${repo}/tree/main/.github/ISSUE_TEMPLATE) (blank issues are disabled). Missing sections:\n\n${list}\n\nPlease edit the issue to include every required section, or recreate it from the matching template (\`gh issue create --template <Feature|Bug|Sub-task|Task>\`); it will be re-validated automatically on edit.`,
+              });
+            } else if (hasInvalid) {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: 'invalid' });
+            }

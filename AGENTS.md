@@ -43,6 +43,13 @@ core services, Discord platform implementation, mods, YAML configs.
   ready for review only when, from your point of view, it can be merged
   (checks green, implementation complete, self-review done, docs updated);
   keep or return it to draft (`gh pr ready --undo`) while work remains.
+- **Issue templates are mandatory**: blank issues are disabled on this
+  repository. Create every issue from the template matching its kind
+  (`gh issue create --template Feature|Bug|Sub-task|Task`) and keep the
+  required sections (`## Objective`, `## Context`, `## Specifications`,
+  `## Acceptance criteria`, `## Dependencies`). The "Validate issue"
+  workflow flags non-compliant issues `invalid` — recreate them properly
+  rather than editing around the flag.
 - All user-facing strings go through the **i18n system**
   (`kingdoms-services#17`): English default (`config/locales/en.yaml`),
   French available (`config/locales/fr.yaml`). Never hardcode user-facing

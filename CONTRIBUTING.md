@@ -12,6 +12,8 @@ Thank you for considering contributing!
 
 1. Fork the repo (external) or create a branch `vibe/<short-slug>` (internal)
 2. Create or pick a GitHub issue describing the change
+   - Issues must use a template from `.github/ISSUE_TEMPLATE/` — blank issues
+     are disabled and non-compliant issues are flagged `invalid`
 3. Implement following the repo rules (English code/comments, Makefile tasks)
 4. Run `make lint` and `make test` — everything must pass
 5. Open a PR:
