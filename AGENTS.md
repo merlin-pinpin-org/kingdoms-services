@@ -16,6 +16,12 @@ core services, Discord platform implementation, mods, YAML configs.
 
 - **Read first:** [kingdoms/docs/VIBEWORKFLOW.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
   describes the operating model (roles, session loop, approvals).
+- **Humans never check out, write code, or run scripts.** This platform is
+  a pure vibe-coding test: the agent does 100% of the technical work. Never
+  propose a solution that requires a human to run a CLI command, a script,
+  or any local tooling — the only manual technical actions are clicks in
+  the GitHub web UI (approving PRs, production deployment approvals,
+  one-time admin), performed by authorized humans.
 - All code, comments, documentation, commit messages, PR titles and PR
   descriptions are written in **English**.
 - Python 3.12, type hints everywhere, `ruff` + `mypy` clean.
@@ -43,6 +49,12 @@ core services, Discord platform implementation, mods, YAML configs.
   ready for review only when, from your point of view, it can be merged
   (checks green, implementation complete, self-review done, docs updated);
   keep or return it to draft (`gh pr ready --undo`) while work remains.
+- **`/merge` is an agent-executed command.** When a reviewer (developer or
+  ops) says `/merge`, verify the merge criteria (PR ready, all checks
+  green, required code-owner approval present, docs synced, linked issue,
+  no unresolved review threads) and merge with squash, deleting the
+  branch. GitHub automerge is intentionally not used. The agent never
+  approves its own PRs — the human approval is the trust anchor.
 - **Issue templates are mandatory**: blank issues are disabled on this
   repository. Create every issue from the template matching its kind
   (`gh issue create --template Feature|Bug|Sub-task|Task`) and keep the
