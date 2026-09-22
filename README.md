@@ -12,8 +12,8 @@ Python code for the Kingdoms Discord bot platform.
   `make docs`); every PR fails when the committed copy is stale.
 - **Generated artifacts in `kingdoms`**: `ROADMAP.md` and
   `docs/DEPENDENCIES.md` are refreshed by the sync skills
-  ([Update roadmap](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/update-roadmap.md),
-  [Update dependencies](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/SKILLS/update-dependencies.md)):
+  ([Update roadmap](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/update-roadmap.md),
+  [Update dependencies](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/update-dependencies.md)):
   the sync scripts run locally and the result is committed to the PR branch.
   The former `roadmap-ping.yml`/`dependencies-ping.yml` dispatch pings and
   the `ROADMAP_DISPATCH_PAT` secret are no longer used and can be deleted.
@@ -21,5 +21,5 @@ Python code for the Kingdoms Discord bot platform.
 ## Rules
 
 See [AGENTS.md](AGENTS.md) (agent rules) and the
-[operating model](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
+[operating model](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
 in the `kingdoms` repo.
