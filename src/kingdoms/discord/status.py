@@ -121,7 +121,7 @@ def register_status_command(
     @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
     async def status_command(interaction: discord.Interaction) -> None:
         """Answer the /status interaction with the current status embed."""
-        latency = interaction.client.latency
+        latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
         embed = build_status_embed(status, interaction.guild, latency)
