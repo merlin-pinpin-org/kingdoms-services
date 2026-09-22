@@ -3,9 +3,10 @@
 # the PR head, pushes it to GHCR (tag pr-<number>-sha-<sha>), and triggers
 # the Deploy test workflow on kingdoms-infra with that image. The bot runs
 # on the test VPS with the PR code until the next deployment.
-# Gating: only the PR author, or a user with write access, may use it (see
-# the authorize step); the workflow is a policy target on its own, so GitHub
-# rulesets can restrict who may dispatch it further.
+# Gating (kingdoms-services#67): only repository collaborators with
+# write, maintain or admin permission may use it, and fork PRs are rejected
+# outright (see the authorize step); kingdoms-infra's Actions policy is the
+# second layer on the dispatch side.
 #
 # Cross-repo trigger: the workflow dispatch on kingdoms-infra uses an
 # ephemeral GitHub App token (actions/create-github-app-token), minted from
@@ -57,9 +58,15 @@ jobs:
         with:
           script: |
             const commenter = context.payload.comment.user.login;
-            const author = context.payload.issue.user.login;
-            if (commenter === author) {
-              core.notice(`${commenter} is the PR author: allowed.`);
+            // Fork PRs are never deployable, regardless of who comments:
+            // their head lives outside this repository (kingdoms-services#67).
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            if (pr.head.repo && pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed("This pull request comes from a fork: only branches of this repository may be deployed to test.");
               return;
             }
             const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
@@ -67,8 +74,8 @@ jobs:
               repo: context.repo.repo,
               username: commenter,
             });
-            if (!["admin", "write"].includes(perm.permission)) {
-              core.setFailed(`${commenter} is not allowed to deploy: only the PR author or a user with write access may use /deploy-test.`);
+            if (!["admin", "maintain", "write"].includes(perm.permission)) {
+              core.setFailed(`${commenter} is not allowed to deploy: only repository collaborators with write access may use /deploy-test.`);
             } else {
               core.notice(`${commenter} has ${perm.permission}: allowed.`);
             }
