@@ -49,12 +49,13 @@ core services, Discord platform implementation, mods, YAML configs.
   ready for review only when, from your point of view, it can be merged
   (checks green, implementation complete, self-review done, docs updated);
   keep or return it to draft (`gh pr ready --undo`) while work remains.
-- **`/merge` is an agent-executed command.** When a reviewer (developer or
-  ops) says `/merge`, verify the merge criteria (PR ready, all checks
-  green, required code-owner approval present, docs synced, linked issue,
-  no unresolved review threads) and merge with squash, deleting the
-  branch. GitHub automerge is intentionally not used. The agent never
-  approves its own PRs — the human approval is the trust anchor.
+- **The merge is one human click.** The agent never merges: it prepares
+  PRs to merge-ready (ready for review, checks green, docs updated, issue
+  linked) and reports the PR URL; the developer or ops clicks **Merge**
+  in the GitHub web UI. The `main` rulesets enforce the hard gate
+  (required checks, squash only). GitHub automerge is intentionally not
+  used: it merges as soon as checks land, ignoring the game designer's
+  Discord validation.
 - **Issue templates are mandatory**: blank issues are disabled on this
   repository. Create every issue from the template matching its kind
   (`gh issue create --template Feature|Bug|Sub-task|Task`) and keep the
