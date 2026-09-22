@@ -6,6 +6,14 @@
 # Gating: only the PR author, or a user with write access, may use it (see
 # the authorize step); the workflow is a policy target on its own, so GitHub
 # rulesets can restrict who may dispatch it further.
+#
+# Cross-repo trigger: the workflow dispatch on kingdoms-infra uses an
+# ephemeral GitHub App token (actions/create-github-app-token), minted from
+# the KINGDOMS_DEPLOYER_APP_ID / KINGDOMS_DEPLOYER_APP_PRIVATE_KEY
+# repository secrets of this repository. The app is installed on
+# kingdoms-infra only, with the single Actions: write permission — see
+# kingdoms-infra docs/DEPLOY-TEST-APP.md for the full setup and the
+# ruleset hardening.
 
 name: Deploy test (PR comment)
 
@@ -29,10 +37,6 @@ jobs:
       github.event.issue.pull_request &&
       github.event.comment.body == '/deploy-test'
     runs-on: ubuntu-latest
-    # The deploy token lives in the 'deploy-test' environment (not a repo
-    # secret): only workflows that declare this environment can read it, and
-    # environment protection rules can further gate who may run them.
-    environment: deploy-test
     steps:
       - name: Fetch the PR head
         id: pr
@@ -104,11 +108,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Mint an ephemeral GitHub App token for kingdoms-infra
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin
+          repositories: kingdoms-infra
+
       - name: Trigger the infra Deploy test workflow
         id: dispatch
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.KINGDOMS_INFRA_DEPLOY_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             await github.request("POST /repos/{owner}/{repo}/actions/workflows/deploy-test.yml/dispatches", {
               owner: "merlin-pinpin",
