@@ -4,7 +4,7 @@ Thank you for considering contributing!
 
 ## Before you start
 
-- Read [AGENTS.md](AGENTS.md) (repo rules) and the [Kingdoms vibe workflow](https://github.com/merlin-pinpin/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
+- Read [AGENTS.md](AGENTS.md) (repo rules) and the [Kingdoms vibe workflow](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
   (how the project is built).
 - External contributors must sign the CLA (see "CLA process" below).
 

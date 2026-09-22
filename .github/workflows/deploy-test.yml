@@ -117,7 +117,7 @@ jobs:
         with:
           app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
           private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
-          owner: merlin-pinpin
+          owner: merlin-pinpin-org
           repositories: kingdoms-infra
 
       - name: Trigger the infra Deploy test workflow
@@ -127,11 +127,11 @@ jobs:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
             await github.request("POST /repos/{owner}/{repo}/actions/workflows/deploy-test.yml/dispatches", {
-              owner: "merlin-pinpin",
+              owner: "merlin-pinpin-org",
               repo: "kingdoms-infra",
               ref: "main",
               inputs: {
-                bot_image: "ghcr.io/merlin-pinpin/kingdoms-services:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}",
+                bot_image: "ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}",
               },
             });
             core.notice("Deploy test dispatched on kingdoms-infra.");
