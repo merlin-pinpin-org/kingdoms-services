@@ -1,0 +1,158 @@
+# /deploy-test — deploy a pull request to the test environment.
+# A PR comment containing exactly "/deploy-test" builds the bot image from
+# the PR head, pushes it to GHCR (tag pr-<number>-sha-<sha>), and triggers
+# the Deploy test workflow on kingdoms-infra with that image. The bot runs
+# on the test VPS with the PR code until the next deployment.
+# Gating: only the PR author, or a user with write access, may use it (see
+# the authorize step); the workflow is a policy target on its own, so GitHub
+# rulesets can restrict who may dispatch it further.
+#
+# Cross-repo trigger: the workflow dispatch on kingdoms-infra uses an
+# ephemeral GitHub App token (actions/create-github-app-token), minted from
+# the KINGDOMS_DEPLOYER_APP_ID / KINGDOMS_DEPLOYER_APP_PRIVATE_KEY
+# repository secrets of this repository. The app is installed on
+# kingdoms-infra only, with the single Actions: write permission — see
+# kingdoms-infra docs/DEPLOY-TEST-APP.md for the full setup and the
+# ruleset hardening.
+
+name: Deploy test (PR comment)
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: deploy-test-pr-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-test:
+    name: Build and deploy the PR to test
+    if: >
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/deploy-test'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the PR head
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            core.setOutput("sha", pr.head.sha);
+            core.setOutput("ref", pr.head.ref);
+
+      - name: Authorize the requestor
+        id: authorize
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            const author = context.payload.issue.user.login;
+            if (commenter === author) {
+              core.notice(`${commenter} is the PR author: allowed.`);
+              return;
+            }
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: commenter,
+            });
+            if (!["admin", "write"].includes(perm.permission)) {
+              core.setFailed(`${commenter} is not allowed to deploy: only the PR author or a user with write access may use /deploy-test.`);
+            } else {
+              core.notice(`${commenter} has ${perm.permission}: allowed.`);
+            }
+
+      - name: Acknowledge on the PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚀 Deploying this PR to **test** — building \`${{ steps.pr.outputs.sha }}\`… (run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            });
+
+      - name: Checkout the PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the PR image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Mint an ephemeral GitHub App token for kingdoms-infra
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin
+          repositories: kingdoms-infra
+
+      - name: Trigger the infra Deploy test workflow
+        id: dispatch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.request("POST /repos/{owner}/{repo}/actions/workflows/deploy-test.yml/dispatches", {
+              owner: "merlin-pinpin",
+              repo: "kingdoms-infra",
+              ref: "main",
+              inputs: {
+                bot_image: "ghcr.io/merlin-pinpin/kingdoms-services:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}",
+              },
+            });
+            core.notice("Deploy test dispatched on kingdoms-infra.");
+
+      - name: Report success on the PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `✅ Image \`${{ steps.pr.outputs.sha }}\` built and pushed. The **Deploy test** workflow on kingdoms-infra is deploying it — the bot on the test VPS now runs this PR.`,
+            });
+
+      - name: Report failure on the PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ /deploy-test failed — see the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+            });
