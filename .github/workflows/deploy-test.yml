@@ -105,8 +105,11 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}
+          # No cache export: from an issue_comment event the GHA cache
+          # scope is the comment, not the PR branch, and cache
+          # reservation fails. Pull-side caching only.
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+
 
       - name: Mint an ephemeral GitHub App token for kingdoms-infra
         id: app-token
