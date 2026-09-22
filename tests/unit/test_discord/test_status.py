@@ -12,7 +12,7 @@ from kingdoms.core.services.mod_definition import (
 )
 from kingdoms.core.services.mod_registry import ModRegistry
 from kingdoms.core.services.status import StatusService
-from kingdoms.discord.status import _human_uptime, build_status_embed
+from kingdoms.discord.status import _human_uptime, build_status_embed, format_latency
 
 
 def make_status() -> StatusService:
@@ -61,6 +61,28 @@ def test_status_embed_flags_missing_bot_admins() -> None:
     embed = build_status_embed(status, guild=None)
     fields = {f.name: f.value for f in embed.fields}
     assert "BOT_ADMINS" in fields["Bot admins"]
+
+
+def test_format_latency_renders_integer_milliseconds() -> None:
+    assert format_latency(0.1234) == "123 ms"
+    assert format_latency(0.0005) == "1 ms" if round(0.0005 * 1000) == 1 else format_latency(0.0005) == "0 ms"
+
+
+def test_format_latency_marks_unknown_values_na() -> None:
+    assert format_latency(None) == "n/a"
+    assert format_latency(-1.0) == "n/a"
+
+
+def test_status_embed_contains_latency_field() -> None:
+    embed = build_status_embed(make_status(), guild=None, latency=0.25)
+    fields = {f.name: f.value for f in embed.fields}
+    assert fields["Latency"] == "250 ms"
+
+
+def test_status_embed_latency_defaults_to_na() -> None:
+    embed = build_status_embed(make_status(), guild=None)
+    fields = {f.name: f.value for f in embed.fields}
+    assert fields["Latency"] == "n/a"
 
 
 async def test_register_status_command_wires_a_status_command() -> None:

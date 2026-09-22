@@ -50,9 +50,17 @@ def status_uptime(report: dict[str, object]) -> float:
     return float(report["uptime_seconds"])  # type: ignore[arg-type]
 
 
+def format_latency(latency: float | None) -> str:
+    """Render the gateway latency in milliseconds; n/a when unknown."""
+    if latency is None or latency < 0:
+        return "n/a"
+    return f"{round(latency * 1000)} ms"
+
+
 def build_status_embed(
     status: StatusService,
     guild: discord.Guild | None,
+    latency: float | None = None,
 ) -> discord.Embed:
     """Build the /status embed from the core report + guild context."""
     report = status.report()
@@ -66,6 +74,7 @@ def build_status_embed(
         value=_human_uptime(status_uptime(report)),
         inline=True,
     )
+    embed.add_field(name="Latency", value=format_latency(latency), inline=True)
 
     bot_admins = status.bot_admins
     embed.add_field(
@@ -112,5 +121,8 @@ def register_status_command(
     @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
     async def status_command(interaction: discord.Interaction) -> None:
         """Answer the /status interaction with the current status embed."""
-        embed = build_status_embed(status, interaction.guild)
+        latency: float | None = interaction.client.latency
+        if latency != latency or latency == float("inf"):
+            latency = None
+        embed = build_status_embed(status, interaction.guild, latency)
         await interaction.response.send_message(embed=embed, ephemeral=True)
