@@ -1,15 +1,14 @@
 # Code ownership (kingdoms-services).
 # Combined with the "main" ruleset (require code owner review, 1
-# approval), no change merges without a maintainer. The org team is
-# @merlin-pinpin-org/maintainers; until it exists, the fallback is
-# the individual maintainer account.
-
+# approval), no change merges without a maintainer.
+# Team: @merlin-pinpin-org/maintainers (developer + ops).
+#
 # Default: a maintainer reviews everything
-*                       @merlin-pinpin
+*                       @merlin-pinpin-org/maintainers
 
 # CI/CD workflows: the deploy path is security-sensitive
-/.github/workflows/     @merlin-pinpin
+/.github/workflows/     @merlin-pinpin-org/maintainers
 
 # Docker and entrypoint: what runs on the VPS
-/Dockerfile             @merlin-pinpin
-/docker/                @merlin-pinpin
+/Dockerfile             @merlin-pinpin-org/maintainers
+/docker/                @merlin-pinpin-org/maintainers
