@@ -132,6 +132,7 @@ class MockMember(discord.Member):
         self.premium_since = None
         self.nick = None
         self.pending = False
+        self.timed_out_until = None
         for key, value in kwargs.items():
             setattr(self, key, value)
 

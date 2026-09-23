@@ -12,10 +12,25 @@ from kingdoms.core.services.mod_definition import (
 )
 from kingdoms.core.services.mod_registry import ModRegistry
 from kingdoms.core.services.status import StatusService
-from kingdoms.discord.status import _human_uptime, build_status_embed, format_latency
+from kingdoms.discord.status import (
+    _human_uptime,
+    build_status_embed,
+    format_admins,
+    format_deploy_url,
+    format_latency,
+)
+from tests.mocks.discord_mock import MockGuild, MockMember, MockRole
 
 
-def make_status() -> StatusService:
+class _FakeGuildAdmin(MockMember):
+    """Guild admin stand-in: discord.py derives guild_permissions from roles."""
+
+    def __init__(self, user_id: int) -> None:
+        super().__init__(id=user_id, name="Admin", roles=[MockRole(permissions=["administrator"])])
+        self.timed_out_until = None
+
+
+def make_status(deploy_url: str = "") -> StatusService:
     registry = ModRegistry(
         {
             "example": ModDefinition(
@@ -25,7 +40,18 @@ def make_status() -> StatusService:
             )
         }
     )
-    return StatusService(registry=registry, bot_admins=type("A", (), {"user_ids": ("42",)})())
+    return StatusService(
+        registry=registry,
+        bot_admins=type("A", (), {"user_ids": ("42",)})(),
+        deploy_url=deploy_url,
+    )
+
+
+def make_guild(admin_id: int = 1) -> MockGuild:
+    guild = MockGuild(name="Test Guild")
+    guild._members[admin_id] = _FakeGuildAdmin(admin_id)
+    guild.add_member(MockMember(name="Plain"))
+    return guild
 
 
 def test_human_uptime_renders_compact_durations() -> None:
@@ -41,11 +67,50 @@ def test_status_embed_contains_core_sections() -> None:
     fields = {f.name: f.value for f in embed.fields}
     assert "Version" in fields
     assert "Uptime" in fields
-    assert "42" in fields["Bot admins"]
+    assert "Latency" in fields
+    assert "Deploy" in fields
+    assert "<@42>" in fields["Admins"]
     assert "*(none configured)*" in fields["Games"]
     assert "example" in fields["Enabled mods"]
     assert "`example:announce`" in fields["Enabled mods"]
     assert "`member`" in fields["Enabled mods"]
+
+
+def test_status_embed_admins_section_mentions_bot_and_guild_admins() -> None:
+    embed = build_status_embed(make_status(), guild=make_guild(admin_id=77))
+    admins = next(f for f in embed.fields if f.name == "Admins")
+    assert admins.value.startswith("Bot admins: <@42>")
+    assert "Guild admins (Test Guild): <@77>" in admins.value
+
+
+def test_format_admins_without_guild_lists_bot_admins_only() -> None:
+    assert format_admins(("42",), None) == "Bot admins: <@42>"
+
+
+def test_format_admins_flags_missing_bot_admins() -> None:
+    assert "BOT_ADMINS" in format_admins((), None)
+
+
+def test_format_deploy_url_passes_url_through() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
+    assert format_deploy_url(url) == url
+
+
+def test_format_deploy_url_marks_unknown_values_na() -> None:
+    assert format_deploy_url("") == "n/a"
+
+
+def test_status_embed_deploy_field_reads_status_service() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
+    embed = build_status_embed(make_status(deploy_url=url), guild=None)
+    fields = {f.name: f.value for f in embed.fields}
+    assert fields["Deploy"] == url
+
+
+def test_status_embed_deploy_defaults_to_na() -> None:
+    embed = build_status_embed(make_status(), guild=None)
+    fields = {f.name: f.value for f in embed.fields}
+    assert fields["Deploy"] == "n/a"
 
 
 def test_status_embed_lists_mod_channels_and_roles() -> None:
@@ -60,7 +125,7 @@ def test_status_embed_flags_missing_bot_admins() -> None:
     status = StatusService(registry=registry, bot_admins=type("A", (), {"user_ids": ()})())
     embed = build_status_embed(status, guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert "BOT_ADMINS" in fields["Bot admins"]
+    assert "BOT_ADMINS" in fields["Admins"]
 
 
 def test_format_latency_renders_integer_milliseconds() -> None:

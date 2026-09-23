@@ -41,8 +41,24 @@ def test_status_service_report_shape() -> None:
     assert report["version"]
     assert report["uptime_seconds"] == 0.0
     assert report["bot_admins"] == ("42",)
+    assert report["deploy_url"] == ""
     assert report["games"] == ("aoe2",)
     assert report["enabled_mods"] == {"example": {"channels": ("announce",), "roles": ("member",)}}
+
+
+def test_status_service_exposes_deploy_url() -> None:
+    service = StatusService(
+        registry=make_registry(),
+        bot_admins=parse_bot_admins("42"),
+        deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/pull/12",
+    )
+    assert service.deploy_url == "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
+    assert service.report()["deploy_url"] == "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
+
+
+def test_status_service_strips_deploy_url_whitespace() -> None:
+    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins(""), deploy_url="  ")
+    assert service.deploy_url == ""
 
 
 def test_status_service_disabled_mods_excluded() -> None:

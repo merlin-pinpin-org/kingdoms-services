@@ -139,6 +139,7 @@ jobs:
               ref: "main",
               inputs: {
                 bot_image: "ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}",
+                deploy_url: "${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.issue.number }}",
               },
             });
             core.notice("Deploy test dispatched on kingdoms-infra.");
