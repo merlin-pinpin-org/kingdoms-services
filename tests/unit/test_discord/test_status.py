@@ -11,7 +11,7 @@ from kingdoms.core.services.mod_definition import (
     RoleDef,
 )
 from kingdoms.core.services.mod_registry import ModRegistry
-from kingdoms.core.services.status import StatusService
+from kingdoms.core.services.status import StatusService, format_version
 from kingdoms.discord.status import (
     _human_uptime,
     build_status_embed,
@@ -30,7 +30,7 @@ class _FakeGuildAdmin(MockMember):
         self.timed_out_until = None
 
 
-def make_status(deploy_url: str = "") -> StatusService:
+def make_status(deploy_url: str = "", deploy_label: str = "") -> StatusService:
     registry = ModRegistry(
         {
             "example": ModDefinition(
@@ -44,6 +44,7 @@ def make_status(deploy_url: str = "") -> StatusService:
         registry=registry,
         bot_admins=type("A", (), {"user_ids": ("42",)})(),
         deploy_url=deploy_url,
+        deploy_label=deploy_label,
     )
 
 
@@ -69,7 +70,7 @@ def test_status_embed_contains_core_sections() -> None:
     assert "Uptime" in fields
     assert "Latency" in fields
     assert "Deploy" in fields
-    assert "<@42>" in fields["Admins"]
+    assert "- <@42>" in fields["Admins"]
     assert "*(none configured)*" in fields["Games"]
     assert "example" in fields["Enabled mods"]
     assert "`example:announce`" in fields["Enabled mods"]
@@ -79,12 +80,13 @@ def test_status_embed_contains_core_sections() -> None:
 def test_status_embed_admins_section_mentions_bot_and_guild_admins() -> None:
     embed = build_status_embed(make_status(), guild=make_guild(admin_id=77))
     admins = next(f for f in embed.fields if f.name == "Admins")
-    assert admins.value.startswith("Bot admins: <@42>")
-    assert "Guild admins (Test Guild): <@77>" in admins.value
+    assert "- <@42>" in admins.value
+    assert "- <@77>" in admins.value
+    assert "Test Guild" not in admins.value
 
 
 def test_format_admins_without_guild_lists_bot_admins_only() -> None:
-    assert format_admins(("42",), None) == "Bot admins: <@42>"
+    assert format_admins(("42",), None) == "- <@42>"
 
 
 def test_format_admins_flags_missing_bot_admins() -> None:
@@ -105,6 +107,28 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     embed = build_status_embed(make_status(deploy_url=url), guild=None)
     fields = {f.name: f.value for f in embed.fields}
     assert fields["Deploy"] == url
+
+
+def test_format_version_renders_labeled_link() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1"
+    assert format_version("pr-12-20260923-abcdef0", url) == f"[pr-12-20260923-abcdef0]({url})"
+
+
+def test_format_version_bare_label_without_url() -> None:
+    assert format_version("v0.1.0", "") == "v0.1.0"
+
+
+def test_format_version_falls_back_to_package_version() -> None:
+    from kingdoms import __version__
+
+    assert format_version("", "") == __version__
+
+
+def test_status_embed_version_field_is_labeled_link() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1"
+    embed = build_status_embed(make_status(deploy_url=url, deploy_label="pr-12-20260923-abcdef0"), guild=None)
+    fields = {f.name: f.value for f in embed.fields}
+    assert fields["Version"] == "[pr-12-20260923-abcdef0](" + url + ")"
 
 
 def test_status_embed_deploy_defaults_to_na() -> None:

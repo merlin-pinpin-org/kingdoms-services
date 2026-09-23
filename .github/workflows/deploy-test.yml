@@ -1,7 +1,7 @@
 # /deploy-test — deploy a pull request to the test environment.
 # A PR comment containing exactly "/deploy-test" builds the bot image from
-# the PR head, pushes it to GHCR (tag pr-<number>-sha-<sha>), and pins it in
-# the kingdoms-infra deploy/test state branch (ADR-0018). The state push
+# the PR head, pushes it to GHCR (tag pr-<id>-<timestamp>-<sha>), and pins it
+# in the kingdoms-infra deploy/test state branch (ADR-0018). The state push
 # triggers the Deploy test workflow on kingdoms-infra, which reads the
 # image from Git. The bot runs on the test VPS with the PR code until the
 # next state commit.
@@ -54,6 +54,10 @@ jobs:
             core.setOutput("sha", pr.head.sha);
             core.setOutput("ref", pr.head.ref);
 
+      - name: Stamp the image tag timestamp
+        id: stamp
+        run: echo "timestamp=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
       - name: Authorize the requestor
         id: authorize
         uses: actions/github-script@v7
@@ -83,15 +87,17 @@ jobs:
             }
 
       - name: Acknowledge on the PR
+        id: acknowledge
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            const { data: comment } = await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: `🚀 Deploying this PR to **test** — building \`${{ steps.pr.outputs.sha }}\`… (run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
             });
+            core.setOutput("permalink", comment.html_url);
 
       - name: Checkout the PR head
         uses: actions/checkout@v4
@@ -113,7 +119,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.issue.number }}-sha-${{ steps.pr.outputs.sha }}
+          tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}
           # No cache export: from an issue_comment event the GHA cache
           # scope is the comment, not the PR branch, and cache
           # reservation fails. Pull-side caching only.
@@ -140,8 +146,9 @@ jobs:
             const branch = "deploy/test";
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-sha-${sha}`;
-            const url = `https://github.com/merlin-pinpin-org/kingdoms-services/pull/${pr}`;
+            const label = "pr-" + pr + "-${{ steps.stamp.outputs.timestamp }}-" + sha.slice(0, 7);
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${label}`;
+            const url = "${{ steps.acknowledge.outputs.permalink }}";
             let base;
             try {
               base = (await github.rest.repos.getContent({ owner, repo, path, ref: branch })).data;
@@ -154,6 +161,7 @@ jobs:
               "# Written by the deploy pipelines only (kingdoms-deployer GitHub App);",
               "# a push to this branch deploys this exact image.",
               `image: ${image}`,
+              `version_label: ${label}`,
               `deploy_url: ${url}`,
               `deployed_by: ${{ github.event.comment.user.login }} (/deploy-test)`,
               `deployed_at: "${new Date().toISOString()}"`,
@@ -161,7 +169,7 @@ jobs:
               ""].join("\n");
             const commit = await github.rest.repos.createOrUpdateFileContents({
               owner, repo, path, branch,
-              message: `deploy(test): pin pr-${pr}-sha-${sha.slice(0, 7)} (${url})`,
+              message: `deploy(test): pin ${label} (${url})`,
               content: Buffer.from(state).toString("base64"),
               sha: base.sha,
             });
@@ -177,7 +185,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `✅ Image \`${{ steps.pr.outputs.sha }}\` built and pushed, and pinned in the [deploy/test state branch](${{ steps.pin-state.outputs.state_url }}) — kingdoms-infra is deploying it; the bot on the test VPS now runs this PR.`,
+              body: `✅ Image \`pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}\` built and pushed, and pinned in the [deploy/test state branch](${{ steps.pin-state.outputs.state_url }}) — kingdoms-infra is deploying it; the bot on the test VPS now runs this PR.`,
             });
 
       - name: Report failure on the PR
