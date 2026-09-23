@@ -16,7 +16,7 @@ from kingdoms.discord.status import (
     _human_uptime,
     build_status_embed,
     format_admins,
-    format_deploy_url,
+    format_deploy,
     format_latency,
 )
 from tests.mocks.discord_mock import MockGuild, MockMember, MockRole
@@ -30,7 +30,7 @@ class _FakeGuildAdmin(MockMember):
         self.timed_out_until = None
 
 
-def make_status(deploy_url: str = "", deploy_label: str = "") -> StatusService:
+def make_status(deploy_url: str = "", deploy_label: str = "", deploy_run_url: str = "") -> StatusService:
     registry = ModRegistry(
         {
             "example": ModDefinition(
@@ -45,6 +45,7 @@ def make_status(deploy_url: str = "", deploy_label: str = "") -> StatusService:
         bot_admins=type("A", (), {"user_ids": ("42",)})(),
         deploy_url=deploy_url,
         deploy_label=deploy_label,
+        deploy_run_url=deploy_run_url,
     )
 
 
@@ -93,24 +94,30 @@ def test_format_admins_flags_missing_bot_admins() -> None:
     assert "BOT_ADMINS" in format_admins((), None)
 
 
-def test_format_deploy_url_passes_url_through() -> None:
-    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
-    assert format_deploy_url(url) == url
+def test_format_deploy_prefers_the_deploy_run_link() -> None:
+    run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
+    artifact_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
+    assert format_deploy(run_url, artifact_url) == f"[deploy run]({run_url})"
 
 
-def test_format_deploy_url_marks_unknown_values_na() -> None:
-    assert format_deploy_url("") == "n/a"
+def test_format_deploy_falls_back_to_the_artifact_link() -> None:
+    artifact_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
+    assert format_deploy("", artifact_url) == f"[deploy]({artifact_url})"
+
+
+def test_format_deploy_marks_unknown_values_na() -> None:
+    assert format_deploy("", "") == "n/a"
 
 
 def test_status_embed_deploy_field_reads_status_service() -> None:
-    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12"
-    embed = build_status_embed(make_status(deploy_url=url), guild=None)
+    run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
+    embed = build_status_embed(make_status(deploy_run_url=run_url), guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Deploy"] == url
+    assert fields["Deploy"] == f"[deploy run]({run_url})"
 
 
 def test_format_version_renders_labeled_link() -> None:
-    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1"
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
     assert format_version("pr-12-20260923-abcdef0", url) == f"[pr-12-20260923-abcdef0]({url})"
 
 
@@ -125,7 +132,7 @@ def test_format_version_falls_back_to_package_version() -> None:
 
 
 def test_status_embed_version_field_is_labeled_link() -> None:
-    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1"
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
     embed = build_status_embed(make_status(deploy_url=url, deploy_label="pr-12-20260923-abcdef0"), guild=None)
     fields = {f.name: f.value for f in embed.fields}
     assert fields["Version"] == "[pr-12-20260923-abcdef0](" + url + ")"

@@ -57,6 +57,7 @@ class StatusService:
         clock: Callable[[], float] = time.monotonic,
         deploy_url: str = "",
         deploy_label: str = "",
+        deploy_run_url: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -65,6 +66,7 @@ class StatusService:
         self._started_at = self._clock()
         self._deploy_url = deploy_url.strip()
         self._deploy_label = deploy_label.strip()
+        self._deploy_run_url = deploy_run_url.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -75,6 +77,11 @@ class StatusService:
     def deploy_label(self) -> str:
         """Version label of the deployed artifact (KINGDOMS_DEPLOY_LABEL)."""
         return self._deploy_label
+
+    @property
+    def deploy_run_url(self) -> str:
+        """URL of the deploy job (KINGDOMS_DEPLOY_RUN_URL; empty when unknown)."""
+        return self._deploy_run_url
 
     @property
     def bot_admins(self) -> tuple[str, ...]:
@@ -108,6 +115,7 @@ class StatusService:
             "bot_admins": self._bot_admins.user_ids,
             "deploy_url": self._deploy_url,
             "deploy_label": self._deploy_label,
+            "deploy_run_url": self._deploy_run_url,
             "enabled_mods": self.enabled_mods(),
         }
 

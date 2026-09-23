@@ -86,18 +86,63 @@ jobs:
               core.notice(`${commenter} has ${perm.permission}: allowed.`);
             }
 
-      - name: Acknowledge on the PR
+      - name: Open the deployment tracking comment
         id: acknowledge
         uses: actions/github-script@v7
         with:
           script: |
+            const body = [
+              "<!-- kingdoms-deploy-tracking -->",
+              "## 🚀 Deployment — test",
+              "",
+              `**Status:** 🟡 building`,
+              "",
+              "| | |",
+              "| --- | --- |",
+              `| Environment | \`test\` |`,
+              `| Commit | [\`${{ steps.pr.outputs.sha }}\`](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/tree/${{ steps.pr.outputs.sha }}) |`,
+              `| Image | (building…) |`,
+              `| Pipeline | [run \`#${{ github.run_id }}\`](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) |`,
+              `| Requested by | @${context.payload.comment.user.login} |`,
+              "",
+              `_Updated automatically as the deployment progresses._`,
+            ].join("\n");
             const { data: comment } = await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `🚀 Deploying this PR to **test** — building \`${{ steps.pr.outputs.sha }}\`… (run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              body,
             });
+            core.setOutput("id", comment.id);
             core.setOutput("permalink", comment.html_url);
+
+      - name: Mark the previous deployment as superseded
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // A new /deploy-test supersedes any previous deployment comment
+            // of this PR: mark it as rolled back (replaced), keep it for
+            // the audit trail.
+            const marker = "<!-- kingdoms-deploy-tracking -->";
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            for (const c of comments) {
+              if (c.id === ${{ steps.acknowledge.outputs.id }}) continue;
+              if (c.body.includes(marker)) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id,
+                  body: c.body.replace("**Status:** 🟡 building", "**Status:** 🔵 deploying")
+                                    .replace("**Status:** 🟢 deployed", "**Status:** ⚪ superseded")
+                                    .replace("**Status:** 🔵 deploying", "**Status:** ⚪ superseded"),
+                });
+              }
+            }
 
       - name: Checkout the PR head
         uses: actions/checkout@v4
@@ -148,7 +193,10 @@ jobs:
             const sha = "${{ steps.pr.outputs.sha }}";
             const label = "pr-" + pr + "-${{ steps.stamp.outputs.timestamp }}-" + sha.slice(0, 7);
             const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${label}`;
-            const url = "${{ steps.acknowledge.outputs.permalink }}";
+            // /status Version field: labeled link to the services source
+            // tree at the deployed commit (the tracking comment keeps the
+            // human trace: requester, pipeline, image, deploy run).
+            const url = `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`;
             let base;
             try {
               base = (await github.rest.repos.getContent({ owner, repo, path, ref: branch })).data;
@@ -165,7 +213,7 @@ jobs:
               `deploy_url: ${url}`,
               `deployed_by: ${{ github.event.comment.user.login }} (/deploy-test)`,
               `deployed_at: "${new Date().toISOString()}"`,
-              `source: ${url} (commit ${sha.slice(0, 7)})`,
+              `source: ${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
               ""].join("\n");
             const commit = await github.rest.repos.createOrUpdateFileContents({
               owner, repo, path, branch,
@@ -176,26 +224,97 @@ jobs:
             core.notice(`state pinned on ${branch}: ${image}`);
             core.setOutput("state_url", commit.data.commit.html_url);
 
-      - name: Report success on the PR
+      - name: Update the tracking comment — deploying
         if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            const { data: comment } = await github.rest.issues.getComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `✅ Image \`pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}\` built and pushed, and pinned in the [deploy/test state branch](${{ steps.pin-state.outputs.state_url }}) — kingdoms-infra is deploying it; the bot on the test VPS now runs this PR.`,
+              comment_id: ${{ steps.acknowledge.outputs.id }},
+            });
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}`;
+            const shortImage = image.split(":")[1];
+            const body = comment.body
+              .replace("**Status:** 🟡 building", "**Status:** 🔵 deploying")
+              .replace("| Image | (building…) |", `| Image | [\`${shortImage}\`](https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services) |`);
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id,
+              body,
             });
 
-      - name: Report failure on the PR
-        if: failure()
+      - name: Watch the kingdoms-infra deploy run
+        id: watch-infra
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            // The state push just triggered the Deploy test workflow on
+            // kingdoms-infra; watch it with the App token (read) and report
+            // its URL and outcome — the next step edits the tracking
+            // comment with the native token.
+            const infraOwner = "merlin-pinpin-org", infraRepo = "kingdoms-infra";
+            const stateCommit = "${{ steps.pin-state.outputs.state_url }}".split("/").pop();
+            const deadline = Date.now() + 15 * 60 * 1000;
+            let run = null;
+            while (Date.now() < deadline) {
+              const { data: { workflow_runs: runs } } = await github.rest.actions.listWorkflowRuns({
+                owner: infraOwner, repo: infraRepo, workflow_id: "deploy-test.yml", branch: "deploy/test", per_page: 5,
+              });
+              run = runs.find((r) => r.head_sha === stateCommit) || runs[0];
+              core.info(`infra deploy run: ${run ? run.html_url + " (" + run.status + ")" : "not started yet"}`);
+              if (run && run.status === "completed") break;
+              await new Promise((r) => setTimeout(r, 20000));
+            }
+            const runUrl = run ? run.html_url : `${context.serverUrl}/${infraOwner}/${infraRepo}/actions`;
+            const ok = run && run.conclusion === "success";
+            core.setOutput("run_url", runUrl);
+            core.setOutput("ok", ok ? "true" : "false");
+            if (!ok) core.setFailed(`the kingdoms-infra deploy run did not succeed: ${runUrl}`);
+
+      - name: Update the tracking comment — deployed
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            const { data: comment } = await github.rest.issues.getComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `❌ /deploy-test failed — see the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+              comment_id: ${{ steps.acknowledge.outputs.id }},
+            });
+            const ok = "${{ steps.watch-infra.outputs.ok }}" === "true";
+            const body = comment.body.replace(
+              /\*\*Status:\*\* [^\n]*/,
+              `**Status:** ${ok ? "🟢 deployed" : "❌ failed"} — [infra deploy run](${{ steps.watch-infra.outputs.run_url }})`,
+            );
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id,
+              body,
+            });
+
+      - name: Update the tracking comment — failed
+        if: failure() || cancelled()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comment } = await github.rest.issues.getComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: ${{ steps.acknowledge.outputs.id }},
+            });
+            const body = comment.body.replace(
+              /\*\*Status:\*\* [^\n]*/,
+              `**Status:** ❌ failed — see the [pipeline run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            );
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id,
+              body,
             });
