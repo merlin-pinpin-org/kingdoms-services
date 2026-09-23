@@ -90,12 +90,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="StatusService">class <strong>StatusService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_url:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Aggregate&nbsp;the&nbsp;platform&nbsp;status&nbsp;into&nbsp;a&nbsp;plain,&nbsp;inspectable&nbsp;report.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '', deploy_label: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '', deploy_label: 'str' = '', deploy_run_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="StatusService-enabled_mods"><strong>enabled_mods</strong></a>(self) -&gt; 'dict[str, dict[str, tuple[str, ...]]]'</dt><dd><span class="code">Return&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channel&nbsp;categories&nbsp;and&nbsp;roles.</span></dd></dl>
 
@@ -112,6 +112,9 @@ Readonly properties defined here:<br>
 </dl>
 <dl><dt><strong>deploy_label</strong></dt>
 <dd><span class="code">Version&nbsp;label&nbsp;of&nbsp;the&nbsp;deployed&nbsp;artifact&nbsp;(KINGDOMS_DEPLOY_LABEL).</span></dd>
+</dl>
+<dl><dt><strong>deploy_run_url</strong></dt>
+<dd><span class="code">URL&nbsp;of&nbsp;the&nbsp;deploy&nbsp;job&nbsp;(KINGDOMS_DEPLOY_RUN_URL;&nbsp;empty&nbsp;when&nbsp;unknown).</span></dd>
 </dl>
 <dl><dt><strong>deploy_url</strong></dt>
 <dd><span class="code">Link&nbsp;to&nbsp;the&nbsp;deployed&nbsp;artifact&nbsp;(KINGDOMS_DEPLOY_URL;&nbsp;empty&nbsp;when&nbsp;unknown).</span></dd>

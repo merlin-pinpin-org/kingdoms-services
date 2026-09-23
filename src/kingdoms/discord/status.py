@@ -1,10 +1,12 @@
 """The /status command: bot and per-guild operational report.
 
 Generic bot capability (not a mod): it reports uptime, the deployed version
-as a labeled GitHub link (KINGDOMS_DEPLOY_LABEL + KINGDOMS_DEPLOY_URL),
-configured games, enabled mods with their declared channels and roles, and
-one merged Admins section — bot operators (BOT_ADMINS) and the invoking
-guild's admins — as a bullet list of Discord mentions.
+as a labeled GitHub link (KINGDOMS_DEPLOY_LABEL + KINGDOMS_DEPLOY_URL — the
+GitHub release or the services source tree), the deploy job link
+(KINGDOMS_DEPLOY_RUN_URL), configured games, enabled mods with their
+declared channels and roles, and one merged Admins section — bot operators
+(BOT_ADMINS) and the invoking guild's admins — as a bullet list of Discord
+mentions.
 
 Reference: kingdoms-services#35 (bot vs guild admins),
 kingdoms-infra#37 (deploy URL plumbing).
@@ -61,9 +63,17 @@ def format_admins(
     return "\n".join(f"- {entry}" for entry in entries)
 
 
-def format_deploy_url(url: str) -> str:
-    """Render the deployed-artifact link; n/a when the pipeline provided none."""
-    return url if url else "n/a"
+def format_deploy(deploy_run_url: str, deploy_url: str) -> str:
+    """Render the Deploy field.
+
+    The deploy job link (short label) when the pipeline provides it, falling
+    back to the deployed-artifact link; n/a when it provides none.
+    """
+    if deploy_run_url:
+        return f"[deploy run]({deploy_run_url})"
+    if deploy_url:
+        return f"[deploy]({deploy_url})"
+    return "n/a"
 
 
 def status_uptime(report: dict[str, object]) -> float:
@@ -96,7 +106,7 @@ def build_status_embed(
         inline=True,
     )
     embed.add_field(name="Latency", value=format_latency(latency), inline=True)
-    embed.add_field(name="Deploy", value=format_deploy_url(status.deploy_url), inline=True)
+    embed.add_field(name="Deploy", value=format_deploy(status.deploy_run_url, status.deploy_url), inline=True)
 
     embed.add_field(
         name="Admins",
