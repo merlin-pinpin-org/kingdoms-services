@@ -221,3 +221,56 @@ async def test_register_status_command_wires_a_status_command() -> None:
 )
 def test_human_uptime_renders_days_only_past_24h(total: int, expect_days: bool) -> None:
     assert ("d " in _human_uptime(total)) is expect_days
+
+
+class _FakeCommand:
+    """Minimal slash command stand-in (name + description)."""
+
+    def __init__(self, name: str, description: str = "fake") -> None:
+        self.name = name
+        self.description = description
+
+
+class _FakeParent:
+    """Group/cog stand-in owning commands (duck-typed root_parent)."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+class _FakeGroupedCommand(_FakeCommand):
+    """Slash command bound to a group (the tree equivalent of a cog)."""
+
+    def __init__(self, name: str, parent: _FakeParent) -> None:
+        super().__init__(name)
+        self.root_parent = parent
+
+
+class _FakeContextMenu:
+    """Context menu stand-in: not a slash command, must be skipped."""
+
+    name = "Message context action"
+
+
+def test_format_commands_groups_by_owner_and_lists_core_last() -> None:
+    from kingdoms.discord.status import format_commands
+
+    register = _FakeGroupedCommand("register", _FakeParent("example"))
+    whois = _FakeGroupedCommand("whois", _FakeParent("example"))
+    result = format_commands([register, whois, _FakeCommand("status")])
+    lines = result.split("\n")
+    assert lines[0] == "**example**: /register, /whois"
+    assert lines[1] == "**core**: /status"
+
+
+def test_format_commands_renders_empty_tree() -> None:
+    from kingdoms.discord.status import format_commands
+
+    assert format_commands([]) == "*(none)*"
+
+
+def test_format_commands_skips_context_menus() -> None:
+    from kingdoms.discord.status import format_commands
+
+    result = format_commands([_FakeCommand("status"), _FakeContextMenu()])
+    assert result == "**core**: /status"

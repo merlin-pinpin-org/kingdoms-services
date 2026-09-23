@@ -14,6 +14,8 @@ kingdoms-infra#37 (deploy URL plumbing).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import discord
 from discord import app_commands
 
@@ -155,9 +157,34 @@ def build_status_embed(
     return embed
 
 
+def format_commands(commands: Iterable[object]) -> str:
+    """Render the synced Commands section.
+
+    Slash commands grouped by their owning group (the closest equivalent of
+    cogs on a bare command tree), then the root-level commands under a
+    `core` label. Context menus are not slash commands and are skipped.
+    """
+    groups: dict[str, list[str]] = {}
+    for cmd in commands:
+        if not isinstance(getattr(cmd, "description", None), str):
+            continue
+        name = getattr(cmd, "name", "")
+        parent = getattr(cmd, "root_parent", None)
+        owner = getattr(parent, "name", None) or "core"
+        groups.setdefault(owner, []).append(name)
+    if not groups:
+        return "*(none)*"
+    lines = []
+    for owner in sorted(groups, key=lambda k: (k == "core", k)):
+        names = sorted(groups[owner])
+        lines.append(f"**{owner}**: " + (", ".join(f"/{n}" for n in names) or "—"))
+    return "\n".join(lines)
+
+
 def register_status_command(
     tree: app_commands.CommandTree[discord.Client],
     status: StatusService,
+    sync_target: str = "global",
 ) -> None:
     """Register the /status slash command on the command tree."""
 
@@ -168,4 +195,10 @@ def register_status_command(
         if latency != latency or latency == float("inf"):
             latency = None
         embed = build_status_embed(status, interaction.guild, latency)
+        sync_scope = sync_target if interaction.guild is not None else "none (DM)"
+        embed.add_field(
+            name=f"Commands (sync: {sync_scope})",
+            value=format_commands(tree.get_commands()),
+            inline=False,
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
