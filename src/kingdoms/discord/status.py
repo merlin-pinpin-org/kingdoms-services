@@ -1,9 +1,10 @@
 """The /status command: bot and per-guild operational report.
 
-Generic bot capability (not a mod): it reports uptime, version, configured
-games, enabled mods with their declared channels and roles, the deploy link
-(KINGDOMS_DEPLOY_URL), and one merged Admins section — bot operators
-(BOT_ADMINS) and the invoking guild's admins, all as Discord mentions.
+Generic bot capability (not a mod): it reports uptime, the deployed version
+as a labeled GitHub link (KINGDOMS_DEPLOY_LABEL + KINGDOMS_DEPLOY_URL),
+configured games, enabled mods with their declared channels and roles, and
+one merged Admins section — bot operators (BOT_ADMINS) and the invoking
+guild's admins — as a bullet list of Discord mentions.
 
 Reference: kingdoms-services#35 (bot vs guild admins),
 kingdoms-infra#37 (deploy URL plumbing).
@@ -14,7 +15,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 
-from kingdoms.core.services.status import StatusService
+from kingdoms.core.services.status import StatusService, format_version
 
 
 def _human_uptime(seconds: float) -> str:
@@ -52,28 +53,17 @@ def format_admins(
     guild: discord.Guild | None,
 ) -> str:
     """Render one merged Admins section: bot operators + the invoking guild's admins."""
-    lines: list[str] = []
-    if bot_admins:
-        lines.append("Bot admins: " + ", ".join(_mention(uid) for uid in bot_admins))
-    else:
-        lines.append("Bot admins: *(none configured — set BOT_ADMINS)*")
+    entries: list[str] = [_mention(uid) for uid in bot_admins]
     if guild is not None:
-        guild_admins = _guild_admin_ids(guild)
-        if guild_admins:
-            lines.append(f"Guild admins ({guild.name}): " + ", ".join(_mention(uid) for uid in guild_admins))
-        else:
-            lines.append(f"Guild admins ({guild.name}): *(none found)*")
-    return "\n".join(lines)
+        entries.extend(_mention(uid) for uid in _guild_admin_ids(guild))
+    if not entries:
+        return "*(none — set BOT_ADMINS or grant guild-administrator permissions)*"
+    return "\n".join(f"- {entry}" for entry in entries)
 
 
 def format_deploy_url(url: str) -> str:
     """Render the deployed-artifact link; n/a when the pipeline provided none."""
     return url if url else "n/a"
-
-
-def status_version(report: dict[str, object]) -> str:
-    """Read the version field of a status report."""
-    return str(report["version"])
 
 
 def status_uptime(report: dict[str, object]) -> float:
@@ -99,7 +89,7 @@ def build_status_embed(
         title="Kingdoms — Status",
         color=0x5865F2,
     )
-    embed.add_field(name="Version", value=status_version(report), inline=True)
+    embed.add_field(name="Version", value=format_version(status.deploy_label, status.deploy_url), inline=True)
     embed.add_field(
         name="Uptime",
         value=_human_uptime(status_uptime(report)),

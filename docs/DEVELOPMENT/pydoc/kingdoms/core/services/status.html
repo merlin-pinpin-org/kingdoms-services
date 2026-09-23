@@ -13,8 +13,8 @@
 &nbsp;<br>
 Generic&nbsp;core&nbsp;capability:&nbsp;it&nbsp;aggregates&nbsp;what&nbsp;the&nbsp;platform&nbsp;and&nbsp;the&nbsp;mod<br>
 registry&nbsp;know&nbsp;—&nbsp;uptime,&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channels/roles,<br>
-configured&nbsp;games,&nbsp;bot&nbsp;admins,&nbsp;the&nbsp;deployed-artifact&nbsp;link&nbsp;—&nbsp;without&nbsp;any<br>
-mod-specific&nbsp;logic.<br>
+configured&nbsp;games,&nbsp;bot&nbsp;admins,&nbsp;the&nbsp;deployed-artifact&nbsp;link&nbsp;and&nbsp;version&nbsp;label<br>
+—&nbsp;without&nbsp;any&nbsp;mod-specific&nbsp;logic.<br>
 &nbsp;<br>
 Reference:&nbsp;kingdoms-services#35&nbsp;(bot&nbsp;vs&nbsp;guild&nbsp;admins),<br>
 kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
@@ -90,12 +90,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="StatusService">class <strong>StatusService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Aggregate&nbsp;the&nbsp;platform&nbsp;status&nbsp;into&nbsp;a&nbsp;plain,&nbsp;inspectable&nbsp;report.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '', deploy_label: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="StatusService-enabled_mods"><strong>enabled_mods</strong></a>(self) -&gt; 'dict[str, dict[str, tuple[str, ...]]]'</dt><dd><span class="code">Return&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channel&nbsp;categories&nbsp;and&nbsp;roles.</span></dd></dl>
 
@@ -109,6 +109,9 @@ Aggregate&nbsp;the&nbsp;platform&nbsp;status&nbsp;into&nbsp;a&nbsp;plain,&nbsp;i
 Readonly properties defined here:<br>
 <dl><dt><strong>bot_admins</strong></dt>
 <dd><span class="code">Bot&nbsp;operator&nbsp;user&nbsp;IDs&nbsp;(BOT_ADMINS).</span></dd>
+</dl>
+<dl><dt><strong>deploy_label</strong></dt>
+<dd><span class="code">Version&nbsp;label&nbsp;of&nbsp;the&nbsp;deployed&nbsp;artifact&nbsp;(KINGDOMS_DEPLOY_LABEL).</span></dd>
 </dl>
 <dl><dt><strong>deploy_url</strong></dt>
 <dd><span class="code">Link&nbsp;to&nbsp;the&nbsp;deployed&nbsp;artifact&nbsp;(KINGDOMS_DEPLOY_URL;&nbsp;empty&nbsp;when&nbsp;unknown).</span></dd>
@@ -127,6 +130,11 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-parse_bot_admins"><strong>parse_bot_admins</strong></a>(raw: 'str | None') -&gt; 'BotAdmins'</dt><dd><span class="code">Parse&nbsp;the&nbsp;BOT_ADMINS&nbsp;environment&nbsp;value;&nbsp;empty&nbsp;means&nbsp;no&nbsp;operator.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-format_version"><strong>format_version</strong></a>(label: 'str', url: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Version&nbsp;field.<br>
+&nbsp;<br>
+A&nbsp;labeled&nbsp;link&nbsp;when&nbsp;the&nbsp;pipeline&nbsp;provides&nbsp;both,&nbsp;the&nbsp;bare&nbsp;label&nbsp;when<br>
+there&nbsp;is&nbsp;no&nbsp;URL,&nbsp;and&nbsp;the&nbsp;package&nbsp;version&nbsp;when&nbsp;the&nbsp;pipeline&nbsp;provides&nbsp;no<br>
+label&nbsp;(local&nbsp;runs,&nbsp;unmanaged&nbsp;deploys).</span></dd></dl>
+ <dl><dt><a name="-parse_bot_admins"><strong>parse_bot_admins</strong></a>(raw: 'str | None') -&gt; 'BotAdmins'</dt><dd><span class="code">Parse&nbsp;the&nbsp;BOT_ADMINS&nbsp;environment&nbsp;value;&nbsp;empty&nbsp;means&nbsp;no&nbsp;operator.</span></dd></dl>
 </td></tr></table>
 </body></html>

@@ -61,6 +61,23 @@ def test_status_service_strips_deploy_url_whitespace() -> None:
     assert service.deploy_url == ""
 
 
+def test_status_service_exposes_deploy_label() -> None:
+    service = StatusService(
+        registry=make_registry(),
+        bot_admins=parse_bot_admins("42"),
+        deploy_label="pr-12-20260923-abcdef0",
+    )
+    assert service.deploy_label == "pr-12-20260923-abcdef0"
+    assert service.report()["deploy_label"] == "pr-12-20260923-abcdef0"
+    assert service.report()["version"] == "pr-12-20260923-abcdef0"
+
+
+def test_status_service_version_falls_back_to_package_version() -> None:
+    service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins("42"))
+    assert service.report()["version"]
+    assert service.report()["deploy_label"] == ""
+
+
 def test_status_service_disabled_mods_excluded() -> None:
     service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins("42"))
     assert "off" not in service.enabled_mods()
