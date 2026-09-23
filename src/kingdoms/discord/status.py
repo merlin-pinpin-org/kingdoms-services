@@ -1,10 +1,12 @@
 """The /status command: bot and per-guild operational report.
 
 Generic bot capability (not a mod): it reports uptime, version, configured
-games, enabled mods with their declared channels and roles, bot admins
-(BOT_ADMINS) and the invoking guild's admins.
+games, enabled mods with their declared channels and roles, the deploy link
+(KINGDOMS_DEPLOY_URL), and one merged Admins section — bot operators
+(BOT_ADMINS) and the invoking guild's admins, all as Discord mentions.
 
-Reference: kingdoms-services#35 (bot vs guild admins).
+Reference: kingdoms-services#35 (bot vs guild admins),
+kingdoms-infra#37 (deploy URL plumbing).
 """
 
 from __future__ import annotations
@@ -31,13 +33,42 @@ def _human_uptime(seconds: float) -> str:
     return " ".join(parts)
 
 
-def _guild_admin_names(guild: discord.Guild) -> list[str]:
+def _guild_admin_ids(guild: discord.Guild) -> list[int]:
     """Guild admins: members with administrator/manage-guild permission."""
-    admins: list[str] = []
+    admins: list[int] = []
     for member in guild.members:
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
-            admins.append(f"{member.display_name} ({member.id})")
+            admins.append(member.id)
     return sorted(admins)
+
+
+def _mention(user_id: str | int) -> str:
+    """Render a Discord user mention (clickable profile link)."""
+    return f"<@{user_id}>"
+
+
+def format_admins(
+    bot_admins: tuple[str, ...],
+    guild: discord.Guild | None,
+) -> str:
+    """Render one merged Admins section: bot operators + the invoking guild's admins."""
+    lines: list[str] = []
+    if bot_admins:
+        lines.append("Bot admins: " + ", ".join(_mention(uid) for uid in bot_admins))
+    else:
+        lines.append("Bot admins: *(none configured — set BOT_ADMINS)*")
+    if guild is not None:
+        guild_admins = _guild_admin_ids(guild)
+        if guild_admins:
+            lines.append(f"Guild admins ({guild.name}): " + ", ".join(_mention(uid) for uid in guild_admins))
+        else:
+            lines.append(f"Guild admins ({guild.name}): *(none found)*")
+    return "\n".join(lines)
+
+
+def format_deploy_url(url: str) -> str:
+    """Render the deployed-artifact link; n/a when the pipeline provided none."""
+    return url if url else "n/a"
 
 
 def status_version(report: dict[str, object]) -> str:
@@ -75,11 +106,11 @@ def build_status_embed(
         inline=True,
     )
     embed.add_field(name="Latency", value=format_latency(latency), inline=True)
+    embed.add_field(name="Deploy", value=format_deploy_url(status.deploy_url), inline=True)
 
-    bot_admins = status.bot_admins
     embed.add_field(
-        name="Bot admins",
-        value=", ".join(bot_admins) if bot_admins else "*(none configured — set BOT_ADMINS)*",
+        name="Admins",
+        value=format_admins(status.bot_admins, guild),
         inline=False,
     )
 
@@ -100,14 +131,6 @@ def build_status_embed(
         embed.add_field(name="Enabled mods", value="\n".join(lines), inline=False)
     else:
         embed.add_field(name="Enabled mods", value="*(none enabled)*", inline=False)
-
-    if guild is not None:
-        admins = _guild_admin_names(guild)
-        embed.add_field(
-            name=f"Guild admins — {guild.name}",
-            value="\n".join(admins) if admins else "*(none found)*",
-            inline=False,
-        )
 
     return embed
 

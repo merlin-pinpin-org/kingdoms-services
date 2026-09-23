@@ -2,9 +2,11 @@
 
 Generic core capability: it aggregates what the platform and the mod
 registry know — uptime, enabled mods with their declared channels/roles,
-configured games, bot admins — without any mod-specific logic.
+configured games, bot admins, the deployed-artifact link — without any
+mod-specific logic.
 
-Reference: kingdoms-services#35 (bot vs guild admins).
+Reference: kingdoms-services#35 (bot vs guild admins),
+kingdoms-infra#37 (deploy URL plumbing).
 """
 
 from __future__ import annotations
@@ -39,12 +41,19 @@ class StatusService:
         bot_admins: BotAdmins,
         games: tuple[str, ...] = (),
         clock: Callable[[], float] = time.monotonic,
+        deploy_url: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
         self._games = tuple(games)
         self._clock = clock
         self._started_at = self._clock()
+        self._deploy_url = deploy_url.strip()
+
+    @property
+    def deploy_url(self) -> str:
+        """Link to the deployed artifact (KINGDOMS_DEPLOY_URL; empty when unknown)."""
+        return self._deploy_url
 
     @property
     def bot_admins(self) -> tuple[str, ...]:
@@ -76,6 +85,7 @@ class StatusService:
             "uptime_seconds": round(self.uptime_seconds(), 1),
             "games": self._games,
             "bot_admins": self._bot_admins.user_ids,
+            "deploy_url": self._deploy_url,
             "enabled_mods": self.enabled_mods(),
         }
 
