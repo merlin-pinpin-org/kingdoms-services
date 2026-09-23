@@ -11,10 +11,11 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/status.py">SOURCE_ROOT/discord/status.py</a></td></tr></table>
     <p><span class="code">The&nbsp;/status&nbsp;command:&nbsp;bot&nbsp;and&nbsp;per-guild&nbsp;operational&nbsp;report.<br>
 &nbsp;<br>
-Generic&nbsp;bot&nbsp;capability&nbsp;(not&nbsp;a&nbsp;mod):&nbsp;it&nbsp;reports&nbsp;uptime,&nbsp;version,&nbsp;configured<br>
-games,&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channels&nbsp;and&nbsp;roles,&nbsp;the&nbsp;deploy&nbsp;link<br>
-(KINGDOMS_DEPLOY_URL),&nbsp;and&nbsp;one&nbsp;merged&nbsp;Admins&nbsp;section&nbsp;—&nbsp;bot&nbsp;operators<br>
-(BOT_ADMINS)&nbsp;and&nbsp;the&nbsp;invoking&nbsp;guild's&nbsp;admins,&nbsp;all&nbsp;as&nbsp;Discord&nbsp;mentions.<br>
+Generic&nbsp;bot&nbsp;capability&nbsp;(not&nbsp;a&nbsp;mod):&nbsp;it&nbsp;reports&nbsp;uptime,&nbsp;the&nbsp;deployed&nbsp;version<br>
+as&nbsp;a&nbsp;labeled&nbsp;GitHub&nbsp;link&nbsp;(KINGDOMS_DEPLOY_LABEL&nbsp;+&nbsp;KINGDOMS_DEPLOY_URL),<br>
+configured&nbsp;games,&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channels&nbsp;and&nbsp;roles,&nbsp;and<br>
+one&nbsp;merged&nbsp;Admins&nbsp;section&nbsp;—&nbsp;bot&nbsp;operators&nbsp;(BOT_ADMINS)&nbsp;and&nbsp;the&nbsp;invoking<br>
+guild's&nbsp;admins&nbsp;—&nbsp;as&nbsp;a&nbsp;bullet&nbsp;list&nbsp;of&nbsp;Discord&nbsp;mentions.<br>
 &nbsp;<br>
 Reference:&nbsp;kingdoms-services#35&nbsp;(bot&nbsp;vs&nbsp;guild&nbsp;admins),<br>
 kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
@@ -38,6 +39,5 @@ kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
  <dl><dt><a name="-format_latency"><strong>format_latency</strong></a>(latency: 'float | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;gateway&nbsp;latency&nbsp;in&nbsp;milliseconds;&nbsp;n/a&nbsp;when&nbsp;unknown.</span></dd></dl>
  <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
- <dl><dt><a name="-status_version"><strong>status_version</strong></a>(report: 'dict[str, object]') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;version&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
 </td></tr></table>
 </body></html>
