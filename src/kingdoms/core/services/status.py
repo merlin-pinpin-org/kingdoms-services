@@ -58,6 +58,8 @@ class StatusService:
         deploy_url: str = "",
         deploy_label: str = "",
         deploy_run_url: str = "",
+        deploy_infra_label: str = "",
+        deploy_infra_url: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -67,6 +69,8 @@ class StatusService:
         self._deploy_url = deploy_url.strip()
         self._deploy_label = deploy_label.strip()
         self._deploy_run_url = deploy_run_url.strip()
+        self._deploy_infra_label = deploy_infra_label.strip()
+        self._deploy_infra_url = deploy_infra_url.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -82,6 +86,16 @@ class StatusService:
     def deploy_run_url(self) -> str:
         """URL of the deploy job (KINGDOMS_DEPLOY_RUN_URL; empty when unknown)."""
         return self._deploy_run_url
+
+    @property
+    def deploy_infra_label(self) -> str:
+        """Version label of the deployed infra state branch (deploy/<env>@<sha>)."""
+        return self._deploy_infra_label
+
+    @property
+    def deploy_infra_url(self) -> str:
+        """Link to the deployed infra state tree (KINGDOMS_DEPLOY_INFRA_URL)."""
+        return self._deploy_infra_url
 
     @property
     def bot_admins(self) -> tuple[str, ...]:
@@ -116,6 +130,8 @@ class StatusService:
             "deploy_url": self._deploy_url,
             "deploy_label": self._deploy_label,
             "deploy_run_url": self._deploy_run_url,
+            "deploy_infra_label": self._deploy_infra_label,
+            "deploy_infra_url": self._deploy_infra_url,
             "enabled_mods": self.enabled_mods(),
         }
 

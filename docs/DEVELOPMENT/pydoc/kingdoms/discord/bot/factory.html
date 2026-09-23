@@ -58,7 +58,7 @@ smoke&nbsp;CI&nbsp;is&nbsp;preserved&nbsp;(kingdoms-services#34).</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="BotConfig">class <strong>BotConfig</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#BotConfig">BotConfig</a>(mongo_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;redis_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;discord_token:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;bot_admins:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;sync_guild_id:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;log_level:&nbsp;'str'&nbsp;=&nbsp;'INFO',&nbsp;config_dir:&nbsp;'Path'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BotConfig">BotConfig</a>(mongo_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;redis_uri:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;discord_token:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;bot_admins:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;sync_guild_id:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;log_level:&nbsp;'str'&nbsp;=&nbsp;'INFO',&nbsp;config_dir:&nbsp;'Path'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Environment-driven&nbsp;bot&nbsp;configuration.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -74,7 +74,7 @@ Environment-driven&nbsp;bot&nbsp;configuration.<br>&nbsp;</span></td></tr>
 
 <dl><dt><a name="BotConfig-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="BotConfig-__init__"><strong>__init__</strong></a>(self, mongo_uri: 'str' = '', redis_uri: 'str' = '', discord_token: 'str' = '', bot_admins: 'str' = '', deploy_url: 'str' = '', deploy_label: 'str' = '', deploy_run_url: 'str' = '', sync_guild_id: 'str' = '', log_level: 'str' = 'INFO', config_dir: 'Path' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="BotConfig-__init__"><strong>__init__</strong></a>(self, mongo_uri: 'str' = '', redis_uri: 'str' = '', discord_token: 'str' = '', bot_admins: 'str' = '', deploy_url: 'str' = '', deploy_label: 'str' = '', deploy_run_url: 'str' = '', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', sync_guild_id: 'str' = '', log_level: 'str' = 'INFO', config_dir: 'Path' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="BotConfig-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -91,6 +91,10 @@ Data descriptors defined here:<br>
 <dl><dt><strong>bot_admins</strong></dt>
 </dl>
 <dl><dt><strong>config_dir</strong></dt>
+</dl>
+<dl><dt><strong>deploy_infra_label</strong></dt>
+</dl>
+<dl><dt><strong>deploy_infra_url</strong></dt>
 </dl>
 <dl><dt><strong>deploy_label</strong></dt>
 </dl>
@@ -110,13 +114,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'bot_admins': 'str', 'config_dir': 'Path', 'deploy_label': 'str', 'deploy_run_url': 'str', 'deploy_url': 'str', 'discord_token': 'str', 'log_level': 'str', 'mongo_uri': 'str', 'redis_uri': 'str', 'sync_guild_id': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'bot_admins': 'str', 'config_dir': 'Path', 'deploy_infra_label': 'str', 'deploy_infra_url': 'str', 'deploy_label': 'str', 'deploy_run_url': 'str', 'deploy_url': 'str', 'discord_token': 'str', 'log_level': 'str', 'mongo_uri': 'str', ...}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'bot_admins': Field(name='bot_admins',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'config_dir': Field(name='config_dir',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_label': Field(name='deploy_label',type='str',default='',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_run_url': Field(name='deploy_run_url',type='str',default='...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_url': Field(name='deploy_url',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'discord_token': Field(name='discord_token',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD), 'log_level': Field(name='log_level',type='str',default='INFO'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mongo_uri': Field(name='mongo_uri',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'redis_uri': Field(name='redis_uri',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sync_guild_id': Field(name='sync_guild_id',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'bot_admins': Field(name='bot_admins',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'config_dir': Field(name='config_dir',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_infra_label': Field(name='deploy_infra_label',type='str',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_infra_url': Field(name='deploy_infra_url',type='str',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_label': Field(name='deploy_label',type='str',default='',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_run_url': Field(name='deploy_run_url',type='str',default='...appingproxy({}),kw_only=False,_field_type=_FIELD), 'deploy_url': Field(name='deploy_url',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'discord_token': Field(name='discord_token',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD), 'log_level': Field(name='log_level',type='str',default='INFO'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mongo_uri': Field(name='mongo_uri',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), ...}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('mongo_uri', 'redis_uri', 'discord_token', 'bot_admins', 'deploy_url', 'deploy_label', 'deploy_run_url', 'sync_guild_id', 'log_level', 'config_dir')</dl>
+<dl><dt><strong>__match_args__</strong> = ('mongo_uri', 'redis_uri', 'discord_token', 'bot_admins', 'deploy_url', 'deploy_label', 'deploy_run_url', 'deploy_infra_label', 'deploy_infra_url', 'sync_guild_id', 'log_level', 'config_dir')</dl>
 
 </td></tr></table> <p>
 <table class="section">

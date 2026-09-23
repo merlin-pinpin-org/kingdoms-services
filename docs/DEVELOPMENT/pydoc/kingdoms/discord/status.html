@@ -37,10 +37,11 @@ kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_status_embed"><strong>build_status_embed</strong></a>(status: 'StatusService', guild: 'discord.Guild | None', latency: 'float | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Build&nbsp;the&nbsp;/status&nbsp;embed&nbsp;from&nbsp;the&nbsp;core&nbsp;report&nbsp;+&nbsp;guild&nbsp;context.</span></dd></dl>
  <dl><dt><a name="-format_admins"><strong>format_admins</strong></a>(bot_admins: 'tuple[str, ...]', guild: 'discord.Guild | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;merged&nbsp;Admins&nbsp;section:&nbsp;bot&nbsp;operators&nbsp;+&nbsp;the&nbsp;invoking&nbsp;guild's&nbsp;admins.</span></dd></dl>
- <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Deploy&nbsp;field.<br>
+ <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Deploy&nbsp;field.<br>
 &nbsp;<br>
-The&nbsp;deploy&nbsp;job&nbsp;link&nbsp;(short&nbsp;label)&nbsp;when&nbsp;the&nbsp;pipeline&nbsp;provides&nbsp;it,&nbsp;falling<br>
-back&nbsp;to&nbsp;the&nbsp;deployed-artifact&nbsp;link;&nbsp;n/a&nbsp;when&nbsp;it&nbsp;provides&nbsp;none.</span></dd></dl>
+Two&nbsp;labeled&nbsp;links&nbsp;when&nbsp;the&nbsp;pipeline&nbsp;provides&nbsp;both:&nbsp;the&nbsp;deployed&nbsp;infra<br>
+state&nbsp;(deploy/&lt;env&gt;@&lt;sha&gt;)&nbsp;and&nbsp;the&nbsp;deploy&nbsp;job.&nbsp;Falls&nbsp;back&nbsp;to&nbsp;whichever<br>
+link&nbsp;is&nbsp;available;&nbsp;n/a&nbsp;when&nbsp;it&nbsp;provides&nbsp;none.</span></dd></dl>
  <dl><dt><a name="-format_latency"><strong>format_latency</strong></a>(latency: 'float | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;gateway&nbsp;latency&nbsp;in&nbsp;milliseconds;&nbsp;n/a&nbsp;when&nbsp;unknown.</span></dd></dl>
  <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>

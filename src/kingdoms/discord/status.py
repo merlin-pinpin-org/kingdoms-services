@@ -63,14 +63,25 @@ def format_admins(
     return "\n".join(f"- {entry}" for entry in entries)
 
 
-def format_deploy(deploy_run_url: str, deploy_url: str) -> str:
+def format_deploy(
+    deploy_run_url: str,
+    deploy_url: str,
+    deploy_infra_label: str = "",
+    deploy_infra_url: str = "",
+) -> str:
     """Render the Deploy field.
 
-    The deploy job link (short label) when the pipeline provides it, falling
-    back to the deployed-artifact link; n/a when it provides none.
+    Two labeled links when the pipeline provides both: the deployed infra
+    state (deploy/<env>@<sha>) and the deploy job. Falls back to whichever
+    link is available; n/a when it provides none.
     """
+    links: list[str] = []
+    if deploy_infra_label and deploy_infra_url:
+        links.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
-        return f"[deploy run]({deploy_run_url})"
+        links.append(f"[deploy run]({deploy_run_url})")
+    if links:
+        return " \u00b7 ".join(links)
     if deploy_url:
         return f"[deploy]({deploy_url})"
     return "n/a"
@@ -106,7 +117,16 @@ def build_status_embed(
         inline=True,
     )
     embed.add_field(name="Latency", value=format_latency(latency), inline=True)
-    embed.add_field(name="Deploy", value=format_deploy(status.deploy_run_url, status.deploy_url), inline=True)
+    embed.add_field(
+        name="Deploy",
+        value=format_deploy(
+            status.deploy_run_url,
+            status.deploy_url,
+            status.deploy_infra_label,
+            status.deploy_infra_url,
+        ),
+        inline=True,
+    )
 
     embed.add_field(
         name="Admins",
