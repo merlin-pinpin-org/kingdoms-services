@@ -30,7 +30,13 @@ class _FakeGuildAdmin(MockMember):
         self.timed_out_until = None
 
 
-def make_status(deploy_url: str = "", deploy_label: str = "", deploy_run_url: str = "") -> StatusService:
+def make_status(
+    deploy_url: str = "",
+    deploy_label: str = "",
+    deploy_run_url: str = "",
+    deploy_infra_label: str = "",
+    deploy_infra_url: str = "",
+) -> StatusService:
     registry = ModRegistry(
         {
             "example": ModDefinition(
@@ -46,6 +52,8 @@ def make_status(deploy_url: str = "", deploy_label: str = "", deploy_run_url: st
         deploy_url=deploy_url,
         deploy_label=deploy_label,
         deploy_run_url=deploy_run_url,
+        deploy_infra_label=deploy_infra_label,
+        deploy_infra_url=deploy_infra_url,
     )
 
 
@@ -100,6 +108,18 @@ def test_format_deploy_prefers_the_deploy_run_link() -> None:
     assert format_deploy(run_url, artifact_url) == f"[deploy run]({run_url})"
 
 
+def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
+    run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
+    infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
+    result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url)
+    assert result == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
+
+
+def test_format_deploy_skips_infra_label_without_url() -> None:
+    run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
+    assert format_deploy(run_url, "", "deploy/test@9691aca", "") == f"[deploy run]({run_url})"
+
+
 def test_format_deploy_falls_back_to_the_artifact_link() -> None:
     artifact_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
     assert format_deploy("", artifact_url) == f"[deploy]({artifact_url})"
@@ -111,9 +131,11 @@ def test_format_deploy_marks_unknown_values_na() -> None:
 
 def test_status_embed_deploy_field_reads_status_service() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
-    embed = build_status_embed(make_status(deploy_run_url=run_url), guild=None)
+    infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
+    status = make_status(deploy_run_url=run_url, deploy_infra_label="deploy/test@9691aca", deploy_infra_url=infra_url)
+    embed = build_status_embed(status, guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Deploy"] == f"[deploy run]({run_url})"
+    assert fields["Deploy"] == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
 
 
 def test_format_version_renders_labeled_link() -> None:
@@ -199,3 +221,56 @@ async def test_register_status_command_wires_a_status_command() -> None:
 )
 def test_human_uptime_renders_days_only_past_24h(total: int, expect_days: bool) -> None:
     assert ("d " in _human_uptime(total)) is expect_days
+
+
+class _FakeCommand:
+    """Minimal slash command stand-in (name + description)."""
+
+    def __init__(self, name: str, description: str = "fake") -> None:
+        self.name = name
+        self.description = description
+
+
+class _FakeParent:
+    """Group/cog stand-in owning commands (duck-typed root_parent)."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+class _FakeGroupedCommand(_FakeCommand):
+    """Slash command bound to a group (the tree equivalent of a cog)."""
+
+    def __init__(self, name: str, parent: _FakeParent) -> None:
+        super().__init__(name)
+        self.root_parent = parent
+
+
+class _FakeContextMenu:
+    """Context menu stand-in: not a slash command, must be skipped."""
+
+    name = "Message context action"
+
+
+def test_format_commands_groups_by_owner_and_lists_core_last() -> None:
+    from kingdoms.discord.status import format_commands
+
+    register = _FakeGroupedCommand("register", _FakeParent("example"))
+    whois = _FakeGroupedCommand("whois", _FakeParent("example"))
+    result = format_commands([register, whois, _FakeCommand("status")])
+    lines = result.split("\n")
+    assert lines[0] == "**example**: /register, /whois"
+    assert lines[1] == "**core**: /status"
+
+
+def test_format_commands_renders_empty_tree() -> None:
+    from kingdoms.discord.status import format_commands
+
+    assert format_commands([]) == "*(none)*"
+
+
+def test_format_commands_skips_context_menus() -> None:
+    from kingdoms.discord.status import format_commands
+
+    result = format_commands([_FakeCommand("status"), _FakeContextMenu()])
+    assert result == "**core**: /status"

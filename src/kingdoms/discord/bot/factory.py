@@ -42,6 +42,8 @@ class BotConfig:
     deploy_url: str = ""
     deploy_label: str = ""
     deploy_run_url: str = ""
+    deploy_infra_label: str = ""
+    deploy_infra_url: str = ""
     sync_guild_id: str = ""
     log_level: str = "INFO"
     config_dir: Path = field(default_factory=lambda: Path("config"))
@@ -58,6 +60,8 @@ class BotConfig:
             deploy_url=env.get("KINGDOMS_DEPLOY_URL", ""),
             deploy_label=env.get("KINGDOMS_DEPLOY_LABEL", ""),
             deploy_run_url=env.get("KINGDOMS_DEPLOY_RUN_URL", ""),
+            deploy_infra_label=env.get("KINGDOMS_DEPLOY_INFRA_LABEL", ""),
+            deploy_infra_url=env.get("KINGDOMS_DEPLOY_INFRA_URL", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
         )
@@ -110,11 +114,15 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_url=resolved.deploy_url,
         deploy_label=resolved.deploy_label,
         deploy_run_url=resolved.deploy_run_url,
+        deploy_infra_label=resolved.deploy_infra_label,
+        deploy_infra_url=resolved.deploy_infra_url,
     )
     bot = KingdomsBot(config=resolved, status=status)
     from kingdoms.discord.status import register_status_command
 
-    register_status_command(bot.tree, status)
+    guild_id = resolved.sync_guild_id.strip()
+    sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
+    register_status_command(bot.tree, status, sync_target=sync_target)
     return bot
 
 

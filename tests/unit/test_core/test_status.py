@@ -82,6 +82,31 @@ def test_status_service_exposes_deploy_run_url() -> None:
     assert service.report()["deploy_run_url"] == "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
 
 
+def test_status_service_exposes_deploy_infra_identity() -> None:
+    service = StatusService(
+        registry=make_registry(),
+        bot_admins=parse_bot_admins("42"),
+        deploy_infra_label="deploy/test@9691aca",
+        deploy_infra_url="https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca",
+    )
+    assert service.deploy_infra_label == "deploy/test@9691aca"
+    assert service.deploy_infra_url == "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
+    report = service.report()
+    assert report["deploy_infra_label"] == "deploy/test@9691aca"
+    assert report["deploy_infra_url"] == "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
+
+
+def test_status_service_strips_deploy_infra_whitespace() -> None:
+    service = StatusService(
+        registry=make_registry(),
+        bot_admins=parse_bot_admins(""),
+        deploy_infra_label="  ",
+        deploy_infra_url=" ",
+    )
+    assert service.deploy_infra_label == ""
+    assert service.deploy_infra_url == ""
+
+
 def test_status_service_version_falls_back_to_package_version() -> None:
     service = StatusService(registry=make_registry(), bot_admins=parse_bot_admins("42"))
     assert service.report()["version"]

@@ -14,6 +14,8 @@ kingdoms-infra#37 (deploy URL plumbing).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import discord
 from discord import app_commands
 
@@ -63,14 +65,25 @@ def format_admins(
     return "\n".join(f"- {entry}" for entry in entries)
 
 
-def format_deploy(deploy_run_url: str, deploy_url: str) -> str:
+def format_deploy(
+    deploy_run_url: str,
+    deploy_url: str,
+    deploy_infra_label: str = "",
+    deploy_infra_url: str = "",
+) -> str:
     """Render the Deploy field.
 
-    The deploy job link (short label) when the pipeline provides it, falling
-    back to the deployed-artifact link; n/a when it provides none.
+    Two labeled links when the pipeline provides both: the deployed infra
+    state (deploy/<env>@<sha>) and the deploy job. Falls back to whichever
+    link is available; n/a when it provides none.
     """
+    links: list[str] = []
+    if deploy_infra_label and deploy_infra_url:
+        links.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
-        return f"[deploy run]({deploy_run_url})"
+        links.append(f"[deploy run]({deploy_run_url})")
+    if links:
+        return " \u00b7 ".join(links)
     if deploy_url:
         return f"[deploy]({deploy_url})"
     return "n/a"
@@ -106,7 +119,16 @@ def build_status_embed(
         inline=True,
     )
     embed.add_field(name="Latency", value=format_latency(latency), inline=True)
-    embed.add_field(name="Deploy", value=format_deploy(status.deploy_run_url, status.deploy_url), inline=True)
+    embed.add_field(
+        name="Deploy",
+        value=format_deploy(
+            status.deploy_run_url,
+            status.deploy_url,
+            status.deploy_infra_label,
+            status.deploy_infra_url,
+        ),
+        inline=True,
+    )
 
     embed.add_field(
         name="Admins",
@@ -135,9 +157,34 @@ def build_status_embed(
     return embed
 
 
+def format_commands(commands: Iterable[object]) -> str:
+    """Render the synced Commands section.
+
+    Slash commands grouped by their owning group (the closest equivalent of
+    cogs on a bare command tree), then the root-level commands under a
+    `core` label. Context menus are not slash commands and are skipped.
+    """
+    groups: dict[str, list[str]] = {}
+    for cmd in commands:
+        if not isinstance(getattr(cmd, "description", None), str):
+            continue
+        name = getattr(cmd, "name", "")
+        parent = getattr(cmd, "root_parent", None)
+        owner = getattr(parent, "name", None) or "core"
+        groups.setdefault(owner, []).append(name)
+    if not groups:
+        return "*(none)*"
+    lines = []
+    for owner in sorted(groups, key=lambda k: (k == "core", k)):
+        names = sorted(groups[owner])
+        lines.append(f"**{owner}**: " + (", ".join(f"/{n}" for n in names) or "—"))
+    return "\n".join(lines)
+
+
 def register_status_command(
     tree: app_commands.CommandTree[discord.Client],
     status: StatusService,
+    sync_target: str = "global",
 ) -> None:
     """Register the /status slash command on the command tree."""
 
@@ -148,4 +195,10 @@ def register_status_command(
         if latency != latency or latency == float("inf"):
             latency = None
         embed = build_status_embed(status, interaction.guild, latency)
+        sync_scope = sync_target if interaction.guild is not None else "none (DM)"
+        embed.add_field(
+            name=f"Commands (sync: {sync_scope})",
+            value=format_commands(tree.get_commands()),
+            inline=False,
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
