@@ -192,7 +192,9 @@ jobs:
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
             const label = "pr-" + pr + "-${{ steps.stamp.outputs.timestamp }}-" + sha.slice(0, 7);
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${label}`;
+            // The pushed image tag (Build and push step) uses the FULL sha —
+            // the state must pin exactly that tag or the deploy pull fails.
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
             // /status Version field: labeled link to the services source
             // tree at the deployed commit (the tracking comment keeps the
             // human trace: requester, pipeline, image, deploy run).
