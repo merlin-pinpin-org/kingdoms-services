@@ -38,11 +38,19 @@ def _human_uptime(seconds: float) -> str:
     return " ".join(parts)
 
 
-def _guild_admin_ids(guild: discord.Guild) -> list[int]:
-    """Guild admins: members with administrator/manage-guild permission."""
+def _guild_admin_ids(guild: discord.Guild, bot_user_id: int | None = None) -> list[int]:
+    """Guild admins: members with administrator/manage-guild permission.
+
+    Bots are excluded: the kingdoms bot itself holds manage-guild to operate
+    (roles/channels), but it is not an admin a user can contact.
+    """
     admins: list[int] = []
     for member in guild.members:
+        if member.bot:
+            continue
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+            if bot_user_id is not None and member.id == bot_user_id:
+                continue
             admins.append(member.id)
     return sorted(admins)
 
@@ -55,11 +63,12 @@ def _mention(user_id: str | int) -> str:
 def format_admins(
     bot_admins: tuple[str, ...],
     guild: discord.Guild | None,
+    bot_user_id: int | None = None,
 ) -> str:
     """Render one merged Admins section: bot operators + the invoking guild's admins."""
     entries: list[str] = [_mention(uid) for uid in bot_admins]
     if guild is not None:
-        entries.extend(_mention(uid) for uid in _guild_admin_ids(guild))
+        entries.extend(_mention(uid) for uid in _guild_admin_ids(guild, bot_user_id))
     if not entries:
         return "*(none — set BOT_ADMINS or grant guild-administrator permissions)*"
     return "\n".join(f"- {entry}" for entry in entries)
@@ -70,18 +79,25 @@ def format_deploy(
     deploy_url: str,
     deploy_infra_label: str = "",
     deploy_infra_url: str = "",
+    deploy_run_number: str = "",
+    deploy_run_ts: str = "",
 ) -> str:
     """Render the Deploy field.
 
     Two labeled links when the pipeline provides both: the deployed infra
-    state (deploy/<env>@<sha>) and the deploy job. Falls back to whichever
+    state (deploy/<env>@<sha>) and the deployment job (`Deployment #<n>`
+    with a relative timestamp when available). Falls back to whichever
     link is available; n/a when it provides none.
     """
     links: list[str] = []
     if deploy_infra_label and deploy_infra_url:
         links.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
-        links.append(f"[deploy run]({deploy_run_url})")
+        run_text = f"Deployment #{deploy_run_number}" if deploy_run_number else "deploy run"
+        run = f"[{run_text}]({deploy_run_url})"
+        if deploy_run_ts.strip().isdigit():
+            run = f"{run} <t:{deploy_run_ts.strip()}:r>"
+        links.append(run)
     if links:
         return " \u00b7 ".join(links)
     if deploy_url:
@@ -105,6 +121,7 @@ def build_status_embed(
     status: StatusService,
     guild: discord.Guild | None,
     latency: float | None = None,
+    bot_user_id: int | None = None,
 ) -> discord.Embed:
     """Build the /status embed from the core report + guild context."""
     report = status.report()
@@ -112,7 +129,18 @@ def build_status_embed(
         title="Kingdoms — Status",
         color=0x5865F2,
     )
-    embed.add_field(name="Version", value=format_version(status.deploy_label, status.deploy_url), inline=True)
+    embed.add_field(
+        name="Version",
+        value=format_version(
+            status.deploy_label,
+            status.deploy_url,
+            kind=status.deploy_kind,
+            ref=status.deploy_ref,
+            tree_url=status.deploy_tree_url,
+            ts=status.deploy_ts,
+        ),
+        inline=True,
+    )
     embed.add_field(
         name="Uptime",
         value=_human_uptime(status_uptime(report)),
@@ -126,13 +154,15 @@ def build_status_embed(
             status.deploy_url,
             status.deploy_infra_label,
             status.deploy_infra_url,
+            status.deploy_run_number,
+            status.deploy_run_ts,
         ),
         inline=True,
     )
 
     embed.add_field(
         name="Admins",
-        value=format_admins(status.bot_admins, guild),
+        value=format_admins(status.bot_admins, guild, bot_user_id),
         inline=False,
     )
 
@@ -194,7 +224,8 @@ def register_status_command(
         latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
-        embed = build_status_embed(status, interaction.guild, latency)
+        bot_user_id = interaction.client.user.id if interaction.client.user else None
+        embed = build_status_embed(status, interaction.guild, latency, bot_user_id)
         sync_scope = sync_target if interaction.guild is not None else "none (DM)"
         embed.add_field(
             name=f"Commands (sync: {sync_scope})",

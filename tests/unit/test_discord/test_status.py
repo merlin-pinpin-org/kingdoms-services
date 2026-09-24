@@ -274,3 +274,44 @@ def test_format_commands_skips_context_menus() -> None:
 
     result = format_commands([_FakeCommand("status"), _FakeContextMenu()])
     assert result == "**core**: /status"
+
+
+def test_format_version_pr_links_the_deployment_comment() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1"
+    assert format_version("pr-78-...", url, kind="pr", ref="78") == f"[Pull-request #78]({url})"
+
+
+def test_format_version_main_links_commit_and_tree_with_relative_time() -> None:
+    commit_url = "https://github.com/merlin-pinpin-org/kingdoms-services/commit/abcdef0"
+    tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
+    result = format_version(
+        "main@abcdef0", commit_url, kind="main", ref="abcdef0", tree_url=tree_url, ts="1727100000"
+    )
+    assert result == (
+        f"[Commit abcdef0]({commit_url}) [tree]({tree_url}) <t:1727100000:r>"
+    )
+
+
+def test_format_version_release_links_release_and_tree() -> None:
+    release_url = "https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.1.0"
+    tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/v0.1.0"
+    result = format_version("v0.1.0", release_url, kind="release", ref="v0.1.0", tree_url=tree_url)
+    assert result == f"[Release v0.1.0]({release_url}) [tree]({tree_url})"
+
+
+def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
+    run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
+    infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
+    result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000")
+    assert result == f"[deploy/test@9691aca]({infra_url}) · [Deployment #456]({run_url}) <t:1727100000:r>"
+
+
+def test_guild_admins_exclude_bots() -> None:
+    from kingdoms.discord.status import _guild_admin_ids
+
+    guild = MockGuild(name="Test Guild")
+    human_admin = _FakeGuildAdmin(1)
+    bot_member = MockMember(id=2, name="KingdomsBot", bot=True, roles=[MockRole(permissions=["manage_guild"])])
+    guild._members[1] = human_admin
+    guild._members[2] = bot_member
+    assert _guild_admin_ids(guild, bot_user_id=2) == [1]
