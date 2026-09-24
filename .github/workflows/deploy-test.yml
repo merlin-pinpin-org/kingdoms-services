@@ -210,10 +210,16 @@ jobs:
             const timestamp = "${{ steps.stamp.outputs.timestamp }}";
             // The pushed image tag (Build and push step) is the SHORT label
             // (sha7) — the state must pin exactly that pushed tag. The
-            // client_payload is capped at 10 properties by the GitHub API,
-            // so deploy_ts is stamped by the Pin state workflow itself.
+            // client_payload is capped at 10 properties by the GitHub API:
+            // message, source and deploy_ts are composed by the Pin state
+            // workflow itself.
             const label = "${{ steps.label.outputs.tag }}";
             const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${label}`;
+            // The deployed commit's source branch and the PR title feed the
+            // /status Services section (Branch and Pull-request lines).
+            const { data: prData } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr,
+            });
             await github.rest.repos.createDispatchEvent({
               owner: "merlin-pinpin-org",
               repo: "kingdoms-infra",
@@ -230,9 +236,9 @@ jobs:
                 deploy_kind: "pr",
                 deploy_ref: String(pr),
                 deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
+                deploy_branch: prData.head.ref,
+                deploy_pr_title: prData.title,
                 deployed_by: `${context.payload.comment.user.login} (/deploy-test)`,
-                source: `${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
-                message: `deploy(test): pin ${label} (PR #${pr}, commit ${sha.slice(0, 7)})`,
               },
             });
             core.notice(`pin-state dispatched for ${image}`);
@@ -285,7 +291,7 @@ jobs:
               const { data: commits } = await github.rest.repos.listCommits({
                 owner: infraOwner, repo: infraRepo,
                 sha: "deploy/test",
-                path: "deploy/state/test/kingdoms-bot.yml",
+                path: "envs/test/state/kingdoms-bot.yml",
                 per_page: 10,
               });
               stateCommit = commits.find((c) => c.commit.message.includes(imageTag)) || null;

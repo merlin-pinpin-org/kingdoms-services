@@ -42,6 +42,12 @@ def _format_version_pr(ref: str, label: str, url: str) -> str:
     return _link(f"Pull-request #{ref or label}", url)
 
 
+def _format_version_pr_titled(ref: str, title: str, url: str) -> str:
+    """Pull-request line with its title in the label: PR #<n> "title"."""
+    quoted = f" \u201c{title}\u201d" if title else ""
+    return _link(f"Pull-request #{ref}{quoted}", url)
+
+
 def _format_version_commit(ref: str, label: str, url: str, tree_url: str, ts: str) -> str:
     """Version for a main deploy: Commit <sha> + tree + relative time."""
     parts = [_link(f"Commit {ref or label}", url)]
@@ -68,18 +74,20 @@ def format_version(
     ref: str = "",
     tree_url: str = "",
     ts: str = "",
+    pr_title: str = "",
 ) -> str:
-    """Render the Version field.
+    """Render the Version line of the Services section.
 
     Typed links when the pipeline provides the deploy kind:
-    `Pull-request #<n>` (deployment comment), `Commit <sha>` + tree with a
-    relative timestamp, or `Release vX.Y.Z` + tree. Falls back to a labeled
-    link on (label, url), then to the bare label / package version.
+    `Pull-request #<n> "<title>"` (deployment comment), `Commit <sha>` +
+    tree with a relative timestamp, or `Release vX.Y.Z` + tree. Falls
+    back to a labeled link on (label, url), then to the bare label /
+    package version.
     """
     if not label:
         label = _package_version()
     if kind == "pr":
-        return _format_version_pr(ref, label, url)
+        return _format_version_pr_titled(ref, pr_title, url) if pr_title else _format_version_pr(ref, label, url)
     if kind == "main":
         return _format_version_commit(ref, label, url, tree_url, ts)
     if kind == "release":
@@ -110,6 +118,8 @@ class StatusService:
         deploy_run_number: str = "",
         deploy_run_ts: str = "",
         deploy_image: str = "",
+        deploy_branch: str = "",
+        deploy_pr_title: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -128,6 +138,8 @@ class StatusService:
         self._deploy_run_number = deploy_run_number.strip()
         self._deploy_run_ts = deploy_run_ts.strip()
         self._deploy_image = deploy_image.strip()
+        self._deploy_branch = deploy_branch.strip()
+        self._deploy_pr_title = deploy_pr_title.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -190,6 +202,16 @@ class StatusService:
         return self._deploy_image
 
     @property
+    def deploy_branch(self) -> str:
+        """Source branch of the deployed commit (KINGDOMS_DEPLOY_BRANCH)."""
+        return self._deploy_branch
+
+    @property
+    def deploy_pr_title(self) -> str:
+        """Title of the PR that triggered the deploy (KINGDOMS_DEPLOY_PR_TITLE)."""
+        return self._deploy_pr_title
+
+    @property
     def bot_admins(self) -> tuple[str, ...]:
         """Bot operator user IDs (BOT_ADMINS)."""
         return self._bot_admins.user_ids
@@ -230,6 +252,9 @@ class StatusService:
             "deploy_ts": self._deploy_ts,
             "deploy_run_number": self._deploy_run_number,
             "deploy_run_ts": self._deploy_run_ts,
+            "deploy_image": self._deploy_image,
+            "deploy_branch": self._deploy_branch,
+            "deploy_pr_title": self._deploy_pr_title,
             "enabled_mods": self.enabled_mods(),
         }
 

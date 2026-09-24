@@ -82,24 +82,33 @@ def format_deploy(
     deploy_run_number: str = "",
     deploy_run_ts: str = "",
 ) -> str:
-    """Render the Deploy field.
+    """Render the Infra field: state branch, state commit, deploy run.
 
-    Two labeled links when the pipeline provides both: the deployed infra
-    state (deploy/<env>@<sha>) and the deployment job (`Deployment #<n>`
-    with a relative timestamp when available). Falls back to whichever
-    link is available; n/a when it provides none.
+    Three lines grouped on the kingdoms-infra repository: the state
+    branch (`Branch deploy/<env>` linking the branch, + tree), the
+    deployed state commit (`@<sha7>` linking the commit, + tree), and
+    the deployment job (`Deployment #<n>` with a relative timestamp
+    when available). The infra identity is parsed from the
+    `deploy/<env>@<sha7>` label; falls back to a single labeled link,
+    then to the plain deploy link / n/a when nothing is available.
     """
-    links: list[str] = []
-    if deploy_infra_label and deploy_infra_url:
-        links.append(f"[{deploy_infra_label}]({deploy_infra_url})")
+    lines: list[str] = []
+    branch, _, sha = deploy_infra_label.partition("@")
+    if branch and deploy_infra_url:
+        repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
+        lines.append(f"Branch [{branch}]({repo}/tree/{branch}) ([tree]({deploy_infra_url}))")
+        if sha:
+            lines.append(f"[@{sha}]({repo}/commit/{sha}) ([tree]({deploy_infra_url}))")
+    elif deploy_infra_label and deploy_infra_url:
+        lines.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
         run_text = f"Deployment #{deploy_run_number}" if deploy_run_number else "deploy run"
         run = f"[{run_text}]({deploy_run_url})"
         if deploy_run_ts.strip().isdigit():
             run = f"{run} <t:{deploy_run_ts.strip()}:R>"
-        links.append(run)
-    if links:
-        return " \u00b7 ".join(links)
+        lines.append(run)
+    if lines:
+        return "\n".join(lines)
     if deploy_url:
         return f"[deploy]({deploy_url})"
     return "n/a"
@@ -115,21 +124,33 @@ def format_services_section(
     image: str = "",
     kind: str = "",
     deploy_url: str = "",
+    branch: str = "",
+    tree_url: str = "",
+    ts: str = "",
 ) -> str:
-    """Render the Services repo section: version line + docker image line.
+    """Render the Services repo section, one line per deployed artifact.
 
     Groups the deployed-artifact links by repository (the developer's
-    layout): the version line (Pull-request #<n> / Commit + tree /
-    Release vX.Y.Z, already rendered by format_version), then the pinned
-    docker image (label links to the GHCR package page). The deploy
-    conversation is already part of the version line for typed kinds; the
-    untyped fallback keeps a plain link instead of duplicating it.
+    layout): Branch <name> (+ tree of the deployed commit), the version
+    line (Commit + tree / Release + tree / the triggering Pull-request,
+    already rendered by format_version), then the pinned docker image
+    (label links to the GHCR package page) with a relative timestamp.
+    Falls back to the untyped single-line render when the pipeline
+    provides no typed links.
     """
-    lines = [version]
+    lines: list[str] = []
+    if branch:
+        repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
+        tree_part = f" ([tree]({tree_url}))" if tree_url else ""
+        lines.append(f"Branch [{branch}]({repo}/tree/{branch}){tree_part}")
+    lines.append(version)
     if image:
         label = image.rsplit(":", 1)[-1] if ":" in image else image
         package_url = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
-        lines.append(f"Image [{label}]({package_url})")
+        image_line = f"Image [{label}]({package_url})"
+        if ts.strip().isdigit():
+            image_line = f"{image_line} <t:{ts.strip()}:R>"
+        lines.append(image_line)
     if not kind and deploy_url and deploy_url not in version:
         lines.append(f"[deploy]({deploy_url})")
     return "\n".join(lines)
@@ -161,10 +182,19 @@ def build_status_embed(
         ref=status.deploy_ref,
         tree_url=status.deploy_tree_url,
         ts=status.deploy_ts,
+        pr_title=status.deploy_pr_title,
     )
     embed.add_field(
         name="Services",
-        value=format_services_section(version, status.deploy_image, status.deploy_kind, status.deploy_url),
+        value=format_services_section(
+            version,
+            status.deploy_image,
+            status.deploy_kind,
+            status.deploy_url,
+            branch=status.deploy_branch,
+            tree_url=status.deploy_tree_url,
+            ts=status.deploy_ts,
+        ),
         inline=True,
     )
     embed.add_field(
