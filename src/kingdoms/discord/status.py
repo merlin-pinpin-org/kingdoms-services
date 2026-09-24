@@ -84,26 +84,26 @@ def format_deploy(
 ) -> str:
     """Render the Infra field: state branch, state commit, deploy run.
 
-    Three lines grouped on the kingdoms-infra repository, short labels
-    carrying the links: the state branch (`Branch deploy/<env>`, +
-    tree), the deployed state commit (`Commit <sha7>` linking the
-    commit, + tree — same layout as the Services commit line), and the
+    Four lines grouped on the kingdoms-infra repository, short labels
+    carrying the links: the state branch (`Branch deploy/<env>`), the
+    deployed state commit (`Commit <sha7>` linking the commit), the
     deployment job (`Deployment #<n>`, only the id links, with a
-    relative timestamp when available). The infra identity is parsed
-    from the `deploy/<env>@<sha7>` label; falls back to a single
-    labeled link, then to the plain deploy link / n/a when nothing is
+    relative timestamp when available), and the Files line (the state
+    tree, labeled by the state sha7). The infra identity is parsed from
+    the `deploy/<env>@<sha7>` label; falls back to a single labeled
+    link, then to the plain deploy link / n/a when nothing is
     available.
     """
     lines: list[str] = []
     branch, _, sha = deploy_infra_label.partition("@")
     if branch and deploy_infra_url:
         repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
-        lines.append(f"Branch [{branch}]({repo}/tree/{branch}) ([tree]({deploy_infra_url}))")
+        lines.append(f"Branch [{branch}]({repo}/tree/{branch})")
         if sha:
             commit = f"Commit [{sha}]({repo}/commit/{sha})"
             if deploy_run_ts.strip().isdigit():
                 commit = f"{commit} <t:{deploy_run_ts.strip()}:R>"
-            lines.append(f"{commit} ([tree]({deploy_infra_url}))")
+            lines.append(commit)
     elif deploy_infra_label and deploy_infra_url:
         lines.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
@@ -112,6 +112,9 @@ def format_deploy(
         if deploy_run_ts.strip().isdigit():
             run = f"{run} <t:{deploy_run_ts.strip()}:R>"
         lines.append(run)
+        if deploy_infra_url:
+            files = f"Files [{sha}]({deploy_infra_url})" if sha else f"Files [tree]({deploy_infra_url})"
+            lines.append(files)
     if lines:
         return "\n".join(lines)
     if deploy_url:
@@ -124,22 +127,17 @@ def status_uptime(report: dict[str, object]) -> float:
     return float(report["uptime_seconds"])  # type: ignore[arg-type]
 
 
-def _pr_commit_line(tree_url: str, ts: str) -> str:
-    """Commit line for a PR deploy, parsed from the tree URL.
+def _files_line(tree_url: str) -> str:
+    """Files line: link the tree of the deployed commit, labeled by its sha7.
 
     The PR pin payload carries the full head sha only inside the tree
     URL (the client_payload is capped at 10 properties): the commit sha
-    is its last path segment. The line links the short sha to the commit
-    and the tree, with the deploy's relative timestamp.
+    is its last path segment.
     """
     sha = tree_url.rstrip("/").rsplit("/", 1)[-1]
     if not sha:
         return ""
-    repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
-    line = f"Commit [{sha[:7]}]({repo}/commit/{sha}) ([tree]({tree_url}))"
-    if ts.strip().isdigit():
-        line = f"{line} <t:{ts.strip()}:R>"
-    return line
+    return f"Files [{sha[:7]}]({tree_url})"
 
 
 def format_services_section(
@@ -154,23 +152,27 @@ def format_services_section(
     """Render the Services repo section, one line per deployed artifact.
 
     Groups the deployed-artifact links by repository (the developer's
-    layout): Branch <name> (+ tree of the deployed commit), the version
-    line (Commit + tree / Release + tree / the triggering Pull-request,
-    already rendered by format_version), then the pinned docker image
-    (label links to the GHCR package page) with a relative timestamp.
-    A PR deploy also renders its commit line (the PR head sha) between
-    the Branch and Pull-request lines. Falls back to the untyped
-    single-line render when the pipeline provides no typed links.
+    layout): Branch <name>, the version line (Commit / Release / the
+    triggering Pull-request, already rendered by format_version), the
+    pinned docker image (label links to the GHCR package page) with a
+    relative timestamp, and the Files line (the deployed commit's tree,
+    labeled by its sha7). A PR deploy also renders its commit line (the
+    PR head sha) between the Branch and Pull-request lines. Falls back
+    to the untyped single-line render when the pipeline provides no
+    typed links.
     """
     lines: list[str] = []
     if branch:
         repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
-        tree_part = f" ([tree]({tree_url}))" if tree_url else ""
-        lines.append(f"Branch [{branch}]({repo}/tree/{branch}){tree_part}")
+        lines.append(f"Branch [{branch}]({repo}/tree/{branch})")
     if kind == "pr" and tree_url:
-        commit_line = _pr_commit_line(tree_url, ts)
-        if commit_line:
-            lines.append(commit_line)
+        sha = tree_url.rstrip("/").rsplit("/", 1)[-1]
+        if sha:
+            repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
+            commit = f"Commit [{sha[:7]}]({repo}/commit/{sha})"
+            if ts.strip().isdigit():
+                commit = f"{commit} <t:{ts.strip()}:R>"
+            lines.append(commit)
     lines.append(version)
     if image:
         label = image.rsplit(":", 1)[-1] if ":" in image else image
@@ -179,6 +181,10 @@ def format_services_section(
         if ts.strip().isdigit():
             image_line = f"{image_line} <t:{ts.strip()}:R>"
         lines.append(image_line)
+    if tree_url:
+        files_line = _files_line(tree_url)
+        if files_line:
+            lines.append(files_line)
     if not kind and deploy_url and deploy_url not in version:
         lines.append(f"[deploy]({deploy_url})")
     return "\n".join(lines)

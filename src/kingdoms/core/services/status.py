@@ -48,23 +48,17 @@ def _format_version_pr_titled(ref: str, title: str, url: str) -> str:
     return f"Pull-request {_link(f"#{ref}", url)}{quoted}"
 
 
-def _format_version_commit(ref: str, label: str, url: str, tree_url: str, ts: str) -> str:
-    """Version for a main deploy: Commit <sha> + tree + relative time."""
-    parts = [_link(f"Commit {ref or label}", url)]
-    if tree_url:
-        parts.append(f"[tree]({tree_url})")
-    text = " ".join(parts)
+def _format_version_commit(ref: str, label: str, url: str, ts: str) -> str:
+    """Version for a main deploy: Commit <sha> + relative time."""
+    text = _link(f"Commit {ref or label}", url)
     if ts.strip().isdigit():
         text = f"{text} <t:{ts.strip()}:R>"
     return text
 
 
-def _format_version_release(ref: str, label: str, url: str, tree_url: str) -> str:
-    """Version for a release deploy: Release vX.Y.Z + tree."""
-    parts = [_link(f"Release {ref or label}", url)]
-    if tree_url:
-        parts.append(f"[tree]({tree_url})")
-    return " ".join(parts)
+def _format_version_release(ref: str, label: str, url: str) -> str:
+    """Version for a release deploy: Release vX.Y.Z."""
+    return _link(f"Release {ref or label}", url)
 
 
 def format_version(
@@ -89,9 +83,9 @@ def format_version(
     if kind == "pr":
         return _format_version_pr_titled(ref, pr_title, url) if pr_title else _format_version_pr(ref, label, url)
     if kind == "main":
-        return _format_version_commit(ref, label, url, tree_url, ts)
+        return _format_version_commit(ref, label, url, ts)
     if kind == "release":
-        return _format_version_release(ref, label, url, tree_url)
+        return _format_version_release(ref, label, url)
     if not url:
         return label
     return f"[{label}]({url})"
