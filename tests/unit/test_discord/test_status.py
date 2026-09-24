@@ -36,6 +36,7 @@ def make_status(
     deploy_run_url: str = "",
     deploy_infra_label: str = "",
     deploy_infra_url: str = "",
+    deploy_image: str = "",
 ) -> StatusService:
     registry = ModRegistry(
         {
@@ -54,6 +55,7 @@ def make_status(
         deploy_run_url=deploy_run_url,
         deploy_infra_label=deploy_infra_label,
         deploy_infra_url=deploy_infra_url,
+        deploy_image=deploy_image,
     )
 
 
@@ -75,10 +77,10 @@ def test_human_uptime_renders_compact_durations() -> None:
 def test_status_embed_contains_core_sections() -> None:
     embed = build_status_embed(make_status(), guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert "Version" in fields
+    assert "Services" in fields
     assert "Uptime" in fields
     assert "Latency" in fields
-    assert "Deploy" in fields
+    assert "Infra" in fields
     assert "- <@42>" in fields["Admins"]
     assert "*(none configured)*" in fields["Games"]
     assert "example" in fields["Enabled mods"]
@@ -135,7 +137,7 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     status = make_status(deploy_run_url=run_url, deploy_infra_label="deploy/test@9691aca", deploy_infra_url=infra_url)
     embed = build_status_embed(status, guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Deploy"] == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
+    assert fields["Infra"] == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
 
 
 def test_format_version_renders_labeled_link() -> None:
@@ -157,13 +159,13 @@ def test_status_embed_version_field_is_labeled_link() -> None:
     url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
     embed = build_status_embed(make_status(deploy_url=url, deploy_label="pr-12-20260923-abcdef0"), guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Version"] == "[pr-12-20260923-abcdef0](" + url + ")"
+    assert fields["Services"] == "[pr-12-20260923-abcdef0](" + url + ")"
 
 
 def test_status_embed_deploy_defaults_to_na() -> None:
     embed = build_status_embed(make_status(), guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Deploy"] == "n/a"
+    assert fields["Infra"] == "n/a"
 
 
 def test_status_embed_lists_mod_channels_and_roles() -> None:
@@ -284,12 +286,8 @@ def test_format_version_pr_links_the_deployment_comment() -> None:
 def test_format_version_main_links_commit_and_tree_with_relative_time() -> None:
     commit_url = "https://github.com/merlin-pinpin-org/kingdoms-services/commit/abcdef0"
     tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
-    result = format_version(
-        "main@abcdef0", commit_url, kind="main", ref="abcdef0", tree_url=tree_url, ts="1727100000"
-    )
-    assert result == (
-        f"[Commit abcdef0]({commit_url}) [tree]({tree_url}) <t:1727100000:r>"
-    )
+    result = format_version("main@abcdef0", commit_url, kind="main", ref="abcdef0", tree_url=tree_url, ts="1727100000")
+    assert result == (f"[Commit abcdef0]({commit_url}) [tree]({tree_url}) <t:1727100000:R>")
 
 
 def test_format_version_release_links_release_and_tree() -> None:
@@ -303,7 +301,7 @@ def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
     infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
     result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000")
-    assert result == f"[deploy/test@9691aca]({infra_url}) · [Deployment #456]({run_url}) <t:1727100000:r>"
+    assert result == f"[deploy/test@9691aca]({infra_url}) · [Deployment #456]({run_url}) <t:1727100000:R>"
 
 
 def test_guild_admins_exclude_bots() -> None:
@@ -315,3 +313,28 @@ def test_guild_admins_exclude_bots() -> None:
     guild._members[1] = human_admin
     guild._members[2] = bot_member
     assert _guild_admin_ids(guild, bot_user_id=2) == [1]
+
+
+def test_format_services_section_appends_the_pinned_image() -> None:
+    from kingdoms.discord.status import format_services_section
+
+    image = "ghcr.io/merlin-pinpin-org/kingdoms-services:pr-12-20260923-abcdef0"
+    package = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
+    version_line = "[Pull-request #12](https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1)"
+    result = format_services_section(version_line, image, kind="pr")
+    assert result == (version_line + f"\nImage [pr-12-20260923-abcdef0]({package})")
+
+
+def test_format_services_section_without_image_keeps_the_version_line() -> None:
+    from kingdoms.discord.status import format_services_section
+
+    result = format_services_section("v0.1.0", "", kind="release")
+    assert result == "v0.1.0"
+
+
+def test_format_services_section_untyped_fallback_keeps_deploy_link() -> None:
+    from kingdoms.discord.status import format_services_section
+
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
+    result = format_services_section("[main@abcdef0](x)", "", kind="", deploy_url=url)
+    assert result == f"[main@abcdef0](x)\n[deploy]({url})"

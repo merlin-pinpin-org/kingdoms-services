@@ -1,12 +1,12 @@
 """The /status command: bot and per-guild operational report.
 
-Generic bot capability (not a mod): it reports uptime, the deployed version
-as a labeled GitHub link (KINGDOMS_DEPLOY_LABEL + KINGDOMS_DEPLOY_URL — the
-GitHub release or the services source tree), the deploy job link
-(KINGDOMS_DEPLOY_RUN_URL), configured games, enabled mods with their
-declared channels and roles, and one merged Admins section — bot operators
-(BOT_ADMINS) and the invoking guild's admins — as a bullet list of Discord
-mentions.
+Generic bot capability (not a mod): it reports uptime, the deployed
+artifacts grouped by repository — a Services section (version: PR /
+Commit + tree / Release, plus the pinned docker image) and an Infra
+section (deploy/<env>@<sha> state and the Deployment #<n> pipeline run)
+—, configured games, enabled mods with their declared channels and
+roles, and one merged Admins section — bot operators (BOT_ADMINS) and the
+invoking guild's admins — as a bullet list of Discord mentions.
 
 Reference: kingdoms-services#35 (bot vs guild admins),
 kingdoms-infra#37 (deploy URL plumbing).
@@ -96,7 +96,7 @@ def format_deploy(
         run_text = f"Deployment #{deploy_run_number}" if deploy_run_number else "deploy run"
         run = f"[{run_text}]({deploy_run_url})"
         if deploy_run_ts.strip().isdigit():
-            run = f"{run} <t:{deploy_run_ts.strip()}:r>"
+            run = f"{run} <t:{deploy_run_ts.strip()}:R>"
         links.append(run)
     if links:
         return " \u00b7 ".join(links)
@@ -108,6 +108,31 @@ def format_deploy(
 def status_uptime(report: dict[str, object]) -> float:
     """Read the uptime field of a status report."""
     return float(report["uptime_seconds"])  # type: ignore[arg-type]
+
+
+def format_services_section(
+    version: str,
+    image: str = "",
+    kind: str = "",
+    deploy_url: str = "",
+) -> str:
+    """Render the Services repo section: version line + docker image line.
+
+    Groups the deployed-artifact links by repository (the developer's
+    layout): the version line (Pull-request #<n> / Commit + tree /
+    Release vX.Y.Z, already rendered by format_version), then the pinned
+    docker image (label links to the GHCR package page). The deploy
+    conversation is already part of the version line for typed kinds; the
+    untyped fallback keeps a plain link instead of duplicating it.
+    """
+    lines = [version]
+    if image:
+        label = image.rsplit(":", 1)[-1] if ":" in image else image
+        package_url = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
+        lines.append(f"Image [{label}]({package_url})")
+    if not kind and deploy_url and deploy_url not in version:
+        lines.append(f"[deploy]({deploy_url})")
+    return "\n".join(lines)
 
 
 def format_latency(latency: float | None) -> str:
@@ -129,26 +154,21 @@ def build_status_embed(
         title="Kingdoms — Status",
         color=0x5865F2,
     )
+    version = format_version(
+        status.deploy_label,
+        status.deploy_url,
+        kind=status.deploy_kind,
+        ref=status.deploy_ref,
+        tree_url=status.deploy_tree_url,
+        ts=status.deploy_ts,
+    )
     embed.add_field(
-        name="Version",
-        value=format_version(
-            status.deploy_label,
-            status.deploy_url,
-            kind=status.deploy_kind,
-            ref=status.deploy_ref,
-            tree_url=status.deploy_tree_url,
-            ts=status.deploy_ts,
-        ),
+        name="Services",
+        value=format_services_section(version, status.deploy_image, status.deploy_kind, status.deploy_url),
         inline=True,
     )
     embed.add_field(
-        name="Uptime",
-        value=_human_uptime(status_uptime(report)),
-        inline=True,
-    )
-    embed.add_field(name="Latency", value=format_latency(latency), inline=True)
-    embed.add_field(
-        name="Deploy",
+        name="Infra",
         value=format_deploy(
             status.deploy_run_url,
             status.deploy_url,
@@ -159,6 +179,12 @@ def build_status_embed(
         ),
         inline=True,
     )
+    embed.add_field(
+        name="Uptime",
+        value=_human_uptime(status_uptime(report)),
+        inline=True,
+    )
+    embed.add_field(name="Latency", value=format_latency(latency), inline=True)
 
     embed.add_field(
         name="Admins",

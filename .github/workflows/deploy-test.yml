@@ -151,6 +151,16 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.sha }}
 
+      - name: Compute the short image label
+        id: label
+        env:
+          PR_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          # Short label (sha7): unique per build thanks to the second-precision
+          # timestamp; the state pins this exact pushed tag (labels everywhere
+          # are short — /status, tracking comment, pin commit message).
+          echo "tag=pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${PR_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -166,7 +176,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.label.outputs.tag }}
           # No cache export: from an issue_comment event the GHA cache
           # scope is the comment, not the PR branch, and cache
           # reservation fails. Pull-side caching only.
@@ -198,13 +208,12 @@ jobs:
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
             const timestamp = "${{ steps.stamp.outputs.timestamp }}";
-            // The pushed image tag (Build and push step) uses the FULL sha —
-            // the state must pin exactly that tag or the deploy pull fails.
-            // The client_payload is capped at 10 properties by the GitHub
-            // API, so deploy_ts is stamped by the Pin state workflow
-            // itself, not passed here.
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${timestamp}-${sha}`;
-            const label = `pr-${pr}-${timestamp}-${sha.slice(0, 7)}`;
+            // The pushed image tag (Build and push step) is the SHORT label
+            // (sha7) — the state must pin exactly that pushed tag. The
+            // client_payload is capped at 10 properties by the GitHub API,
+            // so deploy_ts is stamped by the Pin state workflow itself.
+            const label = "${{ steps.label.outputs.tag }}";
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${label}`;
             await github.rest.repos.createDispatchEvent({
               owner: "merlin-pinpin-org",
               repo: "kingdoms-infra",
@@ -238,8 +247,7 @@ jobs:
               repo: context.repo.repo,
               comment_id: ${{ steps.acknowledge.outputs.id }},
             });
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${{ github.event.issue.number }}-${{ steps.stamp.outputs.timestamp }}-${{ steps.pr.outputs.sha }}`;
-            const shortImage = image.split(":")[1];
+            const shortImage = "${{ steps.label.outputs.tag }}";
             const body = comment.body
               .replace("**Status:** 🟡 building", "**Status:** 🔵 deploying")
               .replace("| Image | (building…) |", `| Image | [\`${shortImage}\`](https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services) |`);
@@ -266,8 +274,12 @@ jobs:
             const infraOwner = "merlin-pinpin-org", infraRepo = "kingdoms-infra";
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
-            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
-            const findDeadline = Date.now() + 15 * 60 * 1000;
+            // The pin commit message carries the SHORT version label (the
+            // payload's version_label), not the full image tag — match on it.
+            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha.slice(0, 7)}`;
+            // The Pin state run may queue behind a sync (shared deploy-state
+            // concurrency group) — allow up to 30 minutes before giving up.
+            const findDeadline = Date.now() + 30 * 60 * 1000;
             let stateCommit = null;
             while (Date.now() < findDeadline && !stateCommit) {
               const { data: commits } = await github.rest.repos.listCommits({
@@ -281,7 +293,7 @@ jobs:
               if (!stateCommit) await new Promise((r) => setTimeout(r, 20000));
             }
             if (!stateCommit) {
-              core.setFailed("the pin never landed on deploy/test (15 min deadline) — check the kingdoms-infra Pin state workflow run");
+              core.setFailed("the pin never landed on deploy/test (30 min deadline) — check the kingdoms-infra Pin state workflow run");
               return;
             }
             const stateSha = stateCommit.sha;

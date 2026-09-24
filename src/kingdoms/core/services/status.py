@@ -49,7 +49,7 @@ def _format_version_commit(ref: str, label: str, url: str, tree_url: str, ts: st
         parts.append(f"[tree]({tree_url})")
     text = " ".join(parts)
     if ts.strip().isdigit():
-        text = f"{text} <t:{ts.strip()}:r>"
+        text = f"{text} <t:{ts.strip()}:R>"
     return text
 
 
@@ -109,6 +109,7 @@ class StatusService:
         deploy_ts: str = "",
         deploy_run_number: str = "",
         deploy_run_ts: str = "",
+        deploy_image: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -126,6 +127,7 @@ class StatusService:
         self._deploy_ts = deploy_ts.strip()
         self._deploy_run_number = deploy_run_number.strip()
         self._deploy_run_ts = deploy_run_ts.strip()
+        self._deploy_image = deploy_image.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -181,6 +183,11 @@ class StatusService:
     def deploy_run_ts(self) -> str:
         """Unix timestamp of the deploy job start (KINGDOMS_DEPLOY_RUN_TS)."""
         return self._deploy_run_ts
+
+    @property
+    def deploy_image(self) -> str:
+        """Pinned container image reference (KINGDOMS_DEPLOY_IMAGE; empty when unknown)."""
+        return self._deploy_image
 
     @property
     def bot_admins(self) -> tuple[str, ...]:
