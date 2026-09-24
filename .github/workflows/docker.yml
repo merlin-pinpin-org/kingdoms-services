@@ -6,6 +6,13 @@ on:
     tags: ["v*.*.*"]
   pull_request:
 
+# The push of a vX.Y.Z tag releases the image and pins it on the
+# kingdoms-infra deploy/test state branch (deploy_kind: release): the
+# release is validated on the test environment before any prod deploy.
+# Production promotion is a separate, human-triggered step (release.yml)
+# — after Discord validation on test, an authorized human runs it.
+# PR builds never pin anything.
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -104,3 +111,47 @@ jobs:
         run: |
           docker rm -f kingdoms-mongo kingdoms-redis 2>/dev/null || true
           docker network rm kingdoms-ci 2>/dev/null || true
+
+  pin-release-test:
+    name: Pin the released image on deploy/test
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint an ephemeral GitHub App token for kingdoms-infra
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin-org
+          repositories: kingdoms-infra
+
+      - name: Pin the released image on deploy/test (ADR-0018)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const tag = context.ref.replace("refs/tags/", "");
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${tag}`;
+            // The GitHub release page for the tag (created or not yet);
+            // /status renders it as the Release link.
+            const releaseUrl = `https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/${tag}`;
+            await github.rest.repos.createDispatchEvent({
+              owner: "merlin-pinpin-org",
+              repo: "kingdoms-infra",
+              event_type: "pin-state",
+              client_payload: {
+                env: "test",
+                image,
+                version_label: tag,
+                deploy_url: releaseUrl,
+                deploy_kind: "release",
+                deploy_ref: tag,
+                deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${tag}`,
+                deploy_branch: "main",
+                deploy_pr_title: "",
+                deployed_by: `${context.actor} (release ${tag})`,
+              },
+            });
+            core.notice(`pin-state dispatched for ${image} on deploy/test`);

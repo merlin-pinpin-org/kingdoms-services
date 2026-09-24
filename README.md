@@ -41,12 +41,18 @@ images only. The flow is:
 1. Tag `vX.Y.Z` on `main` (the `release-tags` ruleset authorizes the
    classifiers, e.g. `v0.1.0-rc1`). The [docker](.github/workflows/docker.yml)
    workflow builds and publishes `ghcr.io/merlin-pinpin-org/kingdoms-services:vX.Y.Z`.
-2. The release image is pinned on the kingdoms-infra state branch
-   `deploy/prod` (Pin state workflow, PR-merged pin on the protected
-   state branch). The push triggers the Deploy environment workflow,
-   which waits for the `prod` environment reviewers, then deploys on
-   the `env-prod` runner with the pre-deploy backup and health gate.
-3. `/status` on Discord shows the Release line (GitHub release link +
+2. The same workflow then pins the released image on the kingdoms-infra state
+   branch `deploy/test` (dispatch to the infra `Pin state` workflow,
+   kingdoms-deployer App): the release runs on the test environment, where
+   the humans validate it in Discord — same flow as a PR deploy, but with
+   the released image and `/status` showing the Release line.
+3. Once validated, an authorized collaborator runs the
+   [Promote release](.github/workflows/release.yml) workflow
+   (`workflow_dispatch`, tag input): it dispatches the `Pin state`
+   workflow for `deploy/prod`. The pin push triggers the Deploy environment
+   workflow, which waits for the `prod` environment reviewers, then deploys
+   on the `env-prod` runner with the pre-deploy backup and health gate.
+4. `/status` on Discord shows the Release line (GitHub release link +
    tree) and the prod Deployment run.
 
 ## Rules
