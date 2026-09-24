@@ -51,6 +51,8 @@ class BotConfig:
     deploy_run_number: str = ""
     deploy_run_ts: str = ""
     deploy_image: str = ""
+    deploy_branch: str = ""
+    deploy_pr_title: str = ""
     sync_guild_id: str = ""
     log_level: str = "INFO"
     config_dir: Path = field(default_factory=lambda: Path("config"))
@@ -76,6 +78,8 @@ class BotConfig:
             deploy_run_number=env.get("KINGDOMS_DEPLOY_RUN_NUMBER", ""),
             deploy_run_ts=env.get("KINGDOMS_DEPLOY_RUN_TS", ""),
             deploy_image=env.get("KINGDOMS_DEPLOY_IMAGE", ""),
+            deploy_branch=env.get("KINGDOMS_DEPLOY_BRANCH", ""),
+            deploy_pr_title=env.get("KINGDOMS_DEPLOY_PR_TITLE", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
         )
@@ -137,6 +141,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_run_number=resolved.deploy_run_number,
         deploy_run_ts=resolved.deploy_run_ts,
         deploy_image=resolved.deploy_image,
+        deploy_branch=resolved.deploy_branch,
+        deploy_pr_title=resolved.deploy_pr_title,
     )
     bot = KingdomsBot(config=resolved, status=status)
     from kingdoms.discord.status import register_status_command

@@ -37,6 +37,14 @@ def make_status(
     deploy_infra_label: str = "",
     deploy_infra_url: str = "",
     deploy_image: str = "",
+    deploy_kind: str = "",
+    deploy_ref: str = "",
+    deploy_tree_url: str = "",
+    deploy_ts: str = "",
+    deploy_branch: str = "",
+    deploy_pr_title: str = "",
+    deploy_run_number: str = "",
+    deploy_run_ts: str = "",
 ) -> StatusService:
     registry = ModRegistry(
         {
@@ -56,6 +64,14 @@ def make_status(
         deploy_infra_label=deploy_infra_label,
         deploy_infra_url=deploy_infra_url,
         deploy_image=deploy_image,
+        deploy_kind=deploy_kind,
+        deploy_ref=deploy_ref,
+        deploy_tree_url=deploy_tree_url,
+        deploy_ts=deploy_ts,
+        deploy_branch=deploy_branch,
+        deploy_pr_title=deploy_pr_title,
+        deploy_run_number=deploy_run_number,
+        deploy_run_ts=deploy_run_ts,
     )
 
 
@@ -114,7 +130,12 @@ def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
     infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
     result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url)
-    assert result == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
+    infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
+    assert result == (
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
+        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"[deploy run]({run_url})"
+    )
 
 
 def test_format_deploy_skips_infra_label_without_url() -> None:
@@ -137,7 +158,12 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     status = make_status(deploy_run_url=run_url, deploy_infra_label="deploy/test@9691aca", deploy_infra_url=infra_url)
     embed = build_status_embed(status, guild=None)
     fields = {f.name: f.value for f in embed.fields}
-    assert fields["Infra"] == f"[deploy/test@9691aca]({infra_url}) \u00b7 [deploy run]({run_url})"
+    infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
+    assert fields["Infra"] == (
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
+        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"[deploy run]({run_url})"
+    )
 
 
 def test_format_version_renders_labeled_link() -> None:
@@ -278,6 +304,12 @@ def test_format_commands_skips_context_menus() -> None:
     assert result == "**core**: /status"
 
 
+def test_format_version_pr_includes_the_title_when_known() -> None:
+    url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1"
+    result = format_version("pr-78-...", url, kind="pr", ref="78", pr_title="Add the ping command")
+    assert result == "[Pull-request #78 \u201cAdd the ping command\u201d](https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1)"
+
+
 def test_format_version_pr_links_the_deployment_comment() -> None:
     url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1"
     assert format_version("pr-78-...", url, kind="pr", ref="78") == f"[Pull-request #78]({url})"
@@ -301,7 +333,12 @@ def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
     infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
     result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000")
-    assert result == f"[deploy/test@9691aca]({infra_url}) · [Deployment #456]({run_url}) <t:1727100000:R>"
+    infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
+    assert result == (
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
+        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"[Deployment #456]({run_url}) <t:1727100000:R>"
+    )
 
 
 def test_guild_admins_exclude_bots() -> None:
