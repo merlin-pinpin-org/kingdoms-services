@@ -1,7 +1,10 @@
 # /deploy-test — deploy a pull request to the test environment.
 # A PR comment containing exactly "/deploy-test" builds the bot image from
-# the PR head, pushes it to GHCR (tag pr-<id>-<timestamp>-<sha>), and pins it
-# in the kingdoms-infra deploy/test state branch (ADR-0018). The state push
+# the PR head, pushes it to GHCR (tag pr-<id>-<timestamp>-<sha>), then
+# dispatches the kingdoms-infra Pin state workflow (single-writer design,
+# ADR-0018): it pins the image in the deploy/test state branch, merging
+# main in the same commit, serialized with every other state-branch writer
+# by the shared deploy-state-<env> concurrency group. The state push
 # triggers the Deploy test workflow on kingdoms-infra, which reads the
 # image from Git. The bot runs on the test VPS with the PR code until the
 # next state commit.
@@ -10,13 +13,12 @@
 # outright (see the authorize step); kingdoms-infra's Actions policy is the
 # second layer on the dispatch side.
 #
-# Cross-repo state write: committing to the kingdoms-infra deploy/test
-# branch uses an ephemeral GitHub App token (actions/create-github-app-token),
-# minted from the KINGDOMS_DEPLOYER_APP_ID / KINGDOMS_DEPLOYER_APP_PRIVATE_KEY
-# repository secrets of this repository. The app is installed on
-# kingdoms-infra only, with Actions: write + Contents: write — see
-# kingdoms-infra docs/DEPLOY-TEST-APP.md for the full setup and the
-# ruleset hardening.
+# Cross-repo state write: the dispatch uses an ephemeral GitHub App token
+# (actions/create-github-app-token), minted from the
+# KINGDOMS_DEPLOYER_APP_ID / KINGDOMS_DEPLOYER_APP_PRIVATE_KEY repository
+# secrets of this repository. The app is installed on kingdoms-infra only,
+# with Actions: write + Contents: write — see kingdoms-infra
+# docs/DEPLOY-TEST-APP.md for the full setup and the ruleset hardening.
 
 name: Deploy test (PR comment)
 
@@ -180,55 +182,49 @@ jobs:
           owner: merlin-pinpin-org
           repositories: kingdoms-infra
 
-      - name: Pin the PR image in the kingdoms-infra deploy/test state branch
+      # Single-writer design (ADR-0018): the pin itself is executed by the
+      # kingdoms-infra Pin state workflow, which merges main into the state
+      # branch in the same commit and shares the deploy-state-<env>
+      # concurrency group with every other state-branch writer — the pin can
+      # never race a sync. This workflow dispatches it and then polls the
+      # state branch for the pin commit (identified by the unique image tag)
+      # to recover the state commit sha the deploy run will carry.
+      - name: Dispatch the pin to the kingdoms-infra Pin state workflow
         id: pin-state
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            const owner = "merlin-pinpin-org", repo = "kingdoms-infra";
-            const path = "deploy/state/test/kingdoms-bot.yml";
-            const branch = "deploy/test";
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
-            const label = "pr-" + pr + "-${{ steps.stamp.outputs.timestamp }}-" + sha.slice(0, 7);
+            const timestamp = "${{ steps.stamp.outputs.timestamp }}";
             // The pushed image tag (Build and push step) uses the FULL sha —
             // the state must pin exactly that tag or the deploy pull fails.
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
-            // /status Version field: for a PR deploy the link points at the
-            // deployment comment that triggered it (the tracking comment
-            // keeps the human trace: requester, pipeline, image, deploy run).
-            const url = "${{ steps.acknowledge.outputs.permalink }}";
-            let base;
-            try {
-              base = (await github.rest.repos.getContent({ owner, repo, path, ref: branch })).data;
-            } catch (e) {
-              core.setFailed(`state file ${path} missing on ${branch} (bootstrap kingdoms-infra#41)`);
-              return;
-            }
-            const state = [
-              "# Desired state of kingdoms-bot on the test environment (ADR-0018).",
-              "# Written by the deploy pipelines only (kingdoms-deployer GitHub App);",
-              "# a push to this branch deploys this exact image.",
-              `image: ${image}`,
-              `version_label: ${label}`,
-              `deploy_url: ${url}`,
-              `deploy_kind: pr`,
-              `deploy_ref: ${pr}`,
-              `deploy_tree_url: https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
-              `deploy_ts: ${Math.floor(Date.now() / 1000)}`,
-              `deployed_by: ${{ github.event.comment.user.login }} (/deploy-test)`,
-              `deployed_at: "${new Date().toISOString()}"`,
-              `source: ${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
-              ""].join("\n");
-            const commit = await github.rest.repos.createOrUpdateFileContents({
-              owner, repo, path, branch,
-              message: `deploy(test): pin ${label} (PR #${pr}, commit ${sha.slice(0, 7)})`,
-              content: Buffer.from(state).toString("base64"),
-              sha: base.sha,
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${timestamp}-${sha}`;
+            const label = `pr-${pr}-${timestamp}-${sha.slice(0, 7)}`;
+            await github.rest.repos.createDispatchEvent({
+              owner: "merlin-pinpin-org",
+              repo: "kingdoms-infra",
+              event_type: "pin-state",
+              client_payload: {
+                env: "test",
+                image,
+                version_label: label,
+                // /status Version field: for a PR deploy the link points at
+                // the deployment comment that triggered it (the tracking
+                // comment keeps the human trace: requester, pipeline,
+                // image, deploy run).
+                deploy_url: "${{ steps.acknowledge.outputs.permalink }}",
+                deploy_kind: "pr",
+                deploy_ref: String(pr),
+                deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
+                deploy_ts: String(Math.floor(Date.now() / 1000)),
+                deployed_by: `${context.payload.comment.user.login} (/deploy-test)`,
+                source: `${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
+                message: `deploy(test): pin ${label} (PR #${pr}, commit ${sha.slice(0, 7)})`,
+              },
             });
-            core.notice(`state pinned on ${branch}: ${image}`);
-            core.setOutput("state_url", commit.data.commit.html_url);
+            core.notice(`pin-state dispatched for ${image}`);
 
       - name: Update the tracking comment — deploying
         if: success()
@@ -259,12 +255,34 @@ jobs:
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            // The state push just triggered the Deploy test workflow on
-            // kingdoms-infra; watch it with the App token (read) and report
-            // its URL and outcome — the next step edits the tracking
-            // comment with the native token.
+            // The dispatched Pin state workflow on kingdoms-infra commits the
+            // pin on deploy/test (merging main in the same commit); that
+            // push triggers the Deploy test workflow there. First poll the
+            // state branch for OUR pin commit — identified by the unique
+            // image tag in the commit message — to recover the state commit
+            // sha the deploy run will carry. Then watch that exact run.
             const infraOwner = "merlin-pinpin-org", infraRepo = "kingdoms-infra";
-            const stateCommit = "${{ steps.pin-state.outputs.state_url }}".split("/").pop();
+            const pr = context.issue.number;
+            const sha = "${{ steps.pr.outputs.sha }}";
+            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
+            const findDeadline = Date.now() + 15 * 60 * 1000;
+            let stateCommit = null;
+            while (Date.now() < findDeadline && !stateCommit) {
+              const { data: commits } = await github.rest.repos.listCommits({
+                owner: infraOwner, repo: infraRepo,
+                sha: "deploy/test",
+                path: "deploy/state/test/kingdoms-bot.yml",
+                per_page: 10,
+              });
+              stateCommit = commits.find((c) => c.commit.message.includes(imageTag)) || null;
+              core.info(`pin commit on deploy/test: ${stateCommit ? stateCommit.sha : "not landed yet"}`);
+              if (!stateCommit) await new Promise((r) => setTimeout(r, 20000));
+            }
+            if (!stateCommit) {
+              core.setFailed("the pin never landed on deploy/test (15 min deadline) — check the kingdoms-infra Pin state workflow run");
+              return;
+            }
+            const stateSha = stateCommit.sha;
             const deadline = Date.now() + 15 * 60 * 1000;
             let run = null;
             while (Date.now() < deadline) {
@@ -274,7 +292,7 @@ jobs:
               // Only the run for the exact pinned state commit is ours: an
               // older run on the branch (a previous deploy) must not be
               // picked up while ours has not started yet.
-              run = runs.find((r) => r.head_sha === stateCommit) || null;
+              run = runs.find((r) => r.head_sha === stateSha) || null;
               core.info(`infra deploy run: ${run ? run.html_url + " (" + run.status + ")" : "not started yet"}`);
               if (run && run.status === "completed") break;
               await new Promise((r) => setTimeout(r, 20000));
