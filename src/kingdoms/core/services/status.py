@@ -32,15 +32,58 @@ def parse_bot_admins(raw: str | None) -> BotAdmins:
     return BotAdmins(user_ids=tuple(uid.strip() for uid in raw.split(",") if uid.strip() and uid.strip().isdigit()))
 
 
-def format_version(label: str, url: str) -> str:
+def _link(text: str, url: str) -> str:
+    """Render a labeled link, or the bare text when there is no URL."""
+    return f"[{text}]({url})" if url else text
+
+
+def _format_version_pr(ref: str, label: str, url: str) -> str:
+    """Version for a PR deploy: Pull-request #<n> -> deployment comment."""
+    return _link(f"Pull-request #{ref or label}", url)
+
+
+def _format_version_commit(ref: str, label: str, url: str, tree_url: str, ts: str) -> str:
+    """Version for a main deploy: Commit <sha> + tree + relative time."""
+    parts = [_link(f"Commit {ref or label}", url)]
+    if tree_url:
+        parts.append(f"[tree]({tree_url})")
+    text = " ".join(parts)
+    if ts.strip().isdigit():
+        text = f"{text} <t:{ts.strip()}:r>"
+    return text
+
+
+def _format_version_release(ref: str, label: str, url: str, tree_url: str) -> str:
+    """Version for a release deploy: Release vX.Y.Z + tree."""
+    parts = [_link(f"Release {ref or label}", url)]
+    if tree_url:
+        parts.append(f"[tree]({tree_url})")
+    return " ".join(parts)
+
+
+def format_version(
+    label: str,
+    url: str,
+    kind: str = "",
+    ref: str = "",
+    tree_url: str = "",
+    ts: str = "",
+) -> str:
     """Render the Version field.
 
-    A labeled link when the pipeline provides both, the bare label when
-    there is no URL, and the package version when the pipeline provides no
-    label (local runs, unmanaged deploys).
+    Typed links when the pipeline provides the deploy kind:
+    `Pull-request #<n>` (deployment comment), `Commit <sha>` + tree with a
+    relative timestamp, or `Release vX.Y.Z` + tree. Falls back to a labeled
+    link on (label, url), then to the bare label / package version.
     """
     if not label:
         label = _package_version()
+    if kind == "pr":
+        return _format_version_pr(ref, label, url)
+    if kind == "main":
+        return _format_version_commit(ref, label, url, tree_url, ts)
+    if kind == "release":
+        return _format_version_release(ref, label, url, tree_url)
     if not url:
         return label
     return f"[{label}]({url})"
@@ -60,6 +103,12 @@ class StatusService:
         deploy_run_url: str = "",
         deploy_infra_label: str = "",
         deploy_infra_url: str = "",
+        deploy_kind: str = "",
+        deploy_ref: str = "",
+        deploy_tree_url: str = "",
+        deploy_ts: str = "",
+        deploy_run_number: str = "",
+        deploy_run_ts: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -71,6 +120,12 @@ class StatusService:
         self._deploy_run_url = deploy_run_url.strip()
         self._deploy_infra_label = deploy_infra_label.strip()
         self._deploy_infra_url = deploy_infra_url.strip()
+        self._deploy_kind = deploy_kind.strip()
+        self._deploy_ref = deploy_ref.strip()
+        self._deploy_tree_url = deploy_tree_url.strip()
+        self._deploy_ts = deploy_ts.strip()
+        self._deploy_run_number = deploy_run_number.strip()
+        self._deploy_run_ts = deploy_run_ts.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -96,6 +151,36 @@ class StatusService:
     def deploy_infra_url(self) -> str:
         """Link to the deployed infra state tree (KINGDOMS_DEPLOY_INFRA_URL)."""
         return self._deploy_infra_url
+
+    @property
+    def deploy_kind(self) -> str:
+        """Deploy kind: pr, main, or release (KINGDOMS_DEPLOY_KIND)."""
+        return self._deploy_kind
+
+    @property
+    def deploy_ref(self) -> str:
+        """Deploy reference: PR number, short sha, or release tag."""
+        return self._deploy_ref
+
+    @property
+    def deploy_tree_url(self) -> str:
+        """Link to the deployed source tree (KINGDOMS_DEPLOY_TREE_URL)."""
+        return self._deploy_tree_url
+
+    @property
+    def deploy_ts(self) -> str:
+        """Unix timestamp of the deployed commit (KINGDOMS_DEPLOY_TS)."""
+        return self._deploy_ts
+
+    @property
+    def deploy_run_number(self) -> str:
+        """Number of the deploy job (KINGDOMS_DEPLOY_RUN_NUMBER)."""
+        return self._deploy_run_number
+
+    @property
+    def deploy_run_ts(self) -> str:
+        """Unix timestamp of the deploy job start (KINGDOMS_DEPLOY_RUN_TS)."""
+        return self._deploy_run_ts
 
     @property
     def bot_admins(self) -> tuple[str, ...]:
@@ -132,6 +217,12 @@ class StatusService:
             "deploy_run_url": self._deploy_run_url,
             "deploy_infra_label": self._deploy_infra_label,
             "deploy_infra_url": self._deploy_infra_url,
+            "deploy_kind": self._deploy_kind,
+            "deploy_ref": self._deploy_ref,
+            "deploy_tree_url": self._deploy_tree_url,
+            "deploy_ts": self._deploy_ts,
+            "deploy_run_number": self._deploy_run_number,
+            "deploy_run_ts": self._deploy_run_ts,
             "enabled_mods": self.enabled_mods(),
         }
 
