@@ -35,6 +35,15 @@ deployed.
 
 ## Releasing and deploying to production
 
+Cut a release with `make release TAG=vX.Y.Z` (`scripts/release.sh`: fails
+ closed unless `main` is clean, up to date and all checks green; creates the
+tag and the GitHub release, which triggers the image build and the
+`deploy/test` pin). Follow a deployment with `make watch-deploy ENV=test
+LABEL=<label>` (`scripts/watch_deploy.sh`: watches the pin commit land on
+`deploy/<env>`, then the Deploy environment run — the same script the
+deploy and release workflows use).
+
+
 Production never deploys a pull request: it runs released `vX.Y.Z`
 images only. The flow is:
 
