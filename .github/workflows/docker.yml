@@ -92,7 +92,9 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
+            # The raw tag name (vX.Y.Z): the state branches pin this exact
+            # tag, and type=semver would strip the leading v (0.1.0).
+            type=ref,event=tag
             type=sha,prefix=sha-
 
       - name: Push the image to GHCR
@@ -155,3 +157,26 @@ jobs:
               },
             });
             core.notice(`pin-state dispatched for ${image} on deploy/test`);
+
+  create-release:
+    name: Create the GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # The GitHub release is created by CI (contents: write), not by the
+      # agent session: release creation is a mutating call the session
+      # cannot perform. --generate-notes builds the changelog from the PRs.
+      - name: Create the release for the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $TAG already exists — skipping"
+            exit 0
+          fi
+          gh release create "$TAG" --generate-notes --title "$TAG"
