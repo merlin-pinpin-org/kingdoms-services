@@ -62,9 +62,7 @@ class HealthServer:
         await server.wait_closed()
         logger.info("health server stopped")
 
-    async def _handle(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         """Answer one HTTP/1.1 request with the liveness verdict."""
         try:
             request_line = await asyncio.wait_for(reader.readline(), timeout=5)
@@ -91,15 +89,14 @@ class HealthServer:
 
     async def _respond(self, writer: asyncio.StreamWriter, status: int, body: str) -> None:
         """Write one HTTP response and close the connection."""
-        reason = {200: "OK", 400: "Bad Request", 404: "Not Found", 503: "Service Unavailable"}[
-            status
-        ]
+        reason = {200: "OK", 400: "Bad Request", 404: "Not Found", 503: "Service Unavailable"}[status]
         payload = body.encode()
         writer.write(
             f"HTTP/1.1 {status} {reason}\r\n"
             f"Content-Type: text/plain; charset=utf-8\r\n"
             f"Content-Length: {len(payload)}\r\n"
-            f"Connection: close\r\n\r\n".encode() + payload
+            f"Connection: close\r\n\r\n".encode()
+            + payload
         )
         await writer.drain()
         writer.close()
