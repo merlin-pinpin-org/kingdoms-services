@@ -195,10 +195,10 @@ jobs:
             // The pushed image tag (Build and push step) uses the FULL sha —
             // the state must pin exactly that tag or the deploy pull fails.
             const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
-            // /status Version field: labeled link to the services source
-            // tree at the deployed commit (the tracking comment keeps the
-            // human trace: requester, pipeline, image, deploy run).
-            const url = `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`;
+            // /status Version field: for a PR deploy the link points at the
+            // deployment comment that triggered it (the tracking comment
+            // keeps the human trace: requester, pipeline, image, deploy run).
+            const url = "${{ steps.acknowledge.outputs.permalink }}";
             let base;
             try {
               base = (await github.rest.repos.getContent({ owner, repo, path, ref: branch })).data;
@@ -213,13 +213,17 @@ jobs:
               `image: ${image}`,
               `version_label: ${label}`,
               `deploy_url: ${url}`,
+              `deploy_kind: pr`,
+              `deploy_ref: ${pr}`,
+              `deploy_tree_url: https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
+              `deploy_ts: ${Math.floor(Date.now() / 1000)}`,
               `deployed_by: ${{ github.event.comment.user.login }} (/deploy-test)`,
               `deployed_at: "${new Date().toISOString()}"`,
               `source: ${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
               ""].join("\n");
             const commit = await github.rest.repos.createOrUpdateFileContents({
               owner, repo, path, branch,
-              message: `deploy(test): pin ${label} (${url})`,
+              message: `deploy(test): pin ${label} (PR #${pr}, commit ${sha.slice(0, 7)})`,
               content: Buffer.from(state).toString("base64"),
               sha: base.sha,
             });
