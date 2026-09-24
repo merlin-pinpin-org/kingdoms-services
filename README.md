@@ -33,6 +33,22 @@ deployed.
 - Only repository collaborators with write access may use it; fork PRs are
   rejected.
 
+## Releasing and deploying to production
+
+Production never deploys a pull request: it runs released `vX.Y.Z`
+images only. The flow is:
+
+1. Tag `vX.Y.Z` on `main` (the `release-tags` ruleset authorizes the
+   classifiers, e.g. `v0.1.0-rc1`). The [docker](.github/workflows/docker.yml)
+   workflow builds and publishes `ghcr.io/merlin-pinpin-org/kingdoms-services:vX.Y.Z`.
+2. The release image is pinned on the kingdoms-infra state branch
+   `deploy/prod` (Pin state workflow, PR-merged pin on the protected
+   state branch). The push triggers the Deploy environment workflow,
+   which waits for the `prod` environment reviewers, then deploys on
+   the `env-prod` runner with the pre-deploy backup and health gate.
+3. `/status` on Discord shows the Release line (GitHub release link +
+   tree) and the prod Deployment run.
+
 ## Rules
 
 See [AGENTS.md](AGENTS.md) (agent rules) and the
