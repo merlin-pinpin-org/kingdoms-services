@@ -166,6 +166,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # gh release requires a git repository (it reads the tag from the
+      # local refs) — check out the tag first.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
       # The GitHub release is created by CI (contents: write), not by the
       # agent session: release creation is a mutating call the session
       # cannot perform. --generate-notes builds the changelog from the PRs.
