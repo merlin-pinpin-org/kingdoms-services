@@ -171,6 +171,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+          # The notes script compares the merged PRs against the previous
+          # release tag — fetch the tags, or the shallow checkout sees none
+          # and every release looks like the first one.
+          fetch-depth: 0
       # The GitHub release is created by CI (contents: write), not by the
       # agent session: release creation is a mutating call the session
       # cannot perform. scripts/release_notes.sh builds the changelog.
