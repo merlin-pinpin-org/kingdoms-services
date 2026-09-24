@@ -200,6 +200,9 @@ jobs:
             const timestamp = "${{ steps.stamp.outputs.timestamp }}";
             // The pushed image tag (Build and push step) uses the FULL sha —
             // the state must pin exactly that tag or the deploy pull fails.
+            // The client_payload is capped at 10 properties by the GitHub
+            // API, so deploy_ts is stamped by the Pin state workflow
+            // itself, not passed here.
             const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:pr-${pr}-${timestamp}-${sha}`;
             const label = `pr-${pr}-${timestamp}-${sha.slice(0, 7)}`;
             await github.rest.repos.createDispatchEvent({
@@ -218,7 +221,6 @@ jobs:
                 deploy_kind: "pr",
                 deploy_ref: String(pr),
                 deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
-                deploy_ts: String(Math.floor(Date.now() / 1000)),
                 deployed_by: `${context.payload.comment.user.login} (/deploy-test)`,
                 source: `${{ steps.acknowledge.outputs.permalink }} (commit ${sha.slice(0, 7)})`,
                 message: `deploy(test): pin ${label} (PR #${pr}, commit ${sha.slice(0, 7)})`,
