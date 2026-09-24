@@ -51,6 +51,8 @@ images only. The flow is:
 
 ## Rules
 
-See [AGENTS.md](AGENTS.md) (agent rules) and the
+See [docs/DEVELOPER.md](docs/DEVELOPER.md) (developer guide: toolchain,
+architecture rules, testing), [AGENTS.md](AGENTS.md) (agent entry
+points) and the
 [operating model](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
 in the `kingdoms` repo.

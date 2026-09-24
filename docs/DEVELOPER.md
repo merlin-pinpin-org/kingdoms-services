@@ -1,0 +1,93 @@
+# kingdoms-services — developer guide
+
+`kingdoms-services` holds all the Python code of the Kingdoms Discord bot
+platform: the platform-agnostic core, the Discord platform implementation
+(discord.py), the mods, and the YAML configs.
+
+Read the shared
+[conventions](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/CONVENTIONS.md)
+and the
+[operating model](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/VIBEWORKFLOW.md)
+in the `kingdoms` repo. This page covers what is specific to working *in
+this repo*.
+
+## Layout
+
+| Path | Content |
+| ---- | ------- |
+| `AGENTS.md` | Short agent entry point (points here) |
+| `src/kingdoms/core/` | Platform-agnostic core — **no discord.py imports** |
+| `src/kingdoms/discord/` | Discord platform (implements `IPlatform`) |
+| `src/kingdoms/mods/` | Mods (channels categories and roles declared via `ModRegistry`) |
+| `config/` | YAML configs, `config/locales/` (i18n), `config/mods/` |
+| `docs/DEVELOPMENT/pydoc/` | Generated technical docs — regenerate with `make docs` (freshness-checked on every PR) |
+| `tests/` | Unit + integration tests, `tests/mocks/` (MockDiscord) |
+| `Makefile` | `make lint`, `make typecheck`, `make test`, `make docs` |
+
+## Toolchain
+
+Python 3.12, type hints everywhere, `ruff` + `mypy` clean. Daily workflow
+uses **Makefile tasks** (`make lint`, `make typecheck`, `make test`,
+`make docs`), not ad-hoc Python scripts. Anyone can run them with a public
+clone — no credentials, no Discord token, no external services; keep it
+that way. Run `make lint` and `make test` before pushing; all tests must
+pass.
+
+## Architecture rules
+
+- The core (`src/kingdoms/core/`) is **platform-agnostic**: no discord.py
+  imports in core. Discord code lives in `src/kingdoms/discord/` and
+  implements `IPlatform`.
+- All user-facing strings go through the **i18n system**: English default
+  (`config/locales/en.yaml`), French available (`config/locales/fr.yaml`).
+  Never hardcode user-facing text.
+- Mods declare their channel categories and roles via **`ModRegistry`**;
+  they never create channels/roles directly. Mods and game providers
+  reference **logical role keys**, never hardcoded Discord role IDs.
+- Custom IDs follow the convention `<mod>:<component>:<payload>` (see the
+  kingdoms Discord components guide).
+- Every mod or game provider added here must have its documentation
+  updated in `kingdoms` (source of truth), including
+  `docs/MODS/<mod-name>/`.
+
+## Testing rules
+
+Full strategy:
+[kingdoms/docs/architecture/testing.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/architecture/testing.md)
+(hybrid pyramid). The short version — use the **right double for the right
+depth**:
+
+- **No Discord at all** for core tests (`src/kingdoms/core/` is
+  platform-agnostic; use plain fixtures, in-memory stores).
+- **MockDiscord** (`tests/mocks/discord_mock.py`) for adapter and
+  UI-builder unit tests: mock objects subclassing the real discord.py
+  classes, recording both UI surfaces per ADR-0009.
+- **SimCord** (dev-dependency `simcord[pytest]`, behavioral journeys in
+  `tests/integration/test_simcord_journeys.py`) for anything that depends
+  on discord.py dispatch: slash commands, buttons, selects, modals,
+  permissions, view timeouts, Components V2. The shared `simcord_bot`
+  fixture (`tests/conftest.py`) builds the real bot via the production
+  factory `create_bot()` — journeys exercise the actual dispatch, tree and
+  wiring. Drive the bot as a user (`alice.slash()`, `alice.click()`,
+  `alice.submit_modal()`), never call a command callback directly. No
+  token, no network, no sleeps — `env.advance_time()` fires timeouts.
+- Never use `MagicMock` as a substitute for Discord permissions or cache
+  state; never call `bot.run()` in a test.
+- Anything that cannot run in the dev sandbox (Docker Compose boot, image
+  build, real MongoDB/Redis, entrypoint/preflight paths) is exercised by
+  CI workflows instead.
+
+## Deploying
+
+- **Pull request**: post `/deploy [env]` as a comment on the PR (defaults
+  to `test`; `prod` is rejected — released images only). The workflow
+  builds the PR head, pushes the image `pr-<id>-<timestamp>-<sha7>` to
+  GHCR, pins it on the kingdoms-infra state branch `deploy/<env>` and
+  deploys it on that environment's runner; the tracking comment on the PR
+  follows the deployment. Only collaborators with write access; fork PRs
+  rejected. Details in the [README](../README.md).
+- **Production**: released `vX.Y.Z` images only, pinned on `deploy/prod`
+  by the release pipeline — see the README "Releasing and deploying to
+  production" section.
+- User-facing changes are validated live on `test` before their PR is
+  marked ready (shared convention).
