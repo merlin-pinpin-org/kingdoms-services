@@ -35,6 +35,11 @@ core services, Discord platform implementation, mods, YAML configs.
 - **Anyone can run the tests locally**: `make lint`, `make typecheck` and
   `make test` require only a public clone — no credentials, no Discord
   token, no external services. Keep it that way.
+- **Validate a user-facing change in Discord before asking for a merge:**
+  deploy the PR to the test environment (the `/deploy` PR comment) and
+  let the human check the live behavior in Discord first; only then ask
+  for the merge. Never present a PR as ready to merge while its live
+  validation is still pending.
 - Authorized contributors (per the GitHub environment protection rules)
   can deploy to the **test** environment; higher environments are gated
   by their own deployment triggers.
