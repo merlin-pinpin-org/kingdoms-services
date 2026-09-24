@@ -267,7 +267,9 @@ jobs:
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
             const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
-            const findDeadline = Date.now() + 15 * 60 * 1000;
+            // The Pin state run may queue behind a sync (shared deploy-state
+            // concurrency group) — allow up to 30 minutes before giving up.
+            const findDeadline = Date.now() + 30 * 60 * 1000;
             let stateCommit = null;
             while (Date.now() < findDeadline && !stateCommit) {
               const { data: commits } = await github.rest.repos.listCommits({
@@ -281,7 +283,7 @@ jobs:
               if (!stateCommit) await new Promise((r) => setTimeout(r, 20000));
             }
             if (!stateCommit) {
-              core.setFailed("the pin never landed on deploy/test (15 min deadline) — check the kingdoms-infra Pin state workflow run");
+              core.setFailed("the pin never landed on deploy/test (30 min deadline) — check the kingdoms-infra Pin state workflow run");
               return;
             }
             const stateSha = stateCommit.sha;
