@@ -266,7 +266,9 @@ jobs:
             const infraOwner = "merlin-pinpin-org", infraRepo = "kingdoms-infra";
             const pr = context.issue.number;
             const sha = "${{ steps.pr.outputs.sha }}";
-            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha}`;
+            // The pin commit message carries the SHORT version label (the
+            // payload's version_label), not the full image tag — match on it.
+            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha.slice(0, 7)}`;
             // The Pin state run may queue behind a sync (shared deploy-state
             // concurrency group) — allow up to 30 minutes before giving up.
             const findDeadline = Date.now() + 30 * 60 * 1000;
