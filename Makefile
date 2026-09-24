@@ -48,3 +48,12 @@ build:
 clean:
 	@docker compose down -v
 	@docker system prune -f
+
+# Release & deploy watching (agent automation)
+# release: cut vX.Y.Z (tag + GitHub release; pre-flight: main clean, green)
+release:
+	@./scripts/release.sh $(TAG)
+
+# watch-deploy: follow a deploy/<env> pin and its deploy run (ENV, LABEL)
+watch-deploy:
+	@./scripts/watch_deploy.sh $(ENV) $(LABEL)

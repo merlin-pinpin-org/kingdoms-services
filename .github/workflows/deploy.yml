@@ -294,66 +294,23 @@ jobs:
               body,
             });
 
+      # Single implementation of the watch-the-pin-then-the-deploy pattern
+      # (scripts/watch_deploy.sh, also used by agent sessions and release.yml).
       - name: Watch the kingdoms-infra deploy run
         id: watch-infra
         if: success()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ steps.app-token.outputs.token }}
-          script: |
-            // The dispatched Pin state workflow on kingdoms-infra commits the
-            // pin on deploy/test (merging main in the same commit); that
-            // push triggers the Deploy test workflow there. First poll the
-            // state branch for OUR pin commit — identified by the unique
-            // image tag in the commit message — to recover the state commit
-            // sha the deploy run will carry. Then watch that exact run.
-            const infraOwner = "merlin-pinpin-org", infraRepo = "kingdoms-infra";
-            const pr = context.issue.number;
-            const sha = "${{ steps.pr.outputs.sha }}";
-            const envName = "${{ steps.env.outputs.name }}";
-            // The pin commit message carries the SHORT version label (the
-            // payload's version_label), not the full image tag — match on it.
-            const imageTag = `pr-${pr}-${{ steps.stamp.outputs.timestamp }}-${sha.slice(0, 7)}`;
-            // The Pin state run may queue behind a sync (shared deploy-state
-            // concurrency group) — allow up to 30 minutes before giving up.
-            const findDeadline = Date.now() + 30 * 60 * 1000;
-            let stateCommit = null;
-            while (Date.now() < findDeadline && !stateCommit) {
-              const { data: commits } = await github.rest.repos.listCommits({
-                owner: infraOwner, repo: infraRepo,
-                sha: `deploy/${envName}`,
-                path: `envs/${envName}/state/kingdoms-bot.yml`,
-                per_page: 10,
-              });
-              stateCommit = commits.find((c) => c.commit.message.includes(imageTag)) || null;
-              core.info(`pin commit on deploy/test: ${stateCommit ? stateCommit.sha : "not landed yet"}`);
-              if (!stateCommit) await new Promise((r) => setTimeout(r, 20000));
-            }
-            if (!stateCommit) {
-              core.setFailed(`the pin never landed on deploy/${envName} (30 min deadline) — check the kingdoms-infra Pin state workflow run`);
-              return;
-            }
-            const stateSha = stateCommit.sha;
-            const deadline = Date.now() + 15 * 60 * 1000;
-            let run = null;
-            while (Date.now() < deadline) {
-              const { data: { workflow_runs: runs } } = await github.rest.actions.listWorkflowRuns({
-                owner: infraOwner, repo: infraRepo, workflow_id: "deploy.yml", branch: `deploy/${envName}`, per_page: 5,
-              });
-              // Only the run for the exact pinned state commit is ours: an
-              // older run on the branch (a previous deploy) must not be
-              // picked up while ours has not started yet.
-              run = runs.find((r) => r.head_sha === stateSha) || null;
-              core.info(`infra deploy run: ${run ? run.html_url + " (" + run.status + ")" : "not started yet"}`);
-              if (run && run.status === "completed") break;
-              await new Promise((r) => setTimeout(r, 20000));
-            }
-            if (!run) core.setFailed("the kingdoms-infra deploy run for the pinned state commit never started (15 min deadline)");
-            const runUrl = run ? run.html_url : `${context.serverUrl}/${infraOwner}/${infraRepo}/actions`;
-            const ok = run && run.conclusion === "success";
-            core.setOutput("run_url", runUrl);
-            core.setOutput("ok", ok ? "true" : "false");
-            if (!ok) core.setFailed(`the kingdoms-infra deploy run did not succeed: ${runUrl}`);
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          label="${{ steps.label.outputs.tag }}"
+          scripts/watch_deploy.sh "${{ steps.env.outputs.name }}" "$label"
+          run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions"
+          # recover the deploy run URL for the tracking comment
+          state_sha="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/commits?sha=deploy/${{ steps.env.outputs.name }}&path=envs/${{ steps.env.outputs.name }}/state/kingdoms-bot.yml&per_page=1" --jq '.[0].sha')"
+          run_id="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/workflows/deploy.yml/runs?branch=deploy/${{ steps.env.outputs.name }}&per_page=5" --jq ".workflow_runs[] | select(.head_sha == \"${state_sha}\") | .id" | head -1)"
+          [[ -n "$run_id" ]] && run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/${run_id}"
+          echo "run_url=${run_url}" >> "$GITHUB_OUTPUT"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
 
       - name: Update the tracking comment — deployed
         if: success()
