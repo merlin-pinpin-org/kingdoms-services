@@ -18,6 +18,21 @@ Python code for the Kingdoms Discord bot platform.
   The former `roadmap-ping.yml`/`dependencies-ping.yml` dispatch pings and
   the `ROADMAP_DISPATCH_PAT` secret are no longer used and can be deleted.
 
+## Deploying a pull request
+
+Post `/deploy` (or `/deploy <env>`) as a comment on a pull request of this
+repository to build the PR head, push the image to GHCR
+(`pr-<id>-<timestamp>-<sha7>`), pin it on the kingdoms-infra state branch
+`deploy/<env>` and deploy it on that environment's runner — the tracking
+comment on the PR follows the deployment through building → deploying →
+deployed.
+
+- The environment defaults to `test`; any non-protected environment works
+  (validated against the `envs/` directory of kingdoms-infra).
+- `prod` never deploys a PR: it pins released `vX.Y.Z` images only.
+- Only repository collaborators with write access may use it; fork PRs are
+  rejected.
+
 ## Rules
 
 See [AGENTS.md](AGENTS.md) (agent rules) and the
