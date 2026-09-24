@@ -362,6 +362,39 @@ def test_format_services_section_appends_the_pinned_image() -> None:
     assert result == (version_line + f"\nImage [pr-12-20260923-abcdef0]({package})")
 
 
+def test_format_services_section_pr_renders_the_commit_line() -> None:
+    from kingdoms.discord.status import format_services_section
+
+    sha = "a10cdc793c7cb3be43d51464078225250f3ffabd"
+    tree_url = f"https://github.com/merlin-pinpin-org/kingdoms-services/tree/{sha}"
+    version_line = '[Pull-request #12 "Add the ping command"](https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1)'
+    result = format_services_section(
+        version_line,
+        "",
+        kind="pr",
+        branch="vibe/ping-19c915",
+        tree_url=tree_url,
+        ts="1727100000",
+    )
+    repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
+    assert "Commit [a10cdc7]" in result
+    assert f"[a10cdc7]({repo}/commit/{sha})" in result
+    assert f"([tree]({tree_url}))" in result
+    assert "<t:1727100000:R>" in result
+    assert result.index("Branch [vibe/ping-19c915]") < result.index("Commit [a10cdc7]")
+    assert result.index("Commit [a10cdc7]") < result.index("Pull-request #12")
+
+
+def test_format_services_section_main_keeps_no_duplicate_commit_line() -> None:
+    from kingdoms.discord.status import format_services_section
+
+    # kind=main: the version line already IS the commit line.
+    tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
+    version_line = "[Commit abcdef0](x) [tree](y) <t:1:R>"
+    result = format_services_section(version_line, "", kind="main", tree_url=tree_url)
+    assert result.count("Commit ") == 1
+
+
 def test_format_services_section_without_image_keeps_the_version_line() -> None:
     from kingdoms.discord.status import format_services_section
 
