@@ -119,6 +119,24 @@ def status_uptime(report: dict[str, object]) -> float:
     return float(report["uptime_seconds"])  # type: ignore[arg-type]
 
 
+def _pr_commit_line(tree_url: str, ts: str) -> str:
+    """Commit line for a PR deploy, parsed from the tree URL.
+
+    The PR pin payload carries the full head sha only inside the tree
+    URL (the client_payload is capped at 10 properties): the commit sha
+    is its last path segment. The line links the short sha to the commit
+    and the tree, with the deploy's relative timestamp.
+    """
+    sha = tree_url.rstrip("/").rsplit("/", 1)[-1]
+    if not sha:
+        return ""
+    repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
+    line = f"Commit [{sha[:7]}]({repo}/commit/{sha}) ([tree]({tree_url}))"
+    if ts.strip().isdigit():
+        line = f"{line} <t:{ts.strip()}:R>"
+    return line
+
+
 def format_services_section(
     version: str,
     image: str = "",
@@ -135,14 +153,19 @@ def format_services_section(
     line (Commit + tree / Release + tree / the triggering Pull-request,
     already rendered by format_version), then the pinned docker image
     (label links to the GHCR package page) with a relative timestamp.
-    Falls back to the untyped single-line render when the pipeline
-    provides no typed links.
+    A PR deploy also renders its commit line (the PR head sha) between
+    the Branch and Pull-request lines. Falls back to the untyped
+    single-line render when the pipeline provides no typed links.
     """
     lines: list[str] = []
     if branch:
         repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
         tree_part = f" ([tree]({tree_url}))" if tree_url else ""
         lines.append(f"Branch [{branch}]({repo}/tree/{branch}){tree_part}")
+    if kind == "pr" and tree_url:
+        commit_line = _pr_commit_line(tree_url, ts)
+        if commit_line:
+            lines.append(commit_line)
     lines.append(version)
     if image:
         label = image.rsplit(":", 1)[-1] if ":" in image else image
