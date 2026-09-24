@@ -267,11 +267,15 @@ jobs:
               const { data: { workflow_runs: runs } } = await github.rest.actions.listWorkflowRuns({
                 owner: infraOwner, repo: infraRepo, workflow_id: "deploy-test.yml", branch: "deploy/test", per_page: 5,
               });
-              run = runs.find((r) => r.head_sha === stateCommit) || runs[0];
+              // Only the run for the exact pinned state commit is ours: an
+              // older run on the branch (a previous deploy) must not be
+              // picked up while ours has not started yet.
+              run = runs.find((r) => r.head_sha === stateCommit) || null;
               core.info(`infra deploy run: ${run ? run.html_url + " (" + run.status + ")" : "not started yet"}`);
               if (run && run.status === "completed") break;
               await new Promise((r) => setTimeout(r, 20000));
             }
+            if (!run) core.setFailed("the kingdoms-infra deploy run for the pinned state commit never started (15 min deadline)");
             const runUrl = run ? run.html_url : `${context.serverUrl}/${infraOwner}/${infraRepo}/actions`;
             const ok = run && run.conclusion === "success";
             core.setOutput("run_url", runUrl);
