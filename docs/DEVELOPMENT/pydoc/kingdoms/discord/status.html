@@ -42,21 +42,25 @@ kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
 Slash&nbsp;commands&nbsp;grouped&nbsp;by&nbsp;their&nbsp;owning&nbsp;group&nbsp;(the&nbsp;closest&nbsp;equivalent&nbsp;of<br>
 cogs&nbsp;on&nbsp;a&nbsp;bare&nbsp;command&nbsp;tree),&nbsp;then&nbsp;the&nbsp;root-level&nbsp;commands&nbsp;under&nbsp;a<br>
 `core`&nbsp;label.&nbsp;Context&nbsp;menus&nbsp;are&nbsp;not&nbsp;slash&nbsp;commands&nbsp;and&nbsp;are&nbsp;skipped.</span></dd></dl>
- <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Deploy&nbsp;field.<br>
+ <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Infra&nbsp;field:&nbsp;state&nbsp;branch,&nbsp;state&nbsp;commit,&nbsp;deploy&nbsp;run.<br>
 &nbsp;<br>
-Two&nbsp;labeled&nbsp;links&nbsp;when&nbsp;the&nbsp;pipeline&nbsp;provides&nbsp;both:&nbsp;the&nbsp;deployed&nbsp;infra<br>
-state&nbsp;(deploy/&lt;env&gt;@&lt;sha&gt;)&nbsp;and&nbsp;the&nbsp;deployment&nbsp;job&nbsp;(`Deployment&nbsp;#&lt;n&gt;`<br>
-with&nbsp;a&nbsp;relative&nbsp;timestamp&nbsp;when&nbsp;available).&nbsp;Falls&nbsp;back&nbsp;to&nbsp;whichever<br>
-link&nbsp;is&nbsp;available;&nbsp;n/a&nbsp;when&nbsp;it&nbsp;provides&nbsp;none.</span></dd></dl>
+Three&nbsp;lines&nbsp;grouped&nbsp;on&nbsp;the&nbsp;kingdoms-infra&nbsp;repository:&nbsp;the&nbsp;state<br>
+branch&nbsp;(`Branch&nbsp;deploy/&lt;env&gt;`&nbsp;linking&nbsp;the&nbsp;branch,&nbsp;+&nbsp;tree),&nbsp;the<br>
+deployed&nbsp;state&nbsp;commit&nbsp;(`@&lt;sha7&gt;`&nbsp;linking&nbsp;the&nbsp;commit,&nbsp;+&nbsp;tree),&nbsp;and<br>
+the&nbsp;deployment&nbsp;job&nbsp;(`Deployment&nbsp;#&lt;n&gt;`&nbsp;with&nbsp;a&nbsp;relative&nbsp;timestamp<br>
+when&nbsp;available).&nbsp;The&nbsp;infra&nbsp;identity&nbsp;is&nbsp;parsed&nbsp;from&nbsp;the<br>
+`deploy/&lt;env&gt;@&lt;sha7&gt;`&nbsp;label;&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;single&nbsp;labeled&nbsp;link,<br>
+then&nbsp;to&nbsp;the&nbsp;plain&nbsp;deploy&nbsp;link&nbsp;/&nbsp;n/a&nbsp;when&nbsp;nothing&nbsp;is&nbsp;available.</span></dd></dl>
  <dl><dt><a name="-format_latency"><strong>format_latency</strong></a>(latency: 'float | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;gateway&nbsp;latency&nbsp;in&nbsp;milliseconds;&nbsp;n/a&nbsp;when&nbsp;unknown.</span></dd></dl>
- <dl><dt><a name="-format_services_section"><strong>format_services_section</strong></a>(version: 'str', image: 'str' = '', kind: 'str' = '', deploy_url: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Services&nbsp;repo&nbsp;section:&nbsp;version&nbsp;line&nbsp;+&nbsp;docker&nbsp;image&nbsp;line.<br>
+ <dl><dt><a name="-format_services_section"><strong>format_services_section</strong></a>(version: 'str', image: 'str' = '', kind: 'str' = '', deploy_url: 'str' = '', branch: 'str' = '', tree_url: 'str' = '', ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Services&nbsp;repo&nbsp;section,&nbsp;one&nbsp;line&nbsp;per&nbsp;deployed&nbsp;artifact.<br>
 &nbsp;<br>
 Groups&nbsp;the&nbsp;deployed-artifact&nbsp;links&nbsp;by&nbsp;repository&nbsp;(the&nbsp;developer's<br>
-layout):&nbsp;the&nbsp;version&nbsp;line&nbsp;(Pull-request&nbsp;#&lt;n&gt;&nbsp;/&nbsp;Commit&nbsp;+&nbsp;tree&nbsp;/<br>
-Release&nbsp;vX.Y.Z,&nbsp;already&nbsp;rendered&nbsp;by&nbsp;format_version),&nbsp;then&nbsp;the&nbsp;pinned<br>
-docker&nbsp;image&nbsp;(label&nbsp;links&nbsp;to&nbsp;the&nbsp;GHCR&nbsp;package&nbsp;page).&nbsp;The&nbsp;deploy<br>
-conversation&nbsp;is&nbsp;already&nbsp;part&nbsp;of&nbsp;the&nbsp;version&nbsp;line&nbsp;for&nbsp;typed&nbsp;kinds;&nbsp;the<br>
-untyped&nbsp;fallback&nbsp;keeps&nbsp;a&nbsp;plain&nbsp;link&nbsp;instead&nbsp;of&nbsp;duplicating&nbsp;it.</span></dd></dl>
+layout):&nbsp;Branch&nbsp;&lt;name&gt;&nbsp;(+&nbsp;tree&nbsp;of&nbsp;the&nbsp;deployed&nbsp;commit),&nbsp;the&nbsp;version<br>
+line&nbsp;(Commit&nbsp;+&nbsp;tree&nbsp;/&nbsp;Release&nbsp;+&nbsp;tree&nbsp;/&nbsp;the&nbsp;triggering&nbsp;Pull-request,<br>
+already&nbsp;rendered&nbsp;by&nbsp;format_version),&nbsp;then&nbsp;the&nbsp;pinned&nbsp;docker&nbsp;image<br>
+(label&nbsp;links&nbsp;to&nbsp;the&nbsp;GHCR&nbsp;package&nbsp;page)&nbsp;with&nbsp;a&nbsp;relative&nbsp;timestamp.<br>
+Falls&nbsp;back&nbsp;to&nbsp;the&nbsp;untyped&nbsp;single-line&nbsp;render&nbsp;when&nbsp;the&nbsp;pipeline<br>
+provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
  <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
 </td></tr></table>
