@@ -330,7 +330,7 @@ def test_format_version_main_links_commit_with_relative_time() -> None:
 def test_format_version_release_links_the_release() -> None:
     release_url = "https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.1.0"
     result = format_version("v0.1.0", release_url, kind="release", ref="v0.1.0")
-    assert result == f"[Release v0.1.0]({release_url})"
+    assert result == f"Release [v0.1.0]({release_url})"
 
 
 def test_format_deploy_renders_deployment_number_with_relative_time() -> None:

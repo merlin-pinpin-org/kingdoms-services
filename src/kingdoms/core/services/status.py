@@ -57,8 +57,8 @@ def _format_version_commit(ref: str, label: str, url: str, ts: str) -> str:
 
 
 def _format_version_release(ref: str, label: str, url: str) -> str:
-    """Version for a release deploy: Release vX.Y.Z."""
-    return _link(f"Release {ref or label}", url)
+    """Version for a release deploy: Release vX.Y.Z (only vX.Y.Z links)."""
+    return f"Release {_link(ref or label, url)}"
 
 
 def format_version(
