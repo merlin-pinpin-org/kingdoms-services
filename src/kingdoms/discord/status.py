@@ -84,13 +84,15 @@ def format_deploy(
 ) -> str:
     """Render the Infra field: state branch, state commit, deploy run.
 
-    Three lines grouped on the kingdoms-infra repository: the state
-    branch (`Branch deploy/<env>` linking the branch, + tree), the
-    deployed state commit (`@<sha7>` linking the commit, + tree), and
-    the deployment job (`Deployment #<n>` with a relative timestamp
-    when available). The infra identity is parsed from the
-    `deploy/<env>@<sha7>` label; falls back to a single labeled link,
-    then to the plain deploy link / n/a when nothing is available.
+    Three lines grouped on the kingdoms-infra repository, short labels
+    carrying the links: the state branch (`Branch deploy/<env>`, +
+    tree), the deployed state commit (`Commit <sha7>` linking the
+    commit, + tree — same layout as the Services commit line), and the
+    deployment job (`Deployment #<n>`, only the id links, with a
+    relative timestamp when available). The infra identity is parsed
+    from the `deploy/<env>@<sha7>` label; falls back to a single
+    labeled link, then to the plain deploy link / n/a when nothing is
+    available.
     """
     lines: list[str] = []
     branch, _, sha = deploy_infra_label.partition("@")
@@ -98,12 +100,15 @@ def format_deploy(
         repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
         lines.append(f"Branch [{branch}]({repo}/tree/{branch}) ([tree]({deploy_infra_url}))")
         if sha:
-            lines.append(f"[@{sha}]({repo}/commit/{sha}) ([tree]({deploy_infra_url}))")
+            commit = f"Commit [{sha}]({repo}/commit/{sha})"
+            if deploy_run_ts.strip().isdigit():
+                commit = f"{commit} <t:{deploy_run_ts.strip()}:R>"
+            lines.append(f"{commit} ([tree]({deploy_infra_url}))")
     elif deploy_infra_label and deploy_infra_url:
         lines.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
-        run_text = f"Deployment #{deploy_run_number}" if deploy_run_number else "deploy run"
-        run = f"[{run_text}]({deploy_run_url})"
+        run_id = f"#{deploy_run_number}" if deploy_run_number else "run"
+        run = f"Deployment [{run_id}]({deploy_run_url})"
         if deploy_run_ts.strip().isdigit():
             run = f"{run} <t:{deploy_run_ts.strip()}:R>"
         lines.append(run)

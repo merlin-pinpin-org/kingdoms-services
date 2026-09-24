@@ -44,13 +44,15 @@ cogs&nbsp;on&nbsp;a&nbsp;bare&nbsp;command&nbsp;tree),&nbsp;then&nbsp;the&nbsp;r
 `core`&nbsp;label.&nbsp;Context&nbsp;menus&nbsp;are&nbsp;not&nbsp;slash&nbsp;commands&nbsp;and&nbsp;are&nbsp;skipped.</span></dd></dl>
  <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Infra&nbsp;field:&nbsp;state&nbsp;branch,&nbsp;state&nbsp;commit,&nbsp;deploy&nbsp;run.<br>
 &nbsp;<br>
-Three&nbsp;lines&nbsp;grouped&nbsp;on&nbsp;the&nbsp;kingdoms-infra&nbsp;repository:&nbsp;the&nbsp;state<br>
-branch&nbsp;(`Branch&nbsp;deploy/&lt;env&gt;`&nbsp;linking&nbsp;the&nbsp;branch,&nbsp;+&nbsp;tree),&nbsp;the<br>
-deployed&nbsp;state&nbsp;commit&nbsp;(`@&lt;sha7&gt;`&nbsp;linking&nbsp;the&nbsp;commit,&nbsp;+&nbsp;tree),&nbsp;and<br>
-the&nbsp;deployment&nbsp;job&nbsp;(`Deployment&nbsp;#&lt;n&gt;`&nbsp;with&nbsp;a&nbsp;relative&nbsp;timestamp<br>
-when&nbsp;available).&nbsp;The&nbsp;infra&nbsp;identity&nbsp;is&nbsp;parsed&nbsp;from&nbsp;the<br>
-`deploy/&lt;env&gt;@&lt;sha7&gt;`&nbsp;label;&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;single&nbsp;labeled&nbsp;link,<br>
-then&nbsp;to&nbsp;the&nbsp;plain&nbsp;deploy&nbsp;link&nbsp;/&nbsp;n/a&nbsp;when&nbsp;nothing&nbsp;is&nbsp;available.</span></dd></dl>
+Three&nbsp;lines&nbsp;grouped&nbsp;on&nbsp;the&nbsp;kingdoms-infra&nbsp;repository,&nbsp;short&nbsp;labels<br>
+carrying&nbsp;the&nbsp;links:&nbsp;the&nbsp;state&nbsp;branch&nbsp;(`Branch&nbsp;deploy/&lt;env&gt;`,&nbsp;+<br>
+tree),&nbsp;the&nbsp;deployed&nbsp;state&nbsp;commit&nbsp;(`Commit&nbsp;&lt;sha7&gt;`&nbsp;linking&nbsp;the<br>
+commit,&nbsp;+&nbsp;tree&nbsp;—&nbsp;same&nbsp;layout&nbsp;as&nbsp;the&nbsp;Services&nbsp;commit&nbsp;line),&nbsp;and&nbsp;the<br>
+deployment&nbsp;job&nbsp;(`Deployment&nbsp;#&lt;n&gt;`,&nbsp;only&nbsp;the&nbsp;id&nbsp;links,&nbsp;with&nbsp;a<br>
+relative&nbsp;timestamp&nbsp;when&nbsp;available).&nbsp;The&nbsp;infra&nbsp;identity&nbsp;is&nbsp;parsed<br>
+from&nbsp;the&nbsp;`deploy/&lt;env&gt;@&lt;sha7&gt;`&nbsp;label;&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;single<br>
+labeled&nbsp;link,&nbsp;then&nbsp;to&nbsp;the&nbsp;plain&nbsp;deploy&nbsp;link&nbsp;/&nbsp;n/a&nbsp;when&nbsp;nothing&nbsp;is<br>
+available.</span></dd></dl>
  <dl><dt><a name="-format_latency"><strong>format_latency</strong></a>(latency: 'float | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;gateway&nbsp;latency&nbsp;in&nbsp;milliseconds;&nbsp;n/a&nbsp;when&nbsp;unknown.</span></dd></dl>
  <dl><dt><a name="-format_services_section"><strong>format_services_section</strong></a>(version: 'str', image: 'str' = '', kind: 'str' = '', deploy_url: 'str' = '', branch: 'str' = '', tree_url: 'str' = '', ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Services&nbsp;repo&nbsp;section,&nbsp;one&nbsp;line&nbsp;per&nbsp;deployed&nbsp;artifact.<br>
 &nbsp;<br>
