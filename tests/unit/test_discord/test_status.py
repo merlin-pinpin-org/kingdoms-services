@@ -132,8 +132,9 @@ def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
     result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url)
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert result == (
-        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"Commit [9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca)\n"
+        f"Files [9691aca]({infra_url})\n"
         f"Deployment [run]({run_url})"
     )
 
@@ -160,8 +161,9 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     fields = {f.name: f.value for f in embed.fields}
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert fields["Infra"] == (
-        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"Commit [9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca)\n"
+        f"Files [9691aca]({infra_url})\n"
         f"Deployment [run]({run_url})"
     )
 
@@ -319,18 +321,16 @@ def test_format_version_pr_links_the_deployment_comment() -> None:
     assert format_version("pr-78-...", url, kind="pr", ref="78") == f"Pull-request [#78]({url})"
 
 
-def test_format_version_main_links_commit_and_tree_with_relative_time() -> None:
+def test_format_version_main_links_commit_with_relative_time() -> None:
     commit_url = "https://github.com/merlin-pinpin-org/kingdoms-services/commit/abcdef0"
-    tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
-    result = format_version("main@abcdef0", commit_url, kind="main", ref="abcdef0", tree_url=tree_url, ts="1727100000")
-    assert result == (f"[Commit abcdef0]({commit_url}) [tree]({tree_url}) <t:1727100000:R>")
+    result = format_version("main@abcdef0", commit_url, kind="main", ref="abcdef0", ts="1727100000")
+    assert result == f"[Commit abcdef0]({commit_url}) <t:1727100000:R>"
 
 
-def test_format_version_release_links_release_and_tree() -> None:
+def test_format_version_release_links_the_release() -> None:
     release_url = "https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.1.0"
-    tree_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/v0.1.0"
-    result = format_version("v0.1.0", release_url, kind="release", ref="v0.1.0", tree_url=tree_url)
-    assert result == f"[Release v0.1.0]({release_url}) [tree]({tree_url})"
+    result = format_version("v0.1.0", release_url, kind="release", ref="v0.1.0")
+    assert result == f"[Release v0.1.0]({release_url})"
 
 
 def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
@@ -339,8 +339,9 @@ def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000")
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert result == (
-        f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727100000:R> ([tree]({infra_url}))\n"
+        f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727100000:R>\n"
+        f"Files [9691aca]({infra_url})\n"
         f"Deployment [#456]({run_url}) <t:1727100000:R>"
     )
 
@@ -383,7 +384,8 @@ def test_format_services_section_pr_renders_the_commit_line() -> None:
     repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
     assert "Commit [a10cdc7]" in result
     assert f"[a10cdc7]({repo}/commit/{sha})" in result
-    assert f"([tree]({tree_url}))" in result
+    assert f"Files [a10cdc7]({tree_url})" in result
+    assert "([tree](" not in result
     assert "<t:1727100000:R>" in result
     assert result.index("Branch [vibe/ping-19c915]") < result.index("Commit [a10cdc7]")
     assert result.index("Commit [a10cdc7]") < result.index("Pull-request #12")
