@@ -123,7 +123,7 @@ def test_format_admins_flags_missing_bot_admins() -> None:
 def test_format_deploy_prefers_the_deploy_run_link() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
     artifact_url = "https://github.com/merlin-pinpin-org/kingdoms-services/tree/abcdef0"
-    assert format_deploy(run_url, artifact_url) == f"[deploy run]({run_url})"
+    assert format_deploy(run_url, artifact_url) == f"Deployment [run]({run_url})"
 
 
 def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
@@ -133,14 +133,14 @@ def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert result == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
-        f"[deploy run]({run_url})"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"Deployment [run]({run_url})"
     )
 
 
 def test_format_deploy_skips_infra_label_without_url() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
-    assert format_deploy(run_url, "", "deploy/test@9691aca", "") == f"[deploy run]({run_url})"
+    assert format_deploy(run_url, "", "deploy/test@9691aca", "") == f"Deployment [run]({run_url})"
 
 
 def test_format_deploy_falls_back_to_the_artifact_link() -> None:
@@ -161,8 +161,8 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert fields["Infra"] == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
-        f"[deploy run]({run_url})"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
+        f"Deployment [run]({run_url})"
     )
 
 
@@ -307,12 +307,16 @@ def test_format_commands_skips_context_menus() -> None:
 def test_format_version_pr_includes_the_title_when_known() -> None:
     url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1"
     result = format_version("pr-78-...", url, kind="pr", ref="78", pr_title="Add the ping command")
-    assert result == "[Pull-request #78 \u201cAdd the ping command\u201d](https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1)"
+    expected = (
+        "Pull-request [#78]"
+        "(https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1) “Add the ping command”"
+    )
+    assert result == expected
 
 
 def test_format_version_pr_links_the_deployment_comment() -> None:
     url = "https://github.com/merlin-pinpin-org/kingdoms-services/pull/78#issuecomment-1"
-    assert format_version("pr-78-...", url, kind="pr", ref="78") == f"[Pull-request #78]({url})"
+    assert format_version("pr-78-...", url, kind="pr", ref="78") == f"Pull-request [#78]({url})"
 
 
 def test_format_version_main_links_commit_and_tree_with_relative_time() -> None:
@@ -336,8 +340,8 @@ def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert result == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test) ([tree]({infra_url}))\n"
-        f"[@9691aca]({infra_repo}/commit/9691aca) ([tree]({infra_url}))\n"
-        f"[Deployment #456]({run_url}) <t:1727100000:R>"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727100000:R> ([tree]({infra_url}))\n"
+        f"Deployment [#456]({run_url}) <t:1727100000:R>"
     )
 
 
