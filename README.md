@@ -47,9 +47,12 @@ deploy and release workflows use).
 Production never deploys a pull request: it runs released `vX.Y.Z`
 images only. The flow is:
 
-1. Tag `vX.Y.Z` on `main` (the `release-tags` ruleset authorizes the
-   classifiers, e.g. `v0.1.0-rc1`). The [docker](.github/workflows/docker.yml)
-   workflow builds and publishes `ghcr.io/merlin-pinpin-org/kingdoms-services:vX.Y.Z`.
+1. Tag `vX.Y.Z` on `main` (`make release TAG=vX.Y.Z`, or by hand — the
+   `release-tags` ruleset authorizes the classifiers, e.g. `v0.1.0-rc1`).
+   The [docker](.github/workflows/docker.yml) workflow builds and publishes
+   `ghcr.io/merlin-pinpin-org/kingdoms-services:vX.Y.Z` (the image carries
+   the raw tag name — the state branches pin that exact tag), creates the
+   GitHub release with generated notes, and pins the image on `deploy/test`.
 2. The same workflow then pins the released image on the kingdoms-infra state
    branch `deploy/test` (dispatch to the infra `Pin state` workflow,
    kingdoms-deployer App): the release runs on the test environment, where

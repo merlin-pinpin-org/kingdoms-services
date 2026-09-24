@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Cut a release of kingdoms-services (tag vX.Y.Z + GitHub release).
+# Cut a release of kingdoms-services (tag vX.Y.Z).
+#
+# The GitHub release itself is created by the Docker workflow's
+# create-release job (contents: write) — release creation is a mutating
+# call agent sessions cannot perform; CI owns it.
 #
 # Pre-flight (fail-closed):
 #   - the tag matches vX.Y.Z (classifiers allowed, like the release-tags
@@ -13,20 +17,17 @@
 # .github/workflows/docker.yml, ADR-0018).
 #
 # Usage:
-#   scripts/release.sh <vX.Y.Z> [--notes-file <file>]
+#   scripts/release.sh <vX.Y.Z>
 #
-# Requires: gh (authenticated, write on this repo).
+# Requires: git push rights on this repo.
 set -euo pipefail
 
-tag="${1:?usage: release.sh <vX.Y.Z> [--notes-file <file>]}"
+tag="${1:?usage: release.sh <vX.Y.Z>}"
 shift || true
-notes_file=""
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --notes-file) notes_file="$2"; shift 2 ;;
-    *) echo "unknown option: $1" >&2; exit 1 ;;
-  esac
-done
+if [[ $# -gt 0 ]]; then
+  echo "unknown option: $1" >&2
+  exit 1
+fi
 
 if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]]; then
   echo "::error::'$tag' is not a release tag (expected vX.Y.Z, classifiers allowed)" >&2
@@ -64,18 +65,14 @@ if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
   exit 1
 fi
 
-echo "==> Creating tag ${tag}"
+echo "==> Creating and pushing tag ${tag}"
 git tag -a "$tag" -m "Release ${tag}"
+git push origin "$tag"
 
-notes_args=()
-if [[ -n "$notes_file" ]]; then
-  notes_args=(--notes-file "$notes_file")
-else
-  notes_args=(--generate-notes)
-fi
-
-echo "==> Creating the GitHub release (triggers the image build and the deploy/test pin)"
-gh release create "$tag" "${notes_args[@]}" --verify-tag
-echo "==> Release ${tag} created: https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/${tag}"
-echo "    next: the Docker workflow pins ${tag} on deploy/test; validate in Discord,"
-echo "    then run the Promote release workflow (Actions > Promote release > ${tag})."
+echo "==> The Docker workflow now:"
+echo "    - builds and publishes the image (tagged with the raw tag name, vX.Y.Z);"
+echo "    - pins it on kingdoms-infra deploy/test (validation environment);"
+echo "    - creates the GitHub release with generated notes."
+echo "==> Release ${tag}: https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/${tag}"
+echo "    next: validate ${tag} in Discord on the test environment, then run the"
+echo "    Promote release workflow (Actions > Promote release > tag ${tag})."
