@@ -86,13 +86,13 @@ def format_deploy(
 
     Four lines grouped on the kingdoms-infra repository, short labels
     carrying the links: the state branch (`Branch deploy/<env>`), the
-    deployed state commit (`Commit <sha7>` linking the commit), the
-    deployment job (`Deployment #<n>`, only the id links, with a
-    relative timestamp when available), and the Files line (the state
-    tree, labeled by the state sha7). The infra identity is parsed from
-    the `deploy/<env>@<sha7>` label; falls back to a single labeled
-    link, then to the plain deploy link / n/a when nothing is
-    available.
+    deployed state commit (`Commit <sha7>` linking the commit)
+    followed by the Files line (the state tree, labeled by the state
+    sha7), and the deployment job (`Deployment #<n>`, only the id
+    links, with a relative timestamp when available). The infra
+    identity is parsed from the `deploy/<env>@<sha7>` label; falls back
+    to a single labeled link, then to the plain deploy link / n/a when
+    nothing is available.
     """
     lines: list[str] = []
     branch, _, sha = deploy_infra_label.partition("@")
@@ -104,6 +104,7 @@ def format_deploy(
             if deploy_run_ts.strip().isdigit():
                 commit = f"{commit} <t:{deploy_run_ts.strip()}:R>"
             lines.append(commit)
+            lines.append(f"Files [{sha}]({deploy_infra_url})")
     elif deploy_infra_label and deploy_infra_url:
         lines.append(f"[{deploy_infra_label}]({deploy_infra_url})")
     if deploy_run_url:
@@ -112,9 +113,6 @@ def format_deploy(
         if deploy_run_ts.strip().isdigit():
             run = f"{run} <t:{deploy_run_ts.strip()}:R>"
         lines.append(run)
-        if deploy_infra_url:
-            files = f"Files [{sha}]({deploy_infra_url})" if sha else f"Files [tree]({deploy_infra_url})"
-            lines.append(files)
     if lines:
         return "\n".join(lines)
     if deploy_url:
@@ -153,13 +151,13 @@ def format_services_section(
 
     Groups the deployed-artifact links by repository (the developer's
     layout): Branch <name>, the version line (Commit / Release / the
-    triggering Pull-request, already rendered by format_version), the
-    pinned docker image (label links to the GHCR package page) with a
-    relative timestamp, and the Files line (the deployed commit's tree,
-    labeled by its sha7). A PR deploy also renders its commit line (the
-    PR head sha) between the Branch and Pull-request lines. Falls back
-    to the untyped single-line render when the pipeline provides no
-    typed links.
+    triggering Pull-request, already rendered by format_version), and
+    the pinned docker image (label links to the GHCR package page) with
+    a relative timestamp. A PR deploy also renders its commit line (the
+    PR head sha) followed by the Files line (the deployed commit's
+    tree, labeled by its sha7), between the Branch and Pull-request
+    lines. Falls back to the untyped single-line render when the
+    pipeline provides no typed links.
     """
     lines: list[str] = []
     if branch:
@@ -173,6 +171,7 @@ def format_services_section(
             if ts.strip().isdigit():
                 commit = f"{commit} <t:{ts.strip()}:R>"
             lines.append(commit)
+            lines.append(_files_line(tree_url))
     lines.append(version)
     if image:
         label = image.rsplit(":", 1)[-1] if ":" in image else image
@@ -181,10 +180,6 @@ def format_services_section(
         if ts.strip().isdigit():
             image_line = f"{image_line} <t:{ts.strip()}:R>"
         lines.append(image_line)
-    if tree_url:
-        files_line = _files_line(tree_url)
-        if files_line:
-            lines.append(files_line)
     if not kind and deploy_url and deploy_url not in version:
         lines.append(f"[deploy]({deploy_url})")
     return "\n".join(lines)

@@ -134,8 +134,8 @@ def test_format_deploy_shows_infra_state_and_run_when_both_provided() -> None:
     assert result == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
         f"Commit [9691aca]({infra_repo}/commit/9691aca)\n"
-        f"Deployment [run]({run_url})\n"
-        f"Files [9691aca]({infra_url})"
+        f"Files [9691aca]({infra_url})\n"
+        f"Deployment [run]({run_url})"
     )
 
 
@@ -163,8 +163,8 @@ def test_status_embed_deploy_field_reads_status_service() -> None:
     assert fields["Infra"] == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
         f"Commit [9691aca]({infra_repo}/commit/9691aca)\n"
-        f"Deployment [run]({run_url})\n"
-        f"Files [9691aca]({infra_url})"
+        f"Files [9691aca]({infra_url})\n"
+        f"Deployment [run]({run_url})"
     )
 
 
@@ -341,8 +341,8 @@ def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     assert result == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
         f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727100000:R>\n"
-        f"Deployment [#456]({run_url}) <t:1727100000:R>\n"
-        f"Files [9691aca]({infra_url})"
+        f"Files [9691aca]({infra_url})\n"
+        f"Deployment [#456]({run_url}) <t:1727100000:R>"
     )
 
 
