@@ -173,7 +173,7 @@ jobs:
           ref: ${{ github.ref }}
       # The GitHub release is created by CI (contents: write), not by the
       # agent session: release creation is a mutating call the session
-      # cannot perform. --generate-notes builds the changelog from the PRs.
+      # cannot perform. scripts/release_notes.sh builds the changelog.
       - name: Create the release for the tag
         env:
           GH_TOKEN: ${{ github.token }}
@@ -184,4 +184,7 @@ jobs:
             echo "release $TAG already exists — skipping"
             exit 0
           fi
-          gh release create "$TAG" --generate-notes --title "$TAG"
+          # Readable notes (merged PRs since the previous tag) instead of
+          # GitHub's --generate-notes dump (diff stats, commit lists).
+          notes="$(scripts/release_notes.sh "$TAG")"
+          printf '%s' "$notes" | gh release create "$TAG" --notes-file - --title "$TAG"
