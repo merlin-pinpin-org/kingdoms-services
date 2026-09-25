@@ -17,7 +17,7 @@ jobs:
           # by the script itself); it extracts the binary into the given
           # directory, so that directory goes on PATH.
           mkdir -p "$HOME/.local/bin"
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) "$HOME/.local/bin"
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) latest "$HOME/.local/bin"
           "$HOME/.local/bin/actionlint" --version
       - name: Run actionlint
         run: actionlint -color
