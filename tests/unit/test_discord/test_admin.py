@@ -11,7 +11,7 @@ from kingdoms.discord.admin import (
     build_admin_layout,
     register_admin_command,
 )
-from tests.mocks.discord_mock import MockInteraction
+from tests.mocks.discord_mock import MockInteraction, MockUser
 
 
 @pytest.mark.asyncio
@@ -60,22 +60,67 @@ async def test_register_admin_command_adds_command_to_tree() -> None:
 
 @pytest.mark.asyncio
 async def test_admin_command_sends_layout_view() -> None:
+    """A BOT_ADMINS operator receives the Components V2 layout."""
     client = discord.Client(intents=discord.Intents.none())
     tree = discord.app_commands.CommandTree(client)
-    register_admin_command(tree)
+    register_admin_command(tree, bot_admins=("111111111",))
     command = next(c for c in tree.get_commands() if c.name == "admin")
-    interaction = MockInteraction()
+    interaction = MockInteraction(user=MockUser(id=111111111))
     await command._callback(interaction)  # type: ignore[union-attr]
     assert interaction.response.sent is True
     assert interaction.response.ephemeral is True
     message = interaction.response.message
     assert message is not None
     assert isinstance(message.layout, discord.ui.LayoutView)
-    button = next(
-        c for c in message.layout.walk_children() if isinstance(c, discord.ui.Button)
-    )
+    button = next(c for c in message.layout.walk_children() if isinstance(c, discord.ui.Button))
     assert button.custom_id == PING_BUTTON_ID
 
 
 def test_admin_layout_is_a_layoutview_instance() -> None:
     assert isinstance(build_admin_layout(), AdminLayout)
+
+
+@pytest.mark.asyncio
+async def test_admin_command_denies_non_operator() -> None:
+    """A user outside BOT_ADMINS gets an ephemeral access-denied message."""
+    client = discord.Client(intents=discord.Intents.none())
+    tree = discord.app_commands.CommandTree(client)
+    register_admin_command(tree, bot_admins=("111111111",))
+    command = next(c for c in tree.get_commands() if c.name == "admin")
+
+    stranger = MockUser(id=222222222)
+    interaction = MockInteraction(user=stranger)
+    await command._callback(interaction)  # type: ignore[arg-arg]
+
+    assert interaction.response.sent is True
+    assert interaction.response.ephemeral is True
+    assert "not a bot operator" in (interaction.response.message or "").content
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_admin_command_allows_operator() -> None:
+    """A BOT_ADMINS member gets the admin layout view."""
+    client = discord.Client(intents=discord.Intents.none())
+    tree = discord.app_commands.CommandTree(client)
+    register_admin_command(tree, bot_admins=("111111111",))
+    command = next(c for c in tree.get_commands() if c.name == "admin")
+
+    operator = MockUser(id=111111111)
+    interaction = MockInteraction(user=operator)
+    await command._callback(interaction)  # type: ignore[arg-arg]
+
+    assert interaction.response.sent is True
+    assert interaction.response.ephemeral is True
+    assert "not a bot operator" not in (interaction.response.message or "").content
+    await client.close()
+
+
+def test_admin_command_restricts_discord_permissions_by_default() -> None:
+    """The command requires administrator guild permissions by default."""
+    client = discord.Client(intents=discord.Intents.none())
+    tree = discord.app_commands.CommandTree(client)
+    register_admin_command(tree, bot_admins=())
+    command = next(c for c in tree.get_commands() if c.name == "admin")
+    assert command.default_permissions is not None
+    assert command.default_permissions.administrator is True

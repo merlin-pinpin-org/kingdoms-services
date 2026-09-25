@@ -6,6 +6,23 @@ on:
   pull_request:
 
 jobs:
+  actionlint:
+    name: Lint workflows (actionlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actionlint
+        run: |
+          # bash installer from the actionlint releases (checksum-verified
+          # by the script itself); it extracts the binary into the given
+          # directory, so that directory goes on PATH.
+          mkdir -p "$HOME/.local/bin"
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) latest "$HOME/.local/bin"
+          "$HOME/.local/bin/actionlint" --version
+      - name: Run actionlint
+        run: actionlint -color
+      - name: Run the pin-payload cap guard
+        run: ./scripts/check_pin_payloads.sh
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
@@ -56,8 +73,8 @@ jobs:
         run: |
           cp .env.example .env
           docker compose up -d kingdoms-mongo kingdoms-redis
-          timeout 60 bash -c 'until docker compose exec -T kingdoms-mongo mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
-          timeout 60 bash -c 'until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done'
+          timeout 60 bash -c "until docker compose exec -T kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
+          timeout 60 bash -c "until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
           echo "COMPOSE STACK BOOTS OK"
       - name: Tear down
         if: always()
@@ -86,8 +103,8 @@ jobs:
           docker run -d --name kingdoms-redis --network kingdoms-ci redis:7.2
       - name: Wait for MongoDB and Redis
         run: |
-          timeout 60 bash -c 'until docker exec kingdoms-mongo mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
-          timeout 60 bash -c 'until docker exec kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done'
+          timeout 60 bash -c "until docker exec kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
+          timeout 60 bash -c "until docker exec kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
       - name: Boot the real bot with the CI/CD token
         env:
           CICD_DISCORD_TOKEN: ${{ secrets.CICD_DISCORD_TOKEN }}
@@ -99,14 +116,14 @@ jobs:
             kingdoms-bot:ci
       - name: Assert the gateway ready signal
         run: |
-          timeout 120 bash -c 'until docker logs kingdoms-bot-smoke 2>&1 | grep -q KINGDOMS_BOT_READY; do
-            if [ "$(docker inspect -f "{{.State.Status}}" kingdoms-bot-smoke)" != "running" ]; then
-              echo "::error::Bot container exited before reaching the gateway ready signal"
+          timeout 120 bash -c "until docker logs kingdoms-bot-smoke 2>&1 | grep -q KINGDOMS_BOT_READY; do
+            if [ \"\$(docker inspect -f '{{.State.Status}}' kingdoms-bot-smoke)\" != running ]; then
+              echo '::error::Bot container exited before reaching the gateway ready signal'
               docker logs kingdoms-bot-smoke
               exit 1
             fi
             sleep 2
-          done'
+          done"
           docker logs kingdoms-bot-smoke 2>&1 | grep KINGDOMS_BOT_READY
           echo "DISCORD GATEWAY READY OK"
       - name: Soak the bot for 60s (no crash loop)
@@ -155,8 +172,8 @@ jobs:
 
       - name: Wait for MongoDB and Redis
         run: |
-          timeout 60 bash -c 'until docker exec kingdoms-mongo mongosh --quiet --eval "db.adminCommand(\"ping\")" | grep -q ok; do sleep 2; done'
-          timeout 60 bash -c 'until docker exec kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done'
+          timeout 60 bash -c "until docker exec kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
+          timeout 60 bash -c "until docker exec kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
 
       - name: Run the smoke test in the bot container
         env:

@@ -17,6 +17,10 @@ container&nbsp;with&nbsp;a&nbsp;text&nbsp;header&nbsp;and&nbsp;a&nbsp;section&nb
 It&nbsp;demonstrates&nbsp;the&nbsp;layout&nbsp;pattern&nbsp;further&nbsp;admin&nbsp;features&nbsp;will&nbsp;reuse<br>
 (section&nbsp;+&nbsp;accessory&nbsp;button,&nbsp;``&lt;mod&gt;:&lt;component&gt;:&lt;payload&gt;``&nbsp;ids).<br>
 &nbsp;<br>
+Access&nbsp;is&nbsp;restricted&nbsp;to&nbsp;bot&nbsp;operators&nbsp;(``BOT_ADMINS``):&nbsp;the&nbsp;panel&nbsp;is<br>
+ephemeral,&nbsp;but&nbsp;the&nbsp;commands&nbsp;that&nbsp;will&nbsp;land&nbsp;here&nbsp;are&nbsp;operational&nbsp;—&nbsp;the<br>
+gate&nbsp;is&nbsp;in&nbsp;place&nbsp;before&nbsp;they&nbsp;do,&nbsp;not&nbsp;after.<br>
+&nbsp;<br>
 Reference:&nbsp;kingdoms-services#102.</span></p>
 <p>
 <table class="section">
@@ -26,7 +30,8 @@ Reference:&nbsp;kingdoms-services#102.</span></p>
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
 </td><td class="multicolumn"><a href="discord.html">discord</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -287,12 +292,18 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_admin_layout"><strong>build_admin_layout</strong></a>() -&gt; 'AdminLayout'</dt><dd><span class="code">Build&nbsp;the&nbsp;/admin&nbsp;layout&nbsp;(standalone&nbsp;for&nbsp;tests).</span></dd></dl>
- <dl><dt><a name="-register_admin_command"><strong>register_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/admin&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
+ <dl><dt><a name="-register_admin_command"><strong>register_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/admin&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+&nbsp;<br>
+``bot_admins``&nbsp;is&nbsp;the&nbsp;parsed&nbsp;BOT_ADMINS&nbsp;operator&nbsp;ids&nbsp;(StatusService).<br>
+The&nbsp;command&nbsp;answers&nbsp;only&nbsp;to&nbsp;bot&nbsp;operators&nbsp;(``BOT_ADMINS``);&nbsp;anyone<br>
+else&nbsp;gets&nbsp;an&nbsp;ephemeral&nbsp;access-denied&nbsp;message&nbsp;—&nbsp;the&nbsp;panel&nbsp;contents&nbsp;are<br>
+operational&nbsp;and&nbsp;further&nbsp;admin&nbsp;features&nbsp;will&nbsp;reuse&nbsp;this&nbsp;gate.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>PING_BUTTON_ID</strong> = 'admin:button:ping'</td></tr></table>
+<td class="singlecolumn"><strong>PING_BUTTON_ID</strong> = 'admin:button:ping'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.admin (WARNING)&gt;</td></tr></table>
 </body></html>
