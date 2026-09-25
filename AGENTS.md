@@ -45,6 +45,11 @@ mods, YAML configs.
   `owner/repo#N` (e.g. `merlin-pinpin-org/kingdoms-infra#78`) — a bare
   `repo#N` renders as plain text; never write it. See CONVENTIONS.md,
   *Documentation is part of the change*.
+- **Enrich the docs and skills proactively** (developer-mandated): when
+  the session's work teaches a rule, pitfall or pattern, update the
+  matching skill page, convention or AGENTS.md entry as part of the
+  change — see the kingdoms CONVENTIONS.md
+  (*Documentation is part of the change*).
 - **Automation mandate:** no one-off commands, for humans or sessions —
   every recurring operation is a committed Makefile target, script or
   workflow, and a useful improvised command is committed ("learned").
