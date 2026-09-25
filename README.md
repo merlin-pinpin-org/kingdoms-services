@@ -3,6 +3,34 @@
 Core bot, Discord implementation, shared utilities, and YAML configs. All
 Python code for the Kingdoms Discord bot platform.
 
+## Quickstart (no AI agent needed)
+
+Prerequisites: Python 3.12, [`uv`](https://docs.astral.sh/uv/), Docker
+(optionally, for the local compose stack).
+
+```bash
+git clone https://github.com/merlin-pinpin-org/kingdoms-services.git
+cd kingdoms-services
+make setup      # uv sync — venv + dependencies
+make lint       # ruff
+make typecheck  # mypy strict
+make test       # pytest — no token, no network, no Docker needed
+```
+
+To run the bot locally with MongoDB and Redis:
+
+```bash
+cp .env.example .env   # fill in DISCORD_TOKEN (never commit it)
+make dev-up             # bot + MongoDB + Redis via docker compose
+make dev-logs           # follow the logs
+make dev-down           # stop
+```
+
+The bot serves `http://localhost:8000/healthz`. Unit and integration
+tests (MockDiscord, SimCord) never need a Discord token or network —
+see [docs/DEVELOPER.md](docs/DEVELOPER.md) and
+[CONTRIBUTING.md](CONTRIBUTING.md) for the full guides.
+
 ## Automation
 
 - **Auto-triage** (`.github/workflows/auto-triage.yml`): assigns, labels and
