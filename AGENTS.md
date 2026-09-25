@@ -32,3 +32,11 @@ mods, YAML configs.
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /
   `## Acceptance criteria` / `## Dependencies` (blank issues disabled).
+- **Automation mandate:** no one-off commands, for humans or sessions —
+  every recurring operation is a committed Makefile target, script or
+  workflow, and a useful improvised command is committed ("learned").
+  Humans on GitHub only merge PRs and approve prod deploys
+  (+ one-time bootstrapping) — see the kingdoms
+  [Automate or learn](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/automate-or-learn.md)
+  skill and CONVENTIONS.md (*Human GitHub scope*, *Everything is
+  automation*).
