@@ -62,6 +62,11 @@ class FakeLogsPlatform:
         self.sent: list[tuple[str, str]] = []
         self.embeds: list[tuple[str, Any]] = []
         self.exists_calls = 0
+        self.adoptable: set[str] = set()
+
+    async def find_logs_channel(self, guild_id: str) -> str | None:
+        adopted = sorted(self.adoptable & self.live_channels)
+        return adopted[0] if adopted else None
 
     async def create_logs_channel(self, guild_id: str) -> str:
         channel_id = str(self.next_channel_id)
@@ -121,6 +126,24 @@ async def test_first_resolution_creates_admin_only_channel(
     assert persisted_policy is not None
     assert persisted_policy["default"] == "admin_only"
     assert persisted_policy["roles_with_view"] == []
+
+
+@pytest.mark.asyncio
+async def test_existing_channel_is_adopted_not_duplicated(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """A pre-existing logs channel with no DB record is adopted, not duplicated.
+
+    This is the CI/CD-bot scenario: a fresh ephemeral MongoDB with an
+    existing guild must never create a second 🤖-bot-logs channel.
+    """
+    platform.live_channels.add("999")
+    platform.adoptable.add("999")
+    channel_id = await service.resolve_channel(GUILD)
+    assert channel_id == "999"
+    assert platform.default_policy_applied == []
+    stored = database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"]
+    assert stored.channel_id == "999"
 
 
 @pytest.mark.asyncio

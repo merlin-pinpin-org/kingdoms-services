@@ -60,8 +60,10 @@ crashes, start/stop/restart. The design (kingdoms-services#109):
   carry an emoji prefix followed by a dash, e.g. `🤖-bot-logs`.
 - **Resolution is cache-aside** (`LogService.resolve_channel`):
   Redis → MongoDB (`channels` collection, `_id` is
-  `guild_id:category`) → creation. Deleted channels are detected and
-  reprovisioned.
+  `guild_id:category`) → **adoption** (an existing `🤖-bot-logs`
+  channel found by name is reused — the CI/CD bot's ephemeral
+  database never duplicates channels) → creation. Deleted channels
+  are detected and reprovisioned.
 - **Admin-only by default**: @everyone is denied view/send at creation,
   the bot self-allows, and guild admins (plus `BOT_ADMINS`) manage access
   through `/admin` — per-guild policies persist in the

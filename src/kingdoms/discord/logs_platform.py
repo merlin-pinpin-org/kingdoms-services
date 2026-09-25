@@ -84,6 +84,16 @@ class DiscordLogsPlatform:
                 return None
         return guild
 
+    async def find_logs_channel(self, guild_id: str) -> str | None:
+        """Find an existing 🤖-bot-logs channel by name (adoption)."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return None
+        for channel in guild.text_channels:
+            if channel.name == BOT_LOGS_CHANNEL_NAME:
+                return str(channel.id)
+        return None
+
     async def create_logs_channel(self, guild_id: str) -> str:
         """Create the 🤖-bot-logs text channel in the guild."""
         guild = await self._guild(guild_id)

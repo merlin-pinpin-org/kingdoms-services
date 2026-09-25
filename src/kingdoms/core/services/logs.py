@@ -76,6 +76,10 @@ class LogsDatabase(Protocol):
 class LogsPlatform(Protocol):
     """Narrow platform seam: creation, permissions, sending."""
 
+    async def find_logs_channel(self, guild_id: str) -> str | None:
+        """Find an existing logs channel by name; None when there is none."""
+        ...
+
     async def create_logs_channel(self, guild_id: str) -> str:
         """Create the logs channel; return its id."""
         ...
@@ -145,6 +149,20 @@ class LogService:
                 await self._cache(guild_id, stored.channel_id)
                 return stored.channel_id
             await self._db.delete_channel(guild_id, BOT_LOGS_CATEGORY)
+        adopted = await self._safe_find_channel(guild_id)
+        if adopted is not None:
+            await self._db.upsert_channel(
+                ChannelModel(
+                    _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
+                    guild_id=guild_id,
+                    platform="discord",
+                    category=BOT_LOGS_CATEGORY,
+                    channel_id=adopted,
+                    name=BOT_LOGS_CHANNEL_NAME,
+                )
+            )
+            await self._cache(guild_id, adopted)
+            return adopted
         channel_id = await self._platform.create_logs_channel(guild_id)
         await self._platform.apply_default_policy(guild_id, channel_id)
         await self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
@@ -227,6 +245,13 @@ class LogService:
                 "channels", self._cache_key(guild_id), {"channel_id": channel_id}, ttl=CACHE_TTL_SECONDS
             )
         )
+
+    async def _safe_find_channel(self, guild_id: str) -> str | None:
+        """Find an existing logs channel by name, degrading to None on failure."""
+        try:
+            return await self._platform.find_logs_channel(guild_id)
+        except Exception:
+            return None
 
     async def _drop_caches(self, guild_id: str) -> None:
         await self._safe(self._state.delete_state("channels", self._cache_key(guild_id)))

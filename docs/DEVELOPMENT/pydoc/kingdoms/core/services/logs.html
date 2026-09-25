@@ -243,6 +243,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="LogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;logs&nbsp;channel&nbsp;by&nbsp;name;&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;none.</span></dd></dl>
+
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', embed: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(embed&nbsp;optional).</span></dd></dl>
@@ -267,7 +269,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'channel_exists', 'create_logs_channel', 'grant_role_view', 'send_log_message'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', 'send_log_message'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

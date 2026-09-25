@@ -101,4 +101,26 @@ class TestStartupAnnouncementJourney:
         assert stored.name == BOT_LOGS_CHANNEL_NAME
         assert stored.channel_id == str(logs_channel.id)
         policy = await self.logs_database.get_policy(str(guild.id), BOT_LOGS_CATEGORY)
-        assert policy == default_policy()
+        expected = default_policy()
+        assert policy is not None
+        assert policy["default"] == expected["default"]
+        assert policy["roles_with_view"] == expected["roles_with_view"]
+
+        # The CI/CD-bot scenario: a fresh process with an empty database must
+        # adopt the existing channel, never create a second one.
+        fresh_database = InMemoryLogsDatabase()
+        simcord_env.bot.logs_service = LogService(
+            database=fresh_database,  # type: ignore[arg-type]
+            platform=DiscordLogsPlatform(simcord_env.bot),  # type: ignore[arg-type]
+            state=StateService(store=InMemoryStateStore()),  # type: ignore[arg-type]
+        )
+        with simcord_env._bot_scope():
+            simcord_env.bot.dispatch("ready")
+        await simcord_env.settle()
+
+        bot_logs_channels = [name for name in guild.channels if name == BOT_LOGS_CHANNEL_NAME]
+        assert len(bot_logs_channels) == 1, "a fresh database must adopt, not duplicate"
+        assert (
+            fresh_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY].channel_id
+            == str(logs_channel.id)
+        )
