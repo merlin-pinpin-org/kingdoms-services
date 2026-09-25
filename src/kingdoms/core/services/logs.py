@@ -141,6 +141,7 @@ class LogService:
             await self._db.delete_channel(guild_id, BOT_LOGS_CATEGORY)
         channel_id = await self._platform.create_logs_channel(guild_id)
         await self._platform.apply_default_policy(guild_id, channel_id)
+        await self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
         await self._db.upsert_channel(
             ChannelModel(
                 _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",

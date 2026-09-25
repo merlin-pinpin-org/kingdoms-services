@@ -115,6 +115,10 @@ async def test_first_resolution_creates_admin_only_channel(
     assert stored.channel_id == channel_id
     assert stored.name == BOT_LOGS_CHANNEL_NAME
     assert stored.category == BOT_LOGS_CATEGORY
+    persisted_policy = await database.get_policy(GUILD, BOT_LOGS_CATEGORY)
+    assert persisted_policy is not None
+    assert persisted_policy["default"] == "admin_only"
+    assert persisted_policy["roles_with_view"] == []
 
 
 @pytest.mark.asyncio

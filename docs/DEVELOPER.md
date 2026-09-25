@@ -50,6 +50,30 @@ pass.
   updated in `kingdoms` (source of truth), including
   `docs/MODS/<mod-name>/`.
 
+## Bot logs channel
+
+Every guild gets a dedicated **bot logs channel** (`🤖-bot-logs`) where the
+bot posts its lifecycle events: startup announcement, status changes,
+crashes, start/stop/restart. The design (kingdoms-services#109):
+
+- **Channel naming convention**: channels created by the bot always
+  carry an emoji prefix followed by a dash, e.g. `🤖-bot-logs`.
+- **Resolution is cache-aside** (`LogService.resolve_channel`):
+  Redis → MongoDB (`channels` collection, `_id` is
+  `guild_id:category`) → creation. Deleted channels are detected and
+  reprovisioned.
+- **Admin-only by default**: @everyone is denied view/send at creation,
+  the bot self-allows, and guild admins (plus `BOT_ADMINS`) manage access
+  through `/admin` — per-guild policies persist in the
+  `channel_access_policies` collection, every change is audited as an
+  event in the channel.
+- **Lifecycle events are best-effort**: a store failure logs a warning,
+  never crashes the bot; repeated crashes collapse into a single
+  "crash-loop detected" event.
+- The startup announcement (kingdoms-services#52) is the `start` event
+  of this flow and carries a machine-readable footer
+  (`kingdoms-deploy env=… image=… kind=… ref=… run=…`).
+
 ## Testing rules
 
 Full strategy:

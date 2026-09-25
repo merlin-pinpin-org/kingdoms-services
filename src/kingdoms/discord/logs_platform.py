@@ -104,10 +104,13 @@ class DiscordLogsPlatform:
             return
         overwrite_everyone = discord.PermissionOverwrite(view_channel=False, send_messages=False)
         overwrite_admins = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+        # Self-allow first: Discord (and SimCord) require the actor to view the
+        # channel to edit its overwrites — denying @everyone first would lock
+        # the bot out of its own channel.
+        await channel.set_permissions(guild.me, overwrite=overwrite_admins, reason="bot logs: bot access")
         await channel.set_permissions(
             guild.default_role, overwrite=overwrite_everyone, reason="bot logs: admin-only default"
         )
-        await channel.set_permissions(guild.me, overwrite=overwrite_admins, reason="bot logs: bot access")
         logger.info("BOT LOGS default policy applied: guild=%s channel=%s", guild_id, channel_id)
 
     async def grant_role_view(self, guild_id: str, channel_id: str, role_id: str) -> None:
