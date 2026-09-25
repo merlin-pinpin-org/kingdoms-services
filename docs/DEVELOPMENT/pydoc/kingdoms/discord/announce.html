@@ -14,9 +14,12 @@
 On&nbsp;real&nbsp;gateway&nbsp;connection&nbsp;the&nbsp;bot&nbsp;posts&nbsp;the&nbsp;deployment&nbsp;announcement<br>
 in&nbsp;each&nbsp;guild's&nbsp;``🤖-bot-logs``&nbsp;channel&nbsp;—&nbsp;resolved&nbsp;and&nbsp;provisioned&nbsp;by<br>
 the&nbsp;core&nbsp;:class:`~kingdoms.core.services.logs.LogService`&nbsp;(cache-aside:<br>
-Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).&nbsp;The&nbsp;content&nbsp;reuses<br>
-the&nbsp;``/status``&nbsp;deploy&nbsp;identity&nbsp;(``KINGDOMS_DEPLOY_*``):&nbsp;no&nbsp;dedicated<br>
-injection&nbsp;pipeline.<br>
+Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).<br>
+&nbsp;<br>
+One&nbsp;deploy&nbsp;identity,&nbsp;one&nbsp;rendering:&nbsp;the&nbsp;announcement&nbsp;embed&nbsp;reuses&nbsp;the<br>
+exact&nbsp;/status&nbsp;helpers&nbsp;(``format_version``&nbsp;→&nbsp;``format_services_section``<br>
+and&nbsp;``format_deploy``)&nbsp;instead&nbsp;of&nbsp;a&nbsp;parallel&nbsp;message&nbsp;format&nbsp;—&nbsp;Services<br>
+and&nbsp;Infra&nbsp;compact&nbsp;linked&nbsp;lines,&nbsp;localized&nbsp;title&nbsp;and&nbsp;environment&nbsp;badge.<br>
 &nbsp;<br>
 The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
 frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
@@ -105,7 +108,13 @@ Data and other attributes defined here:<br>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
- <dl><dt><a name="-build_announcement_message"><strong>build_announcement_message</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;localized&nbsp;announcement&nbsp;content&nbsp;with&nbsp;the&nbsp;identity&nbsp;footer.</span></dd></dl>
+ <dl><dt><a name="-announcement_fallback_text"><strong>announcement_fallback_text</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Plain-text&nbsp;fallback&nbsp;when&nbsp;the&nbsp;platform&nbsp;rejects&nbsp;embeds.</span></dd></dl>
+ <dl><dt><a name="-build_announcement_embed"><strong>build_announcement_embed</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '') -&gt; 'discord.Embed'</dt><dd><span class="code">Build&nbsp;the&nbsp;localized&nbsp;announcement&nbsp;embed&nbsp;from&nbsp;the&nbsp;/status&nbsp;deploy&nbsp;lines.<br>
+&nbsp;<br>
+Same&nbsp;helpers&nbsp;as&nbsp;the&nbsp;/status&nbsp;command&nbsp;(one&nbsp;code&nbsp;path):&nbsp;the&nbsp;Services<br>
+field&nbsp;(version&nbsp;line,&nbsp;commit/files,&nbsp;image)&nbsp;and&nbsp;the&nbsp;Infra&nbsp;field&nbsp;(state<br>
+branch/commit,&nbsp;deployment&nbsp;run)&nbsp;render&nbsp;as&nbsp;compact&nbsp;labeled&nbsp;links&nbsp;—<br>
+never&nbsp;a&nbsp;duplicated&nbsp;prose&nbsp;format.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>
@@ -117,6 +126,7 @@ parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares&nbsp;against&nbsp;th
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>FOOTER_PREFIX</strong> = 'kingdoms-deploy'<br>
+<td class="singlecolumn"><strong>ANNOUNCE_COLOR</strong> = 5793266<br>
+<strong>FOOTER_PREFIX</strong> = 'kingdoms-deploy'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.bot.announce (WARNING)&gt;</td></tr></table>
 </body></html>

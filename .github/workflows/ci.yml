@@ -125,6 +125,17 @@ jobs:
             -e MONGO_URI=mongodb://kingdoms-mongo:27017 \
             -e REDIS_URI=redis://kingdoms-redis:6379 \
             -e DISCORD_TOKEN="$CICD_DISCORD_TOKEN" -e LOG_LEVEL=INFO \
+            -e KINGDOMS_DEPLOY_ENV=ci \
+            -e KINGDOMS_DEPLOY_KIND=pr \
+            -e KINGDOMS_DEPLOY_REF="${{ github.event.pull_request.number || 0 }}" \
+            -e KINGDOMS_DEPLOY_LABEL="ci-${{ github.run_id }}" \
+            -e KINGDOMS_DEPLOY_IMAGE="ghcr.io/merlin-pinpin-org/kingdoms-services:ci-${{ github.run_id }}" \
+            -e KINGDOMS_DEPLOY_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -e KINGDOMS_DEPLOY_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -e KINGDOMS_DEPLOY_TREE_URL="${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}" \
+            -e KINGDOMS_DEPLOY_TS="$(date -u +%s)" \
+            -e KINGDOMS_DEPLOY_BRANCH="${{ github.head_ref || github.ref_name }}" \
+            -e KINGDOMS_DEPLOY_PR_TITLE="${{ github.event.pull_request.title || '' }}" \
             kingdoms-bot:ci
       - name: Assert the gateway ready signal
         run: |

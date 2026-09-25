@@ -2,9 +2,10 @@
 
 The announcement is the "start" lifecycle event, delivered by the core
 LogService to each guild's 🤖-bot-logs channel. These tests pin the
-frozen footer format, the localized content and the wiring contracts:
-with a LogService the event flows to every guild; without one (local
-runs, unit tests) the announcement degrades to a silent skip.
+frozen footer format, the embed rendering contract (same helpers as
+/status — Services and Infra lines) and the wiring contracts: with a
+LogService the event flows to every guild; without one (local runs,
+unit tests) the announcement degrades to a silent skip.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import discord
 import pytest
 
 from kingdoms.core.services.logs import LifecycleEvent, LogService
@@ -20,7 +22,8 @@ from kingdoms.core.services.status import BotAdmins, StatusService
 from kingdoms.discord.announce import (
     AnnounceConfig,
     announce_startup,
-    build_announcement_message,
+    announcement_fallback_text,
+    build_announcement_embed,
     deploy_footer,
 )
 
@@ -68,28 +71,44 @@ def test_footer_renders_empty_fields() -> None:
     assert footer == "kingdoms-deploy env= image= kind= ref= run="
 
 
-def test_message_is_localized_with_identity() -> None:
-    status = _status_service(deploy_label="v0.1.0", deploy_kind="release", deploy_ref="v0.1.0")
+def test_embed_reuses_the_status_rendering() -> None:
+    status = _status_service(
+        deploy_label="pr-42-x",
+        deploy_kind="pr",
+        deploy_ref="42",
+        deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/pull/42#issuecomment-1",
+        deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-x",
+    )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
-    message = build_announcement_message(status, config, env="prod")
-    assert "**Kingdoms — Deployment**" in message
-    assert "v0.1.0" in message
-    assert "**Environment**: `prod`" in message
+    embed = build_announcement_embed(status, config, env="test")
+    assert isinstance(embed, discord.Embed)
+    assert embed.title == "Kingdoms — Deployment"
+    assert embed.description == "`test`"
+    fields = {f.name: f.value for f in embed.fields}
+    assert "Pull-request [#42](" in fields["Services"]
+    assert "Image [pr-42-x](" in fields["Services"]
+    assert "Infra" in fields
 
 
-def test_message_french_catalog() -> None:
+def test_embed_is_localized() -> None:
     status = _status_service(deploy_label="v0.1.0")
     config = AnnounceConfig(locale="fr", config_dir=CONFIG_DIR)
-    message = build_announcement_message(status, config, env="test")
-    assert "**Kingdoms — Déploiement**" in message
-    assert "**Environnement**: `test`" in message
+    embed = build_announcement_embed(status, config, env="prod")
+    assert embed.title == "Kingdoms — Déploiement"
+    assert embed.fields[0].value == "v0.1.0"
 
 
-def test_message_falls_back_to_english_for_unknown_locale() -> None:
+def test_embed_falls_back_to_english_for_unknown_locale() -> None:
     status = _status_service(deploy_label="sha-abc1234")
     config = AnnounceConfig(locale="xx", config_dir=CONFIG_DIR)
-    message = build_announcement_message(status, config, env="test")
-    assert "**Kingdoms — Deployment**" in message
+    embed = build_announcement_embed(status, config, env="test")
+    assert embed.title == "Kingdoms — Deployment"
+
+
+def test_fallback_text_carries_the_identity() -> None:
+    status = _status_service(deploy_label="pr-42-x")
+    assert "pr-42-x" in announcement_fallback_text(status, env="test")
+    assert _status_service().deploy_label == ""
 
 
 @pytest.mark.asyncio
@@ -105,6 +124,7 @@ async def test_announce_delivers_start_event_to_every_guild() -> None:
         event = events[0]
         assert event.kind == "start"
         assert event.footer.startswith("kingdoms-deploy env=test image=pr-42-x")
+        assert isinstance(event.embed, discord.Embed)
         assert "pr-42-x" in event.message
 
 
@@ -127,4 +147,5 @@ def test_lifecycle_event_is_a_plain_dataclass() -> None:
     event = LifecycleEvent(kind="start", message="m", footer="f")
     assert event.kind == "start"
     assert event.footer == "f"
+    assert event.embed is None
     assert LogService is not None

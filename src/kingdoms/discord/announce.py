@@ -3,9 +3,12 @@
 On real gateway connection the bot posts the deployment announcement
 in each guild's ``🤖-bot-logs`` channel — resolved and provisioned by
 the core :class:`~kingdoms.core.services.logs.LogService` (cache-aside:
-Redis → MongoDB → creation, admin-only by default). The content reuses
-the ``/status`` deploy identity (``KINGDOMS_DEPLOY_*``): no dedicated
-injection pipeline.
+Redis → MongoDB → creation, admin-only by default).
+
+One deploy identity, one rendering: the announcement embed reuses the
+exact /status helpers (``format_version`` → ``format_services_section``
+and ``format_deploy``) instead of a parallel message format — Services
+and Infra compact linked lines, localized title and environment badge.
 
 The announcement doubles as a machine-readable deployment signal: the
 frozen footer line (``kingdoms-deploy env=<env> image=<label>
@@ -30,11 +33,14 @@ import discord
 import yaml
 
 from kingdoms.core.services.logs import LifecycleEvent, LogService
-from kingdoms.core.services.status import StatusService
+from kingdoms.core.services.status import StatusService, format_version
+from kingdoms.discord.status import format_deploy, format_services_section
 
 logger = logging.getLogger("kingdoms.bot.announce")
 
 FOOTER_PREFIX = "kingdoms-deploy"
+
+ANNOUNCE_COLOR = 0x5865F2
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,18 +69,65 @@ def deploy_footer(status: StatusService, env: str = "") -> str:
     return f"{FOOTER_PREFIX} {rendered}".rstrip()
 
 
-def build_announcement_message(status: StatusService, config: AnnounceConfig, env: str = "") -> str:
-    """Build the localized announcement content with the identity footer."""
+def build_announcement_embed(
+    status: StatusService,
+    config: AnnounceConfig,
+    env: str = "",
+) -> discord.Embed:
+    """Build the localized announcement embed from the /status deploy lines.
+
+    Same helpers as the /status command (one code path): the Services
+    field (version line, commit/files, image) and the Infra field (state
+    branch/commit, deployment run) render as compact labeled links —
+    never a duplicated prose format.
+    """
     catalog = _load_catalog(config.locale, config.config_dir)
-    version = status.deploy_label or status.deploy_image or "unknown"
-    lines = [f"**{catalog['title']}**", catalog["body"], f"**{catalog['version_label']}**: {version}"]
+    embed = discord.Embed(title=catalog["title"], color=ANNOUNCE_COLOR)
     if env:
-        lines.append(f"**{catalog['environment_label']}**: `{env}`")
-    url = status.deploy_url or status.deploy_run_url
-    if url:
-        label = catalog["deployment_label"]
-        lines.append(f"**{label}**: <{url}>")
-    return "\n".join(lines)
+        embed.description = f"`{env}`"
+    embed.add_field(
+        name=catalog["services_label"],
+        value=format_services_section(
+            format_version(
+                status.deploy_label,
+                status.deploy_url,
+                kind=status.deploy_kind,
+                ref=status.deploy_ref,
+                tree_url=status.deploy_tree_url,
+                ts=status.deploy_ts,
+                pr_title=status.deploy_pr_title,
+            ),
+            status.deploy_image,
+            status.deploy_kind,
+            status.deploy_url,
+            branch=status.deploy_branch,
+            tree_url=status.deploy_tree_url,
+            ts=status.deploy_ts,
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name=catalog["infra_label"],
+        value=format_deploy(
+            status.deploy_run_url,
+            status.deploy_url,
+            status.deploy_infra_label,
+            status.deploy_infra_url,
+            status.deploy_run_number,
+            status.deploy_run_ts,
+        ),
+        inline=True,
+    )
+    return embed
+
+
+def announcement_fallback_text(status: StatusService, env: str = "") -> str:
+    """Plain-text fallback when the platform rejects embeds."""
+    version = status.deploy_label or status.deploy_image or "unknown"
+    text = f"Version {version}"
+    if env:
+        text = f"{text} · {env}"
+    return text
 
 
 async def announce_startup(
@@ -88,12 +141,9 @@ async def announce_startup(
     if logs_service is None:
         logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
-    message = build_announcement_message(status, config, env=deploy_env)
-    event = LifecycleEvent(
-        kind="start",
-        message=message,
-        footer=deploy_footer(status, env=deploy_env),
-    )
+    embed = build_announcement_embed(status, config, env=deploy_env)
+    fallback = announcement_fallback_text(status, env=deploy_env)
+    event = LifecycleEvent(kind="start", message=fallback, embed=embed, footer=deploy_footer(status, env=deploy_env))
     for guild in bot.guilds:
         await logs_service.log_event(str(guild.id), event)
         logger.info("STARTUP ANNOUNCEMENT SENT to guild %s", guild.id)
@@ -114,9 +164,7 @@ def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
         section = {}
     defaults = {
         "title": "Kingdoms — Deployment",
-        "body": "The bot is live on the gateway. Deployed version below.",
-        "version_label": "Version",
-        "environment_label": "Environment",
-        "deployment_label": "Deployment",
+        "services_label": "Services",
+        "infra_label": "Infra",
     }
     return {key: str(section.get(key, default)) for key, default in defaults.items()}

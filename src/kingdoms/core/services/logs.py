@@ -88,8 +88,8 @@ class LogsPlatform(Protocol):
         """Grant a role view access on the logs channel."""
         ...
 
-    async def send_log_message(self, guild_id: str, channel_id: str, content: str) -> None:
-        """Deliver one lifecycle event to the logs channel."""
+    async def send_log_message(self, guild_id: str, channel_id: str, content: str, embed: Any = None) -> None:
+        """Deliver one lifecycle event to the logs channel (embed optional)."""
         ...
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
@@ -99,11 +99,17 @@ class LogsPlatform(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class LifecycleEvent:
-    """One bot lifecycle event, ready to render and send."""
+    """One bot lifecycle event, ready to render and send.
+
+    ``embed`` is opaque to the core (platform-typed: a ``discord.Embed``
+    on the Discord platform) — the platform seam renders it, the core
+    only carries it. A message is always provided as the text fallback.
+    """
 
     kind: str
     message: str
     footer: str = ""
+    embed: Any = None
 
 
 def default_policy() -> dict[str, Any]:
@@ -162,7 +168,7 @@ class LogService:
             if channel_id is None:
                 return
             content = event.message if not event.footer else f"{event.message}\n-# {event.footer}"
-            await self._platform.send_log_message(guild_id, channel_id, content)
+            await self._platform.send_log_message(guild_id, channel_id, content, embed=event.embed)
         except Exception:
             logger.warning("LIFECYCLE LOG DELIVERY FAILED (guild %s, event %s) — best-effort", guild_id, event.kind)
 

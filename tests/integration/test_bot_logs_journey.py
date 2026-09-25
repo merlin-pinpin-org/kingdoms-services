@@ -88,9 +88,14 @@ class TestStartupAnnouncementJourney:
         logs_channel = channels[BOT_LOGS_CHANNEL_NAME]
         history = logs_channel.history()
         assert history, "the startup announcement must be in the bot logs channel"
-        content = history[0].content
-        assert "Kingdoms — Deployment" in content
-        assert "-# kingdoms-deploy" in content
+        message = history[0]
+        assert message.embeds, "the announcement must carry the deploy-identity embed"
+        embed = message.embeds[0]
+        assert embed.title == "Kingdoms — Deployment"
+        services = next(f.value for f in embed.fields if f.name == "Services")
+        infra = next(f.value for f in embed.fields if f.name == "Infra")
+        assert services and infra
+        assert "-# kingdoms-deploy" in message.content
 
         stored = self.logs_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY]
         assert stored.name == BOT_LOGS_CHANNEL_NAME

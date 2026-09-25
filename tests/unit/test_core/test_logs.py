@@ -60,6 +60,7 @@ class FakeLogsPlatform:
         self.default_policy_applied: list[str] = []
         self.role_grants: list[tuple[str, str]] = []
         self.sent: list[tuple[str, str]] = []
+        self.embeds: list[tuple[str, Any]] = []
         self.exists_calls = 0
 
     async def create_logs_channel(self, guild_id: str) -> str:
@@ -74,10 +75,11 @@ class FakeLogsPlatform:
     async def grant_role_view(self, guild_id: str, channel_id: str, role_id: str) -> None:
         self.role_grants.append((channel_id, role_id))
 
-    async def send_log_message(self, guild_id: str, channel_id: str, content: str) -> None:
+    async def send_log_message(self, guild_id: str, channel_id: str, content: str, embed: Any = None) -> None:
         if channel_id not in self.live_channels:
             raise RuntimeError("channel deleted")
         self.sent.append((channel_id, content))
+        self.embeds.append((channel_id, embed))
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         self.exists_calls += 1

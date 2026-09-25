@@ -6,7 +6,5 @@ fr:
     confirm: "Confirmer"
   announce:
     title: "Kingdoms — Déploiement"
-    body: "Le bot est en ligne sur la passerelle. Version déployée ci-dessous."
-    version_label: "Version"
-    environment_label: "Environnement"
-    deployment_label: "Déploiement"
+    services_label: "Services"
+    infra_label: "Infra"
