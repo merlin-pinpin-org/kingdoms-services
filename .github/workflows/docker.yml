@@ -45,6 +45,8 @@ jobs:
           docker image inspect kingdoms-bot:pr --format 'Entrypoint: {{json .Config.Entrypoint}} User: {{json .Config.User}}'
           test "$(docker image inspect kingdoms-bot:pr --format '{{.Config.User}}')" = "65534:65534"
           test "$(docker history kingdoms-bot:pr --format '{{.Size}}' | wc -l)" -ge 3
+      - name: Purity check the built image (no test tooling, kingdoms-services#106)
+        run: ./scripts/check_image_purity.py --image kingdoms-bot:pr
 
       - name: Smoke test the image (with MongoDB and Redis)
         run: |

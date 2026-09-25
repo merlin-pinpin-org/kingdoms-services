@@ -62,6 +62,18 @@ jobs:
           uv sync
           uv run pytest
 
+  purity-guard:
+    # kingdoms-services#106: production code must never reference test
+    # tooling, and the runtime image must never contain it. The image
+    # side runs in the Docker workflow on the actually-built artifact;
+    # this job gives the fast source-level signal on every PR.
+    name: Purity guard (src/ free of test tooling)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check source purity
+        run: ./scripts/check_image_purity.py --source-only
+
   compose:
     name: Validate and boot docker-compose.yml
     runs-on: ubuntu-latest

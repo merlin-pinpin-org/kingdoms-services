@@ -77,6 +77,29 @@ depth**:
   build, real MongoDB/Redis, entrypoint/preflight paths) is exercised by
   CI workflows instead.
 
+### Runtime-image purity (kingdoms-services#106)
+
+Test code and test dependencies (SimCord, pytest, mocks) **never land on a
+run machine**: the runtime image runs on the environment VPSes and is
+built `--no-dev` with only `src/`, `config/` and the entrypoint copied in.
+This is enforced, not conventional — two fail-closed guards:
+
+- `make check` and the CI `Purity guard` job fail when `src/` references
+  test tooling (`scripts/check_image_purity.py --source-only`);
+- the Docker workflow fails unless `import simcord` / `import pytest`
+  raises `ModuleNotFoundError` inside the built image
+  (`scripts/check_image_purity.py --image`).
+
+### The battery (standalone journey suite)
+
+`make battery` runs the full SimCord journey suite from a clean checkout
+at any commit: `uv sync --frozen` + `pytest tests/integration`. It is
+in-memory and network-free — an autouse fixture fails any test that
+attempts a real socket connection. This is the interface consumed by the
+kingdoms-infra post-deploy battery (kingdoms-infra#78), which checks out
+this repository at the pinned deploy commit on a GitHub-hosted runner —
+never on an environment VPS.
+
 ## Deploying
 
 - **Pull request**: post `/deploy [env]` as a comment on the PR (defaults
