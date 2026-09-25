@@ -23,12 +23,13 @@ Per&nbsp;the&nbsp;SDK&nbsp;navigation&nbsp;rules,&nbsp;text&nbsp;blocks&nbsp;car
 is&nbsp;a&nbsp;link&nbsp;button&nbsp;in&nbsp;an&nbsp;action&nbsp;row:&nbsp;Services&nbsp;(Branch,&nbsp;PR/Commit/<br>
 Release,&nbsp;the&nbsp;commit&nbsp;sha&nbsp;with&nbsp;its&nbsp;Commit/Files&nbsp;buttons,&nbsp;the&nbsp;build<br>
 pipeline&nbsp;and&nbsp;package&nbsp;image),&nbsp;Infra&nbsp;(state&nbsp;Branch/Commit/Files,&nbsp;the<br>
-deployment&nbsp;run).&nbsp;The&nbsp;layout&nbsp;is&nbsp;pure&nbsp;display&nbsp;(link&nbsp;buttons&nbsp;only),&nbsp;so<br>
-no&nbsp;view&nbsp;timeout&nbsp;or&nbsp;dispatch&nbsp;wiring&nbsp;is&nbsp;involved.<br>
+deployment&nbsp;run),&nbsp;Bot&nbsp;(uptime,&nbsp;admins,&nbsp;configured&nbsp;games).&nbsp;The&nbsp;layout<br>
+is&nbsp;pure&nbsp;display&nbsp;(link&nbsp;buttons&nbsp;only),&nbsp;so&nbsp;no&nbsp;view&nbsp;timeout&nbsp;or&nbsp;dispatch<br>
+wiring&nbsp;is&nbsp;involved.<br>
 &nbsp;<br>
 The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
 frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
-kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``)&nbsp;rides&nbsp;in&nbsp;a&nbsp;TextDisplay<br>
+kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-number&gt;``)&nbsp;rides&nbsp;in&nbsp;a&nbsp;TextDisplay<br>
 sub-text,&nbsp;readable&nbsp;back&nbsp;through&nbsp;the&nbsp;Discord&nbsp;REST&nbsp;API&nbsp;by&nbsp;the<br>
 kingdoms-infra&nbsp;post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78).&nbsp;The&nbsp;footer<br>
 format&nbsp;is&nbsp;frozen:&nbsp;breaking&nbsp;changes&nbsp;need&nbsp;a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
@@ -119,19 +120,23 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;action&nbsp;rows.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
-env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or&nbsp;version<br>
-with&nbsp;its&nbsp;button&nbsp;accessory),&nbsp;the&nbsp;Services&nbsp;blocks&nbsp;(branch@sha7<br>
-identity&nbsp;above&nbsp;the&nbsp;artifact&nbsp;buttons,&nbsp;job&nbsp;timestamps,&nbsp;build&nbsp;row),&nbsp;a<br>
-Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(state&nbsp;branch@sha7&nbsp;+&nbsp;deploy&nbsp;timestamp<br>
-section&nbsp;with&nbsp;the&nbsp;Deployment&nbsp;button&nbsp;accessory,&nbsp;artifact&nbsp;row),&nbsp;and<br>
-the&nbsp;machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain<br>
-`key=value`&nbsp;pairs).&nbsp;Same&nbsp;identity&nbsp;as&nbsp;/status,&nbsp;adapted&nbsp;to&nbsp;the&nbsp;V2<br>
-navigation&nbsp;rules.</span></dd></dl>
+env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or<br>
+version&nbsp;with&nbsp;its&nbsp;button&nbsp;accessory),&nbsp;the&nbsp;Services&nbsp;blocks<br>
+(branch@sha7&nbsp;identity&nbsp;above&nbsp;the&nbsp;artifact&nbsp;buttons,&nbsp;commit/build<br>
+timestamps,&nbsp;build&nbsp;row),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(state<br>
+branch@sha7&nbsp;+&nbsp;commit/deploy&nbsp;timestamps&nbsp;section&nbsp;with&nbsp;the&nbsp;Deployment<br>
+button&nbsp;accessory,&nbsp;artifact&nbsp;row),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Bot&nbsp;blocks<br>
+(uptime,&nbsp;admins,&nbsp;games),&nbsp;and&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;as<br>
+sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain&nbsp;`key=value`&nbsp;pairs).&nbsp;Same&nbsp;identity&nbsp;as<br>
+/status,&nbsp;adapted&nbsp;to&nbsp;the&nbsp;V2&nbsp;navigation&nbsp;rules.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
-``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>
-—&nbsp;empty&nbsp;fields&nbsp;render&nbsp;empty&nbsp;so&nbsp;the&nbsp;line&nbsp;stays&nbsp;greppable;&nbsp;the&nbsp;battery<br>
-parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares&nbsp;against&nbsp;the&nbsp;pinned&nbsp;state.</span></dd></dl>
+``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;<br>
+run=&lt;run-number&gt;``&nbsp;—&nbsp;empty&nbsp;fields&nbsp;render&nbsp;empty&nbsp;so&nbsp;the&nbsp;line&nbsp;stays<br>
+greppable;&nbsp;the&nbsp;battery&nbsp;parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares<br>
+against&nbsp;the&nbsp;pinned&nbsp;state.&nbsp;The&nbsp;run&nbsp;is&nbsp;a&nbsp;short&nbsp;number&nbsp;(the&nbsp;Pipeline<br>
+button&nbsp;links&nbsp;the&nbsp;full&nbsp;run&nbsp;URL)&nbsp;—&nbsp;raw&nbsp;URLs&nbsp;render&nbsp;poorly&nbsp;in&nbsp;the<br>
+V2&nbsp;sub-text&nbsp;and&nbsp;the&nbsp;battery&nbsp;only&nbsp;asserts&nbsp;env/image/kind/ref.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

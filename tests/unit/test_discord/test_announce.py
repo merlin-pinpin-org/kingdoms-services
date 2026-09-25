@@ -83,17 +83,25 @@ def _iter_buttons(components: Any) -> list[dict[str, Any]]:
 
 
 def test_footer_format_is_frozen() -> None:
+    """The battery parses key=value pairs and asserts env/image/kind/ref;
+    the run is informative only — a short number, the Pipeline button
+    carries the full URL (raw URLs render poorly in V2 sub-texts)."""
     status = _status_service(
         deploy_label="pr-42-20260925-abc1234",
         deploy_kind="pr",
         deploy_ref="42",
+        deploy_run_number="123",
         deploy_run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1",
     )
     footer = deploy_footer(status, env="test")
-    assert footer == (
-        "kingdoms-deploy env=test image=pr-42-20260925-abc1234 kind=pr ref=42 "
-        "run=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1"
+    assert footer == "kingdoms-deploy env=test image=pr-42-20260925-abc1234 kind=pr ref=42 run=123"
+
+
+def test_footer_run_falls_back_to_url_without_number() -> None:
+    status = _status_service(
+        deploy_run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1"
     )
+    assert deploy_footer(status).endswith("run=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1")
 
 
 def test_footer_renders_empty_fields() -> None:
@@ -126,12 +134,11 @@ def test_layout_is_components_v2_and_reuses_status_rendering() -> None:
 
 
 def test_layout_sections_and_separator_structure() -> None:
-    """A release deploy: the version headlines as a Section, Release accessory.
+    """A release deploy: Version vX.Y.Z headlines as a Section.
 
-    The minimal release status (label, kind, ref, deploy_url) renders
-    the version as the headline Section with the Release button as
-    accessory — no Services action row when there is no branch, tree
-    or image to link.
+    The version (the release tag, not the image label) headlines the
+    layout with the Release button as accessory; the Bot section
+    (uptime, admins, games) sits between Infra and the footer.
     """
     status = _status_service(
         deploy_label="v0.1.0",
@@ -145,12 +152,69 @@ def test_layout_sections_and_separator_structure() -> None:
     assert len(top) == 1 and top[0]["type"] == TYPE_CONTAINER
     kinds = [c["type"] for c in top[0]["components"]]
     assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
-    assert kinds.count(TYPE_SEPARATOR) == 2, "one separator between Services and Infra, one before the footer"
+    assert kinds.count(TYPE_SEPARATOR) == 3, "Services/Infra, Infra/Bot, Bot/footer"
     assert kinds.count(TYPE_SECTION) == 1, "the release headline is a Section"
+    texts = _iter_texts(top)
+    assert any("Version v0.1.0" in text for text in texts), "releases headline as Version vX.Y.Z"
+    assert any(text.startswith("**Bot**") for text in texts), "the Bot section is present"
     buttons = _iter_buttons(top)
     assert "Release" in [b["label"] for b in buttons]
     section = next(c for c in top[0]["components"] if c["type"] == TYPE_SECTION)
     assert section["accessory"]["label"] == "Release"
+
+
+def test_layout_bot_section_reports_uptime_admins_games() -> None:
+    """The Bot section mirrors /status: uptime, admins as mentions, games."""
+
+    def advancing_clock() -> float:
+        advancing_clock.now += 3661.0
+        return advancing_clock.now
+
+    advancing_clock.now = 0.0
+    status = StatusService(
+        registry=ModRegistry({}),
+        bot_admins=BotAdmins(user_ids=("111", "222")),
+        games=("werewolf", "alliance"),
+        clock=advancing_clock,
+    )
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config, env="test")
+    texts = "\n".join(_iter_texts(layout.to_components()))
+    assert "**Bot**" in texts
+    assert "- Uptime: 1h 1m 1s" in texts
+    assert "<@111>" in texts and "<@222>" in texts
+    assert "Games: werewolf, alliance" in texts
+
+
+def test_layout_bot_section_without_admins_or_games() -> None:
+    status = _status_service()
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config)
+    texts = "\n".join(_iter_texts(layout.to_components()))
+    assert "Admins" not in texts, "no admins line when no operator is configured"
+    assert "*(none configured)*" in texts
+
+
+def test_layout_distinguishes_commit_and_build_timestamps() -> None:
+    """Services shows Committed (source) and Built (image) separately; Infra
+    shows its state commit date, distinct from the deploy run."""
+    status = _status_service(
+        deploy_branch="vibe/feature-1",
+        deploy_tree_url="https://github.com/merlin-pinpin-org/kingdoms-services/tree/abc1234deadbeef",
+        deploy_commit_ts="1790000000",
+        deploy_ts="1790100000",
+        deploy_infra_label="deploy/test@abc1234deadbeef",
+        deploy_infra_commit_ts="1790050000",
+        deploy_run_ts="1790150000",
+    )
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config, env="test")
+    texts = "\n".join(_iter_texts(layout.to_components()))
+    assert "Committed <t:1790000000:R>" in texts
+    assert "Built <t:1790100000:R>" in texts
+    assert "Deployed <t:1790150000:R>" in texts
+    services = texts.split("**Infra**")[0]
+    assert "Committed <t:1790000000:R>" in services and "Built <t:1790100000:R>" in services
 
 
 def test_layout_is_localized() -> None:

@@ -55,6 +55,8 @@ class BotConfig:
     deploy_image: str = ""
     deploy_branch: str = ""
     deploy_pr_title: str = ""
+    deploy_commit_ts: str = ""
+    deploy_infra_commit_ts: str = ""
     sync_guild_id: str = ""
     announce_locale: str = "en"
     announce_enabled: str = "1"
@@ -85,6 +87,8 @@ class BotConfig:
             deploy_image=env.get("KINGDOMS_DEPLOY_IMAGE", ""),
             deploy_branch=env.get("KINGDOMS_DEPLOY_BRANCH", ""),
             deploy_pr_title=env.get("KINGDOMS_DEPLOY_PR_TITLE", ""),
+            deploy_commit_ts=env.get("KINGDOMS_DEPLOY_COMMIT_TS", ""),
+            deploy_infra_commit_ts=env.get("KINGDOMS_DEPLOY_INFRA_COMMIT_TS", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
             announce_locale=env.get("ANNOUNCE_LOCALE", "en"),
             announce_enabled=env.get("KINGDOMS_ANNOUNCE_ENABLED", "1"),
@@ -187,6 +191,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_image=resolved.deploy_image,
         deploy_branch=resolved.deploy_branch,
         deploy_pr_title=resolved.deploy_pr_title,
+        deploy_commit_ts=resolved.deploy_commit_ts,
+        deploy_infra_commit_ts=resolved.deploy_infra_commit_ts,
     )
     bot = KingdomsBot(config=resolved, status=status)
     bot.logs_service = _build_log_service(resolved, bot)
