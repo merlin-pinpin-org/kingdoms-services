@@ -4,3 +4,9 @@ en:
     error: "Something went wrong. Please try again."
     cancel: "Cancel"
     confirm: "Confirm"
+  announce:
+    title: "Kingdoms — Deployment"
+    body: "The bot is live on the gateway. Deployed version below."
+    version_label: "Version"
+    environment_label: "Environment"
+    deployment_label: "Deployment"
