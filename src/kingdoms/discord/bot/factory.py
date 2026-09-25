@@ -25,6 +25,7 @@ from discord import app_commands
 
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.status import StatusService, parse_bot_admins
+from kingdoms.discord.announce import AnnounceConfig, announce_startup
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -54,6 +55,9 @@ class BotConfig:
     deploy_branch: str = ""
     deploy_pr_title: str = ""
     sync_guild_id: str = ""
+    announce_channel_id: str = ""
+    announce_locale: str = "en"
+    deploy_env: str = ""
     log_level: str = "INFO"
     config_dir: Path = field(default_factory=lambda: Path("config"))
 
@@ -81,6 +85,9 @@ class BotConfig:
             deploy_branch=env.get("KINGDOMS_DEPLOY_BRANCH", ""),
             deploy_pr_title=env.get("KINGDOMS_DEPLOY_PR_TITLE", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
+            announce_channel_id=env.get("ANNOUNCE_CHANNEL_ID", ""),
+            announce_locale=env.get("ANNOUNCE_LOCALE", "en"),
+            deploy_env=env.get("KINGDOMS_DEPLOY_ENV", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
         )
 
@@ -105,6 +112,15 @@ class KingdomsBot(discord.Client):
             _bot_version(),
             self.user,
             len(self.guilds),
+        )
+        await announce_startup(
+            self,
+            self.status_service,
+            AnnounceConfig(
+                channel_id=self.config.announce_channel_id,
+                locale=self.config.announce_locale,
+                config_dir=self.config.config_dir,
+            ),
         )
         if self._synced:
             return

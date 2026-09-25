@@ -4,3 +4,9 @@ fr:
     error: "Une erreur est survenue. Veuillez réessayer."
     cancel: "Annuler"
     confirm: "Confirmer"
+  announce:
+    title: "Kingdoms — Déploiement"
+    body: "Le bot est en ligne sur la passerelle. Version déployée ci-dessous."
+    version_label: "Version"
+    environment_label: "Environnement"
+    deployment_label: "Déploiement"
