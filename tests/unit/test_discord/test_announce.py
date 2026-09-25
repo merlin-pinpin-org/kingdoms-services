@@ -54,6 +54,8 @@ class _Bot:
 TYPE_TEXT_DISPLAY = 10
 TYPE_SEPARATOR = 14
 TYPE_CONTAINER = 17
+TYPE_ACTION_ROW = 1
+TYPE_BUTTON = 2
 
 
 def _walk(components: Any) -> list[dict[str, Any]]:
@@ -68,6 +70,11 @@ def _walk(components: Any) -> list[dict[str, Any]]:
 def _iter_texts(components: Any) -> list[str]:
     """Flatten every TextDisplay content of a wire V2 component tree."""
     return [c["content"] for c in _walk(components) if c.get("type") == TYPE_TEXT_DISPLAY]
+
+
+def _iter_buttons(components: Any) -> list[dict[str, Any]]:
+    """Flatten every button of a wire V2 component tree."""
+    return [c for c in _walk(components) if c.get("type") == TYPE_BUTTON]
 
 
 def test_footer_format_is_frozen() -> None:
@@ -106,20 +113,36 @@ def test_layout_is_components_v2_and_reuses_status_rendering() -> None:
     joined = "\n".join(texts)
     assert "Kingdoms — Deployment" in joined
     assert "`test`" in joined
-    assert "Pull-request [#42](" in joined
-    assert "Image [pr-42-x](" in joined
+    buttons = _iter_buttons(layout.to_components())
+    labels = [b["label"] for b in buttons]
+    assert "Pull-request" in labels and "Image" in labels
+    assert not any("[" in text and "](" in text for text in texts), "no markdown links in V2 text blocks"
     assert deploy_footer(status, env="test") in joined
 
 
 def test_layout_sections_and_separator_structure() -> None:
-    status = _status_service(deploy_label="v0.1.0", deploy_kind="release", deploy_ref="v0.1.0")
+    """A release deploy: Release button row in Services, no pipeline row.
+
+    The minimal release status carries a deploy_url only — the layout
+    still renders (labels, separators, footer) and the Release link
+    button rides in an action row.
+    """
+    status = _status_service(
+        deploy_label="v0.1.0",
+        deploy_kind="release",
+        deploy_ref="v0.1.0",
+        deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.1.0",
+    )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="prod")
     top = layout.to_components()
     assert len(top) == 1 and top[0]["type"] == TYPE_CONTAINER
     kinds = [c["type"] for c in top[0]["components"]]
     assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
-    assert kinds.count(TYPE_SEPARATOR) == 1
+    assert kinds.count(TYPE_SEPARATOR) == 2, "one separator between Services and Infra, one before the footer"
+    assert kinds.count(TYPE_ACTION_ROW) >= 1, "navigation is link buttons in action rows"
+    buttons = _iter_buttons(top)
+    assert "Release" in [b["label"] for b in buttons]
 
 
 def test_layout_is_localized() -> None:

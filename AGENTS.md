@@ -41,6 +41,11 @@ mods, YAML configs.
   Interactive items (buttons with callbacks) are wired in view classes;
   extend the SDK rather than bypassing it (see
   [docs/DEVELOPER.md](docs/DEVELOPER.md)).
+- **Text blocks are not navigation:** in Components V2 text blocks —
+  and especially sub-texts / footers (`-# …`) — links and line
+  breaks do not render reliably. Text blocks carry plain labels,
+  code spans and timestamps only; every link is a link button in an
+  ActionRow (`Row(Button(label, url), …)`).
 - Every mod or game provider added here has its documentation updated in
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /

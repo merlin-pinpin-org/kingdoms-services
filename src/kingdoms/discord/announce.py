@@ -6,13 +6,14 @@ the core :class:`~kingdoms.core.services.logs.LogService` (cache-aside:
 Redis → MongoDB → adoption → creation, admin-only by default).
 
 One deploy identity, one rendering: the announcement is a Components
-V2 layout built through the UI SDK (:mod:`kingdoms.discord.ui`) — a
-Services section (link button to the PR/Commit/Release), an Infra
-section (bot avatar thumbnail), a row of link buttons (pipeline run,
-package page) — reusing the exact /status helpers (``format_version``
-→ ``format_services_section`` and ``format_deploy``), never a parallel
-message format. The layout is pure display (link buttons only), so no
-view timeout or dispatch wiring is involved.
+V2 layout built through the UI SDK (:mod:`kingdoms.discord.ui`).
+Per the SDK navigation rules, text blocks carry plain labels only
+(links and line breaks do not render in V2 text) — every artifact
+is a link button in an action row: Services (Branch, PR/Commit/
+Release, the commit sha with its Commit/Files buttons, the build
+pipeline and package image), Infra (state Branch/Commit/Files, the
+deployment run). The layout is pure display (link buttons only), so
+no view timeout or dispatch wiring is involved.
 
 The announcement doubles as a machine-readable deployment signal: the
 frozen footer line (``kingdoms-deploy env=<env> image=<label>
@@ -40,17 +41,14 @@ import discord
 import yaml
 
 from kingdoms.core.services.logs import LifecycleEvent, LogService
-from kingdoms.core.services.status import StatusService, format_version
-from kingdoms.discord.status import format_deploy, format_services_section
+from kingdoms.core.services.status import StatusService
 from kingdoms.discord.ui import (
     BLURPLE,
     Button,
     Container,
     Row,
-    Section,
     Separator,
     Text,
-    Thumbnail,
     UILayout,
 )
 
@@ -58,9 +56,16 @@ logger = logging.getLogger("kingdoms.bot.announce")
 
 FOOTER_PREFIX = "kingdoms-deploy"
 
-PACKAGE_URL = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
+SERVICES_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-services"
+INFRA_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-infra"
+PACKAGE_URL = f"{SERVICES_REPO_URL}/pkgs/container/kingdoms-services"
 
 _VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "release": "release_button"}
+
+
+def _sha7(tree_url: str) -> str:
+    """Extract the deployed commit sha from its tree URL."""
+    return tree_url.rstrip("/").rsplit("/", 1)[-1][:7]
 
 ANNOUNCEMENT_HEADER = "🚀"
 STATUS_LINK_LABEL = "/status"
@@ -92,22 +97,27 @@ def deploy_footer(status: StatusService, env: str = "") -> str:
     return f"{FOOTER_PREFIX} {rendered}".rstrip()
 
 
-def _services_button(status: StatusService, catalog: dict[str, str]) -> Button | None:
-    """Build the Services section accessory: a link to the deployed artifact.
-
-    Label follows the deploy kind (Pull-request / Commit / Release),
-    linking the deploy URL — the deployment comment for a PR, the
-    commit or release page otherwise. No button when the pipeline
-    provides no URL.
-    """
-    if not status.deploy_url:
-        return None
-    key = _VERSION_BUTTON_KINDS.get(status.deploy_kind, "version_button")
-    return Button(catalog[key], status.deploy_url)
+def _artifact_row(status: StatusService, catalog: dict[str, str]) -> list[Button]:
+    """Build the first Services row: Branch + the PR/Commit/Release button."""
+    buttons: list[Button] = []
+    if status.deploy_branch:
+        buttons.append(Button(catalog["branch_button"], f"{SERVICES_REPO_URL}/tree/{status.deploy_branch}"))
+    if status.deploy_url:
+        key = _VERSION_BUTTON_KINDS.get(status.deploy_kind, "version_button")
+        buttons.append(Button(catalog[key], status.deploy_url))
+    return buttons
 
 
-def _link_buttons(status: StatusService, catalog: dict[str, str]) -> list[Button]:
-    """Build the trailing link-button row: pipeline run and package page."""
+def _commit_row(status: StatusService, catalog: dict[str, str], sha: str) -> list[Button]:
+    """Build the commit row: Commit + Files buttons on the deployed sha."""
+    buttons: list[Button] = [Button(catalog["commit_button"], f"{SERVICES_REPO_URL}/commit/{sha}")]
+    if status.deploy_tree_url:
+        buttons.append(Button(catalog["files_button"], status.deploy_tree_url))
+    return buttons
+
+
+def _build_row(status: StatusService, catalog: dict[str, str]) -> list[Button]:
+    """Build the build row: pipeline run + package image buttons."""
     buttons: list[Button] = []
     if status.deploy_run_url:
         buttons.append(Button(catalog["pipeline_button"], status.deploy_run_url, "🚦"))
@@ -116,72 +126,90 @@ def _link_buttons(status: StatusService, catalog: dict[str, str]) -> list[Button
     return buttons
 
 
+def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[object]:
+    """Build the Services blocks: plain labels + link-button action rows.
+
+    Text blocks carry no links (they do not render in V2 text) — every
+    artifact is a link button: Branch and the PR/Commit/Release first,
+    then the commit sha as plain text with its Commit/Files buttons,
+    then the build pipeline and the package image.
+    """
+    blocks: list[object] = [Text(f"**{catalog['services_label']}**")]
+    first = _artifact_row(status, catalog)
+    if first:
+        blocks.append(Row(*first))
+    if status.deploy_pr_title:
+        blocks.append(Text(status.deploy_pr_title))
+    sha = _sha7(status.deploy_tree_url)
+    if sha:
+        blocks.append(Text(f"`{sha}`"))
+        blocks.append(Row(*_commit_row(status, catalog, sha)))
+    if status.deploy_ts.strip().isdigit():
+        blocks.append(Text(f"<t:{status.deploy_ts.strip()}:R>"))
+    build = _build_row(status, catalog)
+    if build:
+        blocks.append(Row(*build))
+    return blocks
+
+
+def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object]:
+    """Build the Infra blocks: plain labels + link-button action rows.
+
+    Same navigation pattern as Services, on the kingdoms-infra
+    repository: the state branch and commit from the
+    ``deploy/<env>@<sha>`` label, its Files tree, then the deployment
+    run.
+    """
+    blocks: list[object] = [Text(f"**{catalog['infra_label']}**")]
+    branch, _, sha = status.deploy_infra_label.partition("@")
+    first: list[Button] = []
+    if branch:
+        first.append(Button(catalog["branch_button"], f"{INFRA_REPO_URL}/tree/{branch}"))
+    if sha:
+        first.append(Button(catalog["commit_button"], f"{INFRA_REPO_URL}/commit/{sha}"))
+    if status.deploy_infra_url:
+        first.append(Button(catalog["files_button"], status.deploy_infra_url))
+    if first:
+        blocks.append(Row(*first))
+    if sha:
+        blocks.append(Text(f"`{sha[:7]}`"))
+    if status.deploy_run_ts.strip().isdigit():
+        blocks.append(Text(f"<t:{status.deploy_run_ts.strip()}:R>"))
+    if status.deploy_run_url:
+        run_id = f"#{status.deploy_run_number}" if status.deploy_run_number else ""
+        blocks.append(
+            Row(Button(f"{catalog['deployment_button']} {run_id}".rstrip(), status.deploy_run_url, "🚀"))
+        )
+    return blocks
+
+
 def build_announcement_layout(
     status: StatusService,
     config: AnnounceConfig,
     env: str = "",
     thumbnail_url: str = "",
 ) -> discord.ui.LayoutView:
-    """Build the Components V2 announcement, reusing the /status deploy lines.
+    """Build the Components V2 announcement: labels + action rows.
 
     Layout: one accent Container holding a header TextDisplay (title +
-    env badge), a Services Section (link button to the deployed
-    artifact), an Infra Section (bot avatar thumbnail when
-    available), a Separator, an optional row of link buttons (pipeline
-    run, package page), and the machine-readable footer as sub-text.
-    Same identity rendering as the /status command — one code path.
+    env badge), the Services blocks (plain labels, every artifact a
+    link button — branch, PR/Commit/Release, sha + Commit/Files,
+    pipeline, package image), a Separator, the Infra blocks (same
+    navigation pattern on kingdoms-infra), and the machine-readable
+    footer as sub-text (frozen format, plain `key=value` pairs — no
+    links or line breaks needed there). Same identity as /status,
+    adapted to the V2 navigation rules.
     """
     catalog = _load_catalog(config.locale, config.config_dir)
-    services = format_services_section(
-        format_version(
-            status.deploy_label,
-            status.deploy_url,
-            kind=status.deploy_kind,
-            ref=status.deploy_ref,
-            tree_url=status.deploy_tree_url,
-            ts=status.deploy_ts,
-            pr_title=status.deploy_pr_title,
-        ),
-        status.deploy_image,
-        status.deploy_kind,
-        status.deploy_url,
-        branch=status.deploy_branch,
-        tree_url=status.deploy_tree_url,
-        ts=status.deploy_ts,
-    )
-    infra = format_deploy(
-        status.deploy_run_url,
-        status.deploy_url,
-        status.deploy_infra_label,
-        status.deploy_infra_url,
-        status.deploy_run_number,
-        status.deploy_run_ts,
-    )
     header = f"# {ANNOUNCEMENT_HEADER} {catalog['title']}"
     if env:
         header = f"{header}\n-# `{env}`"
-    services_line = Text(f"**{catalog['services_label']}**\n{services}")
-    infra_line = Text(f"**{catalog['infra_label']}**\n{infra}")
-    services_button = _services_button(status, catalog)
-    services_section: Section | Text = (
-        Section(services_line, button=services_button)
-        if services_button is not None
-        else services_line
-    )
-    infra_section: Section | Text = (
-        Section(infra_line, thumbnail=Thumbnail(thumbnail_url)) if thumbnail_url else infra_line
-    )
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text(header))
-        .add(services_section)
-        .add(infra_section)
-        .add(Separator())
-    )
-    links = _link_buttons(status, catalog)
-    if links:
-        container = container.add(Row(*links))
-    container = container.add(Text(f"-# {STATUS_LINK_LABEL} · {deploy_footer(status, env=env)}"))
+    container = Container(accent=BLURPLE).add(Text(header))
+    container = container.add(*_services_blocks(status, catalog))
+    container = container.add(Separator())
+    container = container.add(*_infra_blocks(status, catalog))
+    container = container.add(Separator())
+    container = container.add(Text(f"-# {STATUS_LINK_LABEL} \u00b7 {deploy_footer(status, env=env)}"))
     return UILayout().add(container).build()
 
 
@@ -225,11 +253,14 @@ def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
         "title": "Kingdoms — Deployment",
         "services_label": "Services",
         "infra_label": "Infra",
+        "branch_button": "Branch",
         "pull_request_button": "Pull-request",
         "commit_button": "Commit",
+        "files_button": "Files",
         "release_button": "Release",
         "version_button": "Version",
         "pipeline_button": "Pipeline",
         "image_button": "Image",
+        "deployment_button": "Deployment",
     }
     return {key: str(section.get(key, default)) for key, default in defaults.items()}

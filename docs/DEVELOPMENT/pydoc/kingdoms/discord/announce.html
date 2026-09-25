@@ -17,13 +17,14 @@ the&nbsp;core&nbsp;:class:`~kingdoms.core.services.logs.LogService`&nbsp;(cache-
 Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).<br>
 &nbsp;<br>
 One&nbsp;deploy&nbsp;identity,&nbsp;one&nbsp;rendering:&nbsp;the&nbsp;announcement&nbsp;is&nbsp;a&nbsp;Components<br>
-V2&nbsp;layout&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;(:mod:`kingdoms.discord.ui`)&nbsp;—&nbsp;a<br>
-Services&nbsp;section&nbsp;(link&nbsp;button&nbsp;to&nbsp;the&nbsp;PR/Commit/Release),&nbsp;an&nbsp;Infra<br>
-section&nbsp;(bot&nbsp;avatar&nbsp;thumbnail),&nbsp;a&nbsp;row&nbsp;of&nbsp;link&nbsp;buttons&nbsp;(pipeline&nbsp;run,<br>
-package&nbsp;page)&nbsp;—&nbsp;reusing&nbsp;the&nbsp;exact&nbsp;/status&nbsp;helpers&nbsp;(``format_version``<br>
-→&nbsp;``format_services_section``&nbsp;and&nbsp;``format_deploy``),&nbsp;never&nbsp;a&nbsp;parallel<br>
-message&nbsp;format.&nbsp;The&nbsp;layout&nbsp;is&nbsp;pure&nbsp;display&nbsp;(link&nbsp;buttons&nbsp;only),&nbsp;so&nbsp;no<br>
-view&nbsp;timeout&nbsp;or&nbsp;dispatch&nbsp;wiring&nbsp;is&nbsp;involved.<br>
+V2&nbsp;layout&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;(:mod:`kingdoms.discord.ui`).<br>
+Per&nbsp;the&nbsp;SDK&nbsp;navigation&nbsp;rules,&nbsp;text&nbsp;blocks&nbsp;carry&nbsp;plain&nbsp;labels&nbsp;only<br>
+(links&nbsp;and&nbsp;line&nbsp;breaks&nbsp;do&nbsp;not&nbsp;render&nbsp;in&nbsp;V2&nbsp;text)&nbsp;—&nbsp;every&nbsp;artifact<br>
+is&nbsp;a&nbsp;link&nbsp;button&nbsp;in&nbsp;an&nbsp;action&nbsp;row:&nbsp;Services&nbsp;(Branch,&nbsp;PR/Commit/<br>
+Release,&nbsp;the&nbsp;commit&nbsp;sha&nbsp;with&nbsp;its&nbsp;Commit/Files&nbsp;buttons,&nbsp;the&nbsp;build<br>
+pipeline&nbsp;and&nbsp;package&nbsp;image),&nbsp;Infra&nbsp;(state&nbsp;Branch/Commit/Files,&nbsp;the<br>
+deployment&nbsp;run).&nbsp;The&nbsp;layout&nbsp;is&nbsp;pure&nbsp;display&nbsp;(link&nbsp;buttons&nbsp;only),&nbsp;so<br>
+no&nbsp;view&nbsp;timeout&nbsp;or&nbsp;dispatch&nbsp;wiring&nbsp;is&nbsp;involved.<br>
 &nbsp;<br>
 The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
 frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
@@ -115,14 +116,16 @@ Data and other attributes defined here:<br>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
- <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement,&nbsp;reusing&nbsp;the&nbsp;/status&nbsp;deploy&nbsp;lines.<br>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;labels&nbsp;+&nbsp;action&nbsp;rows.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
-env&nbsp;badge),&nbsp;a&nbsp;Services&nbsp;Section&nbsp;(link&nbsp;button&nbsp;to&nbsp;the&nbsp;deployed<br>
-artifact),&nbsp;an&nbsp;Infra&nbsp;Section&nbsp;(bot&nbsp;avatar&nbsp;thumbnail&nbsp;when<br>
-available),&nbsp;a&nbsp;Separator,&nbsp;an&nbsp;optional&nbsp;row&nbsp;of&nbsp;link&nbsp;buttons&nbsp;(pipeline<br>
-run,&nbsp;package&nbsp;page),&nbsp;and&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text.<br>
-Same&nbsp;identity&nbsp;rendering&nbsp;as&nbsp;the&nbsp;/status&nbsp;command&nbsp;—&nbsp;one&nbsp;code&nbsp;path.</span></dd></dl>
+env&nbsp;badge),&nbsp;the&nbsp;Services&nbsp;blocks&nbsp;(plain&nbsp;labels,&nbsp;every&nbsp;artifact&nbsp;a<br>
+link&nbsp;button&nbsp;—&nbsp;branch,&nbsp;PR/Commit/Release,&nbsp;sha&nbsp;+&nbsp;Commit/Files,<br>
+pipeline,&nbsp;package&nbsp;image),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(same<br>
+navigation&nbsp;pattern&nbsp;on&nbsp;kingdoms-infra),&nbsp;and&nbsp;the&nbsp;machine-readable<br>
+footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain&nbsp;`key=value`&nbsp;pairs&nbsp;—&nbsp;no<br>
+links&nbsp;or&nbsp;line&nbsp;breaks&nbsp;needed&nbsp;there).&nbsp;Same&nbsp;identity&nbsp;as&nbsp;/status,<br>
+adapted&nbsp;to&nbsp;the&nbsp;V2&nbsp;navigation&nbsp;rules.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>
@@ -137,7 +140,9 @@ parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares&nbsp;against&nbsp;th
 <td class="singlecolumn"><strong>ANNOUNCEMENT_HEADER</strong> = '🚀'<br>
 <strong>BLURPLE</strong> = 5793266<br>
 <strong>FOOTER_PREFIX</strong> = 'kingdoms-deploy'<br>
+<strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
 <strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
+<strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'<br>
 <strong>STATUS_LINK_LABEL</strong> = '/status'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.bot.announce (WARNING)&gt;</td></tr></table>
 </body></html>

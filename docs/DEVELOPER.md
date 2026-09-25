@@ -105,7 +105,17 @@ the bot always follow the emoji-prefix naming convention.
 Interactive items are first-class SDK bricks: `Action` (button with an
 async callback), `SelectMenu` (options + async callback receiving the
 chosen values) — both validated against the custom ID convention
-`<mod>:<component>:<payload>` at build time. Screen archetypes live in
+`<mod>:<component>:<payload>` at build time.
+
+**Navigation is buttons, not links:** in Components V2 text blocks —
+especially sub-texts/footers (`-# …`) — links and line breaks do
+not render reliably. Text blocks carry plain labels, code spans and
+timestamps only; every link is a link button in an ActionRow
+(`Row(Button(label, url), …)`). The startup announcement follows
+this pattern (Services: Branch/PR row, sha + Commit/Files row,
+pipeline/image row; Infra: same logic on kingdoms-infra).
+
+Screen archetypes live in
 `kingdoms.discord.ui.screens`: `Ranking`/`render_ranking` (paged leader
 board with podium), `build_config_panel` (settings selects + Apply/Reset),
 `build_match_report` (structured report), and `PaginatedScreen` (generic
