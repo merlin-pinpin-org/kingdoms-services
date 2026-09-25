@@ -1,4 +1,4 @@
-.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check
+.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check
 
 # Dev
 dev:
@@ -25,6 +25,16 @@ format:
 
 typecheck:
 	@uv run mypy src/
+
+# Fail-closed CI mirror: the workflow-lint checks (actionlint + the
+# pin-payload cap guard) run locally too — run this before pushing
+# workflow changes.
+check:
+	@bash -n scripts/*.sh
+	@command -v actionlint >/dev/null \
+	  && actionlint -color \
+	  || echo "check: actionlint not installed — CI runs it; install locally for full coverage"
+	@./scripts/check_pin_payloads.sh
 
 # Docs (generated into this repo, fail-closed freshness check in CI)
 docs:

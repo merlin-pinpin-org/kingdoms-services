@@ -13,7 +13,8 @@
 # "watch the pin land, then watch the deploy" pattern.
 #
 # Usage:
-#   scripts/watch-deploy.sh <env> <version-label> [--deadline-find <min>] [--deadline-run <min>]
+#   scripts/watch_deploy.sh <env> <version-label> [find-minutes] [run-minutes]
+#   (deadlines default to 30 and 15 minutes)
 #
 # Requires: gh (authenticated with read access to kingdoms-infra).
 set -euo pipefail

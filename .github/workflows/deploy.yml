@@ -47,17 +47,49 @@ jobs:
        startsWith(github.event.comment.body, '/deploy '))
     runs-on: ubuntu-latest
     steps:
+      - name: Authorize the requestor
+        id: authorize
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            // Fork PRs are never deployable, regardless of who comments:
+            // their head lives outside this repository (kingdoms-services#67).
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            if (pr.head.repo && pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed("This pull request comes from a fork: only branches of this repository may be deployed to test.");
+              return;
+            }
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: commenter,
+            });
+            if (!["admin", "maintain", "write"].includes(perm.permission)) {
+              core.setFailed(`${commenter} is not allowed to deploy: only repository collaborators with write access may use /deploy.`);
+            } else {
+              core.notice(`${commenter} has ${perm.permission}: allowed.`);
+            }
+
       - name: Parse the command (target environment)
         id: env
         env:
           GH_TOKEN: ${{ github.token }}
+          # The comment body is untrusted input: it flows through an
+          # environment variable, never through inline ${{ }} interpolation
+          # (script-injection hardening).
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
           # /deploy [<env>] — the environment defaults to test. Environments
           # are data on kingdoms-infra (one directory under envs/): validate
           # the target against that listing instead of a hardcoded list, so
           # adding a custom env needs no change here. Prod-like environments
           # are rejected: they pin released images only.
-          body="${{ github.event.comment.body }}"
+          body="$COMMENT_BODY"
           env_name="${body#/deploy}"
           env_name="${env_name// /}"
           if [[ -z "$env_name" ]]; then env_name="test"; fi
@@ -88,34 +120,6 @@ jobs:
       - name: Stamp the image tag timestamp
         id: stamp
         run: echo "timestamp=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
-
-      - name: Authorize the requestor
-        id: authorize
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const commenter = context.payload.comment.user.login;
-            // Fork PRs are never deployable, regardless of who comments:
-            // their head lives outside this repository (kingdoms-services#67).
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            if (pr.head.repo && pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
-              core.setFailed("This pull request comes from a fork: only branches of this repository may be deployed to test.");
-              return;
-            }
-            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: commenter,
-            });
-            if (!["admin", "maintain", "write"].includes(perm.permission)) {
-              core.setFailed(`${commenter} is not allowed to deploy: only repository collaborators with write access may use /deploy.`);
-            } else {
-              core.notice(`${commenter} has ${perm.permission}: allowed.`);
-            }
 
       - name: Open the deployment tracking comment
         id: acknowledge
@@ -303,11 +307,16 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           label="${{ steps.label.outputs.tag }}"
-          scripts/watch_deploy.sh "${{ steps.env.outputs.name }}" "$label"
+          env_name="${{ steps.env.outputs.name }}"
+          scripts/watch_deploy.sh "$env_name" "$label"
           run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions"
-          # recover the deploy run URL for the tracking comment
-          state_sha="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/commits?sha=deploy/${{ steps.env.outputs.name }}&path=envs/${{ steps.env.outputs.name }}/state/kingdoms-bot.yml&per_page=1" --jq '.[0].sha')"
-          run_id="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/workflows/deploy.yml/runs?branch=deploy/${{ steps.env.outputs.name }}&per_page=5" --jq ".workflow_runs[] | select(.head_sha == \"${state_sha}\") | .id" | head -1)"
+          # Recover the deploy run URL for the tracking comment. The state
+          # commit is the one carrying OUR label — not merely the latest
+          # commit on the branch: a sync or another pin may have landed
+          # meanwhile, and the tracking comment must link OUR deploy run.
+          state_sha="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/commits?sha=deploy/${env_name}&path=envs/${env_name}/state/kingdoms-bot.yml&per_page=10" \
+            --jq ".[] | select(.commit.message | contains(\"${label}\")) | .sha" | head -1)"
+          run_id="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/workflows/deploy.yml/runs?branch=deploy/${env_name}&per_page=5" --jq ".workflow_runs[] | select(.head_sha == \"${state_sha}\") | .id" | head -1)"
           [[ -n "$run_id" ]] && run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/${run_id}"
           echo "run_url=${run_url}" >> "$GITHUB_OUTPUT"
           echo "ok=true" >> "$GITHUB_OUTPUT"

@@ -6,6 +6,21 @@ on:
   pull_request:
 
 jobs:
+  actionlint:
+    name: Lint workflows (actionlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actionlint
+        run: |
+          # bash installer from the actionlint releases (pinned by the
+          # script's own checksum verification)
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          echo "$HOME/actionlint" >> "$GITHUB_PATH"
+      - name: Run actionlint
+        run: actionlint -color
+      - name: Run the pin-payload cap guard
+        run: ./scripts/check_pin_payloads.sh
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
