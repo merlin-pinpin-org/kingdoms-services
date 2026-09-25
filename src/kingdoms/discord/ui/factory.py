@@ -47,19 +47,26 @@ Reliability guarantees (enforced here, not at Discord's door):
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 import discord
 from discord import SeparatorSpacing
 
+Handler = Callable[[discord.Interaction], Awaitable[None]]
+SelectHandler = Callable[[discord.Interaction, list[str]], Awaitable[None]]
+
 __all__ = [
     "BLURPLE",
     "GREEN",
+    "Action",
     "Button",
     "Container",
+    "Option",
     "Row",
     "Section",
+    "SelectMenu",
     "Separator",
     "Text",
     "Thumbnail",
@@ -79,6 +86,13 @@ class UILayoutError(ValueError):
     """Raised when a layout violates a Discord V2 constraint at build time."""
 
 
+def _check_custom_id(custom_id: str) -> None:
+    """Enforce the repo custom ID convention: ``<mod>:<component>:<payload>``."""
+    parts = custom_id.split(":")
+    if len(parts) < 3 or not parts[0] or not parts[1]:
+        raise UILayoutError(f"custom_id {custom_id!r} must follow '<mod>:<component>:<payload>'")
+
+
 def _check_budget(text_total: int, components: int) -> None:
     if text_total > TEXT_BUDGET:
         raise UILayoutError(
@@ -90,7 +104,7 @@ def _check_budget(text_total: int, components: int) -> None:
 
 @dataclass(frozen=True, slots=True)
 class Button:
-    """A link button (label + URL). Interactive buttons use ButtonRef + a view."""
+    """A link button (label + URL)."""
 
     label: str
     url: str
@@ -104,6 +118,106 @@ class Button:
             emoji=discord.PartialEmoji.from_str(self.emoji) if self.emoji else None,
         )
         return button
+
+
+@dataclass(frozen=True, slots=True)
+class Action:
+    """An interactive button: label + custom_id + async callback.
+
+    The custom_id must follow the repo convention ``<mod>:<component>:<payload>``
+    (e.g. ``admin:ping:`` or ``ranking:page:next``) — checked at build time.
+    The handler is an async callable receiving the interaction; it is wired
+    into the generated LayoutView, so dispatch flows through the real
+    discord.py machinery.
+    """
+
+    label: str
+    custom_id: str
+    on_click: Handler
+    emoji: str = ""
+    style: str = "primary"
+
+    def __post_init__(self) -> None:
+        """Validate the custom_id convention and the button style."""
+        _check_custom_id(self.custom_id)
+        if self.style not in ("primary", "secondary", "success", "danger"):
+            raise UILayoutError(f"unknown button style: {self.style!r}")
+
+    def _to_discord(self) -> discord.ui.Button[Any]:
+        styles = {
+            "primary": discord.ButtonStyle.primary,
+            "secondary": discord.ButtonStyle.secondary,
+            "success": discord.ButtonStyle.success,
+            "danger": discord.ButtonStyle.danger,
+        }
+        button: discord.ui.Button[Any] = discord.ui.Button(
+            label=self.label,
+            style=styles[self.style],
+            custom_id=self.custom_id,
+            emoji=discord.PartialEmoji.from_str(self.emoji) if self.emoji else None,
+        )
+        button.callback = self.on_click  # type: ignore[method-assign, assignment]
+        return button
+
+
+@dataclass(frozen=True, slots=True)
+class Option:
+    """A select menu option: label + machine value (+ optional description)."""
+
+    label: str
+    value: str
+    description: str = ""
+    emoji: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class SelectMenu:
+    """An interactive select menu: options + async callback on choose.
+
+    The callback receives the interaction and the chosen values (str)
+    — no digging through ``interaction.data`` in feature code.
+    """
+
+    custom_id: str
+    options: tuple[Option, ...]
+    on_choose: SelectHandler
+    placeholder: str = ""
+    min_values: int = 1
+    max_values: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate the custom_id convention and the options bounds."""
+        _check_custom_id(self.custom_id)
+        if not 1 <= len(self.options) <= 25:
+            raise UILayoutError(f"a SelectMenu holds 1 to 25 options, got {len(self.options)}")
+        if not 1 <= self.min_values <= self.max_values <= len(self.options):
+            raise UILayoutError(
+                f"SelectMenu values bounds are invalid: min={self.min_values} max={self.max_values}"
+            )
+
+    def _to_discord(self) -> discord.ui.Select[Any]:
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=self.custom_id,
+            placeholder=self.placeholder or None,
+            min_values=self.min_values,
+            max_values=self.max_values,
+            options=[
+                discord.SelectOption(
+                    label=o.label,
+                    value=o.value,
+                    description=o.description or None,
+                    emoji=discord.PartialEmoji.from_str(o.emoji) if o.emoji else None,
+                )
+                for o in self.options
+            ],
+        )
+        async def _dispatch(interaction: discord.Interaction) -> None:
+            data = getattr(interaction, "data", None) or {}
+            values = [str(v) for v in data.get("values", [])]
+            await self.on_choose(interaction, values)
+
+        select.callback = _dispatch  # type: ignore[method-assign]
+        return select
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,13 +268,19 @@ class Section:
 
 
 class Row:
-    """A row of link buttons (max 5), built as Row(Button(...), ...)."""
+    """A row of interactive items (max 5): Buttons, Actions, SelectMenu.
+
+    Discord wraps items in an ActionRow; a SelectMenu is the only item
+    in its row per Discord's layout rules.
+    """
 
     __slots__ = ("buttons",)
 
-    def __init__(self, *buttons: Button) -> None:
+    def __init__(self, *buttons: Button | Action | SelectMenu) -> None:
         if not 1 <= len(buttons) <= 5:
-            raise UILayoutError(f"an ActionRow holds 1 to 5 buttons, got {len(buttons)}")
+            raise UILayoutError(f"an ActionRow holds 1 to 5 items, got {len(buttons)}")
+        if any(isinstance(b, SelectMenu) for b in buttons) and len(buttons) > 1:
+            raise UILayoutError("a SelectMenu must be alone in its row")
         self.buttons = buttons
 
 
@@ -229,6 +349,9 @@ def _build_block(block: Any, state: _LayoutState) -> Any:
     if isinstance(block, Row):
         state.components += 1 + len(block.buttons)
         return discord.ui.ActionRow(*[b._to_discord() for b in block.buttons])
+    if isinstance(block, SelectMenu):
+        state.components += 1
+        return block._to_discord()
     if isinstance(block, Section) and block.button is None and block.thumbnail is None:
         raise UILayoutError(
             "a Section needs an accessory (button= or thumbnail=) — use Text for full-width text"

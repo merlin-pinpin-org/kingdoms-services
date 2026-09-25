@@ -100,9 +100,17 @@ Two builders cover the ADR-0009 dual system: `UIEmbed` (light output:
 `.field()`, `.footer()`, `.build()`) and `UILayout` (rich Components V2:
 `UILayout().add(Container(accent=…).add(Text(…)).add(Section(Text(…),
 button=…)).add(Separator()).add(Row(…)).build())`). Channels created by
-the bot always follow the emoji-prefix naming convention. Interactive
-items (buttons with callbacks) are wired in view classes with custom IDs
-`<mod>:<component>:<payload>`; extend the SDK rather than bypassing it.
+the bot always follow the emoji-prefix naming convention.
+
+Interactive items are first-class SDK bricks: `Action` (button with an
+async callback), `SelectMenu` (options + async callback receiving the
+chosen values) — both validated against the custom ID convention
+`<mod>:<component>:<payload>` at build time. Screen archetypes live in
+`kingdoms.discord.ui.screens`: `Ranking`/`render_ranking` (paged leader
+board with podium), `build_config_panel` (settings selects + Apply/Reset),
+`build_match_report` (structured report), and `PaginatedScreen` (generic
+pagination editing the message in place). Extend the SDK rather than
+bypassing it.
 
 ## Testing rules
 
