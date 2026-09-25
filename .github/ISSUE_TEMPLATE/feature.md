@@ -37,7 +37,7 @@ labels: enhancement
 
 **Depends on:**
 
-- [ ] kingdoms-services#N
+- [ ] #N (same repo) or merlin-pinpin-org/kingdoms-infra#N (cross repo)
 
 ## Related
 

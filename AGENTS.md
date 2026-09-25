@@ -32,6 +32,10 @@ mods, YAML configs.
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /
   `## Acceptance criteria` / `## Dependencies` (blank issues disabled).
+- **Issue references** are GitHub autolinks: same-repo `#N`, cross-repo
+  `owner/repo#N` (e.g. `merlin-pinpin-org/kingdoms-infra#78`) — a bare
+  `repo#N` renders as plain text; never write it. See CONVENTIONS.md,
+  *Documentation is part of the change*.
 - **Automation mandate:** no one-off commands, for humans or sessions —
   every recurring operation is a committed Makefile target, script or
   workflow, and a useful improvised command is committed ("learned").
