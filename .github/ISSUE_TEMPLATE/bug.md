@@ -15,7 +15,7 @@ labels: bug
 
 ## Context
 
-<!-- How to reproduce: command/button used, environment (test/staging/prod),
+<!-- How to reproduce: command/button used, environment (test/prod),
      affected mod or component, logs or errors, since when -->
 
 ## Specifications
