@@ -56,14 +56,19 @@ TYPE_SEPARATOR = 14
 TYPE_CONTAINER = 17
 TYPE_ACTION_ROW = 1
 TYPE_BUTTON = 2
+TYPE_SECTION = 9
 
 
 def _walk(components: Any) -> list[dict[str, Any]]:
-    """Depth-first walk of a wire component tree."""
+    """Depth-first walk of a wire component tree (children + accessories)."""
     out: list[dict[str, Any]] = []
     for component in components:
         out.append(component)
         out.extend(_walk(component.get("components", [])))
+        accessory = component.get("accessory")
+        if accessory:
+            out.append(accessory)
+            out.extend(_walk(accessory.get("components", [])))
     return out
 
 
@@ -121,11 +126,12 @@ def test_layout_is_components_v2_and_reuses_status_rendering() -> None:
 
 
 def test_layout_sections_and_separator_structure() -> None:
-    """A release deploy: Release button row in Services, no pipeline row.
+    """A release deploy: the version headlines as a Section, Release accessory.
 
-    The minimal release status carries a deploy_url only — the layout
-    still renders (labels, separators, footer) and the Release link
-    button rides in an action row.
+    The minimal release status (label, kind, ref, deploy_url) renders
+    the version as the headline Section with the Release button as
+    accessory — no Services action row when there is no branch, tree
+    or image to link.
     """
     status = _status_service(
         deploy_label="v0.1.0",
@@ -140,9 +146,11 @@ def test_layout_sections_and_separator_structure() -> None:
     kinds = [c["type"] for c in top[0]["components"]]
     assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
     assert kinds.count(TYPE_SEPARATOR) == 2, "one separator between Services and Infra, one before the footer"
-    assert kinds.count(TYPE_ACTION_ROW) >= 1, "navigation is link buttons in action rows"
+    assert kinds.count(TYPE_SECTION) == 1, "the release headline is a Section"
     buttons = _iter_buttons(top)
     assert "Release" in [b["label"] for b in buttons]
+    section = next(c for c in top[0]["components"] if c["type"] == TYPE_SECTION)
+    assert section["accessory"]["label"] == "Release"
 
 
 def test_layout_is_localized() -> None:

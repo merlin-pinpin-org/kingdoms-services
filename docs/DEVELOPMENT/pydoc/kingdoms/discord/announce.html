@@ -116,16 +116,17 @@ Data and other attributes defined here:<br>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
- <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;labels&nbsp;+&nbsp;action&nbsp;rows.<br>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;action&nbsp;rows.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
-env&nbsp;badge),&nbsp;the&nbsp;Services&nbsp;blocks&nbsp;(plain&nbsp;labels,&nbsp;every&nbsp;artifact&nbsp;a<br>
-link&nbsp;button&nbsp;—&nbsp;branch,&nbsp;PR/Commit/Release,&nbsp;sha&nbsp;+&nbsp;Commit/Files,<br>
-pipeline,&nbsp;package&nbsp;image),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(same<br>
-navigation&nbsp;pattern&nbsp;on&nbsp;kingdoms-infra),&nbsp;and&nbsp;the&nbsp;machine-readable<br>
-footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain&nbsp;`key=value`&nbsp;pairs&nbsp;—&nbsp;no<br>
-links&nbsp;or&nbsp;line&nbsp;breaks&nbsp;needed&nbsp;there).&nbsp;Same&nbsp;identity&nbsp;as&nbsp;/status,<br>
-adapted&nbsp;to&nbsp;the&nbsp;V2&nbsp;navigation&nbsp;rules.</span></dd></dl>
+env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or&nbsp;version<br>
+with&nbsp;its&nbsp;button&nbsp;accessory),&nbsp;the&nbsp;Services&nbsp;blocks&nbsp;(branch@sha7<br>
+identity&nbsp;above&nbsp;the&nbsp;artifact&nbsp;buttons,&nbsp;job&nbsp;timestamps,&nbsp;build&nbsp;row),&nbsp;a<br>
+Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(state&nbsp;branch@sha7&nbsp;+&nbsp;deploy&nbsp;timestamp<br>
+section&nbsp;with&nbsp;the&nbsp;Deployment&nbsp;button&nbsp;accessory,&nbsp;artifact&nbsp;row),&nbsp;and<br>
+the&nbsp;machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain<br>
+`key=value`&nbsp;pairs).&nbsp;Same&nbsp;identity&nbsp;as&nbsp;/status,&nbsp;adapted&nbsp;to&nbsp;the&nbsp;V2<br>
+navigation&nbsp;rules.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>

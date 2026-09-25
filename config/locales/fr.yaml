@@ -12,6 +12,8 @@ fr:
     pull_request_button: "Pull-request"
     files_button: "Files"
     deployment_button: "Deployment"
+    built_at_label: "Build"
+    deployed_at_label: "Déployé"
     commit_button: "Commit"
     release_button: "Release"
     version_button: "Version"
