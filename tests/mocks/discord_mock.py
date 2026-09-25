@@ -784,6 +784,7 @@ class MockInteraction(discord.Interaction):
         self.extras: dict[str, Any] = {}
         self.response = MockResponse()
         self.followup = MockFollowup()
+        self.guild_id = guild.id if guild is not None else None
         self._client = client if client is not None else MockClient()
 
     @property

@@ -192,7 +192,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(bot.tree, status, sync_target=sync_target)
-    register_admin_command(bot.tree, bot_admins=status.bot_admins)
+    register_admin_command(bot.tree, bot_admins=status.bot_admins, logs_service=bot.logs_service)
     return bot
 
 
