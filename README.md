@@ -43,8 +43,6 @@ see [docs/DEVELOPER.md](docs/DEVELOPER.md) and
   ([Update roadmap](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/update-roadmap.md),
   [Update dependencies](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/update-dependencies.md)):
   the sync scripts run locally and the result is committed to the PR branch.
-  The former `roadmap-ping.yml`/`dependencies-ping.yml` dispatch pings and
-  the `ROADMAP_DISPATCH_PAT` secret are no longer used and can be deleted.
 
 ## Deploying a pull request
 
