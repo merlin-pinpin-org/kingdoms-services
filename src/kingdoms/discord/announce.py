@@ -6,11 +6,13 @@ the core :class:`~kingdoms.core.services.logs.LogService` (cache-aside:
 Redis → MongoDB → adoption → creation, admin-only by default).
 
 One deploy identity, one rendering: the announcement is a Components
-V2 layout (Container, Section with a thumbnail accessory, Separator)
-reusing the exact /status helpers (``format_version`` →
-``format_services_section`` and ``format_deploy``) — never a parallel
-message format. The layout is pure display (no interactive items), so
-no view timeout or dispatch wiring is involved.
+V2 layout built through the UI SDK (:mod:`kingdoms.discord.ui`) — a
+Services section (link button to the PR/Commit/Release), an Infra
+section (bot avatar thumbnail), a row of link buttons (pipeline run,
+package page) — reusing the exact /status helpers (``format_version``
+→ ``format_services_section`` and ``format_deploy``), never a parallel
+message format. The layout is pure display (link buttons only), so no
+view timeout or dispatch wiring is involved.
 
 The announcement doubles as a machine-readable deployment signal: the
 frozen footer line (``kingdoms-deploy env=<env> image=<label>
@@ -40,12 +42,25 @@ import yaml
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.status import StatusService, format_version
 from kingdoms.discord.status import format_deploy, format_services_section
+from kingdoms.discord.ui import (
+    BLURPLE,
+    Button,
+    Container,
+    Row,
+    Section,
+    Separator,
+    Text,
+    Thumbnail,
+    UILayout,
+)
 
 logger = logging.getLogger("kingdoms.bot.announce")
 
 FOOTER_PREFIX = "kingdoms-deploy"
 
-ANNOUNCE_COLOR = 0x5865F2
+PACKAGE_URL = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
+
+_VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "release": "release_button"}
 
 ANNOUNCEMENT_HEADER = "🚀"
 STATUS_LINK_LABEL = "/status"
@@ -77,40 +92,28 @@ def deploy_footer(status: StatusService, env: str = "") -> str:
     return f"{FOOTER_PREFIX} {rendered}".rstrip()
 
 
-class AnnouncementLayout(discord.ui.LayoutView):
-    """The Components V2 deployment announcement layout.
+def _services_button(status: StatusService, catalog: dict[str, str]) -> Button | None:
+    """Build the Services section accessory: a link to the deployed artifact.
 
-    One accent Container: header TextDisplay (title + env badge), the
-    Services/Infra /status lines in a Section with a thumbnail
-    accessory (plain TextDisplay without a thumbnail), a Separator,
-    and the machine-readable footer as sub-text.
+    Label follows the deploy kind (Pull-request / Commit / Release),
+    linking the deploy URL — the deployment comment for a PR, the
+    commit or release page otherwise. No button when the pipeline
+    provides no URL.
     """
+    if not status.deploy_url:
+        return None
+    key = _VERSION_BUTTON_KINDS.get(status.deploy_kind, "version_button")
+    return Button(catalog[key], status.deploy_url)
 
-    def __init__(
-        self,
-        header: str,
-        services_line: str,
-        infra_line: str,
-        catalog: dict[str, str],
-        footer: str,
-        thumbnail_url: str = "",
-    ) -> None:
-        super().__init__(timeout=None)
-        section_text: discord.ui.TextDisplay[AnnouncementLayout] = discord.ui.TextDisplay(
-            f"{services_line}\n\n{infra_line}"
-        )
-        body: discord.ui.Item[AnnouncementLayout] = section_text
-        if thumbnail_url:
-            accessory: discord.ui.Thumbnail[AnnouncementLayout] = discord.ui.Thumbnail(thumbnail_url)
-            body = discord.ui.Section(section_text, accessory=accessory)
-        container: discord.ui.Container[AnnouncementLayout] = discord.ui.Container(
-            discord.ui.TextDisplay(header),
-            body,
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"-# {STATUS_LINK_LABEL} · {footer}"),
-            accent_colour=ANNOUNCE_COLOR,
-        )
-        self.add_item(container)
+
+def _link_buttons(status: StatusService, catalog: dict[str, str]) -> list[Button]:
+    """Build the trailing link-button row: pipeline run and package page."""
+    buttons: list[Button] = []
+    if status.deploy_run_url:
+        buttons.append(Button(catalog["pipeline_button"], status.deploy_run_url, "🚦"))
+    if status.deploy_image:
+        buttons.append(Button(catalog["image_button"], PACKAGE_URL, "📦"))
+    return buttons
 
 
 def build_announcement_layout(
@@ -122,10 +125,11 @@ def build_announcement_layout(
     """Build the Components V2 announcement, reusing the /status deploy lines.
 
     Layout: one accent Container holding a header TextDisplay (title +
-    env badge), a Section whose text stacks the Services and Infra
-    /status lines with a thumbnail accessory, a Separator, and the
-    machine-readable footer as sub-text. Same identity rendering as
-    the /status command — one code path.
+    env badge), a Services Section (link button to the deployed
+    artifact), an Infra Section (bot avatar thumbnail when
+    available), a Separator, an optional row of link buttons (pipeline
+    run, package page), and the machine-readable footer as sub-text.
+    Same identity rendering as the /status command — one code path.
     """
     catalog = _load_catalog(config.locale, config.config_dir)
     services = format_services_section(
@@ -156,12 +160,29 @@ def build_announcement_layout(
     header = f"# {ANNOUNCEMENT_HEADER} {catalog['title']}"
     if env:
         header = f"{header}\n-# `{env}`"
-    services_line = f"**{catalog['services_label']}**\n{services}"
-    infra_line = f"**{catalog['infra_label']}**\n{infra}"
-    layout = AnnouncementLayout(
-        header, services_line, infra_line, catalog, deploy_footer(status, env=env), thumbnail_url
+    services_line = Text(f"**{catalog['services_label']}**\n{services}")
+    infra_line = Text(f"**{catalog['infra_label']}**\n{infra}")
+    services_button = _services_button(status, catalog)
+    services_section: Section | Text = (
+        Section(services_line, button=services_button)
+        if services_button is not None
+        else services_line
     )
-    return layout
+    infra_section: Section | Text = (
+        Section(infra_line, thumbnail=Thumbnail(thumbnail_url)) if thumbnail_url else infra_line
+    )
+    container = (
+        Container(accent=BLURPLE)
+        .add(Text(header))
+        .add(services_section)
+        .add(infra_section)
+        .add(Separator())
+    )
+    links = _link_buttons(status, catalog)
+    if links:
+        container = container.add(Row(*links))
+    container = container.add(Text(f"-# {STATUS_LINK_LABEL} · {deploy_footer(status, env=env)}"))
+    return UILayout().add(container).build()
 
 
 async def announce_startup(
@@ -204,5 +225,11 @@ def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
         "title": "Kingdoms — Deployment",
         "services_label": "Services",
         "infra_label": "Infra",
+        "pull_request_button": "Pull-request",
+        "commit_button": "Commit",
+        "release_button": "Release",
+        "version_button": "Version",
+        "pipeline_button": "Pipeline",
+        "image_button": "Image",
     }
     return {key: str(section.get(key, default)) for key, default in defaults.items()}

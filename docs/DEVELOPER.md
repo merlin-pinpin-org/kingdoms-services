@@ -74,13 +74,35 @@ crashes, start/stop/restart. The design (kingdoms-services#109):
   "crash-loop detected" event.
 - The startup announcement (kingdoms-services#52) is the `start` event
   of this flow: a Components V2 layout (accent Container, Section with
-  the bot avatar as thumbnail accessory, Separator) reusing the exact
-  `/status` rendering, carrying a machine-readable footer
+  the bot avatar as thumbnail accessory, Separator, link buttons) reusing
+  the exact `/status` rendering, carrying a machine-readable footer
   (`kingdoms-deploy env=… image=… kind=… ref=… run=…`) in sub-text —
   read back by the kingdoms-infra battery through the REST API.
 - `KINGDOMS_ANNOUNCE_ENABLED=0` silences the startup announcement
   entirely — used by the CI/CD smoke bot so CI boots never post in
   the shared guilds.
+
+## UI SDK (`src/kingdoms/discord/ui`)
+
+Every view, embed or Components V2 layout is built through the UI SDK —
+never by instantiating `discord.ui` / `discord.Embed` classes directly in
+a feature (AGENTS.md mandate). The SDK hides the discord.py machinery
+behind declarative bricks and enforces the ADR-0009 Discord rules at
+build time, with a clear `UILayoutError` before anything is sent:
+
+- the 4000-character shared TextDisplay budget (V2) and the embed
+  character budget;
+- the 40-component cap; a Section accessory is only ever a link Button
+  or a Thumbnail (and always has one); a Row holds 1–5 buttons;
+- V2 messages carry no `content` — text lives in TextDisplays.
+
+Two builders cover the ADR-0009 dual system: `UIEmbed` (light output:
+`.field()`, `.footer()`, `.build()`) and `UILayout` (rich Components V2:
+`UILayout().add(Container(accent=…).add(Text(…)).add(Section(Text(…),
+button=…)).add(Separator()).add(Row(…)).build())`). Channels created by
+the bot always follow the emoji-prefix naming convention. Interactive
+items (buttons with callbacks) are wired in view classes with custom IDs
+`<mod>:<component>:<payload>`; extend the SDK rather than bypassing it.
 
 ## Testing rules
 

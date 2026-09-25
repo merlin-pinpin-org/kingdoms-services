@@ -27,6 +27,7 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.logs import LogService
+from kingdoms.discord.ui import BLURPLE, Container, Text, UILayout
 
 logger = logging.getLogger("kingdoms.admin")
 
@@ -73,28 +74,26 @@ class AdminLayout(discord.ui.LayoutView):
         await interaction.response.send_message("pong", ephemeral=True)
 
 
-class LogsPolicyLayout(discord.ui.LayoutView):
-    """The bot logs channel management section: policy status and actions."""
+def build_logs_policy_view(guild_id: str, channel_id: str | None, policy_lines: list[str]) -> discord.ui.LayoutView:
+    """Build the logs policy section: pure display, built through the UI SDK."""
+    status = f"<#{channel_id}>" if channel_id else "not provisioned yet"
+    container = (
+        Container(accent=BLURPLE)
+        .add(Text("## 🤖 Bot logs channel"))
+        .add(Text(f"Channel: {status}"))
+        .add(Text("\n".join(policy_lines) if policy_lines else "Default policy: admin-only."))
+    )
+    return UILayout().add(container).build()
 
-    def __init__(self, guild_id: str, channel_id: str | None, policy_lines: list[str]) -> None:
-        super().__init__(timeout=300)
-        status = f"<#{channel_id}>" if channel_id else "not provisioned yet"
-        container: discord.ui.Container[LogsPolicyLayout] = discord.ui.Container(
-            discord.ui.TextDisplay("## 🤖 Bot logs channel"),
-            discord.ui.TextDisplay(f"Channel: {status}"),
-            discord.ui.TextDisplay("\n".join(policy_lines) if policy_lines else "Default policy: admin-only."),
-        )
-        self.add_item(container)
+
+def build_admin_note_view(message: str) -> discord.ui.LayoutView:
+    """Build a single-note admin layout (degradation paths), through the UI SDK."""
+    return UILayout().add(Container(accent=BLURPLE).add(Text(message))).build()
 
 
 def build_admin_layout() -> AdminLayout:
     """Build the /admin layout (standalone for tests)."""
     return AdminLayout()
-
-
-def build_logs_policy_layout(guild_id: str, channel_id: str | None, policy_lines: list[str]) -> LogsPolicyLayout:
-    """Build the logs policy section (standalone for tests)."""
-    return LogsPolicyLayout(guild_id, channel_id, policy_lines)
 
 
 def register_admin_command(
@@ -138,6 +137,7 @@ def register_admin_command(
             await interaction.response.send_message(view=layout, ephemeral=True)
             return
 
+
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
         if not guild_id:
             await interaction.response.send_message(view=AdminLayout(admins), ephemeral=True)
@@ -150,13 +150,9 @@ def register_admin_command(
             policy = await logs_service.get_access_policy(guild_id)
         except Exception:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
-            failure = AdminLayout(admins)
-            failure.add_item(
-                discord.ui.Container(
-                    discord.ui.TextDisplay("Bot logs management failed — see the bot logs."),
-                )
+            await interaction.response.send_message(
+                view=build_admin_note_view("Bot logs management failed — see the bot logs."), ephemeral=True
             )
-            await interaction.response.send_message(view=failure, ephemeral=True)
             return
 
         policy_lines = [
@@ -167,6 +163,6 @@ def register_admin_command(
             policy_lines.append(f"Granted view to <@&{role.id}> — the change is audited in the logs channel.")
 
         await interaction.response.send_message(
-            view=build_logs_policy_layout(guild_id, channel_id, policy_lines),
+            view=build_logs_policy_view(guild_id, channel_id, policy_lines),
             ephemeral=True,
         )

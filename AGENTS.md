@@ -31,6 +31,16 @@ mods, YAML configs.
 - Core is **platform-agnostic** (no discord.py in `src/kingdoms/core/`);
   user-facing strings go through **i18n** (never hardcoded); mods declare
   channels/roles via **`ModRegistry`** with **logical role keys**.
+- **UI SDK mandate:** never build `discord.ui` / `discord.Embed` objects
+  directly in a feature — every view, embed or Components V2 layout is
+  built through the SDK in `src/kingdoms/discord/ui` (`UILayout`,
+  `UIEmbed`, `Container`, `Section`, `Text`, `Row`, `Button`,
+  `Separator`, `Thumbnail`). It enforces the ADR-0009 Discord rules
+  (text/component budgets, Section accessory constraints, Row size)
+  at build time with a clear `UILayoutError`, before anything is sent.
+  Interactive items (buttons with callbacks) are wired in view classes;
+  extend the SDK rather than bypassing it (see
+  [docs/DEVELOPER.md](docs/DEVELOPER.md)).
 - Every mod or game provider added here has its documentation updated in
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /

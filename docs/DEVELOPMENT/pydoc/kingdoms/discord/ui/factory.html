@@ -2,31 +2,66 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Python: kingdoms.discord.ui</title>
+<title>Python: kingdoms.discord.ui.factory</title>
 </head><body>
 
 <table class="heading">
 <tr class="heading-text decor">
-<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ui</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/__init__.py">SOURCE_ROOT/discord/ui/__init__.py</a></td></tr></table>
-    <p><span class="code">Discord&nbsp;UI&nbsp;components:&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;plus&nbsp;legacy&nbsp;view/modal&nbsp;seams.<br>
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.factory</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/factory.py">SOURCE_ROOT/discord/ui/factory.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;UI&nbsp;SDK:&nbsp;declarative&nbsp;builders&nbsp;for&nbsp;embeds&nbsp;and&nbsp;Components&nbsp;V2&nbsp;layouts.<br>
 &nbsp;<br>
-Everything&nbsp;user-facing&nbsp;is&nbsp;built&nbsp;through&nbsp;:mod:`.factory`&nbsp;—&nbsp;the<br>
-declarative&nbsp;bricks&nbsp;(<a href="#Text">Text</a>,&nbsp;<a href="#Section">Section</a>,&nbsp;<a href="#Row">Row</a>,&nbsp;<a href="#Button">Button</a>,&nbsp;<a href="#Container">Container</a>…)&nbsp;behind<br>
-``<a href="#UILayout">UILayout</a>``/``<a href="#UIEmbed">UIEmbed</a>``.&nbsp;Never&nbsp;build&nbsp;``discord.ui``&nbsp;objects&nbsp;directly<br>
-in&nbsp;a&nbsp;feature:&nbsp;the&nbsp;SDK&nbsp;enforces&nbsp;the&nbsp;ADR-0009&nbsp;layout&nbsp;rules&nbsp;(text&nbsp;and<br>
-component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;constraints)&nbsp;at&nbsp;build&nbsp;time.</span></p>
+One&nbsp;entry&nbsp;point&nbsp;—&nbsp;:func:`build`&nbsp;—&nbsp;hiding&nbsp;the&nbsp;discord.py&nbsp;machinery<br>
+(ADR-0009&nbsp;dual&nbsp;system:&nbsp;embeds&nbsp;for&nbsp;light&nbsp;informational&nbsp;output,<br>
+Components&nbsp;V2&nbsp;for&nbsp;rich&nbsp;structured&nbsp;UI).&nbsp;The&nbsp;SDK&nbsp;is&nbsp;the&nbsp;**only**&nbsp;way<br>
+features&nbsp;build&nbsp;UI:&nbsp;no&nbsp;feature&nbsp;touches&nbsp;``discord.ui``&nbsp;classes<br>
+directly,&nbsp;so&nbsp;the&nbsp;layout&nbsp;rules&nbsp;below&nbsp;are&nbsp;enforced&nbsp;in&nbsp;one&nbsp;place.<br>
+&nbsp;<br>
+Briques&nbsp;(``kingdoms.discord.ui.factory``):<br>
+&nbsp;<br>
+-&nbsp;:class:`<a href="#Text">Text</a>`&nbsp;—&nbsp;a&nbsp;text&nbsp;block&nbsp;(accepts&nbsp;full&nbsp;markdown).<br>
+-&nbsp;:class`<a href="#Button">Button</a>`&nbsp;—&nbsp;a&nbsp;link&nbsp;button&nbsp;(label&nbsp;+&nbsp;URL);&nbsp;interactive&nbsp;buttons<br>
+&nbsp;&nbsp;with&nbsp;callbacks&nbsp;are&nbsp;wired&nbsp;through&nbsp;:class:`ButtonRef`&nbsp;+&nbsp;view&nbsp;classes.<br>
+-&nbsp;:class:`<a href="#Section">Section</a>`&nbsp;—&nbsp;text&nbsp;blocks&nbsp;side&nbsp;by&nbsp;side&nbsp;with&nbsp;an&nbsp;accessory<br>
+&nbsp;&nbsp;(a&nbsp;link&nbsp;button&nbsp;or&nbsp;a&nbsp;thumbnail).<br>
+-&nbsp;:class:`<a href="#Row">Row</a>`&nbsp;—&nbsp;a&nbsp;row&nbsp;of&nbsp;link&nbsp;buttons.<br>
+-&nbsp;:class`<a href="#Separator">Separator</a>`&nbsp;—&nbsp;a&nbsp;visible&nbsp;divider.<br>
+&nbsp;<br>
+Build&nbsp;an&nbsp;embed::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;kingdoms.discord.ui&nbsp;import&nbsp;<a href="#UIEmbed">UIEmbed</a>,&nbsp;<a href="#Text">Text</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;embed&nbsp;=&nbsp;<a href="#UIEmbed">UIEmbed</a>(title="Kingdoms&nbsp;—&nbsp;Status",&nbsp;color=BLURPLE)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.field("Uptime",&nbsp;"1h&nbsp;2m")<br>
+&nbsp;<br>
+Build&nbsp;a&nbsp;Components&nbsp;V2&nbsp;layout::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;kingdoms.discord.ui&nbsp;import&nbsp;<a href="#UILayout">UILayout</a>,&nbsp;<a href="#Container">Container</a>,&nbsp;<a href="#Section">Section</a>,&nbsp;<a href="#Text">Text</a>,&nbsp;<a href="#Button">Button</a>,&nbsp;<a href="#Row">Row</a>,&nbsp;<a href="#Separator">Separator</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;layout&nbsp;=&nbsp;(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#UILayout">UILayout</a>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.add(<a href="#Container">Container</a>(accent=BLURPLE)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.add(<a href="#Text">Text</a>("#&nbsp;🚀&nbsp;Deployed"))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.add(<a href="#Section">Section</a>(<a href="#Text">Text</a>("**Services**"),&nbsp;buttons=[<a href="#Button">Button</a>("PR",&nbsp;url)]))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.add(<a href="#Separator">Separator</a>())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.add(<a href="#Row">Row</a>(<a href="#Button">Button</a>("Pipeline",&nbsp;run_url),&nbsp;<a href="#Button">Button</a>("Image",&nbsp;pkg_url)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.build())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;)<br>
+&nbsp;<br>
+Reliability&nbsp;guarantees&nbsp;(enforced&nbsp;here,&nbsp;not&nbsp;at&nbsp;Discord's&nbsp;door):<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;4000-character&nbsp;shared&nbsp;TextDisplay&nbsp;budget&nbsp;is&nbsp;checked&nbsp;at&nbsp;build<br>
+&nbsp;&nbsp;time&nbsp;(Discord&nbsp;rejects&nbsp;the&nbsp;message&nbsp;otherwise);<br>
+-&nbsp;the&nbsp;40-component&nbsp;cap&nbsp;is&nbsp;checked;<br>
+-&nbsp;a&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;is&nbsp;only&nbsp;ever&nbsp;a&nbsp;link&nbsp;<a href="#Button">Button</a>&nbsp;or&nbsp;a&nbsp;<a href="#Thumbnail">Thumbnail</a><br>
+&nbsp;&nbsp;(Discord&nbsp;rejects&nbsp;anything&nbsp;else);<br>
+-&nbsp;V2&nbsp;messages&nbsp;carry&nbsp;no&nbsp;``content``&nbsp;—&nbsp;text&nbsp;lives&nbsp;in&nbsp;TextDisplays.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.discord.ui.embeds.html">embeds</a><br>
-</td><td class="multicolumn"><a href="kingdoms.discord.ui.factory.html">factory</a><br>
-</td><td class="multicolumn"><a href="kingdoms.discord.ui.modals.html">modals</a><br>
-</td><td class="multicolumn"><a href="kingdoms.discord.ui.views.html">views</a><br>
-</td></tr></table></td></tr></table><p>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -36,21 +71,21 @@ component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;
 <dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UILayoutError">kingdoms.discord.ui.factory.UILayoutError</a>
+<dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UILayoutError">UILayoutError</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Button">kingdoms.discord.ui.factory.Button</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Container">kingdoms.discord.ui.factory.Container</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Row">kingdoms.discord.ui.factory.Row</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Section">kingdoms.discord.ui.factory.Section</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Separator">kingdoms.discord.ui.factory.Separator</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Text">kingdoms.discord.ui.factory.Text</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Thumbnail">kingdoms.discord.ui.factory.Thumbnail</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UIEmbed">kingdoms.discord.ui.factory.UIEmbed</a>
-</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UILayout">kingdoms.discord.ui.factory.UILayout</a>
+<dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Button">Button</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Container">Container</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Row">Row</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Section">Section</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Separator">Separator</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Text">Text</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Thumbnail">Thumbnail</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UIEmbed">UIEmbed</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UILayout">UILayout</a>
 </dt></dl>
 </dd>
 </dl>
