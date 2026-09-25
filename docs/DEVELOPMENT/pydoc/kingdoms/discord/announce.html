@@ -9,25 +9,26 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.announce</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/announce.py">SOURCE_ROOT/discord/announce.py</a></td></tr></table>
-    <p><span class="code">Startup&nbsp;announcement:&nbsp;one&nbsp;message&nbsp;per&nbsp;gateway&nbsp;connection&nbsp;(kingdoms-services#52).<br>
+    <p><span class="code">Deployment&nbsp;announcement:&nbsp;the&nbsp;"start"&nbsp;lifecycle&nbsp;event&nbsp;(#52,&nbsp;#109).<br>
 &nbsp;<br>
-When&nbsp;the&nbsp;environment&nbsp;provides&nbsp;``ANNOUNCE_CHANNEL_ID``,&nbsp;the&nbsp;bot&nbsp;posts&nbsp;a<br>
-single&nbsp;announcement&nbsp;in&nbsp;that&nbsp;channel&nbsp;on&nbsp;real&nbsp;gateway&nbsp;connection&nbsp;—&nbsp;the<br>
-game&nbsp;designer&nbsp;sees&nbsp;"the&nbsp;PR&nbsp;I&nbsp;asked&nbsp;for&nbsp;is&nbsp;now&nbsp;live"&nbsp;in&nbsp;Discord,&nbsp;without<br>
-watching&nbsp;GitHub&nbsp;Actions.&nbsp;The&nbsp;content&nbsp;reuses&nbsp;the&nbsp;``/status``&nbsp;deploy<br>
-identity&nbsp;(``KINGDOMS_DEPLOY_*``):&nbsp;no&nbsp;dedicated&nbsp;injection&nbsp;pipeline.<br>
+On&nbsp;real&nbsp;gateway&nbsp;connection&nbsp;the&nbsp;bot&nbsp;posts&nbsp;the&nbsp;deployment&nbsp;announcement<br>
+in&nbsp;each&nbsp;guild's&nbsp;``🤖-bot-logs``&nbsp;channel&nbsp;—&nbsp;resolved&nbsp;and&nbsp;provisioned&nbsp;by<br>
+the&nbsp;core&nbsp;:class:`~kingdoms.core.services.logs.LogService`&nbsp;(cache-aside:<br>
+Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).&nbsp;The&nbsp;content&nbsp;reuses<br>
+the&nbsp;``/status``&nbsp;deploy&nbsp;identity&nbsp;(``KINGDOMS_DEPLOY_*``):&nbsp;no&nbsp;dedicated<br>
+injection&nbsp;pipeline.<br>
 &nbsp;<br>
-The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;a<br>
-stable&nbsp;footer&nbsp;line&nbsp;(``KINGDOMS_DEPLOY_FOOTER``)&nbsp;carries&nbsp;the&nbsp;deployed<br>
-identity&nbsp;so&nbsp;the&nbsp;kingdoms-infra&nbsp;post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78)<br>
-can&nbsp;read&nbsp;it&nbsp;back&nbsp;through&nbsp;the&nbsp;Discord&nbsp;REST&nbsp;API&nbsp;and&nbsp;assert&nbsp;that&nbsp;the<br>
-running&nbsp;bot&nbsp;announces&nbsp;what&nbsp;the&nbsp;pinned&nbsp;state&nbsp;says.&nbsp;The&nbsp;footer&nbsp;format&nbsp;is<br>
-frozen:&nbsp;breaking&nbsp;changes&nbsp;need&nbsp;a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
+The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
+frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
+kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``)&nbsp;lets&nbsp;the&nbsp;kingdoms-infra<br>
+post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78)&nbsp;read&nbsp;it&nbsp;back&nbsp;through&nbsp;the<br>
+Discord&nbsp;REST&nbsp;API&nbsp;and&nbsp;assert&nbsp;that&nbsp;the&nbsp;running&nbsp;bot&nbsp;announces&nbsp;what&nbsp;the<br>
+pinned&nbsp;state&nbsp;says.&nbsp;The&nbsp;footer&nbsp;format&nbsp;is&nbsp;frozen:&nbsp;breaking&nbsp;changes&nbsp;need<br>
+a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
 &nbsp;<br>
-Delivery&nbsp;is&nbsp;best-effort:&nbsp;an&nbsp;unreachable&nbsp;channel&nbsp;or&nbsp;a&nbsp;missing&nbsp;permission<br>
-is&nbsp;logged,&nbsp;never&nbsp;a&nbsp;startup&nbsp;failure&nbsp;—&nbsp;readiness&nbsp;must&nbsp;not&nbsp;depend&nbsp;on<br>
-message&nbsp;delivery.&nbsp;The&nbsp;announcement&nbsp;is&nbsp;skipped&nbsp;silently&nbsp;when&nbsp;the&nbsp;channel<br>
-variable&nbsp;is&nbsp;absent.</span></p>
+Without&nbsp;a&nbsp;LogService&nbsp;(local&nbsp;runs,&nbsp;unit&nbsp;tests),&nbsp;the&nbsp;announcement<br>
+degrades&nbsp;to&nbsp;nothing&nbsp;—&nbsp;silently&nbsp;skipped.&nbsp;Delivery&nbsp;is&nbsp;best-effort&nbsp;either<br>
+way:&nbsp;startup&nbsp;readiness&nbsp;never&nbsp;depends&nbsp;on&nbsp;message&nbsp;delivery.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -57,9 +58,9 @@ variable&nbsp;is&nbsp;absent.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="AnnounceConfig">class <strong>AnnounceConfig</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#AnnounceConfig">AnnounceConfig</a>(channel_id:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;locale:&nbsp;'str'&nbsp;=&nbsp;'en',&nbsp;config_dir:&nbsp;'Path'&nbsp;=&nbsp;PosixPath('config'))&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AnnounceConfig">AnnounceConfig</a>(locale:&nbsp;'str'&nbsp;=&nbsp;'en',&nbsp;config_dir:&nbsp;'Path'&nbsp;=&nbsp;PosixPath('config'))&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-Announcement&nbsp;configuration&nbsp;(environment-driven).<br>&nbsp;</span></td></tr>
+Announcement&nbsp;configuration&nbsp;(locale&nbsp;only&nbsp;—&nbsp;channels&nbsp;are&nbsp;owned&nbsp;by&nbsp;LogService).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="AnnounceConfig-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -73,7 +74,7 @@ Announcement&nbsp;configuration&nbsp;(environment-driven).<br>&nbsp;</span></td>
 
 <dl><dt><a name="AnnounceConfig-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="AnnounceConfig-__init__"><strong>__init__</strong></a>(self, channel_id: 'str' = '', locale: 'str' = 'en', config_dir: 'Path' = PosixPath('config')) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="AnnounceConfig-__init__"><strong>__init__</strong></a>(self, locale: 'str' = 'en', config_dir: 'Path' = PosixPath('config')) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="AnnounceConfig-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -82,27 +83,20 @@ Announcement&nbsp;configuration&nbsp;(environment-driven).<br>&nbsp;</span></td>
 <dl><dt><a name="AnnounceConfig-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
 <hr>
-Readonly properties defined here:<br>
-<dl><dt><strong>enabled</strong></dt>
-<dd><span class="code">Announce&nbsp;only&nbsp;when&nbsp;a&nbsp;channel&nbsp;is&nbsp;configured.</span></dd>
-</dl>
-<hr>
 Data descriptors defined here:<br>
-<dl><dt><strong>channel_id</strong></dt>
-</dl>
 <dl><dt><strong>config_dir</strong></dt>
 </dl>
 <dl><dt><strong>locale</strong></dt>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'channel_id': 'str', 'config_dir': 'Path', 'locale': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'config_dir': 'Path', 'locale': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'channel_id': Field(name='channel_id',type='str',default='',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'config_dir': Field(name='config_dir',type='Path',default=Posi...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locale': Field(name='locale',type='str',default='en',defa...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'config_dir': Field(name='config_dir',type='Path',default=Posi...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locale': Field(name='locale',type='str',default='en',defa...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('channel_id', 'locale', 'config_dir')</dl>
+<dl><dt><strong>__match_args__</strong> = ('locale', 'config_dir')</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">
@@ -110,8 +104,8 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;startup&nbsp;announcement;&nbsp;best-effort,&nbsp;never&nbsp;raises.</span></dd></dl>
- <dl><dt><a name="-build_announcement_embed"><strong>build_announcement_embed</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '') -&gt; 'discord.Embed'</dt><dd><span class="code">Build&nbsp;the&nbsp;localized&nbsp;announcement&nbsp;embed&nbsp;with&nbsp;the&nbsp;identity&nbsp;footer.</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
+ <dl><dt><a name="-build_announcement_message"><strong>build_announcement_message</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;localized&nbsp;announcement&nbsp;content&nbsp;with&nbsp;the&nbsp;identity&nbsp;footer.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>

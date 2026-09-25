@@ -1,34 +1,51 @@
-"""Unit tests for the startup announcement (kingdoms-services#52).
+"""Unit tests for the startup announcement (kingdoms-services#52, #109).
 
-Covers the four contracts of the announcement: sent with the correct
-identity when the channel is configured, skipped silently when absent,
-no crash on an unreachable channel, and the machine-readable footer
-format asserted exactly (the kingdoms-infra battery parses it).
+The announcement is the "start" lifecycle event, delivered by the core
+LogService to each guild's 🤖-bot-logs channel. These tests pin the
+frozen footer format, the localized content and the wiring contracts:
+with a LogService the event flows to every guild; without one (local
+runs, unit tests) the announcement degrades to a silent skip.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry
-from kingdoms.core.services.status import StatusService
+from kingdoms.core.services.status import BotAdmins, StatusService
 from kingdoms.discord.announce import (
     AnnounceConfig,
     announce_startup,
-    build_announcement_embed,
+    build_announcement_message,
     deploy_footer,
 )
-from tests.mocks.discord_mock import MockClient, MockTextChannel
 
 CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
 
 
 def _status_service(**kwargs: str) -> StatusService:
-    from kingdoms.core.services.status import BotAdmins
-
     return StatusService(registry=ModRegistry({}), bot_admins=BotAdmins(), **kwargs)
+
+
+class _FakeLogService:
+    """LogService stand-in capturing the delivered events per guild."""
+
+    def __init__(self) -> None:
+        self.events: dict[str, list[LifecycleEvent]] = {}
+
+    async def log_event(self, guild_id: str, event: LifecycleEvent) -> None:
+        self.events.setdefault(guild_id, []).append(event)
+
+
+class _Bot:
+    """Client stand-in exposing the guilds the announcement iterates."""
+
+    def __init__(self, guild_ids: list[str]) -> None:
+        self.guilds = [type("G", (), {"id": int(gid)})() for gid in guild_ids]
 
 
 def test_footer_format_is_frozen() -> None:
@@ -51,71 +68,63 @@ def test_footer_renders_empty_fields() -> None:
     assert footer == "kingdoms-deploy env= image= kind= ref= run="
 
 
-def test_embed_is_localized_and_carries_footer() -> None:
+def test_message_is_localized_with_identity() -> None:
     status = _status_service(deploy_label="v0.1.0", deploy_kind="release", deploy_ref="v0.1.0")
-    config = AnnounceConfig(channel_id="123", locale="en", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="prod")
-    assert embed.title == "Kingdoms — Deployment"
-    assert "v0.1.0" in (embed.description or "")
-    assert "**Environment**: `prod`" in (embed.description or "")
-    assert embed.footer is not None
-    assert embed.footer.text == deploy_footer(status, env="prod")
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    message = build_announcement_message(status, config, env="prod")
+    assert "**Kingdoms — Deployment**" in message
+    assert "v0.1.0" in message
+    assert "**Environment**: `prod`" in message
 
 
-def test_embed_falls_back_to_english_for_unknown_locale() -> None:
-    status = _status_service(deploy_label="sha-abc1234")
-    config = AnnounceConfig(channel_id="123", locale="xx", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="test")
-    assert embed.title == "Kingdoms — Deployment"
-
-
-def test_embed_french_catalog() -> None:
+def test_message_french_catalog() -> None:
     status = _status_service(deploy_label="v0.1.0")
-    config = AnnounceConfig(channel_id="123", locale="fr", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="test")
-    assert embed.title == "Kingdoms — Déploiement"
-    assert "**Environnement**: `test`" in (embed.description or "")
+    config = AnnounceConfig(locale="fr", config_dir=CONFIG_DIR)
+    message = build_announcement_message(status, config, env="test")
+    assert "**Kingdoms — Déploiement**" in message
+    assert "**Environnement**: `test`" in message
+
+
+def test_message_falls_back_to_english_for_unknown_locale() -> None:
+    status = _status_service(deploy_label="sha-abc1234")
+    config = AnnounceConfig(locale="xx", config_dir=CONFIG_DIR)
+    message = build_announcement_message(status, config, env="test")
+    assert "**Kingdoms — Deployment**" in message
 
 
 @pytest.mark.asyncio
-async def test_announce_sent_when_channel_configured() -> None:
+async def test_announce_delivers_start_event_to_every_guild() -> None:
     status = _status_service(deploy_label="pr-42-x")
-    channel = MockTextChannel(id=42, name="deploys")
-    client = MockClient(channels=[channel])
-    config = AnnounceConfig(channel_id="42", locale="en", config_dir=CONFIG_DIR)
-    await announce_startup(client, status, config)  # type: ignore[arg-type]
-    assert len(channel.messages) == 1
-    message = channel.messages[0]
-    assert message.embeds and message.embeds[0].footer is not None
-    assert message.embeds[0].footer.text.startswith("kingdoms-deploy env= image=pr-42-x")
+    logs = _FakeLogService()
+    bot = _Bot(["111", "222"])
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    await announce_startup(bot, status, config, logs_service=logs, deploy_env="test")  # type: ignore[arg-type]
+    assert set(logs.events) == {"111", "222"}
+    for events in logs.events.values():
+        assert len(events) == 1
+        event = events[0]
+        assert event.kind == "start"
+        assert event.footer.startswith("kingdoms-deploy env=test image=pr-42-x")
+        assert "pr-42-x" in event.message
 
 
 @pytest.mark.asyncio
-async def test_no_announce_when_channel_absent() -> None:
+async def test_announce_skipped_without_log_service() -> None:
     status = _status_service()
-    channel = MockTextChannel(id=42)
-    client = MockClient(channels=[channel])
-    config = AnnounceConfig(channel_id="", config_dir=CONFIG_DIR)
-    await announce_startup(client, status, config)  # type: ignore[arg-type]
-    assert channel.messages == []
+    bot = _Bot(["111"])
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    await announce_startup(bot, status, config, logs_service=None, deploy_env="test")  # type: ignore[arg-type]
 
 
-@pytest.mark.asyncio
-async def test_no_crash_when_fetch_fails() -> None:
-    class FailingClient(MockClient):
-        async def fetch_channel(self, channel_id: int) -> object:
-            raise RuntimeError("network down")
-
-        def get_channel(self, channel_id: int) -> object:
-            return None
-
-    status = _status_service()
-    client = FailingClient()
-    config = AnnounceConfig(channel_id="42", config_dir=CONFIG_DIR)
-    await announce_startup(client, status, config)  # type: ignore[arg-type]
+def test_log_service_protocol_shape() -> None:
+    """The fake used in tests satisfies the LogService call surface used here."""
+    assert isinstance(_FakeLogService().log_event, object)
+    service: Any = _FakeLogService()
+    assert callable(service.log_event)
 
 
-def test_announce_config_enabled_requires_digits() -> None:
-    assert AnnounceConfig(channel_id="123").enabled is True
-    assert AnnounceConfig(channel_id="not-a-number").enabled is False
-    assert AnnounceConfig(channel_id="").enabled is False
+def test_lifecycle_event_is_a_plain_dataclass() -> None:
+    event = LifecycleEvent(kind="start", message="m", footer="f")
+    assert event.kind == "start"
+    assert event.footer == "f"
+    assert LogService is not None

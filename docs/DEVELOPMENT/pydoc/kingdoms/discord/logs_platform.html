@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.logs_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.logs_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/logs_platform.py">SOURCE_ROOT/discord/logs_platform.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;wiring&nbsp;for&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;(kingdoms-services#109).<br>
+&nbsp;<br>
+Implements&nbsp;the&nbsp;two&nbsp;seams&nbsp;the&nbsp;core&nbsp;:class:`LogService`&nbsp;depends&nbsp;on,&nbsp;with<br>
+real&nbsp;infrastructure&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbsp;lives&nbsp;here:<br>
+&nbsp;<br>
+-&nbsp;:class:`<a href="#MongoLogsDatabase">MongoLogsDatabase</a>`&nbsp;—&nbsp;the&nbsp;async&nbsp;MongoDB&nbsp;persistence&nbsp;of<br>
+&nbsp;&nbsp;``ChannelModel``&nbsp;documents&nbsp;and&nbsp;per-guild&nbsp;access&nbsp;policies;<br>
+-&nbsp;:class:`<a href="#DiscordLogsPlatform">DiscordLogsPlatform</a>`&nbsp;—&nbsp;channel&nbsp;creation&nbsp;(``🤖-bot-logs``),<br>
+&nbsp;&nbsp;the&nbsp;admin-only&nbsp;default&nbsp;permission&nbsp;overwrites,&nbsp;role&nbsp;grants&nbsp;and&nbsp;message<br>
+&nbsp;&nbsp;delivery,&nbsp;all&nbsp;through&nbsp;discord.py.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.logs_platform.html#DiscordLogsPlatform">DiscordLogsPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.logs_platform.html#MongoLogsDatabase">MongoLogsDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DiscordLogsPlatform">class <strong>DiscordLogsPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DiscordLogsPlatform">DiscordLogsPlatform</a>(bot:&nbsp;'discord.Client')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;seam.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DiscordLogsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;lookups&nbsp;and&nbsp;message&nbsp;sends.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-apply_default_policy"><strong>apply_default_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Admin-only&nbsp;default:&nbsp;@everyone&nbsp;denied,&nbsp;guild&nbsp;admins&nbsp;allowed.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;🤖-bot-logs&nbsp;text&nbsp;channel&nbsp;in&nbsp;the&nbsp;guild.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str') -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoLogsDatabase">class <strong>MongoLogsDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoLogsDatabase">MongoLogsDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;logs&nbsp;channel&nbsp;and&nbsp;its&nbsp;policies.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoLogsDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(get_async_database).</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-delete_channel"><strong>delete_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;stale&nbsp;channel&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-get_policy"><strong>get_policy</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;persisted&nbsp;access&nbsp;policy&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-set_policy"><strong>set_policy</strong></a>(self, guild_id: 'str', category: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;access&nbsp;policy&nbsp;(upsert,&nbsp;audit&nbsp;fields&nbsp;included).</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-upsert_channel"><strong>upsert_channel</strong></a>(self, channel: 'ChannelModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;channel&nbsp;document&nbsp;(idempotent&nbsp;provisioning).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-logs_category"><strong>logs_category</strong></a>() -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;logs&nbsp;category&nbsp;key&nbsp;(kept&nbsp;for&nbsp;wiring&nbsp;readability).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BOT_LOGS_CATEGORY</strong> = 'bot_logs'<br>
+<strong>BOT_LOGS_CHANNEL_NAME</strong> = '🤖-bot-logs'<br>
+<strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
+<strong>POLICIES_COLLECTION</strong> = 'channel_access_policies'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.logs.discord (WARNING)&gt;</td></tr></table>
+</body></html>

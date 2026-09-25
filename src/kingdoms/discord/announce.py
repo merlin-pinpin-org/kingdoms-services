@@ -1,22 +1,23 @@
-"""Startup announcement: one message per gateway connection (kingdoms-services#52).
+"""Deployment announcement: the "start" lifecycle event (#52, #109).
 
-When the environment provides ``ANNOUNCE_CHANNEL_ID``, the bot posts a
-single announcement in that channel on real gateway connection — the
-game designer sees "the PR I asked for is now live" in Discord, without
-watching GitHub Actions. The content reuses the ``/status`` deploy
-identity (``KINGDOMS_DEPLOY_*``): no dedicated injection pipeline.
+On real gateway connection the bot posts the deployment announcement
+in each guild's ``🤖-bot-logs`` channel — resolved and provisioned by
+the core :class:`~kingdoms.core.services.logs.LogService` (cache-aside:
+Redis → MongoDB → creation, admin-only by default). The content reuses
+the ``/status`` deploy identity (``KINGDOMS_DEPLOY_*``): no dedicated
+injection pipeline.
 
-The announcement doubles as a machine-readable deployment signal: a
-stable footer line (``KINGDOMS_DEPLOY_FOOTER``) carries the deployed
-identity so the kingdoms-infra post-deploy battery (kingdoms-infra#78)
-can read it back through the Discord REST API and assert that the
-running bot announces what the pinned state says. The footer format is
-frozen: breaking changes need a battery-side update first.
+The announcement doubles as a machine-readable deployment signal: the
+frozen footer line (``kingdoms-deploy env=<env> image=<label>
+kind=<kind> ref=<ref> run=<run-url>``) lets the kingdoms-infra
+post-deploy battery (kingdoms-infra#78) read it back through the
+Discord REST API and assert that the running bot announces what the
+pinned state says. The footer format is frozen: breaking changes need
+a battery-side update first.
 
-Delivery is best-effort: an unreachable channel or a missing permission
-is logged, never a startup failure — readiness must not depend on
-message delivery. The announcement is skipped silently when the channel
-variable is absent.
+Without a LogService (local runs, unit tests), the announcement
+degrades to nothing — silently skipped. Delivery is best-effort either
+way: startup readiness never depends on message delivery.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from pathlib import Path
 import discord
 import yaml
 
+from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.status import StatusService
 
 logger = logging.getLogger("kingdoms.bot.announce")
@@ -37,16 +39,10 @@ FOOTER_PREFIX = "kingdoms-deploy"
 
 @dataclass(frozen=True, slots=True)
 class AnnounceConfig:
-    """Announcement configuration (environment-driven)."""
+    """Announcement configuration (locale only — channels are owned by LogService)."""
 
-    channel_id: str = ""
     locale: str = "en"
     config_dir: Path = Path("config")
-
-    @property
-    def enabled(self) -> bool:
-        """Announce only when a channel is configured."""
-        return self.channel_id.strip().isdigit()
 
 
 def deploy_footer(status: StatusService, env: str = "") -> str:
@@ -67,36 +63,40 @@ def deploy_footer(status: StatusService, env: str = "") -> str:
     return f"{FOOTER_PREFIX} {rendered}".rstrip()
 
 
-def build_announcement_embed(status: StatusService, config: AnnounceConfig, env: str = "") -> discord.Embed:
-    """Build the localized announcement embed with the identity footer."""
+def build_announcement_message(status: StatusService, config: AnnounceConfig, env: str = "") -> str:
+    """Build the localized announcement content with the identity footer."""
     catalog = _load_catalog(config.locale, config.config_dir)
     version = status.deploy_label or status.deploy_image or "unknown"
-    lines = [catalog["body"], f"**{catalog['version_label']}**: {version}"]
+    lines = [f"**{catalog['title']}**", catalog["body"], f"**{catalog['version_label']}**: {version}"]
     if env:
         lines.append(f"**{catalog['environment_label']}**: `{env}`")
     url = status.deploy_url or status.deploy_run_url
     if url:
         label = catalog["deployment_label"]
         lines.append(f"**{label}**: <{url}>")
-    embed = discord.Embed(title=catalog["title"], description="\n".join(lines))
-    embed.set_footer(text=deploy_footer(status, env))
-    return embed
+    return "\n".join(lines)
 
 
-async def announce_startup(bot: discord.Client, status: StatusService, config: AnnounceConfig) -> None:
-    """Post the startup announcement; best-effort, never raises."""
-    if not config.enabled:
+async def announce_startup(
+    bot: discord.Client,
+    status: StatusService,
+    config: AnnounceConfig,
+    logs_service: LogService | None = None,
+    deploy_env: str = "",
+) -> None:
+    """Post the deployment announcement per guild in its bot logs channel."""
+    if logs_service is None:
+        logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
-    channel_id = int(config.channel_id.strip())
-    try:
-        channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
-        if not isinstance(channel, discord.TextChannel):
-            logger.warning("ANNOUNCE_CHANNEL_ID %s is not a text channel: announcement skipped", channel_id)
-            return
-        await channel.send(embed=build_announcement_embed(status, config))
-        logger.info("STARTUP ANNOUNCEMENT SENT to channel %s", channel_id)
-    except Exception:
-        logger.exception("STARTUP ANNOUNCEMENT FAILED (channel %s) — delivery is best-effort", channel_id)
+    message = build_announcement_message(status, config, env=deploy_env)
+    event = LifecycleEvent(
+        kind="start",
+        message=message,
+        footer=deploy_footer(status, env=deploy_env),
+    )
+    for guild in bot.guilds:
+        await logs_service.log_event(str(guild.id), event)
+        logger.info("STARTUP ANNOUNCEMENT SENT to guild %s", guild.id)
 
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:

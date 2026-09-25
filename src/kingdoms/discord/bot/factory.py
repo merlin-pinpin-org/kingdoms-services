@@ -23,6 +23,7 @@ from pathlib import Path
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
@@ -55,7 +56,6 @@ class BotConfig:
     deploy_branch: str = ""
     deploy_pr_title: str = ""
     sync_guild_id: str = ""
-    announce_channel_id: str = ""
     announce_locale: str = "en"
     deploy_env: str = ""
     log_level: str = "INFO"
@@ -85,7 +85,6 @@ class BotConfig:
             deploy_branch=env.get("KINGDOMS_DEPLOY_BRANCH", ""),
             deploy_pr_title=env.get("KINGDOMS_DEPLOY_PR_TITLE", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
-            announce_channel_id=env.get("ANNOUNCE_CHANNEL_ID", ""),
             announce_locale=env.get("ANNOUNCE_LOCALE", "en"),
             deploy_env=env.get("KINGDOMS_DEPLOY_ENV", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
@@ -95,12 +94,13 @@ class BotConfig:
 class KingdomsBot(discord.Client):
     """Discord client with a command tree; core services are attached, not inherited."""
 
-    def __init__(self, config: BotConfig, status: StatusService) -> None:
+    def __init__(self, config: BotConfig, status: StatusService, logs: LogService | None = None) -> None:
         """Create the client, the command tree and attach the services."""
         intents = discord.Intents.default()
         super().__init__(intents=intents)
         self.config = config
         self.status_service = status
+        self.logs_service = logs
         self.tree = app_commands.CommandTree(self)
         self._synced = False
 
@@ -117,10 +117,11 @@ class KingdomsBot(discord.Client):
             self,
             self.status_service,
             AnnounceConfig(
-                channel_id=self.config.announce_channel_id,
                 locale=self.config.announce_locale,
                 config_dir=self.config.config_dir,
             ),
+            logs_service=self.logs_service,
+            deploy_env=self.config.deploy_env,
         )
         if self._synced:
             return
@@ -136,6 +137,29 @@ class KingdomsBot(discord.Client):
         except Exception:
             self._synced = False
             logger.exception("SLASH COMMAND SYNC FAILED")
+
+    async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
+        """Route unhandled failures to the logs channel (crash lifecycle event)."""
+        import sys
+
+        exc_info = sys.exc_info()
+        logger.exception("UNHANDLED ERROR in %s", event_method, exc_info=exc_info)
+        if self.logs_service is None:
+            return
+        for guild in self.guilds:
+            event = LifecycleEvent(
+                kind="crash",
+                message=f"Unhandled error in `{event_method}` — see the bot logs for the traceback.",
+            )
+            await self.logs_service.log_event(str(guild.id), event)
+
+    async def close(self) -> None:
+        """Log the stop lifecycle event, then close the gateway connection."""
+        if self.logs_service is not None:
+            for guild in self.guilds:
+                event = LifecycleEvent(kind="stop", message="Bot shutting down.")
+                await self.logs_service.log_event(str(guild.id), event)
+        await super().close()
 
 
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
@@ -161,6 +185,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_pr_title=resolved.deploy_pr_title,
     )
     bot = KingdomsBot(config=resolved, status=status)
+    bot.logs_service = _build_log_service(resolved, bot)
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.status import register_status_command
 
@@ -169,6 +194,30 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(bot.tree, status, sync_target=sync_target)
     register_admin_command(bot.tree, bot_admins=status.bot_admins)
     return bot
+
+
+def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None:
+    """Wire Mongo (async) + the Discord platform seam + Redis into LogService.
+
+    Returns None when the stores are not configured (unit tests, local
+    runs): the announcement and lifecycle logging degrade to a skip.
+    """
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.logs_platform import DiscordLogsPlatform, MongoLogsDatabase
+
+        state = StateService(redis_uri=config.redis_uri or None)
+        return LogService(
+            database=MongoLogsDatabase(get_async_database()),
+            platform=DiscordLogsPlatform(bot),
+            state=state,
+        )
+    except Exception:
+        logger.exception("LOG SERVICE WIRING FAILED — lifecycle logging disabled")
+        return None
 
 
 def run_bot(config: BotConfig | None = None) -> None:

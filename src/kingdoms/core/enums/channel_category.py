@@ -16,3 +16,4 @@ class ChannelCategory(StrEnum):
     ADMIN = "admin"
     REPORTS = "reports"
     LOGS = "logs"
+    BOT_LOGS = "bot_logs"
