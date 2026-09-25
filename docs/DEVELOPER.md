@@ -86,41 +86,18 @@ crashes, start/stop/restart. The design (kingdoms-services#109):
 
 Every view, embed or Components V2 layout is built through the UI SDK —
 never by instantiating `discord.ui` / `discord.Embed` classes directly in
-a feature (AGENTS.md mandate). The SDK hides the discord.py machinery
-behind declarative bricks and enforces the ADR-0009 Discord rules at
-build time, with a clear `UILayoutError` before anything is sent:
+a feature. `factory.py` holds the bricks and builders (`UILayout`,
+`UIEmbed`, `Container`, `Section`, `Text`, `Row`, `Button`, `Action`,
+`SelectMenu`, `Separator`, `Thumbnail`); `screens.py` holds the archetypes
+(`render_ranking`, `build_config_panel`, `build_match_report`,
+`PaginatedScreen`).
 
-- the 4000-character shared TextDisplay budget (V2) and the embed
-  character budget;
-- the 40-component cap; a Section accessory is only ever a link Button
-  or a Thumbnail (and always has one); a Row holds 1–5 buttons;
-- V2 messages carry no `content` — text lives in TextDisplays.
-
-Two builders cover the ADR-0009 dual system: `UIEmbed` (light output:
-`.field()`, `.footer()`, `.build()`) and `UILayout` (rich Components V2:
-`UILayout().add(Container(accent=…).add(Text(…)).add(Section(Text(…),
-button=…)).add(Separator()).add(Row(…)).build())`). Channels created by
-the bot always follow the emoji-prefix naming convention.
-
-Interactive items are first-class SDK bricks: `Action` (button with an
-async callback), `SelectMenu` (options + async callback receiving the
-chosen values) — both validated against the custom ID convention
-`<mod>:<component>:<payload>` at build time.
-
-**Navigation is buttons, not links:** in Components V2 text blocks —
-especially sub-texts/footers (`-# …`) — links and line breaks do
-not render reliably. Text blocks carry plain labels, code spans and
-timestamps only; every link is a link button in an ActionRow
-(`Row(Button(label, url), …)`). The startup announcement follows
-this pattern (Services: Branch/PR row, sha + Commit/Files row,
-pipeline/image row; Infra: same logic on kingdoms-infra).
-
-Screen archetypes live in
-`kingdoms.discord.ui.screens`: `Ranking`/`render_ranking` (paged leader
-board with podium), `build_config_panel` (settings selects + Apply/Reset),
-`build_match_report` (structured report), and `PaginatedScreen` (generic
-pagination editing the message in place). Extend the SDK rather than
-bypassing it.
+The full usage rules — navigation in buttons (never links in V2 text
+blocks), the `<mod>:<component>:<payload>` custom ID convention,
+build-time budgets and guarantees, testing patterns — live in the
+kingdoms repo
+[discord-ui skill](https://github.com/merlin-pinpin-org/kingdoms/blob/main/.agents/skills/discord-ui/SKILL.md).
+Extend the SDK rather than bypassing it.
 
 ## Testing rules
 
