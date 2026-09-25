@@ -69,13 +69,14 @@ into&nbsp;one&nbsp;"crash-loop&nbsp;detected"&nbsp;event&nbsp;with&nbsp;a&nbsp;c
 <td class="section-title" colspan=3>&nbsp;<br><a name="LifecycleEvent">class <strong>LifecycleEvent</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LifecycleEvent">LifecycleEvent</a>(kind:&nbsp;'str',&nbsp;message:&nbsp;'str',&nbsp;footer:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;embed:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LifecycleEvent">LifecycleEvent</a>(kind:&nbsp;'str',&nbsp;message:&nbsp;'str',&nbsp;footer:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;layout:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;bot&nbsp;lifecycle&nbsp;event,&nbsp;ready&nbsp;to&nbsp;render&nbsp;and&nbsp;send.<br>
 &nbsp;<br>
-``embed``&nbsp;is&nbsp;opaque&nbsp;to&nbsp;the&nbsp;core&nbsp;(platform-typed:&nbsp;a&nbsp;``discord.Embed``<br>
-on&nbsp;the&nbsp;Discord&nbsp;platform)&nbsp;—&nbsp;the&nbsp;platform&nbsp;seam&nbsp;renders&nbsp;it,&nbsp;the&nbsp;core<br>
-only&nbsp;carries&nbsp;it.&nbsp;A&nbsp;message&nbsp;is&nbsp;always&nbsp;provided&nbsp;as&nbsp;the&nbsp;text&nbsp;fallback.<br>&nbsp;</span></td></tr>
+``layout``&nbsp;is&nbsp;opaque&nbsp;to&nbsp;the&nbsp;core&nbsp;(platform-typed:&nbsp;a&nbsp;discord.py<br>
+Components&nbsp;V2&nbsp;``LayoutView``&nbsp;on&nbsp;the&nbsp;Discord&nbsp;platform)&nbsp;—&nbsp;the<br>
+platform&nbsp;seam&nbsp;renders&nbsp;it,&nbsp;the&nbsp;core&nbsp;only&nbsp;carries&nbsp;it.&nbsp;``message``&nbsp;is<br>
+the&nbsp;plain-text&nbsp;rendering,&nbsp;sent&nbsp;when&nbsp;no&nbsp;layout&nbsp;is&nbsp;provided.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LifecycleEvent-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -89,7 +90,7 @@ only&nbsp;carries&nbsp;it.&nbsp;A&nbsp;message&nbsp;is&nbsp;always&nbsp;provided
 
 <dl><dt><a name="LifecycleEvent-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="LifecycleEvent-__init__"><strong>__init__</strong></a>(self, kind: 'str', message: 'str', footer: 'str' = '', embed: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="LifecycleEvent-__init__"><strong>__init__</strong></a>(self, kind: 'str', message: 'str', footer: 'str' = '', layout: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="LifecycleEvent-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -99,23 +100,23 @@ only&nbsp;carries&nbsp;it.&nbsp;A&nbsp;message&nbsp;is&nbsp;always&nbsp;provided
 
 <hr>
 Data descriptors defined here:<br>
-<dl><dt><strong>embed</strong></dt>
-</dl>
 <dl><dt><strong>footer</strong></dt>
 </dl>
 <dl><dt><strong>kind</strong></dt>
+</dl>
+<dl><dt><strong>layout</strong></dt>
 </dl>
 <dl><dt><strong>message</strong></dt>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'embed': 'Any', 'footer': 'str', 'kind': 'str', 'message': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'footer': 'str', 'kind': 'str', 'layout': 'Any', 'message': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'embed': Field(name='embed',type='Any',default=None,defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'footer': Field(name='footer',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'message': Field(name='message',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'footer': Field(name='footer',type='str',default='',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'layout': Field(name='layout',type='Any',default=None,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'message': Field(name='message',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('kind', 'message', 'footer', 'embed')</dl>
+<dl><dt><strong>__match_args__</strong> = ('kind', 'message', 'footer', 'layout')</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -247,7 +248,7 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
-<dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', embed: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(embed&nbsp;optional).</span></dd></dl>
+<dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

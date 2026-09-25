@@ -92,8 +92,8 @@ class LogsPlatform(Protocol):
         """Grant a role view access on the logs channel."""
         ...
 
-    async def send_log_message(self, guild_id: str, channel_id: str, content: str, embed: Any = None) -> None:
-        """Deliver one lifecycle event to the logs channel (embed optional)."""
+    async def send_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
+        """Deliver one lifecycle event to the logs channel (layout optional)."""
         ...
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
@@ -105,15 +105,16 @@ class LogsPlatform(Protocol):
 class LifecycleEvent:
     """One bot lifecycle event, ready to render and send.
 
-    ``embed`` is opaque to the core (platform-typed: a ``discord.Embed``
-    on the Discord platform) — the platform seam renders it, the core
-    only carries it. A message is always provided as the text fallback.
+    ``layout`` is opaque to the core (platform-typed: a discord.py
+    Components V2 ``LayoutView`` on the Discord platform) — the
+    platform seam renders it, the core only carries it. ``message`` is
+    the plain-text rendering, sent when no layout is provided.
     """
 
     kind: str
     message: str
     footer: str = ""
-    embed: Any = None
+    layout: Any = None
 
 
 def default_policy() -> dict[str, Any]:
@@ -186,7 +187,7 @@ class LogService:
             if channel_id is None:
                 return
             content = event.message if not event.footer else f"{event.message}\n-# {event.footer}"
-            await self._platform.send_log_message(guild_id, channel_id, content, embed=event.embed)
+            await self._platform.send_log_message(guild_id, channel_id, content, layout=event.layout)
         except Exception:
             logger.warning("LIFECYCLE LOG DELIVERY FAILED (guild %s, event %s) — best-effort", guild_id, event.kind)
 

@@ -57,6 +57,7 @@ class BotConfig:
     deploy_pr_title: str = ""
     sync_guild_id: str = ""
     announce_locale: str = "en"
+    announce_enabled: str = "1"
     deploy_env: str = ""
     log_level: str = "INFO"
     config_dir: Path = field(default_factory=lambda: Path("config"))
@@ -86,6 +87,7 @@ class BotConfig:
             deploy_pr_title=env.get("KINGDOMS_DEPLOY_PR_TITLE", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
             announce_locale=env.get("ANNOUNCE_LOCALE", "en"),
+            announce_enabled=env.get("KINGDOMS_ANNOUNCE_ENABLED", "1"),
             deploy_env=env.get("KINGDOMS_DEPLOY_ENV", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
         )
@@ -122,6 +124,8 @@ class KingdomsBot(discord.Client):
             ),
             logs_service=self.logs_service,
             deploy_env=self.config.deploy_env,
+            enabled=self.config.announce_enabled.strip().lower() not in {"0", "false", "no"},
+            thumbnail_url=self.user.display_avatar.url if self.user else "",
         )
         if self._synced:
             return

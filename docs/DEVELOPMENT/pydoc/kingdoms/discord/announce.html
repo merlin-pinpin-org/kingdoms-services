@@ -14,20 +14,25 @@
 On&nbsp;real&nbsp;gateway&nbsp;connection&nbsp;the&nbsp;bot&nbsp;posts&nbsp;the&nbsp;deployment&nbsp;announcement<br>
 in&nbsp;each&nbsp;guild's&nbsp;``🤖-bot-logs``&nbsp;channel&nbsp;—&nbsp;resolved&nbsp;and&nbsp;provisioned&nbsp;by<br>
 the&nbsp;core&nbsp;:class:`~kingdoms.core.services.logs.LogService`&nbsp;(cache-aside:<br>
-Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).<br>
+Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation,&nbsp;admin-only&nbsp;by&nbsp;default).<br>
 &nbsp;<br>
-One&nbsp;deploy&nbsp;identity,&nbsp;one&nbsp;rendering:&nbsp;the&nbsp;announcement&nbsp;embed&nbsp;reuses&nbsp;the<br>
-exact&nbsp;/status&nbsp;helpers&nbsp;(``format_version``&nbsp;→&nbsp;``format_services_section``<br>
-and&nbsp;``format_deploy``)&nbsp;instead&nbsp;of&nbsp;a&nbsp;parallel&nbsp;message&nbsp;format&nbsp;—&nbsp;Services<br>
-and&nbsp;Infra&nbsp;compact&nbsp;linked&nbsp;lines,&nbsp;localized&nbsp;title&nbsp;and&nbsp;environment&nbsp;badge.<br>
+One&nbsp;deploy&nbsp;identity,&nbsp;one&nbsp;rendering:&nbsp;the&nbsp;announcement&nbsp;is&nbsp;a&nbsp;Components<br>
+V2&nbsp;layout&nbsp;(Container,&nbsp;Section&nbsp;with&nbsp;a&nbsp;thumbnail&nbsp;accessory,&nbsp;Separator)<br>
+reusing&nbsp;the&nbsp;exact&nbsp;/status&nbsp;helpers&nbsp;(``format_version``&nbsp;→<br>
+``format_services_section``&nbsp;and&nbsp;``format_deploy``)&nbsp;—&nbsp;never&nbsp;a&nbsp;parallel<br>
+message&nbsp;format.&nbsp;The&nbsp;layout&nbsp;is&nbsp;pure&nbsp;display&nbsp;(no&nbsp;interactive&nbsp;items),&nbsp;so<br>
+no&nbsp;view&nbsp;timeout&nbsp;or&nbsp;dispatch&nbsp;wiring&nbsp;is&nbsp;involved.<br>
 &nbsp;<br>
 The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
 frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
-kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``)&nbsp;lets&nbsp;the&nbsp;kingdoms-infra<br>
-post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78)&nbsp;read&nbsp;it&nbsp;back&nbsp;through&nbsp;the<br>
-Discord&nbsp;REST&nbsp;API&nbsp;and&nbsp;assert&nbsp;that&nbsp;the&nbsp;running&nbsp;bot&nbsp;announces&nbsp;what&nbsp;the<br>
-pinned&nbsp;state&nbsp;says.&nbsp;The&nbsp;footer&nbsp;format&nbsp;is&nbsp;frozen:&nbsp;breaking&nbsp;changes&nbsp;need<br>
-a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
+kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``)&nbsp;rides&nbsp;in&nbsp;a&nbsp;TextDisplay<br>
+sub-text,&nbsp;readable&nbsp;back&nbsp;through&nbsp;the&nbsp;Discord&nbsp;REST&nbsp;API&nbsp;by&nbsp;the<br>
+kingdoms-infra&nbsp;post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78).&nbsp;The&nbsp;footer<br>
+format&nbsp;is&nbsp;frozen:&nbsp;breaking&nbsp;changes&nbsp;need&nbsp;a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
+&nbsp;<br>
+Announcements&nbsp;can&nbsp;be&nbsp;silenced&nbsp;entirely&nbsp;(``KINGDOMS_ANNOUNCE_ENABLED=0``)<br>
+—&nbsp;the&nbsp;CI/CD&nbsp;smoke&nbsp;bot&nbsp;uses&nbsp;this&nbsp;to&nbsp;boot&nbsp;against&nbsp;the&nbsp;real&nbsp;gateway<br>
+without&nbsp;posting&nbsp;startup&nbsp;messages&nbsp;in&nbsp;the&nbsp;shared&nbsp;guilds.<br>
 &nbsp;<br>
 Without&nbsp;a&nbsp;LogService&nbsp;(local&nbsp;runs,&nbsp;unit&nbsp;tests),&nbsp;the&nbsp;announcement<br>
 degrades&nbsp;to&nbsp;nothing&nbsp;—&nbsp;silently&nbsp;skipped.&nbsp;Delivery&nbsp;is&nbsp;best-effort&nbsp;either<br>
@@ -52,6 +57,12 @@ way:&nbsp;startup&nbsp;readiness&nbsp;never&nbsp;depends&nbsp;on&nbsp;message&nb
 </dt><dd>
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.announce.html#AnnounceConfig">AnnounceConfig</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.view.html#LayoutView">discord.ui.view.LayoutView</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.announce.html#AnnouncementLayout">AnnouncementLayout</a>
 </dt></dl>
 </dd>
 </dl>
@@ -101,20 +112,263 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__match_args__</strong> = ('locale', 'config_dir')</dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AnnouncementLayout">class <strong>AnnouncementLayout</strong></a>(<a href="discord.ui.view.html#LayoutView">discord.ui.view.LayoutView</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AnnouncementLayout">AnnouncementLayout</a>(header:&nbsp;'str',&nbsp;services_line:&nbsp;'str',&nbsp;infra_line:&nbsp;'str',&nbsp;catalog:&nbsp;'dict[str,&nbsp;str]',&nbsp;footer:&nbsp;'str',&nbsp;thumbnail_url:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;Components&nbsp;V2&nbsp;deployment&nbsp;announcement&nbsp;layout.<br>
+&nbsp;<br>
+One&nbsp;accent&nbsp;Container:&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+&nbsp;env&nbsp;badge),&nbsp;the<br>
+Services/Infra&nbsp;/status&nbsp;lines&nbsp;in&nbsp;a&nbsp;Section&nbsp;with&nbsp;a&nbsp;thumbnail<br>
+accessory&nbsp;(plain&nbsp;TextDisplay&nbsp;without&nbsp;a&nbsp;thumbnail),&nbsp;a&nbsp;Separator,<br>
+and&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.announce.html#AnnouncementLayout">AnnouncementLayout</a></dd>
+<dd><a href="discord.ui.view.html#LayoutView">discord.ui.view.LayoutView</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="AnnouncementLayout-__init__"><strong>__init__</strong></a>(self, header: 'str', services_line: 'str', infra_line: 'str', catalog: 'dict[str, str]', footer: 'str', thumbnail_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#LayoutView">discord.ui.view.LayoutView</a>:<br>
+<dl><dt><a name="AnnouncementLayout-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-content_length"><strong>content_length</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">:class:`int`:&nbsp;Returns&nbsp;the&nbsp;total&nbsp;length&nbsp;of&nbsp;all&nbsp;text&nbsp;content&nbsp;in&nbsp;the&nbsp;view's&nbsp;items.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;allowed&nbsp;to&nbsp;have&nbsp;a&nbsp;maximum&nbsp;of&nbsp;4000&nbsp;display&nbsp;characters&nbsp;across&nbsp;all&nbsp;its&nbsp;items.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-to_components"><strong>to_components</strong></a>(self)</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#LayoutView">discord.ui.view.LayoutView</a>:<br>
+<dl><dt><a name="AnnouncementLayout-__init_subclass__"><strong>__init_subclass__</strong></a>() -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="AnnouncementLayout-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="AnnouncementLayout-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="AnnouncementLayout-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="AnnouncementLayout-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', item: 'Item[Any]', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;item's&nbsp;callback&nbsp;or&nbsp;:meth:`interaction_check`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;that&nbsp;failed&nbsp;the&nbsp;dispatch.</span></dd></dl>
+
+<dl><dt>async <a name="AnnouncementLayout-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="AnnouncementLayout-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="AnnouncementLayout-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="AnnouncementLayout-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`<a href="discord.ui.view.html#LayoutView">LayoutView</a>`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`<a href="discord.ui.view.html#LayoutView">LayoutView</a>`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`<a href="discord.ui.view.html#LayoutView">LayoutView</a>`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`<a href="discord.ui.view.html#LayoutView">LayoutView</a>`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`<a href="discord.ui.view.html#LayoutView">LayoutView</a>`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = False</dl>
+
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
- <dl><dt><a name="-announcement_fallback_text"><strong>announcement_fallback_text</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Plain-text&nbsp;fallback&nbsp;when&nbsp;the&nbsp;platform&nbsp;rejects&nbsp;embeds.</span></dd></dl>
- <dl><dt><a name="-build_announcement_embed"><strong>build_announcement_embed</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '') -&gt; 'discord.Embed'</dt><dd><span class="code">Build&nbsp;the&nbsp;localized&nbsp;announcement&nbsp;embed&nbsp;from&nbsp;the&nbsp;/status&nbsp;deploy&nbsp;lines.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement,&nbsp;reusing&nbsp;the&nbsp;/status&nbsp;deploy&nbsp;lines.<br>
 &nbsp;<br>
-Same&nbsp;helpers&nbsp;as&nbsp;the&nbsp;/status&nbsp;command&nbsp;(one&nbsp;code&nbsp;path):&nbsp;the&nbsp;Services<br>
-field&nbsp;(version&nbsp;line,&nbsp;commit/files,&nbsp;image)&nbsp;and&nbsp;the&nbsp;Infra&nbsp;field&nbsp;(state<br>
-branch/commit,&nbsp;deployment&nbsp;run)&nbsp;render&nbsp;as&nbsp;compact&nbsp;labeled&nbsp;links&nbsp;—<br>
-never&nbsp;a&nbsp;duplicated&nbsp;prose&nbsp;format.</span></dd></dl>
+Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
+env&nbsp;badge),&nbsp;a&nbsp;Section&nbsp;whose&nbsp;text&nbsp;stacks&nbsp;the&nbsp;Services&nbsp;and&nbsp;Infra<br>
+/status&nbsp;lines&nbsp;with&nbsp;a&nbsp;thumbnail&nbsp;accessory,&nbsp;a&nbsp;Separator,&nbsp;and&nbsp;the<br>
+machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text.&nbsp;Same&nbsp;identity&nbsp;rendering&nbsp;as<br>
+the&nbsp;/status&nbsp;command&nbsp;—&nbsp;one&nbsp;code&nbsp;path.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-url&gt;``<br>
@@ -126,7 +380,9 @@ parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares&nbsp;against&nbsp;th
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>ANNOUNCE_COLOR</strong> = 5793266<br>
+<td class="singlecolumn"><strong>ANNOUNCEMENT_HEADER</strong> = '🚀'<br>
+<strong>ANNOUNCE_COLOR</strong> = 5793266<br>
 <strong>FOOTER_PREFIX</strong> = 'kingdoms-deploy'<br>
+<strong>STATUS_LINK_LABEL</strong> = '/status'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.bot.announce (WARNING)&gt;</td></tr></table>
 </body></html>

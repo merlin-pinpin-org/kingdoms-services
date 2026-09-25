@@ -120,27 +120,12 @@ jobs:
       - name: Boot the real bot with the CI/CD token
         env:
           CICD_DISCORD_TOKEN: ${{ secrets.CICD_DISCORD_TOKEN }}
-          CI_PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
-          CI_DEPLOY_BRANCH: ${{ github.head_ref || github.ref_name }}
-          CI_PR_TITLE: ${{ github.event.pull_request.title || '' }}
-          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          CI_TREE_URL: ${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}
         run: |
           docker run -d --name kingdoms-bot-smoke --network kingdoms-ci \
             -e MONGO_URI=mongodb://kingdoms-mongo:27017 \
             -e REDIS_URI=redis://kingdoms-redis:6379 \
             -e DISCORD_TOKEN="$CICD_DISCORD_TOKEN" -e LOG_LEVEL=INFO \
-            -e KINGDOMS_DEPLOY_ENV=ci \
-            -e KINGDOMS_DEPLOY_KIND=pr \
-            -e KINGDOMS_DEPLOY_REF="$CI_PR_NUMBER" \
-            -e KINGDOMS_DEPLOY_LABEL="ci-${{ github.run_id }}" \
-            -e KINGDOMS_DEPLOY_IMAGE="ghcr.io/merlin-pinpin-org/kingdoms-services:ci-${{ github.run_id }}" \
-            -e KINGDOMS_DEPLOY_URL="$CI_RUN_URL" \
-            -e KINGDOMS_DEPLOY_RUN_URL="$CI_RUN_URL" \
-            -e KINGDOMS_DEPLOY_TREE_URL="$CI_TREE_URL" \
-            -e KINGDOMS_DEPLOY_TS="$(date -u +%s)" \
-            -e KINGDOMS_DEPLOY_BRANCH="$CI_DEPLOY_BRANCH" \
-            -e KINGDOMS_DEPLOY_PR_TITLE="$CI_PR_TITLE" \
+            -e KINGDOMS_ANNOUNCE_ENABLED=0 \
             kingdoms-bot:ci
       - name: Assert the gateway ready signal
         run: |

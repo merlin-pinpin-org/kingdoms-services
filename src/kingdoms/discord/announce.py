@@ -3,20 +3,25 @@
 On real gateway connection the bot posts the deployment announcement
 in each guild's ``🤖-bot-logs`` channel — resolved and provisioned by
 the core :class:`~kingdoms.core.services.logs.LogService` (cache-aside:
-Redis → MongoDB → creation, admin-only by default).
+Redis → MongoDB → adoption → creation, admin-only by default).
 
-One deploy identity, one rendering: the announcement embed reuses the
-exact /status helpers (``format_version`` → ``format_services_section``
-and ``format_deploy``) instead of a parallel message format — Services
-and Infra compact linked lines, localized title and environment badge.
+One deploy identity, one rendering: the announcement is a Components
+V2 layout (Container, Section with a thumbnail accessory, Separator)
+reusing the exact /status helpers (``format_version`` →
+``format_services_section`` and ``format_deploy``) — never a parallel
+message format. The layout is pure display (no interactive items), so
+no view timeout or dispatch wiring is involved.
 
 The announcement doubles as a machine-readable deployment signal: the
 frozen footer line (``kingdoms-deploy env=<env> image=<label>
-kind=<kind> ref=<ref> run=<run-url>``) lets the kingdoms-infra
-post-deploy battery (kingdoms-infra#78) read it back through the
-Discord REST API and assert that the running bot announces what the
-pinned state says. The footer format is frozen: breaking changes need
-a battery-side update first.
+kind=<kind> ref=<ref> run=<run-url>``) rides in a TextDisplay
+sub-text, readable back through the Discord REST API by the
+kingdoms-infra post-deploy battery (kingdoms-infra#78). The footer
+format is frozen: breaking changes need a battery-side update first.
+
+Announcements can be silenced entirely (``KINGDOMS_ANNOUNCE_ENABLED=0``)
+— the CI/CD smoke bot uses this to boot against the real gateway
+without posting startup messages in the shared guilds.
 
 Without a LogService (local runs, unit tests), the announcement
 degrades to nothing — silently skipped. Delivery is best-effort either
@@ -41,6 +46,9 @@ logger = logging.getLogger("kingdoms.bot.announce")
 FOOTER_PREFIX = "kingdoms-deploy"
 
 ANNOUNCE_COLOR = 0x5865F2
+
+ANNOUNCEMENT_HEADER = "🚀"
+STATUS_LINK_LABEL = "/status"
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,65 +77,91 @@ def deploy_footer(status: StatusService, env: str = "") -> str:
     return f"{FOOTER_PREFIX} {rendered}".rstrip()
 
 
-def build_announcement_embed(
+class AnnouncementLayout(discord.ui.LayoutView):
+    """The Components V2 deployment announcement layout.
+
+    One accent Container: header TextDisplay (title + env badge), the
+    Services/Infra /status lines in a Section with a thumbnail
+    accessory (plain TextDisplay without a thumbnail), a Separator,
+    and the machine-readable footer as sub-text.
+    """
+
+    def __init__(
+        self,
+        header: str,
+        services_line: str,
+        infra_line: str,
+        catalog: dict[str, str],
+        footer: str,
+        thumbnail_url: str = "",
+    ) -> None:
+        super().__init__(timeout=None)
+        section_text: discord.ui.TextDisplay[AnnouncementLayout] = discord.ui.TextDisplay(
+            f"{services_line}\n\n{infra_line}"
+        )
+        body: discord.ui.Item[AnnouncementLayout] = section_text
+        if thumbnail_url:
+            accessory: discord.ui.Thumbnail[AnnouncementLayout] = discord.ui.Thumbnail(thumbnail_url)
+            body = discord.ui.Section(section_text, accessory=accessory)
+        container: discord.ui.Container[AnnouncementLayout] = discord.ui.Container(
+            discord.ui.TextDisplay(header),
+            body,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"-# {STATUS_LINK_LABEL} · {footer}"),
+            accent_colour=ANNOUNCE_COLOR,
+        )
+        self.add_item(container)
+
+
+def build_announcement_layout(
     status: StatusService,
     config: AnnounceConfig,
     env: str = "",
-) -> discord.Embed:
-    """Build the localized announcement embed from the /status deploy lines.
+    thumbnail_url: str = "",
+) -> discord.ui.LayoutView:
+    """Build the Components V2 announcement, reusing the /status deploy lines.
 
-    Same helpers as the /status command (one code path): the Services
-    field (version line, commit/files, image) and the Infra field (state
-    branch/commit, deployment run) render as compact labeled links —
-    never a duplicated prose format.
+    Layout: one accent Container holding a header TextDisplay (title +
+    env badge), a Section whose text stacks the Services and Infra
+    /status lines with a thumbnail accessory, a Separator, and the
+    machine-readable footer as sub-text. Same identity rendering as
+    the /status command — one code path.
     """
     catalog = _load_catalog(config.locale, config.config_dir)
-    embed = discord.Embed(title=catalog["title"], color=ANNOUNCE_COLOR)
-    if env:
-        embed.description = f"`{env}`"
-    embed.add_field(
-        name=catalog["services_label"],
-        value=format_services_section(
-            format_version(
-                status.deploy_label,
-                status.deploy_url,
-                kind=status.deploy_kind,
-                ref=status.deploy_ref,
-                tree_url=status.deploy_tree_url,
-                ts=status.deploy_ts,
-                pr_title=status.deploy_pr_title,
-            ),
-            status.deploy_image,
-            status.deploy_kind,
+    services = format_services_section(
+        format_version(
+            status.deploy_label,
             status.deploy_url,
-            branch=status.deploy_branch,
+            kind=status.deploy_kind,
+            ref=status.deploy_ref,
             tree_url=status.deploy_tree_url,
             ts=status.deploy_ts,
+            pr_title=status.deploy_pr_title,
         ),
-        inline=True,
+        status.deploy_image,
+        status.deploy_kind,
+        status.deploy_url,
+        branch=status.deploy_branch,
+        tree_url=status.deploy_tree_url,
+        ts=status.deploy_ts,
     )
-    embed.add_field(
-        name=catalog["infra_label"],
-        value=format_deploy(
-            status.deploy_run_url,
-            status.deploy_url,
-            status.deploy_infra_label,
-            status.deploy_infra_url,
-            status.deploy_run_number,
-            status.deploy_run_ts,
-        ),
-        inline=True,
+    infra = format_deploy(
+        status.deploy_run_url,
+        status.deploy_url,
+        status.deploy_infra_label,
+        status.deploy_infra_url,
+        status.deploy_run_number,
+        status.deploy_run_ts,
     )
-    return embed
-
-
-def announcement_fallback_text(status: StatusService, env: str = "") -> str:
-    """Plain-text fallback when the platform rejects embeds."""
-    version = status.deploy_label or status.deploy_image or "unknown"
-    text = f"Version {version}"
+    header = f"# {ANNOUNCEMENT_HEADER} {catalog['title']}"
     if env:
-        text = f"{text} · {env}"
-    return text
+        header = f"{header}\n-# `{env}`"
+    services_line = f"**{catalog['services_label']}**\n{services}"
+    infra_line = f"**{catalog['infra_label']}**\n{infra}"
+    layout = AnnouncementLayout(
+        header, services_line, infra_line, catalog, deploy_footer(status, env=env), thumbnail_url
+    )
+    return layout
 
 
 async def announce_startup(
@@ -136,14 +170,18 @@ async def announce_startup(
     config: AnnounceConfig,
     logs_service: LogService | None = None,
     deploy_env: str = "",
+    enabled: bool = True,
+    thumbnail_url: str = "",
 ) -> None:
     """Post the deployment announcement per guild in its bot logs channel."""
+    if not enabled:
+        logger.info("STARTUP ANNOUNCEMENT DISABLED (KINGDOMS_ANNOUNCE_ENABLED=0)")
+        return
     if logs_service is None:
         logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
-    embed = build_announcement_embed(status, config, env=deploy_env)
-    fallback = announcement_fallback_text(status, env=deploy_env)
-    event = LifecycleEvent(kind="start", message=fallback, embed=embed, footer=deploy_footer(status, env=deploy_env))
+    layout = build_announcement_layout(status, config, env=deploy_env, thumbnail_url=thumbnail_url)
+    event = LifecycleEvent(kind="start", message="", layout=layout, footer=deploy_footer(status, env=deploy_env))
     for guild in bot.guilds:
         await logs_service.log_event(str(guild.id), event)
         logger.info("STARTUP ANNOUNCEMENT SENT to guild %s", guild.id)

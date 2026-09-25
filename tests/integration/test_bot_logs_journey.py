@@ -26,6 +26,21 @@ from kingdoms.core.services.state import StateService
 from kingdoms.discord.logs_platform import DiscordLogsPlatform
 from tests.mocks.state_mock import InMemoryStateStore
 
+IS_COMPONENTS_V2 = 1 << 15
+TYPE_TEXT_DISPLAY = 10
+
+
+def _walk(components: list) -> list:  # type: ignore[type-arg]
+    """Depth-first walk of a message component tree (wire dicts or objects)."""
+    out: list[Any] = []
+    for component in components or []:
+        out.append(component)
+        if isinstance(component, dict):
+            out.extend(_walk(component.get("components", [])))
+        else:
+            out.extend(_walk(list(getattr(component, "children", []))))
+    return out
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
@@ -89,13 +104,17 @@ class TestStartupAnnouncementJourney:
         history = logs_channel.history()
         assert history, "the startup announcement must be in the bot logs channel"
         message = history[0]
-        assert message.embeds, "the announcement must carry the deploy-identity embed"
-        embed = message.embeds[0]
-        assert embed.title == "Kingdoms — Deployment"
-        services = next(f.value for f in embed.fields if f.name == "Services")
-        infra = next(f.value for f in embed.fields if f.name == "Infra")
-        assert services and infra
-        assert "-# kingdoms-deploy" in message.content
+        assert message.flags.value & IS_COMPONENTS_V2, "the announcement must be a V2 layout"
+        texts = [
+            c["content"] if isinstance(c, dict) else c.content
+            for c in _walk(message.components)
+            if (c.get("type") if isinstance(c, dict) else c.type.value) == TYPE_TEXT_DISPLAY
+        ]
+        joined = "\n".join(texts)
+        assert "Kingdoms — Deployment" in joined
+        assert "**Services**" in joined
+        assert "**Infra**" in joined
+        assert "kingdoms-deploy env=" in joined
 
         stored = self.logs_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY]
         assert stored.name == BOT_LOGS_CHANNEL_NAME

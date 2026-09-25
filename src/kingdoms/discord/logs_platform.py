@@ -135,16 +135,16 @@ class DiscordLogsPlatform:
         overwrite = discord.PermissionOverwrite(view_channel=True, read_message_history=True)
         await channel.set_permissions(role, overwrite=overwrite, reason="bot logs: role granted view (/admin)")
 
-    async def send_log_message(self, guild_id: str, channel_id: str, content: str, embed: Any = None) -> None:
-        """Deliver one lifecycle event to the logs channel (embed optional)."""
+    async def send_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
+        """Deliver one lifecycle event to the logs channel (layout optional)."""
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
         channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() else None
         if not isinstance(channel, discord.TextChannel):
             raise RuntimeError(f"channel {channel_id} is not a text channel")
-        if embed is not None:
-            await channel.send(content=content or None, embed=embed)
+        if layout is not None:
+            await channel.send(view=layout)
             return
         await channel.send(content=content)
 

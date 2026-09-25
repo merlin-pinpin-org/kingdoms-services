@@ -2,10 +2,11 @@
 
 The announcement is the "start" lifecycle event, delivered by the core
 LogService to each guild's 🤖-bot-logs channel. These tests pin the
-frozen footer format, the embed rendering contract (same helpers as
-/status — Services and Infra lines) and the wiring contracts: with a
-LogService the event flows to every guild; without one (local runs,
-unit tests) the announcement degrades to a silent skip.
+frozen footer format, the Components V2 layout contract (same /status
+rendering inside a Container/Section/Separator) and the wiring
+contracts: with a LogService the event flows to every guild; without
+one (local runs, unit tests) the announcement degrades to a silent
+skip. KINGDOMS_ANNOUNCE_ENABLED=0 silences it entirely (CI/CD bot).
 """
 
 from __future__ import annotations
@@ -22,8 +23,7 @@ from kingdoms.core.services.status import BotAdmins, StatusService
 from kingdoms.discord.announce import (
     AnnounceConfig,
     announce_startup,
-    announcement_fallback_text,
-    build_announcement_embed,
+    build_announcement_layout,
     deploy_footer,
 )
 
@@ -51,6 +51,25 @@ class _Bot:
         self.guilds = [type("G", (), {"id": int(gid)})() for gid in guild_ids]
 
 
+TYPE_TEXT_DISPLAY = 10
+TYPE_SEPARATOR = 14
+TYPE_CONTAINER = 17
+
+
+def _walk(components: Any) -> list[dict[str, Any]]:
+    """Depth-first walk of a wire component tree."""
+    out: list[dict[str, Any]] = []
+    for component in components:
+        out.append(component)
+        out.extend(_walk(component.get("components", [])))
+    return out
+
+
+def _iter_texts(components: Any) -> list[str]:
+    """Flatten every TextDisplay content of a wire V2 component tree."""
+    return [c["content"] for c in _walk(components) if c.get("type") == TYPE_TEXT_DISPLAY]
+
+
 def test_footer_format_is_frozen() -> None:
     status = _status_service(
         deploy_label="pr-42-20260925-abc1234",
@@ -71,7 +90,7 @@ def test_footer_renders_empty_fields() -> None:
     assert footer == "kingdoms-deploy env= image= kind= ref= run="
 
 
-def test_embed_reuses_the_status_rendering() -> None:
+def test_layout_is_components_v2_and_reuses_status_rendering() -> None:
     status = _status_service(
         deploy_label="pr-42-x",
         deploy_kind="pr",
@@ -80,39 +99,47 @@ def test_embed_reuses_the_status_rendering() -> None:
         deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-x",
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="test")
-    assert isinstance(embed, discord.Embed)
-    assert embed.title == "Kingdoms — Deployment"
-    assert embed.description == "`test`"
-    fields = {f.name: f.value for f in embed.fields}
-    assert "Pull-request [#42](" in fields["Services"]
-    assert "Image [pr-42-x](" in fields["Services"]
-    assert "Infra" in fields
+    layout = build_announcement_layout(status, config, env="test")
+    assert isinstance(layout, discord.ui.LayoutView)
+    assert layout.to_components(), "the layout must serialize to V2 components"
+    texts = _iter_texts(layout.to_components())
+    joined = "\n".join(texts)
+    assert "Kingdoms — Deployment" in joined
+    assert "`test`" in joined
+    assert "Pull-request [#42](" in joined
+    assert "Image [pr-42-x](" in joined
+    assert deploy_footer(status, env="test") in joined
 
 
-def test_embed_is_localized() -> None:
+def test_layout_sections_and_separator_structure() -> None:
+    status = _status_service(deploy_label="v0.1.0", deploy_kind="release", deploy_ref="v0.1.0")
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config, env="prod")
+    top = layout.to_components()
+    assert len(top) == 1 and top[0]["type"] == TYPE_CONTAINER
+    kinds = [c["type"] for c in top[0]["components"]]
+    assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
+    assert kinds.count(TYPE_SEPARATOR) == 1
+
+
+def test_layout_is_localized() -> None:
     status = _status_service(deploy_label="v0.1.0")
     config = AnnounceConfig(locale="fr", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="prod")
-    assert embed.title == "Kingdoms — Déploiement"
-    assert embed.fields[0].value == "v0.1.0"
+    layout = build_announcement_layout(status, config, env="prod")
+    joined = "\n".join(_iter_texts(layout.to_components()))
+    assert "Kingdoms — Déploiement" in joined
 
 
-def test_embed_falls_back_to_english_for_unknown_locale() -> None:
+def test_layout_falls_back_to_english_for_unknown_locale() -> None:
     status = _status_service(deploy_label="sha-abc1234")
     config = AnnounceConfig(locale="xx", config_dir=CONFIG_DIR)
-    embed = build_announcement_embed(status, config, env="test")
-    assert embed.title == "Kingdoms — Deployment"
-
-
-def test_fallback_text_carries_the_identity() -> None:
-    status = _status_service(deploy_label="pr-42-x")
-    assert "pr-42-x" in announcement_fallback_text(status, env="test")
-    assert _status_service().deploy_label == ""
+    layout = build_announcement_layout(status, config, env="test")
+    joined = "\n".join(_iter_texts(layout.to_components()))
+    assert "Kingdoms — Deployment" in joined
 
 
 @pytest.mark.asyncio
-async def test_announce_delivers_start_event_to_every_guild() -> None:
+async def test_announce_delivers_start_layout_to_every_guild() -> None:
     status = _status_service(deploy_label="pr-42-x")
     logs = _FakeLogService()
     bot = _Bot(["111", "222"])
@@ -124,8 +151,19 @@ async def test_announce_delivers_start_event_to_every_guild() -> None:
         event = events[0]
         assert event.kind == "start"
         assert event.footer.startswith("kingdoms-deploy env=test image=pr-42-x")
-        assert isinstance(event.embed, discord.Embed)
-        assert "pr-42-x" in event.message
+        assert isinstance(event.layout, discord.ui.LayoutView)
+
+
+@pytest.mark.asyncio
+async def test_announce_disabled_silences_every_guild() -> None:
+    status = _status_service(deploy_label="pr-42-x")
+    logs = _FakeLogService()
+    bot = _Bot(["111"])
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    await announce_startup(  # type: ignore[arg-type]
+        bot, status, config, logs_service=logs, deploy_env="ci", enabled=False
+    )
+    assert logs.events == {}
 
 
 @pytest.mark.asyncio
@@ -147,5 +185,5 @@ def test_lifecycle_event_is_a_plain_dataclass() -> None:
     event = LifecycleEvent(kind="start", message="m", footer="f")
     assert event.kind == "start"
     assert event.footer == "f"
-    assert event.embed is None
+    assert event.layout is None
     assert LogService is not None

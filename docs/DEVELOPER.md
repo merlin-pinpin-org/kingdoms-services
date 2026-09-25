@@ -73,8 +73,14 @@ crashes, start/stop/restart. The design (kingdoms-services#109):
   never crashes the bot; repeated crashes collapse into a single
   "crash-loop detected" event.
 - The startup announcement (kingdoms-services#52) is the `start` event
-  of this flow and carries a machine-readable footer
-  (`kingdoms-deploy env=… image=… kind=… ref=… run=…`).
+  of this flow: a Components V2 layout (accent Container, Section with
+  the bot avatar as thumbnail accessory, Separator) reusing the exact
+  `/status` rendering, carrying a machine-readable footer
+  (`kingdoms-deploy env=… image=… kind=… ref=… run=…`) in sub-text —
+  read back by the kingdoms-infra battery through the REST API.
+- `KINGDOMS_ANNOUNCE_ENABLED=0` silences the startup announcement
+  entirely — used by the CI/CD smoke bot so CI boots never post in
+  the shared guilds.
 
 ## Testing rules
 
