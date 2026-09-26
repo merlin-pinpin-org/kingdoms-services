@@ -136,6 +136,7 @@ class Action:
     on_click: Handler
     emoji: str = ""
     style: str = "primary"
+    disabled: bool = False
 
     def __post_init__(self) -> None:
         """Validate the custom_id convention and the button style."""
@@ -154,9 +155,11 @@ class Action:
             label=self.label,
             style=styles[self.style],
             custom_id=self.custom_id,
+            disabled=self.disabled,
             emoji=discord.PartialEmoji.from_str(self.emoji) if self.emoji else None,
         )
-        button.callback = self.on_click  # type: ignore[method-assign, assignment]
+        if not self.disabled:
+            button.callback = self.on_click  # type: ignore[method-assign, assignment]
         return button
 
 
