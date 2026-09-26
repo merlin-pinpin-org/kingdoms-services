@@ -40,8 +40,22 @@ def sha7_of(tree_url: str) -> str:
 
 
 def docker_tag(image: str) -> str:
-    """Extract the docker tag from a pinned image reference."""
-    return image.rsplit(":", 1)[-1] if ":" in image else image
+    """Extract the docker tag from a pinned image reference.
+
+    A pinned reference may carry its digest (``tag@sha256:...``); the
+    tag is the part before the ``@`` — never the commit sha embedded
+    in it (the Commit line already shows that).
+    """
+    without_digest = image.split("@", 1)[0]
+    return without_digest.rsplit(":", 1)[-1] if ":" in without_digest else without_digest
+
+
+def image_digest(image: str) -> str:
+    """Extract the shortened image digest (``sha256:<12>``) when pinned."""
+    if "@sha256:" not in image:
+        return ""
+    digest = image.rsplit("@sha256:", 1)[-1]
+    return f"sha256:{digest[:12]}"
 
 
 def short_tag(tag: str) -> str:

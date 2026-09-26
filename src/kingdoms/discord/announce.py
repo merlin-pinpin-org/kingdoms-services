@@ -54,9 +54,9 @@ from kingdoms.discord.deploy_render import (
     PACKAGE_URL,
     SERVICES_REPO_URL,
     docker_tag,
+    image_digest,
     relative_time,
     sha7_of,
-    short_tag,
 )
 from kingdoms.discord.ui import (
     BLURPLE,
@@ -194,8 +194,7 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
         run_label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
         buttons.append(Button(f"🚦 {run_label}", status.deploy_run_url))
     if status.deploy_image:
-        tag = short_tag(docker_tag(status.deploy_image))
-        buttons.append(Button(f"📦 {tag}", PACKAGE_URL))
+        buttons.append(Button(f"📦 {docker_tag(status.deploy_image)}", PACKAGE_URL))
     return buttons
 
 
@@ -214,9 +213,12 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     first = _services_artifact_row(status, catalog)
     if first:
         blocks.append(Row(*first))
-    tag = docker_tag(status.deploy_image or status.deploy_label)
+    image = status.deploy_image or status.deploy_label
+    tag = docker_tag(image)
     if tag:
-        blocks.append(Text(_line(f"📦 {catalog['image_label']}", short_tag(tag), relative_time(status.deploy_ts))))
+        digest = image_digest(image)
+        value = f"{tag} ({digest})" if digest else tag
+        blocks.append(Text(_line(f"📦 {catalog['image_label']}", value, relative_time(status.deploy_ts))))
     build = _services_build_row(status, catalog)
     if build:
         blocks.append(Row(*build))
@@ -258,12 +260,8 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
     if status.deploy_run_url:
-        job_id = status.deploy_run_url.rstrip("/").rsplit("/", 1)[-1]
         label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        lines = [_line(f"🚀 {catalog['deployment_label']}", label, run_ts)]
-        if job_id.isdigit():
-            lines.append(f"`{job_id}`")
-        blocks.append(Text("\n".join(lines)))
+        blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", label, run_ts)))
         blocks.append(
             Row(
                 Button(f"🚀 {label}", status.deploy_run_url),

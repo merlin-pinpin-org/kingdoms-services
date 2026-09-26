@@ -30,7 +30,12 @@ mandate:&nbsp;/status&nbsp;and&nbsp;the&nbsp;announcement&nbsp;must&nbsp;converg
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-docker_tag"><strong>docker_tag</strong></a>(image: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;docker&nbsp;tag&nbsp;from&nbsp;a&nbsp;pinned&nbsp;image&nbsp;reference.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-docker_tag"><strong>docker_tag</strong></a>(image: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;docker&nbsp;tag&nbsp;from&nbsp;a&nbsp;pinned&nbsp;image&nbsp;reference.<br>
+&nbsp;<br>
+A&nbsp;pinned&nbsp;reference&nbsp;may&nbsp;carry&nbsp;its&nbsp;digest&nbsp;(``tag@sha256:...``);&nbsp;the<br>
+tag&nbsp;is&nbsp;the&nbsp;part&nbsp;before&nbsp;the&nbsp;``@``&nbsp;—&nbsp;never&nbsp;the&nbsp;commit&nbsp;sha&nbsp;embedded<br>
+in&nbsp;it&nbsp;(the&nbsp;Commit&nbsp;line&nbsp;already&nbsp;shows&nbsp;that).</span></dd></dl>
+ <dl><dt><a name="-image_digest"><strong>image_digest</strong></a>(image: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;shortened&nbsp;image&nbsp;digest&nbsp;(``sha256:&lt;12&gt;``)&nbsp;when&nbsp;pinned.</span></dd></dl>
  <dl><dt><a name="-infra_commit_ts"><strong>infra_commit_ts</strong></a>(status: 'StatusService') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;infra&nbsp;state&nbsp;commit&nbsp;timestamp&nbsp;(relative-time&nbsp;ready).</span></dd></dl>
  <dl><dt><a name="-is_unix"><strong>is_unix</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;deploy&nbsp;timestamp&nbsp;field&nbsp;is&nbsp;a&nbsp;usable&nbsp;unix&nbsp;timestamp.</span></dd></dl>
  <dl><dt><a name="-relative_time"><strong>relative_time</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;unix&nbsp;timestamp&nbsp;as&nbsp;a&nbsp;Discord&nbsp;relative&nbsp;time&nbsp;(empty-safe).</span></dd></dl>

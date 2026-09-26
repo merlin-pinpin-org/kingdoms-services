@@ -26,9 +26,9 @@ from kingdoms.discord.deploy_render import (
     PACKAGE_URL,
     SERVICES_REPO_URL,
     docker_tag,
+    image_digest,
     relative_time,
     sha7_of,
-    short_tag,
 )
 
 
@@ -184,7 +184,10 @@ def format_services_section(
         lines.append(_files_line(tree_url))
     lines.append(version)
     if image:
-        image_line = f"Image [{short_tag(docker_tag(image))}]({PACKAGE_URL})"
+        value = docker_tag(image)
+        digest = image_digest(image)
+        link_text = f"{value} ({digest})" if digest else value
+        image_line = f"Image [{link_text}]({PACKAGE_URL})"
         built = relative_time(ts)
         if built:
             image_line = f"{image_line} {built}"

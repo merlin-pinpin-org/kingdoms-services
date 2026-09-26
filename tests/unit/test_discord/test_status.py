@@ -362,11 +362,14 @@ def test_guild_admins_exclude_bots() -> None:
 def test_format_services_section_appends_the_pinned_image() -> None:
     from kingdoms.discord.status import format_services_section
 
-    image = "ghcr.io/merlin-pinpin-org/kingdoms-services:pr-12-20260923-abcdef0"
+    digest = "fedcba9876543210" * 4
+    image = f"ghcr.io/merlin-pinpin-org/kingdoms-services:pr-12-20260923-abcdef0@sha256:{digest}"
     package = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
     version_line = "[Pull-request #12](https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1)"
     result = format_services_section(version_line, image, kind="pr")
-    assert result == (version_line + f"\nImage [20260923-abcdef0]({package})"), "the tag renders shortened"
+    assert result == (
+        version_line + f"\nImage [pr-12-20260923-abcdef0 (sha256:fedcba987654)]({package})"
+    ), "the full tag and shortened digest render"
 
 
 def test_format_services_section_pr_renders_the_commit_line() -> None:

@@ -149,17 +149,19 @@ def test_layout_buttons_carry_the_identity() -> None:
     )
 
 
-def test_docker_tag_is_shortened() -> None:
-    """The pinned docker tag is too long for a text line: it renders
-    shortened (sha7 + short stamp), never the full pr-<id>-<stamp>-<sha>."""
+def test_image_line_renders_the_full_tag_and_digest() -> None:
+    """The image line renders the docker tag (never the bare commit sha)
+    and the shortened digest when the pinned reference carries one."""
     status = _status_service(
-        deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-20260925222854-abc1234",
+        deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-20260925222854-abc1234@sha256:"
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="test")
     texts = "\n".join(_iter_texts(layout.to_components()))
-    assert "pr-42-20260925222854-abc1234" not in texts, "the full tag never renders"
-    assert "abc1234" in texts, "the sha7 of the tag renders"
+    assert "pr-42-20260925222854-abc1234" in texts, "the full tag renders"
+    assert "sha256:0123456789ab" in texts, "the shortened digest renders"
+    assert "(sha256:0123456789ab)" in texts, "the digest decorates the tag"
 
 
 def test_timestamps_sit_under_commit_and_build_for_both_repos() -> None:
