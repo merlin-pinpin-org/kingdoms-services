@@ -33,6 +33,7 @@ from typing import Any, Protocol
 
 from kingdoms.core.enums.channel_category import ChannelCategory
 from kingdoms.core.models.channel import ChannelModel
+from kingdoms.core.services.i18n import MessageCatalog
 
 logger = logging.getLogger("kingdoms.logs")
 
@@ -41,6 +42,8 @@ BOT_LOGS_CHANNEL_NAME = "🤖-bot-logs"
 CHANNELS_COLLECTION = "channels"
 POLICIES_COLLECTION = "channel_access_policies"
 GUILD_SETTINGS_COLLECTION = "guild_settings"
+USER_SETTINGS_COLLECTION = "user_settings"
+SUPPORTED_LOCALES = ("en", "fr")
 CACHE_TTL_SECONDS = 3600
 CRASH_LOOP_WINDOW_SECONDS = 300
 CRASH_LOOP_THRESHOLD = 3
@@ -79,6 +82,14 @@ class LogsDatabase(Protocol):
 
     async def set_guild_settings(self, guild_id: str, settings: dict[str, Any]) -> None:
         """Persist the per-guild settings (upsert)."""
+        ...
+
+    async def get_user_settings(self, user_id: str) -> dict[str, Any] | None:
+        """Read the per-user settings (DM locale, ...)."""
+        ...
+
+    async def set_user_settings(self, user_id: str, settings: dict[str, Any]) -> None:
+        """Persist the per-user settings (upsert)."""
         ...
 
 
@@ -146,12 +157,36 @@ def default_policy() -> dict[str, Any]:
 class LogService:
     """Resolve the bot logs channel and deliver lifecycle events to it."""
 
-    def __init__(self, database: LogsDatabase, platform: LogsPlatform, state: Any, clock: Any = time.monotonic) -> None:
-        """Wire the stores; ``state`` is a StateService (Redis cache-aside)."""
+    def __init__(
+        self,
+        database: LogsDatabase,
+        platform: LogsPlatform,
+        state: Any,
+        clock: Any = time.monotonic,
+        catalog: MessageCatalog | None = None,
+    ) -> None:
+        """Wire the stores; ``state`` is a StateService (Redis cache-aside).
+
+        ``catalog`` localizes the audit events with the guild's locale;
+        None keeps the built-in English messages.
+        """
         self._db = database
         self._platform = platform
         self._state = state
         self._clock = clock
+        self._catalog = catalog
+
+    def _tr(self, key: str, locale: str, **kwargs: Any) -> str:
+        """Render a lifecycle message, falling back to English strings."""
+        if self._catalog is None:
+            from kingdoms.core.services.i18n import FALLBACKS
+
+            template = FALLBACKS.get(key, key)
+            try:
+                return template.format(**kwargs)
+            except (KeyError, IndexError):
+                return template
+        return self._catalog.render(key, locale, **kwargs)
 
     async def resolve_channel(self, guild_id: str) -> str | None:
         """Cache-aside resolution: Redis → MongoDB → creation (admin-only)."""
@@ -198,7 +233,11 @@ class LogService:
         return channel_id
 
     async def log_event(self, guild_id: str, event: LifecycleEvent) -> None:
-        """Deliver one lifecycle event to the guild's logs channel (best-effort)."""
+        """Deliver one lifecycle event to the guild's logs channel (best-effort).
+
+        Policy and stop messages are localized with the guild's locale
+        (the announcement layouts render their own localization).
+        """
         try:
             channel_id = await self.resolve_channel(guild_id)
             if channel_id is None:
@@ -239,10 +278,11 @@ class LogService:
         channel_id = await self.resolve_channel(guild_id)
         if channel_id:
             await self._platform.grant_role_view(guild_id, channel_id, role_id)
+        locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
             LifecycleEvent(
-                kind="policy", message=f"Access policy updated: role <@&{role_id}> granted view, by <@{by}>."
+                kind="policy", message=self._tr("lifecycle.policy.grant", locale, role_id=role_id, by=by)
             ),
         )
 
@@ -252,9 +292,10 @@ class LogService:
         channel_id = await self.resolve_channel(guild_id)
         if channel_id:
             await self._platform.apply_default_policy(guild_id, channel_id)
+        locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
-            LifecycleEvent(kind="policy", message=f"Access policy reset to admin-only, by <@{by}>."),
+            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.reset", locale, by=by)),
         )
 
     async def set_channel(self, guild_id: str, channel_id: str, by: str) -> None:
@@ -286,10 +327,14 @@ class LogService:
         for role_id in policy.get("roles_with_view", []):
             await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
         previous_note = f" (was <#{previous.channel_id}>)" if previous is not None else ""
+        locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
             LifecycleEvent(
-                kind="policy", message=f"Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
+                kind="policy",
+                message=self._tr(
+                    "lifecycle.policy.route", locale, channel_id=channel_id, previous_note=previous_note, by=by
+                ),
             ),
         )
 
@@ -313,9 +358,12 @@ class LogService:
                 for role_id in policy.get("roles_with_view", []):
                     await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
         state = "public" if public else "admin-only"
+        locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
-            LifecycleEvent(kind="policy", message=f"Bot logs visibility set to {state}, by <@{by}>."),
+            LifecycleEvent(
+                kind="policy", message=self._tr("lifecycle.policy.visibility", locale, state=state, by=by)
+            ),
         )
 
     async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
@@ -326,11 +374,11 @@ class LogService:
         """Read the guild's locale (en fallback)."""
         settings = await self._safe(self._db.get_guild_settings(guild_id))
         locale = str((settings or {}).get("locale", ""))
-        return locale if locale in ("en", "fr") else "en"
+        return locale if locale in SUPPORTED_LOCALES else "en"
 
     async def set_locale(self, guild_id: str, locale: str, by: str) -> None:
         """Persist the guild's locale (fr/en); audited as an event."""
-        if locale not in ("en", "fr"):
+        if locale not in SUPPORTED_LOCALES:
             raise ValueError(f"unsupported locale: {locale!r}")
         settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
         settings["locale"] = locale
@@ -339,8 +387,30 @@ class LogService:
         await self._db.set_guild_settings(guild_id, settings)
         await self.log_event(
             guild_id,
-            LifecycleEvent(kind="policy", message=f"Language set to {locale}, by <@{by}>."),
+            LifecycleEvent(
+                kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)
+            ),
         )
+
+    async def get_user_locale(self, user_id: str) -> str:
+        """Read the user's DM locale (en fallback)."""
+        settings = await self._safe(self._db.get_user_settings(user_id))
+        locale = str((settings or {}).get("locale", ""))
+        return locale if locale in SUPPORTED_LOCALES else "en"
+
+    async def set_user_locale(self, user_id: str, locale: str) -> None:
+        """Persist the user's DM locale (fr/en).
+
+        DM settings are personal: they follow the user across guilds and
+        are never audited in a guild's logs channel (a DM has no channel
+        to audit into — the change is acknowledged in the DM itself).
+        """
+        if locale not in SUPPORTED_LOCALES:
+            raise ValueError(f"unsupported locale: {locale!r}")
+        settings = await self._safe(self._db.get_user_settings(user_id)) or {}
+        settings["locale"] = locale
+        settings["updated_at"] = int(time.time())
+        await self._db.set_user_settings(user_id, settings)
 
     async def _cache(self, guild_id: str, channel_id: str) -> None:
         await self._safe(

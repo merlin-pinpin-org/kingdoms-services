@@ -22,3 +22,11 @@ fr:
     none_label: "*(aucun configuré)*"
     files_label: "Fichiers"
     rollback_label: "Rollback"
+  lifecycle:
+    stop: "Arrêt du bot."
+    policy:
+      grant: "Politique d'accès mise à jour : le rôle <@&{role_id}> peut lire les logs, par <@{by}>."
+      reset: "Politique d'accès réinitialisée (admins uniquement), par <@{by}>."
+      route: "Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>."
+      visibility: "Visibilité des logs : {state}, par <@{by}>."
+      language: "Langue définie sur {lang}, par <@{by}>."

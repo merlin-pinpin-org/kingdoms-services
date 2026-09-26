@@ -22,3 +22,11 @@ en:
     none_label: "*(none configured)*"
     files_label: "Files"
     rollback_label: "Rollback"
+  lifecycle:
+    stop: "Bot shutting down."
+    policy:
+      grant: "Access policy updated: role <@&{role_id}> granted view, by <@{by}>."
+      reset: "Access policy reset to admin-only, by <@{by}>."
+      route: "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
+      visibility: "Bot logs visibility set to {state}, by <@{by}>."
+      language: "Language set to {lang}, by <@{by}>."

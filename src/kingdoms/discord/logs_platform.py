@@ -24,6 +24,7 @@ from kingdoms.core.services.logs import (
     CHANNELS_COLLECTION,
     GUILD_SETTINGS_COLLECTION,
     POLICIES_COLLECTION,
+    USER_SETTINGS_COLLECTION,
 )
 
 logger = logging.getLogger("kingdoms.logs.discord")
@@ -37,6 +38,7 @@ class MongoLogsDatabase:
         self._channels = database[CHANNELS_COLLECTION]
         self._policies = database[POLICIES_COLLECTION]
         self._settings = database[GUILD_SETTINGS_COLLECTION]
+        self._user_settings = database[USER_SETTINGS_COLLECTION]
 
     async def find_channel(self, guild_id: str, category: str) -> ChannelModel | None:
         """Find the persisted channel document for a guild category."""
@@ -79,6 +81,19 @@ class MongoLogsDatabase:
         await self._settings.replace_one(
             {"_id": guild_id},
             {**settings, "_id": guild_id},
+            upsert=True,
+        )
+
+    async def get_user_settings(self, user_id: str) -> dict[str, Any] | None:
+        """Read the persisted per-user settings (DM locale, ...)."""
+        document = await self._user_settings.find_one({"_id": user_id})
+        return dict(document) if document else None
+
+    async def set_user_settings(self, user_id: str, settings: dict[str, Any]) -> None:
+        """Persist the per-user settings (upsert)."""
+        await self._user_settings.replace_one(
+            {"_id": user_id},
+            {**settings, "_id": user_id},
             upsert=True,
         )
 

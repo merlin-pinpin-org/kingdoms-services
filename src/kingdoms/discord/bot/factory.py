@@ -24,6 +24,7 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.admin_channel import AdminChannelService
+from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.roles import RolesService
@@ -110,6 +111,7 @@ class KingdomsBot(discord.Client):
         self.config = config
         self.status_service = status
         self.logs_service = logs
+        self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
 
@@ -191,7 +193,11 @@ class KingdomsBot(discord.Client):
         """Log the stop lifecycle event, then close the gateway connection."""
         if self.logs_service is not None:
             for guild in self.guilds:
-                event = LifecycleEvent(kind="stop", message="Bot shutting down.")
+                locale = await self.logs_service.get_locale(str(guild.id))
+                event = LifecycleEvent(
+                    kind="stop",
+                    message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
+                )
                 await self.logs_service.log_event(str(guild.id), event)
         await super().close()
 
@@ -312,6 +318,7 @@ def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None
             database=MongoLogsDatabase(get_async_database()),
             platform=DiscordLogsPlatform(bot),
             state=state,
+            catalog=MessageCatalog(config.config_dir),
         )
     except Exception:
         logger.exception("LOG SERVICE WIRING FAILED — lifecycle logging disabled")
