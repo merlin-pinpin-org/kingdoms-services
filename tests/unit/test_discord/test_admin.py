@@ -194,5 +194,8 @@ class _FakeAdminLogsService:
     async def get_access_policy(self, guild_id: str) -> dict[str, object]:
         return {"default": "admin_only", "roles_with_view": []}
 
+    async def get_locale(self, guild_id: str) -> str:
+        return "en"
+
     async def grant_role_view_access(self, guild_id: str, role_id: str, by: str) -> None:
         self.granted.append((guild_id, role_id, by))
