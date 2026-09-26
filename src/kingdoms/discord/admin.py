@@ -272,10 +272,14 @@ def register_admin_command(
             if role is not None:
                 await logs_service.grant_role_view_access(guild_id, str(role.id), by=str(user_id))
             panel = await build_admin_panel(logs_service, guild_id, by=str(user_id))
-        except Exception:
+        except Exception as exc:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
+            detail = f"{type(exc).__name__}: {exc}"[:120]
             await interaction.response.send_message(
-                view=build_admin_note_view("Bot logs management failed — see the bot logs."), ephemeral=True
+                view=build_admin_note_view(
+                    f"Bot logs management failed — `{discord.utils.escape_markdown(detail)}`"
+                ),
+                ephemeral=True,
             )
             return
 
