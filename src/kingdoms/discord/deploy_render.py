@@ -50,12 +50,12 @@ def docker_tag(image: str) -> str:
     return without_digest.rsplit(":", 1)[-1] if ":" in without_digest else without_digest
 
 
-def image_digest(image: str) -> str:
-    """Extract the shortened image digest (``sha256:<12>``) when pinned."""
+def full_digest(image: str) -> str:
+    """Extract the complete image digest (``sha256:<64>``) when pinned."""
     if "@sha256:" not in image:
         return ""
     digest = image.rsplit("@sha256:", 1)[-1]
-    return f"sha256:{digest[:12]}"
+    return f"sha256:{digest}"
 
 
 def short_tag(tag: str) -> str:

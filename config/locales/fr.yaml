@@ -21,7 +21,9 @@ fr:
     latency_label: "Latence"
     none_label: "*(aucun configuré)*"
     files_label: "Fichiers"
-    rollback_label: "Rollback"
+    link_label: "Lien"
+    ci_label: "CI"
+    deploy_label: "Déployer"
   lifecycle:
     stop: "Arrêt du bot."
     policy:

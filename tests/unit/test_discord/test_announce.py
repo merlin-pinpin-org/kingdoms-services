@@ -2,16 +2,18 @@
 
 The announcement is the "start" lifecycle event, delivered by the core
 LogService to each guild's 🤖-bot-logs channel. These tests pin the
-frozen footer format, the Components V2 layout contract (identity on
-the buttons, timestamp under each artifact, Services/Infra/Bot
-sections) and the wiring contracts: with a LogService the event flows
-to every guild; without one (local runs, unit tests) the announcement
-degrades to a silent skip. KINGDOMS_ANNOUNCE_ENABLED=0 silences it
-entirely (CI/CD bot).
+Components V2 layout contract (generic button labels — the identity
+rides in the text lines above each row, the full image digest on its
+own line, the uptime as a Discord relative timestamp, no footer, no
+rollback button — Services/Infra/Bot sections) and the wiring
+contracts: with a LogService the event flows to every guild; without
+one (local runs, unit tests) the announcement degrades to a silent
+skip. KINGDOMS_ANNOUNCE_ENABLED=0 silences it entirely (CI/CD bot).
 """
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +27,6 @@ from kingdoms.discord.announce import (
     AnnounceConfig,
     announce_startup,
     build_announcement_layout,
-    deploy_footer,
 )
 
 CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
@@ -84,24 +85,6 @@ def _iter_buttons(components: Any) -> list[dict[str, Any]]:
     return [c for c in _walk(components) if c.get("type") == TYPE_BUTTON]
 
 
-def test_footer_format_is_frozen() -> None:
-    """The footer only repeats the environment — the identity (image,
-    kind, ref, run) already rides in the body buttons; the battery
-    (kingdoms-infra#78) reads the pinned state from the state file."""
-    status = _status_service(
-        deploy_label="pr-42-20260925-abc1234",
-        deploy_kind="pr",
-        deploy_ref="42",
-        deploy_run_number="123",
-    )
-    assert deploy_footer(status, env="test") == "kingdoms-deploy test"
-
-
-def test_footer_renders_empty_env() -> None:
-    status = _status_service()
-    assert deploy_footer(status, env="") == "kingdoms-deploy"
-
-
 def test_layout_is_components_v2() -> None:
     status = _status_service(
         deploy_label="pr-42-x",
@@ -119,11 +102,13 @@ def test_layout_is_components_v2() -> None:
     assert "Kingdoms — Deployment" in joined
     assert "`test`" in joined
     assert not any("[" in text and "](" in text for text in texts), "no markdown links in V2 text blocks"
-    assert deploy_footer(status, env="test") in joined
+    assert "kingdoms-deploy" not in joined, "no machine footer"
+    assert not any("-# /status" in text for text in texts), "no footer line"
 
 
-def test_layout_buttons_carry_the_identity() -> None:
-    """Buttons replace labels with the artifact identity + emoji."""
+def test_layout_buttons_use_generic_labels() -> None:
+    """Buttons carry generic labels (Branch, Commit, ...) \u2014 the identity
+    (branch, sha7, tag, run number) rides in the text lines above."""
     status = _status_service(
         deploy_branch="vibe/feature-1",
         deploy_kind="pr",
@@ -138,30 +123,40 @@ def test_layout_buttons_carry_the_identity() -> None:
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="test")
+    texts = "\n".join(_iter_texts(layout.to_components()))
     labels = [b["label"] for b in _iter_buttons(layout.to_components())]
-    assert "🌿 vibe/feature-1" in labels, "branch button carries the branch name"
-    assert "🔧 abc1234" in labels, "commit button carries the sha7"
-    assert "🌿 deploy/test" in labels, "infra branch button carries the state branch"
-    assert "🔧 c232b34" in labels, "infra commit button carries the state sha7"
-    assert any(label.startswith("🚀 Deploy #") for label in labels), "deploy button carries the run number"
-    assert not any(label in {"Branch", "Commit", "Files", "Deployment"} for label in labels), (
-        "no generic label buttons"
+    assert "\U0001F33F Branch" in labels, "branch button carries a generic label"
+    assert "\U0001F527 Commit" in labels, "commit button carries a generic label"
+    assert any(label.endswith("Files") for label in labels), "files button present"
+    assert "\U0001F9EA CI" in labels, "CI run button present"
+    assert "\U0001F4E6 Image" in labels, "image button present"
+    assert any(label.startswith("\U0001F680 Deploy") for label in labels), "deploy button present"
+    assert not any("vibe/feature-1" in label or "abc1234" in label or "c232b34" in label for label in labels), (
+        "the identity rides in the text lines, not the button labels"
+    )
+    assert not any("Rollback" in label for label in labels), "no rollback button (no workflow yet)"
+    assert "vibe/feature-1" in texts and "abc1234" in texts and "#45" in texts, (
+        "the identity is displayed in the text lines"
     )
 
 
 def test_image_line_renders_the_full_tag_and_digest() -> None:
-    """The image line renders the docker tag (never the bare commit sha)
-    and the shortened digest when the pinned reference carries one."""
+    """The image line renders the docker tag with its build timestamp;
+    the full digest sits on its own line below \u2014 never truncated,
+    never inline."""
+    digest64 = "0123456789abcdef" * 4
     status = _status_service(
-        deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-20260925222854-abc1234@sha256:"
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        deploy_image=f"ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-20260925222854-abc1234@sha256:{digest64}",
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="test")
-    texts = "\n".join(_iter_texts(layout.to_components()))
-    assert "pr-42-20260925222854-abc1234" in texts, "the full tag renders"
-    assert "sha256:0123456789ab" in texts, "the shortened digest renders"
-    assert "(sha256:0123456789ab)" in texts, "the digest decorates the tag"
+    texts = _iter_texts(layout.to_components())
+    image_block = next(t for t in texts if "\U0001F4E6" in t and "pr-42-20260925222854-abc1234" in t)
+    lines = image_block.splitlines()
+    assert lines[0].startswith("\U0001F4E6 Image"), "the tag headlines the image block"
+    assert f"`sha256:{digest64}`" in lines, "the full digest sits on its own line"
+    assert len(lines[-1]) == len(f"`sha256:{digest64}`"), "the digest is complete (64 hex chars)"
+    assert "(sha256:" not in "\n".join(texts), "the digest never decorates the tag inline"
 
 
 def test_timestamps_sit_under_commit_and_build_for_both_repos() -> None:
@@ -209,10 +204,14 @@ def test_layout_bot_section_reports_uptime_admins_games_mods_latency() -> None:
         clock=advancing_clock,
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    before = time.time()
     layout = build_announcement_layout(status, config, env="test", latency_ms=42)
     texts = "\n".join(_iter_texts(layout.to_components()))
     assert "**Bot**" in texts
-    assert "- Uptime: 1h 1m 1s" in texts
+    uptime_line = next(line for line in texts.splitlines() if "Uptime:" in line)
+    assert "<t:" in uptime_line and ":R>" in uptime_line, "the uptime renders as a Discord relative date"
+    boot_unix = int(uptime_line.split("<t:", 1)[1].split(":", 1)[0])
+    assert before - 3661.0 - 1 <= boot_unix <= time.time(), "the boot timestamp matches the uptime"
     assert "<@111>" in texts and "<@222>" in texts
     assert "Games: werewolf, alliance" in texts
     assert "Latency: 42 ms" in texts
@@ -242,7 +241,7 @@ def test_layout_sections_and_separator_structure() -> None:
     assert len(top) == 1 and top[0]["type"] == TYPE_CONTAINER
     kinds = [c["type"] for c in top[0]["components"]]
     assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
-    assert kinds.count(TYPE_SEPARATOR) == 3, "Services/Infra, Infra/Bot, Bot/footer"
+    assert kinds.count(TYPE_SEPARATOR) == 2, "Bot/Services, Services/Infra"
     assert kinds.count(TYPE_SECTION) == 1, "the release headline is a Section"
     texts = _iter_texts(top)
     assert any("Version v0.1.0" in text for text in texts), "releases headline as Version vX.Y.Z"
@@ -279,7 +278,10 @@ async def test_announce_delivers_start_layout_to_every_guild() -> None:
         assert len(events) == 1
         event = events[0]
         assert event.kind == "start"
-        assert event.footer == "kingdoms-deploy test"
+        assert event.footer == ""
+        assert not any("kingdoms-deploy" in t for t in _iter_texts(event.layout.to_components())), (
+            "no machine footer in the layout"
+        )
         assert isinstance(event.layout, discord.ui.LayoutView)
         joined = "\n".join(_iter_texts(event.layout.to_components()))
         assert "Latency: 45 ms" in joined, "the gateway latency rides in the Bot section"
