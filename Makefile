@@ -1,4 +1,4 @@
-.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check
+.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check battery
 
 # Dev
 dev:
@@ -16,6 +16,15 @@ dev-logs:
 # Tests & Quality
 test:
 	@uv run pytest
+
+# battery: the standalone behavioral journey suite (kingdoms-services#106).
+# One command from a clean checkout at any commit, in-memory and
+# network-free — the kingdoms-infra post-deploy battery (kingdoms-infra#78)
+# runs it on a GitHub-hosted runner at the pinned deploy commit. Test
+# tooling never runs on an environment VPS.
+battery:
+	@uv sync --frozen
+	@uv run pytest tests/integration
 
 lint:
 	@uv run ruff check src/ tests/
@@ -35,6 +44,7 @@ check:
 	  && actionlint -color \
 	  || echo "check: actionlint not installed — CI runs it; install locally for full coverage"
 	@./scripts/check_pin_payloads.sh
+	@./scripts/check_image_purity.py --source-only
 
 # Docs (generated into this repo, fail-closed freshness check in CI)
 docs:
