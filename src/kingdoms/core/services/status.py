@@ -114,6 +114,8 @@ class StatusService:
         deploy_image: str = "",
         deploy_branch: str = "",
         deploy_pr_title: str = "",
+        deploy_commit_ts: str = "",
+        deploy_infra_commit_ts: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -134,6 +136,8 @@ class StatusService:
         self._deploy_image = deploy_image.strip()
         self._deploy_branch = deploy_branch.strip()
         self._deploy_pr_title = deploy_pr_title.strip()
+        self._deploy_commit_ts = deploy_commit_ts.strip()
+        self._deploy_infra_commit_ts = deploy_infra_commit_ts.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -206,6 +210,16 @@ class StatusService:
         return self._deploy_pr_title
 
     @property
+    def deploy_commit_ts(self) -> str:
+        """Unix timestamp of the deployed services commit (KINGDOMS_DEPLOY_COMMIT_TS)."""
+        return self._deploy_commit_ts
+
+    @property
+    def deploy_infra_commit_ts(self) -> str:
+        """Unix timestamp of the deployed infra state commit (KINGDOMS_DEPLOY_INFRA_COMMIT_TS)."""
+        return self._deploy_infra_commit_ts
+
+    @property
     def bot_admins(self) -> tuple[str, ...]:
         """Bot operator user IDs (BOT_ADMINS)."""
         return self._bot_admins.user_ids
@@ -249,6 +263,8 @@ class StatusService:
             "deploy_image": self._deploy_image,
             "deploy_branch": self._deploy_branch,
             "deploy_pr_title": self._deploy_pr_title,
+            "deploy_commit_ts": self._deploy_commit_ts,
+            "deploy_infra_commit_ts": self._deploy_infra_commit_ts,
             "enabled_mods": self.enabled_mods(),
         }
 
