@@ -9,23 +9,19 @@ One deploy identity, one rendering: the announcement is a Components
 V2 layout built through the UI SDK (:mod:`kingdoms.discord.ui`).
 Per the SDK navigation rules, text blocks carry plain labels only
 (links and line breaks do not render in V2 text) — every artifact is
-a link button, and the identity rides on the buttons themselves: the
-PR number, the commit sha7, the truncated docker tag, the branch.
-Emojis replace text labels on buttons where the meaning is clear.
+a link button with a generic label (Branch, Commit, Files, CI, Image,
+Deploy); the identity itself (branch, sha7, docker tag + full digest,
+run number) rides in the text lines above each button row.
 
 Sections: Bot (uptime, admins, games, mods, gateway latency, synced
 commands), Services (source identity + commit date, build artifacts +
 build date), Infra (state identity + commit date, deployment run +
-run date, rollback workflow) — each artifact's timestamp sits
-directly under it, and every link button carries its artifact as the
-label (run number, docker tag, sha7, branch). The announcement doubles
-as a machine-readable deployment signal: the frozen footer line
-(``kingdoms-deploy <env>``) rides in a TextDisplay sub-text, readable
-back through the Discord REST API by the kingdoms-infra post-deploy
-battery (kingdoms-infra#78). The body already carries the human
-identity; the footer is a machine line only — no human-facing prefix.
-The footer format is frozen: breaking changes need a battery-side
-update first.
+run date) — each artifact's timestamp sits directly under it, under a
+row of generically labeled buttons carrying the links. The deployed
+environment rides as a badge under the title; there is no machine
+footer — the
+kingdoms-infra post-deploy battery (kingdoms-infra#78) reads the
+pinned state from the state file, not from the message.
 
 Announcements can be silenced entirely (``KINGDOMS_ANNOUNCE_ENABLED=0``)
 — the CI/CD smoke bot uses this to boot against the real gateway
@@ -39,6 +35,7 @@ way: startup readiness never depends on message delivery.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,7 +51,7 @@ from kingdoms.discord.deploy_render import (
     PACKAGE_URL,
     SERVICES_REPO_URL,
     docker_tag,
-    image_digest,
+    full_digest,
     relative_time,
     sha7_of,
 )
@@ -69,11 +66,7 @@ from kingdoms.discord.ui import (
     UILayout,
 )
 
-ROLLBACK_WORKFLOW_URL = f"{INFRA_REPO_URL}/actions/workflows/rollback.yml"
-
 logger = logging.getLogger("kingdoms.bot.announce")
-
-FOOTER_PREFIX = "kingdoms-deploy"
 
 _VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "release": "release_button"}
 
@@ -144,18 +137,6 @@ def command_mentions(commands: Iterable[object]) -> list[str]:
     return mentions
 
 
-def deploy_footer(status: StatusService, env: str = "") -> str:
-    """Render the machine-readable footer line (frozen format).
-
-    ``kingdoms-deploy <env>`` — the identity (image, kind, ref, run)
-    already rides in the body buttons, so the footer only repeats the
-    environment, the one field the battery (kingdoms-infra#78) cannot
-    infer from the message; the pinned image the battery compares
-    against comes from the state file, not from the message.
-    """
-    return f"{FOOTER_PREFIX} {env}".rstrip()
-
-
 def _release_section(status: StatusService, catalog: dict[str, str]) -> Section | Text | None:
     """Build the headline: what is deployed (PR title or version) + its button.
 
@@ -200,15 +181,14 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     """Build the Services artifact buttons: branch, commit, files, version."""
     buttons: list[Button] = []
     if status.deploy_branch:
-        buttons.append(Button(f"🌿 {status.deploy_branch}", f"{SERVICES_REPO_URL}/tree/{status.deploy_branch}"))
+        buttons.append(Button(f"🌿 {catalog['branch_label']}", f"{SERVICES_REPO_URL}/tree/{status.deploy_branch}"))
     sha = sha7_of(status.deploy_tree_url)
     if sha:
-        buttons.append(Button(f"🔧 {sha}", f"{SERVICES_REPO_URL}/commit/{sha}"))
+        buttons.append(Button(f"🔧 {catalog['commit_label']}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
             buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
     if status.deploy_url and not _release_section(status, catalog):
-        identity = status.deploy_ref or status.deploy_label
-        buttons.append(Button(f"🔗 {identity}", status.deploy_url))
+        buttons.append(Button(f"🔗 {catalog['link_label']}", status.deploy_url))
     return buttons
 
 
@@ -221,10 +201,9 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
     """
     buttons: list[Button] = []
     if status.deploy_run_url:
-        run_label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        buttons.append(Button(f"🧪 CI {run_label}", status.deploy_run_url))
+        buttons.append(Button(f"🧪 {catalog['ci_label']}", status.deploy_run_url))
     if status.deploy_image:
-        buttons.append(Button(f"📦 {docker_tag(status.deploy_image)}", PACKAGE_URL))
+        buttons.append(Button(f"📦 {catalog['image_label']}", PACKAGE_URL))
     return buttons
 
 
@@ -246,9 +225,11 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     image = status.deploy_image or status.deploy_label
     tag = docker_tag(image)
     if tag:
-        digest = image_digest(image)
-        value = f"{tag} ({digest})" if digest else tag
-        blocks.append(Text(_line(f"📦 {catalog['image_label']}", value, relative_time(status.deploy_ts))))
+        digest = full_digest(image)
+        lines = [_line(f"📦 {catalog['image_label']}", tag, relative_time(status.deploy_ts))]
+        if digest:
+            lines.append(f"`{digest}`")
+        blocks.append(Text("\n".join(lines)))
     build = _services_build_row(status, catalog)
     if build:
         blocks.append(Row(*build))
@@ -280,12 +261,11 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         )
     row: list[Button] = []
     if branch:
-        row.append(Button(f"🌿 {branch}", f"{INFRA_REPO_URL}/tree/{branch}"))
+        row.append(Button(f"🌿 {catalog['branch_label']}", f"{INFRA_REPO_URL}/tree/{branch}"))
     if sha:
-        row.append(Button(f"🔧 {sha7}", f"{INFRA_REPO_URL}/commit/{sha}"))
+        row.append(Button(f"🔧 {catalog['commit_label']}", f"{INFRA_REPO_URL}/commit/{sha}"))
     if status.deploy_infra_url:
         row.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_infra_url))
-    row.append(Button(f"⏪ {catalog['rollback_label']}", ROLLBACK_WORKFLOW_URL))
     if row:
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
@@ -294,7 +274,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", label, run_ts)))
         blocks.append(
             Row(
-                Button(f"🚀 Deploy {label}", status.deploy_run_url),
+                Button(f"🚀 {catalog['deploy_label']}", status.deploy_run_url),
             )
         )
     return blocks
@@ -308,7 +288,7 @@ def _bot_blocks(status: StatusService, catalog: dict[str, str], latency_ms: int 
     ids, the gateway latency as milliseconds (None before the first
     heartbeat — the announcement fires right at startup).
     """
-    lines: list[str] = [f"- {catalog['uptime_label']}: {_human_uptime(status.uptime_seconds())}"]
+    lines: list[str] = [f"- {catalog['uptime_label']}: {relative_uptime(status.uptime_seconds())}"]
     admins = status.bot_admins
     if admins:
         rendered = " ".join(f"<@{uid}>" for uid in admins)
@@ -325,20 +305,10 @@ def _bot_blocks(status: StatusService, catalog: dict[str, str], latency_ms: int 
     return blocks
 
 
-def _human_uptime(seconds: float) -> str:
-    """Render an uptime duration as a compact human string (/status parity)."""
-    minutes, sec = divmod(int(seconds), 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    parts = []
-    if days:
-        parts.append(f"{days}d")
-    if hours:
-        parts.append(f"{hours}h")
-    if minutes:
-        parts.append(f"{minutes}m")
-    parts.append(f"{sec}s")
-    return " ".join(parts)
+def relative_uptime(seconds: float) -> str:
+    """Render the boot moment as a Discord relative timestamp (/status parity)."""
+    boot_unix = int(time.time() - max(0.0, seconds))
+    return f"<t:{boot_unix}:R>"
 
 
 def _gateway_latency(bot: discord.Client) -> int | None:
@@ -364,9 +334,7 @@ def build_announcement_layout(
     env badge), the headline section (the deployed PR title or version
     with its button accessory), the Bot blocks — the operational
     identity, including the Commands block when provided —, a
-    Separator, the Services blocks, a Separator, the Infra blocks, and
-    the machine-readable footer as sub-text (frozen format,
-    ``kingdoms-deploy <env>``).
+    Separator, the Services blocks, a Separator, and the Infra blocks.
     Same rendering for the startup announcement and /status: the boot
     message is a non-ephemeral /status posted in the guild's bot logs
     channel, so the Commands block rides in both.
@@ -387,8 +355,6 @@ def build_announcement_layout(
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
     container = container.add(*_infra_blocks(status, catalog))
-    container = container.add(Separator())
-    container = container.add(Text(f"-# {deploy_footer(status, env=env)}"))
     return UILayout().add(container).build()
 
 
@@ -437,7 +403,7 @@ async def announce_startup(
             commands=commands_block,
             command_ids=commands or (),
         )
-        event = LifecycleEvent(kind="start", message="", layout=layout, footer=deploy_footer(status, env=deploy_env))
+        event = LifecycleEvent(kind="start", message="", layout=layout)
         await logs_service.log_event(str(guild.id), event)
         logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s)", guild.id, locale)
 
@@ -472,6 +438,8 @@ def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
         "latency_label": "Latency",
         "none_label": "*(none configured)*",
         "files_label": "Files",
-        "rollback_label": "Rollback",
+        "link_label": "Link",
+        "ci_label": "CI",
+        "deploy_label": "Deploy",
     }
     return {key: str(section.get(key, default)) for key, default in defaults.items()}

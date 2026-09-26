@@ -21,7 +21,9 @@ en:
     latency_label: "Latency"
     none_label: "*(none configured)*"
     files_label: "Files"
-    rollback_label: "Rollback"
+    link_label: "Link"
+    ci_label: "CI"
+    deploy_label: "Deploy"
   lifecycle:
     stop: "Bot shutting down."
     policy:
