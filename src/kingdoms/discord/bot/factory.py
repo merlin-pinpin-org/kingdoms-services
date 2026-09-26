@@ -27,6 +27,7 @@ from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
+from kingdoms.discord.error_report import report_guild_error, report_interaction_error
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -131,7 +132,9 @@ class KingdomsBot(discord.Client):
             enabled=self.config.announce_enabled.strip().lower() not in {"0", "false", "no"},
             thumbnail_url=self.user.display_avatar.url if self.user else "",
             locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
+            commands=self.tree.get_commands(),
         )
+        self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
         if self._synced:
             return
         self._synced = True
@@ -147,20 +150,36 @@ class KingdomsBot(discord.Client):
             self._synced = False
             logger.exception("SLASH COMMAND SYNC FAILED")
 
+    async def on_tree_error(
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
+    ) -> None:
+        """Report app-command failures: bot-logs (guild) or the DM itself."""
+        exc = error.__cause__ if error.__cause__ is not None else error
+        logger.exception("APP COMMAND FAILED", exc_info=error)
+        await report_interaction_error(
+            interaction,
+            exc,
+            self.config.deploy_tree_url,
+            self.logs_service,
+        )
+
     async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
-        """Route unhandled failures to the logs channel (crash lifecycle event)."""
+        """Route unhandled gateway-event failures to each guild's bot-logs."""
         import sys
 
         exc_info = sys.exc_info()
         logger.exception("UNHANDLED ERROR in %s", event_method, exc_info=exc_info)
-        if self.logs_service is None:
+        exc = exc_info[1] if exc_info[1] is not None else None
+        if exc is None:
             return
-        for guild in self.guilds:
-            event = LifecycleEvent(
-                kind="crash",
-                message=f"Unhandled error in `{event_method}` — see the bot logs for the traceback.",
-            )
-            await self.logs_service.log_event(str(guild.id), event)
+        await report_guild_error(
+            exc,
+            [str(guild.id) for guild in self.guilds],
+            self.config.deploy_tree_url,
+            self.logs_service,
+        )
 
     async def close(self) -> None:
         """Log the stop lifecycle event, then close the gateway connection."""
