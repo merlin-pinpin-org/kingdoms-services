@@ -245,7 +245,7 @@ class ChannelSelect:
         select: discord.ui.ChannelSelect[Any] = _discord.ui.ChannelSelect(
             custom_id=self.custom_id,
             placeholder=self.placeholder or None,
-            channel_types=[_discord.ChannelType(t) for t in self.channel_types],
+            channel_types=list(self.channel_types),
             min_values=1,
             max_values=1,
         )
