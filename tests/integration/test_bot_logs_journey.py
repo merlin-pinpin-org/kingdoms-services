@@ -114,7 +114,7 @@ class TestStartupAnnouncementJourney:
         assert "Kingdoms — Deployment" in joined
         assert "**Services**" in joined
         assert "**Infra**" in joined
-        assert "kingdoms-deploy env=" in joined
+        assert "kingdoms-deploy" in joined, "the frozen footer rides in a sub-text"
 
         stored = self.logs_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY]
         assert stored.name == BOT_LOGS_CHANNEL_NAME

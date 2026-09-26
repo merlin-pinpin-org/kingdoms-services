@@ -221,6 +221,45 @@ class SelectMenu:
 
 
 @dataclass(frozen=True, slots=True)
+class ChannelSelect:
+    """An interactive channel select: async callback on choose.
+
+    The callback receives the interaction and the chosen channel ids
+    (str) — no digging through ``interaction.data`` in feature code.
+    ``channel_types`` restricts the picker (default: text channels
+    only, the sensible default for message routing).
+    """
+
+    custom_id: str
+    on_choose: SelectHandler
+    placeholder: str = ""
+    channel_types: tuple[Any, ...] = (discord.ChannelType.text,)
+
+    def __post_init__(self) -> None:
+        """Validate the custom_id convention."""
+        _check_custom_id(self.custom_id)
+
+    def _to_discord(self) -> discord.ui.ChannelSelect[Any]:
+        import discord as _discord
+
+        select: discord.ui.ChannelSelect[Any] = _discord.ui.ChannelSelect(
+            custom_id=self.custom_id,
+            placeholder=self.placeholder or None,
+            channel_types=[_discord.ChannelType(t) for t in self.channel_types],
+            min_values=1,
+            max_values=1,
+        )
+        handler = self.on_choose
+
+        async def _dispatch(interaction: _discord.Interaction) -> None:
+            values = [str(c.id) for c in getattr(select, "values", [])]
+            await handler(interaction, values)
+
+        select.callback = _dispatch  # type: ignore[method-assign]
+        return select
+
+
+@dataclass(frozen=True, slots=True)
 class Thumbnail:
     """A thumbnail (Section accessory only, per Discord)."""
 
@@ -270,16 +309,16 @@ class Section:
 class Row:
     """A row of interactive items (max 5): Buttons, Actions, SelectMenu.
 
-    Discord wraps items in an ActionRow; a SelectMenu is the only item
-    in its row per Discord's layout rules.
+    Discord wraps items in an ActionRow; a SelectMenu (or a
+    ChannelSelect) is the only item in its row per Discord's layout rules.
     """
 
     __slots__ = ("buttons",)
 
-    def __init__(self, *buttons: Button | Action | SelectMenu) -> None:
+    def __init__(self, *buttons: Button | Action | SelectMenu | ChannelSelect) -> None:
         if not 1 <= len(buttons) <= 5:
             raise UILayoutError(f"an ActionRow holds 1 to 5 items, got {len(buttons)}")
-        if any(isinstance(b, SelectMenu) for b in buttons) and len(buttons) > 1:
+        if any(isinstance(b, (SelectMenu, ChannelSelect)) for b in buttons) and len(buttons) > 1:
             raise UILayoutError("a SelectMenu must be alone in its row")
         self.buttons = buttons
 
@@ -350,6 +389,9 @@ def _build_block(block: Any, state: _LayoutState) -> Any:
         state.components += 1 + len(block.buttons)
         return discord.ui.ActionRow(*[b._to_discord() for b in block.buttons])
     if isinstance(block, SelectMenu):
+        state.components += 1
+        return block._to_discord()
+    if isinstance(block, ChannelSelect):
         state.components += 1
         return block._to_discord()
     if isinstance(block, Section) and block.button is None and block.thumbnail is None:

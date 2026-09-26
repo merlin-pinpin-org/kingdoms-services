@@ -304,15 +304,15 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="Row">class <strong>Row</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#Row">Row</a>(*buttons:&nbsp;'<a href="#Button">Button</a>&nbsp;|&nbsp;<a href="#Action">Action</a>&nbsp;|&nbsp;<a href="#SelectMenu">SelectMenu</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Row">Row</a>(*buttons:&nbsp;'<a href="#Button">Button</a>&nbsp;|&nbsp;<a href="#Action">Action</a>&nbsp;|&nbsp;<a href="#SelectMenu">SelectMenu</a>&nbsp;|&nbsp;ChannelSelect')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 A&nbsp;row&nbsp;of&nbsp;interactive&nbsp;items&nbsp;(max&nbsp;5):&nbsp;Buttons,&nbsp;Actions,&nbsp;<a href="#SelectMenu">SelectMenu</a>.<br>
 &nbsp;<br>
-Discord&nbsp;wraps&nbsp;items&nbsp;in&nbsp;an&nbsp;ActionRow;&nbsp;a&nbsp;<a href="#SelectMenu">SelectMenu</a>&nbsp;is&nbsp;the&nbsp;only&nbsp;item<br>
-in&nbsp;its&nbsp;row&nbsp;per&nbsp;Discord's&nbsp;layout&nbsp;rules.<br>&nbsp;</span></td></tr>
+Discord&nbsp;wraps&nbsp;items&nbsp;in&nbsp;an&nbsp;ActionRow;&nbsp;a&nbsp;<a href="#SelectMenu">SelectMenu</a>&nbsp;(or&nbsp;a<br>
+ChannelSelect)&nbsp;is&nbsp;the&nbsp;only&nbsp;item&nbsp;in&nbsp;its&nbsp;row&nbsp;per&nbsp;Discord's&nbsp;layout&nbsp;rules.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="Row-__init__"><strong>__init__</strong></a>(self, *buttons: 'Button | Action | SelectMenu') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="Row-__init__"><strong>__init__</strong></a>(self, *buttons: 'Button | Action | SelectMenu | ChannelSelect') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

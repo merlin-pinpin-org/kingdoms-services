@@ -19,20 +19,22 @@ Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation,&nbsp;
 One&nbsp;deploy&nbsp;identity,&nbsp;one&nbsp;rendering:&nbsp;the&nbsp;announcement&nbsp;is&nbsp;a&nbsp;Components<br>
 V2&nbsp;layout&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;(:mod:`kingdoms.discord.ui`).<br>
 Per&nbsp;the&nbsp;SDK&nbsp;navigation&nbsp;rules,&nbsp;text&nbsp;blocks&nbsp;carry&nbsp;plain&nbsp;labels&nbsp;only<br>
-(links&nbsp;and&nbsp;line&nbsp;breaks&nbsp;do&nbsp;not&nbsp;render&nbsp;in&nbsp;V2&nbsp;text)&nbsp;—&nbsp;every&nbsp;artifact<br>
-is&nbsp;a&nbsp;link&nbsp;button&nbsp;in&nbsp;an&nbsp;action&nbsp;row:&nbsp;Services&nbsp;(Branch,&nbsp;PR/Commit/<br>
-Release,&nbsp;the&nbsp;commit&nbsp;sha&nbsp;with&nbsp;its&nbsp;Commit/Files&nbsp;buttons,&nbsp;the&nbsp;build<br>
-pipeline&nbsp;and&nbsp;package&nbsp;image),&nbsp;Infra&nbsp;(state&nbsp;Branch/Commit/Files,&nbsp;the<br>
-deployment&nbsp;run),&nbsp;Bot&nbsp;(uptime,&nbsp;admins,&nbsp;configured&nbsp;games).&nbsp;The&nbsp;layout<br>
-is&nbsp;pure&nbsp;display&nbsp;(link&nbsp;buttons&nbsp;only),&nbsp;so&nbsp;no&nbsp;view&nbsp;timeout&nbsp;or&nbsp;dispatch<br>
-wiring&nbsp;is&nbsp;involved.<br>
+(links&nbsp;and&nbsp;line&nbsp;breaks&nbsp;do&nbsp;not&nbsp;render&nbsp;in&nbsp;V2&nbsp;text)&nbsp;—&nbsp;every&nbsp;artifact&nbsp;is<br>
+a&nbsp;link&nbsp;button,&nbsp;and&nbsp;the&nbsp;identity&nbsp;rides&nbsp;on&nbsp;the&nbsp;buttons&nbsp;themselves:&nbsp;the<br>
+PR&nbsp;number,&nbsp;the&nbsp;commit&nbsp;sha7,&nbsp;the&nbsp;truncated&nbsp;docker&nbsp;tag,&nbsp;the&nbsp;branch.<br>
+Emojis&nbsp;replace&nbsp;text&nbsp;labels&nbsp;on&nbsp;buttons&nbsp;where&nbsp;the&nbsp;meaning&nbsp;is&nbsp;clear.<br>
 &nbsp;<br>
-The&nbsp;announcement&nbsp;doubles&nbsp;as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the<br>
-frozen&nbsp;footer&nbsp;line&nbsp;(``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;<br>
-kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;&nbsp;run=&lt;run-number&gt;``)&nbsp;rides&nbsp;in&nbsp;a&nbsp;TextDisplay<br>
-sub-text,&nbsp;readable&nbsp;back&nbsp;through&nbsp;the&nbsp;Discord&nbsp;REST&nbsp;API&nbsp;by&nbsp;the<br>
-kingdoms-infra&nbsp;post-deploy&nbsp;battery&nbsp;(kingdoms-infra#78).&nbsp;The&nbsp;footer<br>
-format&nbsp;is&nbsp;frozen:&nbsp;breaking&nbsp;changes&nbsp;need&nbsp;a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
+Sections:&nbsp;Services&nbsp;(source&nbsp;identity&nbsp;+&nbsp;commit&nbsp;date,&nbsp;build&nbsp;artifacts&nbsp;+<br>
+build&nbsp;date),&nbsp;Infra&nbsp;(state&nbsp;identity&nbsp;+&nbsp;commit&nbsp;date,&nbsp;deployment&nbsp;run&nbsp;+<br>
+run&nbsp;date),&nbsp;Bot&nbsp;(uptime,&nbsp;admins,&nbsp;games,&nbsp;mods,&nbsp;gateway&nbsp;latency)&nbsp;—&nbsp;each<br>
+artifact's&nbsp;timestamp&nbsp;sits&nbsp;directly&nbsp;under&nbsp;it.&nbsp;The&nbsp;announcement&nbsp;doubles<br>
+as&nbsp;a&nbsp;machine-readable&nbsp;deployment&nbsp;signal:&nbsp;the&nbsp;frozen&nbsp;footer&nbsp;line<br>
+(``kingdoms-deploy&nbsp;&lt;env&gt;``)&nbsp;rides&nbsp;in&nbsp;a&nbsp;TextDisplay&nbsp;sub-text,&nbsp;readable<br>
+back&nbsp;through&nbsp;the&nbsp;Discord&nbsp;REST&nbsp;API&nbsp;by&nbsp;the&nbsp;kingdoms-infra&nbsp;post-deploy<br>
+battery&nbsp;(kingdoms-infra#78).&nbsp;The&nbsp;full&nbsp;identity&nbsp;already&nbsp;rides&nbsp;in&nbsp;the<br>
+body;&nbsp;the&nbsp;footer&nbsp;only&nbsp;repeats&nbsp;the&nbsp;environment&nbsp;—&nbsp;the&nbsp;one&nbsp;thing&nbsp;the<br>
+battery&nbsp;cannot&nbsp;infer&nbsp;from&nbsp;the&nbsp;message&nbsp;alone.&nbsp;The&nbsp;footer&nbsp;format&nbsp;is<br>
+frozen:&nbsp;breaking&nbsp;changes&nbsp;need&nbsp;a&nbsp;battery-side&nbsp;update&nbsp;first.<br>
 &nbsp;<br>
 Announcements&nbsp;can&nbsp;be&nbsp;silenced&nbsp;entirely&nbsp;(``KINGDOMS_ANNOUNCE_ENABLED=0``)<br>
 —&nbsp;the&nbsp;CI/CD&nbsp;smoke&nbsp;bot&nbsp;uses&nbsp;this&nbsp;to&nbsp;boot&nbsp;against&nbsp;the&nbsp;real&nbsp;gateway<br>
@@ -116,27 +118,27 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.</span></dd></dl>
- <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;action&nbsp;rows.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '', locale_resolver: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.<br>
+&nbsp;<br>
+``locale_resolver``&nbsp;(an&nbsp;async&nbsp;``guild_id&nbsp;-&gt;&nbsp;locale``&nbsp;callable,&nbsp;the<br>
+LogService's&nbsp;``get_locale``)&nbsp;localizes&nbsp;per&nbsp;guild&nbsp;when&nbsp;provided&nbsp;—<br>
+each&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(managed&nbsp;through&nbsp;/admin)&nbsp;applies&nbsp;to<br>
+its&nbsp;own&nbsp;announcement;&nbsp;without&nbsp;it&nbsp;the&nbsp;<a href="#AnnounceConfig">AnnounceConfig</a>&nbsp;locale&nbsp;stands.</span></dd></dl>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
-env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or<br>
-version&nbsp;with&nbsp;its&nbsp;button&nbsp;accessory),&nbsp;the&nbsp;Services&nbsp;blocks<br>
-(branch@sha7&nbsp;identity&nbsp;above&nbsp;the&nbsp;artifact&nbsp;buttons,&nbsp;commit/build<br>
-timestamps,&nbsp;build&nbsp;row),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Infra&nbsp;blocks&nbsp;(state<br>
-branch@sha7&nbsp;+&nbsp;commit/deploy&nbsp;timestamps&nbsp;section&nbsp;with&nbsp;the&nbsp;Deployment<br>
-button&nbsp;accessory,&nbsp;artifact&nbsp;row),&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Bot&nbsp;blocks<br>
-(uptime,&nbsp;admins,&nbsp;games),&nbsp;and&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;as<br>
-sub-text&nbsp;(frozen&nbsp;format,&nbsp;plain&nbsp;`key=value`&nbsp;pairs).&nbsp;Same&nbsp;identity&nbsp;as<br>
-/status,&nbsp;adapted&nbsp;to&nbsp;the&nbsp;V2&nbsp;navigation&nbsp;rules.</span></dd></dl>
+env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or&nbsp;version<br>
+with&nbsp;its&nbsp;button&nbsp;accessory),&nbsp;the&nbsp;Services&nbsp;blocks,&nbsp;a&nbsp;Separator,&nbsp;the<br>
+Infra&nbsp;blocks,&nbsp;a&nbsp;Separator,&nbsp;the&nbsp;Bot&nbsp;blocks,&nbsp;and&nbsp;the&nbsp;machine-readable<br>
+footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;format,&nbsp;``kingdoms-deploy&nbsp;&lt;env&gt;``).<br>
+Same&nbsp;identity&nbsp;as&nbsp;/status,&nbsp;adapted&nbsp;to&nbsp;the&nbsp;V2&nbsp;navigation&nbsp;rules.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
-``kingdoms-deploy&nbsp;env=&lt;env&gt;&nbsp;image=&lt;label&gt;&nbsp;kind=&lt;kind&gt;&nbsp;ref=&lt;ref&gt;<br>
-run=&lt;run-number&gt;``&nbsp;—&nbsp;empty&nbsp;fields&nbsp;render&nbsp;empty&nbsp;so&nbsp;the&nbsp;line&nbsp;stays<br>
-greppable;&nbsp;the&nbsp;battery&nbsp;parses&nbsp;``key=value``&nbsp;pairs&nbsp;and&nbsp;compares<br>
-against&nbsp;the&nbsp;pinned&nbsp;state.&nbsp;The&nbsp;run&nbsp;is&nbsp;a&nbsp;short&nbsp;number&nbsp;(the&nbsp;Pipeline<br>
-button&nbsp;links&nbsp;the&nbsp;full&nbsp;run&nbsp;URL)&nbsp;—&nbsp;raw&nbsp;URLs&nbsp;render&nbsp;poorly&nbsp;in&nbsp;the<br>
-V2&nbsp;sub-text&nbsp;and&nbsp;the&nbsp;battery&nbsp;only&nbsp;asserts&nbsp;env/image/kind/ref.</span></dd></dl>
+``kingdoms-deploy&nbsp;&lt;env&gt;``&nbsp;—&nbsp;the&nbsp;identity&nbsp;(image,&nbsp;kind,&nbsp;ref,&nbsp;run)<br>
+already&nbsp;rides&nbsp;in&nbsp;the&nbsp;body&nbsp;buttons,&nbsp;so&nbsp;the&nbsp;footer&nbsp;only&nbsp;repeats&nbsp;the<br>
+environment,&nbsp;the&nbsp;one&nbsp;field&nbsp;the&nbsp;battery&nbsp;(kingdoms-infra#78)&nbsp;cannot<br>
+infer&nbsp;from&nbsp;the&nbsp;message;&nbsp;the&nbsp;pinned&nbsp;image&nbsp;the&nbsp;battery&nbsp;compares<br>
+against&nbsp;comes&nbsp;from&nbsp;the&nbsp;state&nbsp;file,&nbsp;not&nbsp;from&nbsp;the&nbsp;message.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
