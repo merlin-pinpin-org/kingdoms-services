@@ -20,9 +20,11 @@ import os
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.status import StatusService, format_version
 from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout, commands_section, render_commands
+from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
     PACKAGE_URL,
@@ -298,14 +300,20 @@ def register_status_command(
     status: StatusService,
     sync_target: str = "global",
     logs_service: LogService | None = None,
+    catalog: MessageCatalog | None = None,
 ) -> None:
     """Register the /status slash command on the command tree.
 
     ``logs_service`` resolves the guild's locale: the layout renders in
     the guild's language (fallback en when the service is absent).
+    ``catalog`` localizes the command name/description per client
+    locale (``commands.*`` keys in the shared yaml) through the tree
+    translator (:meth:`KingdomsBot.attach_translator`).
     """
-
-    @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
+    @tree.command(
+        name=localized("commands.status_name", "status"),
+        description=localized("commands.status_description", "Bot status: uptime, mods, games, admins"),
+    )
     async def status_command(interaction: discord.Interaction) -> None:
         """Answer the /status interaction with the deployment layout.
 

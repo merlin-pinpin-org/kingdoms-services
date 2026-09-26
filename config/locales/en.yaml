@@ -34,6 +34,11 @@ en:
       route: "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
       visibility: "Bot logs visibility set to {state}, by <@{by}>."
       language: "Language set to {lang}, by <@{by}>."
+  commands:
+    status_name: "status"
+    status_description: "Bot status: uptime, mods, games, admins"
+    admin_name: "admin"
+    admin_description: "Admin panel (bot operators and guild admins only)"
   guards:
     denied: "You are not allowed to do that — this action is reserved for bot admins."
   admin:

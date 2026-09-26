@@ -63,7 +63,6 @@ __all__ = [
     "PaginatedScreen",
     "Ranking",
     "build_config_panel",
-    "build_enrollment_screen",
     "build_match_report",
     "render_ranking",
 ]

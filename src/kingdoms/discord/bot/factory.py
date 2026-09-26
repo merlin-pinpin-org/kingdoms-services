@@ -31,6 +31,7 @@ from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definition
 from kingdoms.core.services.roles import RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
+from kingdoms.discord.commands_i18n import CatalogTranslator
 from kingdoms.discord.error_report import report_guild_error, report_interaction_error
 
 logger = logging.getLogger("kingdoms.bot")
@@ -145,6 +146,7 @@ class KingdomsBot(discord.Client):
             sync_scope=self._sync_scope(),
         )
         self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
+        await self.tree.set_translator(CatalogTranslator(self.messages))
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
         if self._synced:
@@ -283,7 +285,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
-    register_status_command(bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service)
+    register_status_command(
+        bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
+    )
     register_admin_command(
         bot.tree,
         bot_admins=status.bot_admins,

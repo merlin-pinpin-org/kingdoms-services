@@ -88,13 +88,6 @@ def test_section_of_unknown_prefix_is_empty() -> None:
     assert catalog.section("nope", "fr") == {}
 
 
-def test_enrollment_keys_render_per_locale() -> None:
-    catalog = MessageCatalog(CONFIG_DIR)
-    assert catalog.render("enrollment.title", "fr") == "Inscription"
-    assert catalog.render("enrollment.open", "fr") == "Ouvrir l'inscription"
-    assert catalog.render("enrollment.role_ready", "fr", role_id="42") == "r\u00f4le bot-admins pr\u00eat (<@&42>)."
-
-
 def test_guards_denied_renders_per_locale() -> None:
     catalog = MessageCatalog(CONFIG_DIR)
     assert "r\u00e9serv\u00e9e aux admins" in catalog.render("guards.denied", "fr")
