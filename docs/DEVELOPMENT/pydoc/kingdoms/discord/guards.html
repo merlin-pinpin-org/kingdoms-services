@@ -50,10 +50,12 @@ BOT_ADMINS&nbsp;and&nbsp;guild&nbsp;administrators&nbsp;pass&nbsp;without&nbsp;a
 (no&nbsp;stale&nbsp;cache&nbsp;across&nbsp;role&nbsp;renames&nbsp;or&nbsp;grants).</span></dd></dl>
  <dl><dt><a name="-is_bot_admin"><strong>is_bot_admin</strong></a>(user_id: 'int | None', bot_admins: 'tuple[str, ...]') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;invoking&nbsp;user&nbsp;is&nbsp;a&nbsp;bot&nbsp;operator&nbsp;(BOT_ADMINS).</span></dd></dl>
  <dl><dt><a name="-is_guild_admin"><strong>is_guild_admin</strong></a>(interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;invoking&nbsp;member&nbsp;administrates&nbsp;the&nbsp;guild&nbsp;(live&nbsp;permissions).</span></dd></dl>
- <dl><dt>async <a name="-require_admin"><strong>require_admin</strong></a>(interaction: 'discord.Interaction', bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None' = None) -&gt; 'bool'</dt><dd><span class="code">Guard&nbsp;an&nbsp;interactive&nbsp;callback:&nbsp;validate&nbsp;at&nbsp;click&nbsp;time,&nbsp;deny&nbsp;ephemerally.<br>
+ <dl><dt>async <a name="-require_admin"><strong>require_admin</strong></a>(interaction: 'discord.Interaction', bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None' = None, denied_message: 'str' = 'You are not allowed to do that — this action is reserved for bot admins.') -&gt; 'bool'</dt><dd><span class="code">Guard&nbsp;an&nbsp;interactive&nbsp;callback:&nbsp;validate&nbsp;at&nbsp;click&nbsp;time,&nbsp;deny&nbsp;ephemerally.<br>
 &nbsp;<br>
 Returns&nbsp;True&nbsp;when&nbsp;the&nbsp;interaction&nbsp;may&nbsp;proceed;&nbsp;on&nbsp;denial&nbsp;the&nbsp;user<br>
-gets&nbsp;the&nbsp;ephemeral&nbsp;reason&nbsp;and&nbsp;the&nbsp;caller&nbsp;must&nbsp;return&nbsp;immediately.</span></dd></dl>
+gets&nbsp;the&nbsp;ephemeral&nbsp;reason&nbsp;and&nbsp;the&nbsp;caller&nbsp;must&nbsp;return&nbsp;immediately.<br>
+``denied_message``&nbsp;localizes&nbsp;the&nbsp;reason&nbsp;(guards.denied)&nbsp;—&nbsp;the<br>
+caller&nbsp;owns&nbsp;the&nbsp;locale;&nbsp;the&nbsp;built-in&nbsp;English&nbsp;stands&nbsp;when&nbsp;absent.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

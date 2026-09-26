@@ -116,7 +116,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '', locale_resolver: 'Any' = None, commands: 'Iterable[object] | None' = None) -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_startup"><strong>announce_startup</strong></a>(bot: 'discord.Client', status: 'StatusService', config: 'AnnounceConfig', logs_service: 'LogService | None' = None, deploy_env: 'str' = '', enabled: 'bool' = True, thumbnail_url: 'str' = '', locale_resolver: 'Any' = None, commands: 'Iterable[object] | None' = None, sync_scope: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Post&nbsp;the&nbsp;deployment&nbsp;announcement&nbsp;per&nbsp;guild&nbsp;in&nbsp;its&nbsp;bot&nbsp;logs&nbsp;channel.<br>
 &nbsp;<br>
 ``locale_resolver``&nbsp;(an&nbsp;async&nbsp;``guild_id&nbsp;-&gt;&nbsp;locale``&nbsp;callable,&nbsp;the<br>
 LogService's&nbsp;``get_locale``)&nbsp;localizes&nbsp;per&nbsp;guild&nbsp;when&nbsp;provided&nbsp;—<br>
@@ -139,6 +139,10 @@ channel,&nbsp;so&nbsp;the&nbsp;Commands&nbsp;block&nbsp;rides&nbsp;in&nbsp;both.
 A&nbsp;synced&nbsp;command&nbsp;mention&nbsp;is&nbsp;clickable&nbsp;in&nbsp;Discord&nbsp;—&nbsp;it&nbsp;opens&nbsp;the<br>
 command&nbsp;picker.&nbsp;Before&nbsp;the&nbsp;first&nbsp;sync&nbsp;the&nbsp;ids&nbsp;are&nbsp;absent&nbsp;and&nbsp;the<br>
 plain&nbsp;/name&nbsp;rendering&nbsp;stands.</span></dd></dl>
+ <dl><dt><a name="-commands_section"><strong>commands_section</strong></a>(sync_scope: 'str', commands: 'Iterable[object]', locale: 'str', config_dir: 'Path') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;synced&nbsp;Commands&nbsp;section&nbsp;(one&nbsp;rendering,&nbsp;boot&nbsp;and&nbsp;/status).<br>
+&nbsp;<br>
+The&nbsp;header&nbsp;carries&nbsp;the&nbsp;sync&nbsp;scope&nbsp;through&nbsp;the&nbsp;locale&nbsp;catalog<br>
+(announce.commands_label&nbsp;/&nbsp;announce.sync_none_label).</span></dd></dl>
  <dl><dt><a name="-relative_uptime"><strong>relative_uptime</strong></a>(seconds: 'float') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;boot&nbsp;moment&nbsp;as&nbsp;a&nbsp;Discord&nbsp;relative&nbsp;timestamp&nbsp;(/status&nbsp;parity).</span></dd></dl>
  <dl><dt><a name="-render_commands"><strong>render_commands</strong></a>(commands: 'Iterable[object]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;synced&nbsp;Commands&nbsp;block&nbsp;(one&nbsp;rendering,&nbsp;everywhere).<br>
 &nbsp;<br>
