@@ -14,11 +14,13 @@ kingdoms-infra#37 (deploy URL plumbing).
 
 from __future__ import annotations
 
+import logging
 import os
 
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.status import StatusService, format_version
 from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout, render_commands
 from kingdoms.discord.deploy_render import (
@@ -30,6 +32,8 @@ from kingdoms.discord.deploy_render import (
     relative_time,
     sha7_of,
 )
+
+logger = logging.getLogger("kingdoms.status")
 
 
 def _human_uptime(seconds: float) -> str:
@@ -293,8 +297,13 @@ def register_status_command(
     tree: app_commands.CommandTree[discord.Client],
     status: StatusService,
     sync_target: str = "global",
+    logs_service: LogService | None = None,
 ) -> None:
-    """Register the /status slash command on the command tree."""
+    """Register the /status slash command on the command tree.
+
+    ``logs_service`` resolves the guild's locale: the layout renders in
+    the guild's language (fallback en when the service is absent).
+    """
 
     @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
     async def status_command(interaction: discord.Interaction) -> None:
@@ -309,7 +318,13 @@ def register_status_command(
         latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
-        config = AnnounceConfig(locale="en")
+        locale = "en"
+        if logs_service is not None and interaction.guild_id is not None:
+            try:
+                locale = await logs_service.get_locale(str(interaction.guild_id))
+            except Exception:
+                logger.warning("guild locale lookup failed (guild %s) — falling back", interaction.guild_id)
+        config = AnnounceConfig(locale=locale)
         sync_scope = sync_target if interaction.guild is not None else "none (DM)"
         commands = f"**Commands (sync: {sync_scope})**\n{format_commands(tree.get_commands())}"
         layout = build_announcement_layout(
@@ -320,3 +335,5 @@ def register_status_command(
             commands=commands,
         )
         await interaction.response.send_message(view=layout, ephemeral=True)
+
+logger = logging.getLogger("kingdoms.status")
