@@ -62,10 +62,13 @@ timestamp&nbsp;each,&nbsp;never&nbsp;the&nbsp;build&nbsp;date&nbsp;on&nbsp;the&n
 renders&nbsp;shortened&nbsp;(sha7&nbsp;+&nbsp;short&nbsp;stamp)&nbsp;—&nbsp;the&nbsp;full&nbsp;tag&nbsp;never&nbsp;shows.<br>
 Falls&nbsp;back&nbsp;to&nbsp;the&nbsp;untyped&nbsp;single-line&nbsp;render&nbsp;when&nbsp;the&nbsp;pipeline<br>
 provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
- <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global', logs_service: 'LogService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+ <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global', logs_service: 'LogService | None' = None, catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
 &nbsp;<br>
 ``logs_service``&nbsp;resolves&nbsp;the&nbsp;guild's&nbsp;locale:&nbsp;the&nbsp;layout&nbsp;renders&nbsp;in<br>
-the&nbsp;guild's&nbsp;language&nbsp;(fallback&nbsp;en&nbsp;when&nbsp;the&nbsp;service&nbsp;is&nbsp;absent).</span></dd></dl>
+the&nbsp;guild's&nbsp;language&nbsp;(fallback&nbsp;en&nbsp;when&nbsp;the&nbsp;service&nbsp;is&nbsp;absent).<br>
+``catalog``&nbsp;localizes&nbsp;the&nbsp;command&nbsp;name/description&nbsp;per&nbsp;client<br>
+locale&nbsp;(``commands.*``&nbsp;keys&nbsp;in&nbsp;the&nbsp;shared&nbsp;yaml)&nbsp;through&nbsp;the&nbsp;tree<br>
+translator&nbsp;(:meth:`KingdomsBot.attach_translator`).</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

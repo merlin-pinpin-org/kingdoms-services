@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.commands_i18n</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.commands_i18n</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/commands_i18n.py">SOURCE_ROOT/discord/commands_i18n.py</a></td></tr></table>
+    <p><span class="code">Slash&nbsp;command&nbsp;localizations,&nbsp;sourced&nbsp;from&nbsp;the&nbsp;shared&nbsp;yaml&nbsp;catalog.<br>
+&nbsp;<br>
+Discord&nbsp;renders&nbsp;a&nbsp;command's&nbsp;name&nbsp;and&nbsp;description&nbsp;per&nbsp;client&nbsp;locale.&nbsp;In<br>
+discord.py&nbsp;that&nbsp;goes&nbsp;through&nbsp;:class:`app_commands.locale_str`&nbsp;markers<br>
+plus&nbsp;a&nbsp;tree&nbsp;:class:`app_commands.<a href="discord.app_commands.translator.html#Translator">Translator</a>`&nbsp;—&nbsp;the&nbsp;single&nbsp;integration<br>
+point&nbsp;with&nbsp;the&nbsp;platform's&nbsp;i18n.&nbsp;The&nbsp;source&nbsp;of&nbsp;truth&nbsp;stays&nbsp;the&nbsp;shared<br>
+catalog:&nbsp;``commands.&lt;name&gt;_name``&nbsp;/&nbsp;``commands.&lt;name&gt;_description``&nbsp;in<br>
+``config/locales/&lt;locale&gt;.yaml``,&nbsp;never&nbsp;a&nbsp;hardcoded&nbsp;dict&nbsp;in&nbsp;the&nbsp;command<br>
+module.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.app_commands.translator.html#Translator">discord.app_commands.translator.Translator</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.commands_i18n.html#CatalogTranslator">CatalogTranslator</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="CatalogTranslator">class <strong>CatalogTranslator</strong></a>(<a href="discord.app_commands.translator.html#Translator">discord.app_commands.translator.Translator</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#CatalogTranslator">CatalogTranslator</a>(catalog:&nbsp;'MessageCatalog&nbsp;|&nbsp;None')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Translate&nbsp;``locale_str``&nbsp;markers&nbsp;through&nbsp;the&nbsp;MessageCatalog.<br>
+&nbsp;<br>
+Attached&nbsp;once&nbsp;per&nbsp;tree&nbsp;(``tree.set_translator``);&nbsp;discord.py&nbsp;calls<br>
+it&nbsp;at&nbsp;sync&nbsp;time&nbsp;for&nbsp;every&nbsp;locale&nbsp;Discord&nbsp;requests.&nbsp;Unknown&nbsp;keys&nbsp;or<br>
+a&nbsp;missing&nbsp;catalog&nbsp;translate&nbsp;to&nbsp;``None``&nbsp;—&nbsp;Discord&nbsp;keeps&nbsp;the<br>
+default&nbsp;string,&nbsp;the&nbsp;command&nbsp;never&nbsp;breaks.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.commands_i18n.html#CatalogTranslator">CatalogTranslator</a></dd>
+<dd><a href="discord.app_commands.translator.html#Translator">discord.app_commands.translator.Translator</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="CatalogTranslator-__init__"><strong>__init__</strong></a>(self, catalog: 'MessageCatalog | None') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;catalog&nbsp;the&nbsp;translations&nbsp;resolve&nbsp;through.</span></dd></dl>
+
+<dl><dt>async <a name="CatalogTranslator-translate"><strong>translate</strong></a>(self, string: 'locale_str', locale: 'discord.Locale', context: 'app_commands.TranslationContextTypes') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;``locale_str``&nbsp;marker&nbsp;for&nbsp;one&nbsp;Discord&nbsp;locale.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.app_commands.translator.html#Translator">discord.app_commands.translator.Translator</a>:<br>
+<dl><dt>async <a name="CatalogTranslator-load"><strong>load</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+An&nbsp;asynchronous&nbsp;setup&nbsp;function&nbsp;for&nbsp;loading&nbsp;the&nbsp;translation&nbsp;system.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;invoked&nbsp;when&nbsp;:meth:`CommandTree.set_translator`&nbsp;is&nbsp;called.</span></dd></dl>
+
+<dl><dt>async <a name="CatalogTranslator-unload"><strong>unload</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+An&nbsp;asynchronous&nbsp;teardown&nbsp;function&nbsp;for&nbsp;unloading&nbsp;the&nbsp;translation&nbsp;system.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;invoked&nbsp;when&nbsp;:meth:`CommandTree.set_translator`&nbsp;is&nbsp;called<br>
+if&nbsp;a&nbsp;tree&nbsp;already&nbsp;has&nbsp;a&nbsp;translator&nbsp;or&nbsp;when&nbsp;:meth:`discord.Client.close`&nbsp;is&nbsp;called.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="discord.app_commands.translator.html#Translator">discord.app_commands.translator.Translator</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-localized"><strong>localized</strong></a>(key: 'str', default: 'str') -&gt; 'locale_str'</dt><dd><span class="code">Mark&nbsp;a&nbsp;command&nbsp;name/description&nbsp;as&nbsp;localizable&nbsp;under&nbsp;``key``.<br>
+&nbsp;<br>
+``default``&nbsp;is&nbsp;the&nbsp;English&nbsp;string&nbsp;Discord&nbsp;falls&nbsp;back&nbsp;to;&nbsp;the<br>
+catalog&nbsp;keys&nbsp;live&nbsp;under&nbsp;the&nbsp;``commands.``&nbsp;yaml&nbsp;section.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False</td></tr></table>
+</body></html>
