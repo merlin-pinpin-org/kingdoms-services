@@ -63,3 +63,26 @@ def test_announce_keys_render_per_locale() -> None:
     catalog = MessageCatalog(CONFIG_DIR)
     assert catalog.render("announce.services_label", "fr") == "Services"
     assert catalog.render("announce.mods_label", "fr") == "Mods"
+
+
+def test_section_resolves_one_prefix_with_english_fill() -> None:
+    """section() is the one-loader contract: the announce strings come
+    from the same catalog as /admin — no per-module yaml parsing."""
+    catalog = MessageCatalog(CONFIG_DIR)
+    announce_fr = catalog.section("announce", "fr")
+    assert announce_fr["title"] == "Kingdoms — Déploiement"
+    assert announce_fr["services_label"] == "Services"
+    assert announce_fr["branch_label"] == "Branche"
+
+
+def test_section_fills_missing_locale_keys_with_english() -> None:
+    catalog = MessageCatalog(CONFIG_DIR)
+    announce_en = catalog.section("announce", "en")
+    announce_fr = catalog.section("announce", "fr")
+    assert set(announce_fr) == set(announce_en), "both locales expose the same keys"
+    assert announce_fr["ci_label"] == "CI"
+
+
+def test_section_of_unknown_prefix_is_empty() -> None:
+    catalog = MessageCatalog(CONFIG_DIR)
+    assert catalog.section("nope", "fr") == {}

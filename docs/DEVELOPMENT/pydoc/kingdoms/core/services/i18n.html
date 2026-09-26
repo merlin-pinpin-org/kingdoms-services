@@ -59,6 +59,13 @@ Locale-aware&nbsp;message&nbsp;rendering&nbsp;over&nbsp;the&nbsp;yaml&nbsp;catal
 
 <dl><dt><a name="MessageCatalog-render"><strong>render</strong></a>(self, key: 'str', locale: 'str' = 'en', **kwargs: 'Any') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;dotted&nbsp;key&nbsp;for&nbsp;a&nbsp;locale;&nbsp;English&nbsp;fallback,&nbsp;never&nbsp;raises.</span></dd></dl>
 
+<dl><dt><a name="MessageCatalog-section"><strong>section</strong></a>(self, prefix: 'str', locale: 'str' = 'en') -&gt; 'dict[str, str]'</dt><dd><span class="code">Resolve&nbsp;every&nbsp;key&nbsp;of&nbsp;a&nbsp;dotted&nbsp;section&nbsp;(e.g.&nbsp;``announce``).<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;flattened&nbsp;keys&nbsp;of&nbsp;one&nbsp;yaml&nbsp;section&nbsp;(``announce.title``<br>
+for&nbsp;prefix&nbsp;``announce``),&nbsp;with&nbsp;English&nbsp;filling&nbsp;the&nbsp;gaps&nbsp;and&nbsp;the<br>
+built-in&nbsp;fallbacks&nbsp;as&nbsp;last&nbsp;resort.&nbsp;One&nbsp;loader&nbsp;for&nbsp;every&nbsp;surface<br>
+(announcements,&nbsp;admin&nbsp;panels)&nbsp;—&nbsp;no&nbsp;per-module&nbsp;yaml&nbsp;parsing.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
