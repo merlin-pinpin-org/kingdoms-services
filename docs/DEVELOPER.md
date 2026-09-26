@@ -50,6 +50,55 @@ pass.
   updated in `kingdoms` (source of truth), including
   `docs/MODS/<mod-name>/`.
 
+## Bot logs channel
+
+Every guild gets a dedicated **bot logs channel** (`🤖-bot-logs`) where the
+bot posts its lifecycle events: startup announcement, status changes,
+crashes, start/stop/restart. The design (kingdoms-services#109):
+
+- **Channel naming convention**: channels created by the bot always
+  carry an emoji prefix followed by a dash, e.g. `🤖-bot-logs`.
+- **Resolution is cache-aside** (`LogService.resolve_channel`):
+  Redis → MongoDB (`channels` collection, `_id` is
+  `guild_id:category`) → **adoption** (an existing `🤖-bot-logs`
+  channel found by name is reused — the CI/CD bot's ephemeral
+  database never duplicates channels) → creation. Deleted channels
+  are detected and reprovisioned.
+- **Admin-only by default**: @everyone is denied view/send at creation,
+  the bot self-allows, and guild admins (plus `BOT_ADMINS`) manage access
+  through `/admin` — per-guild policies persist in the
+  `channel_access_policies` collection, every change is audited as an
+  event in the channel.
+- **Lifecycle events are best-effort**: a store failure logs a warning,
+  never crashes the bot; repeated crashes collapse into a single
+  "crash-loop detected" event.
+- The startup announcement (kingdoms-services#52) is the `start` event
+  of this flow: a Components V2 layout (accent Container, Section with
+  the bot avatar as thumbnail accessory, Separator, link buttons) reusing
+  the exact `/status` rendering, carrying a machine-readable footer
+  (`kingdoms-deploy env=… image=… kind=… ref=… run=…`) in sub-text —
+  read back by the kingdoms-infra battery through the REST API.
+- `KINGDOMS_ANNOUNCE_ENABLED=0` silences the startup announcement
+  entirely — used by the CI/CD smoke bot so CI boots never post in
+  the shared guilds.
+
+## UI SDK (`src/kingdoms/discord/ui`)
+
+Every view, embed or Components V2 layout is built through the UI SDK —
+never by instantiating `discord.ui` / `discord.Embed` classes directly in
+a feature. `factory.py` holds the bricks and builders (`UILayout`,
+`UIEmbed`, `Container`, `Section`, `Text`, `Row`, `Button`, `Action`,
+`SelectMenu`, `Separator`, `Thumbnail`); `screens.py` holds the archetypes
+(`render_ranking`, `build_config_panel`, `build_match_report`,
+`PaginatedScreen`).
+
+The full usage rules — navigation in buttons (never links in V2 text
+blocks), the `<mod>:<component>:<payload>` custom ID convention,
+build-time budgets and guarantees, testing patterns — live in the
+kingdoms repo
+[discord-ui skill](https://github.com/merlin-pinpin-org/kingdoms/blob/main/.agents/skills/discord-ui/SKILL.md).
+Extend the SDK rather than bypassing it.
+
 ## Testing rules
 
 Full strategy:

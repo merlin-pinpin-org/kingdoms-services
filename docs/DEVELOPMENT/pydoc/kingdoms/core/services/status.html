@@ -90,12 +90,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="StatusService">class <strong>StatusService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_kind:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_ref:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_tree_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_ts:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_number:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_ts:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_image:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_branch:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_pr_title:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusService">StatusService</a>(registry:&nbsp;'ModRegistry',&nbsp;bot_admins:&nbsp;'<a href="#BotAdmins">BotAdmins</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;deploy_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_label:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_kind:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_ref:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_tree_url:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_ts:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_number:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_run_ts:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_image:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_branch:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_pr_title:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_commit_ts:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;deploy_infra_commit_ts:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Aggregate&nbsp;the&nbsp;platform&nbsp;status&nbsp;into&nbsp;a&nbsp;plain,&nbsp;inspectable&nbsp;report.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '', deploy_label: 'str' = '', deploy_run_url: 'str' = '', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_kind: 'str' = '', deploy_ref: 'str' = '', deploy_tree_url: 'str' = '', deploy_ts: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '', deploy_image: 'str' = '', deploy_branch: 'str' = '', deploy_pr_title: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="StatusService-__init__"><strong>__init__</strong></a>(self, registry: 'ModRegistry', bot_admins: 'BotAdmins', games: 'tuple[str, ...]' = (), clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, deploy_url: 'str' = '', deploy_label: 'str' = '', deploy_run_url: 'str' = '', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_kind: 'str' = '', deploy_ref: 'str' = '', deploy_tree_url: 'str' = '', deploy_ts: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '', deploy_image: 'str' = '', deploy_branch: 'str' = '', deploy_pr_title: 'str' = '', deploy_commit_ts: 'str' = '', deploy_infra_commit_ts: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="StatusService-enabled_mods"><strong>enabled_mods</strong></a>(self) -&gt; 'dict[str, dict[str, tuple[str, ...]]]'</dt><dd><span class="code">Return&nbsp;enabled&nbsp;mods&nbsp;with&nbsp;their&nbsp;declared&nbsp;channel&nbsp;categories&nbsp;and&nbsp;roles.</span></dd></dl>
 
@@ -113,8 +113,14 @@ Readonly properties defined here:<br>
 <dl><dt><strong>deploy_branch</strong></dt>
 <dd><span class="code">Source&nbsp;branch&nbsp;of&nbsp;the&nbsp;deployed&nbsp;commit&nbsp;(KINGDOMS_DEPLOY_BRANCH).</span></dd>
 </dl>
+<dl><dt><strong>deploy_commit_ts</strong></dt>
+<dd><span class="code">Unix&nbsp;timestamp&nbsp;of&nbsp;the&nbsp;deployed&nbsp;services&nbsp;commit&nbsp;(KINGDOMS_DEPLOY_COMMIT_TS).</span></dd>
+</dl>
 <dl><dt><strong>deploy_image</strong></dt>
 <dd><span class="code">Pinned&nbsp;container&nbsp;image&nbsp;reference&nbsp;(KINGDOMS_DEPLOY_IMAGE;&nbsp;empty&nbsp;when&nbsp;unknown).</span></dd>
+</dl>
+<dl><dt><strong>deploy_infra_commit_ts</strong></dt>
+<dd><span class="code">Unix&nbsp;timestamp&nbsp;of&nbsp;the&nbsp;deployed&nbsp;infra&nbsp;state&nbsp;commit&nbsp;(KINGDOMS_DEPLOY_INFRA_COMMIT_TS).</span></dd>
 </dl>
 <dl><dt><strong>deploy_infra_label</strong></dt>
 <dd><span class="code">Version&nbsp;label&nbsp;of&nbsp;the&nbsp;deployed&nbsp;infra&nbsp;state&nbsp;branch&nbsp;(deploy/&lt;env&gt;@&lt;sha&gt;).</span></dd>

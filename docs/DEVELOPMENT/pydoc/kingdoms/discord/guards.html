@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.guards</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.guards</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/guards.py">SOURCE_ROOT/discord/guards.py</a></td></tr></table>
+    <p><span class="code">Runtime&nbsp;permission&nbsp;guards:&nbsp;admin&nbsp;access&nbsp;is&nbsp;validated&nbsp;at&nbsp;click&nbsp;time.<br>
+&nbsp;<br>
+Developer-mandated&nbsp;rule&nbsp;(kingdoms-services#109,&nbsp;#115):&nbsp;**never&nbsp;assume<br>
+that&nbsp;seeing&nbsp;a&nbsp;button&nbsp;means&nbsp;being&nbsp;allowed&nbsp;to&nbsp;click&nbsp;it**.&nbsp;Discord<br>
+components&nbsp;are&nbsp;visible&nbsp;to&nbsp;whoever&nbsp;can&nbsp;read&nbsp;the&nbsp;channel&nbsp;—&nbsp;permissions<br>
+drift,&nbsp;role&nbsp;removals&nbsp;and&nbsp;channel&nbsp;moves&nbsp;happen&nbsp;between&nbsp;render&nbsp;and<br>
+click.&nbsp;Every&nbsp;interactive&nbsp;item&nbsp;behind&nbsp;a&nbsp;privilege&nbsp;is&nbsp;validated&nbsp;**at<br>
+click&nbsp;time**,&nbsp;against&nbsp;the&nbsp;live&nbsp;guild&nbsp;state:<br>
+&nbsp;<br>
+-&nbsp;**bot&nbsp;operators**&nbsp;—&nbsp;the&nbsp;``BOT_ADMINS``&nbsp;ids&nbsp;(environment-sourced);<br>
+-&nbsp;**guild&nbsp;administrators**&nbsp;—&nbsp;the&nbsp;administrator/manage-guild&nbsp;Discord<br>
+&nbsp;&nbsp;permissions&nbsp;of&nbsp;the&nbsp;invoking&nbsp;member;<br>
+-&nbsp;**the&nbsp;``bot-admins``&nbsp;role**&nbsp;—&nbsp;the&nbsp;guild&nbsp;role&nbsp;provisioned&nbsp;by&nbsp;the<br>
+&nbsp;&nbsp;RolesService&nbsp;(kingdoms-services#115),&nbsp;granted&nbsp;by&nbsp;the&nbsp;guild&nbsp;owners<br>
+&nbsp;&nbsp;to&nbsp;delegated&nbsp;operators.<br>
+&nbsp;<br>
+The&nbsp;guard&nbsp;answers&nbsp;a&nbsp;single&nbsp;question&nbsp;—&nbsp;"may&nbsp;this&nbsp;interaction&nbsp;act?"&nbsp;—<br>
+and&nbsp;is&nbsp;the&nbsp;one&nbsp;place&nbsp;every&nbsp;component&nbsp;callback&nbsp;and&nbsp;command&nbsp;handler<br>
+calls&nbsp;before&nbsp;doing&nbsp;anything&nbsp;privileged.&nbsp;A&nbsp;denial&nbsp;is&nbsp;answered<br>
+ephemerally&nbsp;with&nbsp;the&nbsp;reason;&nbsp;the&nbsp;caller&nbsp;never&nbsp;continues&nbsp;on&nbsp;denial.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-is_admin"><strong>is_admin</strong></a>(interaction: 'discord.Interaction', bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;interaction&nbsp;may&nbsp;act&nbsp;as&nbsp;an&nbsp;admin&nbsp;—&nbsp;validated&nbsp;at&nbsp;click&nbsp;time.<br>
+&nbsp;<br>
+BOT_ADMINS&nbsp;and&nbsp;guild&nbsp;administrators&nbsp;pass&nbsp;without&nbsp;any&nbsp;lookup;&nbsp;the<br>
+``bot-admins``&nbsp;guild&nbsp;role&nbsp;resolves&nbsp;live&nbsp;through&nbsp;the&nbsp;RolesService<br>
+(no&nbsp;stale&nbsp;cache&nbsp;across&nbsp;role&nbsp;renames&nbsp;or&nbsp;grants).</span></dd></dl>
+ <dl><dt><a name="-is_bot_admin"><strong>is_bot_admin</strong></a>(user_id: 'int | None', bot_admins: 'tuple[str, ...]') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;invoking&nbsp;user&nbsp;is&nbsp;a&nbsp;bot&nbsp;operator&nbsp;(BOT_ADMINS).</span></dd></dl>
+ <dl><dt><a name="-is_guild_admin"><strong>is_guild_admin</strong></a>(interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;invoking&nbsp;member&nbsp;administrates&nbsp;the&nbsp;guild&nbsp;(live&nbsp;permissions).</span></dd></dl>
+ <dl><dt>async <a name="-require_admin"><strong>require_admin</strong></a>(interaction: 'discord.Interaction', bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None' = None) -&gt; 'bool'</dt><dd><span class="code">Guard&nbsp;an&nbsp;interactive&nbsp;callback:&nbsp;validate&nbsp;at&nbsp;click&nbsp;time,&nbsp;deny&nbsp;ephemerally.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;when&nbsp;the&nbsp;interaction&nbsp;may&nbsp;proceed;&nbsp;on&nbsp;denial&nbsp;the&nbsp;user<br>
+gets&nbsp;the&nbsp;ephemeral&nbsp;reason&nbsp;and&nbsp;the&nbsp;caller&nbsp;must&nbsp;return&nbsp;immediately.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BOT_ADMINS_ROLE_KEY</strong> = 'bot-admins'<br>
+<strong>DENIED_MESSAGE</strong> = 'You are not allowed to do that — this action is reserved for bot admins.'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.guards (WARNING)&gt;</td></tr></table>
+</body></html>
