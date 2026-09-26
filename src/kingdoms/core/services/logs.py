@@ -214,6 +214,15 @@ class LogService:
                     name=BOT_LOGS_CHANNEL_NAME,
                 )
             )
+            # Private by default, adopted channels included: an existing
+            # channel may carry public overwrites — the default policy
+            # (admin-only) is re-applied best-effort, adoption never
+            # inherits looser permissions than a fresh creation.
+            await self._safe(self._platform.apply_default_policy(guild_id, adopted))
+            if await self._safe(self._db.get_policy(guild_id, BOT_LOGS_CATEGORY)) is None:
+                await self._safe(
+                    self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
+                )
             await self._cache(guild_id, adopted)
             return adopted
         channel_id = await self._platform.create_logs_channel(guild_id)
