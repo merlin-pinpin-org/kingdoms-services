@@ -12,12 +12,26 @@ directly, never a token, never the network.
 
 from __future__ import annotations
 
+from typing import Any
+
 import discord
 import pytest
-from simcord.asserts import assert_message
 
 CONFIRM_ID = "test:button:confirm"
 IS_COMPONENTS_V2 = 1 << 15
+TYPE_TEXT_DISPLAY = 10
+
+
+def _walk(components):  # type: ignore[no-untyped-def]
+    """Depth-first walk of a message component tree (wire dicts or objects)."""
+    out: list[Any] = []
+    for component in components or []:
+        out.append(component)
+        if isinstance(component, dict):
+            out.extend(_walk(component.get("components", [])))
+        else:
+            out.extend(_walk(list(getattr(component, "children", []))))
+    return out
 
 
 def _iter_components(message: discord.Message):
@@ -39,7 +53,7 @@ class TestRealBotJourneys:
     """Journeys through the real bot built by create_bot (kingdoms-services#12)."""
 
     @pytest.mark.simcord(strict_sync=False)
-    async def test_status_answers_with_report_embed(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+    async def test_status_answers_with_the_announcement_layout(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
         guild = simcord_env.create_guild()
         channel = guild.create_text_channel("general")
         alice = guild.add_member(simcord_env.create_user("alice"))
@@ -47,7 +61,17 @@ class TestRealBotJourneys:
         result = await alice.slash(channel, "status")
 
         assert result.ephemeral
-        assert_message(result.response, embed_title="Kingdoms — Status")
+        message = result.response.message
+        assert message.flags.value & IS_COMPONENTS_V2
+        texts = [
+            c["content"] if isinstance(c, dict) else c.content
+            for c in _walk(message.components)
+            if (c.get("type") if isinstance(c, dict) else c.type.value) == TYPE_TEXT_DISPLAY
+        ]
+        joined = "\n".join(texts)
+        assert "Kingdoms — Deployment" in joined
+        assert "Uptime" in joined
+        assert "Commands (sync:" in joined
 
 
 class TestUIPatterns:
@@ -136,3 +160,73 @@ class TestUIPatterns:
         assert len(containers) == 1
         texts = [c for c in containers[0].children if isinstance(c, discord.components.TextDisplay)]
         assert [t.content for t in texts] == ["Card A", "Card B"]
+
+
+class TestSDKJourneys:
+    """SDK archetype journeys: pagination edits in place, selects dispatch."""
+
+    @pytest.fixture
+    def simcord_bot(self, kingdoms_bot):  # type: ignore[no-untyped-def]
+        from kingdoms.discord.ui import Ranking, render_ranking
+
+        @kingdoms_bot.tree.command(name="leaderboard")
+        async def leaderboard(interaction: discord.Interaction) -> None:
+            ranking = Ranking("Classement", [(f"p{i}", str(100 - i)) for i in range(15)])
+            screen = render_ranking(ranking, page_size=5)
+            await interaction.response.send_message(view=screen.render())
+
+        @kingdoms_bot.tree.command(name="pick")
+        async def pick(interaction: discord.Interaction) -> None:
+            from kingdoms.discord.ui import Container, Option, Row, SelectMenu, Text, UILayout
+
+            async def on_choose(inter: discord.Interaction, values: list[str]) -> None:
+                await inter.response.send_message(f"chose {values[0]}", ephemeral=True)
+
+            menu = SelectMenu(
+                custom_id="test:pick:main",
+                options=(Option("A", "a"), Option("B", "b")),
+                on_choose=on_choose,
+            )
+            view = UILayout().add(Container().add(Text("Pick one")).add(Row(menu))).build()
+            await interaction.response.send_message(view=view)
+
+        return kingdoms_bot
+
+    @pytest.mark.simcord(strict_sync=False)
+    async def test_leaderboard_pages_edit_in_place(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+        guild = simcord_env.create_guild()
+        channel = guild.create_text_channel("general")
+        alice = guild.add_member(simcord_env.create_user("alice"))
+        await alice.slash(channel, "leaderboard")
+        message = channel.last_message
+        assert message.flags.value & IS_COMPONENTS_V2
+        await alice.click(message, custom_id="ranking:page:next")
+        await simcord_env._settle_internal()
+        updated = channel.last_message
+        assert updated.id == message.id, "pagination must edit in place, not repost"
+        texts: list[str] = []
+
+        def walk(component: object) -> None:
+            children = getattr(component, "children", None) or ()
+            for child in children:
+                if isinstance(child, discord.components.TextDisplay):
+                    texts.append(child.content)
+                walk(child)
+
+        for top in updated.components or []:
+            if isinstance(top, discord.components.TextDisplay):
+                texts.append(top.content)
+            walk(top)
+        joined = "\n".join(texts)
+        assert "Page 2/3" in joined
+
+    @pytest.mark.simcord(strict_sync=False)
+    async def test_select_menu_dispatches_values(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+        guild = simcord_env.create_guild()
+        channel = guild.create_text_channel("general")
+        alice = guild.add_member(simcord_env.create_user("alice"))
+        await alice.slash(channel, "pick")
+        message = channel.last_message
+        result = await alice.select(message, ["b"], custom_id="test:pick:main")
+        assert result.ephemeral
+        assert result.response.content == "chose b"
