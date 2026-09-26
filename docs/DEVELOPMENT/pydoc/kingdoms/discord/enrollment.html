@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.enrollment</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.enrollment</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/enrollment.py">SOURCE_ROOT/discord/enrollment.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;enrollment&nbsp;workflow&nbsp;screen&nbsp;(kingdoms-services#115).<br>
+&nbsp;<br>
+The&nbsp;first&nbsp;admin-message&nbsp;with&nbsp;actions:&nbsp;the&nbsp;enrollment&nbsp;panel&nbsp;posts&nbsp;a<br>
+workflow&nbsp;screen&nbsp;(steps&nbsp;+&nbsp;operator&nbsp;actions)&nbsp;in&nbsp;the&nbsp;guild,&nbsp;and&nbsp;every<br>
+action&nbsp;is&nbsp;validated&nbsp;at&nbsp;click&nbsp;time&nbsp;through&nbsp;the&nbsp;runtime&nbsp;guards<br>
+(:mod:`kingdoms.discord.guards`)&nbsp;—&nbsp;**seeing&nbsp;a&nbsp;button&nbsp;never&nbsp;implies<br>
+being&nbsp;allowed&nbsp;to&nbsp;click&nbsp;it**.<br>
+&nbsp;<br>
+Today&nbsp;the&nbsp;screen&nbsp;is&nbsp;a&nbsp;skeleton:&nbsp;no&nbsp;mod,&nbsp;no&nbsp;game&nbsp;—&nbsp;the&nbsp;steps&nbsp;that<br>
+exist&nbsp;in&nbsp;the&nbsp;design&nbsp;but&nbsp;not&nbsp;in&nbsp;the&nbsp;code&nbsp;render&nbsp;as&nbsp;disabled&nbsp;buttons<br>
+(the&nbsp;designer&nbsp;sees&nbsp;where&nbsp;the&nbsp;workflow&nbsp;goes),&nbsp;and&nbsp;the&nbsp;live&nbsp;actions<br>
+are&nbsp;Open/Close&nbsp;enrollment&nbsp;plus&nbsp;the&nbsp;``bot-admins``&nbsp;role&nbsp;provisioning.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_enrollment_actions"><strong>build_enrollment_actions</strong></a>(*, on_open: 'Handler', on_close: 'Handler', on_role: 'Handler') -&gt; 'tuple[list[Action], list[Action]]'</dt><dd><span class="code">Build&nbsp;the&nbsp;enrollment&nbsp;action&nbsp;rows:&nbsp;live&nbsp;admin&nbsp;actions&nbsp;+&nbsp;disabled&nbsp;future&nbsp;steps.</span></dd></dl>
+ <dl><dt><a name="-build_enrollment_view"><strong>build_enrollment_view</strong></a>(bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;enrollment&nbsp;screen&nbsp;with&nbsp;runtime-guarded&nbsp;admin&nbsp;actions.</span></dd></dl>
+ <dl><dt><a name="-register_enrollment_command"><strong>register_enrollment_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), roles_service: 'RolesService | None' = None, admin_channel_service: 'AdminChannelService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/enrollment&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+&nbsp;<br>
+The&nbsp;command&nbsp;posts&nbsp;the&nbsp;enrollment&nbsp;screen&nbsp;in&nbsp;the&nbsp;guild's&nbsp;🛡-bot-admins<br>
+channel&nbsp;—&nbsp;the&nbsp;home&nbsp;of&nbsp;every&nbsp;admin&nbsp;message&nbsp;with&nbsp;actions<br>
+(transparency&nbsp;rule,&nbsp;kingdoms-services#115).&nbsp;Admin-only&nbsp;too:&nbsp;the<br>
+guard&nbsp;runs&nbsp;at&nbsp;invocation&nbsp;time&nbsp;(the&nbsp;default_permissions&nbsp;hint&nbsp;only<br>
+hides&nbsp;the&nbsp;entry,&nbsp;it&nbsp;never&nbsp;replaces&nbsp;the&nbsp;runtime&nbsp;check).&nbsp;Without&nbsp;the<br>
+AdminChannelService&nbsp;the&nbsp;screen&nbsp;degrades&nbsp;to&nbsp;the&nbsp;invoking&nbsp;context.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CLOSE_ID</strong> = 'enrollment:toggle:close'<br>
+<strong>ENROLLMENT_TITLE</strong> = 'Enrollment'<br>
+<strong>Handler</strong> = collections.abc.Callable[[discord.interactions.Interaction], collections.abc.Awaitable[None]]<br>
+<strong>OPEN_ID</strong> = 'enrollment:toggle:open'<br>
+<strong>ROLE_ID</strong> = 'enrollment:admins:role'<br>
+<strong>STEP_GAME</strong> = ('Game selected', 'Pick the game the enrollment runs for.', False)<br>
+<strong>STEP_MOD</strong> = ('Mod configured', 'The mod defines the enrollment rules.', False)<br>
+<strong>STEP_OPEN</strong> = ('Enrollment open', 'Players may join through the registration flow.', False)<br>
+<strong>logger</strong> = &lt;Logger kingdoms.enrollment (WARNING)&gt;</td></tr></table>
+</body></html>

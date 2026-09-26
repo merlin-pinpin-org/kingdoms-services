@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.error_report</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.error_report</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/error_report.py">SOURCE_ROOT/discord/error_report.py</a></td></tr></table>
+    <p><span class="code">Enriched&nbsp;error&nbsp;reporting:&nbsp;bot-logs&nbsp;gets&nbsp;the&nbsp;frame,&nbsp;DMs&nbsp;get&nbsp;the&nbsp;answer.<br>
+&nbsp;<br>
+When&nbsp;a&nbsp;command&nbsp;or&nbsp;a&nbsp;component&nbsp;callback&nbsp;fails,&nbsp;the&nbsp;user&nbsp;is&nbsp;never&nbsp;left<br>
+with&nbsp;a&nbsp;frozen&nbsp;interaction:&nbsp;the&nbsp;failure&nbsp;is&nbsp;reported&nbsp;where&nbsp;it&nbsp;can&nbsp;be<br>
+acted&nbsp;on&nbsp;(developer&nbsp;mandate,&nbsp;kingdoms-services#113):<br>
+&nbsp;<br>
+-&nbsp;**bot&nbsp;operators**&nbsp;—&nbsp;every&nbsp;failure&nbsp;DMs&nbsp;the&nbsp;BOT_ADMINS&nbsp;the&nbsp;same<br>
+&nbsp;&nbsp;crash&nbsp;report,&nbsp;whatever&nbsp;the&nbsp;origin&nbsp;(guild,&nbsp;DM,&nbsp;gateway&nbsp;event):<br>
+&nbsp;&nbsp;the&nbsp;people&nbsp;who&nbsp;can&nbsp;fix&nbsp;it&nbsp;are&nbsp;notified&nbsp;directly;<br>
+-&nbsp;**guild&nbsp;interactions**&nbsp;—&nbsp;a&nbsp;crash&nbsp;report&nbsp;rides&nbsp;the&nbsp;guild's<br>
+&nbsp;&nbsp;🤖-bot-logs&nbsp;channel:&nbsp;the&nbsp;exception,&nbsp;the&nbsp;git&nbsp;reference&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;emitting&nbsp;line&nbsp;(``path:line``&nbsp;resolved&nbsp;against&nbsp;the&nbsp;deployed&nbsp;commit)<br>
+&nbsp;&nbsp;and&nbsp;the&nbsp;interaction&nbsp;context&nbsp;(who,&nbsp;when,&nbsp;where,&nbsp;what);<br>
+-&nbsp;**DM&nbsp;interactions**&nbsp;—&nbsp;there&nbsp;is&nbsp;no&nbsp;guild&nbsp;channel&nbsp;to&nbsp;log&nbsp;to;&nbsp;the&nbsp;error<br>
+&nbsp;&nbsp;is&nbsp;answered&nbsp;in&nbsp;the&nbsp;DM&nbsp;itself,&nbsp;same&nbsp;rendering&nbsp;of&nbsp;the&nbsp;exception,&nbsp;with<br>
+&nbsp;&nbsp;the&nbsp;interaction&nbsp;context.<br>
+&nbsp;<br>
+The&nbsp;git&nbsp;reference&nbsp;resolves&nbsp;through&nbsp;the&nbsp;deployed&nbsp;commit&nbsp;sha&nbsp;when&nbsp;the<br>
+pipeline&nbsp;provides&nbsp;it&nbsp;(KINGDOMS_DEPLOY_*&nbsp;plumbing):&nbsp;the&nbsp;GitHub&nbsp;source<br>
+URL&nbsp;of&nbsp;the&nbsp;deepest&nbsp;frame&nbsp;inside&nbsp;``src/kingdoms``.&nbsp;Without&nbsp;a&nbsp;sha&nbsp;the<br>
+plain&nbsp;``path:line``&nbsp;stands&nbsp;—&nbsp;still&nbsp;actionable,&nbsp;never&nbsp;a&nbsp;blocker.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="datetime.html">datetime</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="inspect.html">inspect</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-dm_admins"><strong>dm_admins</strong></a>(bot: 'discord.Client', admin_ids: 'tuple[str, ...]', content: 'str') -&gt; 'None'</dt><dd><span class="code">DM&nbsp;the&nbsp;crash&nbsp;report&nbsp;to&nbsp;every&nbsp;bot&nbsp;operator&nbsp;(best-effort).<br>
+&nbsp;<br>
+Discord&nbsp;DMs&nbsp;can&nbsp;be&nbsp;closed&nbsp;(privacy&nbsp;settings)&nbsp;or&nbsp;the&nbsp;user&nbsp;gone;<br>
+each&nbsp;send&nbsp;is&nbsp;isolated&nbsp;so&nbsp;one&nbsp;unreachable&nbsp;admin&nbsp;never&nbsp;blocks&nbsp;the<br>
+others.</span></dd></dl>
+ <dl><dt><a name="-emitting_frame"><strong>emitting_frame</strong></a>(exc: 'BaseException') -&gt; 'inspect.FrameInfo | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;deepest&nbsp;kingdoms&nbsp;frame&nbsp;of&nbsp;the&nbsp;exception's&nbsp;traceback.</span></dd></dl>
+ <dl><dt><a name="-get_qualified_name"><strong>get_qualified_name</strong></a>(command: 'Any') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;qualified&nbsp;name&nbsp;of&nbsp;an&nbsp;app&nbsp;command&nbsp;(groups&nbsp;ride&nbsp;the&nbsp;name).</span></dd></dl>
+ <dl><dt><a name="-git_ref"><strong>git_ref</strong></a>(frame: 'inspect.FrameInfo | None', tree_url: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;git&nbsp;reference&nbsp;of&nbsp;the&nbsp;emitting&nbsp;line&nbsp;(URL&nbsp;when&nbsp;the&nbsp;sha&nbsp;is&nbsp;known).<br>
+&nbsp;<br>
+The&nbsp;pinned&nbsp;tree&nbsp;URL&nbsp;ends&nbsp;with&nbsp;the&nbsp;deployed&nbsp;commit&nbsp;sha;&nbsp;the&nbsp;GitHub<br>
+source&nbsp;URL&nbsp;pins&nbsp;the&nbsp;exact&nbsp;line.&nbsp;Without&nbsp;a&nbsp;sha&nbsp;the&nbsp;plain&nbsp;repo&nbsp;path<br>
+stands&nbsp;—&nbsp;the&nbsp;image&nbsp;digest&nbsp;can&nbsp;still&nbsp;be&nbsp;correlated&nbsp;by&nbsp;hand.</span></dd></dl>
+ <dl><dt><a name="-interaction_context"><strong>interaction_context</strong></a>(interaction: 'discord.Interaction') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;interaction&nbsp;context:&nbsp;who,&nbsp;when,&nbsp;where,&nbsp;what.<br>
+&nbsp;<br>
+DMs&nbsp;render&nbsp;explicitly&nbsp;(no&nbsp;guild&nbsp;to&nbsp;mention)&nbsp;—&nbsp;the&nbsp;same&nbsp;lines&nbsp;ride<br>
+the&nbsp;DM&nbsp;answer&nbsp;so&nbsp;the&nbsp;user&nbsp;can&nbsp;paste&nbsp;them&nbsp;in&nbsp;a&nbsp;bug&nbsp;report.</span></dd></dl>
+ <dl><dt>async <a name="-report_guild_error"><strong>report_guild_error</strong></a>(exc: 'BaseException', guild_ids: 'list[str]', tree_url: 'str', logs_service: 'LogService | None', bot: 'discord.Client | None' = None, admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Report&nbsp;a&nbsp;non-interaction&nbsp;failure&nbsp;(gateway&nbsp;events)&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
+ <dl><dt>async <a name="-report_interaction_error"><strong>report_interaction_error</strong></a>(interaction: 'discord.Interaction', exc: 'BaseException', tree_url: 'str', logs_service: 'LogService | None', bot: 'discord.Client | None' = None, admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Report&nbsp;an&nbsp;interaction&nbsp;failure&nbsp;to&nbsp;bot-logs,&nbsp;or&nbsp;to&nbsp;the&nbsp;DM&nbsp;itself.<br>
+&nbsp;<br>
+Guild&nbsp;interactions:&nbsp;best-effort&nbsp;delivery&nbsp;to&nbsp;the&nbsp;guild's&nbsp;bot-logs<br>
+channel&nbsp;(the&nbsp;LogService's&nbsp;resolve/provision&nbsp;path).&nbsp;DM&nbsp;interactions:<br>
+answered&nbsp;in&nbsp;the&nbsp;DM&nbsp;—&nbsp;there&nbsp;is&nbsp;no&nbsp;guild&nbsp;channel&nbsp;to&nbsp;log&nbsp;to,&nbsp;the&nbsp;user<br>
+in&nbsp;front&nbsp;of&nbsp;us&nbsp;gets&nbsp;the&nbsp;error.&nbsp;In&nbsp;both&nbsp;cases&nbsp;the&nbsp;BOT_ADMINS&nbsp;receive<br>
+the&nbsp;same&nbsp;crash&nbsp;report&nbsp;as&nbsp;a&nbsp;DM.&nbsp;Every&nbsp;path&nbsp;is&nbsp;best-effort:&nbsp;a&nbsp;failing<br>
+error&nbsp;path&nbsp;never&nbsp;masks&nbsp;the&nbsp;original&nbsp;failure.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.bot.errors (WARNING)&gt;</td></tr></table>
+</body></html>
