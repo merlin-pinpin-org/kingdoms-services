@@ -159,7 +159,9 @@ async def test_existing_channel_is_adopted_not_duplicated(
     platform.adoptable.add("999")
     channel_id = await service.resolve_channel(GUILD)
     assert channel_id == "999"
-    assert platform.default_policy_applied == []
+    assert platform.default_policy_applied == ["999"], (
+        "adopted channels are private by default (the default policy is re-applied)"
+    )
     stored = database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"]
     assert stored.channel_id == "999"
 
