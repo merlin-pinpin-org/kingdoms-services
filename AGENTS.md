@@ -37,6 +37,13 @@ mods, YAML configs.
   (bricks, archetypes, navigation-in-buttons, custom IDs, budgets)
   live in the kingdoms repo
   [discord-ui skill](https://github.com/merlin-pinpin-org/kingdoms/blob/main/.agents/skills/discord-ui/SKILL.md).
+- **Runtime permission mandate:** seeing a button never implies being
+  allowed to click it — every privileged interactive item validates the
+  interaction at click time through the shared guards
+  (`src/kingdoms/discord/guards.py`: `require_admin`/`is_admin`),
+  against the live guild state (BOT_ADMINS, guild-admin permissions,
+  or the `bot-admins` role via the RolesService). `default_permissions`
+  only hides the command entry; it never replaces the check.
 - Every mod or game provider added here has its documentation updated in
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /

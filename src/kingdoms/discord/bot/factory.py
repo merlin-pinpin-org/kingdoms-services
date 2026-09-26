@@ -25,6 +25,7 @@ from discord import app_commands
 
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
+from kingdoms.core.services.roles import RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
 from kingdoms.discord.error_report import report_guild_error, report_interaction_error
@@ -220,14 +221,45 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     )
     bot = KingdomsBot(config=resolved, status=status)
     bot.logs_service = _build_log_service(resolved, bot)
+    roles_service = _build_roles_service(resolved, bot)
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.enrollment import register_enrollment_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(bot.tree, status, sync_target=sync_target)
-    register_admin_command(bot.tree, bot_admins=status.bot_admins, logs_service=bot.logs_service)
+    register_admin_command(
+        bot.tree,
+        bot_admins=status.bot_admins,
+        logs_service=bot.logs_service,
+        roles_service=roles_service,
+    )
+    register_enrollment_command(
+        bot.tree,
+        bot_admins=status.bot_admins,
+        roles_service=roles_service,
+    )
     return bot
+
+
+def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
+    """Wire the Discord platform seam + the shared Redis state into RolesService.
+
+    Returns None when Redis is not configured (unit tests, local runs):
+    the runtime guards degrade to BOT_ADMINS + guild administrators.
+    """
+    if not config.redis_uri:
+        return None
+    try:
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.roles_platform import DiscordRolesPlatform
+
+        state = StateService(redis_uri=config.redis_uri)
+        return RolesService(platform=DiscordRolesPlatform(bot), cache=state)
+    except Exception:
+        logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
+        return None
 
 
 def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None:

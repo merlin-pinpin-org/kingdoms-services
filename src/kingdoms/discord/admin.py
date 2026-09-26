@@ -31,6 +31,8 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.logs import LogService
+from kingdoms.core.services.roles import RolesService
+from kingdoms.discord.guards import is_admin as guards_is_admin
 from kingdoms.discord.ui import (
     BLURPLE,
     Action,
@@ -226,13 +228,17 @@ def register_admin_command(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
     logs_service: LogService | None = None,
+    roles_service: RolesService | None = None,
 ) -> None:
     """Register the /admin slash command on the command tree.
 
     ``bot_admins`` is the parsed BOT_ADMINS operator ids (StatusService).
     ``logs_service`` is the core LogService (kingdoms-services#109); it
     may be None in local runs — the logs section degrades to a status
-    note. Access: BOT_ADMINS or guild administrators (ephemeral panel).
+    note. ``roles_service`` resolves the guild's bot-admins role
+    (kingdoms-services#115) — members holding it administer too.
+    Access is validated at invocation time: BOT_ADMINS, guild
+    administrators or the bot-admins role (ephemeral panel).
     """
     admins = bot_admins
 
@@ -243,15 +249,16 @@ def register_admin_command(
         """Answer the /admin interaction with the layout view."""
         user_id = getattr(interaction.user, "id", None)
         if not (_is_bot_admin(user_id, admins) or _is_guild_admin(interaction)):
-            logger.info(
-                "admin access denied: user=%s is neither BOT_ADMINS nor a guild admin",
-                user_id,
-            )
-            await interaction.response.send_message(
-                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.",
-                ephemeral=True,
-            )
-            return
+            if not await guards_is_admin(interaction, admins, roles_service):
+                logger.info(
+                    "admin access denied: user=%s is neither BOT_ADMINS nor a guild admin",
+                    user_id,
+                )
+                await interaction.response.send_message(
+                    "You are not a bot operator (BOT_ADMINS) nor a guild administrator.",
+                    ephemeral=True,
+                )
+                return
 
         if logs_service is None:
             layout = AdminLayout(admins)
