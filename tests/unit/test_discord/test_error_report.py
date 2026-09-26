@@ -122,3 +122,73 @@ async def test_guild_error_without_interaction_fans_out_to_guilds() -> None:
     await report_guild_error(exc, ["77", "78"], "", logs)
     assert [guild_id for guild_id, _ in logs.events] == ["77", "78"]
     assert all("boom" in message for _, message in logs.events)
+
+
+class _FakeDmUser:
+    """A user record whose DM channel records sends."""
+
+    def __init__(self, user_id: int) -> None:
+        self.id = user_id
+        self.sent: list[str] = []
+
+    async def create_dm(self) -> _FakeDmUser:
+        return self
+
+    async def send(self, content: str) -> None:
+        self.sent.append(content)
+
+
+class _FakeDmBot:
+    """A client stand-in resolving admins to recording DM users."""
+
+    def __init__(self, ids: list[int]) -> None:
+        self._users = {i: _FakeDmUser(i) for i in ids}
+        self.fetched: list[int] = []
+
+    def get_user(self, user_id: int) -> _FakeDmUser | None:
+        return self._users.get(user_id)
+
+    async def fetch_user(self, user_id: int) -> _FakeDmUser:
+        self.fetched.append(user_id)
+        return self._users[user_id]
+
+
+@pytest.mark.asyncio
+async def test_admins_receive_the_crash_report_as_dm() -> None:
+    logs = _FakeLogsService()
+    bot = _FakeDmBot([111])
+    interaction = MockInteraction(user=MockUser(id=42), guild=MockGuild(id=77))
+    interaction.guild_id = 77
+    exc = _raise_in_kingdoms_code()
+    await report_interaction_error(
+        interaction,
+        exc,
+        "https://github.com/merlin-pinpin-org/kingdoms-services/tree/980a037abcd1234",
+        logs,
+        bot=bot,
+        admin_ids=("111", "not-an-id"),
+    )
+    assert len(bot._users[111].sent) == 1
+    dm = bot._users[111].sent[0]
+    assert "ValueError" in dm
+    assert "<@42>" in dm
+
+
+@pytest.mark.asyncio
+async def test_dm_failure_also_dms_admins() -> None:
+    logs = _FakeLogsService()
+    bot = _FakeDmBot([111])
+    interaction = MockInteraction(user=MockUser(id=42), guild=None)
+    interaction.guild_id = None
+    exc = _raise_in_kingdoms_code()
+    await report_interaction_error(interaction, exc, "", logs, bot=bot, admin_ids=("111",))
+    assert bot._users[111].sent, "admins are DM'd even for DM-origin failures"
+
+
+@pytest.mark.asyncio
+async def test_guild_error_dms_admins_without_interaction() -> None:
+    logs = _FakeLogsService()
+    bot = _FakeDmBot([111])
+    exc = _raise_in_kingdoms_code()
+    await report_guild_error(exc, ["77"], "", logs, bot=bot, admin_ids=("111",))
+    assert bot._users[111].sent

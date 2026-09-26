@@ -4,6 +4,9 @@ When a command or a component callback fails, the user is never left
 with a frozen interaction: the failure is reported where it can be
 acted on (developer mandate, kingdoms-services#113):
 
+- **bot operators** — every failure DMs the BOT_ADMINS the same
+  crash report, whatever the origin (guild, DM, gateway event):
+  the people who can fix it are notified directly;
 - **guild interactions** — a crash report rides the guild's
   🤖-bot-logs channel: the exception, the git reference of the
   emitting line (``path:line`` resolved against the deployed commit)
@@ -138,33 +141,58 @@ async def report_interaction_error(
     exc: BaseException,
     tree_url: str,
     logs_service: LogService | None,
+    bot: discord.Client | None = None,
+    admin_ids: tuple[str, ...] = (),
 ) -> None:
     """Report an interaction failure to bot-logs, or to the DM itself.
 
     Guild interactions: best-effort delivery to the guild's bot-logs
     channel (the LogService's resolve/provision path). DM interactions:
     answered in the DM — there is no guild channel to log to, the user
-    in front of us gets the error. The answer is best-effort too: a
-    failing error path never masks the original failure.
+    in front of us gets the error. In both cases the BOT_ADMINS receive
+    the same crash report as a DM. Every path is best-effort: a failing
+    error path never masks the original failure.
     """
     frame = emitting_frame(exc)
     ref = git_ref(frame, tree_url)
     context = interaction_context(interaction)
+    content = _log_content(exc, ref, context)
     guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
     if guild_id and logs_service is not None:
-        event = LifecycleEvent(
-            kind="crash",
-            message=_log_content(exc, ref, context),
-        )
+        event = LifecycleEvent(kind="crash", message=content)
         await logs_service.log_event(guild_id, event)
-        return
-    try:
-        if interaction.response.is_done():
-            await interaction.followup.send(_log_content(exc, ref, context), ephemeral=True)
-        else:
-            await interaction.response.send_message(_log_content(exc, ref, context), ephemeral=True)
-    except Exception:
-        logger.warning("DM ERROR ANSWER FAILED — best-effort", exc_info=exc)
+    else:
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(content, ephemeral=True)
+            else:
+                await interaction.response.send_message(content, ephemeral=True)
+        except Exception:
+            logger.warning("DM ERROR ANSWER FAILED — best-effort", exc_info=exc)
+    if bot is not None and admin_ids:
+        await dm_admins(bot, admin_ids, content)
+
+
+async def dm_admins(
+    bot: discord.Client,
+    admin_ids: tuple[str, ...],
+    content: str,
+) -> None:
+    """DM the crash report to every bot operator (best-effort).
+
+    Discord DMs can be closed (privacy settings) or the user gone;
+    each send is isolated so one unreachable admin never blocks the
+    others.
+    """
+    for admin_id in admin_ids:
+        if not admin_id.strip().isdigit():
+            continue
+        try:
+            user = bot.get_user(int(admin_id)) or await bot.fetch_user(int(admin_id))
+            dm = await user.create_dm()
+            await dm.send(content)
+        except Exception:
+            logger.warning("ADMIN DM FAILED (admin %s) — best-effort", admin_id)
 
 
 async def report_guild_error(
@@ -172,13 +200,14 @@ async def report_guild_error(
     guild_ids: list[str],
     tree_url: str,
     logs_service: LogService | None,
+    bot: discord.Client | None = None,
+    admin_ids: tuple[str, ...] = (),
 ) -> None:
     """Report a non-interaction failure (gateway events) to each guild's bot-logs."""
-    if logs_service is None:
-        return
-    for guild_id in guild_ids:
-        event = LifecycleEvent(
-            kind="crash",
-            message=_log_content(exc, ref=git_ref(emitting_frame(exc), tree_url), context=""),
-        )
-        await logs_service.log_event(guild_id, event)
+    content = _log_content(exc, ref=git_ref(emitting_frame(exc), tree_url), context="")
+    if logs_service is not None:
+        for guild_id in guild_ids:
+            event = LifecycleEvent(kind="crash", message=content)
+            await logs_service.log_event(guild_id, event)
+    if bot is not None and admin_ids:
+        await dm_admins(bot, admin_ids, content)

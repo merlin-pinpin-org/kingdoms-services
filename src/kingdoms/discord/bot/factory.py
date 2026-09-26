@@ -163,6 +163,8 @@ class KingdomsBot(discord.Client):
             exc,
             self.config.deploy_tree_url,
             self.logs_service,
+            bot=self,
+            admin_ids=self.status_service.bot_admins,
         )
 
     async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
@@ -179,6 +181,8 @@ class KingdomsBot(discord.Client):
             [str(guild.id) for guild in self.guilds],
             self.config.deploy_tree_url,
             self.logs_service,
+            bot=self,
+            admin_ids=self.status_service.bot_admins,
         )
 
     async def close(self) -> None:
