@@ -66,9 +66,11 @@ VISIBILITY_ADMIN_ONLY = "admin_only"
 VISIBILITY_PUBLIC = "public"
 LOCALES = ("en", "fr")
 
+# (category, icon, i18n label key) — the label renders through the
+# guild's locale (admin.channel_bot_logs / admin.channel_bot_admins).
 MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
-    (BOT_LOGS_CATEGORY, "🛰", "Bot logs"),
-    (ADMIN_CHANNEL_CATEGORY, "🛡", "Bot admins"),
+    (BOT_LOGS_CATEGORY, "🛰", "channel_bot_logs"),
+    (ADMIN_CHANNEL_CATEGORY, "🛡", "channel_bot_admins"),
 )
 
 _LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
@@ -200,11 +202,11 @@ async def build_main_menu(
     )
     channel_options = tuple(
         Option(
-            f"{icon} {label}",
+            f"{icon} {_t(catalog, locale, label_key)}",
             category,
             channel_status.get(category, _t(catalog, locale, "not_provisioned")),
         )
-        for category, icon, label in MANAGED_CHANNELS
+        for category, icon, label_key in MANAGED_CHANNELS
     )
     channel_menu = SelectMenu(
         custom_id=CHANNEL_MENU_ID,
@@ -252,7 +254,8 @@ async def build_channel_menu(
         return UILayout().add(
             Container(accent=BLURPLE).add(Text(f"Unknown channel category: `{category}`."))
         ).build()
-    _, icon, label = entry
+    _, icon, label_key = entry
+    label = _t(catalog, locale, label_key)
     channel_id = await _resolve_managed_channel(logs_service, guild_id, category, admin_channel_service)
     policy = await logs_service.get_access_policy(guild_id) if category == BOT_LOGS_CATEGORY else None
 
@@ -423,11 +426,19 @@ def _logs_channel_blocks(
     visibility_select = SelectMenu(
         custom_id=VISIBILITY_SELECT_ID,
         options=(
-            Option("🔒 Admin-only", VISIBILITY_ADMIN_ONLY, "Guild admins and BOT_ADMINS only"),
-            Option("🔓 Public", VISIBILITY_PUBLIC, "Everyone may read the logs"),
+            Option(
+                f"🔒 {_t(catalog, locale, 'visibility_admin_label')}",
+                VISIBILITY_ADMIN_ONLY,
+                _t(catalog, locale, "visibility_admin_hint"),
+            ),
+            Option(
+                f"🔓 {_t(catalog, locale, 'visibility_public_label')}",
+                VISIBILITY_PUBLIC,
+                _t(catalog, locale, "visibility_public_hint"),
+            ),
         ),
         on_choose=on_visibility,
-        placeholder="Visibility…",
+        placeholder=_t(catalog, locale, "visibility_placeholder"),
     )
     return [
         Text(f"{_t(catalog, locale, 'visibility')}: {visibility_label}"),

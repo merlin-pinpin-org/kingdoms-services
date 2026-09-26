@@ -107,6 +107,19 @@ def render_commands(commands: Iterable[object]) -> str:
     return "\n".join(lines)
 
 
+def commands_section(sync_scope: str, commands: Iterable[object], locale: str, config_dir: Path) -> str:
+    """Render the synced Commands section (one rendering, boot and /status).
+
+    The header carries the sync scope through the locale catalog
+    (announce.commands_label / announce.sync_none_label).
+    """
+    catalog = _load_catalog(locale, config_dir)
+    scope = sync_scope if sync_scope else catalog.get("sync_none_label", "none (DM)")
+    header = catalog.get("commands_label", "Commands (sync: {scope})").format(scope=scope)
+    rendered = render_commands(commands) if commands is not None else ""
+    return f"**{header}**\n{rendered}" if rendered else ""
+
+
 def _commands_blocks(commands: str, command_ids: Iterable[object]) -> list[object]:
     """Assemble the Commands block (text + native mentions).
 
@@ -368,6 +381,7 @@ async def announce_startup(
     thumbnail_url: str = "",
     locale_resolver: Any = None,
     commands: Iterable[object] | None = None,
+    sync_scope: str = "",
 ) -> None:
     """Post the deployment announcement per guild in its bot logs channel.
 
@@ -393,7 +407,9 @@ async def announce_startup(
             except Exception:
                 logger.warning("guild locale lookup failed (guild %s) — falling back", guild.id)
         guild_config = AnnounceConfig(locale=locale, config_dir=config.config_dir)
-        commands_block = f"**Commands**\n{render_commands(commands)}" if commands is not None else ""
+        commands_block = (
+            commands_section(sync_scope, commands, locale, config.config_dir) if commands is not None else ""
+        )
         layout = build_announcement_layout(
             status,
             guild_config,

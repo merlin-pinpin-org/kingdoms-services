@@ -87,19 +87,22 @@ async def require_admin(
     interaction: discord.Interaction,
     bot_admins: tuple[str, ...],
     roles_service: RolesService | None = None,
+    denied_message: str = DENIED_MESSAGE,
 ) -> bool:
     """Guard an interactive callback: validate at click time, deny ephemerally.
 
     Returns True when the interaction may proceed; on denial the user
     gets the ephemeral reason and the caller must return immediately.
+    ``denied_message`` localizes the reason (guards.denied) — the
+    caller owns the locale; the built-in English stands when absent.
     """
     if await is_admin(interaction, bot_admins, roles_service):
         return True
     try:
         if interaction.response.is_done():
-            await interaction.followup.send(DENIED_MESSAGE, ephemeral=True)
+            await interaction.followup.send(denied_message, ephemeral=True)
         else:
-            await interaction.response.send_message(DENIED_MESSAGE, ephemeral=True)
+            await interaction.response.send_message(denied_message, ephemeral=True)
     except Exception:
         logger.warning("DENIAL ANSWER FAILED — best-effort", exc_info=True)
     return False
