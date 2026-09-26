@@ -127,6 +127,7 @@ def register_enrollment_command(
     @tree.command(name="enrollment", description="Post the enrollment workflow screen (admins only)")
     @app_commands.default_permissions(administrator=True)
     async def enrollment_command(interaction: discord.Interaction) -> None:
+        """Post the enrollment screen in the admin channel (admins only)."""
         if not await require_admin(interaction, bot_admins, roles_service):
             return
         view = build_enrollment_view(bot_admins, roles_service)
