@@ -29,8 +29,9 @@ kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
 </td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
 </td><td class="multicolumn"><a href="os.html">os</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
@@ -61,7 +62,10 @@ timestamp&nbsp;each,&nbsp;never&nbsp;the&nbsp;build&nbsp;date&nbsp;on&nbsp;the&n
 renders&nbsp;shortened&nbsp;(sha7&nbsp;+&nbsp;short&nbsp;stamp)&nbsp;—&nbsp;the&nbsp;full&nbsp;tag&nbsp;never&nbsp;shows.<br>
 Falls&nbsp;back&nbsp;to&nbsp;the&nbsp;untyped&nbsp;single-line&nbsp;render&nbsp;when&nbsp;the&nbsp;pipeline<br>
 provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
- <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
+ <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global', logs_service: 'LogService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+&nbsp;<br>
+``logs_service``&nbsp;resolves&nbsp;the&nbsp;guild's&nbsp;locale:&nbsp;the&nbsp;layout&nbsp;renders&nbsp;in<br>
+the&nbsp;guild's&nbsp;language&nbsp;(fallback&nbsp;en&nbsp;when&nbsp;the&nbsp;service&nbsp;is&nbsp;absent).</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -71,5 +75,6 @@ provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
 <strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
-<strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'</td></tr></table>
+<strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.status (WARNING)&gt;</td></tr></table>
 </body></html>

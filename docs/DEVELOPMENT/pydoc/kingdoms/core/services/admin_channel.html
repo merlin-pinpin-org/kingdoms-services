@@ -213,6 +213,12 @@ admin&nbsp;role&nbsp;is&nbsp;provisioned,&nbsp;the&nbsp;BOT_ADMINS&nbsp;synced&n
 the&nbsp;channel&nbsp;policy&nbsp;reapplied&nbsp;—&nbsp;a&nbsp;manual&nbsp;un-sync&nbsp;never&nbsp;survives<br>
 a&nbsp;resolution.</span></dd></dl>
 
+<dl><dt>async <a name="AdminChannelService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str', admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;admin&nbsp;channel&nbsp;to&nbsp;an&nbsp;existing&nbsp;guild&nbsp;channel.<br>
+&nbsp;<br>
+The&nbsp;target&nbsp;must&nbsp;already&nbsp;exist&nbsp;(the&nbsp;admin&nbsp;picks&nbsp;it&nbsp;from&nbsp;the<br>
+guild);&nbsp;the&nbsp;transparency&nbsp;contract&nbsp;is&nbsp;re-applied&nbsp;on&nbsp;the&nbsp;new<br>
+target&nbsp;—&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>

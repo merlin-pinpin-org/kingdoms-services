@@ -183,6 +183,33 @@ class AdminChannelService:
         await self._sync_transparency(guild_id, channel_id, admin_ids)
         return channel_id
 
+    async def set_channel(
+        self,
+        guild_id: str,
+        channel_id: str,
+        admin_ids: tuple[str, ...] = (),
+    ) -> None:
+        """Route the admin channel to an existing guild channel.
+
+        The target must already exist (the admin picks it from the
+        guild); the transparency contract is re-applied on the new
+        target — the rights follow the routing.
+        """
+        if not await self._platform.channel_exists(guild_id, channel_id):
+            raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
+        await self._db.upsert_channel(
+            ChannelModel(
+                _id=f"{guild_id}:{ADMIN_CHANNEL_CATEGORY}",
+                guild_id=guild_id,
+                platform="discord",
+                category=ADMIN_CHANNEL_CATEGORY,
+                channel_id=channel_id,
+                name=ADMIN_CHANNEL_NAME,
+            )
+        )
+        await self._cache_set(guild_id, channel_id)
+        await self._sync_transparency(guild_id, channel_id, admin_ids)
+
     async def _sync_transparency(self, guild_id: str, channel_id: str, admin_ids: tuple[str, ...]) -> None:
         """Apply the transparency contract: role provisioned, admins synced, policy applied."""
         try:

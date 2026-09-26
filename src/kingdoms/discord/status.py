@@ -333,6 +333,7 @@ def register_status_command(
             env=os.environ.get("KINGDOMS_DEPLOY_ENV", ""),
             latency_ms=round(latency * 1000) if latency is not None else None,
             commands=commands,
+            command_ids=tree.get_commands(),
         )
         await interaction.response.send_message(view=layout, ephemeral=True)
 

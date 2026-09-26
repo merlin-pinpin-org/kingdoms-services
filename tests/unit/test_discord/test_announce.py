@@ -143,7 +143,7 @@ def test_layout_buttons_carry_the_identity() -> None:
     assert "🔧 abc1234" in labels, "commit button carries the sha7"
     assert "🌿 deploy/test" in labels, "infra branch button carries the state branch"
     assert "🔧 c232b34" in labels, "infra commit button carries the state sha7"
-    assert any(label.startswith("🚀 #") for label in labels), "deployment button carries the run id"
+    assert any(label.startswith("🚀 Deploy #") for label in labels), "deploy button carries the run number"
     assert not any(label in {"Branch", "Commit", "Files", "Deployment"} for label in labels), (
         "no generic label buttons"
     )

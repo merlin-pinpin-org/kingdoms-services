@@ -114,6 +114,36 @@ def render_commands(commands: Iterable[object]) -> str:
     return "\n".join(lines)
 
 
+def _commands_blocks(commands: str, command_ids: Iterable[object]) -> list[object]:
+    """Assemble the Commands block (text + native mentions).
+
+    The synced command ids are inlined as native mentions (</name:id>)
+    — clickable in Discord; before the first sync the text stands.
+    """
+    if not commands:
+        return []
+    mentions = command_mentions(command_ids)
+    if not mentions:
+        return [Text(commands)]
+    return [Text(f"{commands}\n{' '.join(mentions)}")]
+
+
+def command_mentions(commands: Iterable[object]) -> list[str]:
+    """Render the native command mentions (</name:id>) when synced.
+
+    A synced command mention is clickable in Discord — it opens the
+    command picker. Before the first sync the ids are absent and the
+    plain /name rendering stands.
+    """
+    mentions: list[str] = []
+    for cmd in commands:
+        command_id = getattr(cmd, "id", None)
+        name = getattr(cmd, "name", "")
+        if isinstance(command_id, int) and name:
+            mentions.append(f"</{name}:{command_id}>")
+    return mentions
+
+
 def deploy_footer(status: StatusService, env: str = "") -> str:
     """Render the machine-readable footer line (frozen format).
 
@@ -192,7 +222,7 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
     buttons: list[Button] = []
     if status.deploy_run_url:
         run_label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        buttons.append(Button(f"🚦 {run_label}", status.deploy_run_url))
+        buttons.append(Button(f"🧪 CI {run_label}", status.deploy_run_url))
     if status.deploy_image:
         buttons.append(Button(f"📦 {docker_tag(status.deploy_image)}", PACKAGE_URL))
     return buttons
@@ -264,7 +294,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", label, run_ts)))
         blocks.append(
             Row(
-                Button(f"🚀 {label}", status.deploy_run_url),
+                Button(f"🚀 Deploy {label}", status.deploy_run_url),
             )
         )
     return blocks
@@ -326,6 +356,7 @@ def build_announcement_layout(
     thumbnail_url: str = "",
     latency_ms: int | None = None,
     commands: str = "",
+    command_ids: Iterable[object] = (),
 ) -> discord.ui.LayoutView:
     """Build the Components V2 announcement: headline + sections + footer.
 
@@ -341,6 +372,7 @@ def build_announcement_layout(
     channel, so the Commands block rides in both.
     """
     catalog = _load_catalog(config.locale, config.config_dir)
+    commands_block = _commands_blocks(commands, command_ids)
     header = f"# {ANNOUNCEMENT_HEADER} {catalog['title']}"
     if env:
         header = f"{header}\n-# `{env}`"
@@ -349,8 +381,8 @@ def build_announcement_layout(
     if release is not None:
         container = container.add(release)
     container = container.add(*_bot_blocks(status, catalog, latency_ms))
-    if commands:
-        container = container.add(Text(commands))
+    if commands_block is not None:
+        container = container.add(*commands_block)
     container = container.add(Separator())
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
@@ -403,6 +435,7 @@ async def announce_startup(
             thumbnail_url=thumbnail_url,
             latency_ms=latency_ms,
             commands=commands_block,
+            command_ids=commands or (),
         )
         event = LifecycleEvent(kind="start", message="", layout=layout, footer=deploy_footer(status, env=deploy_env))
         await logs_service.log_event(str(guild.id), event)

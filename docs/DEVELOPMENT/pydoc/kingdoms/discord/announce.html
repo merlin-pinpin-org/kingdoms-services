@@ -128,7 +128,7 @@ each&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(managed&nbsp;through&nbsp;/adm
 its&nbsp;own&nbsp;announcement;&nbsp;without&nbsp;it&nbsp;the&nbsp;<a href="#AnnounceConfig">AnnounceConfig</a>&nbsp;locale&nbsp;stands.<br>
 ``commands``&nbsp;(the&nbsp;synced&nbsp;command&nbsp;tree)&nbsp;rides&nbsp;the&nbsp;Bot&nbsp;section&nbsp;as<br>
 the&nbsp;Commands&nbsp;block&nbsp;—&nbsp;the&nbsp;boot&nbsp;message&nbsp;is&nbsp;a&nbsp;non-ephemeral&nbsp;/status.</span></dd></dl>
- <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None, commands: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None, commands: 'str' = '', command_ids: 'Iterable[object]' = ()) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
 env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or&nbsp;version<br>
@@ -140,6 +140,11 @@ the&nbsp;machine-readable&nbsp;footer&nbsp;as&nbsp;sub-text&nbsp;(frozen&nbsp;fo
 Same&nbsp;rendering&nbsp;for&nbsp;the&nbsp;startup&nbsp;announcement&nbsp;and&nbsp;/status:&nbsp;the&nbsp;boot<br>
 message&nbsp;is&nbsp;a&nbsp;non-ephemeral&nbsp;/status&nbsp;posted&nbsp;in&nbsp;the&nbsp;guild's&nbsp;bot&nbsp;logs<br>
 channel,&nbsp;so&nbsp;the&nbsp;Commands&nbsp;block&nbsp;rides&nbsp;in&nbsp;both.</span></dd></dl>
+ <dl><dt><a name="-command_mentions"><strong>command_mentions</strong></a>(commands: 'Iterable[object]') -&gt; 'list[str]'</dt><dd><span class="code">Render&nbsp;the&nbsp;native&nbsp;command&nbsp;mentions&nbsp;(&lt;/name:id&gt;)&nbsp;when&nbsp;synced.<br>
+&nbsp;<br>
+A&nbsp;synced&nbsp;command&nbsp;mention&nbsp;is&nbsp;clickable&nbsp;in&nbsp;Discord&nbsp;—&nbsp;it&nbsp;opens&nbsp;the<br>
+command&nbsp;picker.&nbsp;Before&nbsp;the&nbsp;first&nbsp;sync&nbsp;the&nbsp;ids&nbsp;are&nbsp;absent&nbsp;and&nbsp;the<br>
+plain&nbsp;/name&nbsp;rendering&nbsp;stands.</span></dd></dl>
  <dl><dt><a name="-deploy_footer"><strong>deploy_footer</strong></a>(status: 'StatusService', env: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;machine-readable&nbsp;footer&nbsp;line&nbsp;(frozen&nbsp;format).<br>
 &nbsp;<br>
 ``kingdoms-deploy&nbsp;&lt;env&gt;``&nbsp;—&nbsp;the&nbsp;identity&nbsp;(image,&nbsp;kind,&nbsp;ref,&nbsp;run)<br>

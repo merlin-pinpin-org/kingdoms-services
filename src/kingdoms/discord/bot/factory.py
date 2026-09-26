@@ -242,6 +242,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         bot_admins=status.bot_admins,
         logs_service=bot.logs_service,
         roles_service=roles_service,
+        catalog=bot.messages,
+        admin_channel_service=admin_channel_service,
     )
     register_enrollment_command(
         bot.tree,
