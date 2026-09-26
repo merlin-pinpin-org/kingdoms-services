@@ -15,6 +15,7 @@ smoke CI is preserved (kingdoms-services#34).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass, field
@@ -23,10 +24,14 @@ from pathlib import Path
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.admin_channel import AdminChannelService
+from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
+from kingdoms.core.services.roles import RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
+from kingdoms.discord.error_report import report_guild_error, report_interaction_error
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -107,8 +112,12 @@ class KingdomsBot(discord.Client):
         self.config = config
         self.status_service = status
         self.logs_service = logs
+        self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
+        self.admin_channel_service: AdminChannelService | None = None
+        self._provisioned = False
+        self._provision_task: asyncio.Task[None] | None = None
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -119,6 +128,7 @@ class KingdomsBot(discord.Client):
             self.user,
             len(self.guilds),
         )
+        announce_enabled = self.config.announce_enabled.strip().lower() not in {"0", "false", "no"}
         await announce_startup(
             self,
             self.status_service,
@@ -128,10 +138,14 @@ class KingdomsBot(discord.Client):
             ),
             logs_service=self.logs_service,
             deploy_env=self.config.deploy_env,
-            enabled=self.config.announce_enabled.strip().lower() not in {"0", "false", "no"},
+            enabled=announce_enabled,
             thumbnail_url=self.user.display_avatar.url if self.user else "",
             locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
+            commands=self.tree.get_commands(),
         )
+        self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
+        if announce_enabled:
+            self._provision_task = asyncio.create_task(self._provision_default_channels())
         if self._synced:
             return
         self._synced = True
@@ -147,26 +161,84 @@ class KingdomsBot(discord.Client):
             self._synced = False
             logger.exception("SLASH COMMAND SYNC FAILED")
 
+    async def _provision_default_channels(self) -> None:
+        """Create the default channels (🛰-bot-logs, 🛡-bot-admins) where missing.
+
+        Both resolutions are idempotent (cache-aside: Redis → MongoDB →
+        adoption → creation), so a guild already provisioned costs one
+        cache read. The transparency contract rides along on the admin
+        channel (role provisioned, BOT_ADMINS synced in). Silenced by
+        KINGDOMS_ANNOUNCE_ENABLED=0: the CI/CD smoke bot boots against
+        the shared guilds and must never touch their channels.
+        """
+        if self._provisioned:
+            return
+        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
+            logger.info("DEFAULT CHANNEL provisioning skipped: announcements disabled (CI/CD smoke bot?)")
+            self._provisioned = True
+            return
+        self._provisioned = True
+        admin_ids = self.status_service.bot_admins
+        for guild in list(self.guilds):
+            guild_id = str(guild.id)
+            if self.logs_service is not None:
+                try:
+                    await self.logs_service.resolve_channel(guild_id)
+                except Exception:
+                    logger.warning("LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
+            if self.admin_channel_service is not None:
+                try:
+                    await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
+                except Exception:
+                    logger.warning(
+                        "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
+                    )
+            logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
+
+    async def on_tree_error(
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
+    ) -> None:
+        """Report app-command failures: bot-logs (guild) or the DM itself."""
+        exc = error.__cause__ if error.__cause__ is not None else error
+        logger.exception("APP COMMAND FAILED", exc_info=error)
+        await report_interaction_error(
+            interaction,
+            exc,
+            self.config.deploy_tree_url,
+            self.logs_service,
+            bot=self,
+            admin_ids=self.status_service.bot_admins,
+        )
+
     async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
-        """Route unhandled failures to the logs channel (crash lifecycle event)."""
+        """Route unhandled gateway-event failures to each guild's bot-logs."""
         import sys
 
         exc_info = sys.exc_info()
         logger.exception("UNHANDLED ERROR in %s", event_method, exc_info=exc_info)
-        if self.logs_service is None:
+        exc = exc_info[1] if exc_info[1] is not None else None
+        if exc is None:
             return
-        for guild in self.guilds:
-            event = LifecycleEvent(
-                kind="crash",
-                message=f"Unhandled error in `{event_method}` — see the bot logs for the traceback.",
-            )
-            await self.logs_service.log_event(str(guild.id), event)
+        await report_guild_error(
+            exc,
+            [str(guild.id) for guild in self.guilds],
+            self.config.deploy_tree_url,
+            self.logs_service,
+            bot=self,
+            admin_ids=self.status_service.bot_admins,
+        )
 
     async def close(self) -> None:
         """Log the stop lifecycle event, then close the gateway connection."""
         if self.logs_service is not None:
             for guild in self.guilds:
-                event = LifecycleEvent(kind="stop", message="Bot shutting down.")
+                locale = await self.logs_service.get_locale(str(guild.id))
+                event = LifecycleEvent(
+                    kind="stop",
+                    message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
+                )
                 await self.logs_service.log_event(str(guild.id), event)
         await super().close()
 
@@ -197,14 +269,79 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     )
     bot = KingdomsBot(config=resolved, status=status)
     bot.logs_service = _build_log_service(resolved, bot)
+    roles_service = _build_roles_service(resolved, bot)
+    admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
+    bot.admin_channel_service = admin_channel_service
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.enrollment import register_enrollment_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
-    register_status_command(bot.tree, status, sync_target=sync_target)
-    register_admin_command(bot.tree, bot_admins=status.bot_admins, logs_service=bot.logs_service)
+    register_status_command(bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service)
+    register_admin_command(
+        bot.tree,
+        bot_admins=status.bot_admins,
+        logs_service=bot.logs_service,
+        roles_service=roles_service,
+        catalog=bot.messages,
+        admin_channel_service=admin_channel_service,
+    )
+    register_enrollment_command(
+        bot.tree,
+        bot_admins=status.bot_admins,
+        roles_service=roles_service,
+        admin_channel_service=admin_channel_service,
+    )
     return bot
+
+
+def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
+    """Wire the Discord platform seam + the shared Redis state into RolesService.
+
+    Returns None when Redis is not configured (unit tests, local runs):
+    the runtime guards degrade to BOT_ADMINS + guild administrators.
+    """
+    if not config.redis_uri:
+        return None
+    try:
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.roles_platform import DiscordRolesPlatform
+
+        state = StateService(redis_uri=config.redis_uri)
+        return RolesService(platform=DiscordRolesPlatform(bot), cache=state)
+    except Exception:
+        logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
+        return None
+
+
+def _build_admin_channel_service(
+    config: BotConfig,
+    bot: KingdomsBot,
+    roles_service: RolesService | None,
+) -> AdminChannelService | None:
+    """Wire Mongo + the Discord platform seam + Redis into AdminChannelService.
+
+    Returns None when the stores are not configured: the admin messages
+    degrade to the invoking context (ephemeral answers).
+    """
+    if roles_service is None or not config.mongo_uri or not config.redis_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.logs_platform import MongoLogsDatabase
+        from kingdoms.discord.roles_platform import DiscordAdminChannelPlatform
+
+        return AdminChannelService(
+            platform=DiscordAdminChannelPlatform(bot),
+            database=MongoLogsDatabase(get_async_database()),
+            roles_service=roles_service,
+            state=StateService(redis_uri=config.redis_uri),
+        )
+    except Exception:
+        logger.exception("ADMIN CHANNEL SERVICE WIRING FAILED — admin messages degrade")
+        return None
 
 
 def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None:
@@ -225,6 +362,7 @@ def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None
             database=MongoLogsDatabase(get_async_database()),
             platform=DiscordLogsPlatform(bot),
             state=state,
+            catalog=MessageCatalog(config.config_dir),
         )
     except Exception:
         logger.exception("LOG SERVICE WIRING FAILED — lifecycle logging disabled")
