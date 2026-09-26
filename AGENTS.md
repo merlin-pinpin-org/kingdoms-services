@@ -29,7 +29,10 @@ mods, YAML configs.
   check** — GitHub matches check contexts by exact name, so a rename
   silently blocks merges (see CONVENTIONS.md, *Checks must pass everywhere*).
 - Core is **platform-agnostic** (no discord.py in `src/kingdoms/core/`);
-  user-facing strings go through **i18n** (never hardcoded); mods declare
+  user-facing strings go through **i18n** (never hardcoded) — every
+  visible string resolves through the shared `MessageCatalog`
+  (`config/locales/`), command names/descriptions through
+  `commands_i18n` (`locale_str` + `CatalogTranslator`); mods declare
   channels/roles via **`ModRegistry`** with **logical role keys**.
 - **UI SDK mandate:** never build `discord.ui` / `discord.Embed` objects
   directly in a feature — every view, embed or Components V2 layout
