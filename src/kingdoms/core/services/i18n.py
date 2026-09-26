@@ -64,6 +64,27 @@ class MessageCatalog:
                 flat[dotted] = value
         return flat
 
+    def section(self, prefix: str, locale: str = DEFAULT_LOCALE) -> dict[str, str]:
+        """Resolve every key of a dotted section (e.g. ``announce``).
+
+        Returns the flattened keys of one yaml section (``announce.title``
+        for prefix ``announce``), with English filling the gaps and the
+        built-in fallbacks as last resort. One loader for every surface
+        (announcements, admin panels) \u2014 no per-module yaml parsing.
+        """
+        merged: dict[str, str] = {}
+        for fill_locale in (DEFAULT_LOCALE, locale):
+            for key, value in self._sections.get(fill_locale, {}).items():
+                if key.startswith(f"{prefix}."):
+                    merged[key.removeprefix(f"{prefix}.")] = value
+        if not merged:
+            merged = {
+                key.removeprefix(f"{prefix}."): value
+                for key, value in FALLBACKS.items()
+                if key.startswith(f"{prefix}.")
+            }
+        return merged
+
     def render(self, key: str, locale: str = DEFAULT_LOCALE, **kwargs: Any) -> str:
         """Render a dotted key for a locale; English fallback, never raises."""
         template = self._lookup(key, locale) or self._lookup(key, DEFAULT_LOCALE) or FALLBACKS.get(key, key)

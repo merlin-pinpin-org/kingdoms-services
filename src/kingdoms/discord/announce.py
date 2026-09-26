@@ -42,8 +42,8 @@ from pathlib import Path
 from typing import Any
 
 import discord
-import yaml
 
+from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.status import StatusService
 from kingdoms.discord.deploy_render import (
@@ -409,37 +409,10 @@ async def announce_startup(
 
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
-    """Load the announce strings for a locale (en fallback)."""
-    path = config_dir / "locales" / f"{locale}.yaml"
-    try:
-        with open(path, encoding="utf-8") as fh:
-            catalog = yaml.safe_load(fh) or {}
-    except OSError:
-        catalog = {}
-    section = catalog.get(locale, {}).get("announce")
-    if not isinstance(section, dict):
-        if locale != "en":
-            return _load_catalog("en", config_dir)
-        section = {}
-    defaults = {
-        "title": "Kingdoms — Deployment",
-        "services_label": "Services",
-        "infra_label": "Infra",
-        "bot_label": "Bot",
-        "version_label": "Version",
-        "branch_label": "Branch",
-        "commit_label": "Commit",
-        "image_label": "Image",
-        "deployment_label": "Deployment",
-        "uptime_label": "Uptime",
-        "admins_label": "Admins",
-        "games_label": "Games",
-        "mods_label": "Mods",
-        "latency_label": "Latency",
-        "none_label": "*(none configured)*",
-        "files_label": "Files",
-        "link_label": "Link",
-        "ci_label": "CI",
-        "deploy_label": "Deploy",
-    }
-    return {key: str(section.get(key, default)) for key, default in defaults.items()}
+    """Resolve the announce strings through the shared MessageCatalog.
+
+    One yaml loader for every localized surface (announce, admin): the
+    catalog flattens the nested sections, falls back to English and
+    never raises — an unknown key renders as its dotted name.
+    """
+    return MessageCatalog(config_dir).section("announce", locale)
