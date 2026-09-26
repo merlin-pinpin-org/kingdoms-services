@@ -66,6 +66,8 @@ from kingdoms.discord.ui import (
     UILayout,
 )
 
+ROLLBACK_WORKFLOW_URL = f"{INFRA_REPO_URL}/actions/workflows/rollback.yml"
+
 logger = logging.getLogger("kingdoms.bot.announce")
 
 FOOTER_PREFIX = "kingdoms-deploy"
@@ -146,7 +148,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     if sha:
         buttons.append(Button(f"🔧 {sha}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
-            buttons.append(Button("🗂️", status.deploy_tree_url))
+            buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
     if status.deploy_url and not _release_section(status, catalog):
         identity = status.deploy_ref or status.deploy_label
         buttons.append(Button(f"🔗 {identity}", status.deploy_url))
@@ -216,16 +218,19 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
     if sha:
         row.append(Button(f"🔧 {sha7}", f"{INFRA_REPO_URL}/commit/{sha}"))
     if status.deploy_infra_url:
-        row.append(Button("🗂️", status.deploy_infra_url))
+        row.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_infra_url))
+    row.append(Button(f"⏪ {catalog['rollback_label']}", ROLLBACK_WORKFLOW_URL))
     if row:
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
     if status.deploy_run_url:
-        run_id = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", run_id, run_ts)))
+        job_id = status.deploy_run_url.rstrip("/").rsplit("/", 1)[-1]
+        label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
+        job_line = f"{label} (`{job_id}`)" if job_id.isdigit() else label
+        blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", job_line, run_ts)))
         blocks.append(
             Row(
-                Button(f"🚀 {run_id}", status.deploy_run_url),
+                Button(f"🚀 {label}", status.deploy_run_url),
             )
         )
     return blocks
@@ -248,8 +253,8 @@ def _bot_blocks(status: StatusService, catalog: dict[str, str], latency_ms: int 
     rendered_games = ", ".join(games) if games else catalog["none_label"]
     lines.append(f"- {catalog['games_label']}: {rendered_games}")
     mods = status.enabled_mods()
-    if mods:
-        lines.append(f"- {catalog['mods_label']}: {', '.join(mods)}")
+    rendered_mods = ", ".join(mods) if mods else catalog["none_label"]
+    lines.append(f"- {catalog['mods_label']}: {rendered_mods}")
     if latency_ms is not None:
         lines.append(f"- {catalog['latency_label']}: {latency_ms} ms")
     blocks: list[object] = [Text(f"**{catalog['bot_label']}**"), Text("\n".join(lines))]
@@ -286,6 +291,7 @@ def build_announcement_layout(
     env: str = "",
     thumbnail_url: str = "",
     latency_ms: int | None = None,
+    extra_blocks: list[object] | None = None,
 ) -> discord.ui.LayoutView:
     """Build the Components V2 announcement: headline + sections + footer.
 
@@ -304,11 +310,14 @@ def build_announcement_layout(
     release = _release_section(status, catalog)
     if release is not None:
         container = container.add(release)
+    container = container.add(*_bot_blocks(status, catalog, latency_ms))
+    container = container.add(Separator())
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
     container = container.add(*_infra_blocks(status, catalog))
-    container = container.add(Separator())
-    container = container.add(*_bot_blocks(status, catalog, latency_ms))
+    if extra_blocks:
+        container = container.add(Separator())
+        container = container.add(*extra_blocks)
     container = container.add(Separator())
     container = container.add(Text(f"-# {STATUS_LINK_LABEL} · {deploy_footer(status, env=env)}"))
     return UILayout().add(container).build()
@@ -383,5 +392,7 @@ def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
         "mods_label": "Mods",
         "latency_label": "Latency",
         "none_label": "*(none configured)*",
+        "files_label": "Files",
+        "rollback_label": "Rollback",
     }
     return {key: str(section.get(key, default)) for key, default in defaults.items()}

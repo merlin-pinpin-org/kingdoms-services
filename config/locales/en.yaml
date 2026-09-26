@@ -20,3 +20,5 @@ en:
     mods_label: "Mods"
     latency_label: "Latency"
     none_label: "*(none configured)*"
+    files_label: "Files"
+    rollback_label: "Rollback"

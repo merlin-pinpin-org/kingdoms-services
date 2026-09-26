@@ -124,7 +124,7 @@ Data and other attributes defined here:<br>
 LogService's&nbsp;``get_locale``)&nbsp;localizes&nbsp;per&nbsp;guild&nbsp;when&nbsp;provided&nbsp;—<br>
 each&nbsp;guild's&nbsp;language&nbsp;choice&nbsp;(managed&nbsp;through&nbsp;/admin)&nbsp;applies&nbsp;to<br>
 its&nbsp;own&nbsp;announcement;&nbsp;without&nbsp;it&nbsp;the&nbsp;<a href="#AnnounceConfig">AnnounceConfig</a>&nbsp;locale&nbsp;stands.</span></dd></dl>
- <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>
+ <dl><dt><a name="-build_announcement_layout"><strong>build_announcement_layout</strong></a>(status: 'StatusService', config: 'AnnounceConfig', env: 'str' = '', thumbnail_url: 'str' = '', latency_ms: 'int | None' = None, extra_blocks: 'list[object] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Components&nbsp;V2&nbsp;announcement:&nbsp;headline&nbsp;+&nbsp;sections&nbsp;+&nbsp;footer.<br>
 &nbsp;<br>
 Layout:&nbsp;one&nbsp;accent&nbsp;Container&nbsp;holding&nbsp;a&nbsp;header&nbsp;TextDisplay&nbsp;(title&nbsp;+<br>
 env&nbsp;badge),&nbsp;the&nbsp;headline&nbsp;section&nbsp;(the&nbsp;deployed&nbsp;PR&nbsp;title&nbsp;or&nbsp;version<br>
@@ -150,6 +150,7 @@ against&nbsp;comes&nbsp;from&nbsp;the&nbsp;state&nbsp;file,&nbsp;not&nbsp;from&n
 <strong>FOOTER_PREFIX</strong> = 'kingdoms-deploy'<br>
 <strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
 <strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
+<strong>ROLLBACK_WORKFLOW_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra/actions/workflows/rollback.yml'<br>
 <strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'<br>
 <strong>STATUS_LINK_LABEL</strong> = '/status'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.bot.announce (WARNING)&gt;</td></tr></table>
