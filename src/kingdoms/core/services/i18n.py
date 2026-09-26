@@ -47,12 +47,22 @@ class MessageCatalog:
                 data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
                 entries = data.get(locale, {})
                 if isinstance(entries, dict):
-                    self._sections[locale] = {
-                        str(key): str(value) for key, value in entries.items() if isinstance(value, str)
-                    }
+                    self._sections[locale] = self._flatten(entries)
         except Exception:
             logger.warning("LOCALE CATALOG LOAD FAILED (%s) — falling back to built-ins", directory)
             self._sections = {}
+
+    @staticmethod
+    def _flatten(entries: dict[str, Any], prefix: str = "") -> dict[str, str]:
+        """Flatten nested yaml sections into dotted keys (admin.title)."""
+        flat: dict[str, str] = {}
+        for key, value in entries.items():
+            dotted = f"{prefix}{key}"
+            if isinstance(value, dict):
+                flat.update(MessageCatalog._flatten(value, prefix=f"{dotted}."))
+            elif isinstance(value, str):
+                flat[dotted] = value
+        return flat
 
     def render(self, key: str, locale: str = DEFAULT_LOCALE, **kwargs: Any) -> str:
         """Render a dotted key for a locale; English fallback, never raises."""
