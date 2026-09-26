@@ -104,6 +104,7 @@ async def build_dm_setup_view(
     locale = await logs_service.get_user_locale(user_id) if logs_service is not None else "en"
 
     async def on_user_locale(interaction: discord.Interaction, values: list[str]) -> None:
+        """Apply the user's own DM locale choice (self-service only)."""
         if not values or logs_service is None:
             return
         if str(getattr(interaction.user, "id", "")) != user_id:
@@ -154,6 +155,7 @@ async def build_main_menu(
     channel_status = await _managed_channel_status(logs_service, guild_id, admin_channel_service)
 
     async def on_locale(interaction: discord.Interaction, values: list[str]) -> None:
+        """Apply the guild's language choice, then re-render the main menu."""
         if not values:
             return
         if not await require_admin(interaction, bot_admins, roles_service):
@@ -171,6 +173,7 @@ async def build_main_menu(
         )
 
     async def on_channel(interaction: discord.Interaction, values: list[str]) -> None:
+        """Open the secondary menu of the selected managed channel."""
         if not values:
             return
         if not await require_admin(interaction, bot_admins, roles_service):
@@ -254,6 +257,7 @@ async def build_channel_menu(
     policy = await logs_service.get_access_policy(guild_id) if category == BOT_LOGS_CATEGORY else None
 
     async def on_back(interaction: discord.Interaction) -> None:
+        """Return from the secondary menu to the main menu."""
         if not await require_admin(interaction, bot_admins, roles_service):
             return
         await interaction.response.edit_message(
@@ -261,6 +265,7 @@ async def build_channel_menu(
         )
 
     async def rerender(interaction: discord.Interaction) -> None:
+        """Re-render the secondary menu after a routing/visibility change."""
         await interaction.response.edit_message(
             view=await build_channel_menu(
                 logs_service,
@@ -322,9 +327,11 @@ def _category_router(
     """Resolve the routing callable of a managed channel category."""
 
     async def route_logs(guild_id: str, channel_id: str, by: str) -> None:
+        """Route the bot logs channel (LogService.set_channel)."""
         await logs_service.set_channel(guild_id, channel_id, by=by)
 
     async def route_admin(guild_id: str, channel_id: str, by: str) -> None:
+        """Route the admin channel (AdminChannelService.set_channel)."""
         if admin_channel_service is None:
             raise RuntimeError("admin channel management is unavailable (no AdminChannelService wired)")
         await admin_channel_service.set_channel(guild_id, channel_id)
@@ -345,6 +352,7 @@ def _routing_callback(
     """Build the routing select callback: guard, route, rerender."""
 
     async def on_route(interaction: discord.Interaction, values: list[str]) -> None:
+        """Apply the channel routing picked in the ChannelSelect."""
         if not values:
             return
         if not await require_admin(interaction, bot_admins, roles_service):
@@ -373,6 +381,7 @@ def _visibility_callback(
     """Build the visibility select callback: guard, persist, rerender."""
 
     async def on_visibility(interaction: discord.Interaction, values: list[str]) -> None:
+        """Apply the visibility picked in the select (public/admin-only)."""
         if not values:
             return
         if not await require_admin(interaction, bot_admins, roles_service):
