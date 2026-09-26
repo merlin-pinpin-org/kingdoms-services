@@ -251,30 +251,3 @@ def build_match_report(
         container = container.add(Row(*links))
     return UILayout().add(container).build()
 
-
-def build_enrollment_screen(
-    title: str,
-    steps: Sequence[tuple[str, str, bool]],
-    *,
-    mod: str,
-    admin_actions: Sequence[Action] = (),
-    disabled_actions: Sequence[Action] = (),
-) -> discord.ui.LayoutView:
-    """Build the enrollment workflow screen: steps + admin actions.
-
-    ``steps`` entries are (label, description, done): one section per
-    workflow step, ordered; ``admin_actions`` are the runtime-guarded
-    operator buttons (the caller wires the guards in the callbacks);
-    ``disabled_actions`` render greyed-out — the steps that exist in
-    the design but not yet in the code (no mod, no game yet).
-    """
-    container = Container(accent=BLURPLE).add(Text(f"# \U0001f4dd {title}"))
-    for label, description, done in steps:
-        marker = "\u2705" if done else "\u2b1c"
-        container = container.add(Text(f"{marker} **{label}**\n{description}"))
-        container = container.add(Separator())
-    if admin_actions:
-        container = container.add(Row(*admin_actions))
-    if disabled_actions:
-        container = container.add(Row(*disabled_actions))
-    return UILayout().add(container).build()
