@@ -171,9 +171,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsBot-close"><strong>close</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;stop&nbsp;lifecycle&nbsp;event,&nbsp;then&nbsp;close&nbsp;the&nbsp;gateway&nbsp;connection.</span></dd></dl>
 
-<dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'object', **kwargs: 'object') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;unhandled&nbsp;failures&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(crash&nbsp;lifecycle&nbsp;event).</span></dd></dl>
+<dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'object', **kwargs: 'object') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;unhandled&nbsp;gateway-event&nbsp;failures&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-on_tree_error"><strong>on_tree_error</strong></a>(self, interaction: 'discord.Interaction', error: 'app_commands.AppCommandError') -&gt; 'None'</dt><dd><span class="code">Report&nbsp;app-command&nbsp;failures:&nbsp;bot-logs&nbsp;(guild)&nbsp;or&nbsp;the&nbsp;DM&nbsp;itself.</span></dd></dl>
 
 <hr>
 Methods inherited from <a href="discord.client.html#Client">discord.client.Client</a>:<br>
