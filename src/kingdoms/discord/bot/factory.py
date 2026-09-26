@@ -142,6 +142,7 @@ class KingdomsBot(discord.Client):
             thumbnail_url=self.user.display_avatar.url if self.user else "",
             locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
             commands=self.tree.get_commands(),
+            sync_scope=self._sync_scope(),
         )
         self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
         if announce_enabled:
@@ -160,6 +161,11 @@ class KingdomsBot(discord.Client):
         except Exception:
             self._synced = False
             logger.exception("SLASH COMMAND SYNC FAILED")
+
+    def _sync_scope(self) -> str:
+        """Resolve the command sync scope: the configured guild, or global."""
+        guild_id = self.config.sync_guild_id.strip()
+        return f"guild {guild_id}" if guild_id.isdigit() else "global"
 
     async def _provision_default_channels(self) -> None:
         """Create the default channels (🛰-bot-logs, 🛡-bot-admins) where missing.
@@ -292,6 +298,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         bot_admins=status.bot_admins,
         roles_service=roles_service,
         admin_channel_service=admin_channel_service,
+        logs_service=bot.logs_service,
+        catalog=bot.messages,
     )
     return bot
 

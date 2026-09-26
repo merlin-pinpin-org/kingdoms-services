@@ -22,7 +22,7 @@ from discord import app_commands
 
 from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.status import StatusService, format_version
-from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout, render_commands
+from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout, commands_section, render_commands
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
     PACKAGE_URL,
@@ -325,8 +325,8 @@ def register_status_command(
             except Exception:
                 logger.warning("guild locale lookup failed (guild %s) — falling back", interaction.guild_id)
         config = AnnounceConfig(locale=locale)
-        sync_scope = sync_target if interaction.guild is not None else "none (DM)"
-        commands = f"**Commands (sync: {sync_scope})**\n{format_commands(tree.get_commands())}"
+        scope = sync_target if interaction.guild is not None else ""
+        commands = commands_section(scope, tree.get_commands(), locale, AnnounceConfig().config_dir)
         layout = build_announcement_layout(
             status,
             config,
