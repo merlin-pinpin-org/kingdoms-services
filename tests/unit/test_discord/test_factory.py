@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 
 import discord
 import pytest
@@ -72,3 +73,80 @@ async def test_ready_marker_logged_on_ready(config_dir: str, caplog: pytest.LogC
 def test_create_bot_parses_bot_admins(config_dir: str) -> None:
     bot = create_bot(BotConfig(config_dir=config_dir, bot_admins="111,222"))
     assert bot.status_service.bot_admins == ("111", "222")
+
+
+class _FakeLogsService:
+    """Minimal LogService stand-in recording resolve_channel calls."""
+
+    def __init__(self) -> None:
+        self.resolved: list[str] = []
+
+    async def get_locale(self, guild_id: str) -> str:
+        return "en"
+
+    async def resolve_channel(self, guild_id: str) -> str:
+        self.resolved.append(guild_id)
+        return "logs-channel"
+
+
+class _FakeAdminChannelService:
+    """Minimal AdminChannelService stand-in recording resolve_channel calls."""
+
+    def __init__(self) -> None:
+        self.resolved: list[tuple[str, tuple[str, ...]]] = []
+
+    async def resolve_channel(self, guild_id: str, admin_ids: tuple[str, ...] = ()) -> str:
+        self.resolved.append((guild_id, admin_ids))
+        return "admin-channel"
+
+
+@pytest.mark.asyncio
+async def test_provision_default_channels_resolves_both_services(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    logs = _FakeLogsService()
+    admin = _FakeAdminChannelService()
+    bot.logs_service = logs  # type: ignore[assignment]
+    bot.admin_channel_service = admin  # type: ignore[assignment]
+    bot._connection._guilds[42] = SimpleNamespace(id=42)
+    await bot._provision_default_channels()
+    assert logs.resolved == ["42"]
+    assert admin.resolved == [("42", bot.status_service.bot_admins)]
+
+
+@pytest.mark.asyncio
+async def test_provision_default_channels_gated_by_announce_enabled(config_dir: str) -> None:
+    """The CI/CD smoke bot (KINGDOMS_ANNOUNCE_ENABLED=0) never provisions channels."""
+    bot = create_bot(BotConfig(config_dir=config_dir, announce_enabled="0"))
+    logs = _FakeLogsService()
+    bot.logs_service = logs  # type: ignore[assignment]
+    bot._connection._guilds[42] = SimpleNamespace(id=42)
+    await bot._provision_default_channels()
+    assert logs.resolved == []
+
+
+@pytest.mark.asyncio
+async def test_provision_default_channels_runs_once_across_reconnects(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    logs = _FakeLogsService()
+    bot.logs_service = logs  # type: ignore[assignment]
+    bot._connection._guilds[42] = SimpleNamespace(id=42)
+    await bot._provision_default_channels()
+    await bot._provision_default_channels()
+    assert logs.resolved == ["42"]
+
+
+@pytest.mark.asyncio
+async def test_provision_default_channels_survives_one_guild_failure(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    logs = _FakeLogsService()
+    admin = _FakeAdminChannelService()
+    bot.logs_service = logs  # type: ignore[assignment]
+    bot.admin_channel_service = admin  # type: ignore[assignment]
+    bot._connection._guilds[42] = SimpleNamespace(id=42)
+
+    async def _boom(guild_id: str) -> str:
+        raise RuntimeError("logs channel resolution exploded")
+
+    bot.logs_service.resolve_channel = _boom  # type: ignore[method-assign]
+    await bot._provision_default_channels()
+    assert admin.resolved == [("42", bot.status_service.bot_admins)]

@@ -305,6 +305,20 @@ class MockTextChannel(discord.TextChannel):
     ) -> None:
         self._permissions[(target.id, isinstance(target, discord.Role))] = overwrite
 
+    def permissions_for(self, member: discord.abc.User) -> discord.Permissions:
+        """In-memory permissions: union of the member's role permissions.
+
+        Overrides the connection-state computation of discord.py: a
+        member's permissions are the union of its roles' permissions
+        (no overwrite model in the mock — sendable checks stay simple).
+        """
+        permissions = discord.Permissions()
+        for role in getattr(member, "_roles", ()):
+            role_permissions = getattr(role, "_permissions", None)
+            if isinstance(role_permissions, discord.Permissions):
+                permissions |= role_permissions
+        return permissions
+
     def permission_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
         return self._permissions.get((target.id, isinstance(target, discord.Role)))
 
@@ -483,6 +497,16 @@ class MockGuild(discord.Guild):
     @property
     def channels(self) -> list[MockChannel]:
         return list(self._channels.values())
+
+    @property
+    def system_channel(self) -> MockTextChannel | None:
+        """The guild's system channel (overridden in-memory for tests)."""
+        channel = self.__dict__.get("_system_channel")
+        return channel if isinstance(channel, MockTextChannel) else None
+
+    @system_channel.setter
+    def system_channel(self, value: MockTextChannel | None) -> None:
+        self.__dict__["_system_channel"] = value
 
     def get_role(self, role_id: int) -> MockRole | None:
         return self._roles.get(role_id)
@@ -760,6 +784,7 @@ class MockInteraction(discord.Interaction):
         self.extras: dict[str, Any] = {}
         self.response = MockResponse()
         self.followup = MockFollowup()
+        self.guild_id = guild.id if guild is not None else None
         self._client = client if client is not None else MockClient()
 
     @property

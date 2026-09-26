@@ -125,6 +125,7 @@ jobs:
             -e MONGO_URI=mongodb://kingdoms-mongo:27017 \
             -e REDIS_URI=redis://kingdoms-redis:6379 \
             -e DISCORD_TOKEN="$CICD_DISCORD_TOKEN" -e LOG_LEVEL=INFO \
+            -e KINGDOMS_ANNOUNCE_ENABLED=0 \
             kingdoms-bot:ci
       - name: Assert the gateway ready signal
         run: |

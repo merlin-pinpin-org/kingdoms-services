@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.admin_channel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.admin_channel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/admin_channel.py">SOURCE_ROOT/core/services/admin_channel.py</a></td></tr></table>
+    <p><span class="code">Core&nbsp;admin&nbsp;channel&nbsp;service:&nbsp;the&nbsp;🛡-bot-admins&nbsp;home&nbsp;(kingdoms-services#115).<br>
+&nbsp;<br>
+The&nbsp;admin&nbsp;messages&nbsp;with&nbsp;actions&nbsp;(the&nbsp;enrollment&nbsp;screen,&nbsp;the&nbsp;admin<br>
+panels)&nbsp;live&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel,&nbsp;so&nbsp;the&nbsp;admin&nbsp;surface&nbsp;is&nbsp;visible<br>
+and&nbsp;auditable&nbsp;—&nbsp;never&nbsp;scattered&nbsp;in&nbsp;gameplay&nbsp;channels.&nbsp;The&nbsp;service<br>
+follows&nbsp;the&nbsp;LogService&nbsp;provisioning&nbsp;pattern&nbsp;(cache-aside:&nbsp;Redis&nbsp;→<br>
+MongoDB&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation),&nbsp;plus&nbsp;the&nbsp;**transparency&nbsp;rule**<br>
+(developer-mandated):<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;channel&nbsp;is&nbsp;visible&nbsp;to&nbsp;the&nbsp;``bot-admins``&nbsp;role&nbsp;only&nbsp;(plus&nbsp;the<br>
+&nbsp;&nbsp;guild&nbsp;administrators'&nbsp;inherent&nbsp;rights&nbsp;and&nbsp;the&nbsp;bot&nbsp;itself);<br>
+-&nbsp;the&nbsp;BOT_ADMINS&nbsp;are&nbsp;synced&nbsp;**into**&nbsp;the&nbsp;role&nbsp;—&nbsp;being&nbsp;an&nbsp;operator&nbsp;is<br>
+&nbsp;&nbsp;public&nbsp;knowledge,&nbsp;and&nbsp;the&nbsp;role&nbsp;is&nbsp;the&nbsp;visible&nbsp;roster;<br>
+-&nbsp;their&nbsp;rights&nbsp;never&nbsp;depend&nbsp;on&nbsp;it:&nbsp;the&nbsp;runtime&nbsp;guards&nbsp;check<br>
+&nbsp;&nbsp;``BOT_ADMINS``&nbsp;**first**&nbsp;(environment-sourced,&nbsp;impossible&nbsp;to&nbsp;strip<br>
+&nbsp;&nbsp;from&nbsp;Discord),&nbsp;so&nbsp;removing&nbsp;the&nbsp;role&nbsp;costs&nbsp;the&nbsp;visibility,&nbsp;not&nbsp;the<br>
+&nbsp;&nbsp;privileges.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.admin_channel.html#AdminChannelService">AdminChannelService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.admin_channel.html#AdminChannelDatabase">AdminChannelDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.admin_channel.html#AdminChannelPlatform">AdminChannelPlatform</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminChannelDatabase">class <strong>AdminChannelDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminChannelDatabase">AdminChannelDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;persistence&nbsp;seam&nbsp;(the&nbsp;shared&nbsp;channels&nbsp;collection).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.admin_channel.html#AdminChannelDatabase">AdminChannelDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="AdminChannelDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="AdminChannelDatabase-delete_channel"><strong>delete_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;stale&nbsp;channel&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelDatabase-upsert_channel"><strong>upsert_channel</strong></a>(self, channel: 'ChannelModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;channel&nbsp;document&nbsp;(idempotent&nbsp;provisioning).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="AdminChannelDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_channel', 'find_channel', 'upsert_channel'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="AdminChannelDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="AdminChannelDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminChannelPlatform">class <strong>AdminChannelPlatform</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminChannelPlatform">AdminChannelPlatform</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;find,&nbsp;create,&nbsp;sync&nbsp;the&nbsp;admin&nbsp;channel.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.admin_channel.html#AdminChannelPlatform">AdminChannelPlatform</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="AdminChannelPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-apply_channel_policy"><strong>apply_channel_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Admin-channel&nbsp;visibility:&nbsp;the&nbsp;role,&nbsp;guild&nbsp;admins&nbsp;and&nbsp;the&nbsp;bot.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;UI&nbsp;SDK&nbsp;layout&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelPlatform-sync_admin_role_members"><strong>sync_admin_role_members</strong></a>(self, guild_id: 'str', role_id: 'str', admin_ids: 'tuple[str, ...]') -&gt; 'None'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;BOT_ADMIN&nbsp;holds&nbsp;the&nbsp;role&nbsp;(add,&nbsp;never&nbsp;remove).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="AdminChannelPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_channel_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'send_layout', 'sync_admin_role_members'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="AdminChannelPlatform-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="AdminChannelPlatform-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminChannelService">class <strong>AdminChannelService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminChannelService">AdminChannelService</a>(platform:&nbsp;'<a href="#AdminChannelPlatform">AdminChannelPlatform</a>',&nbsp;database:&nbsp;'<a href="#AdminChannelDatabase">AdminChannelDatabase</a>',&nbsp;roles_service:&nbsp;'RolesService',&nbsp;state:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;cache_ttl:&nbsp;'int'&nbsp;=&nbsp;300)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Provision&nbsp;the&nbsp;🛡-bot-admins&nbsp;channel&nbsp;and&nbsp;keep&nbsp;the&nbsp;role&nbsp;roster&nbsp;synced.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="AdminChannelService-__init__"><strong>__init__</strong></a>(self, platform: 'AdminChannelPlatform', database: 'AdminChannelDatabase', roles_service: 'RolesService', state: 'Any' = None, cache_ttl: 'int' = 300) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelService-deliver"><strong>deliver</strong></a>(self, guild_id: 'str', layout: 'Any', admin_ids: 'tuple[str, ...]' = ()) -&gt; 'str | None'</dt><dd><span class="code">Deliver&nbsp;an&nbsp;admin&nbsp;message&nbsp;(a&nbsp;UI&nbsp;SDK&nbsp;layout)&nbsp;to&nbsp;the&nbsp;admin&nbsp;channel.<br>
+&nbsp;<br>
+Resolves&nbsp;the&nbsp;channel&nbsp;first&nbsp;(provisioning&nbsp;included),&nbsp;then&nbsp;hands<br>
+the&nbsp;layout&nbsp;to&nbsp;the&nbsp;platform&nbsp;seam.&nbsp;Best-effort:&nbsp;a&nbsp;delivery&nbsp;failure<br>
+never&nbsp;propagates&nbsp;—&nbsp;the&nbsp;admin&nbsp;surface&nbsp;degrades&nbsp;to&nbsp;the&nbsp;ephemeral<br>
+answers.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str', admin_ids: 'tuple[str, ...]' = ()) -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;Mongo&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation.<br>
+&nbsp;<br>
+Every&nbsp;resolution&nbsp;also&nbsp;refreshes&nbsp;the&nbsp;transparency&nbsp;contract:&nbsp;the<br>
+admin&nbsp;role&nbsp;is&nbsp;provisioned,&nbsp;the&nbsp;BOT_ADMINS&nbsp;synced&nbsp;into&nbsp;it,&nbsp;and<br>
+the&nbsp;channel&nbsp;policy&nbsp;reapplied&nbsp;—&nbsp;a&nbsp;manual&nbsp;un-sync&nbsp;never&nbsp;survives<br>
+a&nbsp;resolution.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str', admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;admin&nbsp;channel&nbsp;to&nbsp;an&nbsp;existing&nbsp;guild&nbsp;channel.<br>
+&nbsp;<br>
+The&nbsp;target&nbsp;must&nbsp;already&nbsp;exist&nbsp;(the&nbsp;admin&nbsp;picks&nbsp;it&nbsp;from&nbsp;the<br>
+guild);&nbsp;the&nbsp;transparency&nbsp;contract&nbsp;is&nbsp;re-applied&nbsp;on&nbsp;the&nbsp;new<br>
+target&nbsp;—&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADMIN_CHANNELS_COLLECTION</strong> = 'channels'<br>
+<strong>ADMIN_CHANNEL_CATEGORY</strong> = 'bot_admins'<br>
+<strong>ADMIN_CHANNEL_NAME</strong> = '🛡-bot-admins'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.admin_channel (WARNING)&gt;</td></tr></table>
+</body></html>

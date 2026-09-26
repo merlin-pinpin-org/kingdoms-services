@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.i18n</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.i18n</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/i18n.py">SOURCE_ROOT/core/services/i18n.py</a></td></tr></table>
+    <p><span class="code">Message&nbsp;catalog:&nbsp;localized&nbsp;bot&nbsp;messages&nbsp;(guild&nbsp;and&nbsp;DM&nbsp;surfaces).<br>
+&nbsp;<br>
+The&nbsp;catalog&nbsp;loads&nbsp;the&nbsp;``locales/*.yaml``&nbsp;files&nbsp;once&nbsp;and&nbsp;renders&nbsp;keys<br>
+per&nbsp;locale,&nbsp;with&nbsp;English&nbsp;as&nbsp;the&nbsp;universal&nbsp;fallback:<br>
+&nbsp;<br>
+-&nbsp;**guild&nbsp;locale**&nbsp;—&nbsp;the&nbsp;global&nbsp;per-guild&nbsp;language&nbsp;(``/admin``),&nbsp;used<br>
+&nbsp;&nbsp;for&nbsp;the&nbsp;channel&nbsp;messages:&nbsp;announcements,&nbsp;lifecycle&nbsp;events,&nbsp;panels;<br>
+-&nbsp;**user&nbsp;locale**&nbsp;—&nbsp;the&nbsp;per-user&nbsp;DM&nbsp;language&nbsp;(``/admin``&nbsp;in&nbsp;DM),&nbsp;used<br>
+&nbsp;&nbsp;for&nbsp;everything&nbsp;the&nbsp;bot&nbsp;sends&nbsp;to&nbsp;that&nbsp;user&nbsp;in&nbsp;a&nbsp;DM&nbsp;(error&nbsp;reports,<br>
+&nbsp;&nbsp;enrollment&nbsp;flows,&nbsp;match&nbsp;reports).&nbsp;DMs&nbsp;follow&nbsp;the&nbsp;user,&nbsp;not&nbsp;a&nbsp;guild.<br>
+&nbsp;<br>
+Missing&nbsp;keys&nbsp;degrade&nbsp;to&nbsp;English;&nbsp;missing&nbsp;files&nbsp;degrade&nbsp;to&nbsp;the&nbsp;built-in<br>
+fallbacks.&nbsp;The&nbsp;catalog&nbsp;never&nbsp;raises&nbsp;—&nbsp;a&nbsp;message&nbsp;always&nbsp;renders.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.i18n.html#MessageCatalog">MessageCatalog</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MessageCatalog">class <strong>MessageCatalog</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MessageCatalog">MessageCatalog</a>(config_dir:&nbsp;'Path&nbsp;|&nbsp;str'&nbsp;=&nbsp;'config')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Locale-aware&nbsp;message&nbsp;rendering&nbsp;over&nbsp;the&nbsp;yaml&nbsp;catalogs.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MessageCatalog-__init__"><strong>__init__</strong></a>(self, config_dir: 'Path | str' = 'config') -&gt; 'None'</dt><dd><span class="code">Load&nbsp;every&nbsp;``locales/*.yaml``&nbsp;under&nbsp;the&nbsp;config&nbsp;directory.</span></dd></dl>
+
+<dl><dt><a name="MessageCatalog-render"><strong>render</strong></a>(self, key: 'str', locale: 'str' = 'en', **kwargs: 'Any') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;dotted&nbsp;key&nbsp;for&nbsp;a&nbsp;locale;&nbsp;English&nbsp;fallback,&nbsp;never&nbsp;raises.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_LOCALE</strong> = 'en'<br>
+<strong>FALLBACKS</strong> = {'lifecycle.policy.grant': 'Access policy updated: role &lt;@&amp;{role_id}&gt; granted view, by &lt;@{by}&gt;.', 'lifecycle.policy.language': 'Language set to {lang}, by &lt;@{by}&gt;.', 'lifecycle.policy.reset': 'Access policy reset to admin-only, by &lt;@{by}&gt;.', 'lifecycle.policy.route': 'Bot logs routed to &lt;#{channel_id}&gt;{previous_note}, by &lt;@{by}&gt;.', 'lifecycle.policy.visibility': 'Bot logs visibility set to {state}, by &lt;@{by}&gt;.', 'lifecycle.stop': 'Bot shutting down.'}<br>
+<strong>__annotations__</strong> = {'FALLBACKS': 'dict[str, str]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.i18n (WARNING)&gt;</td></tr></table>
+</body></html>
