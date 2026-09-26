@@ -15,13 +15,12 @@ kingdoms-infra#37 (deploy URL plumbing).
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
 
 import discord
 from discord import app_commands
 
 from kingdoms.core.services.status import StatusService, format_version
-from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout
+from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout, render_commands
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
     PACKAGE_URL,
@@ -31,7 +30,6 @@ from kingdoms.discord.deploy_render import (
     sha7_of,
     short_tag,
 )
-from kingdoms.discord.ui import Text
 
 
 def _human_uptime(seconds: float) -> str:
@@ -285,28 +283,7 @@ def build_status_embed(
     return embed
 
 
-def format_commands(commands: Iterable[object]) -> str:
-    """Render the synced Commands section.
-
-    Slash commands grouped by their owning group (the closest equivalent of
-    cogs on a bare command tree), then the root-level commands under a
-    `core` label. Context menus are not slash commands and are skipped.
-    """
-    groups: dict[str, list[str]] = {}
-    for cmd in commands:
-        if not isinstance(getattr(cmd, "description", None), str):
-            continue
-        name = getattr(cmd, "name", "")
-        parent = getattr(cmd, "root_parent", None)
-        owner = getattr(parent, "name", None) or "core"
-        groups.setdefault(owner, []).append(name)
-    if not groups:
-        return "*(none)*"
-    lines = []
-    for owner in sorted(groups, key=lambda k: (k == "core", k)):
-        names = sorted(groups[owner])
-        lines.append(f"**{owner}**: " + (", ".join(f"/{n}" for n in names) or "—"))
-    return "\n".join(lines)
+format_commands = render_commands
 
 
 def register_status_command(
@@ -331,14 +308,12 @@ def register_status_command(
             latency = None
         config = AnnounceConfig(locale="en")
         sync_scope = sync_target if interaction.guild is not None else "none (DM)"
-        commands = Text(
-            f"**Commands (sync: {sync_scope})**\n{format_commands(tree.get_commands())}"
-        )
+        commands = f"**Commands (sync: {sync_scope})**\n{format_commands(tree.get_commands())}"
         layout = build_announcement_layout(
             status,
             config,
             env=os.environ.get("KINGDOMS_DEPLOY_ENV", ""),
             latency_ms=round(latency * 1000) if latency is not None else None,
-            extra_blocks=[commands],
+            commands=commands,
         )
         await interaction.response.send_message(view=layout, ephemeral=True)

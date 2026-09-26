@@ -13,17 +13,19 @@ a link button, and the identity rides on the buttons themselves: the
 PR number, the commit sha7, the truncated docker tag, the branch.
 Emojis replace text labels on buttons where the meaning is clear.
 
-Sections: Services (source identity + commit date, build artifacts +
+Sections: Bot (uptime, admins, games, mods, gateway latency, synced
+commands), Services (source identity + commit date, build artifacts +
 build date), Infra (state identity + commit date, deployment run +
-run date), Bot (uptime, admins, games, mods, gateway latency) — each
-artifact's timestamp sits directly under it. The announcement doubles
+run date, rollback workflow) — each artifact's timestamp sits
+directly under it, and every link button carries its artifact as the
+label (run number, docker tag, sha7, branch). The announcement doubles
 as a machine-readable deployment signal: the frozen footer line
 (``kingdoms-deploy <env>``) rides in a TextDisplay sub-text, readable
 back through the Discord REST API by the kingdoms-infra post-deploy
-battery (kingdoms-infra#78). The full identity already rides in the
-body; the footer only repeats the environment — the one thing the
-battery cannot infer from the message alone. The footer format is
-frozen: breaking changes need a battery-side update first.
+battery (kingdoms-infra#78). The body already carries the human
+identity; the footer is a machine line only — no human-facing prefix.
+The footer format is frozen: breaking changes need a battery-side
+update first.
 
 Announcements can be silenced entirely (``KINGDOMS_ANNOUNCE_ENABLED=0``)
 — the CI/CD smoke bot uses this to boot against the real gateway
@@ -37,6 +39,7 @@ way: startup readiness never depends on message delivery.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -76,7 +79,6 @@ _VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "
 
 
 ANNOUNCEMENT_HEADER = "🚀"
-STATUS_LINK_LABEL = "/status"
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +87,31 @@ class AnnounceConfig:
 
     locale: str = "en"
     config_dir: Path = Path("config")
+
+
+def render_commands(commands: Iterable[object]) -> str:
+    """Render the synced Commands block (one rendering, everywhere).
+
+    Slash commands grouped by their owning group (the closest
+    equivalent of cogs on a bare command tree), then the root-level
+    commands under a `core` label. Context menus are not slash
+    commands and are skipped.
+    """
+    groups: dict[str, list[str]] = {}
+    for cmd in commands:
+        if not isinstance(getattr(cmd, "description", None), str):
+            continue
+        name = getattr(cmd, "name", "")
+        parent = getattr(cmd, "root_parent", None)
+        owner = getattr(parent, "name", None) or "core"
+        groups.setdefault(owner, []).append(name)
+    if not groups:
+        return "*(none)*"
+    lines = []
+    for owner in sorted(groups, key=lambda k: (k == "core", k)):
+        names = sorted(groups[owner])
+        lines.append(f"**{owner}**: " + (", ".join(f"/{n}" for n in names) or "—"))
+    return "\n".join(lines)
 
 
 def deploy_footer(status: StatusService, env: str = "") -> str:
@@ -155,13 +182,20 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     return buttons
 
 
-def _services_build_row(status: StatusService) -> list[Button]:
-    """Build the build buttons: pipeline run + package image."""
+def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[Button]:
+    """Build the build buttons: pipeline run + package image.
+
+    Every button is labeled by its artifact: the CI run by ``#<n>``
+    (the job id rides in the deployment line above), the image by
+    its shortened docker tag — never an anonymous emoji.
+    """
     buttons: list[Button] = []
     if status.deploy_run_url:
-        buttons.append(Button("🚦", status.deploy_run_url))
+        run_label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
+        buttons.append(Button(f"🚦 {run_label}", status.deploy_run_url))
     if status.deploy_image:
-        buttons.append(Button("📦", PACKAGE_URL))
+        tag = short_tag(docker_tag(status.deploy_image))
+        buttons.append(Button(f"📦 {tag}", PACKAGE_URL))
     return buttons
 
 
@@ -183,7 +217,7 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     tag = docker_tag(status.deploy_image or status.deploy_label)
     if tag:
         blocks.append(Text(_line(f"📦 {catalog['image_label']}", short_tag(tag), relative_time(status.deploy_ts))))
-    build = _services_build_row(status)
+    build = _services_build_row(status, catalog)
     if build:
         blocks.append(Row(*build))
     return blocks
@@ -226,8 +260,10 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
     if status.deploy_run_url:
         job_id = status.deploy_run_url.rstrip("/").rsplit("/", 1)[-1]
         label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        job_line = f"{label} (`{job_id}`)" if job_id.isdigit() else label
-        blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", job_line, run_ts)))
+        lines = [_line(f"🚀 {catalog['deployment_label']}", label, run_ts)]
+        if job_id.isdigit():
+            lines.append(f"`{job_id}`")
+        blocks.append(Text("\n".join(lines)))
         blocks.append(
             Row(
                 Button(f"🚀 {label}", status.deploy_run_url),
@@ -291,16 +327,20 @@ def build_announcement_layout(
     env: str = "",
     thumbnail_url: str = "",
     latency_ms: int | None = None,
-    extra_blocks: list[object] | None = None,
+    commands: str = "",
 ) -> discord.ui.LayoutView:
     """Build the Components V2 announcement: headline + sections + footer.
 
     Layout: one accent Container holding a header TextDisplay (title +
     env badge), the headline section (the deployed PR title or version
-    with its button accessory), the Services blocks, a Separator, the
-    Infra blocks, a Separator, the Bot blocks, and the machine-readable
-    footer as sub-text (frozen format, ``kingdoms-deploy <env>``).
-    Same identity as /status, adapted to the V2 navigation rules.
+    with its button accessory), the Bot blocks — the operational
+    identity, including the Commands block when provided —, a
+    Separator, the Services blocks, a Separator, the Infra blocks, and
+    the machine-readable footer as sub-text (frozen format,
+    ``kingdoms-deploy <env>``).
+    Same rendering for the startup announcement and /status: the boot
+    message is a non-ephemeral /status posted in the guild's bot logs
+    channel, so the Commands block rides in both.
     """
     catalog = _load_catalog(config.locale, config.config_dir)
     header = f"# {ANNOUNCEMENT_HEADER} {catalog['title']}"
@@ -311,15 +351,14 @@ def build_announcement_layout(
     if release is not None:
         container = container.add(release)
     container = container.add(*_bot_blocks(status, catalog, latency_ms))
+    if commands:
+        container = container.add(Text(commands))
     container = container.add(Separator())
     container = container.add(*_services_blocks(status, catalog))
     container = container.add(Separator())
     container = container.add(*_infra_blocks(status, catalog))
-    if extra_blocks:
-        container = container.add(Separator())
-        container = container.add(*extra_blocks)
     container = container.add(Separator())
-    container = container.add(Text(f"-# {STATUS_LINK_LABEL} · {deploy_footer(status, env=env)}"))
+    container = container.add(Text(f"-# {deploy_footer(status, env=env)}"))
     return UILayout().add(container).build()
 
 
@@ -332,6 +371,7 @@ async def announce_startup(
     enabled: bool = True,
     thumbnail_url: str = "",
     locale_resolver: Any = None,
+    commands: Iterable[object] | None = None,
 ) -> None:
     """Post the deployment announcement per guild in its bot logs channel.
 
@@ -339,6 +379,8 @@ async def announce_startup(
     LogService's ``get_locale``) localizes per guild when provided —
     each guild's language choice (managed through /admin) applies to
     its own announcement; without it the AnnounceConfig locale stands.
+    ``commands`` (the synced command tree) rides the Bot section as
+    the Commands block — the boot message is a non-ephemeral /status.
     """
     if not enabled:
         logger.info("STARTUP ANNOUNCEMENT DISABLED (KINGDOMS_ANNOUNCE_ENABLED=0)")
@@ -355,8 +397,14 @@ async def announce_startup(
             except Exception:
                 logger.warning("guild locale lookup failed (guild %s) — falling back", guild.id)
         guild_config = AnnounceConfig(locale=locale, config_dir=config.config_dir)
+        commands_block = f"**Commands**\n{render_commands(commands)}" if commands is not None else ""
         layout = build_announcement_layout(
-            status, guild_config, env=deploy_env, thumbnail_url=thumbnail_url, latency_ms=latency_ms
+            status,
+            guild_config,
+            env=deploy_env,
+            thumbnail_url=thumbnail_url,
+            latency_ms=latency_ms,
+            commands=commands_block,
         )
         event = LifecycleEvent(kind="start", message="", layout=layout, footer=deploy_footer(status, env=deploy_env))
         await logs_service.log_event(str(guild.id), event)
