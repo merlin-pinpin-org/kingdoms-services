@@ -308,12 +308,15 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 Pure&nbsp;display&nbsp;+&nbsp;interactive&nbsp;components,&nbsp;all&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK;&nbsp;the<br>
 callbacks&nbsp;close&nbsp;over&nbsp;the&nbsp;guild&nbsp;so&nbsp;the&nbsp;same&nbsp;panel&nbsp;serves&nbsp;every&nbsp;guild.</span></dd></dl>
  <dl><dt><a name="-build_logs_policy_view"><strong>build_logs_policy_view</strong></a>(guild_id: 'str', channel_id: 'str | None', policy_lines: 'list[str]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;logs&nbsp;policy&nbsp;section:&nbsp;pure&nbsp;display,&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK.</span></dd></dl>
- <dl><dt><a name="-register_admin_command"><strong>register_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), logs_service: 'LogService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/admin&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+ <dl><dt><a name="-register_admin_command"><strong>register_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), logs_service: 'LogService | None' = None, roles_service: 'RolesService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/admin&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
 &nbsp;<br>
 ``bot_admins``&nbsp;is&nbsp;the&nbsp;parsed&nbsp;BOT_ADMINS&nbsp;operator&nbsp;ids&nbsp;(StatusService).<br>
 ``logs_service``&nbsp;is&nbsp;the&nbsp;core&nbsp;LogService&nbsp;(kingdoms-services#109);&nbsp;it<br>
 may&nbsp;be&nbsp;None&nbsp;in&nbsp;local&nbsp;runs&nbsp;—&nbsp;the&nbsp;logs&nbsp;section&nbsp;degrades&nbsp;to&nbsp;a&nbsp;status<br>
-note.&nbsp;Access:&nbsp;BOT_ADMINS&nbsp;or&nbsp;guild&nbsp;administrators&nbsp;(ephemeral&nbsp;panel).</span></dd></dl>
+note.&nbsp;``roles_service``&nbsp;resolves&nbsp;the&nbsp;guild's&nbsp;bot-admins&nbsp;role<br>
+(kingdoms-services#115)&nbsp;—&nbsp;members&nbsp;holding&nbsp;it&nbsp;administer&nbsp;too.<br>
+Access&nbsp;is&nbsp;validated&nbsp;at&nbsp;invocation&nbsp;time:&nbsp;BOT_ADMINS,&nbsp;guild<br>
+administrators&nbsp;or&nbsp;the&nbsp;bot-admins&nbsp;role&nbsp;(ephemeral&nbsp;panel).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

@@ -98,7 +98,7 @@ Reliability&nbsp;guarantees&nbsp;(enforced&nbsp;here,&nbsp;not&nbsp;at&nbsp;Disc
 <td class="section-title" colspan=3>&nbsp;<br><a name="Action">class <strong>Action</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#Action">Action</a>(label:&nbsp;'str',&nbsp;custom_id:&nbsp;'str',&nbsp;on_click:&nbsp;'Handler',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;style:&nbsp;'str'&nbsp;=&nbsp;'primary')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Action">Action</a>(label:&nbsp;'str',&nbsp;custom_id:&nbsp;'str',&nbsp;on_click:&nbsp;'Handler',&nbsp;emoji:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;style:&nbsp;'str'&nbsp;=&nbsp;'primary',&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 An&nbsp;interactive&nbsp;button:&nbsp;label&nbsp;+&nbsp;custom_id&nbsp;+&nbsp;async&nbsp;callback.<br>
 &nbsp;<br>
@@ -120,7 +120,7 @@ discord.py&nbsp;machinery.<br>&nbsp;</span></td></tr>
 
 <dl><dt><a name="Action-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="Action-__init__"><strong>__init__</strong></a>(self, label: 'str', custom_id: 'str', on_click: 'Handler', emoji: 'str' = '', style: 'str' = 'primary') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="Action-__init__"><strong>__init__</strong></a>(self, label: 'str', custom_id: 'str', on_click: 'Handler', emoji: 'str' = '', style: 'str' = 'primary', disabled: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="Action-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Validate&nbsp;the&nbsp;custom_id&nbsp;convention&nbsp;and&nbsp;the&nbsp;button&nbsp;style.</span></dd></dl>
 
@@ -134,6 +134,8 @@ discord.py&nbsp;machinery.<br>&nbsp;</span></td></tr>
 Data descriptors defined here:<br>
 <dl><dt><strong>custom_id</strong></dt>
 </dl>
+<dl><dt><strong>disabled</strong></dt>
+</dl>
 <dl><dt><strong>emoji</strong></dt>
 </dl>
 <dl><dt><strong>label</strong></dt>
@@ -144,13 +146,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'custom_id': 'str', 'emoji': 'str', 'label': 'str', 'on_click': 'Handler', 'style': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'custom_id': 'str', 'disabled': 'bool', 'emoji': 'str', 'label': 'str', 'on_click': 'Handler', 'style': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'custom_id': Field(name='custom_id',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'emoji': Field(name='emoji',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label': Field(name='label',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'on_click': Field(name='on_click',type='Handler',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'style': Field(name='style',type='str',default='primary',...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'custom_id': Field(name='custom_id',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'disabled': Field(name='disabled',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'emoji': Field(name='emoji',type='str',default='',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label': Field(name='label',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'on_click': Field(name='on_click',type='Handler',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'style': Field(name='style',type='str',default='primary',...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('label', 'custom_id', 'on_click', 'emoji', 'style')</dl>
+<dl><dt><strong>__match_args__</strong> = ('label', 'custom_id', 'on_click', 'emoji', 'style', 'disabled')</dl>
 
 </td></tr></table> <p>
 <table class="section">

@@ -23,6 +23,9 @@ screen&nbsp;catalog)&nbsp;instantiate&nbsp;with&nbsp;data&nbsp;instead&nbsp;of&n
 &nbsp;&nbsp;:class:`Action`&nbsp;buttons.<br>
 -&nbsp;:func:`build_match_report`&nbsp;—&nbsp;a&nbsp;structured&nbsp;match&nbsp;report:&nbsp;header,<br>
 &nbsp;&nbsp;score&nbsp;section,&nbsp;paged&nbsp;detail&nbsp;sections.<br>
+-&nbsp;:func:`build_enrollment_screen`&nbsp;—&nbsp;the&nbsp;enrollment&nbsp;workflow&nbsp;screen:<br>
+&nbsp;&nbsp;step&nbsp;sections,&nbsp;admin&nbsp;actions&nbsp;(runtime-guarded),&nbsp;future&nbsp;steps<br>
+&nbsp;&nbsp;rendered&nbsp;disabled.<br>
 &nbsp;<br>
 Pagination&nbsp;is&nbsp;generic:&nbsp;:func:`paginate`&nbsp;splits&nbsp;any&nbsp;list&nbsp;of&nbsp;blocks<br>
 into&nbsp;pages&nbsp;and&nbsp;renders&nbsp;a&nbsp;page&nbsp;as&nbsp;a&nbsp;standalone&nbsp;layout&nbsp;with&nbsp;Previous&nbsp;/<br>
@@ -168,6 +171,13 @@ Data descriptors defined here:<br>
 "options":&nbsp;[(label,&nbsp;value),&nbsp;...],&nbsp;"on_change":&nbsp;async&nbsp;(interaction,<br>
 values)&nbsp;-&gt;&nbsp;None}``.&nbsp;``on_apply``/``on_reset``&nbsp;are&nbsp;async&nbsp;callbacks<br>
 receiving&nbsp;the&nbsp;interaction&nbsp;(wired&nbsp;as&nbsp;Action&nbsp;buttons).</span></dd></dl>
+ <dl><dt><a name="-build_enrollment_screen"><strong>build_enrollment_screen</strong></a>(title: 'str', steps: 'Sequence[tuple[str, str, bool]]', *, mod: 'str', admin_actions: 'Sequence[Action]' = (), disabled_actions: 'Sequence[Action]' = ()) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;enrollment&nbsp;workflow&nbsp;screen:&nbsp;steps&nbsp;+&nbsp;admin&nbsp;actions.<br>
+&nbsp;<br>
+``steps``&nbsp;entries&nbsp;are&nbsp;(label,&nbsp;description,&nbsp;done):&nbsp;one&nbsp;section&nbsp;per<br>
+workflow&nbsp;step,&nbsp;ordered;&nbsp;``admin_actions``&nbsp;are&nbsp;the&nbsp;runtime-guarded<br>
+operator&nbsp;buttons&nbsp;(the&nbsp;caller&nbsp;wires&nbsp;the&nbsp;guards&nbsp;in&nbsp;the&nbsp;callbacks);<br>
+``disabled_actions``&nbsp;render&nbsp;greyed-out&nbsp;—&nbsp;the&nbsp;steps&nbsp;that&nbsp;exist&nbsp;in<br>
+the&nbsp;design&nbsp;but&nbsp;not&nbsp;yet&nbsp;in&nbsp;the&nbsp;code&nbsp;(no&nbsp;mod,&nbsp;no&nbsp;game&nbsp;yet).</span></dd></dl>
  <dl><dt><a name="-build_match_report"><strong>build_match_report</strong></a>(title: 'str', summary: 'str', details: 'Sequence[tuple[str, str]]', *, mod: 'str', links: 'Sequence[Button]' = (), thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;match&nbsp;report:&nbsp;header,&nbsp;summary&nbsp;section,&nbsp;paged&nbsp;detail&nbsp;rows.<br>
 &nbsp;<br>
 ``details``&nbsp;are&nbsp;(label,&nbsp;value)&nbsp;pairs&nbsp;rendered&nbsp;as&nbsp;a&nbsp;section&nbsp;each.</span></dd></dl>
@@ -179,5 +189,5 @@ receiving&nbsp;the&nbsp;interaction&nbsp;(wired&nbsp;as&nbsp;Action&nbsp;buttons
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>PAGE_SIZE</strong> = 10<br>
-<strong>__all__</strong> = ['PAGE_SIZE', 'Option', 'PaginatedScreen', 'Ranking', 'build_config_panel', 'build_match_report', 'render_ranking']</td></tr></table>
+<strong>__all__</strong> = ['PAGE_SIZE', 'Option', 'PaginatedScreen', 'Ranking', 'build_config_panel', 'build_enrollment_screen', 'build_match_report', 'render_ranking']</td></tr></table>
 </body></html>
