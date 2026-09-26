@@ -15,6 +15,7 @@ smoke CI is preserved (kingdoms-services#34).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass, field
@@ -114,6 +115,9 @@ class KingdomsBot(discord.Client):
         self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
+        self.admin_channel_service: AdminChannelService | None = None
+        self._provisioned = False
+        self._provision_task: asyncio.Task[None] | None = None
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -124,6 +128,7 @@ class KingdomsBot(discord.Client):
             self.user,
             len(self.guilds),
         )
+        announce_enabled = self.config.announce_enabled.strip().lower() not in {"0", "false", "no"}
         await announce_startup(
             self,
             self.status_service,
@@ -133,12 +138,14 @@ class KingdomsBot(discord.Client):
             ),
             logs_service=self.logs_service,
             deploy_env=self.config.deploy_env,
-            enabled=self.config.announce_enabled.strip().lower() not in {"0", "false", "no"},
+            enabled=announce_enabled,
             thumbnail_url=self.user.display_avatar.url if self.user else "",
             locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
             commands=self.tree.get_commands(),
         )
         self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
+        if announce_enabled:
+            self._provision_task = asyncio.create_task(self._provision_default_channels())
         if self._synced:
             return
         self._synced = True
@@ -153,6 +160,40 @@ class KingdomsBot(discord.Client):
         except Exception:
             self._synced = False
             logger.exception("SLASH COMMAND SYNC FAILED")
+
+    async def _provision_default_channels(self) -> None:
+        """Create the default channels (🛰-bot-logs, 🛡-bot-admins) where missing.
+
+        Both resolutions are idempotent (cache-aside: Redis → MongoDB →
+        adoption → creation), so a guild already provisioned costs one
+        cache read. The transparency contract rides along on the admin
+        channel (role provisioned, BOT_ADMINS synced in). Silenced by
+        KINGDOMS_ANNOUNCE_ENABLED=0: the CI/CD smoke bot boots against
+        the shared guilds and must never touch their channels.
+        """
+        if self._provisioned:
+            return
+        if self.config.announce_enabled.strip().lower() in {"0", "false", "no"}:
+            logger.info("DEFAULT CHANNEL provisioning skipped: announcements disabled (CI/CD smoke bot?)")
+            self._provisioned = True
+            return
+        self._provisioned = True
+        admin_ids = self.status_service.bot_admins
+        for guild in list(self.guilds):
+            guild_id = str(guild.id)
+            if self.logs_service is not None:
+                try:
+                    await self.logs_service.resolve_channel(guild_id)
+                except Exception:
+                    logger.warning("LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
+            if self.admin_channel_service is not None:
+                try:
+                    await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
+                except Exception:
+                    logger.warning(
+                        "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
+                    )
+            logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
 
     async def on_tree_error(
         self,
@@ -230,6 +271,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.logs_service = _build_log_service(resolved, bot)
     roles_service = _build_roles_service(resolved, bot)
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
+    bot.admin_channel_service = admin_channel_service
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.enrollment import register_enrollment_command
     from kingdoms.discord.status import register_status_command
