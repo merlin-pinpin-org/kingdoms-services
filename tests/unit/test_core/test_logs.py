@@ -32,6 +32,7 @@ class FakeLogsDatabase:
     def __init__(self) -> None:
         self.channels: dict[str, ChannelModel] = {}
         self.policies: dict[str, dict[str, Any]] = {}
+        self.settings: dict[str, dict[str, Any]] = {}
         self.created_order: list[str] = []
 
     async def find_channel(self, guild_id: str, category: str) -> ChannelModel | None:
@@ -50,6 +51,12 @@ class FakeLogsDatabase:
     async def set_policy(self, guild_id: str, category: str, policy: dict[str, Any]) -> None:
         self.policies[f"{guild_id}:{category}"] = dict(policy)
 
+    async def get_guild_settings(self, guild_id: str) -> dict[str, Any] | None:
+        return self.settings.get(guild_id)
+
+    async def set_guild_settings(self, guild_id: str, settings: dict[str, Any]) -> None:
+        self.settings[guild_id] = dict(settings)
+
 
 class FakeLogsPlatform:
     """In-memory LogsPlatform: channel created once, deletable, no Discord."""
@@ -58,11 +65,13 @@ class FakeLogsPlatform:
         self.next_channel_id = 1000
         self.live_channels: set[str] = set()
         self.default_policy_applied: list[str] = []
+        self.public_policy_applied: list[str] = []
         self.role_grants: list[tuple[str, str]] = []
         self.sent: list[tuple[str, str]] = []
         self.layouts: list[tuple[str, Any]] = []
         self.exists_calls = 0
         self.adoptable: set[str] = set()
+        self.channel_names: dict[str, str] = {}
 
     async def find_logs_channel(self, guild_id: str) -> str | None:
         adopted = sorted(self.adoptable & self.live_channels)
@@ -76,6 +85,15 @@ class FakeLogsPlatform:
 
     async def apply_default_policy(self, guild_id: str, channel_id: str) -> None:
         self.default_policy_applied.append(channel_id)
+
+    async def apply_public_policy(self, guild_id: str, channel_id: str) -> None:
+        self.public_policy_applied.append(channel_id)
+
+    async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
+        return [
+            {"id": channel_id, "name": self.channel_names.get(channel_id, channel_id)}
+            for channel_id in sorted(self.live_channels)
+        ]
 
     async def grant_role_view(self, guild_id: str, channel_id: str, role_id: str) -> None:
         self.role_grants.append((channel_id, role_id))
@@ -271,3 +289,81 @@ async def test_redis_down_degrades_to_mongo(
     channel_id = await service.resolve_channel(GUILD)
     assert channel_id is not None
     assert database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"].channel_id == channel_id
+
+
+@pytest.mark.asyncio
+async def test_set_channel_reroutes_and_reapplies_rights(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """Routing to an existing channel: the policy follows the routing."""
+    old = await service.resolve_channel(GUILD)
+    assert old is not None
+    await service.grant_role_view_access(GUILD, "777", by="42")
+    platform.live_channels.add("5555")
+    platform.default_policy_applied.clear()
+    await service.set_channel(GUILD, "5555", by="42")
+    assert database.channels[f"{GUILD}:{BOT_LOGS_CATEGORY}"].channel_id == "5555"
+    assert "5555" in platform.default_policy_applied, "the visibility policy is re-applied"
+    assert ("5555", "777") in platform.role_grants, "the role grants follow the routing"
+    assert "5555" in platform.sent[-1][1] or "<#5555>" in platform.sent[-1][1]
+
+
+@pytest.mark.asyncio
+async def test_set_channel_rejects_unknown_channel(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    await service.resolve_channel(GUILD)
+    with pytest.raises(ValueError):
+        await service.set_channel(GUILD, "9999", by="42")
+
+
+@pytest.mark.asyncio
+async def test_set_visibility_public_then_back(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """Visibility toggling: public opens the channel, admin-only restores
+    the default overwrites and re-applies the role grants."""
+    channel_id = await service.resolve_channel(GUILD)
+    assert channel_id is not None
+    await service.grant_role_view_access(GUILD, "777", by="42")
+    platform.default_policy_applied.clear()
+    platform.role_grants.clear()
+
+    await service.set_visibility(GUILD, public=True, by="42")
+    policy = await service.get_access_policy(GUILD)
+    assert policy["default"] == "public"
+    assert platform.public_policy_applied == [channel_id]
+    assert "public" in platform.sent[-1][1]
+
+    await service.set_visibility(GUILD, public=False, by="42")
+    policy = await service.get_access_policy(GUILD)
+    assert policy["default"] == "admin_only"
+    assert platform.default_policy_applied == [channel_id]
+    assert (channel_id, "777") in platform.role_grants, "grants are restored on admin-only"
+
+
+@pytest.mark.asyncio
+async def test_locale_roundtrip_and_fallback(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    await service.resolve_channel(GUILD)
+    assert await service.get_locale(GUILD) == "en", "the default locale is en"
+    await service.set_locale(GUILD, "fr", by="42")
+    assert await service.get_locale(GUILD) == "fr"
+    assert database.settings[GUILD]["locale"] == "fr"
+    with pytest.raises(ValueError):
+        await service.set_locale(GUILD, "de", by="42")
+
+
+@pytest.mark.asyncio
+async def test_list_text_channels_serves_the_picker(
+    service: LogService, platform: FakeLogsPlatform
+) -> None:
+    await service.resolve_channel(GUILD)
+    platform.live_channels.add("5555")
+    platform.channel_names["5555"] = "general"
+    channels = await service.list_text_channels(GUILD)
+    ids = [c["id"] for c in channels]
+    assert "5555" in ids
+    entry = next(c for c in channels if c["id"] == "5555")
+    assert entry["name"] == "general"

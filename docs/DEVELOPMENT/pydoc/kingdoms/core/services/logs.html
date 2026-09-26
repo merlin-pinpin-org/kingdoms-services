@@ -133,7 +133,11 @@ Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;life
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 
+<dl><dt>async <a name="LogService-get_locale"><strong>get_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
+
 <dl><dt>async <a name="LogService-grant_role_view_access"><strong>grant_role_view_access</strong></a>(self, guild_id: 'str', role_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name)&nbsp;for&nbsp;the&nbsp;admin&nbsp;picker.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-log_crash_loop"><strong>log_crash_loop</strong></a>(self, guild_id: 'str', base_event: 'LifecycleEvent') -&gt; 'None'</dt><dd><span class="code">Collapse&nbsp;repeated&nbsp;start/stop&nbsp;into&nbsp;one&nbsp;crash-loop&nbsp;event&nbsp;with&nbsp;a&nbsp;counter.</span></dd></dl>
 
@@ -142,6 +146,20 @@ Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;life
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;MongoDB&nbsp;→&nbsp;creation&nbsp;(admin-only).</span></dd></dl>
+
+<dl><dt>async <a name="LogService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;bot&nbsp;logs&nbsp;to&nbsp;an&nbsp;existing&nbsp;channel;&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.<br>
+&nbsp;<br>
+The&nbsp;channel&nbsp;must&nbsp;already&nbsp;exist&nbsp;on&nbsp;the&nbsp;platform&nbsp;(the&nbsp;admin&nbsp;picks<br>
+it&nbsp;from&nbsp;the&nbsp;guild's&nbsp;channels);&nbsp;the&nbsp;current&nbsp;visibility&nbsp;policy&nbsp;is<br>
+re-applied&nbsp;on&nbsp;the&nbsp;new&nbsp;target&nbsp;so&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-set_locale"><strong>set_locale</strong></a>(self, guild_id: 'str', locale: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(fr/en);&nbsp;audited&nbsp;as&nbsp;an&nbsp;event.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-set_visibility"><strong>set_visibility</strong></a>(self, guild_id: 'str', public: 'bool', by: 'str') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;logs&nbsp;channel&nbsp;visibility&nbsp;(public/admin-only);&nbsp;audited.<br>
+&nbsp;<br>
+The&nbsp;policy&nbsp;is&nbsp;persisted&nbsp;first,&nbsp;the&nbsp;platform&nbsp;overwrites&nbsp;second&nbsp;—<br>
+a&nbsp;crash&nbsp;in&nbsp;between&nbsp;leaves&nbsp;the&nbsp;channel&nbsp;more&nbsp;restrictive&nbsp;than&nbsp;the<br>
+record,&nbsp;never&nbsp;the&nbsp;reverse.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -175,7 +193,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
 
+<dl><dt>async <a name="LogsDatabase-get_guild_settings"><strong>get_guild_settings</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;per-guild&nbsp;settings&nbsp;(locale,&nbsp;...).</span></dd></dl>
+
 <dl><dt>async <a name="LogsDatabase-get_policy"><strong>get_policy</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;persisted&nbsp;access&nbsp;policy&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="LogsDatabase-set_guild_settings"><strong>set_guild_settings</strong></a>(self, guild_id: 'str', settings: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;per-guild&nbsp;settings&nbsp;(upsert).</span></dd></dl>
 
 <dl><dt>async <a name="LogsDatabase-set_policy"><strong>set_policy</strong></a>(self, guild_id: 'str', category: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;access&nbsp;policy&nbsp;(upsert).</span></dd></dl>
 
@@ -201,7 +223,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_channel', 'find_channel', 'get_policy', 'set_policy', 'upsert_channel'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_channel', 'find_channel', 'get_guild_settings', 'get_policy', 'set_guild_settings', 'set_policy', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -240,6 +262,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsPlatform-apply_default_policy"><strong>apply_default_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;admin-only&nbsp;default&nbsp;permission&nbsp;overwrites.</span></dd></dl>
 
+<dl><dt>async <a name="LogsPlatform-apply_public_policy"><strong>apply_public_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;channel&nbsp;to&nbsp;everyone&nbsp;(public&nbsp;visibility).</span></dd></dl>
+
 <dl><dt>async <a name="LogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
@@ -247,6 +271,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="LogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;logs&nbsp;channel&nbsp;by&nbsp;name;&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;none.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
+
+<dl><dt>async <a name="LogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name)&nbsp;for&nbsp;the&nbsp;admin&nbsp;picker.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
 
@@ -270,7 +296,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', 'send_log_message'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -306,6 +332,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
 <strong>CRASH_LOOP_THRESHOLD</strong> = 3<br>
 <strong>CRASH_LOOP_WINDOW_SECONDS</strong> = 300<br>
+<strong>GUILD_SETTINGS_COLLECTION</strong> = 'guild_settings'<br>
 <strong>POLICIES_COLLECTION</strong> = 'channel_access_policies'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.logs (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -130,6 +130,7 @@ class KingdomsBot(discord.Client):
             deploy_env=self.config.deploy_env,
             enabled=self.config.announce_enabled.strip().lower() not in {"0", "false", "no"},
             thumbnail_url=self.user.display_avatar.url if self.user else "",
+            locale_resolver=self.logs_service.get_locale if self.logs_service is not None else None,
         )
         if self._synced:
             return

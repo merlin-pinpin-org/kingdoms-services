@@ -22,6 +22,7 @@ from kingdoms.core.services.logs import (
     BOT_LOGS_CATEGORY,
     BOT_LOGS_CHANNEL_NAME,
     CHANNELS_COLLECTION,
+    GUILD_SETTINGS_COLLECTION,
     POLICIES_COLLECTION,
 )
 
@@ -35,6 +36,7 @@ class MongoLogsDatabase:
         """Wrap an async MongoDB database (get_async_database)."""
         self._channels = database[CHANNELS_COLLECTION]
         self._policies = database[POLICIES_COLLECTION]
+        self._settings = database[GUILD_SETTINGS_COLLECTION]
 
     async def find_channel(self, guild_id: str, category: str) -> ChannelModel | None:
         """Find the persisted channel document for a guild category."""
@@ -64,6 +66,19 @@ class MongoLogsDatabase:
         await self._policies.replace_one(
             {"_id": f"{guild_id}:{category}"},
             {**policy, "_id": f"{guild_id}:{category}"},
+            upsert=True,
+        )
+
+    async def get_guild_settings(self, guild_id: str) -> dict[str, Any] | None:
+        """Read the persisted per-guild settings (locale, ...)."""
+        document = await self._settings.find_one({"_id": guild_id})
+        return dict(document) if document else None
+
+    async def set_guild_settings(self, guild_id: str, settings: dict[str, Any]) -> None:
+        """Persist the per-guild settings (upsert, audit fields included)."""
+        await self._settings.replace_one(
+            {"_id": guild_id},
+            {**settings, "_id": guild_id},
             upsert=True,
         )
 
@@ -122,6 +137,32 @@ class DiscordLogsPlatform:
             guild.default_role, overwrite=overwrite_everyone, reason="bot logs: admin-only default"
         )
         logger.info("BOT LOGS default policy applied: guild=%s channel=%s", guild_id, channel_id)
+
+    async def apply_public_policy(self, guild_id: str, channel_id: str) -> None:
+        """Public visibility: @everyone may view, the bot keeps its rights."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return
+        channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() else None
+        if not isinstance(channel, discord.TextChannel):
+            return
+        overwrite_everyone = discord.PermissionOverwrite(view_channel=True, read_message_history=True)
+        overwrite_admins = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+        await channel.set_permissions(guild.me, overwrite=overwrite_admins, reason="bot logs: bot access")
+        await channel.set_permissions(
+            guild.default_role, overwrite=overwrite_everyone, reason="bot logs: public visibility (/admin)"
+        )
+        logger.info("BOT LOGS public policy applied: guild=%s channel=%s", guild_id, channel_id)
+
+    async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
+        """List the guild's text channels (id, name), name-sorted."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return []
+        return [
+            {"id": str(channel.id), "name": channel.name}
+            for channel in sorted(guild.text_channels, key=lambda c: c.name)
+        ]
 
     async def grant_role_view(self, guild_id: str, channel_id: str, role_id: str) -> None:
         """Grant a role view access on the logs channel."""

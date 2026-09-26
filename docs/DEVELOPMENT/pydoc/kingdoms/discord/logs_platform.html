@@ -57,6 +57,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;sea
 
 <dl><dt>async <a name="DiscordLogsPlatform-apply_default_policy"><strong>apply_default_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Admin-only&nbsp;default:&nbsp;@everyone&nbsp;denied,&nbsp;guild&nbsp;admins&nbsp;allowed.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordLogsPlatform-apply_public_policy"><strong>apply_public_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Public&nbsp;visibility:&nbsp;@everyone&nbsp;may&nbsp;view,&nbsp;the&nbsp;bot&nbsp;keeps&nbsp;its&nbsp;rights.</span></dd></dl>
+
 <dl><dt>async <a name="DiscordLogsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;🤖-bot-logs&nbsp;text&nbsp;channel&nbsp;in&nbsp;the&nbsp;guild.</span></dd></dl>
@@ -64,6 +66,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;sea
 <dl><dt>async <a name="DiscordLogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;🤖-bot-logs&nbsp;channel&nbsp;by&nbsp;name&nbsp;(adoption).</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordLogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name),&nbsp;name-sorted.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
 
@@ -92,7 +96,11 @@ Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;logs&nbsp;channel&nbs
 
 <dl><dt>async <a name="MongoLogsDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
 
+<dl><dt>async <a name="MongoLogsDatabase-get_guild_settings"><strong>get_guild_settings</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;persisted&nbsp;per-guild&nbsp;settings&nbsp;(locale,&nbsp;...).</span></dd></dl>
+
 <dl><dt>async <a name="MongoLogsDatabase-get_policy"><strong>get_policy</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;persisted&nbsp;access&nbsp;policy&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="MongoLogsDatabase-set_guild_settings"><strong>set_guild_settings</strong></a>(self, guild_id: 'str', settings: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;per-guild&nbsp;settings&nbsp;(upsert,&nbsp;audit&nbsp;fields&nbsp;included).</span></dd></dl>
 
 <dl><dt>async <a name="MongoLogsDatabase-set_policy"><strong>set_policy</strong></a>(self, guild_id: 'str', category: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;access&nbsp;policy&nbsp;(upsert,&nbsp;audit&nbsp;fields&nbsp;included).</span></dd></dl>
 
@@ -122,6 +130,7 @@ Data descriptors defined here:<br>
 <td class="singlecolumn"><strong>BOT_LOGS_CATEGORY</strong> = 'bot_logs'<br>
 <strong>BOT_LOGS_CHANNEL_NAME</strong> = '🤖-bot-logs'<br>
 <strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
+<strong>GUILD_SETTINGS_COLLECTION</strong> = 'guild_settings'<br>
 <strong>POLICIES_COLLECTION</strong> = 'channel_access_policies'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.logs.discord (WARNING)&gt;</td></tr></table>
 </body></html>

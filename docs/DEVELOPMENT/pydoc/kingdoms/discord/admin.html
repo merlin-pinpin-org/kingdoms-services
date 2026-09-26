@@ -16,16 +16,20 @@ administrators&nbsp;(developer&nbsp;decision,&nbsp;kingdoms-services#109):&nbsp;
 and&nbsp;its&nbsp;actions&nbsp;are&nbsp;operational,&nbsp;the&nbsp;gate&nbsp;is&nbsp;in&nbsp;place&nbsp;before&nbsp;further<br>
 admin&nbsp;features&nbsp;land.<br>
 &nbsp;<br>
-The&nbsp;panel&nbsp;exposes&nbsp;the&nbsp;**bot&nbsp;logs&nbsp;channel&nbsp;management**&nbsp;(kingdoms-services<br>
-#109):&nbsp;the&nbsp;resolved&nbsp;🤖-bot-logs&nbsp;channel&nbsp;for&nbsp;the&nbsp;invoking&nbsp;guild,&nbsp;its<br>
-access&nbsp;policy,&nbsp;and&nbsp;the&nbsp;policy&nbsp;action&nbsp;—&nbsp;grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;through<br>
-the&nbsp;command's&nbsp;``role``&nbsp;parameter.&nbsp;Every&nbsp;action&nbsp;is&nbsp;audited&nbsp;as&nbsp;a&nbsp;lifecycle<br>
-event&nbsp;in&nbsp;the&nbsp;logs&nbsp;channel&nbsp;itself.<br>
+The&nbsp;panel&nbsp;manages&nbsp;the&nbsp;**bot&nbsp;logs&nbsp;channel**&nbsp;(kingdoms-services#109):<br>
 &nbsp;<br>
-First&nbsp;command&nbsp;using&nbsp;a&nbsp;``<a href="discord.ui.view.html#LayoutView">LayoutView</a>``&nbsp;(ADR-0009&nbsp;dual&nbsp;Discord&nbsp;UI&nbsp;system):<br>
-instead&nbsp;of&nbsp;a&nbsp;plain&nbsp;embed,&nbsp;the&nbsp;answer&nbsp;is&nbsp;a&nbsp;Components&nbsp;V2&nbsp;layout&nbsp;—&nbsp;a<br>
-container&nbsp;with&nbsp;a&nbsp;text&nbsp;header&nbsp;and&nbsp;a&nbsp;section&nbsp;whose&nbsp;button&nbsp;reacts&nbsp;live.<br>
-Custom&nbsp;IDs&nbsp;follow&nbsp;the&nbsp;``&lt;mod&gt;:&lt;component&gt;:&lt;payload&gt;``&nbsp;convention.<br>
+-&nbsp;**routing**&nbsp;—&nbsp;pick&nbsp;any&nbsp;guild&nbsp;text&nbsp;channel&nbsp;from&nbsp;a&nbsp;dropdown;&nbsp;the<br>
+&nbsp;&nbsp;current&nbsp;visibility&nbsp;policy&nbsp;(and&nbsp;role&nbsp;grants)&nbsp;is&nbsp;re-applied&nbsp;on&nbsp;the<br>
+&nbsp;&nbsp;new&nbsp;target,&nbsp;so&nbsp;the&nbsp;rights&nbsp;follow&nbsp;the&nbsp;routing;<br>
+-&nbsp;**visibility**&nbsp;—&nbsp;admin-only&nbsp;(default)&nbsp;or&nbsp;public,&nbsp;synchronized&nbsp;with<br>
+&nbsp;&nbsp;the&nbsp;Discord&nbsp;permission&nbsp;overwrites&nbsp;and&nbsp;persisted&nbsp;in&nbsp;the&nbsp;policy;<br>
+-&nbsp;**language**&nbsp;—&nbsp;fr/en,&nbsp;persisted&nbsp;per&nbsp;guild&nbsp;(guild&nbsp;settings).<br>
+&nbsp;<br>
+Every&nbsp;action&nbsp;is&nbsp;audited&nbsp;as&nbsp;a&nbsp;lifecycle&nbsp;event&nbsp;in&nbsp;the&nbsp;logs&nbsp;channel<br>
+itself.&nbsp;All&nbsp;interactive&nbsp;components&nbsp;are&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK<br>
+(ADR-0009):&nbsp;Actions,&nbsp;SelectMenus&nbsp;and&nbsp;a&nbsp;ChannelSelect&nbsp;(channel&nbsp;picker<br>
+with&nbsp;native&nbsp;autocomplete),&nbsp;custom&nbsp;IDs&nbsp;following&nbsp;the<br>
+``&lt;mod&gt;:&lt;component&gt;:&lt;payload&gt;``&nbsp;convention.<br>
 &nbsp;<br>
 Reference:&nbsp;kingdoms-services#102,&nbsp;#109.</span></p>
 <p>
@@ -299,6 +303,10 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_admin_layout"><strong>build_admin_layout</strong></a>() -&gt; 'AdminLayout'</dt><dd><span class="code">Build&nbsp;the&nbsp;/admin&nbsp;layout&nbsp;(standalone&nbsp;for&nbsp;tests).</span></dd></dl>
  <dl><dt><a name="-build_admin_note_view"><strong>build_admin_note_view</strong></a>(message: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;single-note&nbsp;admin&nbsp;layout&nbsp;(degradation&nbsp;paths),&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK.</span></dd></dl>
+ <dl><dt>async <a name="-build_admin_panel"><strong>build_admin_panel</strong></a>(logs_service: 'LogService', guild_id: 'str', by: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;live&nbsp;admin&nbsp;panel&nbsp;for&nbsp;a&nbsp;guild:&nbsp;routing,&nbsp;visibility,&nbsp;language.<br>
+&nbsp;<br>
+Pure&nbsp;display&nbsp;+&nbsp;interactive&nbsp;components,&nbsp;all&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK;&nbsp;the<br>
+callbacks&nbsp;close&nbsp;over&nbsp;the&nbsp;guild&nbsp;so&nbsp;the&nbsp;same&nbsp;panel&nbsp;serves&nbsp;every&nbsp;guild.</span></dd></dl>
  <dl><dt><a name="-build_logs_policy_view"><strong>build_logs_policy_view</strong></a>(guild_id: 'str', channel_id: 'str | None', policy_lines: 'list[str]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;logs&nbsp;policy&nbsp;section:&nbsp;pure&nbsp;display,&nbsp;built&nbsp;through&nbsp;the&nbsp;UI&nbsp;SDK.</span></dd></dl>
  <dl><dt><a name="-register_admin_command"><strong>register_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), logs_service: 'LogService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/admin&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
 &nbsp;<br>
@@ -313,6 +321,12 @@ note.&nbsp;Access:&nbsp;BOT_ADMINS&nbsp;or&nbsp;guild&nbsp;administrators&nbsp;(
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BLURPLE</strong> = 5793266<br>
+<strong>CHANNEL_SELECT_ID</strong> = 'admin:channels:logs'<br>
+<strong>LOCALES</strong> = ('en', 'fr')<br>
+<strong>LOCALE_SELECT_ID</strong> = 'admin:select:locale'<br>
 <strong>PING_BUTTON_ID</strong> = 'admin:button:ping'<br>
+<strong>VISIBILITY_ADMIN_ONLY</strong> = 'admin_only'<br>
+<strong>VISIBILITY_PUBLIC</strong> = 'public'<br>
+<strong>VISIBILITY_SELECT_ID</strong> = 'admin:select:visibility'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.admin (WARNING)&gt;</td></tr></table>
 </body></html>

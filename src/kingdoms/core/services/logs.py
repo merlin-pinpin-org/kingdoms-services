@@ -40,6 +40,7 @@ BOT_LOGS_CATEGORY = str(ChannelCategory.BOT_LOGS)
 BOT_LOGS_CHANNEL_NAME = "🤖-bot-logs"
 CHANNELS_COLLECTION = "channels"
 POLICIES_COLLECTION = "channel_access_policies"
+GUILD_SETTINGS_COLLECTION = "guild_settings"
 CACHE_TTL_SECONDS = 3600
 CRASH_LOOP_WINDOW_SECONDS = 300
 CRASH_LOOP_THRESHOLD = 3
@@ -72,6 +73,14 @@ class LogsDatabase(Protocol):
         """Persist the access policy (upsert)."""
         ...
 
+    async def get_guild_settings(self, guild_id: str) -> dict[str, Any] | None:
+        """Read the per-guild settings (locale, ...)."""
+        ...
+
+    async def set_guild_settings(self, guild_id: str, settings: dict[str, Any]) -> None:
+        """Persist the per-guild settings (upsert)."""
+        ...
+
 
 class LogsPlatform(Protocol):
     """Narrow platform seam: creation, permissions, sending."""
@@ -88,6 +97,10 @@ class LogsPlatform(Protocol):
         """Apply the admin-only default permission overwrites."""
         ...
 
+    async def apply_public_policy(self, guild_id: str, channel_id: str) -> None:
+        """Open the channel to everyone (public visibility)."""
+        ...
+
     async def grant_role_view(self, guild_id: str, channel_id: str, role_id: str) -> None:
         """Grant a role view access on the logs channel."""
         ...
@@ -98,6 +111,10 @@ class LogsPlatform(Protocol):
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""
+        ...
+
+    async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
+        """List the guild's text channels (id, name) for the admin picker."""
         ...
 
 
@@ -238,6 +255,91 @@ class LogService:
         await self.log_event(
             guild_id,
             LifecycleEvent(kind="policy", message=f"Access policy reset to admin-only, by <@{by}>."),
+        )
+
+    async def set_channel(self, guild_id: str, channel_id: str, by: str) -> None:
+        """Route the bot logs to an existing channel; audited as an event.
+
+        The channel must already exist on the platform (the admin picks
+        it from the guild's channels); the current visibility policy is
+        re-applied on the new target so the rights follow the routing.
+        """
+        if not await self._platform.channel_exists(guild_id, channel_id):
+            raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
+        policy = await self.get_access_policy(guild_id)
+        previous = await self._db.find_channel(guild_id, BOT_LOGS_CATEGORY)
+        await self._db.upsert_channel(
+            ChannelModel(
+                _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",
+                guild_id=guild_id,
+                platform="discord",
+                category=BOT_LOGS_CATEGORY,
+                channel_id=channel_id,
+                name=BOT_LOGS_CHANNEL_NAME,
+            )
+        )
+        await self._cache(guild_id, channel_id)
+        if policy.get("default") == "public":
+            await self._platform.apply_public_policy(guild_id, channel_id)
+        else:
+            await self._platform.apply_default_policy(guild_id, channel_id)
+        for role_id in policy.get("roles_with_view", []):
+            await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
+        previous_note = f" (was <#{previous.channel_id}>)" if previous is not None else ""
+        await self.log_event(
+            guild_id,
+            LifecycleEvent(
+                kind="policy", message=f"Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
+            ),
+        )
+
+    async def set_visibility(self, guild_id: str, public: bool, by: str) -> None:
+        """Set the logs channel visibility (public/admin-only); audited.
+
+        The policy is persisted first, the platform overwrites second —
+        a crash in between leaves the channel more restrictive than the
+        record, never the reverse.
+        """
+        policy = await self.get_access_policy(guild_id)
+        policy["default"] = "public" if public else "admin_only"
+        policy["updated_at"] = int(time.time())
+        await self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, policy)
+        channel_id = await self.resolve_channel(guild_id)
+        if channel_id:
+            if public:
+                await self._platform.apply_public_policy(guild_id, channel_id)
+            else:
+                await self._platform.apply_default_policy(guild_id, channel_id)
+                for role_id in policy.get("roles_with_view", []):
+                    await self._platform.grant_role_view(guild_id, channel_id, str(role_id))
+        state = "public" if public else "admin-only"
+        await self.log_event(
+            guild_id,
+            LifecycleEvent(kind="policy", message=f"Bot logs visibility set to {state}, by <@{by}>."),
+        )
+
+    async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
+        """List the guild's text channels (id, name) for the admin picker."""
+        return await self._platform.list_text_channels(guild_id)
+
+    async def get_locale(self, guild_id: str) -> str:
+        """Read the guild's locale (en fallback)."""
+        settings = await self._safe(self._db.get_guild_settings(guild_id))
+        locale = str((settings or {}).get("locale", ""))
+        return locale if locale in ("en", "fr") else "en"
+
+    async def set_locale(self, guild_id: str, locale: str, by: str) -> None:
+        """Persist the guild's locale (fr/en); audited as an event."""
+        if locale not in ("en", "fr"):
+            raise ValueError(f"unsupported locale: {locale!r}")
+        settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+        settings["locale"] = locale
+        settings["updated_at"] = int(time.time())
+        settings["updated_by"] = by
+        await self._db.set_guild_settings(guild_id, settings)
+        await self.log_event(
+            guild_id,
+            LifecycleEvent(kind="policy", message=f"Language set to {locale}, by <@{by}>."),
         )
 
     async def _cache(self, guild_id: str, channel_id: str) -> None:
