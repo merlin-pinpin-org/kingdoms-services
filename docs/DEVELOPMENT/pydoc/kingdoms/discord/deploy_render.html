@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.deploy_render</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.deploy_render</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/deploy_render.py">SOURCE_ROOT/discord/deploy_render.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;deploy-artifact&nbsp;rendering:&nbsp;one&nbsp;identity,&nbsp;two&nbsp;renderings.<br>
+&nbsp;<br>
+The&nbsp;startup&nbsp;announcement&nbsp;(Components&nbsp;V2&nbsp;—&nbsp;links&nbsp;are&nbsp;buttons)&nbsp;and&nbsp;the<br>
+/status&nbsp;embed&nbsp;(markdown&nbsp;links)&nbsp;show&nbsp;the&nbsp;**same&nbsp;deployment&nbsp;identity**;<br>
+these&nbsp;helpers&nbsp;are&nbsp;the&nbsp;single&nbsp;source&nbsp;of&nbsp;truth&nbsp;for&nbsp;it&nbsp;(developer<br>
+mandate:&nbsp;/status&nbsp;and&nbsp;the&nbsp;announcement&nbsp;must&nbsp;converge,&nbsp;kingdoms-services<br>
+#109):<br>
+&nbsp;<br>
+-&nbsp;each&nbsp;artifact&nbsp;(services&nbsp;commit,&nbsp;docker&nbsp;image,&nbsp;infra&nbsp;state&nbsp;commit,<br>
+&nbsp;&nbsp;deployment&nbsp;run)&nbsp;carries&nbsp;its&nbsp;own&nbsp;timestamp,&nbsp;split&nbsp;by&nbsp;nature:<br>
+&nbsp;&nbsp;Committed&nbsp;(the&nbsp;source/state&nbsp;commit)&nbsp;vs&nbsp;Built&nbsp;(the&nbsp;image)&nbsp;vs<br>
+&nbsp;&nbsp;Deployed&nbsp;(the&nbsp;run);<br>
+-&nbsp;the&nbsp;docker&nbsp;tag&nbsp;renders&nbsp;shortened&nbsp;(sha7&nbsp;+&nbsp;short&nbsp;stamp)&nbsp;—&nbsp;the&nbsp;full<br>
+&nbsp;&nbsp;pr-&lt;id&gt;-&lt;stamp&gt;-&lt;sha&gt;&nbsp;tag&nbsp;never&nbsp;renders&nbsp;anywhere;<br>
+-&nbsp;both&nbsp;renderers&nbsp;degrade&nbsp;the&nbsp;same&nbsp;way&nbsp;on&nbsp;partial&nbsp;pipeline&nbsp;data.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-docker_tag"><strong>docker_tag</strong></a>(image: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;docker&nbsp;tag&nbsp;from&nbsp;a&nbsp;pinned&nbsp;image&nbsp;reference.</span></dd></dl>
+ <dl><dt><a name="-infra_commit_ts"><strong>infra_commit_ts</strong></a>(status: 'StatusService') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;infra&nbsp;state&nbsp;commit&nbsp;timestamp&nbsp;(relative-time&nbsp;ready).</span></dd></dl>
+ <dl><dt><a name="-is_unix"><strong>is_unix</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;deploy&nbsp;timestamp&nbsp;field&nbsp;is&nbsp;a&nbsp;usable&nbsp;unix&nbsp;timestamp.</span></dd></dl>
+ <dl><dt><a name="-relative_time"><strong>relative_time</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;unix&nbsp;timestamp&nbsp;as&nbsp;a&nbsp;Discord&nbsp;relative&nbsp;time&nbsp;(empty-safe).</span></dd></dl>
+ <dl><dt><a name="-services_commit_ts"><strong>services_commit_ts</strong></a>(status: 'StatusService') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;services&nbsp;commit&nbsp;timestamp&nbsp;(relative-time&nbsp;ready).</span></dd></dl>
+ <dl><dt><a name="-sha7_of"><strong>sha7_of</strong></a>(tree_url: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;deployed&nbsp;commit&nbsp;sha7&nbsp;from&nbsp;its&nbsp;tree&nbsp;URL.</span></dd></dl>
+ <dl><dt><a name="-short_tag"><strong>short_tag</strong></a>(tag: 'str') -&gt; 'str'</dt><dd><span class="code">Shorten&nbsp;a&nbsp;docker&nbsp;tag&nbsp;for&nbsp;display&nbsp;(sha7&nbsp;+&nbsp;short&nbsp;stamp).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
+<strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
+<strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'</td></tr></table>
+</body></html>

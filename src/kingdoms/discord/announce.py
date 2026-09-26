@@ -46,6 +46,15 @@ import yaml
 
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.status import StatusService
+from kingdoms.discord.deploy_render import (
+    INFRA_REPO_URL,
+    PACKAGE_URL,
+    SERVICES_REPO_URL,
+    docker_tag,
+    relative_time,
+    sha7_of,
+    short_tag,
+)
 from kingdoms.discord.ui import (
     BLURPLE,
     Button,
@@ -61,40 +70,7 @@ logger = logging.getLogger("kingdoms.bot.announce")
 
 FOOTER_PREFIX = "kingdoms-deploy"
 
-SERVICES_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-services"
-INFRA_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-infra"
-PACKAGE_URL = f"{SERVICES_REPO_URL}/pkgs/container/kingdoms-services"
-
 _VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "release": "release_button"}
-
-
-def _sha7(tree_url: str) -> str:
-    """Extract the deployed commit sha from its tree URL."""
-    return tree_url.rstrip("/").rsplit("/", 1)[-1][:7]
-
-
-def _unix(value: str) -> bool:
-    """Whether a deploy timestamp field is a usable unix timestamp."""
-    return value.strip().isdigit()
-
-
-def _relative(value: str) -> str:
-    """Render a unix timestamp as a Discord relative time (empty-safe)."""
-    return f"<t:{value.strip()}:R>" if _unix(value) else ""
-
-
-def _docker_tag(image: str) -> str:
-    """Extract the short docker tag from a pinned image reference."""
-    return image.rsplit(":", 1)[-1] if ":" in image else image
-
-
-def _short_tag(tag: str) -> str:
-    """Shorten a docker tag for a button label (sha7 + build stamp)."""
-    parts = tag.rsplit("-", 2)
-    if len(parts) == 3:
-        stamp, sha = parts[1], parts[2]
-        return f"{stamp}-{sha}" if len(stamp) <= 8 else sha
-    return tag[:20]
 
 
 ANNOUNCEMENT_HEADER = "🚀"
@@ -149,12 +125,12 @@ def _line(label: str, value: str, ts: str = "") -> str:
 
 def _services_identity_text(status: StatusService, catalog: dict[str, str]) -> Text | None:
     """Build the source identity lines: branch and commit + commit date."""
-    sha = _sha7(status.deploy_tree_url)
+    sha = sha7_of(status.deploy_tree_url)
     lines = [
         line
         for line in (
             _line(f"🌿 {catalog['branch_label']}", status.deploy_branch),
-            _line(f"🔧 {catalog['commit_label']}", sha, _relative(status.deploy_commit_ts)),
+            _line(f"🔧 {catalog['commit_label']}", sha, relative_time(status.deploy_commit_ts)),
         )
         if line
     ]
@@ -166,7 +142,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     buttons: list[Button] = []
     if status.deploy_branch:
         buttons.append(Button(f"🌿 {status.deploy_branch}", f"{SERVICES_REPO_URL}/tree/{status.deploy_branch}"))
-    sha = _sha7(status.deploy_tree_url)
+    sha = sha7_of(status.deploy_tree_url)
     if sha:
         buttons.append(Button(f"🔧 {sha}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
@@ -202,9 +178,9 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     first = _services_artifact_row(status, catalog)
     if first:
         blocks.append(Row(*first))
-    tag = _docker_tag(status.deploy_image or status.deploy_label)
+    tag = docker_tag(status.deploy_image or status.deploy_label)
     if tag:
-        blocks.append(Text(_line(f"📦 {catalog['image_label']}", _short_tag(tag), _relative(status.deploy_ts))))
+        blocks.append(Text(_line(f"📦 {catalog['image_label']}", short_tag(tag), relative_time(status.deploy_ts))))
     build = _services_build_row(status)
     if build:
         blocks.append(Row(*build))
@@ -220,7 +196,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
     blocks: list[object] = [Text(f"**{catalog['infra_label']}**")]
     branch, _, sha = status.deploy_infra_label.partition("@")
     sha7 = sha[:7] if sha else ""
-    commit_ts = _relative(status.deploy_infra_commit_ts)
+    commit_ts = relative_time(status.deploy_infra_commit_ts)
     if branch or sha7:
         blocks.append(
             Text(
@@ -243,7 +219,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         row.append(Button("🗂️", status.deploy_infra_url))
     if row:
         blocks.append(Row(*row))
-    run_ts = _relative(status.deploy_run_ts)
+    run_ts = relative_time(status.deploy_run_ts)
     if status.deploy_run_url:
         run_id = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
         blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", run_id, run_ts)))

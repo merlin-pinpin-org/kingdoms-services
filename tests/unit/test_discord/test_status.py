@@ -336,11 +336,13 @@ def test_format_version_release_links_the_release() -> None:
 def test_format_deploy_renders_deployment_number_with_relative_time() -> None:
     run_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/123"
     infra_url = "https://github.com/merlin-pinpin-org/kingdoms-infra/tree/9691aca"
-    result = format_deploy(run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000")
+    result = format_deploy(
+        run_url, "", "deploy/test@9691aca", infra_url, "456", "1727100000", infra_commit_ts="1727000000"
+    )
     infra_repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
     assert result == (
         f"Branch [deploy/test]({infra_repo}/tree/deploy/test)\n"
-        f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727100000:R>\n"
+        f"Commit [9691aca]({infra_repo}/commit/9691aca) <t:1727000000:R>\n"
         f"Files [9691aca]({infra_url})\n"
         f"Deployment [#456]({run_url}) <t:1727100000:R>"
     )
@@ -364,7 +366,7 @@ def test_format_services_section_appends_the_pinned_image() -> None:
     package = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
     version_line = "[Pull-request #12](https://github.com/merlin-pinpin-org/kingdoms-services/pull/12#issuecomment-1)"
     result = format_services_section(version_line, image, kind="pr")
-    assert result == (version_line + f"\nImage [pr-12-20260923-abcdef0]({package})")
+    assert result == (version_line + f"\nImage [20260923-abcdef0]({package})"), "the tag renders shortened"
 
 
 def test_format_services_section_pr_renders_the_commit_line() -> None:
@@ -380,13 +382,15 @@ def test_format_services_section_pr_renders_the_commit_line() -> None:
         branch="vibe/ping-19c915",
         tree_url=tree_url,
         ts="1727100000",
+        commit_ts="1727000000",
     )
     repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
     assert "Commit [a10cdc7]" in result
-    assert f"[a10cdc7]({repo}/commit/{sha})" in result
+    assert f"[a10cdc7]({repo}/commit/a10cdc7)" in result, "the commit links the sha7 (announcement parity)"
     assert f"Files [a10cdc7]({tree_url})" in result
     assert "([tree](" not in result
-    assert "<t:1727100000:R>" in result
+    assert "<t:1727000000:R>" in result, "the commit line carries the committed date"
+    assert "<t:1727100000:R>" not in result, "the build date never renders on the commit line"
     assert result.index("Branch [vibe/ping-19c915]") < result.index("Commit [a10cdc7]")
     assert result.index("Commit [a10cdc7]") < result.index("Pull-request #12")
 

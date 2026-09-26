@@ -42,30 +42,38 @@ kingdoms-infra#37&nbsp;(deploy&nbsp;URL&nbsp;plumbing).</span></p>
 Slash&nbsp;commands&nbsp;grouped&nbsp;by&nbsp;their&nbsp;owning&nbsp;group&nbsp;(the&nbsp;closest&nbsp;equivalent&nbsp;of<br>
 cogs&nbsp;on&nbsp;a&nbsp;bare&nbsp;command&nbsp;tree),&nbsp;then&nbsp;the&nbsp;root-level&nbsp;commands&nbsp;under&nbsp;a<br>
 `core`&nbsp;label.&nbsp;Context&nbsp;menus&nbsp;are&nbsp;not&nbsp;slash&nbsp;commands&nbsp;and&nbsp;are&nbsp;skipped.</span></dd></dl>
- <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Infra&nbsp;field:&nbsp;state&nbsp;branch,&nbsp;state&nbsp;commit,&nbsp;deploy&nbsp;run.<br>
+ <dl><dt><a name="-format_deploy"><strong>format_deploy</strong></a>(deploy_run_url: 'str', deploy_url: 'str', deploy_infra_label: 'str' = '', deploy_infra_url: 'str' = '', deploy_run_number: 'str' = '', deploy_run_ts: 'str' = '', infra_commit_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Infra&nbsp;field:&nbsp;state&nbsp;branch,&nbsp;state&nbsp;commit,&nbsp;deploy&nbsp;run.<br>
 &nbsp;<br>
 Four&nbsp;lines&nbsp;grouped&nbsp;on&nbsp;the&nbsp;kingdoms-infra&nbsp;repository,&nbsp;short&nbsp;labels<br>
 carrying&nbsp;the&nbsp;links:&nbsp;the&nbsp;state&nbsp;branch&nbsp;(`Branch&nbsp;deploy/&lt;env&gt;`),&nbsp;the<br>
-deployed&nbsp;state&nbsp;commit&nbsp;(`Commit&nbsp;&lt;sha7&gt;`&nbsp;linking&nbsp;the&nbsp;commit)<br>
-followed&nbsp;by&nbsp;the&nbsp;Files&nbsp;line&nbsp;(the&nbsp;state&nbsp;tree,&nbsp;labeled&nbsp;by&nbsp;the&nbsp;state<br>
-sha7),&nbsp;and&nbsp;the&nbsp;deployment&nbsp;job&nbsp;(`Deployment&nbsp;#&lt;n&gt;`,&nbsp;only&nbsp;the&nbsp;id<br>
-links,&nbsp;with&nbsp;a&nbsp;relative&nbsp;timestamp&nbsp;when&nbsp;available).&nbsp;The&nbsp;infra<br>
-identity&nbsp;is&nbsp;parsed&nbsp;from&nbsp;the&nbsp;`deploy/&lt;env&gt;@&lt;sha7&gt;`&nbsp;label;&nbsp;falls&nbsp;back<br>
-to&nbsp;a&nbsp;single&nbsp;labeled&nbsp;link,&nbsp;then&nbsp;to&nbsp;the&nbsp;plain&nbsp;deploy&nbsp;link&nbsp;/&nbsp;n/a&nbsp;when<br>
-nothing&nbsp;is&nbsp;available.</span></dd></dl>
+deployed&nbsp;state&nbsp;commit&nbsp;(`Commit&nbsp;&lt;sha7&gt;`&nbsp;linking&nbsp;the&nbsp;commit)&nbsp;with<br>
+its&nbsp;**own**&nbsp;committed&nbsp;date&nbsp;(KINGDOMS_DEPLOY_INFRA_COMMIT_TS&nbsp;—<br>
+distinct&nbsp;from&nbsp;the&nbsp;run&nbsp;date),&nbsp;followed&nbsp;by&nbsp;the&nbsp;Files&nbsp;line&nbsp;(the<br>
+state&nbsp;tree,&nbsp;labeled&nbsp;by&nbsp;the&nbsp;state&nbsp;sha7),&nbsp;and&nbsp;the&nbsp;deployment&nbsp;job<br>
+(`Deployment&nbsp;#&lt;n&gt;`,&nbsp;only&nbsp;the&nbsp;id&nbsp;links,&nbsp;with&nbsp;the&nbsp;run&nbsp;timestamp<br>
+when&nbsp;available).&nbsp;The&nbsp;infra&nbsp;identity&nbsp;is&nbsp;parsed&nbsp;from&nbsp;the<br>
+`deploy/&lt;env&gt;@&lt;sha7&gt;`&nbsp;label;&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;single&nbsp;labeled&nbsp;link,<br>
+then&nbsp;to&nbsp;the&nbsp;plain&nbsp;deploy&nbsp;link&nbsp;/&nbsp;n/a&nbsp;when&nbsp;nothing&nbsp;is&nbsp;available.</span></dd></dl>
  <dl><dt><a name="-format_latency"><strong>format_latency</strong></a>(latency: 'float | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;gateway&nbsp;latency&nbsp;in&nbsp;milliseconds;&nbsp;n/a&nbsp;when&nbsp;unknown.</span></dd></dl>
- <dl><dt><a name="-format_services_section"><strong>format_services_section</strong></a>(version: 'str', image: 'str' = '', kind: 'str' = '', deploy_url: 'str' = '', branch: 'str' = '', tree_url: 'str' = '', ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Services&nbsp;repo&nbsp;section,&nbsp;one&nbsp;line&nbsp;per&nbsp;deployed&nbsp;artifact.<br>
+ <dl><dt><a name="-format_services_section"><strong>format_services_section</strong></a>(version: 'str', image: 'str' = '', kind: 'str' = '', deploy_url: 'str' = '', branch: 'str' = '', tree_url: 'str' = '', ts: 'str' = '', commit_ts: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;Services&nbsp;repo&nbsp;section,&nbsp;one&nbsp;line&nbsp;per&nbsp;deployed&nbsp;artifact.<br>
 &nbsp;<br>
-Groups&nbsp;the&nbsp;deployed-artifact&nbsp;links&nbsp;by&nbsp;repository&nbsp;(the&nbsp;developer's<br>
-layout):&nbsp;Branch&nbsp;&lt;name&gt;,&nbsp;the&nbsp;version&nbsp;line&nbsp;(Commit&nbsp;/&nbsp;Release&nbsp;/&nbsp;the<br>
-triggering&nbsp;Pull-request,&nbsp;already&nbsp;rendered&nbsp;by&nbsp;format_version),&nbsp;and<br>
-the&nbsp;pinned&nbsp;docker&nbsp;image&nbsp;(label&nbsp;links&nbsp;to&nbsp;the&nbsp;GHCR&nbsp;package&nbsp;page)&nbsp;with<br>
-a&nbsp;relative&nbsp;timestamp.&nbsp;A&nbsp;PR&nbsp;deploy&nbsp;also&nbsp;renders&nbsp;its&nbsp;commit&nbsp;line&nbsp;(the<br>
-PR&nbsp;head&nbsp;sha)&nbsp;followed&nbsp;by&nbsp;the&nbsp;Files&nbsp;line&nbsp;(the&nbsp;deployed&nbsp;commit's<br>
-tree,&nbsp;labeled&nbsp;by&nbsp;its&nbsp;sha7),&nbsp;between&nbsp;the&nbsp;Branch&nbsp;and&nbsp;Pull-request<br>
-lines.&nbsp;Falls&nbsp;back&nbsp;to&nbsp;the&nbsp;untyped&nbsp;single-line&nbsp;render&nbsp;when&nbsp;the<br>
-pipeline&nbsp;provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
+Same&nbsp;identity&nbsp;as&nbsp;the&nbsp;announcement&nbsp;(deploy_render&nbsp;is&nbsp;the&nbsp;shared<br>
+source&nbsp;of&nbsp;truth):&nbsp;the&nbsp;commit&nbsp;line&nbsp;carries&nbsp;**Committed**&nbsp;(the&nbsp;source<br>
+commit&nbsp;date,&nbsp;KINGDOMS_DEPLOY_COMMIT_TS)&nbsp;and&nbsp;the&nbsp;image&nbsp;line&nbsp;carries<br>
+**Built**&nbsp;(the&nbsp;image&nbsp;pin&nbsp;date,&nbsp;deploy_ts)&nbsp;—&nbsp;distinct&nbsp;natures,&nbsp;one<br>
+timestamp&nbsp;each,&nbsp;never&nbsp;the&nbsp;build&nbsp;date&nbsp;on&nbsp;the&nbsp;commit.&nbsp;The&nbsp;docker&nbsp;tag<br>
+renders&nbsp;shortened&nbsp;(sha7&nbsp;+&nbsp;short&nbsp;stamp)&nbsp;—&nbsp;the&nbsp;full&nbsp;tag&nbsp;never&nbsp;shows.<br>
+Falls&nbsp;back&nbsp;to&nbsp;the&nbsp;untyped&nbsp;single-line&nbsp;render&nbsp;when&nbsp;the&nbsp;pipeline<br>
+provides&nbsp;no&nbsp;typed&nbsp;links.</span></dd></dl>
  <dl><dt><a name="-register_status_command"><strong>register_status_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', status: 'StatusService', sync_target: 'str' = 'global') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/status&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-status_uptime"><strong>status_uptime</strong></a>(report: 'dict[str, object]') -&gt; 'float'</dt><dd><span class="code">Read&nbsp;the&nbsp;uptime&nbsp;field&nbsp;of&nbsp;a&nbsp;status&nbsp;report.</span></dd></dl>
-</td></tr></table>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
+<strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
+<strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'</td></tr></table>
 </body></html>

@@ -20,6 +20,15 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.status import StatusService, format_version
+from kingdoms.discord.deploy_render import (
+    INFRA_REPO_URL,
+    PACKAGE_URL,
+    SERVICES_REPO_URL,
+    docker_tag,
+    relative_time,
+    sha7_of,
+    short_tag,
+)
 
 
 def _human_uptime(seconds: float) -> str:
@@ -81,28 +90,30 @@ def format_deploy(
     deploy_infra_url: str = "",
     deploy_run_number: str = "",
     deploy_run_ts: str = "",
+    infra_commit_ts: str = "",
 ) -> str:
     """Render the Infra field: state branch, state commit, deploy run.
 
     Four lines grouped on the kingdoms-infra repository, short labels
     carrying the links: the state branch (`Branch deploy/<env>`), the
-    deployed state commit (`Commit <sha7>` linking the commit)
-    followed by the Files line (the state tree, labeled by the state
-    sha7), and the deployment job (`Deployment #<n>`, only the id
-    links, with a relative timestamp when available). The infra
-    identity is parsed from the `deploy/<env>@<sha7>` label; falls back
-    to a single labeled link, then to the plain deploy link / n/a when
-    nothing is available.
+    deployed state commit (`Commit <sha7>` linking the commit) with
+    its **own** committed date (KINGDOMS_DEPLOY_INFRA_COMMIT_TS —
+    distinct from the run date), followed by the Files line (the
+    state tree, labeled by the state sha7), and the deployment job
+    (`Deployment #<n>`, only the id links, with the run timestamp
+    when available). The infra identity is parsed from the
+    `deploy/<env>@<sha7>` label; falls back to a single labeled link,
+    then to the plain deploy link / n/a when nothing is available.
     """
     lines: list[str] = []
     branch, _, sha = deploy_infra_label.partition("@")
     if branch and deploy_infra_url:
-        repo = "https://github.com/merlin-pinpin-org/kingdoms-infra"
-        lines.append(f"Branch [{branch}]({repo}/tree/{branch})")
+        lines.append(f"Branch [{branch}]({INFRA_REPO_URL}/tree/{branch})")
         if sha:
-            commit = f"Commit [{sha}]({repo}/commit/{sha})"
-            if deploy_run_ts.strip().isdigit():
-                commit = f"{commit} <t:{deploy_run_ts.strip()}:R>"
+            commit = f"Commit [{sha}]({INFRA_REPO_URL}/commit/{sha})"
+            committed = relative_time(infra_commit_ts)
+            if committed:
+                commit = f"{commit} {committed}"
             lines.append(commit)
             lines.append(f"Files [{sha}]({deploy_infra_url})")
     elif deploy_infra_label and deploy_infra_url:
@@ -146,39 +157,36 @@ def format_services_section(
     branch: str = "",
     tree_url: str = "",
     ts: str = "",
+    commit_ts: str = "",
 ) -> str:
     """Render the Services repo section, one line per deployed artifact.
 
-    Groups the deployed-artifact links by repository (the developer's
-    layout): Branch <name>, the version line (Commit / Release / the
-    triggering Pull-request, already rendered by format_version), and
-    the pinned docker image (label links to the GHCR package page) with
-    a relative timestamp. A PR deploy also renders its commit line (the
-    PR head sha) followed by the Files line (the deployed commit's
-    tree, labeled by its sha7), between the Branch and Pull-request
-    lines. Falls back to the untyped single-line render when the
-    pipeline provides no typed links.
+    Same identity as the announcement (deploy_render is the shared
+    source of truth): the commit line carries **Committed** (the source
+    commit date, KINGDOMS_DEPLOY_COMMIT_TS) and the image line carries
+    **Built** (the image pin date, deploy_ts) — distinct natures, one
+    timestamp each, never the build date on the commit. The docker tag
+    renders shortened (sha7 + short stamp) — the full tag never shows.
+    Falls back to the untyped single-line render when the pipeline
+    provides no typed links.
     """
     lines: list[str] = []
     if branch:
-        repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
-        lines.append(f"Branch [{branch}]({repo}/tree/{branch})")
-    if kind == "pr" and tree_url:
-        sha = tree_url.rstrip("/").rsplit("/", 1)[-1]
-        if sha:
-            repo = "https://github.com/merlin-pinpin-org/kingdoms-services"
-            commit = f"Commit [{sha[:7]}]({repo}/commit/{sha})"
-            if ts.strip().isdigit():
-                commit = f"{commit} <t:{ts.strip()}:R>"
-            lines.append(commit)
-            lines.append(_files_line(tree_url))
+        lines.append(f"Branch [{branch}]({SERVICES_REPO_URL}/tree/{branch})")
+    sha = sha7_of(tree_url)
+    if kind == "pr" and sha:
+        commit = f"Commit [{sha}]({SERVICES_REPO_URL}/commit/{sha})"
+        committed = relative_time(commit_ts)
+        if committed:
+            commit = f"{commit} {committed}"
+        lines.append(commit)
+        lines.append(_files_line(tree_url))
     lines.append(version)
     if image:
-        label = image.rsplit(":", 1)[-1] if ":" in image else image
-        package_url = "https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services"
-        image_line = f"Image [{label}]({package_url})"
-        if ts.strip().isdigit():
-            image_line = f"{image_line} <t:{ts.strip()}:R>"
+        image_line = f"Image [{short_tag(docker_tag(image))}]({PACKAGE_URL})"
+        built = relative_time(ts)
+        if built:
+            image_line = f"{image_line} {built}"
         lines.append(image_line)
     if not kind and deploy_url and deploy_url not in version:
         lines.append(f"[deploy]({deploy_url})")
@@ -223,6 +231,7 @@ def build_status_embed(
             branch=status.deploy_branch,
             tree_url=status.deploy_tree_url,
             ts=status.deploy_ts,
+            commit_ts=status.deploy_commit_ts,
         ),
         inline=True,
     )
@@ -235,6 +244,7 @@ def build_status_embed(
             status.deploy_infra_url,
             status.deploy_run_number,
             status.deploy_run_ts,
+            infra_commit_ts=status.deploy_infra_commit_ts,
         ),
         inline=True,
     )
