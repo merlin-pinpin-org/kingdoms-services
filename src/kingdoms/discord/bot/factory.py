@@ -23,6 +23,7 @@ from pathlib import Path
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.admin_channel import AdminChannelService
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.roles import RolesService
@@ -222,6 +223,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot = KingdomsBot(config=resolved, status=status)
     bot.logs_service = _build_log_service(resolved, bot)
     roles_service = _build_roles_service(resolved, bot)
+    admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.enrollment import register_enrollment_command
     from kingdoms.discord.status import register_status_command
@@ -239,6 +241,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         bot.tree,
         bot_admins=status.bot_admins,
         roles_service=roles_service,
+        admin_channel_service=admin_channel_service,
     )
     return bot
 
@@ -259,6 +262,35 @@ def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | 
         return RolesService(platform=DiscordRolesPlatform(bot), cache=state)
     except Exception:
         logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
+        return None
+
+
+def _build_admin_channel_service(
+    config: BotConfig,
+    bot: KingdomsBot,
+    roles_service: RolesService | None,
+) -> AdminChannelService | None:
+    """Wire Mongo + the Discord platform seam + Redis into AdminChannelService.
+
+    Returns None when the stores are not configured: the admin messages
+    degrade to the invoking context (ephemeral answers).
+    """
+    if roles_service is None or not config.mongo_uri or not config.redis_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.logs_platform import MongoLogsDatabase
+        from kingdoms.discord.roles_platform import DiscordAdminChannelPlatform
+
+        return AdminChannelService(
+            platform=DiscordAdminChannelPlatform(bot),
+            database=MongoLogsDatabase(get_async_database()),
+            roles_service=roles_service,
+            state=StateService(redis_uri=config.redis_uri),
+        )
+    except Exception:
+        logger.exception("ADMIN CHANNEL SERVICE WIRING FAILED — admin messages degrade")
         return None
 
 

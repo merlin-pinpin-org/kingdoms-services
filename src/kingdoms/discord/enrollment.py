@@ -19,6 +19,7 @@ import logging
 import discord
 from discord import app_commands
 
+from kingdoms.core.services.admin_channel import AdminChannelService
 from kingdoms.core.services.roles import RolesService
 from kingdoms.discord.guards import require_admin
 from kingdoms.discord.ui import Action
@@ -111,12 +112,16 @@ def register_enrollment_command(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
     roles_service: RolesService | None = None,
+    admin_channel_service: AdminChannelService | None = None,
 ) -> None:
     """Register the /enrollment slash command on the command tree.
 
-    The command posts the enrollment screen — admin-only too: the
+    The command posts the enrollment screen in the guild's 🛡-bot-admins
+    channel — the home of every admin message with actions
+    (transparency rule, kingdoms-services#115). Admin-only too: the
     guard runs at invocation time (the default_permissions hint only
-    hides the entry, it never replaces the runtime check).
+    hides the entry, it never replaces the runtime check). Without the
+    AdminChannelService the screen degrades to the invoking context.
     """
 
     @tree.command(name="enrollment", description="Post the enrollment workflow screen (admins only)")
@@ -125,6 +130,14 @@ def register_enrollment_command(
         if not await require_admin(interaction, bot_admins, roles_service):
             return
         view = build_enrollment_view(bot_admins, roles_service)
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
+        posted = False
+        if admin_channel_service is not None and guild_id:
+            message_id = await admin_channel_service.deliver(guild_id, view, admin_ids=bot_admins)
+            posted = message_id is not None
+        if posted:
+            await _answer(interaction, "Enrollment screen posted in 🛡-bot-admins.")
+            return
         if interaction.response.is_done():
             await interaction.followup.send(view=view)
         else:
