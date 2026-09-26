@@ -14,12 +14,14 @@ kingdoms-infra#37 (deploy URL plumbing).
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable
 
 import discord
 from discord import app_commands
 
 from kingdoms.core.services.status import StatusService, format_version
+from kingdoms.discord.announce import AnnounceConfig, build_announcement_layout
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
     PACKAGE_URL,
@@ -29,6 +31,7 @@ from kingdoms.discord.deploy_render import (
     sha7_of,
     short_tag,
 )
+from kingdoms.discord.ui import Text
 
 
 def _human_uptime(seconds: float) -> str:
@@ -315,16 +318,27 @@ def register_status_command(
 
     @tree.command(name="status", description="Bot status: uptime, mods, games, admins")
     async def status_command(interaction: discord.Interaction) -> None:
-        """Answer the /status interaction with the current status embed."""
+        """Answer the /status interaction with the deployment layout.
+
+        One rendering: /status answers with the same Components V2
+        layout as the startup announcement (build_announcement_layout)
+        — the boot message is a /status posted (non-ephemeral) in the
+        guild's bot logs channel. The Commands section (sync scope)
+        is the only command-specific extra, appended as a Text block.
+        """
         latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
-        bot_user_id = interaction.client.user.id if interaction.client.user else None
-        embed = build_status_embed(status, interaction.guild, latency, bot_user_id)
+        config = AnnounceConfig(locale="en")
         sync_scope = sync_target if interaction.guild is not None else "none (DM)"
-        embed.add_field(
-            name=f"Commands (sync: {sync_scope})",
-            value=format_commands(tree.get_commands()),
-            inline=False,
+        commands = Text(
+            f"**Commands (sync: {sync_scope})**\n{format_commands(tree.get_commands())}"
         )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        layout = build_announcement_layout(
+            status,
+            config,
+            env=os.environ.get("KINGDOMS_DEPLOY_ENV", ""),
+            latency_ms=round(latency * 1000) if latency is not None else None,
+            extra_blocks=[commands],
+        )
+        await interaction.response.send_message(view=layout, ephemeral=True)

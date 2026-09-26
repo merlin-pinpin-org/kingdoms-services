@@ -12,12 +12,26 @@ directly, never a token, never the network.
 
 from __future__ import annotations
 
+from typing import Any
+
 import discord
 import pytest
-from simcord.asserts import assert_message
 
 CONFIRM_ID = "test:button:confirm"
 IS_COMPONENTS_V2 = 1 << 15
+TYPE_TEXT_DISPLAY = 10
+
+
+def _walk(components):  # type: ignore[no-untyped-def]
+    """Depth-first walk of a message component tree (wire dicts or objects)."""
+    out: list[Any] = []
+    for component in components or []:
+        out.append(component)
+        if isinstance(component, dict):
+            out.extend(_walk(component.get("components", [])))
+        else:
+            out.extend(_walk(list(getattr(component, "children", []))))
+    return out
 
 
 def _iter_components(message: discord.Message):
@@ -39,7 +53,7 @@ class TestRealBotJourneys:
     """Journeys through the real bot built by create_bot (kingdoms-services#12)."""
 
     @pytest.mark.simcord(strict_sync=False)
-    async def test_status_answers_with_report_embed(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+    async def test_status_answers_with_the_announcement_layout(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
         guild = simcord_env.create_guild()
         channel = guild.create_text_channel("general")
         alice = guild.add_member(simcord_env.create_user("alice"))
@@ -47,7 +61,17 @@ class TestRealBotJourneys:
         result = await alice.slash(channel, "status")
 
         assert result.ephemeral
-        assert_message(result.response, embed_title="Kingdoms — Status")
+        message = result.response.message
+        assert message.flags.value & IS_COMPONENTS_V2
+        texts = [
+            c["content"] if isinstance(c, dict) else c.content
+            for c in _walk(message.components)
+            if (c.get("type") if isinstance(c, dict) else c.type.value) == TYPE_TEXT_DISPLAY
+        ]
+        joined = "\n".join(texts)
+        assert "Kingdoms — Deployment" in joined
+        assert "Uptime" in joined
+        assert "Commands (sync:" in joined
 
 
 class TestUIPatterns:
