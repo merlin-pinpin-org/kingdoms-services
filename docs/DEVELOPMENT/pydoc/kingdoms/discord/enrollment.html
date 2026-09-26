@@ -38,11 +38,14 @@ are&nbsp;Open/Close&nbsp;enrollment&nbsp;plus&nbsp;the&nbsp;``bot-admins``&nbsp;
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_enrollment_actions"><strong>build_enrollment_actions</strong></a>(*, on_open: 'Handler', on_close: 'Handler', on_role: 'Handler') -&gt; 'tuple[list[Action], list[Action]]'</dt><dd><span class="code">Build&nbsp;the&nbsp;enrollment&nbsp;action&nbsp;rows:&nbsp;live&nbsp;admin&nbsp;actions&nbsp;+&nbsp;disabled&nbsp;future&nbsp;steps.</span></dd></dl>
  <dl><dt><a name="-build_enrollment_view"><strong>build_enrollment_view</strong></a>(bot_admins: 'tuple[str, ...]', roles_service: 'RolesService | None') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;enrollment&nbsp;screen&nbsp;with&nbsp;runtime-guarded&nbsp;admin&nbsp;actions.</span></dd></dl>
- <dl><dt><a name="-register_enrollment_command"><strong>register_enrollment_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), roles_service: 'RolesService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/enrollment&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
+ <dl><dt><a name="-register_enrollment_command"><strong>register_enrollment_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = (), roles_service: 'RolesService | None' = None, admin_channel_service: 'AdminChannelService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/enrollment&nbsp;slash&nbsp;command&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.<br>
 &nbsp;<br>
-The&nbsp;command&nbsp;posts&nbsp;the&nbsp;enrollment&nbsp;screen&nbsp;—&nbsp;admin-only&nbsp;too:&nbsp;the<br>
+The&nbsp;command&nbsp;posts&nbsp;the&nbsp;enrollment&nbsp;screen&nbsp;in&nbsp;the&nbsp;guild's&nbsp;🛡-bot-admins<br>
+channel&nbsp;—&nbsp;the&nbsp;home&nbsp;of&nbsp;every&nbsp;admin&nbsp;message&nbsp;with&nbsp;actions<br>
+(transparency&nbsp;rule,&nbsp;kingdoms-services#115).&nbsp;Admin-only&nbsp;too:&nbsp;the<br>
 guard&nbsp;runs&nbsp;at&nbsp;invocation&nbsp;time&nbsp;(the&nbsp;default_permissions&nbsp;hint&nbsp;only<br>
-hides&nbsp;the&nbsp;entry,&nbsp;it&nbsp;never&nbsp;replaces&nbsp;the&nbsp;runtime&nbsp;check).</span></dd></dl>
+hides&nbsp;the&nbsp;entry,&nbsp;it&nbsp;never&nbsp;replaces&nbsp;the&nbsp;runtime&nbsp;check).&nbsp;Without&nbsp;the<br>
+AdminChannelService&nbsp;the&nbsp;screen&nbsp;degrades&nbsp;to&nbsp;the&nbsp;invoking&nbsp;context.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

@@ -44,6 +44,13 @@ mods, YAML configs.
   against the live guild state (BOT_ADMINS, guild-admin permissions,
   or the `bot-admins` role via the RolesService). `default_permissions`
   only hides the command entry; it never replaces the check.
+- **Admin surface (transparency rule):** admin messages with actions
+  live in the guild's `🛡-bot-admins` channel (AdminChannelService,
+  cache-aside provisioning); the BOT_ADMINS are synced into the
+  `bot-admins` role — the visible operator roster — while their
+  privileges never depend on it (the guards read BOT_ADMINS first);
+  the sync is one-way (add, never remove) and re-applied at every
+  channel resolution.
 - Every mod or game provider added here has its documentation updated in
   `kingdoms` (source of truth).
 - Issue templates: `## Objective` / `## Context` / `## Specifications` /

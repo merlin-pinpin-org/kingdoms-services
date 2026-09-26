@@ -31,11 +31,55 @@ seam&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&n
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#DiscordRolesPlatform">DiscordRolesPlatform</a>
+<dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#DiscordAdminChannelPlatform">DiscordAdminChannelPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#DiscordRolesPlatform">DiscordRolesPlatform</a>
 </dt></dl>
 </dd>
 </dl>
  <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DiscordAdminChannelPlatform">class <strong>DiscordAdminChannelPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DiscordAdminChannelPlatform">DiscordAdminChannelPlatform</a>(bot:&nbsp;'discord.Client')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;admin&nbsp;channel&nbsp;platform&nbsp;seam.<br>
+&nbsp;<br>
+The&nbsp;🛡-bot-admins&nbsp;channel&nbsp;is&nbsp;visible&nbsp;to&nbsp;the&nbsp;bot-admins&nbsp;role&nbsp;and<br>
+guild&nbsp;administrators&nbsp;only;&nbsp;the&nbsp;BOT_ADMINS&nbsp;are&nbsp;synced&nbsp;into&nbsp;the&nbsp;role<br>
+for&nbsp;transparency&nbsp;—&nbsp;their&nbsp;privileges&nbsp;never&nbsp;depend&nbsp;on&nbsp;it&nbsp;(the&nbsp;guards<br>
+check&nbsp;BOT_ADMINS&nbsp;first,&nbsp;environment-sourced).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DiscordAdminChannelPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-apply_channel_policy"><strong>apply_channel_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Admin-channel&nbsp;visibility:&nbsp;the&nbsp;role,&nbsp;guild&nbsp;admins&nbsp;and&nbsp;the&nbsp;bot.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;UI&nbsp;SDK&nbsp;layout&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordAdminChannelPlatform-sync_admin_role_members"><strong>sync_admin_role_members</strong></a>(self, guild_id: 'str', role_id: 'str', admin_ids: 'tuple[str, ...]') -&gt; 'None'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;BOT_ADMIN&nbsp;holds&nbsp;the&nbsp;role&nbsp;(add,&nbsp;never&nbsp;remove).<br>
+&nbsp;<br>
+The&nbsp;transparency&nbsp;direction&nbsp;is&nbsp;one-way:&nbsp;an&nbsp;operator&nbsp;manually<br>
+stripped&nbsp;from&nbsp;the&nbsp;role&nbsp;is&nbsp;not&nbsp;re-added&nbsp;here&nbsp;(the&nbsp;sync&nbsp;runs&nbsp;at<br>
+provisioning&nbsp;and&nbsp;resolution);&nbsp;their&nbsp;privileges&nbsp;stay&nbsp;—&nbsp;the<br>
+guards&nbsp;read&nbsp;BOT_ADMINS&nbsp;first.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="DiscordRolesPlatform">class <strong>DiscordRolesPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
