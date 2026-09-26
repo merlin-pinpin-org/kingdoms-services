@@ -39,6 +39,7 @@ from kingdoms.core.services.admin_channel import ADMIN_CHANNEL_CATEGORY, AdminCh
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import BOT_LOGS_CATEGORY, LogService
 from kingdoms.core.services.roles import RolesService
+from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.guards import require_admin
 from kingdoms.discord.ui import (
     BLURPLE,
@@ -508,7 +509,10 @@ def register_admin_command(
     """
     admins = bot_admins
 
-    @tree.command(name="admin", description="Admin panel (bot operators and guild admins only)")
+    @tree.command(
+        name=localized("commands.admin_name", "admin"),
+        description=localized("commands.admin_description", "Admin panel (bot operators and guild admins only)"),
+    )
     @app_commands.default_permissions(administrator=True)
     async def admin_command(interaction: discord.Interaction) -> None:
         """Answer the /admin interaction with the right panel."""
