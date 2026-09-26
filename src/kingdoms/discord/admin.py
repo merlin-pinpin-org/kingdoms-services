@@ -1,38 +1,44 @@
-"""The /admin command: operator panel built as a Components V2 layout.
+"""The /admin command: a hierarchical operator panel (Components V2).
 
-Access is restricted to bot operators (``BOT_ADMINS``) plus the guild's
-administrators (developer decision, kingdoms-services#109): the panel
-and its actions are operational, the gate is in place before further
-admin features land.
+Access is restricted to bot operators (``BOT_ADMINS``), guild
+administrators and the ``bot-admins`` role (kingdoms-services#109,
+#115) — validated at invocation **and at click time** (the developer
+mandate: never assume that seeing a component means being allowed to
+click it).
 
-The panel manages the **bot logs channel** (kingdoms-services#109):
+Structure (kingdoms-services#117):
 
-- **routing** — pick any guild text channel from a dropdown; the
-  current visibility policy (and role grants) is re-applied on the
-  new target, so the rights follow the routing;
-- **visibility** — admin-only (default) or public, synchronized with
-  the Discord permission overwrites and persisted in the policy;
-- **language** — fr/en, persisted per guild (guild settings).
+- **main menu** — the guild's global settings (language fr/en, used
+  for every channel message: announcements, lifecycle events, panels)
+  and the managed-channel picker (🛰 Bot logs, 🛡 Bot admins);
+- **channel menu** — the settings of the selected managed channel:
+  routing (which guild channel carries it) and visibility
+  (public/admin-only, synchronized with the Discord overwrites);
+- **DM setup** — outside a guild, /admin manages the user's personal
+  DM locale (error reports, enrollment flows, match reports — every
+  DM the bot sends to that user), persisted per user in
+  ``user_settings``: DMs follow the user, not a guild.
 
-Every action is audited as a lifecycle event in the logs channel
-itself. All interactive components are built through the UI SDK
-(ADR-0009): Actions, SelectMenus and a ChannelSelect (channel picker
-with native autocomplete), custom IDs following the
+Every action is audited as a lifecycle event in the logs channel.
+All interactive components are built through the UI SDK (ADR-0009):
+Actions, SelectMenus and a ChannelSelect, custom IDs following the
 ``<mod>:<component>:<payload>`` convention.
 
-Reference: kingdoms-services#102, #109.
+Reference: kingdoms-services#102, #109, #115, #117.
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import discord
 from discord import app_commands
 
-from kingdoms.core.services.logs import LogService
+from kingdoms.core.services.admin_channel import ADMIN_CHANNEL_CATEGORY
+from kingdoms.core.services.logs import BOT_LOGS_CATEGORY, LogService
 from kingdoms.core.services.roles import RolesService
-from kingdoms.discord.guards import is_admin as guards_is_admin
+from kingdoms.discord.guards import require_admin
 from kingdoms.discord.ui import (
     BLURPLE,
     Action,
@@ -48,14 +54,23 @@ from kingdoms.discord.ui import (
 
 logger = logging.getLogger("kingdoms.admin")
 
-PING_BUTTON_ID = "admin:button:ping"
-VISIBILITY_SELECT_ID = "admin:select:visibility"
+CHANNEL_MENU_ID = "admin:select:channel"
 LOCALE_SELECT_ID = "admin:select:locale"
-CHANNEL_SELECT_ID = "admin:channels:logs"
+USER_LOCALE_SELECT_ID = "admin:select:user-locale"
+VISIBILITY_SELECT_ID = "admin:select:visibility"
+CHANNEL_ROUTE_ID = "admin:channels:logs"
+BACK_BUTTON_ID = "admin:button:back"
 
 VISIBILITY_ADMIN_ONLY = "admin_only"
 VISIBILITY_PUBLIC = "public"
 LOCALES = ("en", "fr")
+
+MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
+    (BOT_LOGS_CATEGORY, "🛰", "Bot logs"),
+    (ADMIN_CHANNEL_CATEGORY, "🛡", "Bot admins"),
+)
+
+_LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
 
 
 def _is_bot_admin(user_id: int | None, bot_admins: tuple[str, ...]) -> bool:
@@ -71,84 +86,64 @@ def _is_guild_admin(interaction: discord.Interaction) -> bool:
     return bool(permissions and (permissions.administrator or permissions.manage_guild))
 
 
-class AdminLayout(discord.ui.LayoutView):
-    """The /admin answer: a Components V2 layout with the operator actions."""
+async def build_dm_setup_view(
+    logs_service: LogService | None,
+    user_id: str,
+    bot_admins: tuple[str, ...] = (),
+) -> discord.ui.LayoutView:
+    """Build the DM /admin panel: the user's personal DM locale."""
+    locale = await logs_service.get_user_locale(user_id) if logs_service is not None else "en"
 
-    def __init__(self, bot_admins: tuple[str, ...] = (), logs_service: LogService | None = None) -> None:
-        super().__init__(timeout=300)
-        self.bot_admins = bot_admins
-        self.logs_service = logs_service
-        button: discord.ui.Button[AdminLayout] = discord.ui.Button(
-            label="Ping",
-            style=discord.ButtonStyle.primary,
-            custom_id=PING_BUTTON_ID,
+    async def on_user_locale(interaction: discord.Interaction, values: list[str]) -> None:
+        if not values or logs_service is None:
+            return
+        if str(getattr(interaction.user, "id", "")) != user_id:
+            await interaction.response.send_message(
+                "You are not allowed to change another user's language.", ephemeral=True
+            )
+            return
+        try:
+            await logs_service.set_user_locale(str(interaction.user.id), values[0])
+        except Exception:
+            logger.exception("ADMIN DM: user locale change failed for user %s", interaction.user.id)
+            await interaction.response.send_message("Language change failed — try again.", ephemeral=True)
+            return
+        await interaction.response.edit_message(
+            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins)
         )
-        button.callback = self.on_ping  # type: ignore[method-assign]
-        container = discord.ui.Container(
-            discord.ui.TextDisplay("# Kingdoms — Admin"),
-            discord.ui.Section(
-                discord.ui.TextDisplay("Operator panel. Ping checks that the bot reacts to clicks."),
-                accessory=button,
-            ),
-        )
-        self.add_item(container)
 
-    async def on_ping(self, interaction: discord.Interaction) -> None:
-        """Answer the ping button click with a visible pong."""
-        await interaction.response.send_message("pong", ephemeral=True)
-
-
-def _visibility_lines(channel_id: str | None, policy: dict[str, object], locale: str) -> list[str]:
-    """Render the logs policy status lines (channel, visibility, language)."""
-    status = f"<#{channel_id}>" if channel_id else "not provisioned yet"
-    visibility = str(policy.get("default", "admin_only"))
-    visibility_label = "public 🔓" if visibility == VISIBILITY_PUBLIC else "admin-only 🔒"
-    return [
-        f"Channel: {status}",
-        f"Visibility: {visibility_label}",
-        f"Language: {locale}",
-    ]
+    locale_select = SelectMenu(
+        custom_id=USER_LOCALE_SELECT_ID,
+        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
+        on_choose=on_user_locale,
+        placeholder="Your DM language…",
+    )
+    container = (
+        Container(accent=BLURPLE)
+        .add(Text("# ⚙️ Kingdoms — Admin (DM)"))
+        .add(Text(f"DM language: {_LOCALE_LABELS.get(locale, locale)}"))
+        .add(Separator())
+        .add(Text("This language applies to every DM the bot sends you: error reports, enrollment, match reports."))
+        .add(Row(locale_select))
+    )
+    return UILayout().add(container).build()
 
 
-async def build_admin_panel(
+async def build_main_menu(
     logs_service: LogService,
     guild_id: str,
     by: str,
+    bot_admins: tuple[str, ...] = (),
+    roles_service: RolesService | None = None,
 ) -> discord.ui.LayoutView:
-    """Build the live admin panel for a guild: routing, visibility, language.
-
-    Pure display + interactive components, all through the UI SDK; the
-    callbacks close over the guild so the same panel serves every guild.
-    """
-    channel_id = await logs_service.resolve_channel(guild_id)
-    policy = await logs_service.get_access_policy(guild_id)
+    """Build the /admin main menu: guild language + managed channels."""
     locale = await logs_service.get_locale(guild_id)
-
-    async def on_channel(interaction: discord.Interaction, values: list[str]) -> None:
-        if not values:
-            return
-        try:
-            await logs_service.set_channel(guild_id, values[0], by=by)
-        except Exception:
-            logger.exception("ADMIN PANEL: channel routing failed for guild %s", guild_id)
-            await interaction.response.send_message("Routing failed — see the bot logs.", ephemeral=True)
-            return
-        await interaction.response.edit_message(view=await build_admin_panel(logs_service, guild_id, by))
-
-    async def on_visibility(interaction: discord.Interaction, values: list[str]) -> None:
-        if not values:
-            return
-        public = values[0] == VISIBILITY_PUBLIC
-        try:
-            await logs_service.set_visibility(guild_id, public, by=by)
-        except Exception:
-            logger.exception("ADMIN PANEL: visibility change failed for guild %s", guild_id)
-            await interaction.response.send_message("Visibility change failed — see the bot logs.", ephemeral=True)
-            return
-        await interaction.response.edit_message(view=await build_admin_panel(logs_service, guild_id, by))
+    channel_status = await _managed_channel_status(logs_service, guild_id)
 
     async def on_locale(interaction: discord.Interaction, values: list[str]) -> None:
         if not values:
+            return
+        if not await require_admin(interaction, bot_admins, roles_service):
             return
         try:
             await logs_service.set_locale(guild_id, values[0], by=by)
@@ -156,12 +151,170 @@ async def build_admin_panel(
             logger.exception("ADMIN PANEL: locale change failed for guild %s", guild_id)
             await interaction.response.send_message("Language change failed — see the bot logs.", ephemeral=True)
             return
-        await interaction.response.edit_message(view=await build_admin_panel(logs_service, guild_id, by))
+        await interaction.response.edit_message(
+            view=await build_main_menu(logs_service, guild_id, by, bot_admins, roles_service)
+        )
 
-    channel_select = ChannelSelect(
-        custom_id=CHANNEL_SELECT_ID,
+    async def on_channel(interaction: discord.Interaction, values: list[str]) -> None:
+        if not values:
+            return
+        if not await require_admin(interaction, bot_admins, roles_service):
+            return
+        await interaction.response.edit_message(
+            view=await build_channel_menu(logs_service, guild_id, values[0], by, bot_admins, roles_service)
+        )
+
+    locale_select = SelectMenu(
+        custom_id=LOCALE_SELECT_ID,
+        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
+        on_choose=on_locale,
+        placeholder=f"Guild language — {_LOCALE_LABELS.get(locale, locale)}",
+    )
+    channel_options = tuple(
+        Option(f"{icon} {label}", category, f"{channel_status.get(category, 'not provisioned yet')}")
+        for category, icon, label in MANAGED_CHANNELS
+    )
+    channel_menu = SelectMenu(
+        custom_id=CHANNEL_MENU_ID,
+        options=channel_options,
         on_choose=on_channel,
-        placeholder="Route the bot logs to a channel…",
+        placeholder="Manage a channel…",
+    )
+    container = (
+        Container(accent=BLURPLE)
+        .add(Text("# ⚙️ Kingdoms — Admin"))
+        .add(Separator())
+        .add(Text("## 🌍 Guild language"))
+        .add(Text(f"Current: {_LOCALE_LABELS.get(locale, locale)} — used for every channel message."))
+        .add(Row(locale_select))
+        .add(Separator())
+        .add(Text("## 📋 Channels"))
+        .add(Row(channel_menu))
+    )
+    return UILayout().add(container).build()
+
+
+async def build_channel_menu(
+    logs_service: LogService,
+    guild_id: str,
+    category: str,
+    by: str,
+    bot_admins: tuple[str, ...] = (),
+    roles_service: RolesService | None = None,
+) -> discord.ui.LayoutView:
+    """Build the secondary menu of one managed channel (routing, visibility)."""
+    entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
+    if entry is None:
+        return UILayout().add(
+            Container(accent=BLURPLE).add(Text(f"Unknown channel category: `{category}`."))
+        ).build()
+    _, icon, label = entry
+    channel_id = await _resolve_managed_channel(logs_service, guild_id, category)
+    policy = await logs_service.get_access_policy(guild_id) if category == BOT_LOGS_CATEGORY else None
+
+    async def on_back(interaction: discord.Interaction) -> None:
+        if not await require_admin(interaction, bot_admins, roles_service):
+            return
+        await interaction.response.edit_message(
+            view=await build_main_menu(logs_service, guild_id, by, bot_admins, roles_service)
+        )
+
+    async def rerender(interaction: discord.Interaction) -> None:
+        await interaction.response.edit_message(
+            view=await build_channel_menu(logs_service, guild_id, category, by, bot_admins, roles_service)
+        )
+
+    on_route = _routing_callback(logs_service, guild_id, by, bot_admins, roles_service, rerender)
+    on_visibility = _visibility_callback(logs_service, guild_id, by, bot_admins, roles_service, rerender)
+
+    status = f"<#{channel_id}>" if channel_id else "not provisioned yet"
+    blocks: list[Any] = [
+        Text(f"# {icon} Kingdoms — {label}"),
+        Separator(),
+        Text(f"Channel: {status}"),
+    ]
+    if category == BOT_LOGS_CATEGORY:
+        blocks.extend(_logs_channel_blocks(logs_service, guild_id, category, by, policy, on_route, on_visibility))
+    else:
+        blocks.extend(
+            [
+                Separator(),
+                Text("The admin channel visibility is governed by the bot-admins role (transparency rule)."),
+            ]
+        )
+
+    blocks.extend([Separator(), Row(Action("← Back", BACK_BUTTON_ID, on_back, style="secondary"))])
+    return UILayout().add(Container(accent=BLURPLE, blocks=tuple(blocks))).build()
+
+
+def _routing_callback(
+    logs_service: LogService,
+    guild_id: str,
+    by: str,
+    bot_admins: tuple[str, ...],
+    roles_service: RolesService | None,
+    rerender: Any,
+) -> Any:
+    """Build the routing select callback: guard, route, rerender."""
+
+    async def on_route(interaction: discord.Interaction, values: list[str]) -> None:
+        if not values:
+            return
+        if not await require_admin(interaction, bot_admins, roles_service):
+            return
+        try:
+            await logs_service.set_channel(guild_id, values[0], by=by)
+        except Exception:
+            logger.exception("ADMIN PANEL: channel routing failed for guild %s", guild_id)
+            await interaction.response.send_message("Routing failed — see the bot logs.", ephemeral=True)
+            return
+        await rerender(interaction)
+
+    return on_route
+
+
+def _visibility_callback(
+    logs_service: LogService,
+    guild_id: str,
+    by: str,
+    bot_admins: tuple[str, ...],
+    roles_service: RolesService | None,
+    rerender: Any,
+) -> Any:
+    """Build the visibility select callback: guard, persist, rerender."""
+
+    async def on_visibility(interaction: discord.Interaction, values: list[str]) -> None:
+        if not values:
+            return
+        if not await require_admin(interaction, bot_admins, roles_service):
+            return
+        try:
+            await logs_service.set_visibility(guild_id, values[0] == VISIBILITY_PUBLIC, by=by)
+        except Exception:
+            logger.exception("ADMIN PANEL: visibility change failed for guild %s", guild_id)
+            await interaction.response.send_message("Visibility change failed — see the bot logs.", ephemeral=True)
+            return
+        await rerender(interaction)
+
+    return on_visibility
+
+
+def _logs_channel_blocks(
+    logs_service: LogService,
+    guild_id: str,
+    category: str,
+    by: str,
+    policy: dict[str, object] | None,
+    on_route: Any,
+    on_visibility: Any,
+) -> list[Any]:
+    """Build the logs-channel specific blocks: status + routing + visibility."""
+    visibility = str((policy or {}).get("default", VISIBILITY_ADMIN_ONLY))
+    visibility_label = "public 🔓" if visibility == VISIBILITY_PUBLIC else "admin-only 🔒"
+    route_select = ChannelSelect(
+        custom_id=CHANNEL_ROUTE_ID,
+        on_choose=on_route,
+        placeholder="Route to a guild channel…",
     )
     visibility_select = SelectMenu(
         custom_id=VISIBILITY_SELECT_ID,
@@ -172,56 +325,36 @@ async def build_admin_panel(
         on_choose=on_visibility,
         placeholder="Visibility…",
     )
-    locale_select = SelectMenu(
-        custom_id=LOCALE_SELECT_ID,
-        options=(
-            Option("🇬🇧 English", "en", "English messages"),
-            Option("🇫🇷 Français", "fr", "Messages en français"),
-        ),
-        on_choose=on_locale,
-        placeholder="Language…",
-    )
-    ping = Action("🏓 Ping", PING_BUTTON_ID, _noop_ping, style="secondary")
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text("# Kingdoms — Admin"))
-        .add(Text("\n".join(_visibility_lines(channel_id, policy, locale))))
-        .add(Separator())
-        .add(Row(channel_select))
-        .add(Row(visibility_select))
-        .add(Row(locale_select))
-        .add(Separator())
-        .add(Text("Operator panel. Ping checks that the bot reacts to clicks."))
-        .add(Row(ping))
-    )
-    return UILayout().add(container).build()
+    return [
+        Text(f"Visibility: {visibility_label}"),
+        Separator(),
+        Row(route_select),
+        Row(visibility_select),
+    ]
 
 
-async def _noop_ping(interaction: discord.Interaction) -> None:
-    """Answer the SDK ping button with a visible pong."""
-    await interaction.response.send_message("pong", ephemeral=True)
+async def _managed_channel_status(logs_service: LogService, guild_id: str) -> dict[str, str]:
+    """Render the per-category channel mentions for the main menu."""
+    status: dict[str, str] = {}
+    for category, _, _ in MANAGED_CHANNELS:
+        channel_id = await _resolve_managed_channel(logs_service, guild_id, category)
+        status[category] = f"<#{channel_id}>" if channel_id else "not provisioned yet"
+    return status
 
 
-def build_logs_policy_view(guild_id: str, channel_id: str | None, policy_lines: list[str]) -> discord.ui.LayoutView:
-    """Build the logs policy section: pure display, built through the UI SDK."""
-    status = f"<#{channel_id}>" if channel_id else "not provisioned yet"
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text("## 🤖 Bot logs channel"))
-        .add(Text(f"Channel: {status}"))
-        .add(Text("\n".join(policy_lines) if policy_lines else "Default policy: admin-only."))
-    )
-    return UILayout().add(container).build()
+async def _resolve_managed_channel(logs_service: LogService, guild_id: str, category: str) -> str | None:
+    """Resolve a managed channel id, degrading to None outside the logs service."""
+    try:
+        if category == BOT_LOGS_CATEGORY:
+            return await logs_service.resolve_channel(guild_id)
+    except Exception:
+        logger.warning("ADMIN PANEL: channel resolution failed (guild %s, category %s)", guild_id, category)
+    return None
 
 
 def build_admin_note_view(message: str) -> discord.ui.LayoutView:
     """Build a single-note admin layout (degradation paths), through the UI SDK."""
     return UILayout().add(Container(accent=BLURPLE).add(Text(message))).build()
-
-
-def build_admin_layout() -> AdminLayout:
-    """Build the /admin layout (standalone for tests)."""
-    return AdminLayout()
 
 
 def register_admin_command(
@@ -234,51 +367,46 @@ def register_admin_command(
 
     ``bot_admins`` is the parsed BOT_ADMINS operator ids (StatusService).
     ``logs_service`` is the core LogService (kingdoms-services#109); it
-    may be None in local runs — the logs section degrades to a status
-    note. ``roles_service`` resolves the guild's bot-admins role
+    may be None in local runs — the panel degrades to a status note.
+    ``roles_service`` resolves the guild's bot-admins role
     (kingdoms-services#115) — members holding it administer too.
-    Access is validated at invocation time: BOT_ADMINS, guild
-    administrators or the bot-admins role (ephemeral panel).
+    Access is validated at invocation time and at click time (guards):
+    BOT_ADMINS, guild administrators or the bot-admins role.
     """
     admins = bot_admins
 
     @tree.command(name="admin", description="Admin panel (bot operators and guild admins only)")
     @app_commands.default_permissions(administrator=True)
-    @app_commands.describe(role="Grant a role view access to the bot logs channel")
-    async def admin_command(interaction: discord.Interaction, role: discord.Role | None = None) -> None:
-        """Answer the /admin interaction with the layout view."""
+    async def admin_command(interaction: discord.Interaction) -> None:
+        """Answer the /admin interaction with the right panel."""
         user_id = getattr(interaction.user, "id", None)
-        if not (_is_bot_admin(user_id, admins) or _is_guild_admin(interaction)):
-            if not await guards_is_admin(interaction, admins, roles_service):
-                logger.info(
-                    "admin access denied: user=%s is neither BOT_ADMINS nor a guild admin",
-                    user_id,
-                )
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
+
+        if not guild_id:
+            if logs_service is None:
                 await interaction.response.send_message(
-                    "You are not a bot operator (BOT_ADMINS) nor a guild administrator.",
+                    view=build_admin_note_view("Admin settings are unavailable (no LogService wired)."),
                     ephemeral=True,
                 )
                 return
-
-        if logs_service is None:
-            layout = AdminLayout(admins)
-            layout.add_item(
-                discord.ui.Container(
-                    discord.ui.TextDisplay("Bot logs management is unavailable (no LogService wired)."),
-                )
+            await interaction.response.send_message(
+                view=await build_dm_setup_view(logs_service, str(user_id), admins), ephemeral=True
             )
-            await interaction.response.send_message(view=layout, ephemeral=True)
             return
 
-        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
-        if not guild_id:
-            await interaction.response.send_message(view=AdminLayout(admins), ephemeral=True)
+        if not (_is_bot_admin(user_id, admins) or _is_guild_admin(interaction)):
+            if not await guards_require(interaction, admins, roles_service):
+                return
+
+        if logs_service is None:
+            await interaction.response.send_message(
+                view=build_admin_note_view("Bot logs management is unavailable (no LogService wired)."),
+                ephemeral=True,
+            )
             return
 
         try:
-            panel = await build_admin_panel(logs_service, guild_id, by=str(user_id))
-            if role is not None:
-                await logs_service.grant_role_view_access(guild_id, str(role.id), by=str(user_id))
+            panel = await build_main_menu(logs_service, guild_id, by=str(user_id))
         except Exception as exc:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
             detail = f"{type(exc).__name__}: {exc}"[:120]
@@ -291,3 +419,26 @@ def register_admin_command(
             return
 
         await interaction.response.send_message(view=panel, ephemeral=True)
+
+
+async def guards_require(
+    interaction: discord.Interaction,
+    admins: tuple[str, ...],
+    roles_service: RolesService | None,
+) -> bool:
+    """Guard the invocation; answer the denial ephemerally when refused."""
+    if await require_admin(interaction, admins, roles_service):
+        return True
+    logger.info("admin access denied: user=%s", getattr(interaction.user, "id", None))
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                "You are not a bot operator (BOT_ADMINS) nor a guild administrator.", ephemeral=True
+            )
+    except Exception:
+        logger.warning("DENIAL ANSWER FAILED — best-effort", exc_info=True)
+    return False
