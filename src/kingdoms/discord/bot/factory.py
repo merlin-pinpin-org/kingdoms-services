@@ -279,7 +279,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
     bot.admin_channel_service = admin_channel_service
     from kingdoms.discord.admin import register_admin_command
-    from kingdoms.discord.enrollment import register_enrollment_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
@@ -292,14 +291,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         roles_service=roles_service,
         catalog=bot.messages,
         admin_channel_service=admin_channel_service,
-    )
-    register_enrollment_command(
-        bot.tree,
-        bot_admins=status.bot_admins,
-        roles_service=roles_service,
-        admin_channel_service=admin_channel_service,
-        logs_service=bot.logs_service,
-        catalog=bot.messages,
     )
     return bot
 

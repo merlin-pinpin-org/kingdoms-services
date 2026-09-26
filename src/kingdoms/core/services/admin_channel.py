@@ -1,7 +1,7 @@
 """Core admin channel service: the 🛡-bot-admins home (kingdoms-services#115).
 
-The admin messages with actions (the enrollment screen, the admin
-panels) live in a dedicated channel, so the admin surface is visible
+The admin messages with actions (the admin panels) live in a
+dedicated channel, so the admin surface is visible
 and auditable — never scattered in gameplay channels. The service
 follows the LogService provisioning pattern (cache-aside: Redis →
 MongoDB → adoption → creation), plus the **transparency rule**
