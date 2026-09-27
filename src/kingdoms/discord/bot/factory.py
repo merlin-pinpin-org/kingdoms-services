@@ -133,6 +133,18 @@ class KingdomsBot(discord.Client):
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
 
+    async def setup_hook(self) -> None:
+        """Re-register the persistent UI at every startup (#122).
+
+        Persistent components survive restarts only because their
+        state rides the custom_id and their classes are re-registered
+        here — a class the factory forgets is dead UI after the next
+        deploy (§3b state reconstruction contract).
+        """
+        from kingdoms.discord.ui.persistent import register_persistent_items
+
+        register_persistent_items(self)
+
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
         logger.info(
