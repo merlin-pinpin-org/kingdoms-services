@@ -155,9 +155,25 @@ class KingdomsBot(discord.Client):
         here — a class the factory forgets is dead UI after the next
         deploy (§3b state reconstruction contract).
         """
+        from kingdoms.discord.admin_persistent import (
+            AdminPanelWiring,
+            register_admin_panel_wiring,
+            register_admin_persistent_items,
+        )
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
+        register_admin_persistent_items(self)
+        register_admin_panel_wiring(
+            AdminPanelWiring(
+                logs_service=self.logs_service,
+                bot_admins=self.status_service.bot_admins,
+                roles_service=None,
+                catalog=self.messages,
+                admin_channel_service=None,
+                error_reporter=self.crash_report,
+            )
+        )
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -440,6 +456,18 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         catalog=bot.messages,
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
+    )
+    from kingdoms.discord.admin_persistent import AdminPanelWiring, register_admin_panel_wiring
+
+    register_admin_panel_wiring(
+        AdminPanelWiring(
+            logs_service=bot.logs_service,
+            bot_admins=status.bot_admins,
+            roles_service=roles_service,
+            catalog=bot.messages,
+            admin_channel_service=admin_channel_service,
+            error_reporter=bot.crash_report,
+        )
     )
     return bot
 
