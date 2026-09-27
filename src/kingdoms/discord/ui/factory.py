@@ -54,6 +54,8 @@ from typing import Any
 import discord
 from discord import SeparatorSpacing
 
+from kingdoms.discord.ui.delivery import ComponentPolicy, annotate
+
 Handler = Callable[[discord.Interaction], Awaitable[None]]
 SelectHandler = Callable[[discord.Interaction, list[str]], Awaitable[None]]
 
@@ -137,6 +139,7 @@ class Action:
     emoji: str = ""
     style: str = "primary"
     disabled: bool = False
+    policy: ComponentPolicy | None = None
 
     def __post_init__(self) -> None:
         """Validate the custom_id convention and the button style."""
@@ -160,6 +163,8 @@ class Action:
         )
         if not self.disabled:
             button.callback = self.on_click  # type: ignore[method-assign, assignment]
+        if self.policy is not None:
+            annotate(button, self.policy)
         return button
 
 
@@ -187,6 +192,7 @@ class SelectMenu:
     placeholder: str = ""
     min_values: int = 1
     max_values: int = 1
+    policy: ComponentPolicy | None = None
 
     def __post_init__(self) -> None:
         """Validate the custom_id convention and the options bounds."""
@@ -219,6 +225,8 @@ class SelectMenu:
             await self.on_choose(interaction, values)
 
         select.callback = _dispatch  # type: ignore[method-assign]
+        if self.policy is not None:
+            annotate(select, self.policy)
         return select
 
 
@@ -236,6 +244,7 @@ class ChannelSelect:
     on_choose: SelectHandler
     placeholder: str = ""
     channel_types: tuple[Any, ...] = (discord.ChannelType.text,)
+    policy: ComponentPolicy | None = None
 
     def __post_init__(self) -> None:
         """Validate the custom_id convention."""
@@ -258,6 +267,8 @@ class ChannelSelect:
             await handler(interaction, values)
 
         select.callback = _dispatch  # type: ignore[method-assign]
+        if self.policy is not None:
+            annotate(select, self.policy)
         return select
 
 

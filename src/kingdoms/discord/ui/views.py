@@ -15,6 +15,13 @@ from typing import Any
 
 import discord
 
+from kingdoms.discord.ui.delivery import (
+    ComponentPolicy,
+    MessageDestination,
+    annotate,
+    render_for,
+)
+
 __all__ = [
     "ConfirmationView",
     "GameSelectionView",
@@ -50,6 +57,20 @@ class PermissionedView(discord.ui.View):
     def permission_args(self, mod: str, custom_id: str) -> tuple[tuple[str, ...], bool]:
         """Return (required_roles, dm_allowed) declared for one component."""
         return (), False
+
+    def apply_destination(
+        self,
+        destination: MessageDestination,
+        user_roles: frozenset[str] | set[str] | tuple[str, ...] = (),
+    ) -> PermissionedView:
+        """Apply the #56 delivery policy to this view's components.
+
+        Components annotated at construction (their declared intent)
+        are disabled or omitted per the destination — the rendering
+        mirror of the click-time checks.
+        """
+        render_for(self, destination, user_roles)
+        return self
 
     @property
     def mod(self) -> str:
@@ -109,6 +130,13 @@ class ConfirmationView(PermissionedView):
         )
         self.confirm_button.callback = self._confirm  # type: ignore[method-assign]
         self.cancel_button.callback = self._cancel  # type: ignore[method-assign]
+        policy = ComponentPolicy(
+            required_roles=required_roles,
+            dm_allowed=dm_allowed,
+            public=not required_roles,
+        )
+        annotate(self.confirm_button, policy)
+        annotate(self.cancel_button, policy)
         self.add_item(self.confirm_button)
         self.add_item(self.cancel_button)
 
@@ -161,6 +189,10 @@ class GameSelectionView(PermissionedView):
             custom_id=f"{mod}:game:select",
         )
         self.game_select.callback = self._selected  # type: ignore[method-assign]
+        annotate(
+            self.game_select,
+            ComponentPolicy(required_roles=required_roles, dm_allowed=dm_allowed, public=not required_roles),
+        )
         self.add_item(self.game_select)
 
     @property
@@ -224,6 +256,10 @@ class PaginationView(PermissionedView):
         )
         self.previous_button.callback = self._previous  # type: ignore[method-assign]
         self.next_button.callback = self._next  # type: ignore[method-assign]
+        policy = ComponentPolicy(dm_allowed=True, public=True)
+        annotate(self.previous_button, policy)
+        annotate(self.next_button, policy)
+        annotate(self.page_counter, policy)
         self.add_item(self.previous_button)
         self.add_item(self.page_counter)
         self.add_item(self.next_button)

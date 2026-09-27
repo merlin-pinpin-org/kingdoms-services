@@ -51,7 +51,6 @@ class DiscordRolesPlatform:
         role = await guild.create_role(name=name, reason=reason)
         return str(role.id)
 
-
     async def add_role_to_member(self, guild_id: str, user_id: str, role_id: str, reason: str) -> None:
         """Add a role to a member (audited through ``reason``)."""
         guild = await self._guild(guild_id)
@@ -90,6 +89,7 @@ class DiscordRolesPlatform:
             except Exception:
                 return []
         return [str(role.id) for role in member.roles]
+
 
 class DiscordAdminChannelPlatform:
     """discord.py implementation of the admin channel platform seam.
@@ -181,9 +181,7 @@ class DiscordAdminChannelPlatform:
         bot_overwrite = discord.PermissionOverwrite(
             view_channel=True, send_messages=True, read_message_history=True, manage_messages=True
         )
-        role_overwrite = discord.PermissionOverwrite(
-            view_channel=True, read_message_history=True, send_messages=True
-        )
+        role_overwrite = discord.PermissionOverwrite(view_channel=True, read_message_history=True, send_messages=True)
         everyone_overwrite = discord.PermissionOverwrite(view_channel=False)
         await channel.set_permissions(guild.me, overwrite=bot_overwrite, reason="kingdoms: admin channel bot access")
         await channel.set_permissions(

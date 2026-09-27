@@ -243,9 +243,7 @@ class KingdomsBot(discord.Client):
                     len(definition.roles),
                 )
             except Exception:
-                logger.warning(
-                    "MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True
-                )
+                logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
 
     async def on_tree_error(
         self,

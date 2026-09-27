@@ -41,6 +41,7 @@ def _walk(components: list) -> list:  # type: ignore[type-arg]
             out.extend(_walk(list(getattr(component, "children", []))))
     return out
 
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
@@ -139,7 +140,4 @@ class TestStartupAnnouncementJourney:
 
         bot_logs_channels = [name for name in guild.channels if name == BOT_LOGS_CHANNEL_NAME]
         assert len(bot_logs_channels) == 1, "a fresh database must adopt, not duplicate"
-        assert (
-            fresh_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY].channel_id
-            == str(logs_channel.id)
-        )
+        assert fresh_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY].channel_id == str(logs_channel.id)

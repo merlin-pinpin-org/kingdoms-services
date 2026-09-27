@@ -86,9 +86,7 @@ class PermissionService:
         try:
             role_id = await self._roles.resolve_role_id(guild_id, mod, role_key)
         except Exception:
-            logger.warning(
-                "ROLE RESOLUTION FAILED (guild %s, %s:%s) — denying", guild_id, mod, role_key, exc_info=True
-            )
+            logger.warning("ROLE RESOLUTION FAILED (guild %s, %s:%s) — denying", guild_id, mod, role_key, exc_info=True)
             return False
         if role_id is None:
             return False

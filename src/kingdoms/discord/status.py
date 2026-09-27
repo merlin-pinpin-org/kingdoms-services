@@ -310,6 +310,7 @@ def register_status_command(
     locale (``commands.*`` keys in the shared yaml) through the tree
     translator (:meth:`KingdomsBot.attach_translator`).
     """
+
     @tree.command(
         name=localized("commands.status_name", "status"),
         description=localized("commands.status_description", "Bot status: uptime, mods, games, admins"),
@@ -344,5 +345,6 @@ def register_status_command(
             command_ids=tree.get_commands(),
         )
         await interaction.response.send_message(view=layout, ephemeral=True)
+
 
 logger = logging.getLogger("kingdoms.status")

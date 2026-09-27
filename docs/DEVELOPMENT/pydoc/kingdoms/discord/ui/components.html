@@ -44,13 +44,13 @@ keys&nbsp;required&nbsp;to&nbsp;click&nbsp;it&nbsp;—&nbsp;the&nbsp;``required_
 runtime&nbsp;permission&nbsp;check&nbsp;at&nbsp;click&nbsp;time.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Static methods defined here:<br>
-<dl><dt><a name="ButtonBuilder-danger"><strong>danger</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;danger&nbsp;(red)&nbsp;action&nbsp;button.</span></dd></dl>
+<dl><dt><a name="ButtonBuilder-danger"><strong>danger</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False, policy: 'ComponentPolicy | None' = None) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;danger&nbsp;(red)&nbsp;action&nbsp;button.</span></dd></dl>
 
-<dl><dt><a name="ButtonBuilder-primary"><strong>primary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;primary&nbsp;(blue)&nbsp;action&nbsp;button.</span></dd></dl>
+<dl><dt><a name="ButtonBuilder-primary"><strong>primary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False, policy: 'ComponentPolicy | None' = None) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;primary&nbsp;(blue)&nbsp;action&nbsp;button.</span></dd></dl>
 
-<dl><dt><a name="ButtonBuilder-secondary"><strong>secondary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;secondary&nbsp;(grey)&nbsp;action&nbsp;button.</span></dd></dl>
+<dl><dt><a name="ButtonBuilder-secondary"><strong>secondary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False, policy: 'ComponentPolicy | None' = None) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;secondary&nbsp;(grey)&nbsp;action&nbsp;button.</span></dd></dl>
 
-<dl><dt><a name="ButtonBuilder-success"><strong>success</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;action&nbsp;button.</span></dd></dl>
+<dl><dt><a name="ButtonBuilder-success"><strong>success</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False, policy: 'ComponentPolicy | None' = None) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;action&nbsp;button.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -69,9 +69,9 @@ Data descriptors defined here:<br>
 <td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;select&nbsp;menus&nbsp;with&nbsp;consistent&nbsp;styling.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Static methods defined here:<br>
-<dl><dt><a name="SelectBuilder-multi_select"><strong>multi_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 5) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;multi-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+<dl><dt><a name="SelectBuilder-multi_select"><strong>multi_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 5, policy: 'ComponentPolicy | None' = None) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;multi-selection&nbsp;select&nbsp;menu.</span></dd></dl>
 
-<dl><dt><a name="SelectBuilder-single_select"><strong>single_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 1) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;single-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+<dl><dt><a name="SelectBuilder-single_select"><strong>single_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 1, policy: 'ComponentPolicy | None' = None) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;single-selection&nbsp;select&nbsp;menu.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

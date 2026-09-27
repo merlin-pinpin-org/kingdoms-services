@@ -39,13 +39,13 @@ def _link(text: str, url: str) -> str:
 
 def _format_version_pr(ref: str, label: str, url: str) -> str:
     """Version for a PR deploy: Pull-request #<n> -> deployment comment."""
-    return f"Pull-request {_link(f"#{ref or label}", url)}"
+    return f"Pull-request {_link(f'#{ref or label}', url)}"
 
 
 def _format_version_pr_titled(ref: str, title: str, url: str) -> str:
     """Pull-request line: only #<n> links; the title stays plain text."""
     quoted = f" “{title}”" if title else ""
-    return f"Pull-request {_link(f"#{ref}", url)}{quoted}"
+    return f"Pull-request {_link(f'#{ref}', url)}{quoted}"
 
 
 def _format_version_commit(ref: str, label: str, url: str, ts: str) -> str:

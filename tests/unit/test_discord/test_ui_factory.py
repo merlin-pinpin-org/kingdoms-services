@@ -76,11 +76,7 @@ def test_layout_builds_full_structure() -> None:
 
 
 def test_section_button_accessory_links() -> None:
-    view = (
-        UILayout()
-        .add(Container().add(Section(Text("body"), button=Button("PR", "https://example.com"))))
-        .build()
-    )
+    view = UILayout().add(Container().add(Section(Text("body"), button=Button("PR", "https://example.com")))).build()
     container = view.to_components()[0]  # type: ignore[attr-defined]
     section = next(b for b in container["components"] if b["type"] == TYPE_SECTION)
     accessory = section["accessory"]
@@ -91,9 +87,7 @@ def test_section_button_accessory_links() -> None:
 
 def test_section_thumbnail_accessory() -> None:
     view = (
-        UILayout()
-        .add(Container().add(Section(Text("body"), thumbnail=Thumbnail("https://example.com/a.png"))))
-        .build()
+        UILayout().add(Container().add(Section(Text("body"), thumbnail=Thumbnail("https://example.com/a.png")))).build()
     )
     container = view.to_components()[0]  # type: ignore[attr-defined]
     section = next(b for b in container["components"] if b["type"] == TYPE_SECTION)
@@ -103,11 +97,7 @@ def test_section_thumbnail_accessory() -> None:
 def test_text_budget_is_enforced() -> None:
     big = "x" * 4001
     with pytest.raises(UILayoutError, match="budget"):
-        (
-            UILayout()
-            .add(Container().add(Text(big)))
-            .build()
-        )
+        (UILayout().add(Container().add(Text(big))).build())
 
 
 def test_section_requires_an_accessory() -> None:
@@ -191,11 +181,7 @@ def test_action_rejects_unknown_style() -> None:
 def test_row_mixes_link_and_action_buttons() -> None:
     view = (
         UILayout()
-        .add(
-            Container().add(
-                Row(Action("Ping", "admin:ping:", _noop), Button("PR", "https://example.com"))
-            )
-        )
+        .add(Container().add(Row(Action("Ping", "admin:ping:", _noop), Button("PR", "https://example.com"))))
         .build()
     )
     row = view.to_components()[0]["components"][0]

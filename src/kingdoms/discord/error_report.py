@@ -106,12 +106,7 @@ def interaction_context(interaction: discord.Interaction) -> str:
     what = getattr(interaction, "command", None)
     command_name = f"/{get_qualified_name(what)}" if what is not None else "component"
     when = _timestamp_now()
-    return (
-        f"who: <@{who}> (`{who}`)\n"
-        f"when: {when}\n"
-        f"where: {where}\n"
-        f"what: {command_name}"
-    )
+    return f"who: <@{who}> (`{who}`)\nwhen: {when}\nwhere: {where}\nwhat: {command_name}"
 
 
 def get_qualified_name(command: Any) -> str:

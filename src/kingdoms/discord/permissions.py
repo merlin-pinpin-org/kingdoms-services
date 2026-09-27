@@ -109,10 +109,7 @@ async def _audit_denial(
     try:
         event = LifecycleEvent(
             kind="permission_denied",
-            message=(
-                f"Permission denied: <@{ctx.user_id}> tried `{ctx.custom_id}` "
-                f"({ctx.mod}) — {result.reason}"
-            ),
+            message=(f"Permission denied: <@{ctx.user_id}> tried `{ctx.custom_id}` ({ctx.mod}) — {result.reason}"),
         )
         await logs_service.log_event(ctx.guild_id, event)
     except Exception:

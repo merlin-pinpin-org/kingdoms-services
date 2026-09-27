@@ -125,12 +125,12 @@ def test_layout_buttons_use_generic_labels() -> None:
     layout = build_announcement_layout(status, config, env="test")
     texts = "\n".join(_iter_texts(layout.to_components()))
     labels = [b["label"] for b in _iter_buttons(layout.to_components())]
-    assert "\U0001F33F Branch" in labels, "branch button carries a generic label"
-    assert "\U0001F527 Commit" in labels, "commit button carries a generic label"
+    assert "\U0001f33f Branch" in labels, "branch button carries a generic label"
+    assert "\U0001f527 Commit" in labels, "commit button carries a generic label"
     assert any(label.endswith("Files") for label in labels), "files button present"
-    assert "\U0001F9EA CI" in labels, "CI run button present"
-    assert "\U0001F4E6 Image" in labels, "image button present"
-    assert any(label.startswith("\U0001F680 Deploy") for label in labels), "deploy button present"
+    assert "\U0001f9ea CI" in labels, "CI run button present"
+    assert "\U0001f4e6 Image" in labels, "image button present"
+    assert any(label.startswith("\U0001f680 Deploy") for label in labels), "deploy button present"
     assert not any("vibe/feature-1" in label or "abc1234" in label or "c232b34" in label for label in labels), (
         "the identity rides in the text lines, not the button labels"
     )
@@ -151,9 +151,9 @@ def test_image_line_renders_the_full_tag_and_digest() -> None:
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="test")
     texts = _iter_texts(layout.to_components())
-    image_block = next(t for t in texts if "\U0001F4E6" in t and "pr-42-20260925222854-abc1234" in t)
+    image_block = next(t for t in texts if "\U0001f4e6" in t and "pr-42-20260925222854-abc1234" in t)
     lines = image_block.splitlines()
-    assert lines[0].startswith("\U0001F4E6 Image"), "the tag headlines the image block"
+    assert lines[0].startswith("\U0001f4e6 Image"), "the tag headlines the image block"
     assert f"`sha256:{digest64}`" in lines, "the full digest sits on its own line"
     assert len(lines[-1]) == len(f"`sha256:{digest64}`"), "the digest is complete (64 hex chars)"
     assert "(sha256:" not in "\n".join(texts), "the digest never decorates the tag inline"
