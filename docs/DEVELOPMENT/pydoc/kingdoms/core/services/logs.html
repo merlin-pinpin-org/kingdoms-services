@@ -151,7 +151,8 @@ None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.</span></dd></
 Policy&nbsp;and&nbsp;stop&nbsp;messages&nbsp;are&nbsp;localized&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale<br>
 (the&nbsp;announcement&nbsp;layouts&nbsp;render&nbsp;their&nbsp;own&nbsp;localization).<br>
 ``pin``&nbsp;marks&nbsp;the&nbsp;message&nbsp;as&nbsp;a&nbsp;permanent&nbsp;reference&nbsp;(the&nbsp;boot<br>
-status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;after&nbsp;delivery.</span></dd></dl>
+status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;and&nbsp;unpins&nbsp;the&nbsp;previous&nbsp;one&nbsp;—<br>
+only&nbsp;the&nbsp;most&nbsp;recent&nbsp;boot&nbsp;status&nbsp;stays&nbsp;pinned.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
@@ -294,9 +295,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name)&nbsp;for&nbsp;the&nbsp;admin&nbsp;picker.</span></dd></dl>
 
-<dl><dt>async <a name="LogsPlatform-send_and_pin_log_message"><strong>send_and_pin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;and&nbsp;pin&nbsp;it&nbsp;(boot&nbsp;statuses).</span></dd></dl>
+<dl><dt>async <a name="LogsPlatform-send_and_pin_log_message"><strong>send_and_pin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event,&nbsp;pin&nbsp;it,&nbsp;return&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
+
+<dl><dt>async <a name="LogsPlatform-unpin_log_message"><strong>unpin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', message_id: 'str') -&gt; 'None'</dt><dd><span class="code">Unpin&nbsp;one&nbsp;message&nbsp;(the&nbsp;superseded&nbsp;boot&nbsp;status).</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
