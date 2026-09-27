@@ -120,6 +120,10 @@ class LogsPlatform(Protocol):
         """Deliver one lifecycle event to the logs channel (layout optional)."""
         ...
 
+    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
+        """Deliver one lifecycle event and pin it (boot statuses)."""
+        ...
+
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""
         ...
@@ -239,18 +243,23 @@ class LogService:
         await self._cache(guild_id, channel_id)
         return channel_id
 
-    async def log_event(self, guild_id: str, event: LifecycleEvent) -> None:
+    async def log_event(self, guild_id: str, event: LifecycleEvent, *, pin: bool = False) -> None:
         """Deliver one lifecycle event to the guild's logs channel (best-effort).
 
         Policy and stop messages are localized with the guild's locale
         (the announcement layouts render their own localization).
+        ``pin`` marks the message as a permanent reference (the boot
+        status): the platform pins it after delivery.
         """
         try:
             channel_id = await self.resolve_channel(guild_id)
             if channel_id is None:
                 return
             content = event.message if not event.footer else f"{event.message}\n-# {event.footer}"
-            await self._platform.send_log_message(guild_id, channel_id, content, layout=event.layout)
+            if pin:
+                await self._platform.send_and_pin_log_message(guild_id, channel_id, content, layout=event.layout)
+            else:
+                await self._platform.send_log_message(guild_id, channel_id, content, layout=event.layout)
         except Exception:
             logger.warning("LIFECYCLE LOG DELIVERY FAILED (guild %s, event %s) — best-effort", guild_id, event.kind)
 

@@ -193,16 +193,30 @@ class DiscordLogsPlatform:
 
     async def send_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
         """Deliver one lifecycle event to the logs channel (layout optional)."""
+        channel = await self._text_channel(guild_id, channel_id)
+        if layout is not None:
+            await channel.send(view=layout)
+            return
+        await channel.send(content=content)
+
+    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
+        """Deliver one lifecycle event and pin it (boot statuses, #109)."""
+        channel = await self._text_channel(guild_id, channel_id)
+        if layout is not None:
+            message = await channel.send(view=layout)
+        else:
+            message = await channel.send(content=content)
+        await message.pin(reason="kingdoms: boot status (pinned per restart)")
+
+    async def _text_channel(self, guild_id: str, channel_id: str) -> discord.TextChannel:
+        """Resolve the logs channel as a live text channel."""
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
         channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() else None
         if not isinstance(channel, discord.TextChannel):
             raise RuntimeError(f"channel {channel_id} is not a text channel")
-        if layout is not None:
-            await channel.send(view=layout)
-            return
-        await channel.send(content=content)
+        return channel
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the persisted channel still exists on the platform."""

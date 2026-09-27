@@ -420,8 +420,8 @@ async def announce_startup(
             command_ids=commands or (),
         )
         event = LifecycleEvent(kind="start", message="", layout=layout)
-        await logs_service.log_event(str(guild.id), event)
-        logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s)", guild.id, locale)
+        await logs_service.log_event(str(guild.id), event, pin=True)
+        logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s, pinned)", guild.id, locale)
 
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:

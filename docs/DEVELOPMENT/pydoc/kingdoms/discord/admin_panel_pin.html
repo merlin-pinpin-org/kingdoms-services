@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.admin_panel_pin</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.admin_panel_pin</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/admin_panel_pin.py">SOURCE_ROOT/discord/admin_panel_pin.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;pinned&nbsp;admin&nbsp;menu:&nbsp;a&nbsp;permanent,&nbsp;self-healing&nbsp;panel&nbsp;surface.<br>
+&nbsp;<br>
+The&nbsp;🛡-bot-admins&nbsp;channel&nbsp;is&nbsp;the&nbsp;admin&nbsp;home:&nbsp;the&nbsp;panel&nbsp;must&nbsp;be<br>
+reachable&nbsp;without&nbsp;typing&nbsp;``/admin``.&nbsp;The&nbsp;bot&nbsp;therefore&nbsp;maintains&nbsp;a<br>
+**pinned&nbsp;menu**&nbsp;in&nbsp;every&nbsp;guild's&nbsp;admin&nbsp;channel:<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;message&nbsp;carries&nbsp;the&nbsp;standard&nbsp;main&nbsp;menu&nbsp;(the&nbsp;same&nbsp;builder&nbsp;as<br>
+&nbsp;&nbsp;/admin)&nbsp;—&nbsp;access&nbsp;is&nbsp;validated&nbsp;at&nbsp;click&nbsp;time&nbsp;by&nbsp;the&nbsp;very&nbsp;same<br>
+&nbsp;&nbsp;guards,&nbsp;so&nbsp;a&nbsp;non-admin&nbsp;reading&nbsp;the&nbsp;channel&nbsp;and&nbsp;clicking&nbsp;a&nbsp;component<br>
+&nbsp;&nbsp;is&nbsp;denied&nbsp;with&nbsp;the&nbsp;ephemeral&nbsp;reason&nbsp;(seeing&nbsp;a&nbsp;button&nbsp;never&nbsp;grants<br>
+&nbsp;&nbsp;the&nbsp;right&nbsp;to&nbsp;use&nbsp;it);<br>
+-&nbsp;the&nbsp;menu&nbsp;id&nbsp;is&nbsp;``admin:pin:menu``&nbsp;—&nbsp;the&nbsp;marker&nbsp;identifying&nbsp;the<br>
+&nbsp;&nbsp;pinned&nbsp;message&nbsp;among&nbsp;the&nbsp;channel&nbsp;pins;<br>
+-&nbsp;a&nbsp;periodic&nbsp;check&nbsp;(the&nbsp;factory's&nbsp;heartbeat)&nbsp;re-creates&nbsp;and&nbsp;re-pins<br>
+&nbsp;&nbsp;the&nbsp;menu&nbsp;when&nbsp;it&nbsp;is&nbsp;gone&nbsp;(unpinned,&nbsp;deleted,&nbsp;or&nbsp;the&nbsp;channel&nbsp;itself<br>
+&nbsp;&nbsp;re-provisioned),&nbsp;so&nbsp;the&nbsp;surface&nbsp;self-heals;<br>
+-&nbsp;everything&nbsp;is&nbsp;best-effort:&nbsp;a&nbsp;failing&nbsp;pin&nbsp;never&nbsp;blocks&nbsp;the&nbsp;bot,&nbsp;and<br>
+&nbsp;&nbsp;the&nbsp;``KINGDOMS_ANNOUNCE_ENABLED=0``&nbsp;smoke&nbsp;bot&nbsp;never&nbsp;touches&nbsp;pins.<br>
+&nbsp;<br>
+Reference:&nbsp;kingdoms-services#115&nbsp;(admin&nbsp;channel),&nbsp;the&nbsp;developer<br>
+mandate&nbsp;on&nbsp;click-time&nbsp;guards.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-ensure_pinned_admin_menu"><strong>ensure_pinned_admin_menu</strong></a>(bot: 'discord.Client', guild_id: 'str', logs_service: 'LogService', roles_service: 'RolesService | None', admin_channel_service: 'AdminChannelService | None', admin_ids: 'tuple[str, ...]', catalog: 'MessageCatalog | None' = None) -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;admin&nbsp;channel&nbsp;holds&nbsp;exactly&nbsp;one&nbsp;pinned&nbsp;menu.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;when&nbsp;a&nbsp;message&nbsp;was&nbsp;(re-)created,&nbsp;False&nbsp;when&nbsp;the<br>
+existing&nbsp;pin&nbsp;was&nbsp;already&nbsp;in&nbsp;place.&nbsp;The&nbsp;menu&nbsp;itself&nbsp;reuses&nbsp;the<br>
+standard&nbsp;main-menu&nbsp;builder&nbsp;—&nbsp;click-time&nbsp;guards&nbsp;included&nbsp;—&nbsp;and<br>
+the&nbsp;periodic&nbsp;re-checks&nbsp;make&nbsp;the&nbsp;surface&nbsp;self-healing.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PINNED_MENU_CUSTOM_ID</strong> = 'admin:pin:menu'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.admin.pin (WARNING)&gt;</td></tr></table>
+</body></html>

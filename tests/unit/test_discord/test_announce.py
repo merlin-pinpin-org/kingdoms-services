@@ -41,9 +41,11 @@ class _FakeLogService:
 
     def __init__(self) -> None:
         self.events: dict[str, list[LifecycleEvent]] = {}
+        self.pinned = False
 
-    async def log_event(self, guild_id: str, event: LifecycleEvent) -> None:
+    async def log_event(self, guild_id: str, event: LifecycleEvent, *, pin: bool = False) -> None:
         self.events.setdefault(guild_id, []).append(event)
+        self.pinned = pin
 
 
 class _Bot:

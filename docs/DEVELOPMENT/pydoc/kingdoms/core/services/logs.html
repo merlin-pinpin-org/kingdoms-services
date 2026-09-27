@@ -146,10 +146,12 @@ None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.</span></dd></
 
 <dl><dt>async <a name="LogService-log_crash_loop"><strong>log_crash_loop</strong></a>(self, guild_id: 'str', base_event: 'LifecycleEvent') -&gt; 'None'</dt><dd><span class="code">Collapse&nbsp;repeated&nbsp;start/stop&nbsp;into&nbsp;one&nbsp;crash-loop&nbsp;event&nbsp;with&nbsp;a&nbsp;counter.</span></dd></dl>
 
-<dl><dt>async <a name="LogService-log_event"><strong>log_event</strong></a>(self, guild_id: 'str', event: 'LifecycleEvent') -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;channel&nbsp;(best-effort).<br>
+<dl><dt>async <a name="LogService-log_event"><strong>log_event</strong></a>(self, guild_id: 'str', event: 'LifecycleEvent', *, pin: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;channel&nbsp;(best-effort).<br>
 &nbsp;<br>
 Policy&nbsp;and&nbsp;stop&nbsp;messages&nbsp;are&nbsp;localized&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale<br>
-(the&nbsp;announcement&nbsp;layouts&nbsp;render&nbsp;their&nbsp;own&nbsp;localization).</span></dd></dl>
+(the&nbsp;announcement&nbsp;layouts&nbsp;render&nbsp;their&nbsp;own&nbsp;localization).<br>
+``pin``&nbsp;marks&nbsp;the&nbsp;message&nbsp;as&nbsp;a&nbsp;permanent&nbsp;reference&nbsp;(the&nbsp;boot<br>
+status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;after&nbsp;delivery.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
@@ -291,6 +293,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name)&nbsp;for&nbsp;the&nbsp;admin&nbsp;picker.</span></dd></dl>
+
+<dl><dt>async <a name="LogsPlatform-send_and_pin_log_message"><strong>send_and_pin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;and&nbsp;pin&nbsp;it&nbsp;(boot&nbsp;statuses).</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
 
