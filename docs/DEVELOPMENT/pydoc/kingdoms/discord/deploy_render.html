@@ -37,6 +37,10 @@ tag&nbsp;is&nbsp;the&nbsp;part&nbsp;before&nbsp;the&nbsp;``@``&nbsp;—&nbsp;nev
 in&nbsp;it&nbsp;(the&nbsp;Commit&nbsp;line&nbsp;already&nbsp;shows&nbsp;that).</span></dd></dl>
  <dl><dt><a name="-full_digest"><strong>full_digest</strong></a>(image: 'str') -&gt; 'str'</dt><dd><span class="code">Extract&nbsp;the&nbsp;complete&nbsp;image&nbsp;digest&nbsp;(``sha256:&lt;64&gt;``)&nbsp;when&nbsp;pinned.</span></dd></dl>
  <dl><dt><a name="-infra_commit_ts"><strong>infra_commit_ts</strong></a>(status: 'StatusService') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;infra&nbsp;state&nbsp;commit&nbsp;timestamp&nbsp;(relative-time&nbsp;ready).</span></dd></dl>
+ <dl><dt><a name="-is_release_kind"><strong>is_release_kind</strong></a>(kind: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;deploy&nbsp;kind&nbsp;is&nbsp;a&nbsp;tag-based&nbsp;release&nbsp;(final&nbsp;or&nbsp;-rc&nbsp;pre-release).<br>
+&nbsp;<br>
+Both&nbsp;pin&nbsp;a&nbsp;tag&nbsp;(vX.Y.Z&nbsp;or&nbsp;vX.Y.Z-rc&lt;n&gt;)&nbsp;—&nbsp;they&nbsp;share&nbsp;the&nbsp;Tag/Commit<br>
+identity&nbsp;rendering;&nbsp;only&nbsp;the&nbsp;headline&nbsp;and&nbsp;the&nbsp;celebration&nbsp;differ.</span></dd></dl>
  <dl><dt><a name="-is_unix"><strong>is_unix</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;deploy&nbsp;timestamp&nbsp;field&nbsp;is&nbsp;a&nbsp;usable&nbsp;unix&nbsp;timestamp.</span></dd></dl>
  <dl><dt><a name="-relative_time"><strong>relative_time</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;unix&nbsp;timestamp&nbsp;as&nbsp;a&nbsp;Discord&nbsp;relative&nbsp;time&nbsp;(empty-safe).</span></dd></dl>
  <dl><dt><a name="-services_commit_ts"><strong>services_commit_ts</strong></a>(status: 'StatusService') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;services&nbsp;commit&nbsp;timestamp&nbsp;(relative-time&nbsp;ready).</span></dd></dl>
@@ -50,5 +54,6 @@ in&nbsp;it&nbsp;(the&nbsp;Commit&nbsp;line&nbsp;already&nbsp;shows&nbsp;that).</
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>INFRA_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-infra'<br>
 <strong>PACKAGE_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services/pkgs/container/kingdoms-services'<br>
+<strong>RELEASE_KINDS</strong> = frozenset({'prerelease', 'release'})<br>
 <strong>SERVICES_REPO_URL</strong> = 'https://github.com/merlin-pinpin-org/kingdoms-services'</td></tr></table>
 </body></html>
