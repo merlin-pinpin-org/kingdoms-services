@@ -26,8 +26,7 @@ from kingdoms.discord.admin_persistent import (
     AdminDynamicButton,
     AdminDynamicRoute,
     AdminDynamicSelect,
-    AdminPanelWiring,
-    register_admin_panel_wiring,
+    register_admin_panel_bot,
     register_admin_persistent_items,
 )
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
@@ -71,15 +70,21 @@ class _FakeLogsService:
         return "555"
 
 
-def _wiring(logs: _FakeLogsService) -> AdminPanelWiring:
-    return AdminPanelWiring(
-        logs_service=logs,
-        bot_admins=("111111111",),
-        roles_service=None,
-        catalog=None,
-        admin_channel_service=None,
-        error_reporter=None,
-    )
+class _FakeBot:
+    """Bot stand-in: the wiring resolves the services at click time."""
+
+    status_service = type("S", (), {"bot_admins": ("111111111",)})()
+    messages = None
+    roles_service = None
+    admin_channel_service = None
+    crash_report = None
+
+    def __init__(self, logs: _FakeLogsService) -> None:
+        self.logs_service = logs
+
+
+def _wire(logs: _FakeLogsService) -> None:
+    register_admin_panel_bot(_FakeBot(logs))
 
 
 def _interaction(user_id: int = 111111111, guild_id: int = 42) -> MockInteraction:
@@ -125,7 +130,7 @@ class TestPostRestartClicks:
     async def test_locale_select_click_persists_and_rerenders(self) -> None:
         """A post-restart locale click flows through the services."""
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = _select("locale")
         interaction = _interaction()
         interaction.data = {"values": ["fr"]}
@@ -138,7 +143,7 @@ class TestPostRestartClicks:
     @pytest.mark.asyncio
     async def test_channel_menu_click_opens_the_secondary_menu(self) -> None:
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = _select("channel")
         interaction = _interaction()
         interaction.data = {"values": ["bot_logs"]}
@@ -150,7 +155,7 @@ class TestPostRestartClicks:
     @pytest.mark.asyncio
     async def test_visibility_click_persists(self) -> None:
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = _select("visibility")
         interaction = _interaction()
         interaction.data = {"values": ["public"]}
@@ -161,7 +166,7 @@ class TestPostRestartClicks:
     @pytest.mark.asyncio
     async def test_user_locale_click_persists(self) -> None:
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = _select("user-locale")
         interaction = _interaction()
         interaction.data = {"values": ["fr"]}
@@ -171,7 +176,7 @@ class TestPostRestartClicks:
     @pytest.mark.asyncio
     async def test_route_click_persists_the_channel(self) -> None:
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = await AdminDynamicRoute.from_custom_id(None, None, re.fullmatch(ROUTE_TEMPLATE, CHANNEL_ROUTE_ID))  # type: ignore[arg-type]
         interaction = _interaction()
         interaction.data = {"values": ["999"]}
@@ -182,7 +187,7 @@ class TestPostRestartClicks:
     @pytest.mark.asyncio
     async def test_back_button_returns_to_the_main_menu(self) -> None:
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = await AdminDynamicButton.from_custom_id(None, None, re.fullmatch(BUTTON_TEMPLATE, BACK_BUTTON_ID))  # type: ignore[arg-type]
         interaction = _interaction()
         await item.callback(interaction)
@@ -196,7 +201,7 @@ class TestClickTimeGuards:
     async def test_a_stranger_click_is_denied_at_click_time(self) -> None:
         """The developer mandate: seeing the pinned menu grants nothing."""
         logs = _FakeLogsService()
-        register_admin_panel_wiring(_wiring(logs))
+        _wire(logs)
         item = _select("locale")
         interaction = _interaction(user_id=999999999)
         interaction.data = {"values": ["fr"]}
@@ -208,12 +213,26 @@ class TestClickTimeGuards:
     async def test_without_wiring_the_click_degrades(self) -> None:
         from kingdoms.discord import admin_persistent
 
-        admin_persistent._WIRING = None
+        admin_persistent._WIRING_RESOLVER = None
         item = _select("locale")
         interaction = _interaction()
         interaction.data = {"values": ["fr"]}
         await item.callback(interaction)
         assert interaction.response.sent is True, "the degradation note answers the click"
+
+    @pytest.mark.asyncio
+    async def test_the_wiring_sees_the_services_built_after_startup(self) -> None:
+        """The ordering bug: a wiring snapshot taken in setup_hook saw
+        services=None (the factory builds them later). The bot-based
+        resolver must see them at click time."""
+        from kingdoms.discord import admin_persistent
+
+        bot = _FakeBot(_FakeLogsService())
+        register_admin_panel_bot(bot)
+        bot.admin_channel_service = object()  # built later by the factory
+        wiring = admin_persistent._wiring()
+        assert wiring is not None
+        assert wiring.admin_channel_service is bot.admin_channel_service
 
 
 class TestStartupRegistration:
