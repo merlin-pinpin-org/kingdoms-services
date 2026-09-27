@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -69,17 +70,49 @@ class AdminPanelWiring:
     error_reporter: Any = None
 
 
-_WIRING: AdminPanelWiring | None = None
+_WIRING_RESOLVER: Callable[[], AdminPanelWiring] | None = None
 
 
 def register_admin_panel_wiring(wiring: AdminPanelWiring) -> None:
-    """Register the panel wiring (called once at startup by the factory)."""
-    global _WIRING
-    _WIRING = wiring
+    """Register the panel wiring (compatibility shim, superseded by the bot resolver)."""
+    global _WIRING_RESOLVER
+    _WIRING_RESOLVER = None
+
+
+def register_admin_panel_bot(bot: Any) -> None:
+    """Register the bot as the wiring source (services resolve at click time).
+
+    The factory builds the services after ``setup_hook`` runs, so a
+    wiring snapshot taken at startup can be stale (services None).
+    Resolving from the live bot at click time closes the ordering
+    window: the click always sees the current services.
+    """
+    global _WIRING_RESOLVER
+
+    def _resolve() -> AdminPanelWiring:
+        logs: LogService | None = getattr(bot, "logs_service", None)
+        admins: tuple[str, ...] = tuple(getattr(bot.status_service, "bot_admins", ()))
+        return AdminPanelWiring(
+            logs_service=logs,
+            bot_admins=admins,
+            roles_service=getattr(bot, "roles_service", None),
+            catalog=getattr(bot, "messages", None),
+            admin_channel_service=getattr(bot, "admin_channel_service", None),
+            error_reporter=getattr(bot, "crash_report", None),
+        )
+
+    resolver: Callable[[], AdminPanelWiring] = _resolve
+    _WIRING_RESOLVER = resolver
 
 
 def _wiring() -> AdminPanelWiring | None:
-    return _WIRING
+    if _WIRING_RESOLVER is None:
+        return None
+    try:
+        return _WIRING_RESOLVER()
+    except Exception:
+        logger.warning("ADMIN PANEL (persistent): wiring resolution failed", exc_info=True)
+        return None
 
 
 async def _locale_of(wiring: AdminPanelWiring, guild_id: str) -> str:

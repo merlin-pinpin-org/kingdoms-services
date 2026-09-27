@@ -550,7 +550,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-register_admin_panel_wiring"><strong>register_admin_panel_wiring</strong></a>(wiring: 'AdminPanelWiring') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;panel&nbsp;wiring&nbsp;(called&nbsp;once&nbsp;at&nbsp;startup&nbsp;by&nbsp;the&nbsp;factory).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-register_admin_panel_wiring"><strong>register_admin_panel_wiring</strong></a>(wiring: 'AdminPanelWiring') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;panel&nbsp;wiring&nbsp;(compatibility&nbsp;shim,&nbsp;superseded&nbsp;by&nbsp;the&nbsp;bot&nbsp;resolver).</span></dd></dl>
  <dl><dt><a name="-register_admin_persistent_items"><strong>register_admin_persistent_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;admin&nbsp;panel&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -559,5 +559,5 @@ Data and other attributes defined here:<br>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>__all__</strong> = ['AdminDynamicButton', 'AdminDynamicRoute', 'AdminDynamicSelect', 'AdminPanelWiring', 'register_admin_panel_wiring', 'register_admin_persistent_items']<br>
-<strong>__annotations__</strong> = {'_WIRING': 'AdminPanelWiring | None'}</td></tr></table>
+<strong>__annotations__</strong> = {'_WIRING_RESOLVER': 'Callable[[], AdminPanelWiring] | None'}</td></tr></table>
 </body></html>
