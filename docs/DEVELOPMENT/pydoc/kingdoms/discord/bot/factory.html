@@ -19,8 +19,9 @@ optional,&nbsp;so&nbsp;the&nbsp;bot&nbsp;merges&nbsp;incrementally&nbsp;while&nb
 green&nbsp;in&nbsp;CI&nbsp;(re-scoping&nbsp;note&nbsp;on&nbsp;kingdoms-services#12).<br>
 &nbsp;<br>
 The&nbsp;bot&nbsp;class&nbsp;itself&nbsp;is&nbsp;thin:&nbsp;no&nbsp;manual&nbsp;interaction&nbsp;dispatch&nbsp;(CommandTree<br>
-and&nbsp;discord.py&nbsp;Views&nbsp;already&nbsp;route),&nbsp;platform&nbsp;logic&nbsp;stays&nbsp;in<br>
-``DiscordPlatform``,&nbsp;and&nbsp;the&nbsp;``KINGDOMS_BOT_READY``&nbsp;log&nbsp;contract&nbsp;of&nbsp;the<br>
+and&nbsp;discord.py&nbsp;Views&nbsp;already&nbsp;route),&nbsp;platform&nbsp;logic&nbsp;stays&nbsp;in&nbsp;the&nbsp;narrow<br>
+Protocol&nbsp;seams&nbsp;(ADR-0011:&nbsp;DiscordChannelsPlatform,&nbsp;DiscordRolesPlatform),<br>
+and&nbsp;the&nbsp;``KINGDOMS_BOT_READY``&nbsp;log&nbsp;contract&nbsp;of&nbsp;the<br>
 smoke&nbsp;CI&nbsp;is&nbsp;preserved&nbsp;(kingdoms-services#34).</span></p>
 <p>
 <table class="section">

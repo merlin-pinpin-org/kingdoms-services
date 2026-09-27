@@ -8,8 +8,9 @@ optional, so the bot merges incrementally while ``--preflight`` stays
 green in CI (re-scoping note on kingdoms-services#12).
 
 The bot class itself is thin: no manual interaction dispatch (CommandTree
-and discord.py Views already route), platform logic stays in
-``DiscordPlatform``, and the ``KINGDOMS_BOT_READY`` log contract of the
+and discord.py Views already route), platform logic stays in the narrow
+Protocol seams (ADR-0011: DiscordChannelsPlatform, DiscordRolesPlatform),
+and the ``KINGDOMS_BOT_READY`` log contract of the
 smoke CI is preserved (kingdoms-services#34).
 """
 
