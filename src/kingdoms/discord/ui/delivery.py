@@ -163,7 +163,7 @@ def _render_private(view: AnyView, roles: frozenset[str]) -> None:
             continue
         if policy.required_roles:
             if policy.dm_allowed:
-                item.disabled = True
+                _disable(item)
             else:
                 _remove(view, item)
             continue
@@ -179,6 +179,12 @@ def _render_channel(view: AnyView) -> None:
         if not policy.is_public:
             _remove(view, item)
     _prune_empty_rows(view)
+
+
+def _disable(item: discord.ui.Item[Any]) -> None:
+    """Disable an interactive item (buttons and selects carry the flag)."""
+    if isinstance(item, (discord.ui.Button, discord.ui.Select)):
+        item.disabled = True
 
 
 def _remove(view: AnyView, item: discord.ui.Item[Any]) -> None:
