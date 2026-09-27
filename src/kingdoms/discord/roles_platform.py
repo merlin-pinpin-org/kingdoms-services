@@ -78,6 +78,18 @@ class DiscordRolesPlatform:
             raise LookupError(f"role {role_id} not found in guild {guild_id}")
         await member.remove_roles(role, reason=reason)
 
+    async def get_member_role_ids(self, guild_id: str, user_id: str) -> list[str]:
+        """Read a member's live platform role ids (empty when absent)."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return []
+        member = guild.get_member(int(user_id))
+        if member is None:
+            try:
+                member = await guild.fetch_member(int(user_id))
+            except Exception:
+                return []
+        return [str(role.id) for role in member.roles]
 
 class DiscordAdminChannelPlatform:
     """discord.py implementation of the admin channel platform seam.

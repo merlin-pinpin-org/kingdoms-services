@@ -26,6 +26,7 @@ logger = logging.getLogger("kingdoms.core.i18n")
 DEFAULT_LOCALE = "en"
 FALLBACKS: dict[str, str] = {
     "lifecycle.stop": "Bot shutting down.",
+    "permissions.denied": "You are not allowed to do that — this action requires a role you do not have.",
     "lifecycle.policy.grant": "Access policy updated: role <@&{role_id}> granted view, by <@{by}>.",
     "lifecycle.policy.reset": "Access policy reset to admin-only, by <@{by}>.",
     "lifecycle.policy.route": "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>.",
