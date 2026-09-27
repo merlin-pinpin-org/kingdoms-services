@@ -9,15 +9,16 @@ One deploy identity, one rendering: the announcement is a Components
 V2 layout built through the UI SDK (:mod:`kingdoms.discord.ui`).
 Per the SDK navigation rules, text blocks carry plain labels only
 (links and line breaks do not render in V2 text) — every artifact is
-a link button with a generic label (Branch, Commit, Files, CI, Image,
-Deploy); the identity itself (branch, sha7, docker tag + full digest,
-run number) rides in the text lines above each button row.
+a link button with a generic label (Branch, Commit, Tag, Files, Job,
+Image, Deploy); the identity itself (branch, tag, sha7, CI job id,
+docker tag + full digest, deploy job id) rides in the text lines
+above each button row, each job id line sitting under a Separator.
 
 Sections: Bot (uptime, admins, games, mods, gateway latency, synced
-commands), Services (source identity + commit date, build artifacts +
-build date), Infra (state identity + commit date, deployment run +
-run date) — each artifact's timestamp sits directly under it, under a
-row of generically labeled buttons carrying the links. The deployed
+commands), Services (source identity + commit date, CI job + build
+artifacts + build date), Infra (state identity + commit date, deploy
+job + run date) — each artifact's timestamp sits directly under it,
+under a row of generically labeled buttons carrying the links. The deployed
 environment rides as a badge under the title; there is no machine
 footer — the
 kingdoms-infra post-deploy battery (kingdoms-infra#78) reads the
@@ -176,13 +177,34 @@ def _line(label: str, value: str, ts: str = "") -> str:
     return f"{rendered} {ts}".rstrip() if ts else rendered
 
 
+def _deploy_commit_sha(status: StatusService) -> str:
+    """Resolve the sha7 of the deployed commit.
+
+    Releases pin the tag, not the sha: the tag rides as the last path
+    segment of the tree URL, so it must never be rendered as a commit —
+    the resolved sha (KINGDOMS_DEPLOY_COMMIT, written by the pin from
+    the GitHub API) stands in for the sha the emitters cannot pass
+    (the client_payload is capped at 10 properties).
+    """
+    if status.deploy_kind == "release":
+        return status.deploy_commit[:7] if status.deploy_commit else ""
+    return sha7_of(status.deploy_tree_url)
+
+
 def _services_identity_text(status: StatusService, catalog: dict[str, str]) -> Text | None:
-    """Build the source identity lines: branch and commit + commit date."""
-    sha = sha7_of(status.deploy_tree_url)
+    """Build the source identity lines: branch, tag (releases), commit.
+
+    A release deploy carries both the tag (vX.Y.Z) and the commit it
+    points at — distinct lines, never the tag rendered as a commit.
+    """
+    sha = _deploy_commit_sha(status)
     lines = [
         line
         for line in (
             _line(f"🌿 {catalog['branch_label']}", status.deploy_branch),
+            _line(f"🔖 {catalog['tag_label']}", status.deploy_ref)
+            if status.deploy_kind == "release" and status.deploy_ref
+            else "",
             _line(f"🔧 {catalog['commit_label']}", sha, relative_time(status.deploy_commit_ts)),
         )
         if line
@@ -195,38 +217,44 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     buttons: list[Button] = []
     if status.deploy_branch:
         buttons.append(Button(f"🌿 {catalog['branch_label']}", f"{SERVICES_REPO_URL}/tree/{status.deploy_branch}"))
-    sha = sha7_of(status.deploy_tree_url)
+    sha = _deploy_commit_sha(status)
     if sha:
         buttons.append(Button(f"🔧 {catalog['commit_label']}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
             buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
+    if status.deploy_kind == "release" and status.deploy_ref:
+        buttons.append(Button(f"🔖 {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
     if status.deploy_url and not _release_section(status, catalog):
         buttons.append(Button(f"🔗 {catalog['link_label']}", status.deploy_url))
     return buttons
 
 
 def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[Button]:
-    """Build the build buttons: pipeline run + package image.
+    """Build the build buttons: CI job + package image.
 
-    Every button is labeled by its artifact: the CI run by ``#<n>``
-    (the job id rides in the deployment line above), the image by
-    its shortened docker tag — never an anonymous emoji.
+    Every button carries a generic label: the CI job by ``Job`` (its
+    id rides in the Job CI line above the image), the image by its
+    shortened docker tag — never an anonymous emoji.
     """
     buttons: list[Button] = []
-    if status.deploy_run_url:
-        buttons.append(Button(f"🧪 {catalog['ci_label']}", status.deploy_run_url))
+    ci_url = (
+        f"{SERVICES_REPO_URL}/actions/runs/{status.deploy_ci_run_id}" if status.deploy_ci_run_id else ""
+    )
+    if ci_url:
+        buttons.append(Button(f"🧪 {catalog['ci_label']}", ci_url))
     if status.deploy_image:
         buttons.append(Button(f"📦 {catalog['image_label']}", PACKAGE_URL))
     return buttons
 
 
 def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[object]:
-    """Build the Services blocks: identity + timestamps + buttons.
+    """Build the Services blocks: identity + jobs + buttons.
 
-    The source identity (branch, commit) and the build identity
+    The source identity (branch, tag, commit) and the build identity
     (docker tag) each carry their own timestamp on the line directly
     under them — text blocks carry no links, every artifact is a link
-    button with its identity as the label.
+    button with its identity as the label. The CI job line sits under
+    a Separator, right above the image line it built.
     """
     blocks: list[object] = [Text(f"**{catalog['services_label']}**")]
     identity = _services_identity_text(status, catalog)
@@ -235,6 +263,10 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     first = _services_artifact_row(status, catalog)
     if first:
         blocks.append(Row(*first))
+    ci_number = status.deploy_ci_run_number or status.deploy_ci_run_id
+    if ci_number:
+        blocks.append(Separator())
+        blocks.append(Text(_line(f"🧪 {catalog['job_ci_label']}", f"#{ci_number}")))
     image = status.deploy_image or status.deploy_label
     tag = docker_tag(image)
     if tag:
@@ -283,8 +315,9 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
     if status.deploy_run_url:
-        label = f"#{status.deploy_run_number}" if status.deploy_run_number else catalog["deployment_label"]
-        blocks.append(Text(_line(f"🚀 {catalog['deployment_label']}", label, run_ts)))
+        run_id = status.deploy_run_number or status.deploy_run_url.rsplit("/", 1)[-1]
+        blocks.append(Separator())
+        blocks.append(Text(_line(f"🚀 {catalog['job_deploy_label']}", f"#{run_id}", run_ts)))
         blocks.append(
             Row(
                 Button(f"🚀 {catalog['deploy_label']}", status.deploy_run_url),

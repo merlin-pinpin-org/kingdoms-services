@@ -271,7 +271,11 @@ jobs:
                 deploy_ref: String(pr),
                 deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
                 deploy_branch: prData.head.ref,
-                deploy_pr_title: prData.title,
+                // The PR title is composed by the Pin state workflow from
+                // this run lookup (it has the PR in context anyway): the
+                // client_payload is capped at 10 properties, and the CI
+                // job id (this run — it built the image) needs the slot.
+                ci_run: String(context.runId),
                 deployed_by: `${context.payload.comment.user.login} (/deploy)`,
               },
             });

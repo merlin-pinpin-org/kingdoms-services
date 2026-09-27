@@ -154,7 +154,10 @@ jobs:
                 deploy_ref: tag,
                 deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${tag}`,
                 deploy_branch: "main",
-                deploy_pr_title: "",
+                // The CI job that built the image: this run. Its id and
+                // number are resolved by the Pin state workflow from the
+                // run lookup (the payload stays at exactly 10 properties).
+                ci_run: String(context.runId),
                 deployed_by: `${context.actor} (release ${tag})`,
               },
             });

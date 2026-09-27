@@ -14,7 +14,10 @@ en:
     version_label: "Version"
     branch_label: "Branch"
     commit_label: "Commit"
+    tag_label: "Tag"
     image_label: "Image"
+    job_ci_label: "Job CI"
+    job_deploy_label: "Job deployment"
     deployment_label: "Deployment"
     uptime_label: "Uptime"
     admins_label: "Admins"
@@ -24,8 +27,8 @@ en:
     none_label: "*(none configured)*"
     files_label: "Files"
     link_label: "Link"
-    ci_label: "CI"
-    deploy_label: "Deployment"
+    ci_label: "Job"
+    deploy_label: "Job"
   lifecycle:
     stop: "Bot shutting down."
     policy:

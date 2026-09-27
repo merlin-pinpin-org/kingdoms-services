@@ -116,6 +116,9 @@ class StatusService:
         deploy_pr_title: str = "",
         deploy_commit_ts: str = "",
         deploy_infra_commit_ts: str = "",
+        deploy_commit: str = "",
+        deploy_ci_run_id: str = "",
+        deploy_ci_run_number: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -138,6 +141,9 @@ class StatusService:
         self._deploy_pr_title = deploy_pr_title.strip()
         self._deploy_commit_ts = deploy_commit_ts.strip()
         self._deploy_infra_commit_ts = deploy_infra_commit_ts.strip()
+        self._deploy_commit = deploy_commit.strip()
+        self._deploy_ci_run_id = deploy_ci_run_id.strip()
+        self._deploy_ci_run_number = deploy_ci_run_number.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -220,6 +226,21 @@ class StatusService:
         return self._deploy_infra_commit_ts
 
     @property
+    def deploy_commit(self) -> str:
+        """Full sha of the deployed services commit (KINGDOMS_DEPLOY_COMMIT)."""
+        return self._deploy_commit
+
+    @property
+    def deploy_ci_run_id(self) -> str:
+        """Id of the CI job that built the image (KINGDOMS_DEPLOY_CI_RUN_ID)."""
+        return self._deploy_ci_run_id
+
+    @property
+    def deploy_ci_run_number(self) -> str:
+        """Number of the CI job that built the image (KINGDOMS_DEPLOY_CI_RUN_NUMBER)."""
+        return self._deploy_ci_run_number
+
+    @property
     def bot_admins(self) -> tuple[str, ...]:
         """Bot operator user IDs (BOT_ADMINS)."""
         return self._bot_admins.user_ids
@@ -265,6 +286,9 @@ class StatusService:
             "deploy_pr_title": self._deploy_pr_title,
             "deploy_commit_ts": self._deploy_commit_ts,
             "deploy_infra_commit_ts": self._deploy_infra_commit_ts,
+            "deploy_commit": self._deploy_commit,
+            "deploy_ci_run_id": self._deploy_ci_run_id,
+            "deploy_ci_run_number": self._deploy_ci_run_number,
             "enabled_mods": self.enabled_mods(),
         }
 

@@ -80,7 +80,7 @@ def test_section_fills_missing_locale_keys_with_english() -> None:
     announce_en = catalog.section("announce", "en")
     announce_fr = catalog.section("announce", "fr")
     assert set(announce_fr) == set(announce_en), "both locales expose the same keys"
-    assert announce_fr["ci_label"] == "CI"
+    assert announce_fr["ci_label"] == "Job"
 
 
 def test_section_of_unknown_prefix_is_empty() -> None:
