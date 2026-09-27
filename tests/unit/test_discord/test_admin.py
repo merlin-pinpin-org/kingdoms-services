@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import discord
 import pytest
 
 from kingdoms.discord.admin import (
     BACK_BUTTON_ID,
     CHANNEL_MENU_ID,
+    CHANNEL_ROUTE_ID,
     LOCALE_SELECT_ID,
     USER_LOCALE_SELECT_ID,
     VISIBILITY_SELECT_ID,
@@ -202,6 +205,49 @@ async def test_dm_setup_view_without_service_degrades() -> None:
     assert USER_LOCALE_SELECT_ID in _custom_ids(view)
 
 
+@pytest.mark.asyncio
+async def test_channel_menu_routing_failure_reports_the_crash() -> None:
+    """A routing failure reaches the crash reporter (#113), not just the ephemeral answer."""
+    logs = _RoutingFailureLogsService()
+    reported: list[BaseException] = []
+
+    async def reporter(interaction: discord.Interaction, exc: BaseException) -> None:
+        reported.append(exc)
+
+    view = await build_channel_menu(
+        logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",), error_reporter=reporter
+    )
+    select = _find_select(view, CHANNEL_ROUTE_ID)
+    assert select is not None
+    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
+    interaction.guild_id = 42
+    await _choose_channel(select, interaction, ["777"])  # type: ignore[arg-type]
+    assert interaction.response.sent is True, "the user still gets the ephemeral failure answer"
+    assert len(reported) == 1, "the failure must reach the crash reporter"
+    assert isinstance(reported[0], ValueError)
+
+
+@pytest.mark.asyncio
+async def test_channel_menu_routing_success_stays_silent() -> None:
+    """A successful routing never reports and rerenders the menu."""
+    logs = _FakeAdminLogsService(channel_id="555")
+    reported: list[BaseException] = []
+
+    async def reporter(interaction: discord.Interaction, exc: BaseException) -> None:
+        reported.append(exc)
+
+    view = await build_channel_menu(
+        logs, "42", "bot_logs", by="111111111", bot_admins=("111111111",), error_reporter=reporter
+    )
+    select = _find_select(view, CHANNEL_ROUTE_ID)
+    assert select is not None
+    interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
+    interaction.guild_id = 42
+    await _choose_channel(select, interaction, ["556"])  # type: ignore[arg-type]
+    assert reported == [], "no failure, no report"
+    assert logs.routed == [("42", "556", "111111111")]
+
+
 def _custom_ids(view: discord.ui.LayoutView) -> set[str]:
     ids: set[str] = set()
     for child in view.walk_children():
@@ -211,9 +257,10 @@ def _custom_ids(view: discord.ui.LayoutView) -> set[str]:
     return ids
 
 
-def _find_select(view: discord.ui.LayoutView, custom_id: str) -> discord.ui.Select | None:
+def _find_select(view: discord.ui.LayoutView, custom_id: str) -> discord.ui.Item[Any] | None:
     for child in view.walk_children():
-        if isinstance(child, discord.ui.Select) and child.custom_id == custom_id:
+        item_custom_id = getattr(child, "custom_id", None)
+        if isinstance(child, (discord.ui.Select, discord.ui.ChannelSelect)) and item_custom_id == custom_id:
             return child
     return None
 
@@ -228,6 +275,28 @@ def _find_button(view: discord.ui.LayoutView, custom_id: str) -> discord.ui.Butt
 async def _choose(select: discord.ui.Select, interaction: MockInteraction, values: list[str]) -> None:
     interaction.data = {"values": values}
     interaction.custom_id = select.custom_id
+    await select.callback(interaction)
+
+
+async def _choose_channel(
+    select: discord.ui.ChannelSelect[Any], interaction: MockInteraction, channel_ids: list[str]
+) -> None:
+    """Click a ChannelSelect: the framework resolves channels server-side.
+
+    A real interaction carries the resolved channel objects in
+    ``data['resolved']`` and discord.py exposes them through the
+    ``selected_values`` context var; the unit test seeds that var
+    directly with plain channel stand-ins.
+    """
+    from discord.ui.select import selected_values
+
+    class _Channel:
+        def __init__(self, channel_id: str) -> None:
+            self.id = int(channel_id)
+
+    interaction.data = {"values": channel_ids, "resolved": {}}
+    interaction.custom_id = select.custom_id
+    selected_values.set({select.custom_id: [_Channel(cid) for cid in channel_ids]})
     await select.callback(interaction)
 
 
@@ -268,3 +337,10 @@ class _FakeAdminLogsService:
 
     async def set_channel(self, guild_id: str, channel_id: str, by: str) -> None:
         self.routed.append((guild_id, channel_id, by))
+
+
+class _RoutingFailureLogsService(_FakeAdminLogsService):
+    """A routing attempt that always fails (the platform rejects the target)."""
+
+    async def set_channel(self, guild_id: str, channel_id: str, by: str) -> None:
+        raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")

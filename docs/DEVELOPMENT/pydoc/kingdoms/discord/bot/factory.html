@@ -173,6 +173,12 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsBot-close"><strong>close</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;stop&nbsp;lifecycle&nbsp;event,&nbsp;then&nbsp;close&nbsp;the&nbsp;gateway&nbsp;connection.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-crash_report"><strong>crash_report</strong></a>(self, interaction: 'discord.Interaction', exc: 'BaseException') -&gt; 'None'</dt><dd><span class="code">Report&nbsp;a&nbsp;component-callback&nbsp;failure&nbsp;to&nbsp;bot-logs&nbsp;+&nbsp;BOT_ADMINS&nbsp;DMs.<br>
+&nbsp;<br>
+The&nbsp;panel&nbsp;callbacks&nbsp;catch&nbsp;their&nbsp;own&nbsp;failures&nbsp;to&nbsp;answer&nbsp;the&nbsp;user<br>
+ephemerally;&nbsp;this&nbsp;seam&nbsp;hands&nbsp;the&nbsp;same&nbsp;exception&nbsp;to&nbsp;the&nbsp;#113<br>
+crash&nbsp;reporter&nbsp;(cause,&nbsp;interaction&nbsp;context,&nbsp;GitHub&nbsp;source&nbsp;link).</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'object', **kwargs: 'object') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;unhandled&nbsp;gateway-event&nbsp;failures&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
