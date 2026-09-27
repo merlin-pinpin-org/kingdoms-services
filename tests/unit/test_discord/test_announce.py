@@ -171,15 +171,18 @@ def test_image_line_renders_the_full_tag_and_digest() -> None:
 
 
 def test_timestamps_sit_under_commit_and_build_for_both_repos() -> None:
-    """Services: commit date under the commit line, build date under the
-    image line. Infra: commit date under the state commit line, run
-    date under the deployment line."""
+    """Services: commit date under the commit line, build date on the Job
+    CI line (the image line carries no date). Infra: commit date under
+    the state commit line, run date under the deployment line."""
     status = _status_service(
         deploy_branch="vibe/feature-1",
         deploy_tree_url="https://github.com/merlin-pinpin-org/kingdoms-services/tree/abc1234deadbeef",
         deploy_commit_ts="1790000000",
         deploy_ts="1790100000",
         deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-x",
+        deploy_ci_run_id="987654",
+        deploy_ci_run_number="321",
+        deploy_ci_run_ts="1790120000",
         deploy_infra_label="deploy/test@abc1234deadbeef",
         deploy_infra_commit_ts="1790050000",
         deploy_run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1",
@@ -191,14 +194,17 @@ def test_timestamps_sit_under_commit_and_build_for_both_repos() -> None:
     texts = _iter_texts(layout.to_components())
     services = next(t for t in texts if "Branch" in t and "abc1234" in t and "2026" not in t)
     assert "🔧 Commit `abc1234` <t:1790000000:R>" in services.splitlines()
-    image_line = next(t for t in texts if "📦" in t and "<t:1790100000:R>" in t)
-    assert image_line
+    ci_line = next(t for t in texts if "Job CI" in t and "#321" in t)
+    assert "<t:1790120000:R>" in ci_line, "the build date rides on the Job CI line"
+    image_block = next(t for t in texts if t.startswith("📦 Image"))
+    assert "<t:" not in image_block, "the image line carries no date"
+    assert not any("<t:1790100000:R>" in t for t in texts), "the pin date never renders"
     infra = next(t for t in texts if "deploy/test" in t)
     assert "🔧 Commit `abc1234` <t:1790050000:R>" in infra.splitlines()
     deploy_line = next(t for t in texts if "🚀" in t and "<t:1790150000:R>" in t)
     assert deploy_line.startswith("🚀 Job deployment `#45`"), "the deploy job id headlines the line"
     kinds = [c["type"] for c in layout.to_components()[0]["components"]]
-    assert kinds.count(TYPE_SEPARATOR) == 3, "Bot/Services, Services/Infra, deploy job (no CI data in this fixture)"
+    assert kinds.count(TYPE_SEPARATOR) == 4, "Bot/Services, CI job, Services/Infra, deploy job"
 
 
 def test_layout_bot_section_reports_uptime_admins_games_mods_latency() -> None:
