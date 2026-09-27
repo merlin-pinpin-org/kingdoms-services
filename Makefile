@@ -70,9 +70,16 @@ clean:
 	@docker system prune -f
 
 # Release & deploy watching (agent automation)
-# release: cut vX.Y.Z (tag + GitHub release; pre-flight: main clean, green)
+# release: cut the next version — computed by the conventional changelog
+# (feat → minor, fix → patch, BREAKING → major); the tag push triggers the
+# Docker workflow (image + pin on deploy/test + GitHub release).
 release:
-	@./scripts/release.sh $(TAG)
+	@./scripts/cut_release.sh
+
+# pre-release: cut the next version with a -rc<n> classifier (deployable on
+# test only, never promotable to prod — the Promote workflow refuses -rc).
+pre-release:
+	@./scripts/cut_release.sh --prerelease
 
 # watch-deploy: follow a deploy/<env> pin and its deploy run (ENV, LABEL)
 watch-deploy:

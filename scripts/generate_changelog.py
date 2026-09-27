@@ -7,7 +7,13 @@ no release tag exists yet), parses Conventional Commits subjects
 
 - release notes for the GitHub release body (one bullet per commit, with
   the squash-merged PR link) — replaces scripts/release_notes.sh;
-- CHANGELOG.md sections appended at tag time by the Docker workflow.
+- CHANGELOG.md sections appended at tag time by the Docker workflow;
+
+- version bumps (kingdoms-services#126): the next version is derived from
+  the Conventional Commits since the last release — `feat` bumps the
+  minor, `fix` the patch, a breaking change the major — and pre-releases
+  append a `-rc<n>` classifier that increments per cycle. `make release`
+  and `make pre-release` call this; the version is never hand-picked.
 
 The output is generated, never hand-edited (kingdoms-services#28).
 """
@@ -23,6 +29,10 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 REPO = "merlin-pinpin-org/kingdoms-services"
+
+TAG_RE = re.compile(
+    r"^v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<prerelease>rc\d+))?$"
+)
 
 
 def pr_map(cwd: str | None = None) -> dict[str, int]:
@@ -227,6 +237,97 @@ def render_changelog_section(tag: str, previous_ref: str | None, entries: list[C
     return render_section(title, entries, header)
 
 
+def parse_tag(tag: str) -> tuple[int, int, int, int] | None:
+    """Parse a tag into (major, minor, patch, rc); rc=0 for a final release."""
+    match = TAG_RE.match(tag)
+    if not match:
+        return None
+    return (
+        int(match["major"]),
+        int(match["minor"]),
+        int(match["patch"]),
+        int(match["prerelease"][2:]) if match["prerelease"] else 0,
+    )
+
+
+def bump_level(entries: list[CommitEntry]) -> str:
+    """Derive the bump level from the conventional commits since the last release.
+
+    BREAKING > feat > fix — everything else (docs, chore, refactor, ...)
+    falls to the patch level: a release of pure chores still cuts a patch,
+    so the image and the pin move.
+    """
+    if any(e.breaking for e in entries):
+        return "major"
+    if any(e.type == "feat" for e in entries):
+        return "minor"
+    return "patch"
+
+
+def latest_release_tag(cwd: str | None = None) -> str | None:
+    """The highest released tag: finals win over -rc classifiers, then semver."""
+    tags = [t.strip() for t in git("tag", "--list", "v*", cwd=cwd).splitlines() if t.strip()]
+    parsed = [(parse_tag(t), t) for t in tags]
+    parsed = [(p, t) for p, t in parsed if p]
+    if not parsed:
+        return None
+    parsed.sort(key=lambda pt: (pt[0][3] == 0, pt[0]))
+    return parsed[-1][1]
+
+
+def next_free_rc(base: str, cwd: str | None = None) -> str:
+    """The first free -rc<n> classifier on a base version."""
+    used = {
+        t.strip()
+        for t in git("tag", "--list", f"{base}-rc*", cwd=cwd).splitlines()
+        if t.strip()
+    }
+    n = 1
+    while f"{base}-rc{n}" in used:
+        n += 1
+    return f"{base}-rc{n}"
+
+
+def bumped_base(major: int, minor: int, patch: int, level: str) -> str:
+    """Apply a bump level to a base version."""
+    if level == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif level == "minor":
+        minor, patch = minor + 1, 0
+    else:
+        patch += 1
+    return f"v{major}.{minor}.{patch}"
+
+
+def next_version(
+    previous: str | None, entries: list[CommitEntry], prerelease: bool, cwd: str | None = None
+) -> str:
+    """Compute the next tag from the previous release and the bump level.
+
+    Without a previous tag the base starts at v0.(minor).0 (feat) or
+    v0.0.1 (fix). A pre-release cycle appends `-rc<n>` on the bumped
+    base (first free n); an open rc cycle keeps its base — the commits
+    since the last release (fixes to the rc feedback included) increment
+    the classifier, and cutting the final drops the classifier on the
+    base the cycle validated — never a new bump on top of it.
+    """
+    level = bump_level(entries)
+    if previous is None:
+        base = "v0.1.0" if level == "minor" else "v0.0.1"
+        return f"{base}-rc1" if prerelease else base
+    parsed = parse_tag(previous)
+    if parsed is None:
+        raise SystemExit(f"internal error: unparsable previous tag {previous}")
+    major, minor, patch, rc = parsed
+    if rc:
+        base = f"v{major}.{minor}.{patch}"
+        return next_free_rc(base, cwd=cwd) if prerelease else base
+    base = bumped_base(major, minor, patch, level)
+    if prerelease:
+        return next_free_rc(base, cwd=cwd)
+    return base
+
+
 def existing_changelog_tags(path: str) -> set[str]:
     """Read the tags already present in a CHANGELOG.md file."""
     try:
@@ -261,7 +362,9 @@ def write_changelog(path: str, tag: str, section: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tag", required=True, help="release tag being cut (vX.Y.Z)")
+    parser.add_argument("--tag", default=None, help="release tag being cut (default with --bump: computed)")
+    parser.add_argument("--bump", action="store_true", help="print the computed next tag and exit")
+    parser.add_argument("--prerelease", action="store_true", help="with --bump: compute a -rc<n> pre-release")
     parser.add_argument("--previous", nargs="?", default=None, help="previous release tag (default: auto-detect)")
     parser.add_argument("--notes", action="store_true", help="print the GitHub release notes body")
     parser.add_argument("--changelog", metavar="FILE", help="write/refresh the CHANGELOG.md section into FILE")
@@ -270,8 +373,14 @@ def main() -> int:
 
     previous_ref = args.previous
     if previous_ref is None:
-        tags = git("tag", "--list", "v*", "--sort=-v:refname").splitlines()
-        previous_ref = next((t for t in tags if t != args.tag), None)
+        previous_ref = latest_release_tag()
+
+    if args.bump:
+        entries = collect_entries(previous_ref)
+        print(next_version(previous_ref, entries, prerelease=args.prerelease, cwd=None))
+        return 0
+    if not args.tag:
+        raise SystemExit("--tag is required unless --bump computes it")
 
     entries = collect_entries(previous_ref)
     if args.notes:

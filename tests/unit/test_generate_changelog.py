@@ -15,19 +15,65 @@ from pathlib import Path
 import pytest
 from scripts.generate_changelog import (
     CommitEntry,
+    bump_level,
     collect_entries,
     entry_bullet,
     group_by_type,
+    next_version,
     parse_commit,
+    parse_tag,
     render_changelog_section,
     render_notes,
     write_changelog,
 )
 
 
-def entry(type_: str, subject: str, pr: int | None = None, scope: str | None = None) -> CommitEntry:
+def entry(
+    type_: str, subject: str, pr: int | None = None, scope: str | None = None, breaking: bool = False
+) -> CommitEntry:
     """Build a CommitEntry shorthand for renderer tests."""
-    return CommitEntry(sha="abcdef1234567890", type=type_, scope=scope, breaking=False, subject=subject, pr=pr)
+    return CommitEntry(sha="abcdef1234567890", type=type_, scope=scope, breaking=breaking, subject=subject, pr=pr)
+
+
+class TestVersionBump:
+    """The conventional commits define the increments — never hand-picked."""
+
+    def test_parse_tag_final_and_prerelease(self) -> None:
+        assert parse_tag("v0.2.2") == (0, 2, 2, 0)
+        assert parse_tag("v0.3.0-rc1") == (0, 3, 0, 1)
+        assert parse_tag("v0.3.0-rc12") == (0, 3, 0, 12)
+        assert parse_tag("v1.2.3.4") is None
+
+    def test_bump_level_breaking_feat_fix(self) -> None:
+        assert bump_level([entry("feat", "x"), entry("fix", "y")]) == "minor"
+        assert bump_level([entry("fix", "y"), entry("docs", "z")]) == "patch"
+        assert bump_level([entry("fix", "y", breaking=True)]) == "major"
+        assert bump_level([entry("chore", "m")]) == "patch"
+
+    def test_feat_bumps_minor_from_previous_final(self) -> None:
+        tag = next_version("v0.2.2", [entry("feat", "new thing")], prerelease=False)
+        assert tag == "v0.3.0"
+
+    def test_fix_bumps_patch(self) -> None:
+        tag = next_version("v0.2.2", [entry("fix", "a bug")], prerelease=False)
+        assert tag == "v0.2.3"
+
+    def test_prerelease_appends_first_free_rc(self) -> None:
+        tag = next_version("v0.2.2", [entry("feat", "x")], prerelease=True)
+        assert tag == "v0.3.0-rc1"
+
+    def test_prerelease_first_release(self) -> None:
+        assert next_version(None, [entry("feat", "x")], prerelease=True) == "v0.1.0-rc1"
+        assert next_version(None, [entry("fix", "y")], prerelease=False) == "v0.0.1"
+
+    def test_prerelease_cycle_keeps_the_base(self) -> None:
+        # The rc cycle validated v0.3.0: cutting the final drops the classifier.
+        tag = next_version("v0.3.0-rc2", [entry("fix", "rc feedback")], prerelease=False)
+        assert tag == "v0.3.0"
+
+    def test_breaking_bumps_major(self) -> None:
+        tag = next_version("v0.2.2", [entry("feat", "x", breaking=True)], prerelease=False)
+        assert tag == "v1.0.0"
 
 
 class TestParseCommit:

@@ -263,6 +263,35 @@ def test_layout_sections_and_separator_structure() -> None:
     assert section["accessory"]["label"] == "🔗 v0.1.0"
 
 
+def test_prerelease_headlines_as_prerelease_and_release_is_celebrated() -> None:
+    """A -rc deploy headlines as Pre-release vX.Y.Z-rc<n> (no celebration);
+    a final release headlines as 🎉 Version vX.Y.Z."""
+    rc_status = _status_service(
+        deploy_label="v0.3.0-rc1",
+        deploy_kind="prerelease",
+        deploy_ref="v0.3.0-rc1",
+        deploy_commit="9f8e7d6c5b4a3928173645508174938271626153",
+        deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.3.0-rc1",
+    )
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(rc_status, config, env="test")
+    texts = _iter_texts(layout.to_components())
+    assert any("Pre-release v0.3.0-rc1" in text for text in texts), "the rc headlines as Pre-release"
+    assert not any("🎉" in text for text in texts), "a pre-release is not celebrated"
+    assert any("🔖 Tag `v0.3.0-rc1`" in text for text in texts), "the rc rides the Tag line like a release"
+
+    final_status = _status_service(
+        deploy_label="v0.3.0",
+        deploy_kind="release",
+        deploy_ref="v0.3.0",
+        deploy_commit="9f8e7d6c5b4a3928173645508174938271626153",
+        deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.3.0",
+    )
+    layout = build_announcement_layout(final_status, config, env="test")
+    texts = _iter_texts(layout.to_components())
+    assert any("🎉 Version v0.3.0" in text for text in texts), "a final release is celebrated"
+
+
 def test_release_renders_tag_and_commit_as_distinct_lines() -> None:
     """A release deploy shows the tag AND the commit it points at —
     the tag never renders as the commit (the tree URL's last segment

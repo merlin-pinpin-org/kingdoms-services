@@ -139,8 +139,12 @@ jobs:
             const tag = context.ref.replace("refs/tags/", "");
             const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${tag}`;
             // The GitHub release page for the tag (created or not yet);
-            // /status renders it as the Release link.
+            // /status renders it as the Release/Pre-release link.
             const releaseUrl = `https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/${tag}`;
+            // A -rc<n> classifier pins as a prerelease: same validation
+            // flow on deploy/test, but the Promote workflow refuses it
+            // on prod and /status celebrates it distinctly.
+            const kind = /-rc\d+$/.test(tag) ? "prerelease" : "release";
             await github.rest.repos.createDispatchEvent({
               owner: "merlin-pinpin-org",
               repo: "kingdoms-infra",
@@ -150,7 +154,7 @@ jobs:
                 image,
                 version_label: tag,
                 deploy_url: releaseUrl,
-                deploy_kind: "release",
+                deploy_kind: kind,
                 deploy_ref: tag,
                 deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${tag}`,
                 deploy_branch: "main",
@@ -199,6 +203,12 @@ jobs:
           # PR link) instead of GitHub's --generate-notes dump — and the
           # same content lands in CHANGELOG.md (never hand-edited).
           notes="$(python scripts/generate_changelog.py --tag "$TAG" --notes)"
-          printf '%s' "$notes" | gh release create "$TAG" --notes-file - --title "$TAG"
+          # A -rc<n> tag is a GitHub pre-release: visible, but not the
+          # latest final release (GitHub marks the newest non-prerelease).
+          if [[ "$TAG" =~ -rc[0-9]+$ ]]; then
+            printf '%s' "$notes" | gh release create "$TAG" --notes-file - --title "$TAG" --prerelease
+          else
+            printf '%s' "$notes" | gh release create "$TAG" --notes-file - --title "$TAG"
+          fi
           python scripts/generate_changelog.py --tag "$TAG" --changelog CHANGELOG.md
           cat CHANGELOG.md
