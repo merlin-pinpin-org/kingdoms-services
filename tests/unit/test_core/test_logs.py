@@ -167,9 +167,7 @@ async def test_existing_channel_is_adopted_not_duplicated(
 
 
 @pytest.mark.asyncio
-async def test_second_resolution_hits_the_cache(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_second_resolution_hits_the_cache(service: LogService, platform: FakeLogsPlatform) -> None:
     first = await service.resolve_channel(GUILD)
     assert platform.exists_calls == 0
     second = await service.resolve_channel(GUILD)
@@ -190,9 +188,7 @@ async def test_deleted_channel_is_reprovisioned(
 
 
 @pytest.mark.asyncio
-async def test_log_event_delivers_footer_as_subtext(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_log_event_delivers_footer_as_subtext(service: LogService, platform: FakeLogsPlatform) -> None:
     await service.resolve_channel(GUILD)
     event = LifecycleEvent(kind="start", message="Bot is live", footer="kingdoms-deploy env=test")
     await service.log_event(GUILD, event)
@@ -201,18 +197,14 @@ async def test_log_event_delivers_footer_as_subtext(
 
 
 @pytest.mark.asyncio
-async def test_log_event_never_raises_on_platform_failure(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_log_event_never_raises_on_platform_failure(service: LogService, platform: FakeLogsPlatform) -> None:
     platform.live_channels.clear()
     event = LifecycleEvent(kind="stop", message="Bye")
     await service.log_event(GUILD, event)
 
 
 @pytest.mark.asyncio
-async def test_crash_loop_collapses_after_threshold(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_crash_loop_collapses_after_threshold(service: LogService, platform: FakeLogsPlatform) -> None:
     await service.resolve_channel(GUILD)
     event = LifecycleEvent(kind="start", message="Bot is live")
     for _ in range(CRASH_LOOP_THRESHOLD):
@@ -223,9 +215,7 @@ async def test_crash_loop_collapses_after_threshold(
 
 
 @pytest.mark.asyncio
-async def test_below_threshold_crash_loop_is_silent(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_below_threshold_crash_loop_is_silent(service: LogService, platform: FakeLogsPlatform) -> None:
     await service.resolve_channel(GUILD)
     event = LifecycleEvent(kind="start", message="Bot is live")
     for _ in range(CRASH_LOOP_THRESHOLD - 1):
@@ -358,9 +348,7 @@ async def test_locale_roundtrip_and_fallback(
 
 
 @pytest.mark.asyncio
-async def test_list_text_channels_serves_the_picker(
-    service: LogService, platform: FakeLogsPlatform
-) -> None:
+async def test_list_text_channels_serves_the_picker(service: LogService, platform: FakeLogsPlatform) -> None:
     await service.resolve_channel(GUILD)
     platform.live_channels.add("5555")
     platform.channel_names["5555"] = "general"

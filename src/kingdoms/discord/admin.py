@@ -76,12 +76,12 @@ MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
 
 _LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
 
+
 def _t(catalog: MessageCatalog | None, locale: str, key: str, **kwargs: object) -> str:
     """Render an admin catalog key with an English fallback."""
     if catalog is None:
         return key
     return catalog.render(f"admin.{key}", locale, **kwargs)
-
 
 
 def _is_bot_admin(user_id: int | None, bot_admins: tuple[str, ...]) -> bool:
@@ -119,9 +119,7 @@ async def build_dm_setup_view(
             await logs_service.set_user_locale(str(interaction.user.id), values[0])
         except Exception:
             logger.exception("ADMIN DM: user locale change failed for user %s", interaction.user.id)
-            await interaction.response.send_message(
-                _t(catalog, locale, "dm_change_failed"), ephemeral=True
-            )
+            await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
         await interaction.response.edit_message(
             view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog)
@@ -167,9 +165,7 @@ async def build_main_menu(
             await logs_service.set_locale(guild_id, values[0], by=by)
         except Exception:
             logger.exception("ADMIN PANEL: locale change failed for guild %s", guild_id)
-            await interaction.response.send_message(
-                _t(catalog, locale, "dm_change_failed"), ephemeral=True
-            )
+            await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
         await interaction.response.edit_message(
             view=await build_main_menu(logs_service, guild_id, by, bot_admins, roles_service, catalog)
@@ -252,9 +248,7 @@ async def build_channel_menu(
     """Build the secondary menu of one managed channel (routing, visibility)."""
     entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
     if entry is None:
-        return UILayout().add(
-            Container(accent=BLURPLE).add(Text(f"Unknown channel category: `{category}`."))
-        ).build()
+        return UILayout().add(Container(accent=BLURPLE).add(Text(f"Unknown channel category: `{category}`."))).build()
     _, icon, label_key = entry
     label = _t(catalog, locale, label_key)
     channel_id = await _resolve_managed_channel(logs_service, guild_id, category, admin_channel_service)
@@ -298,9 +292,7 @@ async def build_channel_menu(
     ]
     if category == BOT_LOGS_CATEGORY:
         blocks.extend(
-            _logs_channel_blocks(
-                logs_service, guild_id, category, by, policy, on_route, on_visibility, catalog, locale
-            )
+            _logs_channel_blocks(logs_service, guild_id, category, by, policy, on_route, on_visibility, catalog, locale)
         )
     else:
         blocks.extend(
@@ -317,9 +309,7 @@ async def build_channel_menu(
             ]
         )
 
-    blocks.extend(
-        [Separator(), Row(Action(_t(catalog, locale, "back"), BACK_BUTTON_ID, on_back, style="secondary"))]
-    )
+    blocks.extend([Separator(), Row(Action(_t(catalog, locale, "back"), BACK_BUTTON_ID, on_back, style="secondary"))])
     return UILayout().add(Container(accent=BLURPLE, blocks=tuple(blocks))).build()
 
 
@@ -457,9 +447,7 @@ async def _managed_channel_status(
     """Render the per-category channel mentions for the main menu."""
     status: dict[str, str] = {}
     for category, _, _ in MANAGED_CHANNELS:
-        channel_id = await _resolve_managed_channel(
-            logs_service, guild_id, category, admin_channel_service
-        )
+        channel_id = await _resolve_managed_channel(logs_service, guild_id, category, admin_channel_service)
         status[category] = f"<#{channel_id}>" if channel_id else "not provisioned yet"
     return status
 

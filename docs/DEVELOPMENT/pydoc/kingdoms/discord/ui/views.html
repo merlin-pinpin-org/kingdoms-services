@@ -76,6 +76,12 @@ Data and other attributes defined here:<br>
 
 <hr>
 Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt><a name="ConfirmationView-apply_destination"><strong>apply_destination</strong></a>(self, destination: 'MessageDestination', user_roles: 'frozenset[str] | set[str] | tuple[str, ...]' = ()) -&gt; 'PermissionedView'</dt><dd><span class="code">Apply&nbsp;the&nbsp;#56&nbsp;delivery&nbsp;policy&nbsp;to&nbsp;this&nbsp;view's&nbsp;components.<br>
+&nbsp;<br>
+Components&nbsp;annotated&nbsp;at&nbsp;construction&nbsp;(their&nbsp;declared&nbsp;intent)<br>
+are&nbsp;disabled&nbsp;or&nbsp;omitted&nbsp;per&nbsp;the&nbsp;destination&nbsp;—&nbsp;the&nbsp;rendering<br>
+mirror&nbsp;of&nbsp;the&nbsp;click-time&nbsp;checks.</span></dd></dl>
+
 <dl><dt>async <a name="ConfirmationView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
 
 <hr>
@@ -299,6 +305,12 @@ Data and other attributes defined here:<br>
 
 <hr>
 Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt><a name="GameSelectionView-apply_destination"><strong>apply_destination</strong></a>(self, destination: 'MessageDestination', user_roles: 'frozenset[str] | set[str] | tuple[str, ...]' = ()) -&gt; 'PermissionedView'</dt><dd><span class="code">Apply&nbsp;the&nbsp;#56&nbsp;delivery&nbsp;policy&nbsp;to&nbsp;this&nbsp;view's&nbsp;components.<br>
+&nbsp;<br>
+Components&nbsp;annotated&nbsp;at&nbsp;construction&nbsp;(their&nbsp;declared&nbsp;intent)<br>
+are&nbsp;disabled&nbsp;or&nbsp;omitted&nbsp;per&nbsp;the&nbsp;destination&nbsp;—&nbsp;the&nbsp;rendering<br>
+mirror&nbsp;of&nbsp;the&nbsp;click-time&nbsp;checks.</span></dd></dl>
+
 <dl><dt>async <a name="GameSelectionView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
 
 <hr>
@@ -522,6 +534,12 @@ Data and other attributes defined here:<br>
 
 <hr>
 Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt><a name="PaginationView-apply_destination"><strong>apply_destination</strong></a>(self, destination: 'MessageDestination', user_roles: 'frozenset[str] | set[str] | tuple[str, ...]' = ()) -&gt; 'PermissionedView'</dt><dd><span class="code">Apply&nbsp;the&nbsp;#56&nbsp;delivery&nbsp;policy&nbsp;to&nbsp;this&nbsp;view's&nbsp;components.<br>
+&nbsp;<br>
+Components&nbsp;annotated&nbsp;at&nbsp;construction&nbsp;(their&nbsp;declared&nbsp;intent)<br>
+are&nbsp;disabled&nbsp;or&nbsp;omitted&nbsp;per&nbsp;the&nbsp;destination&nbsp;—&nbsp;the&nbsp;rendering<br>
+mirror&nbsp;of&nbsp;the&nbsp;click-time&nbsp;checks.</span></dd></dl>
+
 <dl><dt>async <a name="PaginationView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
 
 <dl><dt><a name="PaginationView-permission_args"><strong>permission_args</strong></a>(self, mod: 'str', custom_id: 'str') -&gt; 'tuple[tuple[str, ...], bool]'</dt><dd><span class="code">Return&nbsp;(required_roles,&nbsp;dm_allowed)&nbsp;declared&nbsp;for&nbsp;one&nbsp;component.</span></dd></dl>

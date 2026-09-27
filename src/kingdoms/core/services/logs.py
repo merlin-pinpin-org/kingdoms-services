@@ -220,9 +220,7 @@ class LogService:
             # inherits looser permissions than a fresh creation.
             await self._safe(self._platform.apply_default_policy(guild_id, adopted))
             if await self._safe(self._db.get_policy(guild_id, BOT_LOGS_CATEGORY)) is None:
-                await self._safe(
-                    self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy())
-                )
+                await self._safe(self._db.set_policy(guild_id, BOT_LOGS_CATEGORY, default_policy()))
             await self._cache(guild_id, adopted)
             return adopted
         channel_id = await self._platform.create_logs_channel(guild_id)
@@ -290,9 +288,7 @@ class LogService:
         locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
-            LifecycleEvent(
-                kind="policy", message=self._tr("lifecycle.policy.grant", locale, role_id=role_id, by=by)
-            ),
+            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.grant", locale, role_id=role_id, by=by)),
         )
 
     async def reapply_default_policy(self, guild_id: str, by: str) -> None:
@@ -370,9 +366,7 @@ class LogService:
         locale = await self.get_locale(guild_id)
         await self.log_event(
             guild_id,
-            LifecycleEvent(
-                kind="policy", message=self._tr("lifecycle.policy.visibility", locale, state=state, by=by)
-            ),
+            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.visibility", locale, state=state, by=by)),
         )
 
     async def list_text_channels(self, guild_id: str) -> list[dict[str, str]]:
@@ -396,9 +390,7 @@ class LogService:
         await self._db.set_guild_settings(guild_id, settings)
         await self.log_event(
             guild_id,
-            LifecycleEvent(
-                kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)
-            ),
+            LifecycleEvent(kind="policy", message=self._tr("lifecycle.policy.language", locale, lang=locale, by=by)),
         )
 
     async def get_user_locale(self, user_id: str) -> str:
