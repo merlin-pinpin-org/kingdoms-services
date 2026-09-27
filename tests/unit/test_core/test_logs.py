@@ -118,6 +118,10 @@ class FakeLogsPlatform:
     async def unpin_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
         self.unpinned.append((channel_id, message_id))
 
+    async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
+        pinned_now = [mid for ch, mid in self.pinned if ch == channel_id and (ch, mid) not in self.unpinned]
+        return sorted(pinned_now, key=int)
+
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         self.exists_calls += 1
         return channel_id in self.live_channels

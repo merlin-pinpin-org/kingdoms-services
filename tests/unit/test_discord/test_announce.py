@@ -132,7 +132,7 @@ def test_layout_buttons_use_generic_labels() -> None:
     assert "\U0001f33f Branch" in labels, "branch button carries a generic label"
     assert "\U0001f527 Commit" in labels, "commit button carries a generic label"
     assert any(label.endswith("Files") for label in labels), "files button present"
-    assert "\U0001f9ea Job" in labels, "CI job button present, labeled Job"
+    assert "\u2699\ufe0f Job" in labels, "CI job button present, labeled Job"
     assert "\U0001f4e6 Image" in labels, "image button present"
     assert any(label.startswith("\U0001f680 Job") for label in labels), "deploy button present, labeled Job"
     assert not any("vibe/feature-1" in label or "abc1234" in label or "c232b34" in label for label in labels), (
@@ -142,7 +142,7 @@ def test_layout_buttons_use_generic_labels() -> None:
     assert "vibe/feature-1" in texts and "abc1234" in texts and "#45" in texts, (
         "the identity is displayed in the text lines"
     )
-    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "\U0001f9ea Job")
+    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "\u2699\ufe0f Job")
     assert ci_button["url"] == "https://github.com/merlin-pinpin-org/kingdoms-services/actions/runs/987654", (
         "the CI button links the services CI job, not the infra deploy run"
     )
@@ -278,7 +278,7 @@ def test_prerelease_headlines_as_prerelease_and_release_is_celebrated() -> None:
     texts = _iter_texts(layout.to_components())
     assert any("Pre-release v0.3.0-rc1" in text for text in texts), "the rc headlines as Pre-release"
     assert not any("🎉" in text for text in texts), "a pre-release is not celebrated"
-    assert any("🔖 Tag `v0.3.0-rc1`" in text for text in texts), "the rc rides the Tag line like a release"
+    assert any("🏷️ Tag `v0.3.0-rc1`" in text for text in texts), "the rc rides the Tag line like a release"
 
     final_status = _status_service(
         deploy_label="v0.3.0",
@@ -308,13 +308,13 @@ def test_release_renders_tag_and_commit_as_distinct_lines() -> None:
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
     layout = build_announcement_layout(status, config, env="test")
     texts = _iter_texts(layout.to_components())
-    identity = next(t for t in texts if "🔖 Tag" in t)
+    identity = next(t for t in texts if "🏷️ Tag" in t)
     lines = identity.splitlines()
-    assert "🔖 Tag `v0.2.2`" in lines, "the tag rides on its own Tag line"
+    assert "🏷️ Tag `v0.2.2`" in lines, "the tag rides on its own Tag line"
     assert "🔧 Commit `9f8e7d6` <t:1790000000:R>" in lines, "the resolved commit sha rides on the Commit line"
     assert not any("Commit `v0.2.2`" in text for text in texts), "the tag is never rendered as the commit"
     labels = [b["label"] for b in _iter_buttons(layout.to_components())]
-    assert "🔖 Tag" in labels, "the release carries a Tag button"
+    assert "🏷️ Tag" in labels, "the release carries a Tag button"
     commit_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "🔧 Commit")
     assert commit_button["url"].endswith("/commit/9f8e7d6"), "the Commit button links the resolved sha"
 
@@ -339,7 +339,7 @@ def test_ci_job_line_sits_under_a_separator_above_the_image() -> None:
     image_line = next(t for t in texts if t.startswith("📦 Image"))
     assert texts.index(ci_line) < texts.index(image_line), "the Job CI line sits above the image line"
     assert kinds.count(TYPE_SEPARATOR) == 3, "Bot/Services, CI job (no deploy job data in this fixture)"
-    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "🧪 Job")
+    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "⚙️ Job")
     assert ci_button["url"].endswith("/actions/runs/987654"), "the CI button links the CI job"
 
 
