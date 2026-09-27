@@ -370,6 +370,7 @@ def _build_permission_service(
             self._platform = platform
 
         async def resolve_role_id(self, guild_id: str, mod: str, role_key: str) -> str | None:
+            """Resolve a role key; an undeclared mod reads as unmapped."""
             if self._mod_roles is not None:
                 try:
                     return await self._mod_roles.resolve_role_id(guild_id, mod, role_key)
