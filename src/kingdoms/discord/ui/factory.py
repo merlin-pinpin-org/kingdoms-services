@@ -194,9 +194,7 @@ class SelectMenu:
         if not 1 <= len(self.options) <= 25:
             raise UILayoutError(f"a SelectMenu holds 1 to 25 options, got {len(self.options)}")
         if not 1 <= self.min_values <= self.max_values <= len(self.options):
-            raise UILayoutError(
-                f"SelectMenu values bounds are invalid: min={self.min_values} max={self.max_values}"
-            )
+            raise UILayoutError(f"SelectMenu values bounds are invalid: min={self.min_values} max={self.max_values}")
 
     def _to_discord(self) -> discord.ui.Select[Any]:
         select: discord.ui.Select[Any] = discord.ui.Select(
@@ -214,6 +212,7 @@ class SelectMenu:
                 for o in self.options
             ],
         )
+
         async def _dispatch(interaction: discord.Interaction) -> None:
             data = getattr(interaction, "data", None) or {}
             values = [str(v) for v in data.get("values", [])]
@@ -398,9 +397,7 @@ def _build_block(block: Any, state: _LayoutState) -> Any:
         state.components += 1
         return block._to_discord()
     if isinstance(block, Section) and block.button is None and block.thumbnail is None:
-        raise UILayoutError(
-            "a Section needs an accessory (button= or thumbnail=) — use Text for full-width text"
-        )
+        raise UILayoutError("a Section needs an accessory (button= or thumbnail=) — use Text for full-width text")
     if isinstance(block, Section):
         state.components += 2
         for text in block.texts:

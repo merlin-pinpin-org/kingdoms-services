@@ -9,25 +9,38 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ui</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/__init__.py">SOURCE_ROOT/discord/ui/__init__.py</a></td></tr></table>
-    <p><span class="code">Discord&nbsp;UI&nbsp;components:&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;plus&nbsp;legacy&nbsp;view/modal&nbsp;seams.<br>
+    <p><span class="code">Discord&nbsp;UI&nbsp;components:&nbsp;the&nbsp;UI&nbsp;SDK&nbsp;plus&nbsp;the&nbsp;reusable&nbsp;archetypes.<br>
 &nbsp;<br>
 Everything&nbsp;user-facing&nbsp;is&nbsp;built&nbsp;through&nbsp;:mod:`.factory`&nbsp;—&nbsp;the<br>
 declarative&nbsp;bricks&nbsp;(<a href="#Text">Text</a>,&nbsp;<a href="#Section">Section</a>,&nbsp;<a href="#Row">Row</a>,&nbsp;<a href="#Button">Button</a>,&nbsp;<a href="#Container">Container</a>…)&nbsp;behind<br>
 ``<a href="#UILayout">UILayout</a>``/``<a href="#UIEmbed">UIEmbed</a>``.&nbsp;Never&nbsp;build&nbsp;``discord.ui``&nbsp;objects&nbsp;directly<br>
 in&nbsp;a&nbsp;feature:&nbsp;the&nbsp;SDK&nbsp;enforces&nbsp;the&nbsp;ADR-0009&nbsp;layout&nbsp;rules&nbsp;(text&nbsp;and<br>
-component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;constraints)&nbsp;at&nbsp;build&nbsp;time.</span></p>
+component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;constraints)&nbsp;at&nbsp;build&nbsp;time.<br>
+&nbsp;<br>
+On&nbsp;top&nbsp;of&nbsp;the&nbsp;bricks&nbsp;(kingdoms-services#13):<br>
+&nbsp;<br>
+-&nbsp;:mod:`.embeds`&nbsp;—&nbsp;sober,&nbsp;lightweight&nbsp;status/user/ladder&nbsp;embeds;<br>
+-&nbsp;:mod:`.layouts`&nbsp;—&nbsp;Components&nbsp;V2&nbsp;counterparts&nbsp;of&nbsp;the&nbsp;same&nbsp;cards;<br>
+-&nbsp;:mod:`.views`&nbsp;—&nbsp;interactive&nbsp;views&nbsp;(confirmation,&nbsp;game&nbsp;selection,<br>
+&nbsp;&nbsp;pagination)&nbsp;with&nbsp;the&nbsp;runtime&nbsp;permission&nbsp;checks&nbsp;(#55)&nbsp;at&nbsp;click&nbsp;time;<br>
+-&nbsp;:mod:`.modals`&nbsp;—&nbsp;forms&nbsp;(registration,&nbsp;feedback);<br>
+-&nbsp;:mod:`.components`&nbsp;—&nbsp;consistent&nbsp;button/select&nbsp;builders;<br>
+-&nbsp;:mod:`.screens`&nbsp;—&nbsp;paged&nbsp;screens&nbsp;(rankings,&nbsp;config&nbsp;panels,&nbsp;match<br>
+&nbsp;&nbsp;reports)&nbsp;editing&nbsp;in&nbsp;place.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.discord.ui.embeds.html">embeds</a><br>
-<a href="kingdoms.discord.ui.factory.html">factory</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.discord.ui.components.html">components</a><br>
+<a href="kingdoms.discord.ui.embeds.html">embeds</a><br>
+</td><td class="multicolumn"><a href="kingdoms.discord.ui.factory.html">factory</a><br>
+<a href="kingdoms.discord.ui.layouts.html">layouts</a><br>
 </td><td class="multicolumn"><a href="kingdoms.discord.ui.modals.html">modals</a><br>
 <a href="kingdoms.discord.ui.screens.html">screens</a><br>
 </td><td class="multicolumn"><a href="kingdoms.discord.ui.views.html">views</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -43,7 +56,12 @@ component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Action">kingdoms.discord.ui.factory.Action</a>
+<dt class="heading-text"><a href="kingdoms.discord.ui.components.html#ButtonBuilder">kingdoms.discord.ui.components.ButtonBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.components.html#SelectBuilder">kingdoms.discord.ui.components.SelectBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#EmbedBuilder">kingdoms.discord.ui.embeds.EmbedBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#LadderEmbedBuilder">kingdoms.discord.ui.embeds.LadderEmbedBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#UserEmbedBuilder">kingdoms.discord.ui.embeds.UserEmbedBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Action">kingdoms.discord.ui.factory.Action</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Button">kingdoms.discord.ui.factory.Button</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#ChannelSelect">kingdoms.discord.ui.factory.ChannelSelect</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Container">kingdoms.discord.ui.factory.Container</a>
@@ -56,8 +74,26 @@ component&nbsp;budgets,&nbsp;<a href="#Section">Section</a>&nbsp;accessory&nbsp;
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#Thumbnail">kingdoms.discord.ui.factory.Thumbnail</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UIEmbed">kingdoms.discord.ui.factory.UIEmbed</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.factory.html#UILayout">kingdoms.discord.ui.factory.UILayout</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#LadderLayout">kingdoms.discord.ui.layouts.LadderLayout</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#StatusLayout">kingdoms.discord.ui.layouts.StatusLayout</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#UserProfileLayout">kingdoms.discord.ui.layouts.UserProfileLayout</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.screens.html#PaginatedScreen">kingdoms.discord.ui.screens.PaginatedScreen</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.ui.screens.html#Ranking">kingdoms.discord.ui.screens.Ranking</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.modals.html#FeedbackModal">kingdoms.discord.ui.modals.FeedbackModal</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.modals.html#RegistrationModal">kingdoms.discord.ui.modals.RegistrationModal</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.discord.ui.views.html#PermissionedView">kingdoms.discord.ui.views.PermissionedView</a>(<a href="discord.ui.view.html#View">discord.ui.view.View</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.views.html#ConfirmationView">kingdoms.discord.ui.views.ConfirmationView</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.views.html#GameSelectionView">kingdoms.discord.ui.views.GameSelectionView</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.views.html#PaginationView">kingdoms.discord.ui.views.PaginationView</a>
 </dt></dl>
 </dd>
 </dl>
@@ -174,6 +210,35 @@ Data and other attributes defined here:<br>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ButtonBuilder">class <strong>ButtonBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;interactive&nbsp;buttons&nbsp;with&nbsp;consistent&nbsp;styling.<br>
+&nbsp;<br>
+Every&nbsp;interactive&nbsp;button&nbsp;declares&nbsp;its&nbsp;mod&nbsp;and&nbsp;the&nbsp;logical&nbsp;role<br>
+keys&nbsp;required&nbsp;to&nbsp;click&nbsp;it&nbsp;—&nbsp;the&nbsp;``required_roles``&nbsp;flow&nbsp;to&nbsp;the<br>
+runtime&nbsp;permission&nbsp;check&nbsp;at&nbsp;click&nbsp;time.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="ButtonBuilder-danger"><strong>danger</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;danger&nbsp;(red)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-primary"><strong>primary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;primary&nbsp;(blue)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-secondary"><strong>secondary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;secondary&nbsp;(grey)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-success"><strong>success</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="ChannelSelect">class <strong>ChannelSelect</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -231,6 +296,229 @@ Data and other attributes defined here:<br>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ConfirmationView">class <strong>ConfirmationView</strong></a>(<a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ConfirmationView">ConfirmationView</a>(mod:&nbsp;'str'&nbsp;=&nbsp;'core',&nbsp;on_confirm:&nbsp;'Handler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;on_cancel:&nbsp;'Handler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;permission_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;catalog:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;logs_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;confirm_label:&nbsp;'str'&nbsp;=&nbsp;'Yes',&nbsp;cancel_label:&nbsp;'str'&nbsp;=&nbsp;'No',&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;180.0,&nbsp;required_roles:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;dm_allowed:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+A&nbsp;Yes/No&nbsp;confirmation&nbsp;pair,&nbsp;wired&nbsp;through&nbsp;the&nbsp;permission&nbsp;checks.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.views.html#ConfirmationView">ConfirmationView</a></dd>
+<dd><a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a></dd>
+<dd><a href="discord.ui.view.html#View">discord.ui.view.View</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ConfirmationView-__init__"><strong>__init__</strong></a>(self, mod: 'str' = 'core', on_confirm: 'Handler | None' = None, on_cancel: 'Handler | None' = None, permission_service: 'Any' = None, catalog: 'Any' = None, logs_service: 'Any' = None, confirm_label: 'str' = 'Yes', cancel_label: 'str' = 'No', timeout: 'float' = 180.0, required_roles: 'tuple[str, ...]' = (), dm_allowed: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-permission_args"><strong>permission_args</strong></a>(self, mod: 'str', custom_id: 'str') -&gt; 'tuple[tuple[str, ...], bool]'</dt><dd><span class="code">Every&nbsp;button&nbsp;of&nbsp;the&nbsp;confirmation&nbsp;pair&nbsp;declares&nbsp;the&nbsp;same&nbsp;roles.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>mod</strong></dt>
+<dd><span class="code">The&nbsp;mod&nbsp;this&nbsp;view's&nbsp;components&nbsp;belong&nbsp;to.</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt>async <a name="ConfirmationView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="ConfirmationView-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+<a href="builtins.html#ValueError">ValueError</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="ConfirmationView-__init_subclass__"><strong>__init_subclass__</strong></a>() -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="ConfirmationView-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ConfirmationView-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="ConfirmationView-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="ConfirmationView-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', item: 'Item[Any]', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;item's&nbsp;callback&nbsp;or&nbsp;:meth:`interaction_check`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;that&nbsp;failed&nbsp;the&nbsp;dispatch.</span></dd></dl>
+
+<dl><dt>async <a name="ConfirmationView-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="ConfirmationView-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="ConfirmationView-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="ConfirmationView-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = False</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="Container">class <strong>Container</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -276,6 +564,536 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__match_args__</strong> = ('blocks', 'accent')</dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EmbedBuilder">class <strong>EmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;consistent,&nbsp;styled&nbsp;status&nbsp;embeds.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="EmbedBuilder-build"><strong>build</strong></a>(title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;levelled&nbsp;status&nbsp;embed&nbsp;(success/error/info/warning).</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-error"><strong>error</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;an&nbsp;error&nbsp;(red)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-info"><strong>info</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;an&nbsp;info&nbsp;(blue)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-success"><strong>success</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-warning"><strong>warning</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;warning&nbsp;(gold)&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>LEVELS</strong> = {'error': 15548997, 'info': 5793266, 'success': 5763719, 'warning': 16705372}</dl>
+
+<dl><dt><strong>__annotations__</strong> = {'LEVELS': 'ClassVar[dict[str, int]]'}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FeedbackModal">class <strong>FeedbackModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FeedbackModal">FeedbackModal</a>(title:&nbsp;'str'&nbsp;=&nbsp;'Submit&nbsp;Feedback',&nbsp;on_submit:&nbsp;'SubmitHandler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;300.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Feedback&nbsp;form:&nbsp;type&nbsp;+&nbsp;free-form&nbsp;details.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.modals.html#FeedbackModal">FeedbackModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="FeedbackModal-__init__"><strong>__init__</strong></a>(self, title: 'str' = 'Submit Feedback', on_submit: 'SubmitHandler | None' = None, timeout: 'float' = 300.0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="FeedbackModal-on_error"><strong>on_error</strong></a>(self, interaction: 'discord.Interaction', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;submission&nbsp;failures&nbsp;ephemerally&nbsp;(never&nbsp;silent).</span></dd></dl>
+
+<dl><dt>async <a name="FeedbackModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Dispatch&nbsp;the&nbsp;collected&nbsp;fields.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-set_callback"><strong>set_callback</strong></a>(self, callback: 'SubmitHandler') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;submit&nbsp;handler.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="FeedbackModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+<a href="builtins.html#ValueError">ValueError</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="FeedbackModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="FeedbackModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="FeedbackModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="FeedbackModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="FeedbackModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="FeedbackModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="FeedbackModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="FeedbackModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="FeedbackModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameSelectionView">class <strong>GameSelectionView</strong></a>(<a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameSelectionView">GameSelectionView</a>(games:&nbsp;'list[str]',&nbsp;mod:&nbsp;'str'&nbsp;=&nbsp;'core',&nbsp;on_select:&nbsp;'SelectHandler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;permission_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;catalog:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;logs_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;placeholder:&nbsp;'str'&nbsp;=&nbsp;'Select&nbsp;a&nbsp;game...',&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;180.0,&nbsp;required_roles:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;dm_allowed:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+A&nbsp;select&nbsp;menu&nbsp;over&nbsp;a&nbsp;game&nbsp;list,&nbsp;dispatching&nbsp;the&nbsp;chosen&nbsp;value.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.views.html#GameSelectionView">GameSelectionView</a></dd>
+<dd><a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a></dd>
+<dd><a href="discord.ui.view.html#View">discord.ui.view.View</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GameSelectionView-__init__"><strong>__init__</strong></a>(self, games: 'list[str]', mod: 'str' = 'core', on_select: 'SelectHandler | None' = None, permission_service: 'Any' = None, catalog: 'Any' = None, logs_service: 'Any' = None, placeholder: 'str' = 'Select a game...', timeout: 'float' = 180.0, required_roles: 'tuple[str, ...]' = (), dm_allowed: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-permission_args"><strong>permission_args</strong></a>(self, mod: 'str', custom_id: 'str') -&gt; 'tuple[tuple[str, ...], bool]'</dt><dd><span class="code">Declare&nbsp;the&nbsp;same&nbsp;roles&nbsp;as&nbsp;the&nbsp;view&nbsp;for&nbsp;the&nbsp;select.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>mod</strong></dt>
+<dd><span class="code">The&nbsp;mod&nbsp;this&nbsp;view's&nbsp;components&nbsp;belong&nbsp;to.</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt>async <a name="GameSelectionView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="GameSelectionView-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+<a href="builtins.html#ValueError">ValueError</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="GameSelectionView-__init_subclass__"><strong>__init_subclass__</strong></a>() -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GameSelectionView-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GameSelectionView-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GameSelectionView-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="GameSelectionView-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', item: 'Item[Any]', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;item's&nbsp;callback&nbsp;or&nbsp;:meth:`interaction_check`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;that&nbsp;failed&nbsp;the&nbsp;dispatch.</span></dd></dl>
+
+<dl><dt>async <a name="GameSelectionView-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="GameSelectionView-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="GameSelectionView-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GameSelectionView-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = False</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderEmbedBuilder">class <strong>LadderEmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;ladder/match&nbsp;embeds.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="LadderEmbedBuilder-ladder_rankings"><strong>ladder_rankings</strong></a>(rankings: 'list[dict[str, Any]]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;ladder&nbsp;rankings&nbsp;embed&nbsp;(top&nbsp;10).</span></dd></dl>
+
+<dl><dt><a name="LadderEmbedBuilder-match_notification"><strong>match_notification</strong></a>(opponent: 'str', match_id: 'str') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;match&nbsp;notification&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderLayout">class <strong>LadderLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderLayout">LadderLayout</a>(rankings:&nbsp;'list[dict[str,&nbsp;Any]]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_ladder_layout`.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LadderLayout-__init__"><strong>__init__</strong></a>(self, rankings: 'list[dict[str, Any]]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LadderLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
@@ -356,6 +1174,231 @@ Data descriptors defined here:<br>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PaginationView">class <strong>PaginationView</strong></a>(<a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PaginationView">PaginationView</a>(total_pages:&nbsp;'int',&nbsp;current_page:&nbsp;'int'&nbsp;=&nbsp;0,&nbsp;mod:&nbsp;'str'&nbsp;=&nbsp;'core',&nbsp;on_page_change:&nbsp;'PageHandler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;permission_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;catalog:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;logs_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;300.0,&nbsp;prev_label:&nbsp;'str'&nbsp;=&nbsp;'Previous',&nbsp;next_label:&nbsp;'str'&nbsp;=&nbsp;'Next')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Previous/Next&nbsp;buttons&nbsp;editing&nbsp;the&nbsp;message&nbsp;in&nbsp;place,&nbsp;page-aware.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.views.html#PaginationView">PaginationView</a></dd>
+<dd><a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a></dd>
+<dd><a href="discord.ui.view.html#View">discord.ui.view.View</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PaginationView-__init__"><strong>__init__</strong></a>(self, total_pages: 'int', current_page: 'int' = 0, mod: 'str' = 'core', on_page_change: 'PageHandler | None' = None, permission_service: 'Any' = None, catalog: 'Any' = None, logs_service: 'Any' = None, timeout: 'float' = 300.0, prev_label: 'str' = 'Previous', next_label: 'str' = 'Next') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-update_buttons"><strong>update_buttons</strong></a>(self, current_page: 'int') -&gt; 'None'</dt><dd><span class="code">Refresh&nbsp;the&nbsp;disabled&nbsp;states&nbsp;and&nbsp;the&nbsp;page&nbsp;counter&nbsp;label.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>mod</strong></dt>
+<dd><span class="code">The&nbsp;mod&nbsp;this&nbsp;view's&nbsp;components&nbsp;belong&nbsp;to.</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.discord.ui.views.html#PermissionedView">PermissionedView</a>:<br>
+<dl><dt>async <a name="PaginationView-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'bool'</dt><dd><span class="code">Authorize&nbsp;the&nbsp;click&nbsp;at&nbsp;click&nbsp;time&nbsp;(fail-open&nbsp;only&nbsp;when&nbsp;unwired).</span></dd></dl>
+
+<dl><dt><a name="PaginationView-permission_args"><strong>permission_args</strong></a>(self, mod: 'str', custom_id: 'str') -&gt; 'tuple[tuple[str, ...], bool]'</dt><dd><span class="code">Return&nbsp;(required_roles,&nbsp;dm_allowed)&nbsp;declared&nbsp;for&nbsp;one&nbsp;component.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="PaginationView-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+<a href="builtins.html#ValueError">ValueError</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><a name="PaginationView-__init_subclass__"><strong>__init_subclass__</strong></a>() -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#View">discord.ui.view.View</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="PaginationView-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PaginationView-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="PaginationView-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="PaginationView-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="PaginationView-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', item: 'Item[Any]', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;item's&nbsp;callback&nbsp;or&nbsp;:meth:`interaction_check`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;that&nbsp;failed&nbsp;the&nbsp;dispatch.</span></dd></dl>
+
+<dl><dt>async <a name="PaginationView-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="PaginationView-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="PaginationView-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="PaginationView-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = False</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="Ranking">class <strong>Ranking</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -376,6 +1419,236 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RegistrationModal">class <strong>RegistrationModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RegistrationModal">RegistrationModal</a>(title:&nbsp;'str'&nbsp;=&nbsp;'Register',&nbsp;on_submit:&nbsp;'SubmitHandler&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;300.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Registration&nbsp;form:&nbsp;display&nbsp;name&nbsp;+&nbsp;preferred&nbsp;game.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.ui.modals.html#RegistrationModal">RegistrationModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RegistrationModal-__init__"><strong>__init__</strong></a>(self, title: 'str' = 'Register', on_submit: 'SubmitHandler | None' = None, timeout: 'float' = 300.0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationModal-on_error"><strong>on_error</strong></a>(self, interaction: 'discord.Interaction', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;submission&nbsp;failures&nbsp;ephemerally&nbsp;(never&nbsp;silent).</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Dispatch&nbsp;the&nbsp;collected&nbsp;fields.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-set_callback"><strong>set_callback</strong></a>(self, callback: 'SubmitHandler') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;submit&nbsp;handler.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="RegistrationModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+<a href="builtins.html#ValueError">ValueError</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="RegistrationModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="RegistrationModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="RegistrationModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="RegistrationModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="RegistrationModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="RegistrationModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="RegistrationModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
@@ -419,6 +1692,27 @@ Data descriptors defined here:<br>
 <dl><dt><strong>texts</strong></dt>
 </dl>
 <dl><dt><strong>thumbnail</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SelectBuilder">class <strong>SelectBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;select&nbsp;menus&nbsp;with&nbsp;consistent&nbsp;styling.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="SelectBuilder-multi_select"><strong>multi_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 5) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;multi-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+
+<dl><dt><a name="SelectBuilder-single_select"><strong>single_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 1) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;single-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
 </td></tr></table> <p>
 <table class="section">
@@ -523,6 +1817,32 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__match_args__</strong> = ('small',)</dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StatusLayout">class <strong>StatusLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusLayout">StatusLayout</a>(title:&nbsp;'str',&nbsp;description:&nbsp;'str',&nbsp;level:&nbsp;'str'&nbsp;=&nbsp;'info',&nbsp;fields:&nbsp;'list[dict[str,&nbsp;Any]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_status_layout`.<br>
+&nbsp;<br>
+Callers&nbsp;that&nbsp;prefer&nbsp;the&nbsp;spec's&nbsp;class&nbsp;shape&nbsp;build&nbsp;through&nbsp;it;&nbsp;the<br>
+function&nbsp;form&nbsp;stays&nbsp;the&nbsp;primary&nbsp;path.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StatusLayout-__init__"><strong>__init__</strong></a>(self, title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StatusLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
@@ -725,6 +2045,50 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </dl>
 <dl><dt><strong>args</strong></dt>
 </dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UserEmbedBuilder">class <strong>UserEmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;user-facing&nbsp;embeds&nbsp;(profile,&nbsp;registration&nbsp;confirmation).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="UserEmbedBuilder-registration_confirmation"><strong>registration_confirmation</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;registration&nbsp;confirmation&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="UserEmbedBuilder-user_profile"><strong>user_profile</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;user&nbsp;profile&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UserProfileLayout">class <strong>UserProfileLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#UserProfileLayout">UserProfileLayout</a>(user:&nbsp;'dict[str,&nbsp;Any]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_user_profile_layout`.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="UserProfileLayout-__init__"><strong>__init__</strong></a>(self, user: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="UserProfileLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
@@ -737,9 +2101,12 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 "options":&nbsp;[(label,&nbsp;value),&nbsp;...],&nbsp;"on_change":&nbsp;async&nbsp;(interaction,<br>
 values)&nbsp;-&gt;&nbsp;None}``.&nbsp;``on_apply``/``on_reset``&nbsp;are&nbsp;async&nbsp;callbacks<br>
 receiving&nbsp;the&nbsp;interaction&nbsp;(wired&nbsp;as&nbsp;<a href="#Action">Action</a>&nbsp;buttons).</span></dd></dl>
+ <dl><dt><a name="-build_ladder_layout"><strong>build_ladder_layout</strong></a>(rankings: 'list[dict[str, Any]]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;ladder&nbsp;ranking&nbsp;card&nbsp;(top&nbsp;10,&nbsp;V2&nbsp;counterpart&nbsp;of&nbsp;the&nbsp;embed).</span></dd></dl>
  <dl><dt><a name="-build_match_report"><strong>build_match_report</strong></a>(title: 'str', summary: 'str', details: 'Sequence[tuple[str, str]]', *, mod: 'str', links: 'Sequence[Button]' = (), thumbnail_url: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;match&nbsp;report:&nbsp;header,&nbsp;summary&nbsp;section,&nbsp;paged&nbsp;detail&nbsp;rows.<br>
 &nbsp;<br>
 ``details``&nbsp;are&nbsp;(label,&nbsp;value)&nbsp;pairs&nbsp;rendered&nbsp;as&nbsp;a&nbsp;section&nbsp;each.</span></dd></dl>
+ <dl><dt><a name="-build_status_layout"><strong>build_status_layout</strong></a>(title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;levelled&nbsp;status&nbsp;card&nbsp;(V2&nbsp;counterpart&nbsp;of&nbsp;<a href="#EmbedBuilder">EmbedBuilder</a>).</span></dd></dl>
+ <dl><dt><a name="-build_user_profile_layout"><strong>build_user_profile_layout</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;user&nbsp;profile&nbsp;card&nbsp;with&nbsp;a&nbsp;thumbnail&nbsp;accessory&nbsp;(V2).</span></dd></dl>
  <dl><dt><a name="-render_ranking"><strong>render_ranking</strong></a>(ranking: 'Ranking', *, page_size: 'int' = 10) -&gt; 'PaginatedScreen'</dt><dd><span class="code">Render&nbsp;a&nbsp;<a href="#Ranking">Ranking</a>&nbsp;as&nbsp;a&nbsp;paginated&nbsp;screen&nbsp;ready&nbsp;to&nbsp;send.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -749,5 +2116,5 @@ receiving&nbsp;the&nbsp;interaction&nbsp;(wired&nbsp;as&nbsp;<a href="#Action">A
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BLURPLE</strong> = 5793266<br>
 <strong>GREEN</strong> = 5763719<br>
-<strong>__all__</strong> = ['BLURPLE', 'GREEN', 'Action', 'Button', 'ChannelSelect', 'Container', 'Option', 'PaginatedScreen', 'Ranking', 'Row', 'Section', 'SelectMenu', 'Separator', 'Text', 'Thumbnail', 'UIEmbed', 'UILayout', 'UILayoutError', 'build_config_panel', 'build_match_report', ...]</td></tr></table>
+<strong>__all__</strong> = ['BLURPLE', 'GREEN', 'Action', 'Button', 'ButtonBuilder', 'ChannelSelect', 'ConfirmationView', 'Container', 'EmbedBuilder', 'FeedbackModal', 'GameSelectionView', 'LadderEmbedBuilder', 'LadderLayout', 'Option', 'PaginatedScreen', 'PaginationView', 'Ranking', 'RegistrationModal', 'Row', 'Section', ...]</td></tr></table>
 </body></html>

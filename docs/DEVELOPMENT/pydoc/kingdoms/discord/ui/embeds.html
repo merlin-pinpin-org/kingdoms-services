@@ -9,8 +9,115 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.embeds</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/embeds.py">SOURCE_ROOT/discord/ui/embeds.py</a></td></tr></table>
-    <p><span class="code">UI&nbsp;embeds:&nbsp;rich&nbsp;message&nbsp;builders.<br>
+    <p><span class="code">Embed&nbsp;builders:&nbsp;sober,&nbsp;lightweight&nbsp;rich&nbsp;messages&nbsp;(ADR-0009).<br>
 &nbsp;<br>
-Implemented&nbsp;in&nbsp;kingdoms-services#13.</span></p>
+Embeds&nbsp;are&nbsp;the&nbsp;first&nbsp;choice&nbsp;for&nbsp;read-mostly&nbsp;output;&nbsp;rich&nbsp;structured<br>
+UI&nbsp;belongs&nbsp;to&nbsp;Components&nbsp;V2&nbsp;(``factory.py``&nbsp;/&nbsp;``screens.py``).&nbsp;A<br>
+message&nbsp;is&nbsp;either&nbsp;embed-based&nbsp;or&nbsp;V2,&nbsp;never&nbsp;both&nbsp;—&nbsp;these&nbsp;builders<br>
+only&nbsp;produce&nbsp;:class:`discord.Embed`,&nbsp;never&nbsp;a&nbsp;view.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#EmbedBuilder">EmbedBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#LadderEmbedBuilder">LadderEmbedBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.embeds.html#UserEmbedBuilder">UserEmbedBuilder</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EmbedBuilder">class <strong>EmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;consistent,&nbsp;styled&nbsp;status&nbsp;embeds.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="EmbedBuilder-build"><strong>build</strong></a>(title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;levelled&nbsp;status&nbsp;embed&nbsp;(success/error/info/warning).</span></dd></dl>
 
+<dl><dt><a name="EmbedBuilder-error"><strong>error</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;an&nbsp;error&nbsp;(red)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-info"><strong>info</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;an&nbsp;info&nbsp;(blue)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-success"><strong>success</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="EmbedBuilder-warning"><strong>warning</strong></a>(title: 'str', description: 'str', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;warning&nbsp;(gold)&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>LEVELS</strong> = {'error': 15548997, 'info': 5793266, 'success': 5763719, 'warning': 16705372}</dl>
+
+<dl><dt><strong>__annotations__</strong> = {'LEVELS': 'ClassVar[dict[str, int]]'}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderEmbedBuilder">class <strong>LadderEmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;ladder/match&nbsp;embeds.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="LadderEmbedBuilder-ladder_rankings"><strong>ladder_rankings</strong></a>(rankings: 'list[dict[str, Any]]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;ladder&nbsp;rankings&nbsp;embed&nbsp;(top&nbsp;10).</span></dd></dl>
+
+<dl><dt><a name="LadderEmbedBuilder-match_notification"><strong>match_notification</strong></a>(opponent: 'str', match_id: 'str') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;match&nbsp;notification&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UserEmbedBuilder">class <strong>UserEmbedBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;user-facing&nbsp;embeds&nbsp;(profile,&nbsp;registration&nbsp;confirmation).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="UserEmbedBuilder-registration_confirmation"><strong>registration_confirmation</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;registration&nbsp;confirmation&nbsp;embed.</span></dd></dl>
+
+<dl><dt><a name="UserEmbedBuilder-user_profile"><strong>user_profile</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.Embed'</dt><dd><span class="code">Create&nbsp;a&nbsp;user&nbsp;profile&nbsp;embed.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['EmbedBuilder', 'LadderEmbedBuilder', 'UserEmbedBuilder']</td></tr></table>
 </body></html>
