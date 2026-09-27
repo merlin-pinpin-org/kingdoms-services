@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.components</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.components</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/components.py">SOURCE_ROOT/discord/ui/components.py</a></td></tr></table>
+    <p><span class="code">Reusable&nbsp;component&nbsp;builders&nbsp;for&nbsp;common&nbsp;UI&nbsp;patterns.<br>
+&nbsp;<br>
+Thin,&nbsp;consistent&nbsp;wrappers&nbsp;over&nbsp;the&nbsp;declarative&nbsp;SDK&nbsp;bricks<br>
+(:mod:`kingdoms.discord.ui.factory`)&nbsp;—&nbsp;the&nbsp;single&nbsp;place&nbsp;features<br>
+should&nbsp;pick&nbsp;a&nbsp;button&nbsp;or&nbsp;a&nbsp;select&nbsp;from.&nbsp;Interactive&nbsp;buttons&nbsp;carry&nbsp;the<br>
+mod's&nbsp;required&nbsp;roles&nbsp;so&nbsp;the&nbsp;runtime&nbsp;permission&nbsp;checks&nbsp;(#55)&nbsp;can<br>
+authorize&nbsp;the&nbsp;click;&nbsp;the&nbsp;visibility&nbsp;of&nbsp;a&nbsp;button&nbsp;is&nbsp;never&nbsp;the&nbsp;boundary.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.components.html#ButtonBuilder">ButtonBuilder</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.components.html#SelectBuilder">SelectBuilder</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ButtonBuilder">class <strong>ButtonBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;interactive&nbsp;buttons&nbsp;with&nbsp;consistent&nbsp;styling.<br>
+&nbsp;<br>
+Every&nbsp;interactive&nbsp;button&nbsp;declares&nbsp;its&nbsp;mod&nbsp;and&nbsp;the&nbsp;logical&nbsp;role<br>
+keys&nbsp;required&nbsp;to&nbsp;click&nbsp;it&nbsp;—&nbsp;the&nbsp;``required_roles``&nbsp;flow&nbsp;to&nbsp;the<br>
+runtime&nbsp;permission&nbsp;check&nbsp;at&nbsp;click&nbsp;time.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="ButtonBuilder-danger"><strong>danger</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;danger&nbsp;(red)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-primary"><strong>primary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;primary&nbsp;(blue)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-secondary"><strong>secondary</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;secondary&nbsp;(grey)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<dl><dt><a name="ButtonBuilder-success"><strong>success</strong></a>(label: 'str', custom_id: 'str', on_click: 'Handler', mod: 'str' = 'core', required_roles: 'tuple[str, ...]' = (), emoji: 'str' = '', dm_allowed: 'bool' = False) -&gt; 'Action'</dt><dd><span class="code">Create&nbsp;a&nbsp;success&nbsp;(green)&nbsp;action&nbsp;button.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SelectBuilder">class <strong>SelectBuilder</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Builder&nbsp;for&nbsp;select&nbsp;menus&nbsp;with&nbsp;consistent&nbsp;styling.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="SelectBuilder-multi_select"><strong>multi_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 5) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;multi-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+
+<dl><dt><a name="SelectBuilder-single_select"><strong>single_select</strong></a>(custom_id: 'str', placeholder: 'str', options: 'list[dict[str, str]]', on_choose: 'SelectHandler', min_values: 'int' = 1, max_values: 'int' = 1) -&gt; 'SelectMenu'</dt><dd><span class="code">Create&nbsp;a&nbsp;single-selection&nbsp;select&nbsp;menu.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ButtonBuilder', 'SelectBuilder']</td></tr></table>
+</body></html>

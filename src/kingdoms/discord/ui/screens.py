@@ -57,6 +57,7 @@ async def _noop_choose(interaction: discord.Interaction, values: list[str]) -> N
     """Default select handler when a setting has no on_change hook."""
     return None
 
+
 __all__ = [
     "PAGE_SIZE",
     "Option",
@@ -170,7 +171,7 @@ class Ranking:
                 )
                 blocks.append(Text(f"**{podium}**"))
                 blocks.append(Separator())
-                chunk = self.entries[3 : page_size]
+                chunk = self.entries[3:page_size]
                 start = 3
             blocks.append(Text(self._rows_text(start, chunk)))
             page_blocks.append(blocks)
@@ -202,10 +203,7 @@ def build_config_panel(
         key = str(entry["key"])
         label = str(entry["label"])
         value = str(entry["value"])
-        options = tuple(
-            Option(label=opt_label, value=opt_value)
-            for opt_label, opt_value in entry["options"]
-        )
+        options = tuple(Option(label=opt_label, value=opt_value) for opt_label, opt_value in entry["options"])
         menu = SelectMenu(
             custom_id=f"{mod}:setting:{key}",
             options=options,
@@ -238,9 +236,7 @@ def build_match_report(
     """
     container = Container(accent=BLURPLE).add(Text(f"# ⚔️ {title}"))
     accessory: Section | Text = (
-        Section(Text(summary), thumbnail=Thumbnail(thumbnail_url))
-        if thumbnail_url
-        else Text(summary)
+        Section(Text(summary), thumbnail=Thumbnail(thumbnail_url)) if thumbnail_url else Text(summary)
     )
     container = container.add(accessory)
     if details:
@@ -249,4 +245,3 @@ def build_match_report(
     if links:
         container = container.add(Row(*links))
     return UILayout().add(container).build()
-

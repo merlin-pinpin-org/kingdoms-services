@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ui.layouts</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.<a href="kingdoms.discord.ui.html" class="white">ui</a>.layouts</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ui/layouts.py">SOURCE_ROOT/discord/ui/layouts.py</a></td></tr></table>
+    <p><span class="code">Components&nbsp;V2&nbsp;layouts:&nbsp;rich&nbsp;structured&nbsp;cards&nbsp;(ADR-0009).<br>
+&nbsp;<br>
+Components&nbsp;V2&nbsp;complements&nbsp;embeds&nbsp;—&nbsp;rich,&nbsp;structured,&nbsp;interactive&nbsp;UI<br>
+for&nbsp;the&nbsp;cases&nbsp;a&nbsp;flat&nbsp;embed&nbsp;cannot&nbsp;carry.&nbsp;A&nbsp;message&nbsp;is&nbsp;either<br>
+embed-based&nbsp;or&nbsp;V2,&nbsp;never&nbsp;both.&nbsp;Built&nbsp;on&nbsp;the&nbsp;declarative&nbsp;SDK<br>
+(:mod:`kingdoms.discord.ui.factory`)&nbsp;so&nbsp;the&nbsp;Discord&nbsp;constraints<br>
+(4000-char&nbsp;shared&nbsp;text&nbsp;budget,&nbsp;40&nbsp;components,&nbsp;Section&nbsp;accessory<br>
+rules)&nbsp;are&nbsp;enforced&nbsp;at&nbsp;build&nbsp;time,&nbsp;never&nbsp;at&nbsp;Discord's&nbsp;door.<br>
+&nbsp;<br>
+The&nbsp;layouts&nbsp;here&nbsp;are&nbsp;the&nbsp;reusable&nbsp;archetypes:&nbsp;a&nbsp;levelled&nbsp;status&nbsp;card,<br>
+a&nbsp;user&nbsp;profile&nbsp;card&nbsp;with&nbsp;thumbnail&nbsp;accessory,&nbsp;a&nbsp;ladder&nbsp;ranking&nbsp;card.<br>
+Features&nbsp;compose&nbsp;them&nbsp;—&nbsp;they&nbsp;never&nbsp;build&nbsp;``discord.ui``&nbsp;objects<br>
+directly.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#LadderLayout">LadderLayout</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#StatusLayout">StatusLayout</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.ui.layouts.html#UserProfileLayout">UserProfileLayout</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderLayout">class <strong>LadderLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderLayout">LadderLayout</a>(rankings:&nbsp;'list[dict[str,&nbsp;Any]]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_ladder_layout`.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LadderLayout-__init__"><strong>__init__</strong></a>(self, rankings: 'list[dict[str, Any]]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LadderLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StatusLayout">class <strong>StatusLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatusLayout">StatusLayout</a>(title:&nbsp;'str',&nbsp;description:&nbsp;'str',&nbsp;level:&nbsp;'str'&nbsp;=&nbsp;'info',&nbsp;fields:&nbsp;'list[dict[str,&nbsp;Any]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_status_layout`.<br>
+&nbsp;<br>
+Callers&nbsp;that&nbsp;prefer&nbsp;the&nbsp;spec's&nbsp;class&nbsp;shape&nbsp;build&nbsp;through&nbsp;it;&nbsp;the<br>
+function&nbsp;form&nbsp;stays&nbsp;the&nbsp;primary&nbsp;path.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StatusLayout-__init__"><strong>__init__</strong></a>(self, title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StatusLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UserProfileLayout">class <strong>UserProfileLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#UserProfileLayout">UserProfileLayout</a>(user:&nbsp;'dict[str,&nbsp;Any]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Class-shaped&nbsp;adapter&nbsp;over&nbsp;:func:`build_user_profile_layout`.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="UserProfileLayout-__init__"><strong>__init__</strong></a>(self, user: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="UserProfileLayout-build"><strong>build</strong></a>(self) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Return&nbsp;the&nbsp;assembled&nbsp;Components&nbsp;V2&nbsp;view.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_ladder_layout"><strong>build_ladder_layout</strong></a>(rankings: 'list[dict[str, Any]]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;ladder&nbsp;ranking&nbsp;card&nbsp;(top&nbsp;10,&nbsp;V2&nbsp;counterpart&nbsp;of&nbsp;the&nbsp;embed).</span></dd></dl>
+ <dl><dt><a name="-build_status_layout"><strong>build_status_layout</strong></a>(title: 'str', description: 'str', level: 'str' = 'info', fields: 'list[dict[str, Any]] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;levelled&nbsp;status&nbsp;card&nbsp;(V2&nbsp;counterpart&nbsp;of&nbsp;EmbedBuilder).</span></dd></dl>
+ <dl><dt><a name="-build_user_profile_layout"><strong>build_user_profile_layout</strong></a>(user: 'dict[str, Any]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;a&nbsp;user&nbsp;profile&nbsp;card&nbsp;with&nbsp;a&nbsp;thumbnail&nbsp;accessory&nbsp;(V2).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['LadderLayout', 'StatusLayout', 'UserProfileLayout', 'build_ladder_layout', 'build_status_layout', 'build_user_profile_layout']</td></tr></table>
+</body></html>
