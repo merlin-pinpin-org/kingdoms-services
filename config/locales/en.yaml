@@ -39,6 +39,8 @@ en:
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"
+  permissions:
+    denied: "You are not allowed to do that — this action requires a role you do not have."
   guards:
     denied: "You are not allowed to do that — this action is reserved for bot admins."
   admin:

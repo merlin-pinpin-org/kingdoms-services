@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.permissions</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.permissions</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/permissions.py">SOURCE_ROOT/discord/permissions.py</a></td></tr></table>
+    <p><span class="code">Discord-side&nbsp;runtime&nbsp;authorization&nbsp;for&nbsp;interactive&nbsp;components.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;:class:`~kingdoms.core.services.permissions.PermissionService`<br>
+decides;&nbsp;this&nbsp;module&nbsp;answers.&nbsp;``require_permission``&nbsp;is&nbsp;the&nbsp;single<br>
+hook&nbsp;every&nbsp;component&nbsp;callback&nbsp;goes&nbsp;through&nbsp;at&nbsp;click&nbsp;time:&nbsp;on&nbsp;denial<br>
+the&nbsp;user&nbsp;gets&nbsp;the&nbsp;ephemeral&nbsp;i18n&nbsp;reason&nbsp;and&nbsp;an&nbsp;audit&nbsp;event&nbsp;rides&nbsp;to<br>
+the&nbsp;bot-logs&nbsp;channel&nbsp;(ADR-0003)&nbsp;—&nbsp;a&nbsp;denial&nbsp;never&nbsp;fails&nbsp;silently<br>
+(kingdoms-services#55).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-require_permission"><strong>require_permission</strong></a>(interaction: 'discord.Interaction', service: 'PermissionService', mod: 'str', required_roles: 'tuple[str, ...]' = (), dm_allowed: 'bool' = False, catalog: 'MessageCatalog | None' = None, logs_service: 'LogService | None' = None, locale: 'str' = 'en') -&gt; 'bool'</dt><dd><span class="code">Guard&nbsp;one&nbsp;interactive&nbsp;callback&nbsp;at&nbsp;click&nbsp;time.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;when&nbsp;the&nbsp;interaction&nbsp;may&nbsp;proceed;&nbsp;on&nbsp;denial&nbsp;the&nbsp;user<br>
+gets&nbsp;an&nbsp;ephemeral&nbsp;localized&nbsp;message&nbsp;and&nbsp;the&nbsp;denial&nbsp;is&nbsp;audited&nbsp;to<br>
+the&nbsp;guild's&nbsp;bot-logs&nbsp;channel.&nbsp;The&nbsp;caller&nbsp;must&nbsp;return&nbsp;immediately<br>
+on&nbsp;False.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PERMISSION_DENIED_KEY</strong> = 'permissions.denied'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.permissions (WARNING)&gt;</td></tr></table>
+</body></html>

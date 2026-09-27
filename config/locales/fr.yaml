@@ -39,6 +39,8 @@ fr:
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
+  permissions:
+    denied: "Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle que vous n'avez pas."
   guards:
     denied: "Vous n'êtes pas autorisé à faire cela — cette action est réservée aux admins du bot."
   admin:

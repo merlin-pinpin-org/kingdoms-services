@@ -29,6 +29,7 @@ from kingdoms.core.services.channel import ChannelService
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
+from kingdoms.core.services.permissions import PermissionService
 from kingdoms.core.services.roles import ModRolesService, RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
@@ -127,6 +128,7 @@ class KingdomsBot(discord.Client):
         self.admin_channel_service: AdminChannelService | None = None
         self.channel_service: ChannelService | None = None
         self.mod_roles_service: ModRolesService | None = None
+        self.permission_service: PermissionService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
 
@@ -324,6 +326,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry)
     bot.channel_service = channel_service
     bot.mod_roles_service = mod_roles_service
+    bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
+
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.status import register_status_command
 
@@ -341,6 +345,45 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
     )
     return bot
+
+
+def _build_permission_service(
+    config: BotConfig,
+    bot: KingdomsBot,
+    mod_roles_service: ModRolesService | None,
+    bot_admins: tuple[str, ...],
+) -> PermissionService:
+    """Wire the runtime permission checks (click-time authorization).
+
+    Always available: the member seam reads live Discord roles, and
+    the mod-role resolver falls back to the declared display names
+    even when the mapping store is not configured. Without Redis the
+    role resolution skips the cache — the checks stay correct, merely
+    uncached.
+    """
+    from kingdoms.discord.roles_platform import DiscordRolesPlatform
+
+    class _DeclaredRolesResolver:
+        """Resolve role keys through the mappings, else the platform lookup."""
+
+        def __init__(self, mod_roles: ModRolesService | None, platform: DiscordRolesPlatform) -> None:
+            self._mod_roles = mod_roles
+            self._platform = platform
+
+        async def resolve_role_id(self, guild_id: str, mod: str, role_key: str) -> str | None:
+            if self._mod_roles is not None:
+                try:
+                    return await self._mod_roles.resolve_role_id(guild_id, mod, role_key)
+                except KeyError:
+                    return None
+            return None
+
+    resolver = _DeclaredRolesResolver(mod_roles_service, DiscordRolesPlatform(bot))
+    return PermissionService(
+        members=DiscordRolesPlatform(bot),
+        roles=resolver,
+        bot_admins=bot_admins,
+    )
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
