@@ -30,6 +30,7 @@ Reference: kingdoms-services#102, #109, #115, #117.
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import discord
@@ -55,6 +56,28 @@ from kingdoms.discord.ui import (
 )
 
 logger = logging.getLogger("kingdoms.admin")
+
+ErrorReporter = Callable[[discord.Interaction, BaseException], Awaitable[None]]
+
+
+async def _report_failure(
+    reporter: ErrorReporter | None,
+    interaction: discord.Interaction,
+    exc: BaseException,
+) -> None:
+    """Forward a callback failure to the crash reporter (#113), best-effort.
+
+    A failure caught by a panel callback must still reach bot-logs
+    (cause, context, GitHub source link) and the BOT_ADMINS DMs — the
+    ephemeral answer alone hides the actionable details.
+    """
+    if reporter is None:
+        return
+    try:
+        await reporter(interaction, exc)
+    except Exception:
+        logger.warning("ADMIN PANEL: error reporting failed — best-effort", exc_info=True)
+
 
 CHANNEL_MENU_ID = "admin:select:channel"
 LOCALE_SELECT_ID = "admin:select:locale"
@@ -102,6 +125,7 @@ async def build_dm_setup_view(
     user_id: str,
     bot_admins: tuple[str, ...] = (),
     catalog: MessageCatalog | None = None,
+    error_reporter: ErrorReporter | None = None,
 ) -> discord.ui.LayoutView:
     """Build the DM /admin panel: the user's personal DM locale."""
     locale = await logs_service.get_user_locale(user_id) if logs_service is not None else "en"
@@ -117,12 +141,13 @@ async def build_dm_setup_view(
             return
         try:
             await logs_service.set_user_locale(str(interaction.user.id), values[0])
-        except Exception:
+        except Exception as exc:
             logger.exception("ADMIN DM: user locale change failed for user %s", interaction.user.id)
+            await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
         await interaction.response.edit_message(
-            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog)
+            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter)
         )
 
     locale_select = SelectMenu(
@@ -150,6 +175,7 @@ async def build_main_menu(
     roles_service: RolesService | None = None,
     catalog: MessageCatalog | None = None,
     admin_channel_service: AdminChannelService | None = None,
+    error_reporter: ErrorReporter | None = None,
 ) -> discord.ui.LayoutView:
     """Build the /admin main menu: guild language + managed channels."""
     locale = await logs_service.get_locale(guild_id)
@@ -163,12 +189,15 @@ async def build_main_menu(
             return
         try:
             await logs_service.set_locale(guild_id, values[0], by=by)
-        except Exception:
+        except Exception as exc:
             logger.exception("ADMIN PANEL: locale change failed for guild %s", guild_id)
+            await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
         await interaction.response.edit_message(
-            view=await build_main_menu(logs_service, guild_id, by, bot_admins, roles_service, catalog)
+            view=await build_main_menu(
+                logs_service, guild_id, by, bot_admins, roles_service, catalog, admin_channel_service, error_reporter
+            )
         )
 
     async def on_channel(interaction: discord.Interaction, values: list[str]) -> None:
@@ -188,6 +217,7 @@ async def build_main_menu(
                 catalog,
                 locale,
                 admin_channel_service,
+                error_reporter,
             )
         )
 
@@ -244,6 +274,7 @@ async def build_channel_menu(
     catalog: MessageCatalog | None = None,
     locale: str = "en",
     admin_channel_service: AdminChannelService | None = None,
+    error_reporter: ErrorReporter | None = None,
 ) -> discord.ui.LayoutView:
     """Build the secondary menu of one managed channel (routing, visibility)."""
     entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
@@ -259,7 +290,9 @@ async def build_channel_menu(
         if not await require_admin(interaction, bot_admins, roles_service):
             return
         await interaction.response.edit_message(
-            view=await build_main_menu(logs_service, guild_id, by, bot_admins, roles_service, catalog)
+            view=await build_main_menu(
+                logs_service, guild_id, by, bot_admins, roles_service, catalog, admin_channel_service, error_reporter
+            )
         )
 
     async def rerender(interaction: discord.Interaction) -> None:
@@ -275,13 +308,16 @@ async def build_channel_menu(
                 catalog,
                 locale,
                 admin_channel_service,
+                error_reporter,
             )
         )
 
     router = _category_router(category, logs_service, admin_channel_service)
-    on_route = _routing_callback(router, guild_id, by, bot_admins, roles_service, rerender, catalog, locale)
+    on_route = _routing_callback(
+        router, guild_id, by, bot_admins, roles_service, rerender, catalog, locale, error_reporter
+    )
     on_visibility = _visibility_callback(
-        logs_service, guild_id, by, bot_admins, roles_service, rerender, catalog, locale
+        logs_service, guild_id, by, bot_admins, roles_service, rerender, catalog, locale, error_reporter
     )
 
     status = f"<#{channel_id}>" if channel_id else _t(catalog, locale, "not_provisioned")
@@ -342,6 +378,7 @@ def _routing_callback(
     rerender: Any,
     catalog: MessageCatalog | None = None,
     locale: str = "en",
+    error_reporter: ErrorReporter | None = None,
 ) -> Any:
     """Build the routing select callback: guard, route, rerender."""
 
@@ -353,8 +390,9 @@ def _routing_callback(
             return
         try:
             await router(guild_id, values[0], by)
-        except Exception:
+        except Exception as exc:
             logger.exception("ADMIN PANEL: channel routing failed for guild %s", guild_id)
+            await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "route_failed"), ephemeral=True)
             return
         await rerender(interaction)
@@ -371,6 +409,7 @@ def _visibility_callback(
     rerender: Any,
     catalog: MessageCatalog | None = None,
     locale: str = "en",
+    error_reporter: ErrorReporter | None = None,
 ) -> Any:
     """Build the visibility select callback: guard, persist, rerender."""
 
@@ -382,8 +421,9 @@ def _visibility_callback(
             return
         try:
             await logs_service.set_visibility(guild_id, values[0] == VISIBILITY_PUBLIC, by=by)
-        except Exception:
+        except Exception as exc:
             logger.exception("ADMIN PANEL: visibility change failed for guild %s", guild_id)
+            await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "visibility_failed"), ephemeral=True)
             return
         await rerender(interaction)
@@ -481,6 +521,7 @@ def register_admin_command(
     roles_service: RolesService | None = None,
     catalog: MessageCatalog | None = None,
     admin_channel_service: AdminChannelService | None = None,
+    error_reporter: ErrorReporter | None = None,
 ) -> None:
     """Register the /admin slash command on the command tree.
 
@@ -492,6 +533,9 @@ def register_admin_command(
     ``catalog`` localizes the panel with the guild's (or user's) locale.
     ``admin_channel_service`` routes the admin channel like the logs
     channel (the same menu governs both managed channels).
+    ``error_reporter`` forwards callback failures to the crash reporter
+    (#113): bot-logs gets cause, context and the GitHub source link,
+    the BOT_ADMINS get the DM — on top of the ephemeral answer.
     Access is validated at invocation time and at click time (guards):
     BOT_ADMINS, guild administrators or the bot-admins role.
     """
@@ -515,7 +559,8 @@ def register_admin_command(
                 )
                 return
             await interaction.response.send_message(
-                view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog), ephemeral=True
+                view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
+                ephemeral=True,
             )
             return
 
@@ -539,9 +584,11 @@ def register_admin_command(
                 roles_service,
                 catalog,
                 admin_channel_service,
+                error_reporter,
             )
         except Exception as exc:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
+            await _report_failure(error_reporter, interaction, exc)
             detail = f"{type(exc).__name__}: {exc}"[:120]
             await interaction.response.send_message(
                 view=build_admin_note_view(

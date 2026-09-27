@@ -295,6 +295,22 @@ class KingdomsBot(discord.Client):
             return await self.logs_service.get_locale(str(interaction.guild_id))
         return await self.logs_service.get_user_locale(str(interaction.user.id))
 
+    async def crash_report(self, interaction: discord.Interaction, exc: BaseException) -> None:
+        """Report a component-callback failure to bot-logs + BOT_ADMINS DMs.
+
+        The panel callbacks catch their own failures to answer the user
+        ephemerally; this seam hands the same exception to the #113
+        crash reporter (cause, interaction context, GitHub source link).
+        """
+        await report_interaction_error(
+            interaction,
+            exc,
+            self.config.deploy_tree_url,
+            self.logs_service,
+            bot=self,
+            admin_ids=self.status_service.bot_admins,
+        )
+
     async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
         """Route unhandled gateway-event failures to each guild's bot-logs."""
         import sys
@@ -375,6 +391,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         roles_service=roles_service,
         catalog=bot.messages,
         admin_channel_service=admin_channel_service,
+        error_reporter=bot.crash_report,
     )
     return bot
 
