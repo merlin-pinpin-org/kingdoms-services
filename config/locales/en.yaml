@@ -25,7 +25,7 @@ en:
     files_label: "Files"
     link_label: "Link"
     ci_label: "CI"
-    deploy_label: "Deploy"
+    deploy_label: "Deployment"
   lifecycle:
     stop: "Bot shutting down."
     policy:
