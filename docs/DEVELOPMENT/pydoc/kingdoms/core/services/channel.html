@@ -16,9 +16,16 @@ mod-scoped&nbsp;(``mod:key``,&nbsp;declared&nbsp;in&nbsp;mod&nbsp;YAML&nbsp;and&
 —&nbsp;to&nbsp;a&nbsp;concrete&nbsp;channel.&nbsp;Resolution&nbsp;order:&nbsp;cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;platform<br>
 creation.&nbsp;The&nbsp;service&nbsp;is&nbsp;generic:&nbsp;it&nbsp;never&nbsp;enumerates&nbsp;mod&nbsp;categories.<br>
 &nbsp;<br>
-Implemented&nbsp;in&nbsp;kingdoms-services#5.&nbsp;Mod-scoped&nbsp;categories:<br>
-kingdoms-services#26,&nbsp;ADR-0003.</span></p>
+Implemented&nbsp;in&nbsp;kingdoms-services#5.&nbsp;Mod-scoped&nbsp;categories&nbsp;and&nbsp;per-mod<br>
+provisioning:&nbsp;kingdoms-services#26,&nbsp;ADR-0003.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -31,6 +38,14 @@ kingdoms-services#26,&nbsp;ADR-0003.</span></p>
 <dt class="heading-text"><a href="kingdoms.core.services.channel.html#ChannelService">ChannelService</a>
 </dt></dl>
 </dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.channel.html#ChannelsCache">ChannelsCache</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.channel.html#ChannelsDatabase">ChannelsDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.channel.html#ChannelsPlatform">ChannelsPlatform</a>
+</dt></dl>
+</dd>
 </dl>
  <p>
 <table class="section">
@@ -38,14 +53,17 @@ kingdoms-services#26,&nbsp;ADR-0003.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ChannelService">class <strong>ChannelService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelService">ChannelService</a>(platform:&nbsp;'IPlatform')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelService">ChannelService</a>(database:&nbsp;'<a href="#ChannelsDatabase">ChannelsDatabase</a>',&nbsp;platform:&nbsp;'<a href="#ChannelsPlatform">ChannelsPlatform</a>',&nbsp;cache:&nbsp;'<a href="#ChannelsCache">ChannelsCache</a>',&nbsp;registry:&nbsp;'ModRegistry')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Manage&nbsp;channels&nbsp;by&nbsp;category;&nbsp;never&nbsp;by&nbsp;name&nbsp;or&nbsp;ID.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="ChannelService-__init__"><strong>__init__</strong></a>(self, platform: 'IPlatform') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ChannelService-__init__"><strong>__init__</strong></a>(self, database: 'ChannelsDatabase', platform: 'ChannelsPlatform', cache: 'ChannelsCache', registry: 'ModRegistry') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``cache``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).</span></dd></dl>
 
-<dl><dt>async <a name="ChannelService-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;platform&nbsp;creation).</span></dd></dl>
+<dl><dt>async <a name="ChannelService-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;creation).<br>
+&nbsp;<br>
+The&nbsp;platform&nbsp;seam&nbsp;guarantees&nbsp;existence&nbsp;of&nbsp;the&nbsp;returned&nbsp;channel&nbsp;id;<br>
+this&nbsp;method&nbsp;returns&nbsp;the&nbsp;core-side&nbsp;channel&nbsp;view&nbsp;built&nbsp;from&nbsp;it.</span></dd></dl>
 
 <dl><dt>async <a name="ChannelService-setup_mod_channels"><strong>setup_mod_channels</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, IChannel]'</dt><dd><span class="code">Provision&nbsp;every&nbsp;channel&nbsp;category&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod.<br>
 &nbsp;<br>
@@ -60,5 +78,209 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
-</td></tr></table></td></tr></table>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelsCache">class <strong>ChannelsCache</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelsCache">ChannelsCache</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;cache&nbsp;seam&nbsp;(StateService);&nbsp;values&nbsp;are&nbsp;JSON&nbsp;dicts.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.channel.html#ChannelsCache">ChannelsCache</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ChannelsCache-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ChannelsCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;value&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ChannelsCache-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_state', 'get_state', 'set_state'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ChannelsCache-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ChannelsCache-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelsDatabase">class <strong>ChannelsDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelsDatabase">ChannelsDatabase</a>(database:&nbsp;'<a href="builtins.html#object">object</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#ChannelService">ChannelService</a>&nbsp;depends&nbsp;on.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.channel.html#ChannelsDatabase">ChannelsDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ChannelsDatabase-__init__"><strong>__init__</strong></a>(self, database: 'object') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsDatabase-delete_channel"><strong>delete_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;channel&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsDatabase-upsert_channel"><strong>upsert_channel</strong></a>(self, channel: 'ChannelModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;channel&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ChannelsDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_channel', 'find_channel', 'upsert_channel'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ChannelsDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ChannelsDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelsPlatform">class <strong>ChannelsPlatform</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelsPlatform">ChannelsPlatform</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;channel&nbsp;lookup,&nbsp;creation,&nbsp;existence.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.channel.html#ChannelsPlatform">ChannelsPlatform</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ChannelsPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;channel&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ChannelsPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'channel_exists', 'create_channel', 'find_channel_by_name'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ChannelsPlatform-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ChannelsPlatform-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-get_channel_service"><strong>get_channel_service</strong></a>(database: 'ChannelsDatabase', platform: 'ChannelsPlatform', cache: 'ChannelsCache', registry: 'ModRegistry') -&gt; 'ChannelService'</dt><dd><span class="code">Build&nbsp;the&nbsp;<a href="#ChannelService">ChannelService</a>&nbsp;with&nbsp;its&nbsp;narrow&nbsp;seams&nbsp;wired.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CACHE_TTL_SECONDS</strong> = 300<br>
+<strong>CHANNELS_COLLECTION</strong> = 'channels'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.channels (WARNING)&gt;</td></tr></table>
 </body></html>
