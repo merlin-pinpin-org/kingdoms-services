@@ -39,18 +39,132 @@ delegated&nbsp;admin&nbsp;access&nbsp;is&nbsp;lost&nbsp;by&nbsp;design&nbsp;unti
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesService">RolesService</a>
+<dt class="heading-text"><a href="kingdoms.core.services.roles.html#ModRolesService">ModRolesService</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesService">RolesService</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesCache">RolesCache</a>
+<dt class="heading-text"><a href="kingdoms.core.services.roles.html#ModRolesPlatform">ModRolesPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesCache">RolesCache</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesDatabase">RolesDatabase</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.services.roles.html#RolesPlatform">RolesPlatform</a>
 </dt></dl>
 </dd>
 </dl>
  <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModRolesPlatform">class <strong>ModRolesPlatform</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModRolesPlatform">ModRolesPlatform</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;platform&nbsp;seam&nbsp;for&nbsp;member&nbsp;role&nbsp;assignment.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.roles.html#ModRolesPlatform">ModRolesPlatform</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ModRolesPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ModRolesPlatform-add_role_to_member"><strong>add_role_to_member</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Add&nbsp;a&nbsp;role&nbsp;to&nbsp;a&nbsp;member&nbsp;(audited&nbsp;through&nbsp;``reason``).</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesPlatform-remove_role_from_member"><strong>remove_role_from_member</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;a&nbsp;role&nbsp;from&nbsp;a&nbsp;member&nbsp;(audited&nbsp;through&nbsp;``reason``).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ModRolesPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'add_role_to_member', 'remove_role_from_member'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ModRolesPlatform-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ModRolesPlatform-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModRolesService">class <strong>ModRolesService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModRolesService">ModRolesService</a>(database:&nbsp;'<a href="#RolesDatabase">RolesDatabase</a>',&nbsp;platform:&nbsp;'<a href="#RolesPlatform">RolesPlatform</a>',&nbsp;registry:&nbsp;'ModRegistry',&nbsp;members:&nbsp;'<a href="#ModRolesPlatform">ModRolesPlatform</a>',&nbsp;cache:&nbsp;'<a href="#RolesCache">RolesCache</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Provision&nbsp;and&nbsp;resolve&nbsp;the&nbsp;mod-declared&nbsp;roles&nbsp;(logical&nbsp;role&nbsp;keys).<br>
+&nbsp;<br>
+Mods&nbsp;and&nbsp;game&nbsp;providers&nbsp;only&nbsp;ever&nbsp;reference&nbsp;logical&nbsp;role&nbsp;keys<br>
+(``mod:role_key``);&nbsp;the&nbsp;platform&nbsp;role&nbsp;id&nbsp;is&nbsp;resolved&nbsp;through&nbsp;the<br>
+persisted&nbsp;mapping&nbsp;(kingdoms-services#26)&nbsp;with&nbsp;a&nbsp;fallback&nbsp;to&nbsp;the<br>
+declared&nbsp;display&nbsp;name,&nbsp;and&nbsp;admins&nbsp;can&nbsp;rebind&nbsp;a&nbsp;key&nbsp;to&nbsp;an&nbsp;existing<br>
+platform&nbsp;role&nbsp;without&nbsp;touching&nbsp;mod&nbsp;code.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModRolesService-__init__"><strong>__init__</strong></a>(self, database: 'RolesDatabase', platform: 'RolesPlatform', registry: 'ModRegistry', members: 'ModRolesPlatform', cache: 'RolesCache | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``cache``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-assign_mod_role"><strong>assign_mod_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;the&nbsp;platform&nbsp;role&nbsp;mapped&nbsp;to&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;to&nbsp;a&nbsp;member.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-bind_role"><strong>bind_role</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;or&nbsp;update&nbsp;the&nbsp;mapping&nbsp;between&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;and&nbsp;a&nbsp;platform&nbsp;role.<br>
+&nbsp;<br>
+Admins&nbsp;rebind&nbsp;a&nbsp;logical&nbsp;role&nbsp;to&nbsp;an&nbsp;existing&nbsp;platform&nbsp;role&nbsp;(e.g.&nbsp;a<br>
+server&nbsp;role&nbsp;created&nbsp;before&nbsp;the&nbsp;bot)&nbsp;without&nbsp;touching&nbsp;mod&nbsp;code.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-remove_mod_role"><strong>remove_mod_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;the&nbsp;platform&nbsp;role&nbsp;mapped&nbsp;to&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;from&nbsp;a&nbsp;member.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-resolve_role_id"><strong>resolve_role_id</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;to&nbsp;a&nbsp;platform&nbsp;role&nbsp;id.<br>
+&nbsp;<br>
+Resolution&nbsp;order:&nbsp;cache&nbsp;-&gt;&nbsp;mapping&nbsp;-&gt;&nbsp;declared&nbsp;display&nbsp;name.<br>
+An&nbsp;unknown&nbsp;mod&nbsp;or&nbsp;undeclared&nbsp;key&nbsp;fails&nbsp;loudly&nbsp;at&nbsp;the&nbsp;registry,<br>
+but&nbsp;a&nbsp;declared&nbsp;key&nbsp;with&nbsp;no&nbsp;mapping&nbsp;yet&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;display<br>
+name&nbsp;(auto-provisioning&nbsp;in&nbsp;progress&nbsp;or&nbsp;in&nbsp;progress&nbsp;of&nbsp;a&nbsp;setup).</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-setup_mod_roles"><strong>setup_mod_roles</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, str]'</dt><dd><span class="code">Provision&nbsp;every&nbsp;role&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod;&nbsp;return&nbsp;key&nbsp;-&gt;&nbsp;role&nbsp;id.<br>
+&nbsp;<br>
+Idempotent:&nbsp;an&nbsp;existing&nbsp;role&nbsp;with&nbsp;the&nbsp;same&nbsp;display&nbsp;name&nbsp;is&nbsp;reused,<br>
+the&nbsp;missing&nbsp;ones&nbsp;are&nbsp;created,&nbsp;and&nbsp;every&nbsp;declared&nbsp;key&nbsp;is&nbsp;persisted<br>
+as&nbsp;a&nbsp;mapping&nbsp;so&nbsp;runtime&nbsp;resolution&nbsp;never&nbsp;depends&nbsp;on&nbsp;the&nbsp;display<br>
+name&nbsp;alone.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="RolesCache">class <strong>RolesCache</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
@@ -103,6 +217,69 @@ Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:
 <hr>
 Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
 <dl><dt><a name="RolesCache-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RolesDatabase">class <strong>RolesDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RolesDatabase">RolesDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;for&nbsp;the&nbsp;mod-role&nbsp;mappings.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.roles.html#RolesDatabase">RolesDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RolesDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database.</span></dd></dl>
+
+<dl><dt>async <a name="RolesDatabase-delete_role_mapping"><strong>delete_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;role&nbsp;mapping&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="RolesDatabase-find_role_mapping"><strong>find_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'RoleMappingModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;mapping&nbsp;for&nbsp;a&nbsp;guild&nbsp;mod&nbsp;role&nbsp;key.</span></dd></dl>
+
+<dl><dt>async <a name="RolesDatabase-upsert_role_mapping"><strong>upsert_role_mapping</strong></a>(self, mapping: 'RoleMappingModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;role&nbsp;mapping&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="RolesDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_role_mapping', 'find_role_mapping', 'upsert_role_mapping'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="RolesDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="RolesDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
 &nbsp;<br>
 At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
 method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
@@ -209,6 +386,10 @@ Data descriptors defined here:<br>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ADMIN_ROLE_NAME</strong> = 'bot-admins'<br>
 <strong>CACHE_SCOPE</strong> = 'roles'<br>
+<strong>MOD_ROLE_CACHE_SCOPE</strong> = 'roles:mod'<br>
+<strong>MOD_ROLE_CACHE_TTL_SECONDS</strong> = 300<br>
 <strong>ROLE_CACHE_TTL_SECONDS</strong> = 300<br>
+<strong>ROLE_MAPPINGS_COLLECTION</strong> = 'role_mappings'<br>
+<strong>TYPE_CHECKING</strong> = False<br>
 <strong>logger</strong> = &lt;Logger kingdoms.core.roles (WARNING)&gt;</td></tr></table>
 </body></html>

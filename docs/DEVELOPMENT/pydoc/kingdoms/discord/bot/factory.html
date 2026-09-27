@@ -157,7 +157,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomsBot">class <strong>KingdomsBot</strong></a>(<a href="discord.client.html#Client">discord.client.Client</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsBot">KingdomsBot</a>(config:&nbsp;'<a href="#BotConfig">BotConfig</a>',&nbsp;status:&nbsp;'StatusService',&nbsp;logs:&nbsp;'LogService&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsBot">KingdomsBot</a>(config:&nbsp;'<a href="#BotConfig">BotConfig</a>',&nbsp;status:&nbsp;'StatusService',&nbsp;logs:&nbsp;'LogService&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;registry:&nbsp;'ModRegistry&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Discord&nbsp;client&nbsp;with&nbsp;a&nbsp;command&nbsp;tree;&nbsp;core&nbsp;services&nbsp;are&nbsp;attached,&nbsp;not&nbsp;inherited.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -168,7 +168,7 @@ Discord&nbsp;client&nbsp;with&nbsp;a&nbsp;command&nbsp;tree;&nbsp;core&nbsp;serv
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="KingdomsBot-__init__"><strong>__init__</strong></a>(self, config: 'BotConfig', status: 'StatusService', logs: 'LogService | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;client,&nbsp;the&nbsp;command&nbsp;tree&nbsp;and&nbsp;attach&nbsp;the&nbsp;services.</span></dd></dl>
+<dl><dt><a name="KingdomsBot-__init__"><strong>__init__</strong></a>(self, config: 'BotConfig', status: 'StatusService', logs: 'LogService | None' = None, registry: 'ModRegistry | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;client,&nbsp;the&nbsp;command&nbsp;tree&nbsp;and&nbsp;attach&nbsp;the&nbsp;services.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-close"><strong>close</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;stop&nbsp;lifecycle&nbsp;event,&nbsp;then&nbsp;close&nbsp;the&nbsp;gateway&nbsp;connection.</span></dd></dl>
 

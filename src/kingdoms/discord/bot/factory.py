@@ -25,10 +25,11 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.admin_channel import AdminChannelService
+from kingdoms.core.services.channel import ChannelService
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
-from kingdoms.core.services.roles import RolesService
+from kingdoms.core.services.roles import ModRolesService, RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
 from kingdoms.discord.commands_i18n import CatalogTranslator
@@ -106,17 +107,26 @@ class BotConfig:
 class KingdomsBot(discord.Client):
     """Discord client with a command tree; core services are attached, not inherited."""
 
-    def __init__(self, config: BotConfig, status: StatusService, logs: LogService | None = None) -> None:
+    def __init__(
+        self,
+        config: BotConfig,
+        status: StatusService,
+        logs: LogService | None = None,
+        registry: ModRegistry | None = None,
+    ) -> None:
         """Create the client, the command tree and attach the services."""
         intents = discord.Intents.default()
         super().__init__(intents=intents)
         self.config = config
         self.status_service = status
+        self.registry = registry
         self.logs_service = logs
         self.messages = MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
         self.admin_channel_service: AdminChannelService | None = None
+        self.channel_service: ChannelService | None = None
+        self.mod_roles_service: ModRolesService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
 
@@ -201,7 +211,38 @@ class KingdomsBot(discord.Client):
                     logger.warning(
                         "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
                     )
+            if self.channel_service is not None and self.mod_roles_service is not None and self.registry is not None:
+                await self._provision_mods(
+                    guild_id,
+                    channel_service=self.channel_service,
+                    mod_roles_service=self.mod_roles_service,
+                    registry=self.registry,
+                )
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
+
+    async def _provision_mods(
+        self,
+        guild_id: str,
+        channel_service: ChannelService,
+        mod_roles_service: ModRolesService,
+        registry: ModRegistry,
+    ) -> None:
+        """Provision channels and roles for every enabled mod (best-effort, idempotent)."""
+        for mod_name, definition in registry.enabled().items():
+            try:
+                await channel_service.setup_mod_channels(guild_id, mod_name)
+                await mod_roles_service.setup_mod_roles(guild_id, mod_name)
+                logger.info(
+                    "MOD %s provisioned (guild %s, %d channels, %d roles)",
+                    mod_name,
+                    guild_id,
+                    len(definition.channel_categories),
+                    len(definition.roles),
+                )
+            except Exception:
+                logger.warning(
+                    "MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True
+                )
 
     async def on_tree_error(
         self,
@@ -275,11 +316,14 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_commit_ts=resolved.deploy_commit_ts,
         deploy_infra_commit_ts=resolved.deploy_infra_commit_ts,
     )
-    bot = KingdomsBot(config=resolved, status=status)
+    bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.logs_service = _build_log_service(resolved, bot)
     roles_service = _build_roles_service(resolved, bot)
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
     bot.admin_channel_service = admin_channel_service
+    channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry)
+    bot.channel_service = channel_service
+    bot.mod_roles_service = mod_roles_service
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.status import register_status_command
 
@@ -316,6 +360,47 @@ def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | 
     except Exception:
         logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
         return None
+
+
+def _build_mod_provisioning(
+    config: BotConfig,
+    bot: KingdomsBot,
+    registry: ModRegistry,
+) -> tuple[ChannelService | None, ModRolesService | None]:
+    """Wire Mongo + the Discord seams + Redis into the mod provisioning pair.
+
+    Returns (None, None) when the stores are not configured (unit tests,
+    local runs): mod channels and roles are provisioned lazily on first
+    use instead of at startup.
+    """
+    if not config.mongo_uri or not config.redis_uri:
+        return None, None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.channels_platform import DiscordChannelsPlatform
+        from kingdoms.discord.logs_platform import MongoLogsDatabase
+        from kingdoms.discord.roles_platform import DiscordRolesPlatform, MongoRolesDatabase
+
+        database = get_async_database()
+        state = StateService(redis_uri=config.redis_uri)
+        channel_service = ChannelService(
+            database=MongoLogsDatabase(database),
+            platform=DiscordChannelsPlatform(bot),
+            cache=state,
+            registry=registry,
+        )
+        mod_roles_service = ModRolesService(
+            database=MongoRolesDatabase(database),
+            platform=DiscordRolesPlatform(bot),
+            registry=registry,
+            members=DiscordRolesPlatform(bot),
+            cache=state,
+        )
+        return channel_service, mod_roles_service
+    except Exception:
+        logger.exception("MOD PROVISIONING WIRING FAILED — mod channels/roles provision lazily")
+        return None, None
 
 
 def _build_admin_channel_service(
