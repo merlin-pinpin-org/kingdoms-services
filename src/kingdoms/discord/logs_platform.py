@@ -199,14 +199,21 @@ class DiscordLogsPlatform:
             return
         await channel.send(content=content)
 
-    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
-        """Deliver one lifecycle event and pin it (boot statuses, #109)."""
+    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> str:
+        """Deliver one lifecycle event, pin it, return the message id (#109)."""
         channel = await self._text_channel(guild_id, channel_id)
         if layout is not None:
             message = await channel.send(view=layout)
         else:
             message = await channel.send(content=content)
         await message.pin(reason="kingdoms: boot status (pinned per restart)")
+        return str(message.id)
+
+    async def unpin_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
+        """Unpin one message (the superseded boot status)."""
+        channel = await self._text_channel(guild_id, channel_id)
+        message = await channel.fetch_message(int(message_id))
+        await message.unpin(reason="kingdoms: superseded boot status (only the latest stays pinned)")
 
     async def _text_channel(self, guild_id: str, channel_id: str) -> discord.TextChannel:
         """Resolve the logs channel as a live text channel."""

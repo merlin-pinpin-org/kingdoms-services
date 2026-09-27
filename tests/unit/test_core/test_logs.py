@@ -72,6 +72,9 @@ class FakeLogsPlatform:
         self.exists_calls = 0
         self.adoptable: set[str] = set()
         self.channel_names: dict[str, str] = {}
+        self.next_message_id = 5000
+        self.pinned: list[tuple[str, str]] = []
+        self.unpinned: list[tuple[str, str]] = []
 
     async def find_logs_channel(self, guild_id: str) -> str | None:
         adopted = sorted(self.adoptable & self.live_channels)
@@ -103,6 +106,17 @@ class FakeLogsPlatform:
             raise RuntimeError("channel deleted")
         self.sent.append((channel_id, content))
         self.layouts.append((channel_id, layout))
+
+    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> str:
+        if channel_id not in self.live_channels:
+            raise RuntimeError("channel deleted")
+        self.next_message_id += 1
+        message_id = str(self.next_message_id)
+        self.pinned.append((channel_id, message_id))
+        return message_id
+
+    async def unpin_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
+        self.unpinned.append((channel_id, message_id))
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         self.exists_calls += 1
@@ -201,6 +215,28 @@ async def test_log_event_never_raises_on_platform_failure(service: LogService, p
     platform.live_channels.clear()
     event = LifecycleEvent(kind="stop", message="Bye")
     await service.log_event(GUILD, event)
+
+
+@pytest.mark.asyncio
+async def test_pinned_boot_status_keeps_only_the_latest(service: LogService, platform: FakeLogsPlatform) -> None:
+    """Two boots: the previous pinned status is unpinned — one pin survives."""
+    first = LifecycleEvent(kind="start", message="boot 1")
+    second = LifecycleEvent(kind="start", message="boot 2")
+    await service.log_event(GUILD, first, pin=True)
+    await service.log_event(GUILD, second, pin=True)
+    assert len(platform.pinned) == 2, "both boots were delivered and pinned"
+    assert platform.unpinned == [(platform.pinned[0][0], platform.pinned[0][1])], (
+        "the first boot status was unpinned when the second was pinned"
+    )
+
+
+@pytest.mark.asyncio
+async def test_first_pinned_boot_status_has_nothing_to_unpin(service: LogService, platform: FakeLogsPlatform) -> None:
+    """The very first boot pins cleanly — no phantom unpin."""
+    event = LifecycleEvent(kind="start", message="boot 1")
+    await service.log_event(GUILD, event, pin=True)
+    assert len(platform.pinned) == 1
+    assert platform.unpinned == []
 
 
 @pytest.mark.asyncio

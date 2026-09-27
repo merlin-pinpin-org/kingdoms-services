@@ -120,8 +120,12 @@ class LogsPlatform(Protocol):
         """Deliver one lifecycle event to the logs channel (layout optional)."""
         ...
 
-    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> None:
-        """Deliver one lifecycle event and pin it (boot statuses)."""
+    async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> str:
+        """Deliver one lifecycle event, pin it, return the message id."""
+        ...
+
+    async def unpin_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
+        """Unpin one message (the superseded boot status)."""
         ...
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
@@ -249,7 +253,8 @@ class LogService:
         Policy and stop messages are localized with the guild's locale
         (the announcement layouts render their own localization).
         ``pin`` marks the message as a permanent reference (the boot
-        status): the platform pins it after delivery.
+        status): the platform pins it and unpins the previous one —
+        only the most recent boot status stays pinned.
         """
         try:
             channel_id = await self.resolve_channel(guild_id)
@@ -257,11 +262,32 @@ class LogService:
                 return
             content = event.message if not event.footer else f"{event.message}\n-# {event.footer}"
             if pin:
-                await self._platform.send_and_pin_log_message(guild_id, channel_id, content, layout=event.layout)
+                await self._replace_pinned_boot_status(guild_id, channel_id, content, event)
             else:
                 await self._platform.send_log_message(guild_id, channel_id, content, layout=event.layout)
         except Exception:
             logger.warning("LIFECYCLE LOG DELIVERY FAILED (guild %s, event %s) — best-effort", guild_id, event.kind)
+
+    async def _replace_pinned_boot_status(
+        self, guild_id: str, channel_id: str, content: str, event: LifecycleEvent
+    ) -> None:
+        """Pin the new boot status and keep only it pinned (the pins contract).
+
+        The previous pinned status id rides the state store; a missing
+        or stale id is skipped silently (already unpinned, deleted, or
+        the first boot) — best-effort like every delivery.
+        """
+        key = f"pinned_boot:{guild_id}"
+        previous = await self._safe(self._state.get_state("logs", key))
+        previous_id = str(previous.get("message_id")) if previous and previous.get("message_id") else ""
+        if previous_id:
+            try:
+                await self._platform.unpin_log_message(guild_id, channel_id, previous_id)
+            except Exception:
+                logger.warning("PINNED BOOT STATUS unpin failed (guild %s) — best-effort", guild_id)
+        message_id = await self._platform.send_and_pin_log_message(guild_id, channel_id, content, layout=event.layout)
+        if message_id:
+            await self._safe(self._state.set_state("logs", key, {"message_id": message_id}))
 
     async def log_crash_loop(self, guild_id: str, base_event: LifecycleEvent) -> None:
         """Collapse repeated start/stop into one crash-loop event with a counter."""
