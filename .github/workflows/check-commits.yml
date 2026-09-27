@@ -1,0 +1,33 @@
+name: Check commits
+
+# Conventional Commits enforcement (kingdoms-services#28): every commit
+# on a PR must match the specification — the release changelog
+# (scripts/generate_changelog.py) groups commits by type, so a
+# non-conventional subject would silently drop out of the release notes.
+# The history is already 100% conventional (squash merges); this locks it
+# in at the only gate where it matters: the PR.
+#
+# Only the commits are linted: the PR title follows the session
+# convention (vibe[<user>] <conversation title>) and never reaches main's
+# history — sessions rewrite the squash-merge subject by hand.
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-lint:
+    name: Check Conventional Commits (commitizen)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install commitizen
+        run: pipx install commitizen
+      - name: Validate every commit of the PR
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          cz check --rev-range origin/main..HEAD
