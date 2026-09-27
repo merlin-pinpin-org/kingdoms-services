@@ -215,6 +215,16 @@ class DiscordLogsPlatform:
         message = await channel.fetch_message(int(message_id))
         await message.unpin(reason="kingdoms: superseded boot status (only the latest stays pinned)")
 
+    async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
+        """List every pinned message id of the logs channel.
+
+        The pins contract (#109): only the latest boot status stays
+        pinned — old deployments (or a purged state store) leave
+        orphans the tracked id alone cannot reach.
+        """
+        channel = await self._text_channel(guild_id, channel_id)
+        return [str(message.id) async for message in channel.pins()]
+
     async def _text_channel(self, guild_id: str, channel_id: str) -> discord.TextChannel:
         """Resolve the logs channel as a live text channel."""
         guild = await self._guild(guild_id)

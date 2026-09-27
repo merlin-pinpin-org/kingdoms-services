@@ -67,6 +67,12 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;sea
 
 <dl><dt>async <a name="DiscordLogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordLogsPlatform-list_pinned_log_messages"><strong>list_pinned_log_messages</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;pinned&nbsp;message&nbsp;id&nbsp;of&nbsp;the&nbsp;logs&nbsp;channel.<br>
+&nbsp;<br>
+The&nbsp;pins&nbsp;contract&nbsp;(#109):&nbsp;only&nbsp;the&nbsp;latest&nbsp;boot&nbsp;status&nbsp;stays<br>
+pinned&nbsp;—&nbsp;old&nbsp;deployments&nbsp;(or&nbsp;a&nbsp;purged&nbsp;state&nbsp;store)&nbsp;leave<br>
+orphans&nbsp;the&nbsp;tracked&nbsp;id&nbsp;alone&nbsp;cannot&nbsp;reach.</span></dd></dl>
+
 <dl><dt>async <a name="DiscordLogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name),&nbsp;name-sorted.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-send_and_pin_log_message"><strong>send_and_pin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event,&nbsp;pin&nbsp;it,&nbsp;return&nbsp;the&nbsp;message&nbsp;id&nbsp;(#109).</span></dd></dl>

@@ -58,8 +58,31 @@ class TestVersionBump:
         tag = next_version("v0.2.2", [entry("fix", "a bug")], prerelease=False)
         assert tag == "v0.2.3"
 
-    def test_prerelease_appends_first_free_rc(self) -> None:
-        tag = next_version("v0.2.2", [entry("feat", "x")], prerelease=True)
+    def test_prerelease_appends_first_free_rc(self, tmp_path: Path) -> None:
+        # The first free -rc<n> is read from the repo's existing tags: use an
+        # isolated repository so the test never depends on what was released.
+        repo = tmp_path / "tags"
+        repo.mkdir()
+        run_git(repo, "init", "-q")
+        run_git(repo, "config", "user.email", "t@example.com")
+        run_git(repo, "config", "user.name", "T")
+        (repo / "f.txt").write_text("x")
+        run_git(repo, "add", ".")
+        run_git(repo, "commit", "-q", "-m", "feat(x): first")
+        run_git(repo, "tag", "v0.3.0-rc1")
+        tag = next_version("v0.2.2", [entry("feat", "x")], prerelease=True, cwd=str(repo))
+        assert tag == "v0.3.0-rc2"
+
+    def test_prerelease_first_rc_when_none_exist(self, tmp_path: Path) -> None:
+        repo = tmp_path / "tags"
+        repo.mkdir()
+        run_git(repo, "init", "-q")
+        run_git(repo, "config", "user.email", "t@example.com")
+        run_git(repo, "config", "user.name", "T")
+        (repo / "f.txt").write_text("x")
+        run_git(repo, "add", ".")
+        run_git(repo, "commit", "-q", "-m", "feat(x): first")
+        tag = next_version("v0.2.2", [entry("feat", "x")], prerelease=True, cwd=str(repo))
         assert tag == "v0.3.0-rc1"
 
     def test_prerelease_first_release(self) -> None:

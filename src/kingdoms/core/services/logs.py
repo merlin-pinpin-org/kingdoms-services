@@ -128,6 +128,10 @@ class LogsPlatform(Protocol):
         """Unpin one message (the superseded boot status)."""
         ...
 
+    async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
+        """List every pinned message id of the logs channel."""
+        ...
+
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""
         ...
@@ -278,13 +282,19 @@ class LogService:
         the first boot) — best-effort like every delivery.
         """
         key = f"pinned_boot:{guild_id}"
-        previous = await self._safe(self._state.get_state("logs", key))
-        previous_id = str(previous.get("message_id")) if previous and previous.get("message_id") else ""
-        if previous_id:
+        # Unpin EVERY pinned message of the channel, not only the tracked
+        # one: deployments from before the pins contract (or a purged
+        # state store) leave orphans no tracked id can reach. Only the
+        # boot status is pinned by the bot in this channel; a foreign
+        # pin is rare and re-pinnable by hand — the contract is absolute.
+        pinned_ids = await self._safe(self._platform.list_pinned_log_messages(guild_id, channel_id)) or []
+        for pinned_id in pinned_ids:
             try:
-                await self._platform.unpin_log_message(guild_id, channel_id, previous_id)
+                await self._platform.unpin_log_message(guild_id, channel_id, pinned_id)
             except Exception:
-                logger.warning("PINNED BOOT STATUS unpin failed (guild %s) — best-effort", guild_id)
+                logger.warning(
+                    "PINNED BOOT STATUS unpin failed (guild %s, message %s) — best-effort", guild_id, pinned_id
+                )
         message_id = await self._platform.send_and_pin_log_message(guild_id, channel_id, content, layout=event.layout)
         if message_id:
             await self._safe(self._state.set_state("logs", key, {"message_id": message_id}))

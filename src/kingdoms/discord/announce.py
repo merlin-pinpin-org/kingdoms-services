@@ -211,7 +211,7 @@ def _services_identity_text(status: StatusService, catalog: dict[str, str]) -> T
         line
         for line in (
             _line(f"🌿 {catalog['branch_label']}", status.deploy_branch),
-            _line(f"🔖 {catalog['tag_label']}", status.deploy_ref)
+            _line(f"🏷️ {catalog['tag_label']}", status.deploy_ref)
             if is_release_kind(status.deploy_kind) and status.deploy_ref
             else "",
             _line(f"🔧 {catalog['commit_label']}", sha, relative_time(status.deploy_commit_ts)),
@@ -232,7 +232,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
         if status.deploy_tree_url:
             buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
     if is_release_kind(status.deploy_kind) and status.deploy_ref:
-        buttons.append(Button(f"🔖 {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
+        buttons.append(Button(f"🏷️ {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
     if status.deploy_url and not _release_section(status, catalog):
         buttons.append(Button(f"🔗 {catalog['link_label']}", status.deploy_url))
     return buttons
@@ -250,7 +250,7 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
         f"{SERVICES_REPO_URL}/actions/runs/{status.deploy_ci_run_id}" if status.deploy_ci_run_id else ""
     )
     if ci_url:
-        buttons.append(Button(f"🧪 {catalog['ci_label']}", ci_url))
+        buttons.append(Button(f"⚙️ {catalog['ci_label']}", ci_url))
     if status.deploy_image:
         buttons.append(Button(f"📦 {catalog['image_label']}", PACKAGE_URL))
     return buttons
@@ -275,7 +275,7 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     ci_number = status.deploy_ci_run_number or status.deploy_ci_run_id
     if ci_number:
         blocks.append(Separator())
-        blocks.append(Text(_line(f"🧪 {catalog['job_ci_label']}", f"#{ci_number}")))
+        blocks.append(Text(_line(f"⚙️ {catalog['job_ci_label']}", f"#{ci_number}")))
     image = status.deploy_image or status.deploy_label
     tag = docker_tag(image)
     if tag:
