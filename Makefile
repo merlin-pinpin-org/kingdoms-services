@@ -77,3 +77,11 @@ release:
 # watch-deploy: follow a deploy/<env> pin and its deploy run (ENV, LABEL)
 watch-deploy:
 	@./scripts/watch_deploy.sh $(ENV) $(LABEL)
+
+# changelog: regenerate the conventional CHANGELOG.md section for TAG
+changelog:
+	@uv run python scripts/generate_changelog.py --tag $(TAG) --changelog CHANGELOG.md
+
+# release-notes: print the conventional release notes body for TAG
+release-notes:
+	@uv run python scripts/generate_changelog.py --tag $(TAG) --notes

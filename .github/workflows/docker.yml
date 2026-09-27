@@ -179,7 +179,9 @@ jobs:
           fetch-depth: 0
       # The GitHub release is created by CI (contents: write), not by the
       # agent session: release creation is a mutating call the session
-      # cannot perform. scripts/release_notes.sh builds the changelog.
+      # cannot perform. scripts/generate_changelog.py builds the conventional
+      # changelog (release notes body + the CHANGELOG.md section, committed
+      # to main by the follow-up session PR — CI never pushes to main).
       - name: Create the release for the tag
         env:
           GH_TOKEN: ${{ github.token }}
@@ -190,7 +192,10 @@ jobs:
             echo "release $TAG already exists — skipping"
             exit 0
           fi
-          # Readable notes (merged PRs since the previous tag) instead of
-          # GitHub's --generate-notes dump (diff stats, commit lists).
-          notes="$(scripts/release_notes.sh "$TAG")"
+          # Conventional changelog grouped by type (one bullet per commit,
+          # PR link) instead of GitHub's --generate-notes dump — and the
+          # same content lands in CHANGELOG.md (never hand-edited).
+          notes="$(python scripts/generate_changelog.py --tag "$TAG" --notes)"
           printf '%s' "$notes" | gh release create "$TAG" --notes-file - --title "$TAG"
+          python scripts/generate_changelog.py --tag "$TAG" --changelog CHANGELOG.md
+          cat CHANGELOG.md
