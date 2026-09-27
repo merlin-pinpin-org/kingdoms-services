@@ -69,6 +69,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;sea
 
 <dl><dt>async <a name="DiscordLogsPlatform-list_text_channels"><strong>list_text_channels</strong></a>(self, guild_id: 'str') -&gt; 'list[dict[str, str]]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild's&nbsp;text&nbsp;channels&nbsp;(id,&nbsp;name),&nbsp;name-sorted.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordLogsPlatform-send_and_pin_log_message"><strong>send_and_pin_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;and&nbsp;pin&nbsp;it&nbsp;(boot&nbsp;statuses,&nbsp;#109).</span></dd></dl>
+
 <dl><dt>async <a name="DiscordLogsPlatform-send_log_message"><strong>send_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', content: 'str', layout: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;one&nbsp;lifecycle&nbsp;event&nbsp;to&nbsp;the&nbsp;logs&nbsp;channel&nbsp;(layout&nbsp;optional).</span></dd></dl>
 
 <hr>

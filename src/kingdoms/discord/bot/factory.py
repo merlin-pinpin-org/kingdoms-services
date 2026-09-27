@@ -43,6 +43,8 @@ logger = logging.getLogger("kingdoms.bot")
 
 READY_LOG_LINE = "KINGDOMS_BOT_READY"
 
+PINNED_MENU_CHECK_INTERVAL = 3600
+
 
 @dataclass(frozen=True, slots=True)
 class BotConfig:
@@ -134,6 +136,8 @@ class KingdomsBot(discord.Client):
         self.permission_service: PermissionService | None = None
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
+        self._pin_task: asyncio.Task[None] | None = None
+        self.roles_service: RolesService | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -176,6 +180,7 @@ class KingdomsBot(discord.Client):
         await self.tree.set_translator(CatalogTranslator(self.messages))
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
+            self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
         if self._synced:
             return
         self._synced = True
@@ -236,6 +241,36 @@ class KingdomsBot(discord.Client):
                     registry=self.registry,
                 )
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
+
+    async def _maintain_pinned_menus(self) -> None:
+        """Keep the pinned admin menu alive in every guild (self-healing).
+
+        The admin channel hosts a permanent pinned menu: the same
+        panel as /admin, guarded at click time. The periodic check
+        re-creates it when it disappears (unpinned, deleted, channel
+        re-provisioned) — the surface never depends on an admin
+        remembering to type the command.
+        """
+        from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+
+        await asyncio.sleep(30)
+        while True:
+            for guild in list(self.guilds):
+                if self.logs_service is None:
+                    break
+                try:
+                    await ensure_pinned_admin_menu(
+                        self,
+                        str(guild.id),
+                        self.logs_service,
+                        self.roles_service,
+                        self.admin_channel_service,
+                        self.status_service.bot_admins,
+                        self.messages,
+                    )
+                except Exception:
+                    logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
+            await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
     async def _provision_mods(
         self,
@@ -369,6 +404,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.logs_service = _build_log_service(resolved, bot)
     roles_service = _build_roles_service(resolved, bot)
+    bot.roles_service = roles_service
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
     bot.admin_channel_service = admin_channel_service
     channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry)
