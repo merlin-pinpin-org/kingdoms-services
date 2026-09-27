@@ -25,6 +25,7 @@ from pathlib import Path
 import discord
 from discord import app_commands
 
+from kingdoms.core.exceptions import KingdomsError
 from kingdoms.core.services.admin_channel import AdminChannelService
 from kingdoms.core.services.channel import ChannelService
 from kingdoms.core.services.i18n import MessageCatalog
@@ -35,6 +36,7 @@ from kingdoms.core.services.roles import ModRolesService, RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
 from kingdoms.discord.commands_i18n import CatalogTranslator
+from kingdoms.discord.error_handler import answer_kingdoms_error
 from kingdoms.discord.error_report import report_guild_error, report_interaction_error
 
 logger = logging.getLogger("kingdoms.bot")
@@ -262,8 +264,19 @@ class KingdomsBot(discord.Client):
         interaction: discord.Interaction,
         error: app_commands.AppCommandError,
     ) -> None:
-        """Report app-command failures: bot-logs (guild) or the DM itself."""
+        """Answer Kingdoms errors with i18n + audit; crash-report the rest."""
         exc = error.__cause__ if error.__cause__ is not None else error
+        if isinstance(exc, KingdomsError):
+            locale = await self._locale_for(interaction)
+            answered = await answer_kingdoms_error(
+                interaction,
+                exc,
+                self.messages,
+                logs_service=self.logs_service,
+                locale=locale,
+            )
+            if answered:
+                return
         logger.exception("APP COMMAND FAILED", exc_info=error)
         await report_interaction_error(
             interaction,
@@ -273,6 +286,14 @@ class KingdomsBot(discord.Client):
             bot=self,
             admin_ids=self.status_service.bot_admins,
         )
+
+    async def _locale_for(self, interaction: discord.Interaction) -> str:
+        """Resolve the answering locale: the guild's, or the user's in DM."""
+        if self.logs_service is None:
+            return "en"
+        if interaction.guild_id is not None:
+            return await self.logs_service.get_locale(str(interaction.guild_id))
+        return await self.logs_service.get_user_locale(str(interaction.user.id))
 
     async def on_error(self, event_method: str, /, *args: object, **kwargs: object) -> None:
         """Route unhandled gateway-event failures to each guild's bot-logs."""

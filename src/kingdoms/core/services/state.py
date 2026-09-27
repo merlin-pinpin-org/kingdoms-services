@@ -26,6 +26,8 @@ from typing import Any, Protocol, runtime_checkable
 from redis.asyncio import Redis
 from redis.asyncio.client import PubSub
 
+from kingdoms.core.exceptions.database import DatabaseError
+
 STATE_KEY_PREFIX = "kingdoms"
 DEFAULT_REDIS_URI = "redis://localhost:6379"
 
@@ -38,7 +40,7 @@ def state_key(scope: str, key: str) -> str:
     return f"{STATE_KEY_PREFIX}:{scope}:{key}"
 
 
-class StateServiceError(Exception):
+class StateServiceError(DatabaseError):
     """A state store operation failed."""
 
 

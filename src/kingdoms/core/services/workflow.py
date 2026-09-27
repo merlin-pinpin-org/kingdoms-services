@@ -22,6 +22,7 @@ import asyncio
 import uuid
 from typing import Any, Protocol, runtime_checkable
 
+from kingdoms.core.exceptions.workflow import WorkflowError
 from kingdoms.core.interfaces.platform import IWorkflow
 from kingdoms.core.models.workflow import WorkflowState, WorkflowStatus, WorkflowTransition
 from kingdoms.core.services.state import StateService
@@ -59,12 +60,20 @@ class IWorkflowStore(Protocol):
         ...
 
 
-class WorkflowNotFoundError(Exception):
+class WorkflowNotFoundError(WorkflowError):
     """No instance exists for the given workflow ID."""
 
+    def __init__(self, workflow_id: str) -> None:
+        """Create the error for one missing instance."""
+        super().__init__(f"Workflow not found: {workflow_id}", workflow_id=workflow_id)
 
-class WorkflowNotRegisteredError(Exception):
+
+class WorkflowNotRegisteredError(WorkflowError):
     """No workflow definition is registered under the requested name."""
+
+    def __init__(self, workflow_name: str) -> None:
+        """Create the error for one unregistered definition."""
+        super().__init__(f"Workflow not registered: {workflow_name}", workflow_id=workflow_name)
 
 
 class WorkflowEngine:

@@ -39,6 +39,16 @@ fr:
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
+  errors:
+    validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
+    configuration: "Erreur de configuration. Contactez un administrateur."
+    not_found: "La ressource demandée est introuvable."
+    permission: "Vous n'avez pas la permission d'effectuer cette action."
+    rate_limited: "Vous êtes limité par le rate limit. Réessayez plus tard."
+    workflow: "Une erreur est survenue pendant le workflow. Réessayez."
+    platform: "Une erreur de plateforme est survenue. Réessayez."
+    database: "Une erreur de base de données est survenue. Réessayez plus tard."
+    unexpected: "Une erreur inattendue est survenue. Réessayez."
   permissions:
     denied: "Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle que vous n'avez pas."
   guards:
