@@ -179,6 +179,13 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsBot-on_tree_error"><strong>on_tree_error</strong></a>(self, interaction: 'discord.Interaction', error: 'app_commands.AppCommandError') -&gt; 'None'</dt><dd><span class="code">Report&nbsp;app-command&nbsp;failures:&nbsp;bot-logs&nbsp;(guild)&nbsp;or&nbsp;the&nbsp;DM&nbsp;itself.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-setup_hook"><strong>setup_hook</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;persistent&nbsp;UI&nbsp;at&nbsp;every&nbsp;startup&nbsp;(#122).<br>
+&nbsp;<br>
+Persistent&nbsp;components&nbsp;survive&nbsp;restarts&nbsp;only&nbsp;because&nbsp;their<br>
+state&nbsp;rides&nbsp;the&nbsp;custom_id&nbsp;and&nbsp;their&nbsp;classes&nbsp;are&nbsp;re-registered<br>
+here&nbsp;—&nbsp;a&nbsp;class&nbsp;the&nbsp;factory&nbsp;forgets&nbsp;is&nbsp;dead&nbsp;UI&nbsp;after&nbsp;the&nbsp;next<br>
+deploy&nbsp;(§3b&nbsp;state&nbsp;reconstruction&nbsp;contract).</span></dd></dl>
+
 <hr>
 Methods inherited from <a href="discord.client.html#Client">discord.client.Client</a>:<br>
 <dl><dt>async <a name="KingdomsBot-__aenter__"><strong>__aenter__</strong></a>(self) -&gt; 'Self'</dt></dl>
@@ -1293,25 +1300,6 @@ root_logger:&nbsp;:class:`bool`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;Defaults&nbsp;to&nbsp;``False``.<br>
 &nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;..&nbsp;versionadded::&nbsp;2.0</span></dd></dl>
-
-<dl><dt>async <a name="KingdomsBot-setup_hook"><strong>setup_hook</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
-&nbsp;<br>
-A&nbsp;coroutine&nbsp;to&nbsp;be&nbsp;called&nbsp;to&nbsp;setup&nbsp;the&nbsp;bot,&nbsp;by&nbsp;default&nbsp;this&nbsp;is&nbsp;blank.<br>
-&nbsp;<br>
-To&nbsp;perform&nbsp;asynchronous&nbsp;setup&nbsp;after&nbsp;the&nbsp;bot&nbsp;is&nbsp;logged&nbsp;in&nbsp;but&nbsp;before<br>
-it&nbsp;has&nbsp;connected&nbsp;to&nbsp;the&nbsp;Websocket,&nbsp;overwrite&nbsp;this&nbsp;coroutine.<br>
-&nbsp;<br>
-This&nbsp;is&nbsp;only&nbsp;called&nbsp;once,&nbsp;in&nbsp;:meth:`login`,&nbsp;and&nbsp;will&nbsp;be&nbsp;called&nbsp;before<br>
-any&nbsp;events&nbsp;are&nbsp;dispatched,&nbsp;making&nbsp;it&nbsp;a&nbsp;better&nbsp;solution&nbsp;than&nbsp;doing&nbsp;such<br>
-setup&nbsp;in&nbsp;the&nbsp;:func:`~discord.on_ready`&nbsp;event.<br>
-&nbsp;<br>
-..&nbsp;warning::<br>
-&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Since&nbsp;this&nbsp;is&nbsp;called&nbsp;*before*&nbsp;the&nbsp;websocket&nbsp;connection&nbsp;is&nbsp;made&nbsp;therefore<br>
-&nbsp;&nbsp;&nbsp;&nbsp;anything&nbsp;that&nbsp;waits&nbsp;for&nbsp;the&nbsp;websocket&nbsp;will&nbsp;deadlock,&nbsp;this&nbsp;includes&nbsp;things<br>
-&nbsp;&nbsp;&nbsp;&nbsp;like&nbsp;:meth:`wait_for`&nbsp;and&nbsp;:meth:`wait_until_ready`.<br>
-&nbsp;<br>
-..&nbsp;versionadded::&nbsp;2.0</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-start"><strong>start</strong></a>(self, token: 'str', *, reconnect: 'bool' = True) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
 &nbsp;<br>

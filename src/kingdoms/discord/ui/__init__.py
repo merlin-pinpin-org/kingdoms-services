@@ -70,6 +70,11 @@ from kingdoms.discord.ui.modals import (
     FeedbackModal,
     RegistrationModal,
 )
+from kingdoms.discord.ui.persistent import (
+    PersistentPagerButton,
+    register_page_renderer,
+    register_persistent_items,
+)
 from kingdoms.discord.ui.screens import (
     PaginatedScreen,
     Ranking,
@@ -103,6 +108,7 @@ __all__ = [
     "Option",
     "PaginatedScreen",
     "PaginationView",
+    "PersistentPagerButton",
     "Ranking",
     "RegistrationModal",
     "Row",
@@ -127,6 +133,8 @@ __all__ = [
     "build_user_profile_layout",
     "component_policies",
     "interactive_items",
+    "register_page_renderer",
+    "register_persistent_items",
     "render_for",
     "render_ranking",
 ]
