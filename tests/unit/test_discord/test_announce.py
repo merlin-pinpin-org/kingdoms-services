@@ -118,6 +118,8 @@ def test_layout_buttons_use_generic_labels() -> None:
         deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/pull/42",
         deploy_tree_url="https://github.com/merlin-pinpin-org/kingdoms-services/tree/abc1234deadbeef",
         deploy_image="ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-20260925-abc1234",
+        deploy_ci_run_id="987654",
+        deploy_ci_run_number="321",
         deploy_run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/1",
         deploy_run_number="45",
         deploy_infra_label="deploy/test@c232b34deadbeef",
@@ -130,15 +132,22 @@ def test_layout_buttons_use_generic_labels() -> None:
     assert "\U0001f33f Branch" in labels, "branch button carries a generic label"
     assert "\U0001f527 Commit" in labels, "commit button carries a generic label"
     assert any(label.endswith("Files") for label in labels), "files button present"
-    assert "\U0001f9ea CI" in labels, "CI run button present"
+    assert "\U0001f9ea Job" in labels, "CI job button present, labeled Job"
     assert "\U0001f4e6 Image" in labels, "image button present"
-    assert any(label.startswith("\U0001f680 Deploy") for label in labels), "deploy button present"
+    assert any(label.startswith("\U0001f680 Job") for label in labels), "deploy button present, labeled Job"
     assert not any("vibe/feature-1" in label or "abc1234" in label or "c232b34" in label for label in labels), (
         "the identity rides in the text lines, not the button labels"
     )
     assert not any("Rollback" in label for label in labels), "no rollback button (no workflow yet)"
     assert "vibe/feature-1" in texts and "abc1234" in texts and "#45" in texts, (
         "the identity is displayed in the text lines"
+    )
+    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "\U0001f9ea Job")
+    assert ci_button["url"] == "https://github.com/merlin-pinpin-org/kingdoms-services/actions/runs/987654", (
+        "the CI button links the services CI job, not the infra deploy run"
+    )
+    assert any("Job CI" in text and "#321" in text for text in _iter_texts(layout.to_components())), (
+        "the CI job id rides in the Job CI line"
     )
 
 
@@ -187,7 +196,9 @@ def test_timestamps_sit_under_commit_and_build_for_both_repos() -> None:
     infra = next(t for t in texts if "deploy/test" in t)
     assert "🔧 Commit `abc1234` <t:1790050000:R>" in infra.splitlines()
     deploy_line = next(t for t in texts if "🚀" in t and "<t:1790150000:R>" in t)
-    assert deploy_line
+    assert deploy_line.startswith("🚀 Job deployment `#45`"), "the deploy job id headlines the line"
+    kinds = [c["type"] for c in layout.to_components()[0]["components"]]
+    assert kinds.count(TYPE_SEPARATOR) == 3, "Bot/Services, Services/Infra, deploy job (no CI data in this fixture)"
 
 
 def test_layout_bot_section_reports_uptime_admins_games_mods_latency() -> None:
@@ -235,6 +246,7 @@ def test_layout_sections_and_separator_structure() -> None:
         deploy_label="v0.1.0",
         deploy_kind="release",
         deploy_ref="v0.1.0",
+        deploy_commit="9f8e7d6c5b4a3928173645508174938271626153",
         deploy_url="https://github.com/merlin-pinpin-org/kingdoms-services/releases/tag/v0.1.0",
     )
     config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
@@ -243,13 +255,63 @@ def test_layout_sections_and_separator_structure() -> None:
     assert len(top) == 1 and top[0]["type"] == TYPE_CONTAINER
     kinds = [c["type"] for c in top[0]["components"]]
     assert kinds.count(TYPE_TEXT_DISPLAY) >= 2
-    assert kinds.count(TYPE_SEPARATOR) == 2, "Bot/Services, Services/Infra"
     assert kinds.count(TYPE_SECTION) == 1, "the release headline is a Section"
     texts = _iter_texts(top)
     assert any("Version v0.1.0" in text for text in texts), "releases headline as Version vX.Y.Z"
     assert any(text.startswith("**Bot**") for text in texts), "the Bot section is present"
     section = next(c for c in top[0]["components"] if c["type"] == TYPE_SECTION)
     assert section["accessory"]["label"] == "🔗 v0.1.0"
+
+
+def test_release_renders_tag_and_commit_as_distinct_lines() -> None:
+    """A release deploy shows the tag AND the commit it points at —
+    the tag never renders as the commit (the tree URL's last segment
+    is the tag, not the sha)."""
+    status = _status_service(
+        deploy_label="v0.2.2",
+        deploy_kind="release",
+        deploy_ref="v0.2.2",
+        deploy_commit="9f8e7d6c5b4a3928173645508174938271626153",
+        deploy_commit_ts="1790000000",
+        deploy_tree_url="https://github.com/merlin-pinpin-org/kingdoms-services/tree/v0.2.2",
+        deploy_branch="main",
+    )
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config, env="test")
+    texts = _iter_texts(layout.to_components())
+    identity = next(t for t in texts if "🔖 Tag" in t)
+    lines = identity.splitlines()
+    assert "🔖 Tag `v0.2.2`" in lines, "the tag rides on its own Tag line"
+    assert "🔧 Commit `9f8e7d6` <t:1790000000:R>" in lines, "the resolved commit sha rides on the Commit line"
+    assert not any("Commit `v0.2.2`" in text for text in texts), "the tag is never rendered as the commit"
+    labels = [b["label"] for b in _iter_buttons(layout.to_components())]
+    assert "🔖 Tag" in labels, "the release carries a Tag button"
+    commit_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "🔧 Commit")
+    assert commit_button["url"].endswith("/commit/9f8e7d6"), "the Commit button links the resolved sha"
+
+
+def test_ci_job_line_sits_under_a_separator_above_the_image() -> None:
+    """The CI job id line sits under a Separator, directly above the
+    image line it built; the CI button links the services CI job."""
+    digest64 = "0123456789abcdef" * 4
+    status = _status_service(
+        deploy_kind="pr",
+        deploy_ref="42",
+        deploy_image=f"ghcr.io/merlin-pinpin-org/kingdoms-services:pr-42-x@sha256:{digest64}",
+        deploy_ci_run_id="987654",
+        deploy_ci_run_number="321",
+    )
+    config = AnnounceConfig(locale="en", config_dir=CONFIG_DIR)
+    layout = build_announcement_layout(status, config, env="test")
+    kinds = [c["type"] for c in layout.to_components()[0]["components"]]
+    texts = _iter_texts(layout.to_components())
+    ci_line = next(t for t in texts if "Job CI" in t)
+    assert "#321" in ci_line, "the CI job number headlines the Job CI line"
+    image_line = next(t for t in texts if t.startswith("📦 Image"))
+    assert texts.index(ci_line) < texts.index(image_line), "the Job CI line sits above the image line"
+    assert kinds.count(TYPE_SEPARATOR) == 3, "Bot/Services, CI job (no deploy job data in this fixture)"
+    ci_button = next(b for b in _iter_buttons(layout.to_components()) if b["label"] == "🧪 Job")
+    assert ci_button["url"].endswith("/actions/runs/987654"), "the CI button links the CI job"
 
 
 def test_layout_is_localized() -> None:

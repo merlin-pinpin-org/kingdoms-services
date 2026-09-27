@@ -61,6 +61,20 @@ def test_status_service_strips_deploy_url_whitespace() -> None:
     assert service.deploy_url == ""
 
 
+def test_status_service_exposes_commit_and_ci_job_identity() -> None:
+    service = StatusService(
+        registry=make_registry(),
+        bot_admins=parse_bot_admins(""),
+        deploy_commit="9f8e7d6c5b4a3928173645508174938271626153",
+        deploy_ci_run_id="987654",
+        deploy_ci_run_number="321",
+    )
+    assert service.deploy_commit == "9f8e7d6c5b4a3928173645508174938271626153"
+    assert service.deploy_ci_run_id == "987654"
+    assert service.deploy_ci_run_number == "321"
+    assert service.report()["deploy_ci_run_number"] == "321"
+
+
 def test_status_service_exposes_deploy_label() -> None:
     service = StatusService(
         registry=make_registry(),
