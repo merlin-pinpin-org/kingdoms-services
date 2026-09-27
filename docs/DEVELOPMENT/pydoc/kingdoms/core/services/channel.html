@@ -98,7 +98,7 @@ Narrow&nbsp;cache&nbsp;seam&nbsp;(StateService);&nbsp;values&nbsp;are&nbsp;JSON&
 Methods defined here:<br>
 <dl><dt><a name="ChannelsCache-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="ChannelsCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;value&nbsp;(best-effort).</span></dd></dl>
+<dl><dt>async <a name="ChannelsCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;value&nbsp;(best-effort).</span></dd></dl>
 
 <dl><dt>async <a name="ChannelsCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
 

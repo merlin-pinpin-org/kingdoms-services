@@ -12,7 +12,9 @@
     <p><span class="code">Discord&nbsp;wiring&nbsp;for&nbsp;the&nbsp;platform&nbsp;roles&nbsp;(kingdoms-services#115).<br>
 &nbsp;<br>
 Implements&nbsp;the&nbsp;:class:`~kingdoms.core.services.roles.RolesPlatform`<br>
-seam&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbsp;lives&nbsp;here.</span></p>
+seam&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbsp;lives&nbsp;here.<br>
+The&nbsp;:class:`<a href="#MongoRolesDatabase">MongoRolesDatabase</a>`&nbsp;(kingdoms-services#26)&nbsp;persists&nbsp;the<br>
+mod-role&nbsp;mappings;&nbsp;the&nbsp;member-assignment&nbsp;seam&nbsp;serves&nbsp;ModRolesService.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -33,6 +35,7 @@ seam&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&n
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#DiscordAdminChannelPlatform">DiscordAdminChannelPlatform</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#DiscordRolesPlatform">DiscordRolesPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.roles_platform.html#MongoRolesDatabase">MongoRolesDatabase</a>
 </dt></dl>
 </dd>
 </dl>
@@ -92,9 +95,40 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;roles&nbsp;platform&nbsp;se
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="DiscordRolesPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;lookups&nbsp;and&nbsp;role&nbsp;creation.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordRolesPlatform-add_role_to_member"><strong>add_role_to_member</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Add&nbsp;a&nbsp;role&nbsp;to&nbsp;a&nbsp;member&nbsp;(audited&nbsp;through&nbsp;``reason``).</span></dd></dl>
+
 <dl><dt>async <a name="DiscordRolesPlatform-create_role"><strong>create_role</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;guild&nbsp;role;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordRolesPlatform-find_role_by_name"><strong>find_role_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;role&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordRolesPlatform-remove_role_from_member"><strong>remove_role_from_member</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;a&nbsp;role&nbsp;from&nbsp;a&nbsp;member&nbsp;(audited&nbsp;through&nbsp;``reason``).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoRolesDatabase">class <strong>MongoRolesDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoRolesDatabase">MongoRolesDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;mod-role&nbsp;mappings&nbsp;(#26).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoRolesDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(get_async_database).</span></dd></dl>
+
+<dl><dt>async <a name="MongoRolesDatabase-delete_role_mapping"><strong>delete_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;stale&nbsp;role&nbsp;mapping&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="MongoRolesDatabase-find_role_mapping"><strong>find_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'RoleMappingModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;mapping&nbsp;for&nbsp;a&nbsp;guild&nbsp;mod&nbsp;role&nbsp;key.</span></dd></dl>
+
+<dl><dt>async <a name="MongoRolesDatabase-upsert_role_mapping"><strong>upsert_role_mapping</strong></a>(self, mapping: 'RoleMappingModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;role&nbsp;mapping&nbsp;document&nbsp;(idempotent).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -110,5 +144,6 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.roles.discord (WARNING)&gt;</td></tr></table>
+<td class="singlecolumn"><strong>ROLE_MAPPINGS_COLLECTION</strong> = 'role_mappings'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.roles.discord (WARNING)&gt;</td></tr></table>
 </body></html>

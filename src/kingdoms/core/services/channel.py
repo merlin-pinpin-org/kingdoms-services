@@ -71,7 +71,7 @@ class ChannelsCache(Protocol):
         """Write one cached value with a TTL (best-effort)."""
         ...
 
-    async def delete_state(self, scope: str, key: str) -> None:
+    async def delete_state(self, scope: str, key: str) -> bool:
         """Drop one cached value (best-effort)."""
         ...
 
