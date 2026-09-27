@@ -119,6 +119,7 @@ class StatusService:
         deploy_commit: str = "",
         deploy_ci_run_id: str = "",
         deploy_ci_run_number: str = "",
+        deploy_ci_run_ts: str = "",
     ) -> None:
         self._registry = registry
         self._bot_admins = bot_admins
@@ -144,6 +145,7 @@ class StatusService:
         self._deploy_commit = deploy_commit.strip()
         self._deploy_ci_run_id = deploy_ci_run_id.strip()
         self._deploy_ci_run_number = deploy_ci_run_number.strip()
+        self._deploy_ci_run_ts = deploy_ci_run_ts.strip()
 
     @property
     def deploy_url(self) -> str:
@@ -241,6 +243,11 @@ class StatusService:
         return self._deploy_ci_run_number
 
     @property
+    def deploy_ci_run_ts(self) -> str:
+        """Unix timestamp of the CI job that built the image (KINGDOMS_DEPLOY_CI_RUN_TS)."""
+        return self._deploy_ci_run_ts
+
+    @property
     def bot_admins(self) -> tuple[str, ...]:
         """Bot operator user IDs (BOT_ADMINS)."""
         return self._bot_admins.user_ids
@@ -289,6 +296,7 @@ class StatusService:
             "deploy_commit": self._deploy_commit,
             "deploy_ci_run_id": self._deploy_ci_run_id,
             "deploy_ci_run_number": self._deploy_ci_run_number,
+            "deploy_ci_run_ts": self._deploy_ci_run_ts,
             "enabled_mods": self.enabled_mods(),
         }
 

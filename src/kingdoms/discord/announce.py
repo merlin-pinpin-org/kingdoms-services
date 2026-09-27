@@ -15,8 +15,8 @@ docker tag + full digest, deploy job id) rides in the text lines
 above each button row, each job id line sitting under a Separator.
 
 Sections: Bot (uptime, admins, games, mods, gateway latency, synced
-commands), Services (source identity + commit date, CI job + build
-artifacts + build date), Infra (state identity + commit date, deploy
+commands), Services (source identity + commit date, CI job date,
+build artifacts), Infra (state identity + commit date, deploy
 job + run date) — each artifact's timestamp sits directly under it,
 under a row of generically labeled buttons carrying the links. The deployed
 environment rides as a badge under the title; there is no machine
@@ -246,9 +246,7 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
     shortened docker tag — never an anonymous emoji.
     """
     buttons: list[Button] = []
-    ci_url = (
-        f"{SERVICES_REPO_URL}/actions/runs/{status.deploy_ci_run_id}" if status.deploy_ci_run_id else ""
-    )
+    ci_url = f"{SERVICES_REPO_URL}/actions/runs/{status.deploy_ci_run_id}" if status.deploy_ci_run_id else ""
     if ci_url:
         buttons.append(Button(f"⚙️ {catalog['ci_label']}", ci_url))
     if status.deploy_image:
@@ -259,11 +257,11 @@ def _services_build_row(status: StatusService, catalog: dict[str, str]) -> list[
 def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[object]:
     """Build the Services blocks: identity + jobs + buttons.
 
-    The source identity (branch, tag, commit) and the build identity
-    (docker tag) each carry their own timestamp on the line directly
-    under them — text blocks carry no links, every artifact is a link
-    button with its identity as the label. The CI job line sits under
-    a Separator, right above the image line it built.
+    The source identity (branch, tag, commit) and the CI job line
+    carry their own timestamp on the line directly under them — the
+    build date rides on the Job CI line, the image line carries no
+    date (it is the job's artifact, not its own moment). The CI job
+    line sits under a Separator, right above the image line it built.
     """
     blocks: list[object] = [Text(f"**{catalog['services_label']}**")]
     identity = _services_identity_text(status, catalog)
@@ -275,12 +273,20 @@ def _services_blocks(status: StatusService, catalog: dict[str, str]) -> list[obj
     ci_number = status.deploy_ci_run_number or status.deploy_ci_run_id
     if ci_number:
         blocks.append(Separator())
-        blocks.append(Text(_line(f"⚙️ {catalog['job_ci_label']}", f"#{ci_number}")))
+        blocks.append(
+            Text(
+                _line(
+                    f"⚙️ {catalog['job_ci_label']}",
+                    f"#{ci_number}",
+                    relative_time(status.deploy_ci_run_ts),
+                )
+            )
+        )
     image = status.deploy_image or status.deploy_label
     tag = docker_tag(image)
     if tag:
         digest = full_digest(image)
-        lines = [_line(f"📦 {catalog['image_label']}", tag, relative_time(status.deploy_ts))]
+        lines = [_line(f"📦 {catalog['image_label']}", tag)]
         if digest:
             lines.append(f"`{digest}`")
         blocks.append(Text("\n".join(lines)))

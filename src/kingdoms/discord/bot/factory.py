@@ -73,6 +73,7 @@ class BotConfig:
     deploy_commit: str = ""
     deploy_ci_run_id: str = ""
     deploy_ci_run_number: str = ""
+    deploy_ci_run_ts: str = ""
     sync_guild_id: str = ""
     announce_locale: str = "en"
     announce_enabled: str = "1"
@@ -108,6 +109,7 @@ class BotConfig:
             deploy_commit=env.get("KINGDOMS_DEPLOY_COMMIT", ""),
             deploy_ci_run_id=env.get("KINGDOMS_DEPLOY_CI_RUN_ID", ""),
             deploy_ci_run_number=env.get("KINGDOMS_DEPLOY_CI_RUN_NUMBER", ""),
+            deploy_ci_run_ts=env.get("KINGDOMS_DEPLOY_CI_RUN_TS", ""),
             sync_guild_id=env.get("CICD_GUILD_ID", ""),
             announce_locale=env.get("ANNOUNCE_LOCALE", "en"),
             announce_enabled=env.get("KINGDOMS_ANNOUNCE_ENABLED", "1"),
@@ -409,6 +411,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_commit=resolved.deploy_commit,
         deploy_ci_run_id=resolved.deploy_ci_run_id,
         deploy_ci_run_number=resolved.deploy_ci_run_number,
+        deploy_ci_run_ts=resolved.deploy_ci_run_ts,
     )
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
     bot.logs_service = _build_log_service(resolved, bot)
