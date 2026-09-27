@@ -23,6 +23,17 @@ SERVICES_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-services"
 INFRA_REPO_URL = "https://github.com/merlin-pinpin-org/kingdoms-infra"
 PACKAGE_URL = f"{SERVICES_REPO_URL}/pkgs/container/kingdoms-services"
 
+RELEASE_KINDS = frozenset({"release", "prerelease"})
+
+
+def is_release_kind(kind: str) -> bool:
+    """Whether a deploy kind is a tag-based release (final or -rc pre-release).
+
+    Both pin a tag (vX.Y.Z or vX.Y.Z-rc<n>) — they share the Tag/Commit
+    identity rendering; only the headline and the celebration differ.
+    """
+    return kind in RELEASE_KINDS
+
 
 def is_unix(value: str) -> bool:
     """Whether a deploy timestamp field is a usable unix timestamp."""

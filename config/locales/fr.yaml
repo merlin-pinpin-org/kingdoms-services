@@ -12,6 +12,7 @@ fr:
     infra_label: "Infra"
     bot_label: "Bot"
     version_label: "Version"
+    prerelease_label: "Pré-version"
     branch_label: "Branche"
     commit_label: "Commit"
     tag_label: "Tag"

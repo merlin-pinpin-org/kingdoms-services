@@ -53,6 +53,7 @@ from kingdoms.discord.deploy_render import (
     SERVICES_REPO_URL,
     docker_tag,
     full_digest,
+    is_release_kind,
     relative_time,
     sha7_of,
 )
@@ -69,7 +70,12 @@ from kingdoms.discord.ui import (
 
 logger = logging.getLogger("kingdoms.bot.announce")
 
-_VERSION_BUTTON_KINDS = {"pr": "pull_request_button", "main": "commit_button", "release": "release_button"}
+_VERSION_BUTTON_KINDS = {
+    "pr": "pull_request_button",
+    "main": "commit_button",
+    "release": "release_button",
+    "prerelease": "release_button",
+}
 
 
 ANNOUNCEMENT_HEADER = "🚀"
@@ -154,15 +160,18 @@ def command_mentions(commands: Iterable[object]) -> list[str]:
 def _release_section(status: StatusService, catalog: dict[str, str]) -> Section | Text | None:
     """Build the headline: what is deployed (PR title or version) + its button.
 
-    Releases headline as ``Version <ref>`` (the vX.Y.Z tag), not the
-    image label; PRs keep their title. A Section with the PR/Commit/
-    Release button as accessory when the pipeline provides a URL; a
-    plain Text fallback (title only); None when there is nothing to
-    headline.
+    Releases headline as ``Version <ref>`` (the vX.Y.Z tag), pre-releases
+    as ``Pre-release <ref>`` (the -rc<n> classifier rides in the ref) —
+    a final release is celebrated (tada); PRs keep their title. A Section
+    with the PR/Commit/Release button as accessory when the pipeline
+    provides a URL; a plain Text fallback (title only); None when there
+    is nothing to headline.
     """
     title = status.deploy_pr_title or ""
-    if status.deploy_kind == "release" and status.deploy_ref:
-        title = f"{catalog['version_label']} {status.deploy_ref}"
+    if is_release_kind(status.deploy_kind) and status.deploy_ref:
+        label = catalog["prerelease_label"] if status.deploy_kind == "prerelease" else catalog["version_label"]
+        emoji = "" if status.deploy_kind == "prerelease" else " 🎉 "
+        title = f"{emoji}{label} {status.deploy_ref}".strip()
     if not title:
         return None
     if status.deploy_url:
@@ -186,7 +195,7 @@ def _deploy_commit_sha(status: StatusService) -> str:
     the GitHub API) stands in for the sha the emitters cannot pass
     (the client_payload is capped at 10 properties).
     """
-    if status.deploy_kind == "release":
+    if is_release_kind(status.deploy_kind):
         return status.deploy_commit[:7] if status.deploy_commit else ""
     return sha7_of(status.deploy_tree_url)
 
@@ -203,7 +212,7 @@ def _services_identity_text(status: StatusService, catalog: dict[str, str]) -> T
         for line in (
             _line(f"🌿 {catalog['branch_label']}", status.deploy_branch),
             _line(f"🔖 {catalog['tag_label']}", status.deploy_ref)
-            if status.deploy_kind == "release" and status.deploy_ref
+            if is_release_kind(status.deploy_kind) and status.deploy_ref
             else "",
             _line(f"🔧 {catalog['commit_label']}", sha, relative_time(status.deploy_commit_ts)),
         )
@@ -222,7 +231,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
         buttons.append(Button(f"🔧 {catalog['commit_label']}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
             buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
-    if status.deploy_kind == "release" and status.deploy_ref:
+    if is_release_kind(status.deploy_kind) and status.deploy_ref:
         buttons.append(Button(f"🔖 {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
     if status.deploy_url and not _release_section(status, catalog):
         buttons.append(Button(f"🔗 {catalog['link_label']}", status.deploy_url))

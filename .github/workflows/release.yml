@@ -43,6 +43,14 @@ jobs:
             echo "::error::'$tag' is not a release tag (expected vX.Y.Z, classifiers allowed)"
             exit 1
           fi
+          # Pre-releases (vX.Y.Z-rc<n>, cut by `make pre-release`) are pinned
+          # on deploy/test by their tag push and validated there — they are
+          # never promotable to prod: the final release is cut instead
+          # (`make release` drops the classifier on the validated base).
+          if [[ "$tag" =~ -rc[0-9]+$ ]]; then
+            echo "::error::'$tag' is a pre-release — validate it on test, then cut the final release (make release); -rc tags never reach prod"
+            exit 1
+          fi
           if ! git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${tag}" | grep -q .; then
             echo "::error::tag '$tag' does not exist on this repository — release it first (push the tag; the Docker workflow pins it on deploy/test)"
             exit 1
