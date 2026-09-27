@@ -1,1 +1,0 @@
-"""DiscordPlatform implementation and adapters."""
