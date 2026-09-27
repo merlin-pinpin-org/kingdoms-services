@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.exceptions.database</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.exceptions.html" class="white">exceptions</a>.database</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/exceptions/database.py">SOURCE_ROOT/core/exceptions/database.py</a></td></tr></table>
+    <p><span class="code">Database&nbsp;exceptions&nbsp;(kingdoms-services#10).<br>
+&nbsp;<br>
+Persistence&nbsp;failures&nbsp;across&nbsp;the&nbsp;store&nbsp;seams&nbsp;(MongoDB,&nbsp;Redis,&nbsp;the<br>
+in-memory&nbsp;test&nbsp;stores).&nbsp;The&nbsp;taxonomy&nbsp;names&nbsp;the&nbsp;collection&nbsp;so&nbsp;the<br>
+audit&nbsp;carries&nbsp;the&nbsp;blast&nbsp;radius.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.exceptions.database.html#ConnectionError">ConnectionError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.exceptions.database.html#DuplicateKeyError">DuplicateKeyError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.exceptions.database.html#QueryError">QueryError</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ConnectionError">class <strong>ConnectionError</strong></a>(<a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ConnectionError">ConnectionError</a>(message:&nbsp;'str'&nbsp;=&nbsp;'Database&nbsp;connection&nbsp;failed')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;database&nbsp;connection&nbsp;fails.<br>
+&nbsp;<br>
+Deliberately&nbsp;shadows&nbsp;:class:`builtins.<a href="#ConnectionError">ConnectionError</a>`&nbsp;inside&nbsp;the<br>
+package&nbsp;namespace:&nbsp;the&nbsp;builtin&nbsp;means&nbsp;a&nbsp;network&nbsp;socket&nbsp;fault;&nbsp;this<br>
+one&nbsp;means&nbsp;the&nbsp;persistence&nbsp;layer&nbsp;is&nbsp;unreachable.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.exceptions.database.html#ConnectionError">ConnectionError</a></dd>
+<dd><a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ConnectionError-__init__"><strong>__init__</strong></a>(self, message: 'str' = 'Database connection failed') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>:<br>
+<dl><dt><strong>code</strong> = 'DATABASE_ERROR'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ConnectionError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ConnectionError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ConnectionError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ConnectionError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ConnectionError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ConnectionError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ConnectionError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ConnectionError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ConnectionError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ConnectionError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ConnectionError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DatabaseError">class <strong>DatabaseError</strong></a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DatabaseError">DatabaseError</a>(message:&nbsp;'str',&nbsp;collection:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Base&nbsp;error&nbsp;for&nbsp;database&nbsp;failures.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DatabaseError-__init__"><strong>__init__</strong></a>(self, message: 'str', collection: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error,&nbsp;naming&nbsp;the&nbsp;collection.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>code</strong> = 'DATABASE_ERROR'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="DatabaseError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="DatabaseError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="DatabaseError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DatabaseError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DatabaseError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DatabaseError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DatabaseError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DatabaseError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DatabaseError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DatabaseError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DatabaseError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DuplicateKeyError">class <strong>DuplicateKeyError</strong></a>(<a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DuplicateKeyError">DuplicateKeyError</a>(collection:&nbsp;'str',&nbsp;key:&nbsp;'str',&nbsp;value:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;duplicate-key&nbsp;violation&nbsp;occurs.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.exceptions.database.html#DuplicateKeyError">DuplicateKeyError</a></dd>
+<dd><a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DuplicateKeyError-__init__"><strong>__init__</strong></a>(self, collection: 'str', key: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error,&nbsp;naming&nbsp;the&nbsp;offending&nbsp;key&nbsp;and&nbsp;value.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>:<br>
+<dl><dt><strong>code</strong> = 'DATABASE_ERROR'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="DuplicateKeyError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="DuplicateKeyError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="DuplicateKeyError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DuplicateKeyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DuplicateKeyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DuplicateKeyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DuplicateKeyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DuplicateKeyError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DuplicateKeyError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DuplicateKeyError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DuplicateKeyError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="QueryError">class <strong>QueryError</strong></a>(<a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#QueryError">QueryError</a>(message:&nbsp;'str',&nbsp;query:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;database&nbsp;query&nbsp;fails.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.exceptions.database.html#QueryError">QueryError</a></dd>
+<dd><a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="QueryError-__init__"><strong>__init__</strong></a>(self, message: 'str', query: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error,&nbsp;naming&nbsp;the&nbsp;query&nbsp;shape.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="kingdoms.core.exceptions.database.html#DatabaseError">DatabaseError</a>:<br>
+<dl><dt><strong>code</strong> = 'DATABASE_ERROR'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="QueryError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="QueryError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="QueryError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="QueryError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="QueryError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="QueryError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="QueryError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="QueryError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#QueryError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="QueryError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#QueryError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ConnectionError', 'DatabaseError', 'DuplicateKeyError', 'QueryError']</td></tr></table>
+</body></html>

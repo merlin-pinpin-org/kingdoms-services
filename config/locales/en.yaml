@@ -39,6 +39,16 @@ en:
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"
+  errors:
+    validation: "Invalid input. Please check your values and try again."
+    configuration: "Configuration error. Please contact an administrator."
+    not_found: "The requested resource was not found."
+    permission: "You do not have permission to perform this action."
+    rate_limited: "You are being rate limited. Please try again later."
+    workflow: "An error occurred during the workflow. Please try again."
+    platform: "A platform error occurred. Please try again."
+    database: "A database error occurred. Please try again later."
+    unexpected: "An unexpected error occurred. Please try again."
   permissions:
     denied: "You are not allowed to do that — this action requires a role you do not have."
   guards:

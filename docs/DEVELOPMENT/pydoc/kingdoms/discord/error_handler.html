@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.error_handler</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.error_handler</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/error_handler.py">SOURCE_ROOT/discord/error_handler.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;rendering&nbsp;of&nbsp;the&nbsp;exception&nbsp;taxonomy&nbsp;(kingdoms-services#10).<br>
+&nbsp;<br>
+A&nbsp;:class:`~kingdoms.core.exceptions.KingdomsError`&nbsp;reaching&nbsp;a&nbsp;Discord<br>
+interaction&nbsp;answers&nbsp;with&nbsp;an&nbsp;**ephemeral&nbsp;i18n&nbsp;message**&nbsp;selected&nbsp;by<br>
+the&nbsp;error's&nbsp;``user_key``&nbsp;(never&nbsp;a&nbsp;raw&nbsp;traceback&nbsp;to&nbsp;a&nbsp;player)&nbsp;and<br>
+audits&nbsp;the&nbsp;failure&nbsp;to&nbsp;the&nbsp;guild's&nbsp;bot-logs;&nbsp;unexpected&nbsp;exceptions<br>
+keep&nbsp;the&nbsp;crash-report&nbsp;path&nbsp;of&nbsp;:mod:`kingdoms.discord.error_report`<br>
+(#113)&nbsp;—&nbsp;the&nbsp;developer&nbsp;still&nbsp;needs&nbsp;the&nbsp;frame.<br>
+&nbsp;<br>
+The&nbsp;runtime&nbsp;permission&nbsp;denial&nbsp;(#55)&nbsp;is&nbsp;**not**&nbsp;an&nbsp;error&nbsp;path:&nbsp;it&nbsp;is<br>
+a&nbsp;deliberate&nbsp;decision&nbsp;with&nbsp;its&nbsp;own&nbsp;message&nbsp;and&nbsp;audit,&nbsp;and&nbsp;never<br>
+raises.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-answer_kingdoms_error"><strong>answer_kingdoms_error</strong></a>(interaction: 'discord.Interaction', error: 'KingdomsError', catalog: 'MessageCatalog', logs_service: 'LogService | None' = None, locale: 'str' = 'en') -&gt; 'bool'</dt><dd><span class="code">Answer&nbsp;a&nbsp;Kingdoms&nbsp;error&nbsp;ephemerally&nbsp;and&nbsp;audit&nbsp;it&nbsp;to&nbsp;bot-logs.<br>
+&nbsp;<br>
+Returns&nbsp;whether&nbsp;the&nbsp;interaction&nbsp;was&nbsp;answered&nbsp;(the&nbsp;caller&nbsp;falls<br>
+back&nbsp;to&nbsp;the&nbsp;crash-report&nbsp;path&nbsp;when&nbsp;it&nbsp;was&nbsp;not).&nbsp;Best-effort&nbsp;by<br>
+design:&nbsp;a&nbsp;failing&nbsp;error&nbsp;path&nbsp;never&nbsp;masks&nbsp;the&nbsp;original&nbsp;failure.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FALLBACK_LOCALE</strong> = 'en'<br>
+<strong>TYPE_CHECKING</strong> = False<br>
+<strong>logger</strong> = &lt;Logger kingdoms.bot.errors (WARNING)&gt;</td></tr></table>
+</body></html>

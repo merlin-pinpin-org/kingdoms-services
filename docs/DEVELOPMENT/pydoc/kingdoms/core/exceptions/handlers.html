@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.exceptions.handlers</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.exceptions.html" class="white">exceptions</a>.handlers</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/exceptions/handlers.py">SOURCE_ROOT/core/exceptions/handlers.py</a></td></tr></table>
+    <p><span class="code">Exception&nbsp;handling:&nbsp;log,&nbsp;audit&nbsp;shape,&nbsp;user-facing&nbsp;key&nbsp;(#10).<br>
+&nbsp;<br>
+The&nbsp;handler&nbsp;is&nbsp;**core-agnostic**:&nbsp;it&nbsp;never&nbsp;imports&nbsp;a&nbsp;platform.&nbsp;It<br>
+resolves&nbsp;what&nbsp;to&nbsp;log&nbsp;and&nbsp;which&nbsp;message&nbsp;the&nbsp;user&nbsp;should&nbsp;see;&nbsp;the<br>
+Discord&nbsp;side&nbsp;(ephemeral&nbsp;answer,&nbsp;bot-logs&nbsp;audit)&nbsp;lives&nbsp;in<br>
+:mod:`kingdoms.discord.error_handler`&nbsp;and&nbsp;builds&nbsp;on&nbsp;the&nbsp;resolution<br>
+here.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.exceptions.handlers.html#ExceptionHandler">ExceptionHandler</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ExceptionHandler">class <strong>ExceptionHandler</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Resolve&nbsp;a&nbsp;failure&nbsp;into&nbsp;its&nbsp;log&nbsp;line&nbsp;and&nbsp;its&nbsp;user-facing&nbsp;key.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Class methods defined here:<br>
+<dl><dt><a name="ExceptionHandler-audit_payload"><strong>audit_payload</strong></a>(exc: 'BaseException') -&gt; 'dict[str, object]'</dt><dd><span class="code">Return&nbsp;the&nbsp;serializable&nbsp;audit&nbsp;shape&nbsp;riding&nbsp;the&nbsp;bot-logs&nbsp;record.</span></dd></dl>
+
+<dl><dt><a name="ExceptionHandler-log"><strong>log</strong></a>(exc: 'BaseException') -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;failure&nbsp;with&nbsp;its&nbsp;taxonomy&nbsp;(Kingdoms)&nbsp;or&nbsp;raw&nbsp;type.</span></dd></dl>
+
+<dl><dt><a name="ExceptionHandler-user_key"><strong>user_key</strong></a>(exc: 'BaseException') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;answer&nbsp;to&nbsp;render&nbsp;to&nbsp;the&nbsp;user.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-fallback_user_key"><strong>fallback_user_key</strong></a>() -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;i18n&nbsp;key&nbsp;answering&nbsp;any&nbsp;non-Kingdoms&nbsp;failure.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ExceptionHandler', 'fallback_user_key']</td></tr></table>
+</body></html>

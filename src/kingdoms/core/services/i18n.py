@@ -25,6 +25,15 @@ logger = logging.getLogger("kingdoms.core.i18n")
 
 DEFAULT_LOCALE = "en"
 FALLBACKS: dict[str, str] = {
+    "errors.unexpected": "An unexpected error occurred. Please try again.",
+    "errors.validation": "Invalid input. Please check your values and try again.",
+    "errors.configuration": "Configuration error. Please contact an administrator.",
+    "errors.not_found": "The requested resource was not found.",
+    "errors.permission": "You do not have permission to perform this action.",
+    "errors.rate_limited": "You are being rate limited. Please try again later.",
+    "errors.workflow": "An error occurred during the workflow. Please try again.",
+    "errors.platform": "A platform error occurred. Please try again.",
+    "errors.database": "A database error occurred. Please try again later.",
     "lifecycle.stop": "Bot shutting down.",
     "permissions.denied": "You are not allowed to do that — this action requires a role you do not have.",
     "lifecycle.policy.grant": "Access policy updated: role <@&{role_id}> granted view, by <@{by}>.",
