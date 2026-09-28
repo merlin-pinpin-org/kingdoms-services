@@ -38,7 +38,12 @@ a&nbsp;distinctive&nbsp;ready&nbsp;line&nbsp;that&nbsp;CI&nbsp;smoke&nbsp;tests&
 &nbsp;<br>
 The&nbsp;health&nbsp;endpoint&nbsp;(``/healthz``&nbsp;on&nbsp;port&nbsp;8000)&nbsp;runs&nbsp;for&nbsp;the&nbsp;whole&nbsp;bot<br>
 lifetime:&nbsp;the&nbsp;container&nbsp;healthcheck&nbsp;(Dockerfile)&nbsp;and&nbsp;the&nbsp;infra<br>
-deployment&nbsp;health&nbsp;gate&nbsp;(kingdoms-infra#4)&nbsp;rely&nbsp;on&nbsp;it.</span></dd></dl>
+deployment&nbsp;health&nbsp;gate&nbsp;(kingdoms-infra#4)&nbsp;rely&nbsp;on&nbsp;it.<br>
+&nbsp;<br>
+When&nbsp;``CORE_URI``&nbsp;is&nbsp;set&nbsp;(ADR-0020&nbsp;split),&nbsp;the&nbsp;wiring&nbsp;to&nbsp;svc-core&nbsp;is<br>
+asserted&nbsp;at&nbsp;startup&nbsp;and&nbsp;logged:&nbsp;``CORE_WIRING_OK``&nbsp;(or&nbsp;a&nbsp;warning&nbsp;when<br>
+svc-core&nbsp;is&nbsp;unreachable&nbsp;—&nbsp;the&nbsp;split&nbsp;is&nbsp;progressive,&nbsp;the&nbsp;bot&nbsp;boots<br>
+standalone&nbsp;while&nbsp;seams&nbsp;migrate).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
