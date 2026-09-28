@@ -323,7 +323,12 @@ def register_status_command(
         — the boot message is a /status posted (non-ephemeral) in the
         guild's bot logs channel. The Commands section (sync scope)
         is the only command-specific extra, appended as a Text block.
+
+        The layout needs a locale read (Mongo) before rendering; the
+        command defers first and delivers through the followup so a
+        slow read cannot expire the interaction (the 3s rule).
         """
+        await interaction.response.defer(ephemeral=True)
         latency: float | None = interaction.client.latency
         if latency != latency or latency == float("inf"):
             latency = None
@@ -344,7 +349,7 @@ def register_status_command(
             commands=commands,
             command_ids=tree.get_commands(),
         )
-        await interaction.response.send_message(view=layout, ephemeral=True)
+        await interaction.followup.send(view=layout, ephemeral=True)
 
 
 logger = logging.getLogger("kingdoms.status")

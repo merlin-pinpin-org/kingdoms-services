@@ -25,7 +25,8 @@ Mechanics:
   after ``setup_hook``, so a wiring snapshot taken at startup can be
   stale (services None);
 - access is validated at click time (the developer mandate): the same
-  ``require_admin`` guard as everywhere else;
+  ``require_admin`` guard as everywhere else \u2014 after the defer, so the
+  guard's role lookup never eats into the 3-second window;
 - the panel re-renders fresh from the services
   (:func:`build_pin_main_menu` / :func:`build_pin_channel_menu`), so a
   post-restart click shows the guild's current settings \u2014 not a
@@ -150,6 +151,14 @@ async def _degrade(interaction: discord.Interaction, message: str) -> None:
         logger.warning("ADMIN PANEL (persistent): degradation answer failed", exc_info=True)
 
 
+async def _fail(interaction: discord.Interaction, message: str) -> None:
+    """Answer with the failure note after the acknowledgment (followup)."""
+    try:
+        await interaction.followup.send(message, ephemeral=True)
+    except Exception:
+        logger.warning("ADMIN PANEL (persistent): failure answer failed", exc_info=True)
+
+
 async def _chosen_values(interaction: discord.Interaction) -> list[str]:
     """Read the chosen values of a select interaction."""
     data = getattr(interaction, "data", None) or {}
@@ -172,8 +181,6 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
-    if not await _guard(interaction, wiring):
-        return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
         await _degrade(interaction, "Admin panel unavailable")
@@ -185,18 +192,21 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
     if logs_service is None:
         await _degrade(interaction, "Admin panel unavailable")
         return
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
+        return
     by = str(interaction.user.id)
     try:
         await logs_service.set_locale(guild_id, values[0], by=by)
     except Exception as exc:
         logger.exception("ADMIN PANEL (persistent): locale change failed for guild %s", guild_id)
         await _report(wiring, interaction, exc)
-        await _degrade(interaction, "Language change failed")
+        await _fail(interaction, "Language change failed")
         return
     from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
 
     locale = await _locale_of(wiring, guild_id)
-    await interaction.response.edit_message(
+    await interaction.edit_original_response(
         view=await build_pin_main_menu(
             logs_service,
             guild_id,
@@ -212,8 +222,6 @@ async def _handle_channel(interaction: discord.Interaction) -> None:
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
-    if not await _guard(interaction, wiring):
-        return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
         await _degrade(interaction, "Admin panel unavailable")
@@ -225,10 +233,13 @@ async def _handle_channel(interaction: discord.Interaction) -> None:
     if logs_service is None:
         await _degrade(interaction, "Admin panel unavailable")
         return
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
+        return
     from kingdoms.discord.admin_panel_dynamic import build_pin_channel_menu
 
     locale = await _locale_of(wiring, guild_id)
-    await interaction.response.edit_message(
+    await interaction.edit_original_response(
         view=await build_pin_channel_menu(
             logs_service,
             guild_id,
@@ -245,8 +256,6 @@ async def _handle_visibility(interaction: discord.Interaction) -> None:
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
-    if not await _guard(interaction, wiring):
-        return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
         await _degrade(interaction, "Admin panel unavailable")
@@ -258,18 +267,21 @@ async def _handle_visibility(interaction: discord.Interaction) -> None:
     if logs_service is None:
         await _degrade(interaction, "Admin panel unavailable")
         return
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
+        return
     by = str(interaction.user.id)
     try:
         await logs_service.set_visibility(guild_id, values[0] == VISIBILITY_PUBLIC, by=by)
     except Exception as exc:
         logger.exception("ADMIN PANEL (persistent): visibility change failed for guild %s", guild_id)
         await _report(wiring, interaction, exc)
-        await _degrade(interaction, "Visibility change failed")
+        await _fail(interaction, "Visibility change failed")
         return
     from kingdoms.discord.admin_panel_dynamic import build_pin_channel_menu
 
     locale = await _locale_of(wiring, guild_id)
-    await interaction.response.edit_message(
+    await interaction.edit_original_response(
         view=await build_pin_channel_menu(
             logs_service,
             guild_id,
@@ -291,8 +303,6 @@ async def _handle_route(interaction: discord.Interaction, category: str) -> None
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
-    if not await _guard(interaction, wiring):
-        return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
         await _degrade(interaction, "Admin panel unavailable")
@@ -303,6 +313,9 @@ async def _handle_route(interaction: discord.Interaction, category: str) -> None
     logs_service = wiring.logs_service
     if logs_service is None:
         await _degrade(interaction, "Admin panel unavailable")
+        return
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
         return
     by = str(interaction.user.id)
     try:
@@ -315,12 +328,12 @@ async def _handle_route(interaction: discord.Interaction, category: str) -> None
     except Exception as exc:
         logger.exception("ADMIN PANEL (persistent): channel routing failed for guild %s", guild_id)
         await _report(wiring, interaction, exc)
-        await _degrade(interaction, "Routing failed \u2014 see the bot logs")
+        await _fail(interaction, "Routing failed \u2014 see the bot logs")
         return
     from kingdoms.discord.admin_panel_dynamic import build_pin_channel_menu
 
     locale = await _locale_of(wiring, guild_id)
-    await interaction.response.edit_message(
+    await interaction.edit_original_response(
         view=await build_pin_channel_menu(
             logs_service,
             guild_id,
@@ -337,8 +350,6 @@ async def _handle_back(interaction: discord.Interaction) -> None:
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
-    if not await _guard(interaction, wiring):
-        return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
         await _degrade(interaction, "Admin panel unavailable")
@@ -347,10 +358,13 @@ async def _handle_back(interaction: discord.Interaction) -> None:
     if logs_service is None:
         await _degrade(interaction, "Admin panel unavailable")
         return
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
+        return
     from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
 
     locale = await _locale_of(wiring, guild_id)
-    await interaction.response.edit_message(
+    await interaction.edit_original_response(
         view=await build_pin_main_menu(
             logs_service,
             guild_id,
