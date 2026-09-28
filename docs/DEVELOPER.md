@@ -21,6 +21,8 @@ this repo*.
 | `src/kingdoms/mods/` | Mods (channels categories and roles declared via `ModRegistry`) |
 | `config/` | YAML configs, `config/locales/` (i18n), `config/mods/` |
 | `docs/DEVELOPMENT/pydoc/` | Generated technical docs — regenerate with `make docs` (freshness-checked on every PR) |
+| `contracts/` | gRPC contracts between processes (ADR-0020); stubs in `src/kingdoms/rpc_generated/`, regenerated with `make contracts` |
+| `src/kingdoms/core_process/` | svc-core process entrypoint (ADR-0020) |
 | `tests/` | Unit + integration tests, `tests/mocks/` (MockDiscord) |
 | `Makefile` | `make lint`, `make typecheck`, `make test`, `make docs` |
 
@@ -163,3 +165,16 @@ never on an environment VPS.
   production" section.
 - User-facing changes are validated live on `test` before their PR is
   marked ready (shared convention).
+
+## Process split (ADR-0020)
+
+Kingdoms runs as separate processes: `bot-discord` (default, legacy
+entrypoint) and `svc-core` (`KINGDOMS_PROCESS=core`, serves the gRPC
+seams on `CORE_GRPC_PORT`, default 50051). Contracts live in
+`contracts/`; generated stubs are committed and regenerated with
+`make contracts` (never hand-edit `src/kingdoms/rpc_generated/`).
+
+The split is progressive: while ``CORE_URI`` is unset the bot behaves
+exactly as before; when set, startup asserts the wiring
+(``CORE_WIRING_OK``) and logs a warning instead of failing if svc-core
+is unreachable.

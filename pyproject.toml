@@ -14,6 +14,8 @@ dependencies = [
     "httpx>=0.26.0",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
+    "grpcio>=1.62.0",
+    "grpcio-status>=1.62.0",
 ]
 
 [build-system]
@@ -32,6 +34,9 @@ dev = [
     "types-pyyaml>=6.0",
     "types-redis>=4.5.5",
     "simcord[pytest]>=2.1.0",
+    "grpcio-tools>=1.62.0",
+    "types-protobuf>=7.35.1.20260906",
+    "types-grpcio>=1.84.0.20260928",
 ]
 
 [tool.ruff]
@@ -45,6 +50,8 @@ ignore = ["D203", "D213", "D107", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "S101", "SLF"]
+"src/kingdoms/rpc_generated/**" = ["D", "N", "E501"]
+"src/kingdoms/core/rpc/**" = ["N802"]
 "scripts/**" = ["D", "S101", "T201"]
 "src/kingdoms/discord/bot/main.py" = ["T201", "T203"]
 
@@ -58,3 +65,7 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+module = ["kingdoms.rpc_generated.*", "kingdoms.core.rpc.*"]
+disable_error_code = ["no-untyped-def", "attr-defined", "no-untyped-call", "import-untyped", "name-defined", "type-arg", "arg-type", "assignment", "return-value"]

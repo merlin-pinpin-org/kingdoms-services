@@ -84,9 +84,26 @@ async def run_bot() -> None:
     The health endpoint (``/healthz`` on port 8000) runs for the whole bot
     lifetime: the container healthcheck (Dockerfile) and the infra
     deployment health gate (kingdoms-infra#4) rely on it.
+
+    When ``CORE_URI`` is set (ADR-0020 split), the wiring to svc-core is
+    asserted at startup and logged: ``CORE_WIRING_OK`` (or a warning when
+    svc-core is unreachable — the split is progressive, the bot boots
+    standalone while seams migrate).
     """
+    import os as _os
+
     from kingdoms.discord.bot.factory import BotConfig, create_bot
     from kingdoms.discord.bot.health import HealthServer
+
+    core_uri = _os.environ.get("CORE_URI", "")
+    if core_uri:
+        from kingdoms.core.rpc.status import fetch_core_status
+
+        try:
+            core_status = await fetch_core_status(core_uri)
+            print(f"CORE_WIRING_OK uri={core_uri} version={core_status.version}")
+        except Exception as exc:
+            print(f"CORE_WIRING_FAILED uri={core_uri} error={exc}")
 
     health = HealthServer()
     await health.start()

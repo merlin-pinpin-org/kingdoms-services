@@ -1,4 +1,4 @@
-.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check battery
+.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check battery contracts
 
 # Dev
 dev:
@@ -92,3 +92,11 @@ changelog:
 # release-notes: print the conventional release notes body for TAG
 release-notes:
 	@uv run python scripts/generate_changelog.py --tag $(TAG) --notes
+
+# contracts: regenerate the gRPC stubs from contracts/ (ADR-0020).
+contracts:
+	@uv run python -m grpc_tools.protoc \
+		--python_out=src/kingdoms/rpc_generated \
+		--grpc_python_out=src/kingdoms/rpc_generated \
+		--proto_path=contracts \
+		contracts/kingdoms/v1/*.proto

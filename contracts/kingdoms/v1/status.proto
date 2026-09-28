@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package kingdoms.v1;
+
+// Status service — the bootstrap seam of the ADR-0020 process split.
+// The bot-discord process queries svc-core for its identity/version so
+// the deployment battery can assert cross-process wiring.
+
+service Status {
+  rpc GetCoreStatus(CoreStatusRequest) returns (CoreStatus);
+}
+
+message CoreStatusRequest {}
+
+message CoreStatus {
+  string version = 1;
+  string process = 2;
+}

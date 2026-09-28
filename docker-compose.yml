@@ -12,6 +12,23 @@ services:
       - REDIS_URI=redis://kingdoms-redis:6379
       - DISCORD_TOKEN=${DISCORD_TOKEN:-}
       - BOT_ADMINS=${BOT_ADMINS:-}
+      - CORE_URI=kingdoms-core:50051
+    depends_on:
+      - kingdoms-mongo
+      - kingdoms-redis
+      - kingdoms-core
+
+  kingdoms-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - KINGDOMS_PROCESS=core
+      - MONGO_URI=mongodb://kingdoms-mongo:27017
+      - REDIS_URI=redis://kingdoms-redis:6379
+      - CORE_GRPC_PORT=50051
+    expose:
+      - "50051"
     depends_on:
       - kingdoms-mongo
       - kingdoms-redis
