@@ -30,6 +30,7 @@ class _StatusServicer(status_pb2_grpc.StatusServicer):
         request: status_pb2.CoreStatusRequest,
         context: grpc.aio.ServicerContext,
     ) -> status_pb2.CoreStatus:
+        """Serve the provider's current status payload as the wire message."""
         status = self._provider()
         return status_pb2.CoreStatus(version=status.version, process=status.process)
 
