@@ -112,6 +112,6 @@ taxonomy&nbsp;mapping&nbsp;happens&nbsp;in&nbsp;the&nbsp;seam,&nbsp;not&nbsp;her
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>DEFAULT_DEADLINE</strong> = 5.0<br>
 <strong>DEFAULT_POLICY</strong> = RetryPolicy(max_attempts=3, initial_backoff=0.25, max_backoff=2.0)<br>
-<strong>RETRYABLE_CODES</strong> = frozenset({&lt;StatusCode.RESOURCE_EXHAUSTED: (8, 'resource exhausted')&gt;, &lt;StatusCode.UNAVAILABLE: (14, 'unavailable')&gt;, &lt;StatusCode.ABORTED: (10, 'aborted')&gt;, &lt;StatusCode.DEADLINE_EXCEEDED: (4, 'deadline exceeded')&gt;})<br>
-<strong>__annotations__</strong> = {'DEFAULT_DEADLINE': 'float'}</td></tr></table>
+<strong>RETRYABLE_CODES</strong> = (&lt;StatusCode.UNAVAILABLE: (14, 'unavailable')&gt;, &lt;StatusCode.DEADLINE_EXCEEDED: (4, 'deadline exceeded')&gt;, &lt;StatusCode.RESOURCE_EXHAUSTED: (8, 'resource exhausted')&gt;, &lt;StatusCode.ABORTED: (10, 'aborted')&gt;)<br>
+<strong>__annotations__</strong> = {'DEFAULT_DEADLINE': 'float', 'RETRYABLE_CODES': 'tuple[grpc.StatusCode, ...]'}</td></tr></table>
 </body></html>
