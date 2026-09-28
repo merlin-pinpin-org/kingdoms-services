@@ -8,7 +8,9 @@ failures are answered in the DM itself — no guild channel to log to.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import Mock
 
+import discord
 import pytest
 
 from kingdoms.discord.error_report import (
@@ -36,6 +38,17 @@ def _raise_in_kingdoms_code() -> BaseException:
         raise ValueError("boom")
     except ValueError as exc:
         return exc
+
+
+def test_expired_interactions_are_benign_no_crash_report() -> None:
+    """A slow answer (10062 Unknown interaction) is not a code defect:
+    the full crash report is noise for it."""
+    from kingdoms.discord.error_report import is_benign_interaction_error
+
+    response = Mock(status=404, reason="Not Found", headers={})
+    expired = discord.NotFound(response, {"code": 10062, "message": "Unknown interaction"})
+    assert is_benign_interaction_error(expired) is True
+    assert is_benign_interaction_error(ValueError("boom")) is False
 
 
 def test_emitting_frame_returns_none_outside_src() -> None:

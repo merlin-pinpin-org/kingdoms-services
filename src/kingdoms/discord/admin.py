@@ -547,7 +547,12 @@ def register_admin_command(
     )
     @app_commands.default_permissions(administrator=True)
     async def admin_command(interaction: discord.Interaction) -> None:
-        """Answer the /admin interaction with the right panel."""
+        """Answer the /admin interaction with the right panel.
+
+        The panel reads the guild settings before rendering; deferring
+        first keeps the answer inside Discord's interaction window even
+        when the reads are slow (a late send_message raises 10062).
+        """
         user_id = getattr(interaction.user, "id", None)
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
 
@@ -558,7 +563,8 @@ def register_admin_command(
                     ephemeral=True,
                 )
                 return
-            await interaction.response.send_message(
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send(
                 view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
                 ephemeral=True,
             )
@@ -575,6 +581,7 @@ def register_admin_command(
             )
             return
 
+        await interaction.response.defer(ephemeral=True)
         try:
             panel = await build_main_menu(
                 logs_service,
@@ -590,7 +597,7 @@ def register_admin_command(
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
             await _report_failure(error_reporter, interaction, exc)
             detail = f"{type(exc).__name__}: {exc}"[:120]
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 view=build_admin_note_view(
                     _t(catalog, "en", "panel_failed", detail=discord.utils.escape_markdown(detail))
                 ),
@@ -598,7 +605,7 @@ def register_admin_command(
             )
             return
 
-        await interaction.response.send_message(view=panel, ephemeral=True)
+        await interaction.followup.send(view=panel, ephemeral=True)
 
 
 async def guards_require(

@@ -131,6 +131,23 @@ def _log_content(exc: BaseException, ref: str, context: str) -> str:
     return "\n".join(lines)
 
 
+def is_benign_interaction_error(exc: BaseException) -> bool:
+    """Whether the failure is an expired/unknown interaction \u2014 benign.
+
+    Discord invalidates an interaction token ~3s after the invocation
+    (up to 15 min for deferred ones): answering past the window raises
+    ``NotFound`` (code 10062, "Unknown interaction") or ``HTTPException``
+    403/404. That is a slow answer, not a code defect \u2014 the full
+    crash report (traceback, source link, DM to every admin) is noise
+    for it, so the error paths log a warning and skip the report.
+    """
+    if isinstance(exc, discord.NotFound):
+        return True
+    if isinstance(exc, discord.HTTPException) and exc.status in (403, 404):
+        return True
+    return False
+
+
 async def report_interaction_error(
     interaction: discord.Interaction,
     exc: BaseException,

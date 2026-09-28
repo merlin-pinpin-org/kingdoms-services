@@ -62,6 +62,14 @@ stands&nbsp;—&nbsp;the&nbsp;image&nbsp;digest&nbsp;can&nbsp;still&nbsp;be&nbsp
 &nbsp;<br>
 DMs&nbsp;render&nbsp;explicitly&nbsp;(no&nbsp;guild&nbsp;to&nbsp;mention)&nbsp;—&nbsp;the&nbsp;same&nbsp;lines&nbsp;ride<br>
 the&nbsp;DM&nbsp;answer&nbsp;so&nbsp;the&nbsp;user&nbsp;can&nbsp;paste&nbsp;them&nbsp;in&nbsp;a&nbsp;bug&nbsp;report.</span></dd></dl>
+ <dl><dt><a name="-is_benign_interaction_error"><strong>is_benign_interaction_error</strong></a>(exc: 'BaseException') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;failure&nbsp;is&nbsp;an&nbsp;expired/unknown&nbsp;interaction&nbsp;—&nbsp;benign.<br>
+&nbsp;<br>
+Discord&nbsp;invalidates&nbsp;an&nbsp;interaction&nbsp;token&nbsp;~3s&nbsp;after&nbsp;the&nbsp;invocation<br>
+(up&nbsp;to&nbsp;15&nbsp;min&nbsp;for&nbsp;deferred&nbsp;ones):&nbsp;answering&nbsp;past&nbsp;the&nbsp;window&nbsp;raises<br>
+``NotFound``&nbsp;(code&nbsp;10062,&nbsp;"Unknown&nbsp;interaction")&nbsp;or&nbsp;``HTTPException``<br>
+403/404.&nbsp;That&nbsp;is&nbsp;a&nbsp;slow&nbsp;answer,&nbsp;not&nbsp;a&nbsp;code&nbsp;defect&nbsp;—&nbsp;the&nbsp;full<br>
+crash&nbsp;report&nbsp;(traceback,&nbsp;source&nbsp;link,&nbsp;DM&nbsp;to&nbsp;every&nbsp;admin)&nbsp;is&nbsp;noise<br>
+for&nbsp;it,&nbsp;so&nbsp;the&nbsp;error&nbsp;paths&nbsp;log&nbsp;a&nbsp;warning&nbsp;and&nbsp;skip&nbsp;the&nbsp;report.</span></dd></dl>
  <dl><dt>async <a name="-report_guild_error"><strong>report_guild_error</strong></a>(exc: 'BaseException', guild_ids: 'list[str]', tree_url: 'str', logs_service: 'LogService | None', bot: 'discord.Client | None' = None, admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Report&nbsp;a&nbsp;non-interaction&nbsp;failure&nbsp;(gateway&nbsp;events)&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
  <dl><dt>async <a name="-report_interaction_error"><strong>report_interaction_error</strong></a>(interaction: 'discord.Interaction', exc: 'BaseException', tree_url: 'str', logs_service: 'LogService | None', bot: 'discord.Client | None' = None, admin_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Report&nbsp;an&nbsp;interaction&nbsp;failure&nbsp;to&nbsp;bot-logs,&nbsp;or&nbsp;to&nbsp;the&nbsp;DM&nbsp;itself.<br>
 &nbsp;<br>
