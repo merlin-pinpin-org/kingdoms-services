@@ -46,29 +46,33 @@ async def ensure_pinned_admin_menu(
     admin_ids: tuple[str, ...],
     catalog: MessageCatalog | None = None,
 ) -> bool:
-    """Ensure the guild's admin channel holds exactly one pinned menu.
+    """Ensure the guild's admin channel holds exactly one current pinned menu.
 
     Returns True when a message was (re-)created, False when the
-    existing pin was already in place. The menu itself reuses the
-    standard main-menu builder \u2014 click-time guards included \u2014 and
-    the periodic re-checks make the surface self-healing.
+    existing pin was already current. The menu is the fully dynamic pin
+    surface (``admin_panel_dynamic``) \u2014 no captured state, click-time
+    guards included \u2014 and the periodic re-checks make the surface
+    self-healing. A pinned menu of the **legacy** id namespace
+    (``admin:select:*``) is stale: it was sent with live closures
+    (``by="system"``) whose double dispatch audited phantom changes \u2014
+    it is replaced and unpinned.
     """
     if admin_channel_service is None:
         return False
     channel_id = await admin_channel_service.resolve_channel(guild_id, admin_ids)
     if channel_id is None:
         return False
+    stale = await _stale_pinned_menus(bot, guild_id, channel_id)
     if await _pinned_menu_exists(bot, guild_id, channel_id):
         return False
-    from kingdoms.discord.admin import build_main_menu
+    from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
 
-    layout = await build_main_menu(
+    locale = await _current_locale(logs_service, guild_id)
+    layout = await build_pin_main_menu(
         logs_service,
         guild_id,
-        "system",
-        admin_ids,
-        roles_service,
         catalog,
+        locale,
         admin_channel_service,
     )
     message_id = await admin_channel_service.deliver(guild_id, layout, admin_ids)
@@ -78,11 +82,42 @@ async def ensure_pinned_admin_menu(
     pinned = await _pin_message(bot, guild_id, channel_id, message_id)
     if pinned:
         logger.info("PINNED ADMIN MENU created (guild %s, message %s)", guild_id, message_id)
+    for message in stale:
+        await _unpin_message(message)
     return pinned
 
 
+async def _current_locale(logs_service: LogService, guild_id: str) -> str:
+    """Read the guild's locale, degrading to English (best-effort)."""
+    try:
+        return await logs_service.get_locale(guild_id)
+    except Exception:
+        return "en"
+
+
+async def _stale_pinned_menus(bot: discord.Client, guild_id: str, channel_id: str) -> list[discord.Message]:
+    """Return the pinned menus of the legacy id namespace (unpinned after the rebuild)."""
+    channel = _text_channel(bot, guild_id, channel_id)
+    if channel is None:
+        return []
+    try:
+        pins = await channel.pins()
+    except Exception:
+        logger.warning("PINNED ADMIN MENU pin lookup failed (guild %s) \u2014 best-effort", guild_id)
+        return []
+    return [message for message in pins if _carries_legacy_menu(message)]
+
+
+async def _unpin_message(message: discord.Message) -> None:
+    """Unpin one stale menu message (best-effort)."""
+    try:
+        await message.unpin(reason="kingdoms: legacy pinned admin menu (replaced)")
+    except Exception:
+        logger.warning("PINNED ADMIN MENU unpin failed (message %s) \u2014 best-effort", getattr(message, "id", "?"))
+
+
 async def _pinned_menu_exists(bot: discord.Client, guild_id: str, channel_id: str) -> bool:
-    """Whether the channel pins already hold the pinned menu message."""
+    """Whether the channel pins already hold a **current** pinned menu."""
     channel = _text_channel(bot, guild_id, channel_id)
     if channel is None:
         return False
@@ -98,7 +133,7 @@ async def _pinned_menu_exists(bot: discord.Client, guild_id: str, channel_id: st
 
 
 def _carries_pinned_menu(message: discord.Message) -> bool:
-    """Whether a pinned message carries the pinned-menu component."""
+    """Whether a pinned message carries a **current** pinned-menu component."""
     for child in _walk(message):
         custom_id = getattr(child, "custom_id", None)
         if custom_id is None:
@@ -108,9 +143,25 @@ def _carries_pinned_menu(message: discord.Message) -> bool:
     return False
 
 
+def _carries_legacy_menu(message: discord.Message) -> bool:
+    """Whether a pinned message carries a **legacy** pinned-menu component."""
+    for child in _walk(message):
+        custom_id = getattr(child, "custom_id", None)
+        if custom_id is None:
+            continue
+        if _is_legacy_menu_id(str(custom_id)):
+            return True
+    return False
+
+
 def _starts_with_admin_marker(custom_id: str) -> bool:
-    """Match every admin panel component id (admin:... convention)."""
-    return custom_id.startswith("admin:")
+    """Match a current pinned-menu component id (admin:pin: namespace)."""
+    return custom_id.startswith("admin:pin:")
+
+
+def _is_legacy_menu_id(custom_id: str) -> bool:
+    """Match a legacy pinned-menu id (the live /admin panel namespace)."""
+    return custom_id.startswith(("admin:select:", "admin:channels:", "admin:button:"))
 
 
 def _walk(message: discord.Message) -> list[object]:
