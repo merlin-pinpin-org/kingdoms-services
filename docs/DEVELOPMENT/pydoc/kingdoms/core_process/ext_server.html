@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core_process.ext_server</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core_process.html" class="white">core_process</a>.ext_server</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core_process/ext_server.py">SOURCE_ROOT/core_process/ext_server.py</a></td></tr></table>
+    <p><span class="code">Provider&nbsp;process&nbsp;entrypoints&nbsp;(ADR-0020&nbsp;ext-&lt;provider&gt;&nbsp;family).<br>
+&nbsp;<br>
+Each&nbsp;ext&nbsp;process&nbsp;serves&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract,&nbsp;backed&nbsp;by&nbsp;its<br>
+own&nbsp;adapter&nbsp;to&nbsp;the&nbsp;external&nbsp;API.&nbsp;This&nbsp;module&nbsp;holds&nbsp;the&nbsp;shared&nbsp;serving<br>
+loop&nbsp;so&nbsp;provider&nbsp;entrypoints&nbsp;stay&nbsp;one-liners.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-game_pb2_grpc_add"><strong>game_pb2_grpc_add</strong></a>(servicer: 'GameServicer', server: 'grpc.aio.Server') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;Game&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server&nbsp;(kept&nbsp;out&nbsp;of&nbsp;the&nbsp;entry&nbsp;loop).</span></dd></dl>
+ <dl><dt>async <a name="-serve_game_provider"><strong>serve_game_provider</strong></a>(capabilities: 'ProviderCapabilities', process_label: 'str') -&gt; 'None'</dt><dd><span class="code">Serve&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;until&nbsp;terminated.<br>
+&nbsp;<br>
+Reads&nbsp;``EXT_GRPC_PORT``&nbsp;(default&nbsp;50061).&nbsp;Providers&nbsp;with&nbsp;no&nbsp;live<br>
+adapter&nbsp;yet&nbsp;still&nbsp;serve&nbsp;GetCapabilities&nbsp;—&nbsp;the&nbsp;declared&nbsp;capabilities<br>
+are&nbsp;the&nbsp;provider's&nbsp;single&nbsp;source&nbsp;of&nbsp;truth.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.ext (WARNING)&gt;</td></tr></table>
+</body></html>

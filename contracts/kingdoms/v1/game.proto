@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package kingdoms.v1;
+
+// Game provider service (ADR-0020): an external game data provider process
+// (ext-librematch, ext-aoe2lobby, ...) serves this contract to svc-core.
+// The core never interprets provider-internal identifiers: match_ref,
+// profile_id and faction_key are opaque strings at the contract level.
+
+service Game {
+  // Declare what this provider actually supports. The core degrades
+  // cleanly on anything absent (reference: ladder spec 1.2).
+  rpc GetCapabilities(CapabilitiesRequest) returns (Capabilities);
+
+  // Resolve which mod user matches a game profile. Used for profile
+  // validation at registration and for match participant resolution.
+  rpc ResolveProfile(ResolveProfileRequest) returns (ResolveProfileResponse);
+
+  // Stream match lifecycle events (lobby_opened, lobby_closed,
+  // game_started, game_ended) for the matches this provider can see.
+  rpc StreamMatchEvents(StreamMatchEventsRequest) returns (stream MatchEvent);
+
+  // Fetch the result of a finished game (winner, duration, map, factions).
+  rpc GetMatchResult(GetMatchResultRequest) returns (MatchResult);
+
+  // Named stats blocks for a player profile (rendered by the platform
+  // adapter; the core never formats them).
+  rpc GetPlayerStats(GetPlayerStatsRequest) returns (PlayerStats);
+
+  // Game action links (join/spectate/insights) as opaque label+url pairs.
+  rpc GetMatchLinks(GetMatchLinksRequest) returns (MatchLinks);
+}
+
+message CapabilitiesRequest {}
+
+message Capabilities {
+  string provider_id = 1;   // e.g. "ext-librematch", "ext-aoe2lobby"
+  string game_key = 2;      // e.g. "aoe2"
+  bool realtime = 3;        // lobby/game lifecycle events available
+  bool reliable_results = 4; // trustworthy automated match results
+  bool check_map = 5;      // can validate a map filename for this game
+  bool player_stats = 6;   // exposes profile stats blocks
+}
+
+message ResolveProfileRequest {
+  string profile_id = 1;
+}
+
+message ResolveProfileResponse {
+  // Mod user id resolved from the game profile, empty if unknown.
+  string user_id = 1;
+  repeated string aliases = 2; // display names seen for this profile
+}
+
+message StreamMatchEventsRequest {
+  // Only stream events for matches started after this epoch-ms timestamp.
+  int64 since = 1;
+}
+
+message MatchEvent {
+  string match_ref = 1;    // provider-side match identifier (opaque)
+  string type = 2;         // lobby_opened|lobby_closed|game_started|game_ended
+  int64 occurred_at = 3;   // epoch ms
+  repeated string profile_ids = 4; // participants as game profile ids
+  map<string, string> metadata = 5; // map name, factions, join links...
+}
+
+message GetMatchResultRequest {
+  string match_ref = 1;
+}
+
+message MatchResult {
+  string winner_profile_id = 1;
+  repeated string loser_profile_ids = 2;
+  string map_name = 3;
+  int64 duration_ms = 4;
+  int64 ended_at = 5;
+  map<string, string> factions = 6; // profile_id -> faction_key
+  bool found = 7;          // false: result not available (yet)
+}
+
+message GetPlayerStatsRequest {
+  string profile_id = 1;
+}
+
+message PlayerStats {
+  repeated StatsBlock blocks = 1;
+}
+
+message StatsBlock {
+  string name = 1;         // logical block name, rendered by the platform
+  repeated StatsEntry entries = 2;
+}
+
+message StatsEntry {
+  string key = 1;
+  string value = 2;         // pre-formatted by the provider; i18n-neutral
+}
+
+message GetMatchLinksRequest {
+  string match_ref = 1;
+}
+
+message MatchLinks {
+  repeated GameLink links = 1;
+}
+
+message GameLink {
+  string label = 1;
+  string url = 2;
+  string scheme_url = 3;    // optional deep link (e.g. steam://...)
+}
