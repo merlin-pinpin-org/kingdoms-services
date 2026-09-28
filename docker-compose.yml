@@ -32,6 +32,24 @@ services:
     depends_on:
       - kingdoms-mongo
       - kingdoms-redis
+  kingdoms-ext-librematch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - KINGDOMS_PROCESS=ext-librematch
+      - EXT_GRPC_PORT=50061
+    expose:
+      - "50061"
+  kingdoms-ext-aoe2lobby:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - KINGDOMS_PROCESS=ext-aoe2lobby
+      - EXT_GRPC_PORT=50062
+    expose:
+      - "50062"
 
   kingdoms-mongo:
     image: mongo:7.0

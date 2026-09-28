@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.models.game</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.models.html" class="white">models</a>.game</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/models/game.py">SOURCE_ROOT/core/models/game.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;domain&nbsp;contracts:&nbsp;capabilities&nbsp;and&nbsp;provider-facing&nbsp;seams.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;consumes&nbsp;game&nbsp;data&nbsp;exclusively&nbsp;through&nbsp;a&nbsp;provider&nbsp;process<br>
+serving&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;(ADR-0020).&nbsp;Capabilities&nbsp;are<br>
+declared,&nbsp;never&nbsp;assumed:&nbsp;the&nbsp;ladder&nbsp;degrades&nbsp;cleanly&nbsp;on&nbsp;anything&nbsp;absent<br>
+(reference:&nbsp;ladder&nbsp;spec&nbsp;1.2,&nbsp;9.1).</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.models.game.html#ProviderCapabilities">ProviderCapabilities</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderCapabilities">class <strong>ProviderCapabilities</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderCapabilities">ProviderCapabilities</a>(provider_id:&nbsp;'str',&nbsp;game_key:&nbsp;'str',&nbsp;realtime:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;reliable_results:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;check_map:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;player_stats:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+What&nbsp;a&nbsp;game&nbsp;provider&nbsp;actually&nbsp;supports,&nbsp;as&nbsp;declared&nbsp;by&nbsp;the&nbsp;provider.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;never&nbsp;guesses&nbsp;these:&nbsp;an&nbsp;absent&nbsp;capability&nbsp;is&nbsp;a&nbsp;first-class<br>
+state&nbsp;the&nbsp;ladder&nbsp;must&nbsp;handle&nbsp;(degraded&nbsp;path,&nbsp;reference&nbsp;9.1).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderCapabilities-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__init__"><strong>__init__</strong></a>(self, provider_id: 'str', game_key: 'str', realtime: 'bool' = False, reliable_results: 'bool' = False, check_map: 'bool' = False, player_stats: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ProviderCapabilities-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ProviderCapabilities-none"><strong>none</strong></a>(provider_id: 'str', game_key: 'str') -&gt; 'ProviderCapabilities'</dt><dd><span class="code">Build&nbsp;the&nbsp;zero-capability&nbsp;declaration&nbsp;(acceptance&nbsp;baseline&nbsp;9.1).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>check_map</strong></dt>
+</dl>
+<dl><dt><strong>game_key</strong></dt>
+</dl>
+<dl><dt><strong>player_stats</strong></dt>
+</dl>
+<dl><dt><strong>provider_id</strong></dt>
+</dl>
+<dl><dt><strong>realtime</strong></dt>
+</dl>
+<dl><dt><strong>reliable_results</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'check_map': 'bool', 'game_key': 'str', 'player_stats': 'bool', 'provider_id': 'str', 'realtime': 'bool', 'reliable_results': 'bool'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'check_map': Field(name='check_map',type='bool',default=False...appingproxy({}),kw_only=False,_field_type=_FIELD), 'game_key': Field(name='game_key',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'player_stats': Field(name='player_stats',type='bool',default=Fa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'provider_id': Field(name='provider_id',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'realtime': Field(name='realtime',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'reliable_results': Field(name='reliable_results',type='bool',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('provider_id', 'game_key', 'realtime', 'reliable_results', 'check_map', 'player_stats')</dl>
+
+</td></tr></table></td></tr></table>
+</body></html>

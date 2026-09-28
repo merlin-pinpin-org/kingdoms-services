@@ -100,3 +100,4 @@ contracts:
 		--grpc_python_out=src/kingdoms/rpc_generated \
 		--proto_path=contracts \
 		contracts/kingdoms/v1/*.proto
+	@uv run python -c "import pathlib; [p.write_text(p.read_text().replace('from kingdoms.v1 import ', 'from kingdoms.rpc_generated.kingdoms.v1 import ')) for p in pathlib.Path('src/kingdoms/rpc_generated/kingdoms/v1').glob('*_pb2_grpc.py')]"
