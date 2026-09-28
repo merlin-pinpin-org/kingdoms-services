@@ -36,7 +36,8 @@ Mechanics:<br>
 &nbsp;&nbsp;after&nbsp;``setup_hook``,&nbsp;so&nbsp;a&nbsp;wiring&nbsp;snapshot&nbsp;taken&nbsp;at&nbsp;startup&nbsp;can&nbsp;be<br>
 &nbsp;&nbsp;stale&nbsp;(services&nbsp;None);<br>
 -&nbsp;access&nbsp;is&nbsp;validated&nbsp;at&nbsp;click&nbsp;time&nbsp;(the&nbsp;developer&nbsp;mandate):&nbsp;the&nbsp;same<br>
-&nbsp;&nbsp;``require_admin``&nbsp;guard&nbsp;as&nbsp;everywhere&nbsp;else;<br>
+&nbsp;&nbsp;``require_admin``&nbsp;guard&nbsp;as&nbsp;everywhere&nbsp;else&nbsp;—&nbsp;after&nbsp;the&nbsp;defer,&nbsp;so&nbsp;the<br>
+&nbsp;&nbsp;guard's&nbsp;role&nbsp;lookup&nbsp;never&nbsp;eats&nbsp;into&nbsp;the&nbsp;3-second&nbsp;window;<br>
 -&nbsp;the&nbsp;panel&nbsp;re-renders&nbsp;fresh&nbsp;from&nbsp;the&nbsp;services<br>
 &nbsp;&nbsp;(:func:`build_pin_main_menu`&nbsp;/&nbsp;:func:`build_pin_channel_menu`),&nbsp;so&nbsp;a<br>
 &nbsp;&nbsp;post-restart&nbsp;click&nbsp;shows&nbsp;the&nbsp;guild's&nbsp;current&nbsp;settings&nbsp;—&nbsp;not&nbsp;a<br>

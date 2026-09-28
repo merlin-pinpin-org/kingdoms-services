@@ -309,7 +309,8 @@ class TestClickTimeGuards:
         interaction.data = {"values": ["fr"]}
         await item.callback(interaction)
         assert logs.locales_set == [], "no mutation for a stranger"
-        assert interaction.response.sent is True, "the stranger gets the denial answer"
+        assert interaction.response.deferred is True, "the click acknowledges within the 3s window"
+        assert interaction.followup.messages, "the stranger gets the denial answer"
 
     @pytest.mark.asyncio
     async def test_without_wiring_the_click_degrades(self) -> None:

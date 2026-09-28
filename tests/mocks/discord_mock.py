@@ -670,6 +670,38 @@ class MockResponse:
         return self.sent or self.deferred
 
 
+class MockInteractionWebhook:
+    """In-memory mirror of :class:`discord.InteractionMessage` editing.
+
+    ``edit`` mirrors ``Webhook.edit_message`` with ``@original`` semantics:
+    with no message recorded yet (the defer-only state) it materialises the
+    answer as the interaction message, matching Discord's deferred lifecycle.
+    """
+
+    def __init__(self, response: MockResponse) -> None:
+        self._response = response
+        self._message: MockMessage | None = None
+
+    async def edit(self, message_id: Any = "@original", **kwargs: Any) -> MockMessage | None:
+        if str(message_id) != "@original":
+            return None
+        response = self._response
+        if response.message is None:
+            response.sent = True
+            response.message = MockMessage(**{k: v for k, v in kwargs.items() if k in ("content", "embed", "view")})
+            self._message = response.message
+            return response.message
+        self._message = await response.message.edit(**kwargs)
+        return self._message
+
+    async def send(self, content: str | None = None, **kwargs: Any) -> MockMessage:
+        message = MockMessage(content=content, **{k: v for k, v in kwargs.items() if k in ("embed", "view")})
+        if self._response.message is None:
+            self._response.sent = True
+            self._response.message = message
+        return message
+
+
 class MockFollowup:
     """In-memory mirror of :class:`discord.Webhook` (interaction followup).
 
@@ -784,8 +816,13 @@ class MockInteraction(discord.Interaction):
         self.extras: dict[str, Any] = {}
         self.response = MockResponse()
         self.followup = MockFollowup()
+        self._webhook = MockInteractionWebhook(self.response)
         self.guild_id = guild.id if guild is not None else None
         self._client = client if client is not None else MockClient()
+
+    async def edit_original_response(self, **kwargs: Any) -> MockMessage | None:
+        """Mirror :meth:`discord.Interaction.edit_original_response` (post-defer)."""
+        return await self._webhook.edit("@original", **kwargs)
 
     @property
     def guild(self) -> MockGuild:

@@ -60,8 +60,9 @@ class TestRealBotJourneys:
 
         result = await alice.slash(channel, "status")
 
-        assert result.ephemeral
-        message = result.response.message
+        assert result.deferred, "the command acknowledges within the 3s window (defer)"
+        assert result.followups, "the layout arrives through the followup"
+        message = result.followups[-1]
         assert message.flags.value & IS_COMPONENTS_V2
         texts = [
             c["content"] if isinstance(c, dict) else c.content

@@ -245,6 +245,7 @@ class PinRouteSelect(
             discord.ui.ChannelSelect(
                 custom_id=pin_route_id(category),
                 placeholder=placeholder or None,
+                channel_types=[discord.ChannelType.text],
             )
         )
         self.category = category
