@@ -37,7 +37,11 @@ from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
 from kingdoms.discord.commands_i18n import CatalogTranslator
 from kingdoms.discord.error_handler import answer_kingdoms_error
-from kingdoms.discord.error_report import report_guild_error, report_interaction_error
+from kingdoms.discord.error_report import (
+    is_benign_interaction_error,
+    report_guild_error,
+    report_interaction_error,
+)
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -312,6 +316,13 @@ class KingdomsBot(discord.Client):
     ) -> None:
         """Answer Kingdoms errors with i18n + audit; crash-report the rest."""
         exc = error.__cause__ if error.__cause__ is not None else error
+        if is_benign_interaction_error(exc):
+            logger.warning(
+                "APP COMMAND interaction expired before the answer (user=%s, command=%s) \u2014 answered too slow",
+                getattr(interaction.user, "id", None),
+                getattr(getattr(interaction, "command", None), "qualified_name", "?"),
+            )
+            return
         if isinstance(exc, KingdomsError):
             locale = await self._locale_for(interaction)
             answered = await answer_kingdoms_error(

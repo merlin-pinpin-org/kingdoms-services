@@ -62,9 +62,9 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
     interaction.guild_id = 42
     await command._callback(interaction)  # type: ignore[union-attr]
-    assert interaction.response.sent is True
-    assert interaction.response.ephemeral is True
-    layout = interaction.response.message.layout
+    assert interaction.response.deferred is True, "the command answers immediately (defer)"
+    assert interaction.followup.messages, "the panel arrives through the followup"
+    layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
     assert LOCALE_SELECT_ID in customs, "the guild language select is on the main menu"
@@ -84,8 +84,9 @@ async def test_admin_command_dm_shows_user_locale_setup() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
     interaction.guild_id = None
     await command._callback(interaction)  # type: ignore[union-attr]
-    assert interaction.response.sent is True
-    layout = interaction.response.message.layout
+    assert interaction.response.deferred is True, "the DM panel defers before its reads"
+    assert interaction.followup.messages, "the DM panel arrives through the followup"
+    layout = interaction.followup.messages[-1].layout
     assert layout is not None
     assert USER_LOCALE_SELECT_ID in _custom_ids(layout)
     assert logs.user_locales_read == ["111111111"]
@@ -103,7 +104,7 @@ async def test_admin_command_dm_locale_change_persists() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
     interaction.guild_id = None
     await command._callback(interaction)  # type: ignore[union-attr]
-    select = _find_select(interaction.response.message.layout, USER_LOCALE_SELECT_ID)
+    select = _find_select(interaction.followup.messages[-1].layout, USER_LOCALE_SELECT_ID)
     assert select is not None
     await _choose(select, interaction, ["fr"])
     assert logs.user_locales_set == [("111111111", "fr")]
