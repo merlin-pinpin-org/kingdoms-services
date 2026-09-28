@@ -38,14 +38,13 @@ DEFAULT_POLICY = RetryPolicy()
 DEFAULT_DEADLINE: float = 5.0
 
 # Errors that justify a transparent retry (the call never reached the
-# server or the server is known-idempotent-safe at this layer).
-RETRYABLE_CODES = frozenset(
-    {
-        grpc.StatusCode.UNAVAILABLE,
-        grpc.StatusCode.DEADLINE_EXCEEDED,
-        grpc.StatusCode.RESOURCE_EXHAUSTED,
-        grpc.StatusCode.ABORTED,
-    }
+# server or the server is known-idempotent-safe at this layer). Tuple,
+# not frozenset: a stable repr keeps the generated pydoc deterministic.
+RETRYABLE_CODES: tuple[grpc.StatusCode, ...] = (
+    grpc.StatusCode.UNAVAILABLE,
+    grpc.StatusCode.DEADLINE_EXCEEDED,
+    grpc.StatusCode.RESOURCE_EXHAUSTED,
+    grpc.StatusCode.ABORTED,
 )
 
 
