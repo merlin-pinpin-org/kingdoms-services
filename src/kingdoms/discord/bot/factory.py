@@ -439,6 +439,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.drasah import register_drasah_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
@@ -446,6 +447,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
+    drasah = registry.get("drasah")
+    if drasah is not None and drasah.enabled:
+        register_drasah_command(bot.tree, catalog=bot.messages)
     register_admin_command(
         bot.tree,
         bot_admins=status.bot_admins,
