@@ -44,7 +44,7 @@ between&nbsp;the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;plain&nbsp;core&nbsp;mode
 <td class="section-title" colspan=3>&nbsp;<br><a name="GameServicer">class <strong>GameServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#GameServicer">GameServicer</a>(capabilities:&nbsp;'Callable[[],&nbsp;ProviderCapabilities]',&nbsp;match_details:&nbsp;'Callable[[str],&nbsp;Awaitable[MatchDetails&nbsp;|&nbsp;None]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;list_maps:&nbsp;'Callable[[],&nbsp;Awaitable[list[GameMap]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameServicer">GameServicer</a>(capabilities:&nbsp;'Callable[[],&nbsp;ProviderCapabilities]',&nbsp;match_details:&nbsp;'Callable[[str],&nbsp;Awaitable[MatchDetails&nbsp;|&nbsp;None]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;list_maps:&nbsp;'Callable[[],&nbsp;Awaitable[list[GameMap]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;match_events:&nbsp;'Callable[[],&nbsp;AsyncIterator[MatchEvent]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Serve&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;from&nbsp;provider-backed&nbsp;callables.<br>
 &nbsp;<br>
@@ -66,7 +66,9 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="GameServicer-ListMaps"><strong>ListMaps</strong></a>(self, request: 'game_pb2.ListMapsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.GameMaps'</dt><dd><span class="code">Serve&nbsp;the&nbsp;provider's&nbsp;known&nbsp;map&nbsp;catalog&nbsp;for&nbsp;its&nbsp;game.</span></dd></dl>
 
-<dl><dt><a name="GameServicer-__init__"><strong>__init__</strong></a>(self, capabilities: 'Callable[[], ProviderCapabilities]', match_details: 'Callable[[str], Awaitable[MatchDetails | None]] | None' = None, list_maps: 'Callable[[], Awaitable[list[GameMap]]] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt>async <a name="GameServicer-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(self, request: 'game_pb2.StreamMatchEventsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[game_pb2.MatchEvent]'</dt><dd><span class="code">Stream&nbsp;live&nbsp;match&nbsp;lifecycle&nbsp;events&nbsp;from&nbsp;the&nbsp;provider.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-__init__"><strong>__init__</strong></a>(self, capabilities: 'Callable[[], ProviderCapabilities]', match_details: 'Callable[[str], Awaitable[MatchDetails | None]] | None' = None, list_maps: 'Callable[[], Awaitable[list[GameMap]]] | None' = None, match_events: 'Callable[[], AsyncIterator[MatchEvent]] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <hr>
 Methods inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>:<br>
@@ -79,9 +81,6 @@ adapter;&nbsp;the&nbsp;core&nbsp;never&nbsp;formats&nbsp;them).</span></dd></dl>
 
 <dl><dt><a name="GameServicer-ResolveProfile"><strong>ResolveProfile</strong></a>(self, request, context)</dt><dd><span class="code">Resolve&nbsp;which&nbsp;mod&nbsp;user&nbsp;matches&nbsp;a&nbsp;game&nbsp;profile.&nbsp;Used&nbsp;for&nbsp;profile<br>
 validation&nbsp;at&nbsp;registration&nbsp;and&nbsp;for&nbsp;match&nbsp;participant&nbsp;resolution.</span></dd></dl>
-
-<dl><dt><a name="GameServicer-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(self, request, context)</dt><dd><span class="code">Stream&nbsp;match&nbsp;lifecycle&nbsp;events&nbsp;(lobby_opened,&nbsp;lobby_closed,<br>
-game_started,&nbsp;game_ended)&nbsp;for&nbsp;the&nbsp;matches&nbsp;this&nbsp;provider&nbsp;can&nbsp;see.</span></dd></dl>
 
 <hr>
 Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>:<br>
@@ -103,6 +102,8 @@ Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game
  <dl><dt><a name="-game_map_to_wire"><strong>game_map_to_wire</strong></a>(game_map: 'GameMap') -&gt; 'game_pb2.GameMap'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;game-map&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-match_details_from_wire"><strong>match_details_from_wire</strong></a>(wire: 'game_pb2.MatchDetails') -&gt; 'MatchDetails'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-details&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
  <dl><dt><a name="-match_details_to_wire"><strong>match_details_to_wire</strong></a>(details: 'MatchDetails') -&gt; 'game_pb2.MatchDetails'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-details&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-match_event_from_wire"><strong>match_event_from_wire</strong></a>(wire: 'game_pb2.MatchEvent') -&gt; 'MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-event&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-match_event_to_wire"><strong>match_event_to_wire</strong></a>(event: 'MatchEvent') -&gt; 'game_pb2.MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-event&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
  <dl><dt><a name="-slot_from_wire"><strong>slot_from_wire</strong></a>(wire: 'game_pb2.Slot') -&gt; 'Slot'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;slot&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
  <dl><dt><a name="-slot_to_wire"><strong>slot_to_wire</strong></a>(slot: 'Slot') -&gt; 'game_pb2.Slot'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;slot&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
 </td></tr></table>
