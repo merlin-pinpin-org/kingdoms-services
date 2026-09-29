@@ -21,6 +21,8 @@ logger = logging.getLogger("kingdoms.ext")
 async def serve_game_provider(
     capabilities: ProviderCapabilities,
     process_label: str,
+    match_details: object | None = None,
+    list_maps: object | None = None,
 ) -> None:
     """Serve the kingdoms.v1.Game contract until terminated.
 
@@ -30,7 +32,11 @@ async def serve_game_provider(
     """
     server = grpc.aio.server()
     game_pb2_grpc_add(
-        GameServicer(lambda: capabilities),
+        GameServicer(
+            lambda: capabilities,
+            match_details=match_details,
+            list_maps=list_maps,
+        ),
         server,
     )
     port = os.environ.get("EXT_GRPC_PORT", "50061")

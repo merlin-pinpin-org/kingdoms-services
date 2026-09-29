@@ -14,10 +14,29 @@ def main() -> None:
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    from kingdoms.core.models.game import GameMap, MatchDetails
     from kingdoms.core_process.ext_server import serve_game_provider
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
+    from kingdoms.ext_librematch.adapter import LibrematchAdapter
 
-    asyncio.run(serve_game_provider(DECLARED_CAPABILITIES, PROVIDER_ID))
+    adapter = LibrematchAdapter(
+        base_url=os.environ.get("LIBREMATCH_API_URL", "https://community.ageofempires.com"),
+    )
+
+    async def match_details(match_ref: str) -> MatchDetails | None:
+        return await adapter.match_details(match_ref)
+
+    async def list_maps() -> list[GameMap]:
+        return await adapter.list_maps()
+
+    asyncio.run(
+        serve_game_provider(
+            DECLARED_CAPABILITIES,
+            PROVIDER_ID,
+            match_details=match_details,
+            list_maps=list_maps,
+        )
+    )
 
 
 if __name__ == "__main__":

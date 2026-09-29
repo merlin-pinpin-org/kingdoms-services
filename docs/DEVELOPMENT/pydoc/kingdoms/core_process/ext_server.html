@@ -30,7 +30,7 @@ loop&nbsp;so&nbsp;provider&nbsp;entrypoints&nbsp;stay&nbsp;one-liners.</span></p
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-game_pb2_grpc_add"><strong>game_pb2_grpc_add</strong></a>(servicer: 'GameServicer', server: 'grpc.aio.Server') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;Game&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server&nbsp;(kept&nbsp;out&nbsp;of&nbsp;the&nbsp;entry&nbsp;loop).</span></dd></dl>
- <dl><dt>async <a name="-serve_game_provider"><strong>serve_game_provider</strong></a>(capabilities: 'ProviderCapabilities', process_label: 'str') -&gt; 'None'</dt><dd><span class="code">Serve&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;until&nbsp;terminated.<br>
+ <dl><dt>async <a name="-serve_game_provider"><strong>serve_game_provider</strong></a>(capabilities: 'ProviderCapabilities', process_label: 'str', match_details: 'object | None' = None, list_maps: 'object | None' = None) -&gt; 'None'</dt><dd><span class="code">Serve&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;until&nbsp;terminated.<br>
 &nbsp;<br>
 Reads&nbsp;``EXT_GRPC_PORT``&nbsp;(default&nbsp;50061).&nbsp;Providers&nbsp;with&nbsp;no&nbsp;live<br>
 adapter&nbsp;yet&nbsp;still&nbsp;serve&nbsp;GetCapabilities&nbsp;—&nbsp;the&nbsp;declared&nbsp;capabilities<br>

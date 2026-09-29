@@ -8,7 +8,7 @@ between the wire contract and plain core models.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 import grpc
 
@@ -125,8 +125,8 @@ class GameServicer(game_pb2_grpc.GameServicer):
     def __init__(
         self,
         capabilities: Callable[[], ProviderCapabilities],
-        match_details: Callable[[str], MatchDetails | None] | None = None,
-        list_maps: Callable[[], list[GameMap]] | None = None,
+        match_details: Callable[[str], Awaitable[MatchDetails | None]] | None = None,
+        list_maps: Callable[[], Awaitable[list[GameMap]]] | None = None,
     ) -> None:
         self._capabilities = capabilities
         self._match_details = match_details
@@ -148,7 +148,7 @@ class GameServicer(game_pb2_grpc.GameServicer):
         """Serve a match's slotinfo and raw game options when known."""
         if self._match_details is None:
             await context.abort(grpc.StatusCode.UNIMPLEMENTED, "match details not available")
-        details = self._match_details(request.match_ref)
+        details = await self._match_details(request.match_ref)
         if details is None:
             await context.abort(grpc.StatusCode.NOT_FOUND, "unknown match_ref")
         return match_details_to_wire(details)
@@ -161,4 +161,5 @@ class GameServicer(game_pb2_grpc.GameServicer):
         """Serve the provider's known map catalog for its game."""
         if self._list_maps is None:
             await context.abort(grpc.StatusCode.UNIMPLEMENTED, "map catalog not available")
-        return game_pb2.GameMaps(maps=[game_map_to_wire(m) for m in self._list_maps()])
+        maps = await self._list_maps()
+        return game_pb2.GameMaps(maps=[game_map_to_wire(m) for m in maps])
