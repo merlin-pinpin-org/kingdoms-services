@@ -29,6 +29,13 @@ service Game {
 
   // Game action links (join/spectate/insights) as opaque label+url pairs.
   rpc GetMatchLinks(GetMatchLinksRequest) returns (MatchLinks);
+
+  // Full match details: map, slotinfo (per-slot state) and the raw
+  // game options (map size, speed, victory condition, ...).
+  rpc GetMatchDetails(GetMatchDetailsRequest) returns (MatchDetails);
+
+  // The maps this provider knows about for its game (catalog data).
+  rpc ListMaps(ListMapsRequest) returns (GameMaps);
 }
 
 message CapabilitiesRequest {}
@@ -109,4 +116,39 @@ message GameLink {
   string label = 1;
   string url = 2;
   string scheme_url = 3;    // optional deep link (e.g. steam://...)
+}
+
+message GetMatchDetailsRequest {
+  string match_ref = 1;
+}
+
+message Slot {
+  int32 slot_index = 1;
+  string profile_id = 2;    // empty when the slot is not a player slot
+  string faction_key = 3;  // provider-side faction/civ identifier
+  int32 team = 4;
+  bool filled = 5;
+  string slot_kind = 6;    // e.g. "human", "ai", "closed", "open"
+}
+
+message MatchDetails {
+  string match_ref = 1;
+  string map_name = 2;      // provider-side map identifier
+  repeated Slot slots = 3; // slotinfo as exposed by the game API
+  map<string, string> options = 4; // raw game options, opaque key/value
+  int64 started_at = 5;    // epoch ms, 0 when not started
+  string match_kind = 6;   // e.g. "lobby", "ongoing", "finished"
+}
+
+message ListMapsRequest {}
+
+message GameMaps {
+  repeated GameMap maps = 1;
+}
+
+message GameMap {
+  string map_key = 1;      // provider-side map identifier
+  string name = 2;
+  string map_type = 3;    // e.g. "random_map", "real_world", "custom"
+  string resource_url = 4; // presentation link, may be empty
 }

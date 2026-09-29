@@ -30,3 +30,54 @@ class ProviderCapabilities:
     def none(cls, provider_id: str, game_key: str) -> ProviderCapabilities:
         """Build the zero-capability declaration (acceptance baseline 9.1)."""
         return cls(provider_id=provider_id, game_key=game_key)
+
+
+@dataclass(frozen=True, slots=True)
+class Slot:
+    """One slot of a game match's slotinfo, as exposed by the provider.
+
+    Profile and faction identifiers are provider-side and opaque to the
+    core; ``slot_kind`` distinguishes humans, AIs and closed slots.
+    """
+
+    slot_index: int
+    profile_id: str = ""
+    faction_key: str = ""
+    team: int = 0
+    filled: bool = False
+    slot_kind: str = "open"
+
+
+@dataclass(frozen=True, slots=True)
+class MatchDetails:
+    """Full match parameters: map, slotinfo and raw game options.
+
+    Everything the provider can expose about a match: the per-slot state
+    and the game options as opaque key/value pairs (map size, speed,
+    victory condition, ...). The core stores them, never interprets them.
+    """
+
+    match_ref: str
+    map_name: str = ""
+    slots: tuple[Slot, ...] = ()
+    options: tuple[tuple[str, str], ...] = ()
+    started_at: int = 0
+    match_kind: str = "lobby"
+
+    def option(self, key: str) -> str | None:
+        """Return one raw game option by key, None when absent."""
+        return dict(self.options).get(key)
+
+
+@dataclass(frozen=True, slots=True)
+class GameMap:
+    """A map known to the provider for its game (catalog data).
+
+    ``map_key`` is the provider-side identifier; the ladder's own maps
+    stay a mod concern, this only feeds the admin-facing catalog.
+    """
+
+    map_key: str
+    name: str
+    map_type: str = ""
+    resource_url: str = ""

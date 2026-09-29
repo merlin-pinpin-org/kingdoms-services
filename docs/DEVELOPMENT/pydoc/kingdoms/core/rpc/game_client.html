@@ -59,6 +59,14 @@ Typed&nbsp;client&nbsp;for&nbsp;a&nbsp;kingdoms.v1.Game&nbsp;provider&nbsp;proce
 
 <dl><dt>async <a name="GameProviderClient-get_capabilities"><strong>get_capabilities</strong></a>(self) -&gt; 'ProviderCapabilities'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;declared&nbsp;capabilities,&nbsp;degrading&nbsp;to&nbsp;zero.</span></dd></dl>
 
+<dl><dt>async <a name="GameProviderClient-get_match_details"><strong>get_match_details</strong></a>(self, match_ref: 'str') -&gt; 'MatchDetails | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;match's&nbsp;slotinfo&nbsp;and&nbsp;raw&nbsp;options,&nbsp;degrading&nbsp;to&nbsp;None.<br>
+&nbsp;<br>
+A&nbsp;provider&nbsp;that&nbsp;cannot&nbsp;serve&nbsp;match&nbsp;details&nbsp;(unsupported&nbsp;or<br>
+unknown&nbsp;match)&nbsp;yields&nbsp;None:&nbsp;callers&nbsp;fall&nbsp;back&nbsp;to&nbsp;what&nbsp;the&nbsp;match<br>
+already&nbsp;knows&nbsp;instead&nbsp;of&nbsp;failing&nbsp;the&nbsp;workflow.</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-list_maps"><strong>list_maps</strong></a>(self) -&gt; 'list[GameMap]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;map&nbsp;catalog,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>provider_id</strong></dt>

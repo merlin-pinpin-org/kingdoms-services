@@ -48,11 +48,15 @@ profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&n
 <td class="singlecolumn">Static methods defined here:<br>
 <dl><dt><a name="Game-GetCapabilities"><strong>GetCapabilities</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
+<dl><dt><a name="Game-GetMatchDetails"><strong>GetMatchDetails</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
 <dl><dt><a name="Game-GetMatchLinks"><strong>GetMatchLinks</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <dl><dt><a name="Game-GetMatchResult"><strong>GetMatchResult</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <dl><dt><a name="Game-GetPlayerStats"><strong>GetPlayerStats</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-ListMaps"><strong>ListMaps</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
 <dl><dt><a name="Game-ResolveProfile"><strong>ResolveProfile</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
 
@@ -81,12 +85,17 @@ profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&n
 <dl><dt><a name="GameServicer-GetCapabilities"><strong>GetCapabilities</strong></a>(self, request, context)</dt><dd><span class="code">Declare&nbsp;what&nbsp;this&nbsp;provider&nbsp;actually&nbsp;supports.&nbsp;The&nbsp;core&nbsp;degrades<br>
 cleanly&nbsp;on&nbsp;anything&nbsp;absent&nbsp;(reference:&nbsp;ladder&nbsp;spec&nbsp;1.2).</span></dd></dl>
 
+<dl><dt><a name="GameServicer-GetMatchDetails"><strong>GetMatchDetails</strong></a>(self, request, context)</dt><dd><span class="code">Full&nbsp;match&nbsp;details:&nbsp;map,&nbsp;slotinfo&nbsp;(per-slot&nbsp;state)&nbsp;and&nbsp;the&nbsp;raw<br>
+game&nbsp;options&nbsp;(map&nbsp;size,&nbsp;speed,&nbsp;victory&nbsp;condition,&nbsp;...).</span></dd></dl>
+
 <dl><dt><a name="GameServicer-GetMatchLinks"><strong>GetMatchLinks</strong></a>(self, request, context)</dt><dd><span class="code"><a href="#Game">Game</a>&nbsp;action&nbsp;links&nbsp;(join/spectate/insights)&nbsp;as&nbsp;opaque&nbsp;label+url&nbsp;pairs.</span></dd></dl>
 
 <dl><dt><a name="GameServicer-GetMatchResult"><strong>GetMatchResult</strong></a>(self, request, context)</dt><dd><span class="code">Fetch&nbsp;the&nbsp;result&nbsp;of&nbsp;a&nbsp;finished&nbsp;game&nbsp;(winner,&nbsp;duration,&nbsp;map,&nbsp;factions).</span></dd></dl>
 
 <dl><dt><a name="GameServicer-GetPlayerStats"><strong>GetPlayerStats</strong></a>(self, request, context)</dt><dd><span class="code">Named&nbsp;stats&nbsp;blocks&nbsp;for&nbsp;a&nbsp;player&nbsp;profile&nbsp;(rendered&nbsp;by&nbsp;the&nbsp;platform<br>
 adapter;&nbsp;the&nbsp;core&nbsp;never&nbsp;formats&nbsp;them).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-ListMaps"><strong>ListMaps</strong></a>(self, request, context)</dt><dd><span class="code">The&nbsp;maps&nbsp;this&nbsp;provider&nbsp;knows&nbsp;about&nbsp;for&nbsp;its&nbsp;game&nbsp;(catalog&nbsp;data).</span></dd></dl>
 
 <dl><dt><a name="GameServicer-ResolveProfile"><strong>ResolveProfile</strong></a>(self, request, context)</dt><dd><span class="code">Resolve&nbsp;which&nbsp;mod&nbsp;user&nbsp;matches&nbsp;a&nbsp;game&nbsp;profile.&nbsp;Used&nbsp;for&nbsp;profile<br>
 validation&nbsp;at&nbsp;registration&nbsp;and&nbsp;for&nbsp;match&nbsp;participant&nbsp;resolution.</span></dd></dl>

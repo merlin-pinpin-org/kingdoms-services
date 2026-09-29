@@ -69,6 +69,16 @@ class GameStub:
                 request_serializer=kingdoms_dot_v1_dot_game__pb2.GetMatchLinksRequest.SerializeToString,
                 response_deserializer=kingdoms_dot_v1_dot_game__pb2.MatchLinks.FromString,
                 _registered_method=True)
+        self.GetMatchDetails = channel.unary_unary(
+                "/kingdoms.v1.Game/GetMatchDetails",
+                request_serializer=kingdoms_dot_v1_dot_game__pb2.GetMatchDetailsRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_game__pb2.MatchDetails.FromString,
+                _registered_method=True)
+        self.ListMaps = channel.unary_unary(
+                "/kingdoms.v1.Game/ListMaps",
+                request_serializer=kingdoms_dot_v1_dot_game__pb2.ListMapsRequest.SerializeToString,
+                response_deserializer=kingdoms_dot_v1_dot_game__pb2.GameMaps.FromString,
+                _registered_method=True)
 
 
 class GameServicer:
@@ -125,6 +135,21 @@ class GameServicer:
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def GetMatchDetails(self, request, context):
+        """Full match details: map, slotinfo (per-slot state) and the raw
+        game options (map size, speed, victory condition, ...).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ListMaps(self, request, context):
+        """The maps this provider knows about for its game (catalog data).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_GameServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -157,6 +182,16 @@ def add_GameServicer_to_server(servicer, server):
                     servicer.GetMatchLinks,
                     request_deserializer=kingdoms_dot_v1_dot_game__pb2.GetMatchLinksRequest.FromString,
                     response_serializer=kingdoms_dot_v1_dot_game__pb2.MatchLinks.SerializeToString,
+            ),
+            "GetMatchDetails": grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMatchDetails,
+                    request_deserializer=kingdoms_dot_v1_dot_game__pb2.GetMatchDetailsRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_game__pb2.MatchDetails.SerializeToString,
+            ),
+            "ListMaps": grpc.unary_unary_rpc_method_handler(
+                    servicer.ListMaps,
+                    request_deserializer=kingdoms_dot_v1_dot_game__pb2.ListMapsRequest.FromString,
+                    response_serializer=kingdoms_dot_v1_dot_game__pb2.GameMaps.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -326,6 +361,60 @@ class Game:
             "/kingdoms.v1.Game/GetMatchLinks",
             kingdoms_dot_v1_dot_game__pb2.GetMatchLinksRequest.SerializeToString,
             kingdoms_dot_v1_dot_game__pb2.MatchLinks.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMatchDetails(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/kingdoms.v1.Game/GetMatchDetails",
+            kingdoms_dot_v1_dot_game__pb2.GetMatchDetailsRequest.SerializeToString,
+            kingdoms_dot_v1_dot_game__pb2.MatchDetails.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListMaps(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/kingdoms.v1.Game/ListMaps",
+            kingdoms_dot_v1_dot_game__pb2.ListMapsRequest.SerializeToString,
+            kingdoms_dot_v1_dot_game__pb2.GameMaps.FromString,
             options,
             channel_credentials,
             insecure,
