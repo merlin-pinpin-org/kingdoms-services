@@ -1,10 +1,6 @@
-"""games/aoe2 — the AoE2 game module (first game domain implementation).
+"""Game modules — one package per supported game.
 
-The game module owns nothing provider-specific: it declares the game
-identity and consumes providers via the kingdoms.v1.Game contract. All
-AoE2-specific data flows through the provider processes
-(ext-librematch, ext-aoe2lobby); nothing leaks into core collections
-beyond the opaque ``game_key`` (reference: ladder spec 6).
+A game module declares the game identity and game-specific decoding
+helpers; provider-specific logic stays in the ext-<provider> processes
+(ADR-0020). Adding a game = a new package here + a provider process.
 """
-
-GAME_KEY = "aoe2"
