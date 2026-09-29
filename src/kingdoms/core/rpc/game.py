@@ -8,13 +8,14 @@ between the wire contract and plain core models.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import grpc
 
 from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
+    MatchEvent,
     ProviderCapabilities,
     Slot,
 )
@@ -113,6 +114,28 @@ def game_map_from_wire(wire: game_pb2.GameMap) -> GameMap:
     )
 
 
+def match_event_to_wire(event: MatchEvent) -> game_pb2.MatchEvent:
+    """Translate a core match-event model into the wire message."""
+    return game_pb2.MatchEvent(
+        match_ref=event.match_ref,
+        type=event.type,
+        occurred_at=event.occurred_at,
+        profile_ids=list(event.profile_ids),
+        metadata=dict(event.metadata),
+    )
+
+
+def match_event_from_wire(wire: game_pb2.MatchEvent) -> MatchEvent:
+    """Translate a wire match-event message into the core model."""
+    return MatchEvent(
+        match_ref=wire.match_ref,
+        type=wire.type,
+        occurred_at=wire.occurred_at,
+        profile_ids=tuple(wire.profile_ids),
+        metadata=tuple(sorted(wire.metadata.items())),
+    )
+
+
 class GameServicer(game_pb2_grpc.GameServicer):
     """Serve the kingdoms.v1.Game contract from provider-backed callables.
 
@@ -127,10 +150,12 @@ class GameServicer(game_pb2_grpc.GameServicer):
         capabilities: Callable[[], ProviderCapabilities],
         match_details: Callable[[str], Awaitable[MatchDetails | None]] | None = None,
         list_maps: Callable[[], Awaitable[list[GameMap]]] | None = None,
+        match_events: Callable[[], AsyncIterator[MatchEvent]] | None = None,
     ) -> None:
         self._capabilities = capabilities
         self._match_details = match_details
         self._list_maps = list_maps
+        self._match_events = match_events
 
     async def GetCapabilities(
         self,
@@ -163,3 +188,16 @@ class GameServicer(game_pb2_grpc.GameServicer):
             await context.abort(grpc.StatusCode.UNIMPLEMENTED, "map catalog not available")
         maps = await self._list_maps()
         return game_pb2.GameMaps(maps=[game_map_to_wire(m) for m in maps])
+
+    async def StreamMatchEvents(
+        self,
+        request: game_pb2.StreamMatchEventsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> AsyncIterator[game_pb2.MatchEvent]:
+        """Stream live match lifecycle events from the provider."""
+        if self._match_events is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "live events not available")
+        async for event in self._match_events():
+            if event.occurred_at < request.since:
+                continue
+            yield match_event_to_wire(event)

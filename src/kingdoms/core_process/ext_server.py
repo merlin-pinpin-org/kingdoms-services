@@ -23,6 +23,7 @@ async def serve_game_provider(
     process_label: str,
     match_details: object | None = None,
     list_maps: object | None = None,
+    match_events: object | None = None,
 ) -> None:
     """Serve the kingdoms.v1.Game contract until terminated.
 
@@ -36,6 +37,7 @@ async def serve_game_provider(
             lambda: capabilities,
             match_details=match_details,
             list_maps=list_maps,
+            match_events=match_events,
         ),
         server,
     )

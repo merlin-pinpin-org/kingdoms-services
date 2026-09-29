@@ -12,7 +12,13 @@ import asyncio
 import grpc
 import pytest
 
-from kingdoms.core.models.game import GameMap, MatchDetails, ProviderCapabilities, Slot
+from kingdoms.core.models.game import (
+    GameMap,
+    MatchDetails,
+    MatchEvent,
+    ProviderCapabilities,
+    Slot,
+)
 from kingdoms.core.rpc.game import (
     GameServicer,
     capabilities_from_wire,
@@ -21,6 +27,8 @@ from kingdoms.core.rpc.game import (
     game_map_to_wire,
     match_details_from_wire,
     match_details_to_wire,
+    match_event_from_wire,
+    match_event_to_wire,
 )
 from kingdoms.core.rpc.game_client import (
     GameProviderClient,
@@ -103,6 +111,15 @@ async def _async_list_maps() -> list[GameMap]:
     return [GameMap(map_key="arabia", name="Arabia")]
 
 
+async def _async_match_events():
+    """Async iterator serving a short lifecycle event sequence."""
+    for event in (
+        MatchEvent(match_ref="m-42", type="lobby_opened", occurred_at=1000, profile_ids=("p1", "p2")),
+        MatchEvent(match_ref="m-42", type="game_started", occurred_at=2000, profile_ids=("p1", "p2")),
+    ):
+        yield event
+
+
 @pytest.mark.asyncio
 async def test_servicer_serves_match_details_and_maps() -> None:
     """The servicer serves slotinfo/options and the map catalog from callables."""
@@ -141,6 +158,35 @@ async def test_client_round_trips_match_details_and_maps() -> None:
         assert maps == [GameMap(map_key="arabia", name="Arabia")]
     finally:
         await server.stop(grace=None)
+
+
+@pytest.mark.asyncio
+async def test_servicer_streams_match_events_with_since_filter() -> None:
+    """StreamMatchEvents yields wire events, honoring the since filter."""
+    servicer = GameServicer(
+        lambda: AOE2LOBBY_CAPS,
+        match_events=_async_match_events,
+    )
+    received = []
+    async for wire in servicer.StreamMatchEvents(
+        game_pb2.StreamMatchEventsRequest(since=1500), _ServicerContext()  # type: ignore[arg-type]
+    ):
+        received.append(match_event_from_wire(wire))
+    assert received == [
+        MatchEvent(match_ref="m-42", type="game_started", occurred_at=2000, profile_ids=("p1", "p2"))
+    ]
+
+
+def test_match_event_wire_round_trip() -> None:
+    """A lifecycle event survives the model-wire-model round trip."""
+    event = MatchEvent(
+        match_ref="m-42",
+        type="lobby_opened",
+        occurred_at=1700000000,
+        profile_ids=("p1", "p2"),
+        metadata=(("map", "Arabia"),),
+    )
+    assert match_event_from_wire(match_event_to_wire(event)) == event
 
 
 @pytest.mark.asyncio

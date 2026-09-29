@@ -81,3 +81,19 @@ class GameMap:
     name: str
     map_type: str = ""
     resource_url: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class MatchEvent:
+    """One live match lifecycle event, as pushed by the provider.
+
+    Types: lobby_opened, lobby_closed, game_started, game_ended. Events
+    can be received multiple times (idempotent consumers); the AoE2
+    lobby-closed grace period is applied by the consumer, not here.
+    """
+
+    match_ref: str
+    type: str
+    occurred_at: int
+    profile_ids: tuple[str, ...] = ()
+    metadata: tuple[tuple[str, str], ...] = ()
