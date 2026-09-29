@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.identity</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.identity</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/identity.py">SOURCE_ROOT/core/services/identity.py</a></td></tr></table>
+    <p><span class="code">Platform&nbsp;identity&nbsp;service&nbsp;(kingdoms-services#130,&nbsp;reference&nbsp;§1.1).<br>
+&nbsp;<br>
+Maps&nbsp;internal&nbsp;``user_id``s&nbsp;to&nbsp;platform&nbsp;accounts&nbsp;and&nbsp;back.&nbsp;Identities&nbsp;are<br>
+multi-platform&nbsp;by&nbsp;design:&nbsp;one&nbsp;Kingdoms&nbsp;user&nbsp;may&nbsp;be&nbsp;linked&nbsp;to&nbsp;a&nbsp;Discord<br>
+account&nbsp;today&nbsp;and&nbsp;another&nbsp;platform&nbsp;tomorrow,&nbsp;so&nbsp;the&nbsp;mapping&nbsp;lives&nbsp;in&nbsp;its<br>
+own&nbsp;collection,&nbsp;never&nbsp;inside&nbsp;the&nbsp;mod&nbsp;data.&nbsp;Mods&nbsp;reference&nbsp;users&nbsp;by<br>
+``user_id``&nbsp;only&nbsp;—&nbsp;platform-specific&nbsp;account&nbsp;data&nbsp;stays&nbsp;here.<br>
+&nbsp;<br>
+Resolution&nbsp;is&nbsp;cache-aside&nbsp;(Redis&nbsp;→&nbsp;MongoDB),&nbsp;like&nbsp;the&nbsp;other&nbsp;platform<br>
+services;&nbsp;user&nbsp;creation&nbsp;is&nbsp;idempotent&nbsp;per&nbsp;``(platform,&nbsp;platform_user_id)``.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.identity.html#IdentityService">IdentityService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.identity.html#IdentityCache">IdentityCache</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.identity.html#IdentityDatabase">IdentityDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IdentityCache">class <strong>IdentityCache</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IdentityCache">IdentityCache</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;cache&nbsp;seam&nbsp;(StateService);&nbsp;values&nbsp;are&nbsp;JSON&nbsp;dicts.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.identity.html#IdentityCache">IdentityCache</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IdentityCache-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="IdentityCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;value&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="IdentityCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
+
+<dl><dt>async <a name="IdentityCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IdentityCache-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_state', 'get_state', 'set_state'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IdentityCache-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IdentityCache-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IdentityDatabase">class <strong>IdentityDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IdentityDatabase">IdentityDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#IdentityService">IdentityService</a>&nbsp;depends&nbsp;on.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.identity.html#IdentityDatabase">IdentityDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="IdentityDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="IdentityDatabase-bind_identity"><strong>bind_identity</strong></a>(self, platform: 'str', platform_user_id: 'str', user_id: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;(platform,&nbsp;account)&nbsp;→&nbsp;user_id&nbsp;binding&nbsp;(upsert).</span></dd></dl>
+
+<dl><dt>async <a name="IdentityDatabase-find_identity"><strong>find_identity</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user_id&nbsp;bound&nbsp;to&nbsp;a&nbsp;platform&nbsp;account;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityDatabase-find_user"><strong>find_user</strong></a>(self, user_id: 'str') -&gt; 'UserModel | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityDatabase-unbind_identity"><strong>unbind_identity</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;a&nbsp;binding;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityDatabase-upsert_user"><strong>upsert_user</strong></a>(self, user: 'UserModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;user&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="IdentityDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'bind_identity', 'find_identity', 'find_user', 'unbind_identity', 'upsert_user'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="IdentityDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="IdentityDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="IdentityService">class <strong>IdentityService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IdentityService">IdentityService</a>(database:&nbsp;'<a href="#IdentityDatabase">IdentityDatabase</a>',&nbsp;cache:&nbsp;'<a href="#IdentityCache">IdentityCache</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Resolve&nbsp;internal&nbsp;user&nbsp;ids&nbsp;to&nbsp;platform&nbsp;accounts&nbsp;and&nbsp;back.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="IdentityService-__init__"><strong>__init__</strong></a>(self, database: 'IdentityDatabase', cache: 'IdentityCache') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;persistence&nbsp;and&nbsp;cache&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityService-get_or_create_user"><strong>get_or_create_user</strong></a>(self, *, platform: 'str', platform_user_id: 'str', display_name: 'str', locale: 'str' = 'en') -&gt; 'UserModel'</dt><dd><span class="code">Return&nbsp;the&nbsp;user&nbsp;bound&nbsp;to&nbsp;a&nbsp;platform&nbsp;account,&nbsp;creating&nbsp;it&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityService-get_user"><strong>get_user</strong></a>(self, user_id: 'str') -&gt; 'UserModel | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="IdentityService-resolve_user_id"><strong>resolve_user_id</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user_id&nbsp;bound&nbsp;to&nbsp;a&nbsp;platform&nbsp;account;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>IDENTITY_CACHE_TTL_SECONDS</strong> = 3600<br>
+<strong>IDENTITY_COLLECTION</strong> = 'platform_identities'<br>
+<strong>USERS_COLLECTION</strong> = 'users'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.identity (WARNING)&gt;</td></tr></table>
+</body></html>
