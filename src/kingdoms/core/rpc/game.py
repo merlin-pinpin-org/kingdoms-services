@@ -12,7 +12,12 @@ from collections.abc import Callable
 
 import grpc
 
-from kingdoms.core.models.game import ProviderCapabilities
+from kingdoms.core.models.game import (
+    GameMap,
+    MatchDetails,
+    ProviderCapabilities,
+    Slot,
+)
 from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
 
 
@@ -40,6 +45,74 @@ def capabilities_from_wire(wire: game_pb2.Capabilities) -> ProviderCapabilities:
     )
 
 
+def slot_to_wire(slot: Slot) -> game_pb2.Slot:
+    """Translate a core slot model into the wire message."""
+    return game_pb2.Slot(
+        slot_index=slot.slot_index,
+        profile_id=slot.profile_id,
+        faction_key=slot.faction_key,
+        team=slot.team,
+        filled=slot.filled,
+        slot_kind=slot.slot_kind,
+    )
+
+
+def slot_from_wire(wire: game_pb2.Slot) -> Slot:
+    """Translate a wire slot message into the core model."""
+    return Slot(
+        slot_index=wire.slot_index,
+        profile_id=wire.profile_id,
+        faction_key=wire.faction_key,
+        team=wire.team,
+        filled=wire.filled,
+        slot_kind=wire.slot_kind,
+    )
+
+
+def match_details_to_wire(details: MatchDetails) -> game_pb2.MatchDetails:
+    """Translate a core match-details model into the wire message."""
+    return game_pb2.MatchDetails(
+        match_ref=details.match_ref,
+        map_name=details.map_name,
+        slots=[slot_to_wire(s) for s in details.slots],
+        options=dict(details.options),
+        started_at=details.started_at,
+        match_kind=details.match_kind,
+    )
+
+
+def match_details_from_wire(wire: game_pb2.MatchDetails) -> MatchDetails:
+    """Translate a wire match-details message into the core model."""
+    return MatchDetails(
+        match_ref=wire.match_ref,
+        map_name=wire.map_name,
+        slots=tuple(slot_from_wire(s) for s in wire.slots),
+        options=tuple(sorted(wire.options.items())),
+        started_at=wire.started_at,
+        match_kind=wire.match_kind,
+    )
+
+
+def game_map_to_wire(game_map: GameMap) -> game_pb2.GameMap:
+    """Translate a core game-map model into the wire message."""
+    return game_pb2.GameMap(
+        map_key=game_map.map_key,
+        name=game_map.name,
+        map_type=game_map.map_type,
+        resource_url=game_map.resource_url,
+    )
+
+
+def game_map_from_wire(wire: game_pb2.GameMap) -> GameMap:
+    """Translate a wire game-map message into the core model."""
+    return GameMap(
+        map_key=wire.map_key,
+        name=wire.name,
+        map_type=wire.map_type,
+        resource_url=wire.resource_url,
+    )
+
+
 class GameServicer(game_pb2_grpc.GameServicer):
     """Serve the kingdoms.v1.Game contract from provider-backed callables.
 
@@ -52,8 +125,12 @@ class GameServicer(game_pb2_grpc.GameServicer):
     def __init__(
         self,
         capabilities: Callable[[], ProviderCapabilities],
+        match_details: Callable[[str], MatchDetails | None] | None = None,
+        list_maps: Callable[[], list[GameMap]] | None = None,
     ) -> None:
         self._capabilities = capabilities
+        self._match_details = match_details
+        self._list_maps = list_maps
 
     async def GetCapabilities(
         self,
@@ -62,3 +139,26 @@ class GameServicer(game_pb2_grpc.GameServicer):
     ) -> game_pb2.Capabilities:
         """Serve the provider's declared capabilities as the wire message."""
         return capabilities_to_wire(self._capabilities())
+
+    async def GetMatchDetails(
+        self,
+        request: game_pb2.GetMatchDetailsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> game_pb2.MatchDetails:
+        """Serve a match's slotinfo and raw game options when known."""
+        if self._match_details is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "match details not available")
+        details = self._match_details(request.match_ref)
+        if details is None:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "unknown match_ref")
+        return match_details_to_wire(details)
+
+    async def ListMaps(
+        self,
+        request: game_pb2.ListMapsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> game_pb2.GameMaps:
+        """Serve the provider's known map catalog for its game."""
+        if self._list_maps is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "map catalog not available")
+        return game_pb2.GameMaps(maps=[game_map_to_wire(m) for m in self._list_maps()])

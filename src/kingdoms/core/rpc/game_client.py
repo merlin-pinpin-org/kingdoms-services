@@ -10,8 +10,16 @@ from __future__ import annotations
 
 import grpc
 
-from kingdoms.core.models.game import ProviderCapabilities
+from kingdoms.core.models.game import (
+    GameMap,
+    MatchDetails,
+    ProviderCapabilities,
+)
 from kingdoms.core.rpc.client import build_channel, call_with_retry
+from kingdoms.core.rpc.game import (
+    game_map_from_wire,
+    match_details_from_wire,
+)
 from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
 
 _RETRYABLE_CODES: tuple[grpc.StatusCode, ...] = (
@@ -60,3 +68,41 @@ class GameProviderClient:
             check_map=reply.check_map,
             player_stats=reply.player_stats,
         )
+
+    async def get_match_details(self, match_ref: str) -> MatchDetails | None:
+        """Fetch a match's slotinfo and raw options, degrading to None.
+
+        A provider that cannot serve match details (unsupported or
+        unknown match) yields None: callers fall back to what the match
+        already knows instead of failing the workflow.
+        """
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.GetMatchDetails,
+                    game_pb2.GetMatchDetailsRequest(match_ref=match_ref),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.NOT_FOUND,
+                ):
+                    return None
+                raise
+        return match_details_from_wire(reply)
+
+    async def list_maps(self) -> list[GameMap]:
+        """Fetch the provider's map catalog, degrading to an empty list."""
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.ListMaps,
+                    game_pb2.ListMapsRequest(),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() == grpc.StatusCode.UNIMPLEMENTED:
+                    return []
+                raise
+        return [game_map_from_wire(m) for m in reply.maps]

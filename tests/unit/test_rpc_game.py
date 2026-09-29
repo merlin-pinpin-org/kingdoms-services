@@ -12,11 +12,15 @@ import asyncio
 import grpc
 import pytest
 
-from kingdoms.core.models.game import ProviderCapabilities
+from kingdoms.core.models.game import GameMap, MatchDetails, ProviderCapabilities, Slot
 from kingdoms.core.rpc.game import (
     GameServicer,
     capabilities_from_wire,
     capabilities_to_wire,
+    game_map_from_wire,
+    game_map_to_wire,
+    match_details_from_wire,
+    match_details_to_wire,
 )
 from kingdoms.core.rpc.game_client import (
     GameProviderClient,
@@ -62,6 +66,86 @@ def test_provider_declarations_are_zero_safe() -> None:
             assert caps.realtime is True  # aoe2lobby.com WebSocket
 
 
+def _match_details(match_ref: str) -> MatchDetails:
+    """Build a representative match payload: slotinfo + raw options."""
+    return MatchDetails(
+        match_ref=match_ref,
+        map_name="arabia",
+        slots=(
+            Slot(slot_index=0, profile_id="p1", faction_key="britons", team=1, filled=True, slot_kind="human"),
+            Slot(slot_index=1, profile_id="p2", faction_key="franks", team=2, filled=True, slot_kind="human"),
+        ),
+        options=(("map_size", "huge"), ("speed", "standard")),
+        started_at=1_700_000_000_000,
+        match_kind="ongoing",
+    )
+
+
+def test_match_details_wire_round_trip() -> None:
+    """Slotinfo and raw options survive the model-wire-model round trip."""
+    details = _match_details("m-42")
+    assert match_details_from_wire(match_details_to_wire(details)) == details
+
+
+def test_game_map_wire_round_trip() -> None:
+    """Catalog map entries survive the model-wire-model round trip."""
+    game_map = GameMap(map_key="arabia", name="Arabia", map_type="random_map", resource_url="https://x")
+    assert game_map_from_wire(game_map_to_wire(game_map)) == game_map
+
+
+@pytest.mark.asyncio
+async def test_servicer_serves_match_details_and_maps() -> None:
+    """The servicer serves slotinfo/options and the map catalog from callables."""
+    servicer = GameServicer(
+        lambda: LIBREMATCH_CAPS,
+        match_details=_match_details,
+        list_maps=lambda: [GameMap(map_key="arabia", name="Arabia")],
+    )
+    reply = await servicer.GetMatchDetails(
+        game_pb2.GetMatchDetailsRequest(match_ref="m-42"), _ServicerContext()  # type: ignore[arg-type]
+    )
+    assert match_details_from_wire(reply) == _match_details("m-42")
+    maps_reply = await servicer.ListMaps(
+        game_pb2.ListMapsRequest(), _ServicerContext()  # type: ignore[arg-type]
+    )
+    assert [game_map_from_wire(m) for m in maps_reply.maps] == [
+        GameMap(map_key="arabia", name="Arabia")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_client_round_trips_match_details_and_maps() -> None:
+    """The core-side client fetches match details and the map catalog."""
+    server = _serve(
+        LIBREMATCH_CAPS,
+        50072,
+        match_details=_match_details,
+        list_maps=lambda: [GameMap(map_key="arabia", name="Arabia")],
+    )
+    await server.start()
+    try:
+        client = GameProviderClient("127.0.0.1:50072", "ext-librematch", "aoe2")
+        details = await client.get_match_details("m-42")
+        assert details == _match_details("m-42")
+        maps = await client.list_maps()
+        assert maps == [GameMap(map_key="arabia", name="Arabia")]
+    finally:
+        await server.stop(grace=None)
+
+
+@pytest.mark.asyncio
+async def test_client_degrades_match_details_and_maps() -> None:
+    """Unsupported details/catalog degrade to None/[] without raising."""
+    server = _serve(LIBREMATCH_CAPS, 50073)  # no details/maps callables
+    await server.start()
+    try:
+        client = GameProviderClient("127.0.0.1:50073", "ext-librematch", "aoe2")
+        assert await client.get_match_details("m-42") is None
+        assert await client.list_maps() == []
+    finally:
+        await server.stop(grace=None)
+
+
 @pytest.mark.asyncio
 async def test_servicer_serves_declared_capabilities() -> None:
     """The Game servicer serves the provider's declaration over the wire."""
@@ -72,10 +156,22 @@ async def test_servicer_serves_declared_capabilities() -> None:
     assert capabilities_from_wire(reply) == AOE2LOBBY_CAPS
 
 
-def _serve(caps: ProviderCapabilities, port: int) -> grpc.aio.Server:
-    """Build and start a local Game provider server on the given port."""
+def _serve(
+    caps: ProviderCapabilities,
+    port: int,
+    match_details: object | None = None,
+    list_maps: object | None = None,
+) -> grpc.aio.Server:
+    """Build a local Game provider server on the given port."""
     server = grpc.aio.server()
-    game_pb2_grpc.add_GameServicer_to_server(GameServicer(lambda: caps), server)
+    game_pb2_grpc.add_GameServicer_to_server(
+        GameServicer(
+            lambda: caps,
+            match_details=match_details,  # type: ignore[arg-type]
+            list_maps=list_maps,  # type: ignore[arg-type]
+        ),
+        server,
+    )
     server.add_insecure_port(f"127.0.0.1:{port}")
     return server
 
