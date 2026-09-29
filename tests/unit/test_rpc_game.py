@@ -93,13 +93,23 @@ def test_game_map_wire_round_trip() -> None:
     assert game_map_from_wire(game_map_to_wire(game_map)) == game_map
 
 
+async def _async_match_details(match_ref: str) -> MatchDetails:
+    """Async wrapper around the sync test fixture."""
+    return _match_details(match_ref)
+
+
+async def _async_list_maps() -> list[GameMap]:
+    """Async wrapper serving the one-map catalog."""
+    return [GameMap(map_key="arabia", name="Arabia")]
+
+
 @pytest.mark.asyncio
 async def test_servicer_serves_match_details_and_maps() -> None:
     """The servicer serves slotinfo/options and the map catalog from callables."""
     servicer = GameServicer(
         lambda: LIBREMATCH_CAPS,
-        match_details=_match_details,
-        list_maps=lambda: [GameMap(map_key="arabia", name="Arabia")],
+        match_details=_async_match_details,
+        list_maps=_async_list_maps,
     )
     reply = await servicer.GetMatchDetails(
         game_pb2.GetMatchDetailsRequest(match_ref="m-42"), _ServicerContext()  # type: ignore[arg-type]
@@ -119,8 +129,8 @@ async def test_client_round_trips_match_details_and_maps() -> None:
     server = _serve(
         LIBREMATCH_CAPS,
         50072,
-        match_details=_match_details,
-        list_maps=lambda: [GameMap(map_key="arabia", name="Arabia")],
+        match_details=_async_match_details,
+        list_maps=_async_list_maps,
     )
     await server.start()
     try:
