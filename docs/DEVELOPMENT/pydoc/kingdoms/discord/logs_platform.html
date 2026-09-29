@@ -48,12 +48,12 @@ real&nbsp;infrastructure&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbs
 <td class="section-title" colspan=3>&nbsp;<br><a name="DiscordLogsPlatform">class <strong>DiscordLogsPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DiscordLogsPlatform">DiscordLogsPlatform</a>(bot:&nbsp;'discord.Client')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DiscordLogsPlatform">DiscordLogsPlatform</a>(bot:&nbsp;'discord.Client',&nbsp;admin_role_name:&nbsp;'str'&nbsp;=&nbsp;'bot-admins')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;logs&nbsp;platform&nbsp;seam.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="DiscordLogsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;lookups&nbsp;and&nbsp;message&nbsp;sends.</span></dd></dl>
+<dl><dt><a name="DiscordLogsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client', admin_role_name: 'str' = 'bot-admins') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;lookups&nbsp;and&nbsp;message&nbsp;sends.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordLogsPlatform-apply_default_policy"><strong>apply_default_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Admin-only&nbsp;default:&nbsp;@everyone&nbsp;denied,&nbsp;guild&nbsp;admins&nbsp;allowed.</span></dd></dl>
 
