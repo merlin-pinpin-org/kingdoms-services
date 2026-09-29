@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.message_registry</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.message_registry</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/message_registry.py">SOURCE_ROOT/core/services/message_registry.py</a></td></tr></table>
+    <p><span class="code">Platform&nbsp;message&nbsp;registry&nbsp;(kingdoms-services#130,&nbsp;reference&nbsp;§2.3).<br>
+&nbsp;<br>
+The&nbsp;only&nbsp;place&nbsp;platform&nbsp;message&nbsp;IDs&nbsp;ever&nbsp;live.&nbsp;Mods&nbsp;register&nbsp;persistent<br>
+messages&nbsp;by&nbsp;logical&nbsp;key&nbsp;—&nbsp;``(message_key,&nbsp;entity_id)``&nbsp;scoped&nbsp;to&nbsp;a<br>
+platform&nbsp;—&nbsp;and&nbsp;resolve&nbsp;them&nbsp;back&nbsp;later&nbsp;to&nbsp;edit/refresh&nbsp;in&nbsp;place.&nbsp;Mod<br>
+collections&nbsp;never&nbsp;store&nbsp;message&nbsp;or&nbsp;channel&nbsp;IDs;&nbsp;they&nbsp;store&nbsp;logical&nbsp;keys.<br>
+&nbsp;<br>
+Cache-aside&nbsp;resolution&nbsp;like&nbsp;the&nbsp;other&nbsp;platform&nbsp;services:&nbsp;Redis&nbsp;→<br>
+MongoDB.&nbsp;Registration&nbsp;is&nbsp;idempotent&nbsp;per&nbsp;key:&nbsp;re-registering&nbsp;a&nbsp;message<br>
+replaces&nbsp;the&nbsp;stored&nbsp;ID&nbsp;(messages&nbsp;are&nbsp;recreated,&nbsp;not&nbsp;patched,&nbsp;after&nbsp;a<br>
+channel&nbsp;wipe).<br>
+&nbsp;<br>
+This&nbsp;registry&nbsp;replaces&nbsp;the&nbsp;#122&nbsp;persistent-view&nbsp;reconstruction&nbsp;story:<br>
+reconstruction&nbsp;from&nbsp;``custom_id``&nbsp;survives&nbsp;component&nbsp;clicks,&nbsp;while&nbsp;the<br>
+registry&nbsp;lets&nbsp;a&nbsp;mod&nbsp;find&nbsp;*its&nbsp;own&nbsp;message&nbsp;back*&nbsp;to&nbsp;re-render&nbsp;it.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.message_registry.html#MessageRegistryService">MessageRegistryService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.message_registry.html#MessagesCache">MessagesCache</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.message_registry.html#MessagesDatabase">MessagesDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MessageRegistryService">class <strong>MessageRegistryService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MessageRegistryService">MessageRegistryService</a>(database:&nbsp;'<a href="#MessagesDatabase">MessagesDatabase</a>',&nbsp;cache:&nbsp;'<a href="#MessagesCache">MessagesCache</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Persist&nbsp;and&nbsp;resolve&nbsp;platform&nbsp;messages&nbsp;by&nbsp;logical&nbsp;key.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MessageRegistryService-__init__"><strong>__init__</strong></a>(self, database: 'MessagesDatabase', cache: 'MessagesCache') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;persistence&nbsp;and&nbsp;cache&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="MessageRegistryService-forget"><strong>forget</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;registration;&nbsp;True&nbsp;when&nbsp;one&nbsp;existed.</span></dd></dl>
+
+<dl><dt>async <a name="MessageRegistryService-register"><strong>register</strong></a>(self, *, platform: 'str', message_key: 'str', entity_id: 'str', channel_id: 'str', message_id: 'str', guild_id: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;(or&nbsp;replace)&nbsp;the&nbsp;message&nbsp;registered&nbsp;for&nbsp;a&nbsp;logical&nbsp;key.</span></dd></dl>
+
+<dl><dt>async <a name="MessageRegistryService-resolve"><strong>resolve</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'RegisteredMessageModel | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;registered&nbsp;message;&nbsp;None&nbsp;when&nbsp;never&nbsp;registered.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MessagesCache">class <strong>MessagesCache</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MessagesCache">MessagesCache</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;cache&nbsp;seam&nbsp;(StateService);&nbsp;values&nbsp;are&nbsp;JSON&nbsp;dicts.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.message_registry.html#MessagesCache">MessagesCache</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MessagesCache-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="MessagesCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;value&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="MessagesCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
+
+<dl><dt>async <a name="MessagesCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="MessagesCache-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_state', 'get_state', 'set_state'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="MessagesCache-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="MessagesCache-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MessagesDatabase">class <strong>MessagesDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MessagesDatabase">MessagesDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#MessageRegistryService">MessageRegistryService</a>&nbsp;depends&nbsp;on.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.message_registry.html#MessagesDatabase">MessagesDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MessagesDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="MessagesDatabase-delete_message"><strong>delete_message</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;registered&nbsp;message&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="MessagesDatabase-find_message"><strong>find_message</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'RegisteredMessageModel | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;registered&nbsp;message&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MessagesDatabase-upsert_message"><strong>upsert_message</strong></a>(self, message: 'RegisteredMessageModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;a&nbsp;registered&nbsp;message&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="MessagesDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_message', 'find_message', 'upsert_message'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="MessagesDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="MessagesDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CACHE_TTL_SECONDS</strong> = 300<br>
+<strong>MESSAGES_COLLECTION</strong> = 'platform_messages'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.message_registry (WARNING)&gt;</td></tr></table>
+</body></html>
