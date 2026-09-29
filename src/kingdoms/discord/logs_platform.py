@@ -101,9 +101,10 @@ class MongoLogsDatabase:
 class DiscordLogsPlatform:
     """discord.py implementation of the logs platform seam."""
 
-    def __init__(self, bot: discord.Client) -> None:
+    def __init__(self, bot: discord.Client, admin_role_name: str = "bot-admins") -> None:
         """Keep a client reference for guild lookups and message sends."""
         self._bot = bot
+        self._admin_role_name = admin_role_name
 
     async def _guild(self, guild_id: str) -> discord.Guild | None:
         guild = self._bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
@@ -151,6 +152,7 @@ class DiscordLogsPlatform:
         await channel.set_permissions(
             guild.default_role, overwrite=overwrite_everyone, reason="bot logs: admin-only default"
         )
+        await self._grant_admin_role_view(channel)
         logger.info("BOT LOGS default policy applied: guild=%s channel=%s", guild_id, channel_id)
 
     async def apply_public_policy(self, guild_id: str, channel_id: str) -> None:
@@ -224,6 +226,27 @@ class DiscordLogsPlatform:
         """
         channel = await self._text_channel(guild_id, channel_id)
         return [str(message.id) async for message in channel.pins()]
+
+    async def _grant_admin_role_view(self, channel: discord.TextChannel) -> None:
+        """Best-effort view grant to the guild's bot-admins role (admin-only policy).
+
+        Guild administrators bypass permission overwrites, role holders
+        do not \u2014 the admin-only visibility choice is only meaningful if
+        the role that carries delegated bot administration can actually
+        see the channel.
+        """
+        role = discord.utils.get(channel.guild.roles, name=self._admin_role_name)
+        if role is None or role.is_default():
+            return
+        overwrite = discord.PermissionOverwrite(view_channel=True, read_message_history=True)
+        try:
+            await channel.set_permissions(role, overwrite=overwrite, reason="bot logs: bot-admins role view")
+        except Exception:
+            logger.warning(
+                "BOT LOGS bot-admins role grant failed (guild %s, role %s) \u2014 best-effort",
+                channel.guild.id,
+                role.id,
+            )
 
     async def _text_channel(self, guild_id: str, channel_id: str) -> discord.TextChannel:
         """Resolve the logs channel as a live text channel."""
