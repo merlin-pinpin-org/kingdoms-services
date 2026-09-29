@@ -24,9 +24,11 @@ def main() -> None:
     )
 
     async def match_details(match_ref: str) -> MatchDetails | None:
+        """Fetch one match's details through the live adapter."""
         return await adapter.match_details(match_ref)
 
     async def list_maps() -> list[GameMap]:
+        """Fetch the map catalog through the live adapter."""
         return await adapter.list_maps()
 
     asyncio.run(
