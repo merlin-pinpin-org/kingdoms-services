@@ -48,65 +48,66 @@ def compatible(a: QueueEntry, b: QueueEntry, settings: LadderSettingsModel, now:
 
 
 def _blossom_maximum_matching(n: int, adj: list[list[int]]) -> list[tuple[int, int]]:  # noqa: C901 - Edmonds'
-    """Edmonds' blossom maximum matching (competitive-programming classic).
+    """Edmonds' blossom maximum matching — faithful e-maxx formulation.
 
-    Contraction form with explicit blossom bookkeeping; returns all
-    matched pairs. O(V^3) worst case — fine for ladder queue sizes.
+    O(V^3) worst case; cross-checked against a brute-force enumerator
+    over random small graphs in the acceptance tests (#139).
     """
     match = [-1] * n
     p = [-1] * n
     base = list(range(n))
     used = [False] * n
-    blossom = [-1] * n
 
     def lca(a: int, b: int) -> int:
-        """Lowest common ancestor on the alternating tree."""
-        used_paths = [False] * n
+        """Lowest common ancestor in the alternating forest."""
+        used_l = [False] * n
         while True:
             a = base[a]
-            used_paths[a] = True
+            used_l[a] = True
             if match[a] == -1:
                 break
             a = p[match[a]]
         while True:
             b = base[b]
-            if used_paths[b]:
+            if used_l[b]:
                 return b
             b = p[match[b]]
 
     def mark_path(v: int, b: int, child: int) -> None:
-        """Mark blossom vertices along the alternating path up to ``b``."""
+        """Walk the blossom side from v to base b, recording parents."""
         while base[v] != b:
-            blossom[base[v]] = True
-            blossom[base[match[v]]] = True
+            blossom_mark[base[v]] = True
+            blossom_mark[base[match[v]]] = True
             p[v] = child
             child = match[v]
             v = p[match[v]]
 
-    def contract(u: int, v: int, queue: list[int]) -> None:
-        """Contract the blossom formed by edge (u, v) and re-enqueue."""
-        cur = lca(u, v)
+    def contract(v: int, to: int, queue: list[int]) -> None:
+        """Contract the blossom opened by edge (v, to) into its LCA base."""
+        cur = lca(v, to)
         for i in range(n):
-            blossom[i] = False
-        mark_path(u, cur, v)
-        mark_path(v, cur, u)
+            blossom_mark[i] = False
+        mark_path(v, cur, to)
+        mark_path(to, cur, v)
         for i in range(n):
-            if blossom[base[i]]:
+            if blossom_mark[base[i]]:
                 base[i] = cur
                 if not used[i]:
                     used[i] = True
                     queue.append(i)
 
-    def find_augmenting(root: int) -> bool:
-        """BFS an alternating tree from an exposed root; augment when found."""
+    def find_path(root: int) -> bool:
+        """BFS the alternating tree from an exposed root; augment on success."""
         for i in range(n):
             used[i] = False
             p[i] = -1
             base[i] = i
         used[root] = True
         queue = [root]
-        while queue:
-            v = queue.pop(0)
+        qi = 0
+        while qi < len(queue):
+            v = queue[qi]
+            qi += 1
             for to in adj[v]:
                 if base[v] == base[to] or match[v] == to:
                     continue
@@ -115,29 +116,23 @@ def _blossom_maximum_matching(n: int, adj: list[list[int]]) -> list[tuple[int, i
                 elif p[to] == -1:
                     p[to] = v
                     if match[to] == -1:
-                        augment(to)
+                        while to != -1:
+                            pv = p[to]
+                            nxt = match[pv]
+                            match[to] = pv
+                            match[pv] = to
+                            to = nxt
                         return True
                     used[match[to]] = True
                     queue.append(match[to])
         return False
 
-    def augment(v: int) -> None:
-        """Flip matched edges along the alternating path ending at v."""
-        while v != -1:
-            pv = p[v]
-            nxt = match[pv]
-            match[v] = pv
-            match[pv] = v
-            v = nxt
-
-    res: list[tuple[int, int]] = []
+    blossom_mark = [False] * n
     for v in range(n):
         if match[v] == -1:
-            find_augmenting(v)
-    for v in range(n):
-        if v < match[v]:
-            res.append((v, match[v]))
-    return res
+            if find_path(v):
+                continue
+    return [(v, match[v]) for v in range(n) if v < match[v]]
 
 
 def matchmaking_pass(entries: list[QueueEntry], settings: LadderSettingsModel, now: int) -> list[Pairing]:
