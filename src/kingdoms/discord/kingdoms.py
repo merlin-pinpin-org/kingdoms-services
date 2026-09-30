@@ -110,7 +110,7 @@ async def _send_placeholder(
 
 
 def _fr(key: str) -> str:
-    """The French variant of a registered string."""
+    """Return the French variant of a registered string."""
     return STRINGS["fr"][key]
 
 
