@@ -54,9 +54,9 @@ async def test_profile_and_diplomacy_freeze_the_kingdom_option() -> None:
     for name in ("kingdom", "diplomacy"):
         command = next(cmd for cmd in group.get_commands() if cmd.name == name)
         assert isinstance(command, app_commands.Command), f"{name} must be a subcommand"
-        params = command.parameters
-        assert "kingdom" in params, f"{name} must freeze the kingdom option"
-        assert params["kingdom"].required is False
+        kingdom_params = [param for param in command.parameters if param.name == "kingdom"]
+        assert kingdom_params, f"{name} must freeze the kingdom option"
+        assert kingdom_params[0].required is False
     await client.close()
 
 
