@@ -24,7 +24,9 @@ DEFAULT_LOCALE = "en"
 
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
-        "group_description": "Kingdoms season screens: cadastre, kingdom, delays, gazette",
+        "group_description": "Kingdoms season screens: cadastre, kingdom, delays, diplomacy, gazette",
+        "kingdom_arg": "kingdom",
+        "kingdom_arg_description": "The kingdom to display (your own if omitted)",
         "cadastre_name": "cadastre",
         "cadastre_description": "Territory ownership map",
         "cadastre_title": "🧾 Cadastre",
@@ -34,6 +36,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "delays_name": "delays",
         "delays_description": "Programmed attacks and countdowns",
         "delays_title": "🕰️ Attack delays",
+        "diplomacy_name": "diplomacy",
+        "diplomacy_description": "Alliances and the technology shop",
+        "diplomacy_title": "🤝 Diplomacy",
         "gazette_name": "gazette",
         "gazette_description": "The weekly cycle summary",
         "gazette_title": "📣 The Gazette",
@@ -44,7 +49,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "footer": "Kingdoms — AoE2 territory conquest",
     },
     "fr": {
-        "group_description": "Écrans de la saison Kingdoms : cadastre, royaume, délais, gazette",
+        "group_description": "Écrans de la saison Kingdoms : cadastre, royaume, délais, diplomatie, gazette",
+        "kingdom_arg": "royaume",
+        "kingdom_arg_description": "Le royaume à afficher (le vôtre si omis)",
         "cadastre_name": "cadastre",
         "cadastre_description": "Carte des territoires et de leurs propriétaires",
         "cadastre_title": "🧾 Cadastre",
@@ -54,6 +61,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "delays_name": "delais",
         "delays_description": "Attaques programmées et comptes à rebours",
         "delays_title": "🕰️ Délais d'attaque",
+        "diplomacy_name": "diplomatie",
+        "diplomacy_description": "Alliances et boutique des technologies",
+        "diplomacy_title": "🤝 Diplomatie",
         "gazette_name": "gazette",
         "gazette_description": "Le résumé hebdomadaire du cycle",
         "gazette_title": "📣 La Gazette",
@@ -110,8 +120,13 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         await _send_placeholder(interaction, strings, strings["cadastre_title"])
 
     @group.command(name=STRINGS[DEFAULT_LOCALE]["profile_name"])
-    async def profile(interaction: discord.Interaction) -> None:
+    @app_commands.describe(kingdom=STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"])
+    async def profile(
+        interaction: discord.Interaction,
+        kingdom: str | None = None,
+    ) -> None:
         """B2 — the kingdom profile screen (placeholder until a season runs)."""
+        del kingdom  # the argument freezes the signature; the placeholder ignores it
         strings = _strings_for(interaction.locale)
         await _send_placeholder(interaction, strings, strings["profile_title"])
 
@@ -120,6 +135,17 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         """B3 — the attack delays screen (placeholder until a season runs)."""
         strings = _strings_for(interaction.locale)
         await _send_placeholder(interaction, strings, strings["delays_title"])
+
+    @group.command(name=STRINGS[DEFAULT_LOCALE]["diplomacy_name"])
+    @app_commands.describe(kingdom=STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"])
+    async def diplomacy(
+        interaction: discord.Interaction,
+        kingdom: str | None = None,
+    ) -> None:
+        """B4 — the diplomacy screen (placeholder until a season runs)."""
+        del kingdom  # the argument freezes the signature; the placeholder ignores it
+        strings = _strings_for(interaction.locale)
+        await _send_placeholder(interaction, strings, strings["diplomacy_title"])
 
     @group.command(name=STRINGS[DEFAULT_LOCALE]["gazette_name"])
     async def gazette(interaction: discord.Interaction) -> None:
