@@ -1,0 +1,74 @@
+# Kingdoms mod (conquête de territoires AoE2 — Saison II)
+# Source of truth: kingdoms repo, docs/MODS/kingdoms/ (PR merlin-pinpin-org/kingdoms#130)
+# All season values are configuration data (reference §27/§28) — never hardcoded.
+id: kingdoms
+enabled: true
+settings:
+  season:
+    weeks: 4                # cycles (D1)
+    cycle_switch_at: "sun 23:30"
+  kingdoms:
+    kingdoms_count: 2
+    lords_per_kingdom: 4
+    kingdoms_preset: false
+  territories:
+    territories_per_kingdom: 5
+    gaia_territories: 8
+    allowed_maps: []         # empty = full allowed list
+  attacks:
+    player_attack_delay: "6h"
+    gaia_attack_delay: "3h"
+    attacks_per_week: 1
+    defenses_per_week: 1
+    gaia_attack_max_per_kingdom: 1
+    gaia_attack_max_total: 7
+    # gaia_match_time_limit: À DÉFINIR (game designer, cf. DECISIONS D44)
+  events:
+    lords_day_at: "sun 23:30"
+    lords_day_new_maps: 8
+    exploration_at: "sat 14:00"
+    exploration_rewards:
+      first: { territory: true, tech: 1 }
+      second: { tech: 3 }
+      third: { tech: 2 }
+      other: { tech: 1 }
+    age_change_at: "wed 00:00"
+    garrison_enabled: false  # D4 — paused in Season II
+channels:
+  - key: attack
+    display_name: "⚔️-attaquer"
+    description: Déclarations d'attaques
+  - key: attack_delays
+    display_name: "🕰️-délais-attaque"
+    description: Suivi des délais d'attaque
+  - key: cadastre
+    display_name: "🧾-cadastre"
+    description: Territoires et leurs effets
+  - key: diplomacy
+    display_name: "📖-diplomatie"
+    description: Alliances, civilisations
+  - key: geopolitics
+    display_name: "📣-géopolitique"
+    description: Annonces, Gazette, traités
+roles:
+  - key: kingdoms_king
+    display_name: "👑 Roi"
+    color: 0xD4AF37
+    hoisted: true
+  - key: kingdoms_lord
+    display_name: "🎖️ Seigneur"
+    color: 0x8B5A2B
+    hoisted: false
+  - key: kingdoms_admin
+    display_name: "🛡️ Kingdoms Admin"
+    color: 0x5865F2
+    hoisted: true
+workflows:
+  - kingdoms_signup
+  - kingdoms_attack_declare
+  - kingdoms_defense_declare
+  - kingdoms_season_launch
+commands:
+  - kingdoms
+  - kingdoms-admin
+dependencies: []
