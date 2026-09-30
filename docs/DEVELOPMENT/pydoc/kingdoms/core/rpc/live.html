@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.live</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.live</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/live.py">SOURCE_ROOT/core/rpc/live.py</a></td></tr></table>
+    <p><span class="code">Live&nbsp;dashboard&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;and&nbsp;client&nbsp;(kingdoms.v1.Live,&nbsp;#147).<br>
+&nbsp;<br>
+svc-core&nbsp;serves&nbsp;WatchDashboard&nbsp;(server-streaming&nbsp;snapshots);&nbsp;the&nbsp;bot<br>
+consumes&nbsp;it&nbsp;through&nbsp;``<a href="#LiveClient">LiveClient</a>``&nbsp;to&nbsp;render&nbsp;/live.&nbsp;The&nbsp;seam&nbsp;only<br>
+translates&nbsp;between&nbsp;the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;the&nbsp;aggregator's&nbsp;snapshots.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2.html">kingdoms.rpc_generated.kingdoms.v1.live_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.live.html#LiveClient">LiveClient</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.html#LiveServicer">kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.LiveServicer</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.live.html#LiveServicer">LiveServicer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LiveClient">class <strong>LiveClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveClient">LiveClient</a>(core_uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Typed&nbsp;client&nbsp;for&nbsp;the&nbsp;kingdoms.v1.Live&nbsp;service&nbsp;(bot&nbsp;side).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LiveClient-__init__"><strong>__init__</strong></a>(self, core_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;core&nbsp;address;&nbsp;channels&nbsp;are&nbsp;per-call&nbsp;(ADR-0020).</span></dd></dl>
+
+<dl><dt>async <a name="LiveClient-watch"><strong>watch</strong></a>(self, game_key: 'str', timeout_s: 'float' = 5.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;latest&nbsp;dashboard&nbsp;snapshot&nbsp;(first&nbsp;stream&nbsp;frame).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LiveServicer">class <strong>LiveServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.html#LiveServicer">kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.LiveServicer</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveServicer">LiveServicer</a>(aggregator:&nbsp;'Any',&nbsp;poll_interval_s:&nbsp;'float'&nbsp;=&nbsp;2.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Serve&nbsp;WatchDashboard&nbsp;from&nbsp;the&nbsp;live&nbsp;aggregator.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.rpc.live.html#LiveServicer">LiveServicer</a></dd>
+<dd><a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.html#LiveServicer">kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.LiveServicer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="LiveServicer-WatchDashboard"><strong>WatchDashboard</strong></a>(self, request: 'live_pb2.WatchDashboardRequest', context: 'grpc.aio.ServicerContext')</dt><dd><span class="code">Stream&nbsp;snapshots:&nbsp;one&nbsp;immediately,&nbsp;then&nbsp;on&nbsp;every&nbsp;poll&nbsp;tick.<br>
+&nbsp;<br>
+The&nbsp;aggregator&nbsp;folds&nbsp;provider&nbsp;events&nbsp;in&nbsp;the&nbsp;background&nbsp;loop&nbsp;of<br>
+the&nbsp;core&nbsp;process;&nbsp;this&nbsp;stream&nbsp;polls&nbsp;its&nbsp;snapshot,&nbsp;emitting&nbsp;only<br>
+when&nbsp;the&nbsp;payload&nbsp;changed&nbsp;so&nbsp;the&nbsp;channel&nbsp;never&nbsp;spams.</span></dd></dl>
+
+<dl><dt><a name="LiveServicer-__init__"><strong>__init__</strong></a>(self, aggregator: 'Any', poll_interval_s: 'float' = 2.0) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;aggregator&nbsp;and&nbsp;the&nbsp;snapshot&nbsp;refresh&nbsp;interval.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.html#LiveServicer">kingdoms.rpc_generated.kingdoms.v1.live_pb2_grpc.LiveServicer</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_live_servicer"><strong>add_live_servicer</strong></a>(server: 'grpc.aio.Server', servicer: 'LiveServicer') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;Live&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server.</span></dd></dl>
+ <dl><dt><a name="-state_to_wire"><strong>state_to_wire</strong></a>(snapshot: 'dict[str, Any]') -&gt; 'live_pb2.DashboardState'</dt><dd><span class="code">Translate&nbsp;one&nbsp;aggregator&nbsp;snapshot&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+</td></tr></table>
+</body></html>
