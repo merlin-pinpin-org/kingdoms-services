@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_aoe2lobby.adapter</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.ext_aoe2lobby.html" class="white">ext_aoe2lobby</a>.adapter</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_aoe2lobby/adapter.py">SOURCE_ROOT/ext_aoe2lobby/adapter.py</a></td></tr></table>
+    <p><span class="code">ext-aoe2lobby&nbsp;live&nbsp;adapter:&nbsp;WebSocket&nbsp;client&nbsp;(aoe2lobby.com).<br>
+&nbsp;<br>
+The&nbsp;live&nbsp;layer&nbsp;(developer&nbsp;direction):&nbsp;aoe2lobby&nbsp;aggregates&nbsp;Worlds&nbsp;Edge<br>
+Link&nbsp;lobby&nbsp;data&nbsp;and&nbsp;pushes&nbsp;real-time&nbsp;updates&nbsp;over&nbsp;a&nbsp;WebSocket&nbsp;—&nbsp;lobby<br>
+opened,&nbsp;closed,&nbsp;game&nbsp;started.&nbsp;It&nbsp;uses&nbsp;LibreMatch's&nbsp;data&nbsp;underneath,&nbsp;so<br>
+anything&nbsp;it&nbsp;reports&nbsp;is&nbsp;cross-checked&nbsp;against&nbsp;ext-librematch&nbsp;(the<br>
+source&nbsp;of&nbsp;truth)&nbsp;by&nbsp;the&nbsp;consumer,&nbsp;never&nbsp;trusted&nbsp;blindly&nbsp;here.<br>
+&nbsp;<br>
+Events&nbsp;are&nbsp;mapped&nbsp;to&nbsp;the&nbsp;wire&nbsp;``MatchEvent``&nbsp;shape&nbsp;and&nbsp;exposed&nbsp;as&nbsp;an<br>
+async&nbsp;iterator;&nbsp;reconnection&nbsp;with&nbsp;backoff&nbsp;is&nbsp;the&nbsp;caller's&nbsp;policy,<br>
+implemented&nbsp;once&nbsp;in&nbsp;the&nbsp;server&nbsp;loop.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="websockets.html">websockets</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.ext_aoe2lobby.adapter.html#Aoe2LobbyAdapter">Aoe2LobbyAdapter</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Aoe2LobbyAdapter">class <strong>Aoe2LobbyAdapter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Aoe2LobbyAdapter">Aoe2LobbyAdapter</a>(ws_url:&nbsp;'str'&nbsp;=&nbsp;'wss://aoe2lobby.com/ws',&nbsp;reconnect_delay_s:&nbsp;'float'&nbsp;=&nbsp;5.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+WebSocket&nbsp;client&nbsp;streaming&nbsp;live&nbsp;lobby/game&nbsp;events.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="Aoe2LobbyAdapter-__init__"><strong>__init__</strong></a>(self, ws_url: 'str' = 'wss://aoe2lobby.com/ws', reconnect_delay_s: 'float' = 5.0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="Aoe2LobbyAdapter-stream_events"><strong>stream_events</strong></a>(self) -&gt; 'AsyncIterator[dict[str, Any]]'</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;event&nbsp;dicts&nbsp;from&nbsp;the&nbsp;WebSocket,&nbsp;forever.<br>
+&nbsp;<br>
+Reconnects&nbsp;with&nbsp;a&nbsp;fixed&nbsp;backoff&nbsp;on&nbsp;transport&nbsp;errors&nbsp;and&nbsp;yields<br>
+nothing&nbsp;while&nbsp;disconnected&nbsp;—&nbsp;the&nbsp;stream&nbsp;stays&nbsp;alive,&nbsp;the<br>
+consumer&nbsp;sees&nbsp;silence,&nbsp;not&nbsp;failures.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_WS_URL</strong> = 'wss://aoe2lobby.com/ws'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ext_aoe2lobby.adapter (WARNING)&gt;</td></tr></table>
+</body></html>
