@@ -31,8 +31,7 @@ def _build_tree() -> tuple[discord.Client, app_commands.CommandTree[discord.Clie
 
 async def test_register_adds_the_kingdoms_group() -> None:
     client, tree = _build_tree()
-    commands = tree.get_commands()
-    group = next(cmd for cmd in commands if cmd.name == "kingdoms")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
     assert isinstance(group, app_commands.Group)
     assert group.guild_only is True
     await client.close()
@@ -42,7 +41,7 @@ async def test_the_five_screens_are_registered() -> None:
     client, tree = _build_tree()
     group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
     assert isinstance(group, app_commands.Group)
-    names = {cmd.name for cmd in group.get_commands()}
+    names = {cmd.name for cmd in group.commands}
     assert names == set(EXPECTED_SUBCOMMANDS)
     await client.close()
 
@@ -52,7 +51,7 @@ async def test_profile_and_diplomacy_freeze_the_kingdom_option() -> None:
     group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
     assert isinstance(group, app_commands.Group)
     for name in ("kingdom", "diplomacy"):
-        command = next(cmd for cmd in group.get_commands() if cmd.name == name)
+        command = next(cmd for cmd in group.commands if cmd.name == name)
         assert isinstance(command, app_commands.Command), f"{name} must be a subcommand"
         kingdom_params = [param for param in command.parameters if param.name == "kingdom"]
         assert kingdom_params, f"{name} must freeze the kingdom option"
