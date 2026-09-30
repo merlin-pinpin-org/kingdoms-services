@@ -33,10 +33,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "profile_title": "👑 Kingdom",
         "delays_name": "delays",
         "delays_description": "Programmed attacks and countdowns",
-        "delays_title": "🕰️ Attack delays",
+        "delays_title": "⏳ Attack delays",
         "gazette_name": "gazette",
         "gazette_description": "The weekly cycle summary",
-        "gazette_title": "📣 The Gazette",
+        "gazette_title": "📢 The Gazette",
         "no_season": (
             "No season is running yet. An admin will launch the season soon "
             "— live data will show here once it starts."
@@ -53,10 +53,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "profile_title": "👑 Royaume",
         "delays_name": "delais",
         "delays_description": "Attaques programmées et comptes à rebours",
-        "delays_title": "🕰️ Délais d'attaque",
+        "delays_title": "⏳ Délais d'attaque",
         "gazette_name": "gazette",
         "gazette_description": "Le résumé hebdomadaire du cycle",
-        "gazette_title": "📣 La Gazette",
+        "gazette_title": "📢 La Gazette",
         "no_season": (
             "Aucune saison n'est en cours. Un admin lancera la saison prochainement "
             "— les données réelles s'afficheront ici dès le lancement."
@@ -96,7 +96,6 @@ async def _send_placeholder(
 
 def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) -> None:
     """Register the /kingdoms command group on the command tree."""
-
     group = app_commands.Group(
         name="kingdoms",
         description=STRINGS[DEFAULT_LOCALE]["group_description"],

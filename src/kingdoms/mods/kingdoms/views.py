@@ -30,7 +30,7 @@ MOD_KEY = "kingdoms"
 
 
 async def _noop(interaction: discord.Interaction) -> None:
-    """Placeholder callback: disabled buttons never wire real actions."""
+    """Do nothing: disabled buttons never wire real actions."""
     del interaction
 
 
@@ -196,7 +196,7 @@ def build_gazette_layout(
 
 
 def build_no_season_layout(title: str, body: str, *, footer: str = "") -> discord.ui.LayoutView:
-    """The placeholder shown before the admin launches a season (D38/D52)."""
+    """Show the placeholder displayed before the admin launches a season (D38/D52)."""
     container = Container(accent=BLURPLE).add(Text(f"# {title}"))
     container = container.add(Text(body))
     if footer:
