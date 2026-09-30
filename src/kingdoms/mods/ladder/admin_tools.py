@@ -172,28 +172,152 @@ class LadderRatingTools:
         reason_code: str = RATING_REASON_MANUAL_ADJUSTMENT,
     ) -> None:
         """Write one MANUAL_ADJUSTMENT/RESET rating-history line."""
-        await self._svc._db.upsert_entry(
-            RATING_HISTORY_COLLECTION,
-            RatingHistoryModel(
-                _id=f"rh:{match_id}:{user_id}:{now}",
-                ladder_id=ladder_id,
-                match_id=match_id,
-                user_id=user_id,
-                rating_before=before,
-                rating_after=after,
-                delta=after - before,
-                k_used=0.0,
-                reason=reason_code,
-                admin_user_id=admin_user_id,
-                created_at=now,
-            ).to_mongo(),
+        await write_history_line(
+            self._svc, ladder_id, match_id, user_id, before, after, admin_user_id, now, reason_code
         )
 
     async def _audit_record(self, action: str, payload: dict[str, Any]) -> None:
         """Write one audit line (best-effort)."""
-        if self._audit is None:
-            return
-        try:
-            await self._audit.record(action, payload)
-        except Exception:
-            logger.warning("AUDIT WRITE FAILED (%s)", action, exc_info=True)
+        await audit_record(self._audit, action, payload)
+
+
+async def write_history_line(
+    service: LadderService,
+    ladder_id: str,
+    match_id: str,
+    user_id: str,
+    before: float,
+    after: float,
+    admin_user_id: str,
+    now: int,
+    reason_code: str = RATING_REASON_MANUAL_ADJUSTMENT,
+) -> None:
+    """Write one rating-history line (shared by the admin tool services)."""
+    await service._db.upsert_entry(
+        RATING_HISTORY_COLLECTION,
+        RatingHistoryModel(
+            _id=f"rh:{match_id}:{user_id}:{now}",
+            ladder_id=ladder_id,
+            match_id=match_id,
+            user_id=user_id,
+            rating_before=before,
+            rating_after=after,
+            delta=after - before,
+            k_used=0.0,
+            reason=reason_code,
+            admin_user_id=admin_user_id,
+            created_at=now,
+        ).to_mongo(),
+    )
+
+
+async def audit_record(audit: AdminAudit | None, action: str, payload: dict[str, Any]) -> None:
+    """Write one audit line (best-effort: a store failure logs, never raises)."""
+    if audit is None:
+        return
+    try:
+        await audit.record(action, payload)
+    except Exception:
+        logger.warning("AUDIT WRITE FAILED (%s)", action, exc_info=True)
+
+
+class RatingSystemSwitchError(ValueError):
+    """The rating-system switch is refused (in-flight or incomplete history)."""
+
+
+class LadderRatingSwitchService:
+    """Deterministic history replay when switching rating systems (#142)."""
+
+    def __init__(self, service: LadderService, audit: AdminAudit | None = None) -> None:
+        """Wire the domain service and the audit seam."""
+        self._svc = service
+        self._audit = audit
+
+    async def switch_rating_system(
+        self, ladder_id: str, admin_user_id: str, new_system: str, now: int
+    ) -> dict[str, Any]:
+        """Replay the full match history under the new system (idempotent per state).
+
+        Preconditions: the target system exists, no match is in flight
+        (status < COMPLETED) and the match history is complete — every
+        COMPLETED match must have its rating applied. The replay resets
+        the caches from the replayed history, writes RECALCULATION lines
+        and audits with a before/after summary.
+        """
+        from kingdoms.mods.ladder.models import (
+            LIVE_MATCH_STATUSES,
+            MATCH_STATUS_COMPLETED,
+        )
+        from kingdoms.mods.ladder.service import RATING_SYSTEMS
+
+        if new_system not in RATING_SYSTEMS:
+            raise RatingSystemSwitchError(f"unknown rating system {new_system!r}")
+        ladder = await self._svc.get_ladder(ladder_id)
+        if ladder is None:
+            raise RatingSystemSwitchError(f"unknown ladder {ladder_id!r}")
+        if ladder.settings.rating_system == new_system:
+            return {"ladder_id": ladder_id, "system": new_system, "replayed": 0, "changed": False}
+        statuses = sorted(LIVE_MATCH_STATUSES | {MATCH_STATUS_COMPLETED})
+        matches = await self._svc._db.find_ladder_matches(ladder_id, statuses)
+        for doc in matches:
+            if doc["status"] != MATCH_STATUS_COMPLETED:
+                raise RatingSystemSwitchError("switch forbidden while a match is in flight")
+            if not doc.get("rating_applied"):
+                raise RatingSystemSwitchError("match history incomplete: a completed match has no rating applied")
+        completed = sorted(
+            (m for m in matches if m["status"] == MATCH_STATUS_COMPLETED),
+            key=lambda m: m["completed_at"] or 0,
+        )
+        system = RATING_SYSTEMS[new_system]
+        settings = ladder.settings.model_copy(update={"rating_system": new_system})
+        players = {p.user_id: p for p in await self._svc.leaderboard(ladder_id, limit=10_000)}
+        initial = system.initial_rating(settings)
+        state: dict[str, dict[str, float]] = {uid: dict(system.initial_state(settings)) for uid in players}
+        ratings: dict[str, float] = dict.fromkeys(players, initial)
+        counts: dict[str, int] = dict.fromkeys(players, 0)
+        replayed = 0
+        for doc in completed:
+            match = doc
+            winner_id = match["winner_user_id"]
+            loser_id = match["loser_user_id"]
+            if winner_id not in ratings or loser_id not in ratings:
+                raise RatingSystemSwitchError("match history incomplete: unknown participant")
+            w_delta, _w_k, w_state = system.apply(
+                settings, ratings[winner_id], state[winner_id],
+                ratings[loser_id], state[loser_id], True, counts[winner_id],
+            )
+            l_delta, _l_k, l_state = system.apply(
+                settings, ratings[loser_id], state[loser_id],
+                ratings[winner_id], state[winner_id], False, counts[loser_id],
+            )
+            ratings[winner_id] += w_delta
+            ratings[loser_id] += l_delta
+            state[winner_id] = w_state
+            state[loser_id] = l_state
+            counts[winner_id] += 1
+            counts[loser_id] += 1
+            replayed += 1
+        for uid, player in players.items():
+            new_rating = ratings[uid]
+            await write_history_line(
+                self._svc, ladder_id, f"recalc:{ladder_id}", uid, player.rating, new_rating,
+                admin_user_id, now, reason_code="RECALCULATION",
+            )
+            updated = player.model_copy(
+                update={"rating": int(new_rating), "rating_state": state[uid], "matches_count": counts[uid]}
+            )
+            await self._svc._db.upsert_entry("players", updated.to_mongo())
+        ladder = ladder.model_copy(update={"settings": settings})
+        await self._svc._db.upsert_entry("ladders", ladder.to_mongo())
+        await audit_record(
+            self._audit,
+            "rating.system.switch",
+            {
+                "ladder_id": ladder_id,
+                "admin_user_id": admin_user_id,
+                "from": ladder.settings.rating_system if replayed == 0 else None,
+                "to": new_system,
+                "replayed": replayed,
+            },
+        )
+        return {"ladder_id": ladder_id, "system": new_system, "replayed": replayed, "changed": True}

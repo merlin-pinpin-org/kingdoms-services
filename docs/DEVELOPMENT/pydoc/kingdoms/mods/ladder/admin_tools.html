@@ -33,13 +33,15 @@ with&nbsp;its&nbsp;payload&nbsp;diff.&nbsp;Every&nbsp;mutation&nbsp;lands&nbsp;i
 <dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#RatingToolError">RatingToolError</a>
+<dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#RatingSystemSwitchError">RatingSystemSwitchError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#RatingToolError">RatingToolError</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#LadderRatingTools">LadderRatingTools</a>
+<dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#LadderRatingSwitchService">LadderRatingSwitchService</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.ladder.admin_tools.html#LadderRatingTools">LadderRatingTools</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
@@ -111,6 +113,35 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderRatingSwitchService">class <strong>LadderRatingSwitchService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderRatingSwitchService">LadderRatingSwitchService</a>(service:&nbsp;'LadderService',&nbsp;audit:&nbsp;'<a href="#AdminAudit">AdminAudit</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Deterministic&nbsp;history&nbsp;replay&nbsp;when&nbsp;switching&nbsp;rating&nbsp;systems&nbsp;(#142).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LadderRatingSwitchService-__init__"><strong>__init__</strong></a>(self, service: 'LadderService', audit: 'AdminAudit | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;domain&nbsp;service&nbsp;and&nbsp;the&nbsp;audit&nbsp;seam.</span></dd></dl>
+
+<dl><dt>async <a name="LadderRatingSwitchService-switch_rating_system"><strong>switch_rating_system</strong></a>(self, ladder_id: 'str', admin_user_id: 'str', new_system: 'str', now: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Replay&nbsp;the&nbsp;full&nbsp;match&nbsp;history&nbsp;under&nbsp;the&nbsp;new&nbsp;system&nbsp;(idempotent&nbsp;per&nbsp;state).<br>
+&nbsp;<br>
+Preconditions:&nbsp;the&nbsp;target&nbsp;system&nbsp;exists,&nbsp;no&nbsp;match&nbsp;is&nbsp;in&nbsp;flight<br>
+(status&nbsp;&lt;&nbsp;COMPLETED)&nbsp;and&nbsp;the&nbsp;match&nbsp;history&nbsp;is&nbsp;complete&nbsp;—&nbsp;every<br>
+COMPLETED&nbsp;match&nbsp;must&nbsp;have&nbsp;its&nbsp;rating&nbsp;applied.&nbsp;The&nbsp;replay&nbsp;resets<br>
+the&nbsp;caches&nbsp;from&nbsp;the&nbsp;replayed&nbsp;history,&nbsp;writes&nbsp;RECALCULATION&nbsp;lines<br>
+and&nbsp;audits&nbsp;with&nbsp;a&nbsp;before/after&nbsp;summary.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="LadderRatingTools">class <strong>LadderRatingTools</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -134,6 +165,68 @@ Data descriptors defined here:<br>
 </dl>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RatingSystemSwitchError">class <strong>RatingSystemSwitchError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;rating-system&nbsp;switch&nbsp;is&nbsp;refused&nbsp;(in-flight&nbsp;or&nbsp;incomplete&nbsp;history).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.ladder.admin_tools.html#RatingSystemSwitchError">RatingSystemSwitchError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="RatingSystemSwitchError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="RatingSystemSwitchError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="RatingSystemSwitchError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RatingSystemSwitchError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="RatingSystemSwitchError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RatingSystemSwitchError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
 </dl>
 </td></tr></table> <p>
 <table class="section">
@@ -198,6 +291,14 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <dl><dt><strong>args</strong></dt>
 </dl>
 </td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-audit_record"><strong>audit_record</strong></a>(audit: 'AdminAudit | None', action: 'str', payload: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;audit&nbsp;line&nbsp;(best-effort:&nbsp;a&nbsp;store&nbsp;failure&nbsp;logs,&nbsp;never&nbsp;raises).</span></dd></dl>
+ <dl><dt>async <a name="-write_history_line"><strong>write_history_line</strong></a>(service: 'LadderService', ladder_id: 'str', match_id: 'str', user_id: 'str', before: 'float', after: 'float', admin_user_id: 'str', now: 'int', reason_code: 'str' = 'MANUAL_ADJUSTMENT') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;rating-history&nbsp;line&nbsp;(shared&nbsp;by&nbsp;the&nbsp;admin&nbsp;tool&nbsp;services).</span></dd></dl>
+</td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
