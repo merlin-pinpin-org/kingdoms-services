@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.delivery</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.delivery</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/delivery.py">SOURCE_ROOT/core/services/delivery.py</a></td></tr></table>
+    <p><span class="code">Notification&nbsp;delivery&nbsp;pipeline:&nbsp;batching,&nbsp;backoff,&nbsp;degradation&nbsp;(kingdoms-services#140).<br>
+&nbsp;<br>
+Between&nbsp;the&nbsp;mod&nbsp;cores&nbsp;(which&nbsp;emit&nbsp;intents)&nbsp;and&nbsp;the&nbsp;platform&nbsp;adapter<br>
+(which&nbsp;renders&nbsp;them)&nbsp;sits&nbsp;this&nbsp;pipeline.&nbsp;Business&nbsp;never&nbsp;blocks&nbsp;on<br>
+delivery:&nbsp;intents&nbsp;are&nbsp;coalesced&nbsp;per&nbsp;destination&nbsp;within&nbsp;a&nbsp;short&nbsp;window<br>
+(a&nbsp;leaderboard&nbsp;refresh&nbsp;or&nbsp;a&nbsp;queue&nbsp;burst&nbsp;becomes&nbsp;one&nbsp;render),&nbsp;and&nbsp;when<br>
+the&nbsp;platform&nbsp;signals&nbsp;rate&nbsp;limiting&nbsp;the&nbsp;pipeline&nbsp;backs&nbsp;off&nbsp;with&nbsp;jitter<br>
+and&nbsp;keeps&nbsp;queueing&nbsp;—&nbsp;the&nbsp;match&nbsp;surface&nbsp;stays&nbsp;authoritative&nbsp;and&nbsp;the<br>
+player-facing&nbsp;state&nbsp;consistent.<br>
+&nbsp;<br>
+Contract:<br>
+-&nbsp;``enqueue``&nbsp;never&nbsp;raises&nbsp;and&nbsp;never&nbsp;blocks:&nbsp;an&nbsp;intent&nbsp;is&nbsp;either<br>
+&nbsp;&nbsp;delivered,&nbsp;or&nbsp;queued&nbsp;for&nbsp;the&nbsp;next&nbsp;drain;<br>
+-&nbsp;``drain``&nbsp;flushes&nbsp;what&nbsp;the&nbsp;limits&nbsp;allow,&nbsp;marking&nbsp;degraded<br>
+&nbsp;&nbsp;destinations&nbsp;and&nbsp;re-arming&nbsp;them&nbsp;once&nbsp;the&nbsp;backoff&nbsp;elapses;<br>
+-&nbsp;per-destination&nbsp;FIFO&nbsp;with&nbsp;coalescing&nbsp;by&nbsp;(surface,&nbsp;intent):&nbsp;the<br>
+&nbsp;&nbsp;latest&nbsp;payload&nbsp;for&nbsp;a&nbsp;burst&nbsp;wins&nbsp;(last-write-wins&nbsp;rendering).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="random.html">random</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.delivery.html#RateLimitedError">RateLimitedError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.delivery.html#NotificationPipeline">NotificationPipeline</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.delivery.html#DeliverySink">DeliverySink</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DeliverySink">class <strong>DeliverySink</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DeliverySink">DeliverySink</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Platform&nbsp;sink:&nbsp;renders&nbsp;one&nbsp;coalesced&nbsp;batch&nbsp;on&nbsp;one&nbsp;destination.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.delivery.html#DeliverySink">DeliverySink</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DeliverySink-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="DeliverySink-send"><strong>send</strong></a>(self, destination: 'str', batch: 'list[tuple[str, dict[str, Any]]]') -&gt; 'None'</dt><dd><span class="code">Render&nbsp;a&nbsp;batch&nbsp;on&nbsp;a&nbsp;destination;&nbsp;raise&nbsp;<a href="#RateLimitedError">RateLimitedError</a>&nbsp;when&nbsp;throttled.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="DeliverySink-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'send'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="DeliverySink-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="DeliverySink-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="NotificationPipeline">class <strong>NotificationPipeline</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#NotificationPipeline">NotificationPipeline</a>(sink:&nbsp;'<a href="#DeliverySink">DeliverySink</a>',&nbsp;clock:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;sleeper:&nbsp;'Awaitable[None]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;rng:&nbsp;'random.Random&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Coalescing,&nbsp;backoff-aware&nbsp;delivery&nbsp;pipeline&nbsp;(svc-core&nbsp;side).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="NotificationPipeline-__init__"><strong>__init__</strong></a>(self, sink: 'DeliverySink', clock: 'Any' = None, sleeper: 'Awaitable[None] | None' = None, rng: 'random.Random | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;platform&nbsp;sink&nbsp;and&nbsp;the&nbsp;injectable&nbsp;clock/rng&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="NotificationPipeline-drain"><strong>drain</strong></a>(self) -&gt; 'dict[str, int]'</dt><dd><span class="code">Flush&nbsp;every&nbsp;healthy&nbsp;destination;&nbsp;backoff&nbsp;the&nbsp;degraded&nbsp;ones.<br>
+&nbsp;<br>
+Returns&nbsp;per-destination&nbsp;delivered&nbsp;batch&nbsp;sizes;&nbsp;degraded<br>
+destinations&nbsp;report&nbsp;0&nbsp;and&nbsp;keep&nbsp;their&nbsp;pending&nbsp;intents&nbsp;queued&nbsp;—<br>
+ladder&nbsp;business&nbsp;never&nbsp;blocks&nbsp;on&nbsp;them.</span></dd></dl>
+
+<dl><dt><a name="NotificationPipeline-enqueue"><strong>enqueue</strong></a>(self, destination: 'str', intent: 'str', payload: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Queue&nbsp;one&nbsp;intent&nbsp;for&nbsp;a&nbsp;destination&nbsp;(never&nbsp;blocks,&nbsp;last-write-wins).</span></dd></dl>
+
+<dl><dt><a name="NotificationPipeline-pending"><strong>pending</strong></a>(self, destination: 'str') -&gt; 'int'</dt><dd><span class="code">Count&nbsp;the&nbsp;queued&nbsp;intents&nbsp;of&nbsp;one&nbsp;destination&nbsp;(observability).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RateLimitedError">class <strong>RateLimitedError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;platform&nbsp;sink&nbsp;hit&nbsp;a&nbsp;rate&nbsp;limit&nbsp;for&nbsp;this&nbsp;destination.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.delivery.html#RateLimitedError">RateLimitedError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="RateLimitedError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="RateLimitedError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="RateLimitedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RateLimitedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="RateLimitedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RateLimitedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="RateLimitedError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="RateLimitedError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RateLimitedError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="RateLimitedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RateLimitedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BASE_BACKOFF_S</strong> = 1.0<br>
+<strong>DEFAULT_COALESCE_MS</strong> = 250<br>
+<strong>MAX_BACKOFF_S</strong> = 60.0<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.delivery (WARNING)&gt;</td></tr></table>
+</body></html>
