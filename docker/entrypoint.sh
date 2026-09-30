@@ -18,8 +18,18 @@ case "${KINGDOMS_PROCESS:-bot}" in
     : "${REDIS_URI:?REDIS_URI is required}"
     exec python -m kingdoms.core_process.server
     ;;
+  ext-librematch)
+    exec python -m kingdoms.ext_librematch.server
+    ;;
+  ext-aoe2lobby)
+    exec python -m kingdoms.ext_aoe2lobby.server
+    ;;
+  seed)
+    : "${MONGO_URI:?MONGO_URI is required}"
+    exec python -m kingdoms.core.games.aoe2.seed_cli
+    ;;
   *)
-    echo "KINGDOMS_PROCESS must be 'bot' or 'core' (got: ${KINGDOMS_PROCESS})"
+    echo "KINGDOMS_PROCESS must be 'bot', 'core', 'ext-librematch', 'ext-aoe2lobby' or 'seed' (got: ${KINGDOMS_PROCESS})"
     exit 1
     ;;
 esac
