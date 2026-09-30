@@ -16,8 +16,11 @@ from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
     MatchEvent,
+    PlayerStats,
     ProviderCapabilities,
     Slot,
+    StatsBlock,
+    StatsEntry,
 )
 from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
 
@@ -136,6 +139,33 @@ def match_event_from_wire(wire: game_pb2.MatchEvent) -> MatchEvent:
     )
 
 
+def player_stats_to_wire(stats: PlayerStats) -> game_pb2.PlayerStats:
+    """Translate a core player-stats model into the wire message."""
+    return game_pb2.PlayerStats(
+        blocks=[
+            game_pb2.StatsBlock(
+                name=block.name,
+                entries=[game_pb2.StatsEntry(key=e.key, value=e.value) for e in block.entries],
+            )
+            for block in stats.blocks
+        ]
+    )
+
+
+def player_stats_from_wire(wire: game_pb2.PlayerStats) -> PlayerStats:
+    """Translate a wire player-stats message into the core model."""
+    return PlayerStats(
+        profile_id="",
+        blocks=tuple(
+            StatsBlock(
+                name=block.name,
+                entries=tuple(StatsEntry(key=e.key, value=e.value) for e in block.entries),
+            )
+            for block in wire.blocks
+        ),
+    )
+
+
 class GameServicer(game_pb2_grpc.GameServicer):
     """Serve the kingdoms.v1.Game contract from provider-backed callables.
 
@@ -151,11 +181,13 @@ class GameServicer(game_pb2_grpc.GameServicer):
         match_details: Callable[[str], Awaitable[MatchDetails | None]] | None = None,
         list_maps: Callable[[], Awaitable[list[GameMap]]] | None = None,
         match_events: Callable[[], AsyncIterator[MatchEvent]] | None = None,
+        player_stats: Callable[[str], Awaitable[PlayerStats | None]] | None = None,
     ) -> None:
         self._capabilities = capabilities
         self._match_details = match_details
         self._list_maps = list_maps
         self._match_events = match_events
+        self._player_stats = player_stats
 
     async def GetCapabilities(
         self,
@@ -188,6 +220,19 @@ class GameServicer(game_pb2_grpc.GameServicer):
             await context.abort(grpc.StatusCode.UNIMPLEMENTED, "map catalog not available")
         maps = await self._list_maps()
         return game_pb2.GameMaps(maps=[game_map_to_wire(m) for m in maps])
+
+    async def GetPlayerStats(
+        self,
+        request: game_pb2.GetPlayerStatsRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> game_pb2.PlayerStats:
+        """Serve a profile's named stats blocks when the provider has them."""
+        if self._player_stats is None:
+            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "player stats not available")
+        stats = await self._player_stats(request.profile_id)
+        if stats is None:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "unknown profile_id")
+        return player_stats_to_wire(stats)
 
     async def StreamMatchEvents(
         self,
