@@ -13,12 +13,14 @@ import grpc
 from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
+    PlayerStats,
     ProviderCapabilities,
 )
 from kingdoms.core.rpc.client import build_channel, call_with_retry
 from kingdoms.core.rpc.game import (
     game_map_from_wire,
     match_details_from_wire,
+    player_stats_from_wire,
 )
 from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
 
@@ -106,3 +108,22 @@ class GameProviderClient:
                     return []
                 raise
         return [game_map_from_wire(m) for m in reply.maps]
+
+    async def get_player_stats(self, profile_id: str) -> PlayerStats | None:
+        """Fetch a profile's stats blocks, degrading to None (no stats)."""
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                reply = await call_with_retry(
+                    stub.GetPlayerStats,
+                    game_pb2.GetPlayerStatsRequest(profile_id=profile_id),
+                )
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.NOT_FOUND,
+                ):
+                    return None
+                raise
+        stats = player_stats_from_wire(reply)
+        return PlayerStats(profile_id=profile_id, blocks=stats.blocks)

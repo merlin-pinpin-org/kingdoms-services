@@ -16,8 +16,11 @@ from kingdoms.core.models.game import (
     GameMap,
     MatchDetails,
     MatchEvent,
+    PlayerStats,
     ProviderCapabilities,
     Slot,
+    StatsBlock,
+    StatsEntry,
 )
 from kingdoms.core.rpc.game import (
     GameServicer,
@@ -29,6 +32,8 @@ from kingdoms.core.rpc.game import (
     match_details_to_wire,
     match_event_from_wire,
     match_event_to_wire,
+    player_stats_from_wire,
+    player_stats_to_wire,
 )
 from kingdoms.core.rpc.game_client import (
     GameProviderClient,
@@ -41,6 +46,14 @@ from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
 
 class _ServicerContext:
     """Minimal stand-in for grpc.aio.ServicerContext in unit tests."""
+
+    def __init__(self) -> None:
+        self.code: grpc.StatusCode | None = None
+
+    async def abort(self, code: grpc.StatusCode, details: str) -> None:
+        """Raise like the real context (abort never returns)."""
+        self.code = code
+        raise grpc.aio.AioRpcError(code, None, details)
 
 
 def test_capabilities_wire_round_trip_full() -> None:
@@ -217,6 +230,7 @@ def _serve(
     port: int,
     match_details: object | None = None,
     list_maps: object | None = None,
+    player_stats: object | None = None,
 ) -> grpc.aio.Server:
     """Build a local Game provider server on the given port."""
     server = grpc.aio.server()
@@ -225,6 +239,7 @@ def _serve(
             lambda: caps,
             match_details=match_details,  # type: ignore[arg-type]
             list_maps=list_maps,  # type: ignore[arg-type]
+            player_stats=player_stats,  # type: ignore[arg-type]
         ),
         server,
     )
@@ -304,3 +319,96 @@ def test_asyncio_no_orphan_tasks() -> None:
 
 async def _noop() -> None:
     """No-op coroutine for the task-hygiene check."""
+
+
+def test_player_stats_wire_round_trip() -> None:
+    """Player stats blocks survive a wire round trip unchanged."""
+    stats = PlayerStats(
+        profile_id="p1",
+        blocks=(
+            StatsBlock(
+                name="rm_1v1",
+                entries=(
+                    StatsEntry(key="rank", value="42"),
+                    StatsEntry(key="rating", value="1600"),
+                ),
+            ),
+        ),
+    )
+    wire = player_stats_to_wire(stats)
+    restored = player_stats_from_wire(wire)
+    assert restored.blocks == stats.blocks
+
+
+def _player_stats(profile_id: str) -> PlayerStats:
+    """Fixture stats payload for one profile."""
+    return PlayerStats(
+        profile_id=profile_id,
+        blocks=(
+            StatsBlock(
+                name="rm_1v1",
+                entries=(StatsEntry(key="rating", value="1600"),),
+            ),
+        ),
+    )
+
+
+async def _async_player_stats(profile_id: str) -> PlayerStats | None:
+    """Async wrapper around the stats fixture."""
+    return _player_stats(profile_id)
+
+
+@pytest.mark.asyncio
+async def test_servicer_serves_player_stats() -> None:
+    """The servicer serves stats blocks from the provider callable."""
+    servicer = GameServicer(
+        lambda: LIBREMATCH_CAPS,
+        player_stats=_async_player_stats,
+    )
+    reply = await servicer.GetPlayerStats(
+        game_pb2.GetPlayerStatsRequest(profile_id="p1"), _ServicerContext()  # type: ignore[arg-type]
+    )
+    assert player_stats_from_wire(reply).blocks == _player_stats("p1").blocks
+
+
+@pytest.mark.asyncio
+async def test_servicer_player_stats_unimplemented_without_callable() -> None:
+    """Without a stats callable the servicer answers UNIMPLEMENTED."""
+    servicer = GameServicer(lambda: LIBREMATCH_CAPS)
+    context = _ServicerContext()
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await servicer.GetPlayerStats(
+            game_pb2.GetPlayerStatsRequest(profile_id="p1"), context  # type: ignore[arg-type]
+        )
+    assert exc_info.value.code() == grpc.StatusCode.UNIMPLEMENTED
+
+
+@pytest.mark.asyncio
+async def test_client_round_trips_player_stats() -> None:
+    """The core-side client fetches stats blocks over the wire."""
+    server = _serve(
+        LIBREMATCH_CAPS,
+        50072,
+        player_stats=_async_player_stats,
+    )
+    await server.start()
+    try:
+        client = GameProviderClient("127.0.0.1:50072", "ext-librematch", "aoe2")
+        stats = await client.get_player_stats("p1")
+        assert stats is not None
+        assert stats.profile_id == "p1"
+        assert stats.blocks == _player_stats("p1").blocks
+    finally:
+        await server.stop(grace=None)
+
+
+@pytest.mark.asyncio
+async def test_client_degrades_player_stats_to_none() -> None:
+    """UNIMPLEMENTED/NOT_FOUND stats answers degrade to None on the client."""
+    server = _serve(LIBREMATCH_CAPS, 50072)
+    await server.start()
+    try:
+        client = GameProviderClient("127.0.0.1:50072", "ext-librematch", "aoe2")
+        assert await client.get_player_stats("p1") is None
+    finally:
+        await server.stop(grace=None)

@@ -97,3 +97,27 @@ class MatchEvent:
     occurred_at: int
     profile_ids: tuple[str, ...] = ()
     metadata: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class StatsEntry:
+    """One pre-formatted stats line (i18n-neutral: the provider formats)."""
+
+    key: str
+    value: str
+
+
+@dataclass(frozen=True, slots=True)
+class StatsBlock:
+    """A named block of stats entries, rendered by the platform adapter."""
+
+    name: str
+    entries: tuple[StatsEntry, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class PlayerStats:
+    """Named stats blocks for one player profile (reference section 1.2)."""
+
+    profile_id: str
+    blocks: tuple[StatsBlock, ...] = ()

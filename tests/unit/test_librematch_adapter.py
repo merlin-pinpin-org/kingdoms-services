@@ -103,3 +103,50 @@ async def test_list_maps_serves_distinct_lobby_maps() -> None:
     adapter = _adapter([_lobby("777"), other])
     maps = await adapter.list_maps()
     assert {m.map_key for m in maps} == {"Arabia", "Arena"}
+
+
+@pytest.mark.asyncio
+async def test_player_stats_without_api_key_degrades_to_none() -> None:
+    """No configured API key: stats degrade to None (manual path)."""
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport({}))
+    assert await adapter.player_stats("12345") is None
+
+
+@pytest.mark.asyncio
+async def test_player_stats_serves_leaderboard_blocks() -> None:
+    """With a key and a leaderboard reply, stats come back as blocks."""
+    payload = {
+        "result": [
+            {
+                "profileId": "12345",
+                "rank": 42,
+                "rating": 1600,
+                "wins": 30,
+                "losses": 25,
+                "streak": 3,
+                "games": 55,
+            }
+        ]
+    }
+    adapter = LibrematchAdapter(
+        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
+    )
+    stats = await adapter.player_stats("12345")
+    assert stats is not None
+    assert stats.profile_id == "12345"
+    assert stats.blocks, "at least one leaderboard block"
+    block = stats.blocks[0]
+    entries = {e.key: e.value for e in block.entries}
+    assert entries["rank"] == "42"
+    assert entries["rating"] == "1600"
+    assert entries["wins"] == "30"
+
+
+@pytest.mark.asyncio
+async def test_player_stats_unknown_profile_returns_none() -> None:
+    """A leaderboard reply without the profile degrades to None."""
+    payload = {"result": [{"profileId": "other", "rank": 1}]}
+    adapter = LibrematchAdapter(
+        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
+    )
+    assert await adapter.player_stats("12345") is None

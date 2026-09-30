@@ -28,8 +28,11 @@ declared,&nbsp;never&nbsp;assumed:&nbsp;the&nbsp;ladder&nbsp;degrades&nbsp;clean
 <dt class="heading-text"><a href="kingdoms.core.models.game.html#GameMap">GameMap</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#MatchDetails">MatchDetails</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#MatchEvent">MatchEvent</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#PlayerStats">PlayerStats</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#ProviderCapabilities">ProviderCapabilities</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#Slot">Slot</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#StatsBlock">StatsBlock</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.models.game.html#StatsEntry">StatsEntry</a>
 </dt></dl>
 </dd>
 </dl>
@@ -205,6 +208,52 @@ Data and other attributes defined here:<br>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PlayerStats">class <strong>PlayerStats</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PlayerStats">PlayerStats</a>(profile_id:&nbsp;'str',&nbsp;blocks:&nbsp;'tuple[<a href="#StatsBlock">StatsBlock</a>,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Named&nbsp;stats&nbsp;blocks&nbsp;for&nbsp;one&nbsp;player&nbsp;profile&nbsp;(reference&nbsp;section&nbsp;1.2).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PlayerStats-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__init__"><strong>__init__</strong></a>(self, profile_id: 'str', blocks: 'tuple[StatsBlock, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="PlayerStats-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>blocks</strong></dt>
+</dl>
+<dl><dt><strong>profile_id</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'blocks': 'tuple[StatsBlock, ...]', 'profile_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'blocks': Field(name='blocks',type='tuple[StatsBlock, ...]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'profile_id': Field(name='profile_id',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('profile_id', 'blocks')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="ProviderCapabilities">class <strong>ProviderCapabilities</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -319,6 +368,98 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
 <dl><dt><strong>__match_args__</strong> = ('slot_index', 'profile_id', 'faction_key', 'team', 'filled', 'slot_kind')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StatsBlock">class <strong>StatsBlock</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatsBlock">StatsBlock</a>(name:&nbsp;'str',&nbsp;entries:&nbsp;'tuple[<a href="#StatsEntry">StatsEntry</a>,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;named&nbsp;block&nbsp;of&nbsp;stats&nbsp;entries,&nbsp;rendered&nbsp;by&nbsp;the&nbsp;platform&nbsp;adapter.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StatsBlock-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__init__"><strong>__init__</strong></a>(self, name: 'str', entries: 'tuple[StatsEntry, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="StatsBlock-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>entries</strong></dt>
+</dl>
+<dl><dt><strong>name</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'entries': 'tuple[StatsEntry, ...]', 'name': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'entries': Field(name='entries',type='tuple[StatsEntry, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'entries')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StatsEntry">class <strong>StatsEntry</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatsEntry">StatsEntry</a>(key:&nbsp;'str',&nbsp;value:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;pre-formatted&nbsp;stats&nbsp;line&nbsp;(i18n-neutral:&nbsp;the&nbsp;provider&nbsp;formats).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StatsEntry-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__init__"><strong>__init__</strong></a>(self, key: 'str', value: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="StatsEntry-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>key</strong></dt>
+</dl>
+<dl><dt><strong>value</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'key': 'str', 'value': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'value': Field(name='value',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'value')</dl>
 
 </td></tr></table></td></tr></table>
 </body></html>
