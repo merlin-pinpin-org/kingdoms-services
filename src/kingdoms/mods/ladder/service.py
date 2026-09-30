@@ -79,6 +79,10 @@ class LadderDatabase(Protocol):
         """List the players currently queued on a ladder."""
         ...
 
+    async def find_ladder_players(self, ladder_id: str) -> list[dict[str, Any]]:
+        """List every registered player of a ladder."""
+        ...
+
     async def find_active_match(self, ladder_id: str, user_id: str) -> dict[str, Any] | None:
         """Return the user's live match on the ladder; None when free."""
         ...
@@ -696,9 +700,8 @@ class LadderService:
 
     async def leaderboard(self, ladder_id: str, limit: int = 100) -> list[PlayerModel]:
         """Top players by rating, rank-assigned (ties share order)."""
-        docs = await self._db.find_queued_players(ladder_id)
-        all_docs = [d for d in docs if d.get("queued_at") is not None or True]
-        players = [PlayerModel.from_mongo(d) for d in all_docs]
+        docs = await self._db.find_ladder_players(ladder_id)
+        players = [PlayerModel.from_mongo(d) for d in docs]
         players.sort(key=lambda p: (-p.rating, p.matches_count))
         return players[:limit]
 

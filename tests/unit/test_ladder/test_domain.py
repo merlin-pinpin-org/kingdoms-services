@@ -60,6 +60,9 @@ class FakeLadderDatabase:
     async def find_queued_players(self, ladder_id: str) -> list[dict[str, Any]]:
         return [d for d in self._collection(PLAYERS_COLLECTION).values() if d.get("queued_at") is not None]
 
+    async def find_ladder_players(self, ladder_id: str) -> list[dict[str, Any]]:
+        return [d for d in self._collection(PLAYERS_COLLECTION).values() if d.get("ladder_id") == ladder_id]
+
     async def find_active_match(self, ladder_id: str, user_id: str) -> dict[str, Any] | None:
         for d in self._collection(MATCHES_COLLECTION).values():
             m = MatchModel.from_mongo(d)

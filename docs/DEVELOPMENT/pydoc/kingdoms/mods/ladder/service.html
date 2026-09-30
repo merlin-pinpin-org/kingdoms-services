@@ -288,6 +288,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LadderDatabase-find_ladder_matches"><strong>find_ladder_matches</strong></a>(self, ladder_id: 'str', statuses: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;ladder's&nbsp;matches&nbsp;in&nbsp;any&nbsp;of&nbsp;the&nbsp;given&nbsp;statuses.</span></dd></dl>
 
+<dl><dt>async <a name="LadderDatabase-find_ladder_players"><strong>find_ladder_players</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;registered&nbsp;player&nbsp;of&nbsp;a&nbsp;ladder.</span></dd></dl>
+
 <dl><dt>async <a name="LadderDatabase-find_player"><strong>find_player</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;player&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="LadderDatabase-find_queued_players"><strong>find_queued_players</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;players&nbsp;currently&nbsp;queued&nbsp;on&nbsp;a&nbsp;ladder.</span></dd></dl>
@@ -316,7 +318,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_match', 'find_entry', 'find_ladder_by_owner', 'find_ladder_matches', 'find_player', 'find_queued_players', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_match', 'find_entry', 'find_ladder_by_owner', 'find_ladder_matches', 'find_ladder_players', 'find_player', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
