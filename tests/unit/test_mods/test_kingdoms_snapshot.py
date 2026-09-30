@@ -29,12 +29,12 @@ from kingdoms.mods.kingdoms.snapshot import (
 
 
 def _kingdom(kingdom_id: str = "k-a", name: str = "Aquitaine", kind: KingdomType = KingdomType.PLAYER) -> KingdomModel:
-    return KingdomModel(id=kingdom_id, season_id="s1", type=kind, name=name)
+    return KingdomModel(_id=kingdom_id, season_id="s1", type=kind, name=name)
 
 
 def _season() -> SeasonState:
     return SeasonState(
-        id="s1",
+        _id="s1",
         started_at=datetime(2026, 10, 1, tzinfo=UTC),
         weeks=4,
         current_cycle=2,
@@ -67,10 +67,10 @@ def test_kingdom_card_projects_king_lords_and_marriages() -> None:
     """The profile card reads the king, the lords and the married lords."""
     kingdom = _kingdom()
     lords = (
-        LordModel(id="l1", season_id="s1", role=LordRole.KING, display_name="Drasah", married_civilization=None),
-        LordModel(id="l2", season_id="s1", role=LordRole.LORD, display_name="Sir Lancelot", married_civilization=None),
+        LordModel(_id="l1", season_id="s1", role=LordRole.KING, display_name="Drasah", married_civilization=None),
+        LordModel(_id="l2", season_id="s1", role=LordRole.LORD, display_name="Sir Lancelot", married_civilization=None),
         LordModel(
-            id="l3",
+            _id="l3",
             season_id="s1",
             role=LordRole.LORD,
             display_name="Lady Morgane",
@@ -98,8 +98,8 @@ def test_territory_lines_map_owners_by_id() -> None:
     gaia = _kingdom(kingdom_id="k-g", name="Gaïa", kind=KingdomType.GAIA)
     drawn = datetime(2026, 10, 2, tzinfo=UTC)
     territories = (
-        TerritoryModel(id="t1", season_id="s1", map_key="arabie", owner_kingdom_id="k-a", drawn_at=drawn),
-        TerritoryModel(id="t2", season_id="s1", map_key="oasis", owner_kingdom_id="k-g", drawn_at=drawn),
+        TerritoryModel(_id="t1", season_id="s1", map_key="arabie", owner_kingdom_id="k-a", drawn_at=drawn),
+        TerritoryModel(_id="t2", season_id="s1", map_key="oasis", owner_kingdom_id="k-g", drawn_at=drawn),
     )
     lines = territory_lines(territories, {"k-a": aquitaine, "k-g": gaia})
     assert [(line.map_name, line.owner_name) for line in lines] == [
@@ -111,7 +111,7 @@ def test_territory_lines_map_owners_by_id() -> None:
 def test_territory_lines_survive_a_dangling_owner() -> None:
     """A dangling owner id maps to the empty label, never a crash."""
     drawn = datetime(2026, 10, 2, tzinfo=UTC)
-    territories = (TerritoryModel(id="t1", season_id="s1", map_key="arabie", owner_kingdom_id="k-x", drawn_at=drawn),)
+    territories = (TerritoryModel(_id="t1", season_id="s1", map_key="arabie", owner_kingdom_id="k-x", drawn_at=drawn),)
     lines = territory_lines(territories, {"k-a": _kingdom()})
     assert lines[0].owner_name == ""
 
@@ -135,5 +135,5 @@ def test_season_label_falls_back_on_an_unknown_age() -> None:
 def test_tech_points_of_reads_zero_when_missing() -> None:
     """A kingdom without a technology state reads as zero points."""
     assert tech_points_of(None) == 0
-    state = TechnologyState(kingdom_id="k-a", season_id="s1", tech_points=3)
+    state = TechnologyState(_id="k-a", season_id="s1", tech_points=3)
     assert tech_points_of(state) == 3
