@@ -36,7 +36,7 @@ def _brute_force_max_matching(n: int, adj: list[list[int]]) -> int:
 
 def test_blossom_matches_brute_force_on_random_graphs() -> None:
     """Blossom output size == brute-force maximum on random small graphs."""
-    rng = random.Random(2024)
+    rng = random.Random(2024)  # noqa: S311 - test rng
     for graph_index in range(40):
         n = rng.randint(2, 8)
         edges: set[tuple[int, int]] = set()
@@ -98,7 +98,7 @@ def test_property_reciprocity_required() -> None:
 
 @pytest.mark.parametrize("wait_s,expected", [(0, 60), (14, 60), (15, 80), (45, 120), (10000, 400)])
 def test_threshold_widening_schedule(wait_s: int, expected: int) -> None:
-    """Threshold = base + increment × steps, capped at max."""
+    """Threshold = base + increment x steps, capped at max."""
     settings = _settings()
     entry = QueueEntry("a", 1000, NOW - wait_s * 1000)
     from kingdoms.mods.ladder.matchmaking import threshold
