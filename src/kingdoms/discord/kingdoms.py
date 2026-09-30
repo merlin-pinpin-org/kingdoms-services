@@ -7,12 +7,11 @@ discord.ui classes, never content= on a V2 message (the wire rule).
 Season state reads are Lot C wiring: until the season-launch workflow
 lands, every subcommand renders the no-season placeholder — the screen
 structure is real, the season data is not yet (reference §3, D38/D52).
-Strings follow the drasah pattern (designer-authored, FR/EN dict).
-
-Command names and descriptions are registered with Discord native
-localizations: a French client sees /kingdoms cadastre, royaume, delais,
-diplomatie, gazette; an English client sees the English names —
-per-user locale, inside the guild.
+Strings follow the drasah pattern (designer-authored, FR/EN dict) for
+the runtime screens; the command names and descriptions are
+localizable through the shared catalog (``commands.kingdoms_*`` keys
+in ``config/locales/<locale>.yaml``), so a French client sees
+/kingdoms cadastre, royaume, delais, diplomatie, gazette.
 """
 from __future__ import annotations
 
@@ -21,6 +20,7 @@ import logging
 import discord
 from discord import app_commands
 
+from kingdoms.discord.commands_i18n import localized
 from kingdoms.mods.kingdoms.views import build_no_season_layout
 
 logger = logging.getLogger("kingdoms.kingdoms_command")
@@ -109,26 +109,27 @@ async def _send_placeholder(
     )
 
 
-def _fr(key: str) -> str:
-    """Return the French variant of a registered string."""
-    return STRINGS["fr"][key]
-
-
 def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) -> None:
     """Register the /kingdoms command group on the command tree."""
     group = app_commands.Group(
-        name="kingdoms",
-        description=STRINGS[DEFAULT_LOCALE]["group_description"],
-        description_localizations={discord.Locale.french: _fr("group_description")},
+        name=localized("commands.kingdoms_name", "kingdoms"),
+        description=localized(
+            "commands.kingdoms_description",
+            STRINGS[DEFAULT_LOCALE]["group_description"],
+        ),
         guild_only=True,
     )
     tree.add_command(group)
 
     @group.command(
-        name=STRINGS[DEFAULT_LOCALE]["cadastre_name"],
-        name_localizations={discord.Locale.french: _fr("cadastre_name")},
-        description=STRINGS[DEFAULT_LOCALE]["cadastre_description"],
-        description_localizations={discord.Locale.french: _fr("cadastre_description")},
+        name=localized(
+            "commands.kingdoms_cadastre_name",
+            STRINGS[DEFAULT_LOCALE]["cadastre_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_cadastre_description",
+            STRINGS[DEFAULT_LOCALE]["cadastre_description"],
+        ),
     )
     async def cadastre(interaction: discord.Interaction) -> None:
         """B1 — the cadastre screen (placeholder until a season runs)."""
@@ -136,12 +137,21 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         await _send_placeholder(interaction, strings, strings["cadastre_title"])
 
     @group.command(
-        name=STRINGS[DEFAULT_LOCALE]["profile_name"],
-        name_localizations={discord.Locale.french: _fr("profile_name")},
-        description=STRINGS[DEFAULT_LOCALE]["profile_description"],
-        description_localizations={discord.Locale.french: _fr("profile_description")},
+        name=localized(
+            "commands.kingdoms_kingdom_name",
+            STRINGS[DEFAULT_LOCALE]["profile_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_kingdom_description",
+            STRINGS[DEFAULT_LOCALE]["profile_description"],
+        ),
     )
-    @app_commands.describe(kingdom=STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"])
+    @app_commands.describe(
+        kingdom=localized(
+            "commands.kingdoms_kingdom_arg_description",
+            STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"],
+        )
+    )
     async def profile(
         interaction: discord.Interaction,
         kingdom: str | None = None,
@@ -152,10 +162,14 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         await _send_placeholder(interaction, strings, strings["profile_title"])
 
     @group.command(
-        name=STRINGS[DEFAULT_LOCALE]["delays_name"],
-        name_localizations={discord.Locale.french: _fr("delays_name")},
-        description=STRINGS[DEFAULT_LOCALE]["delays_description"],
-        description_localizations={discord.Locale.french: _fr("delays_description")},
+        name=localized(
+            "commands.kingdoms_delays_name",
+            STRINGS[DEFAULT_LOCALE]["delays_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_delays_description",
+            STRINGS[DEFAULT_LOCALE]["delays_description"],
+        ),
     )
     async def delays(interaction: discord.Interaction) -> None:
         """B3 — the attack delays screen (placeholder until a season runs)."""
@@ -163,12 +177,21 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         await _send_placeholder(interaction, strings, strings["delays_title"])
 
     @group.command(
-        name=STRINGS[DEFAULT_LOCALE]["diplomacy_name"],
-        name_localizations={discord.Locale.french: _fr("diplomacy_name")},
-        description=STRINGS[DEFAULT_LOCALE]["diplomacy_description"],
-        description_localizations={discord.Locale.french: _fr("diplomacy_description")},
+        name=localized(
+            "commands.kingdoms_diplomacy_name",
+            STRINGS[DEFAULT_LOCALE]["diplomacy_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_diplomacy_description",
+            STRINGS[DEFAULT_LOCALE]["diplomacy_description"],
+        ),
     )
-    @app_commands.describe(kingdom=STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"])
+    @app_commands.describe(
+        kingdom=localized(
+            "commands.kingdoms_kingdom_arg_description",
+            STRINGS[DEFAULT_LOCALE]["kingdom_arg_description"],
+        )
+    )
     async def diplomacy(
         interaction: discord.Interaction,
         kingdom: str | None = None,
@@ -179,10 +202,14 @@ def register_kingdoms_command(tree: app_commands.CommandTree[discord.Client]) ->
         await _send_placeholder(interaction, strings, strings["diplomacy_title"])
 
     @group.command(
-        name=STRINGS[DEFAULT_LOCALE]["gazette_name"],
-        name_localizations={discord.Locale.french: _fr("gazette_name")},
-        description=STRINGS[DEFAULT_LOCALE]["gazette_description"],
-        description_localizations={discord.Locale.french: _fr("gazette_description")},
+        name=localized(
+            "commands.kingdoms_gazette_name",
+            STRINGS[DEFAULT_LOCALE]["gazette_name"],
+        ),
+        description=localized(
+            "commands.kingdoms_gazette_description",
+            STRINGS[DEFAULT_LOCALE]["gazette_description"],
+        ),
     )
     async def gazette(interaction: discord.Interaction) -> None:
         """B5 — the Gazette screen (placeholder until a season runs)."""
