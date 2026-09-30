@@ -82,7 +82,7 @@ async def test_limit_hit_degrades_and_keeps_queue() -> None:
 async def test_drain_recovers_after_backoff_elapses() -> None:
     sink = RecordingSink(rate_limited_destinations={"matches"})
     clock = FakeClock()
-    pipe = NotificationPipeline(sink, clock=clock, rng=random.Random(42))
+    pipe = NotificationPipeline(sink, clock=clock, rng=random.Random(42))  # noqa: S311 - test rng
     pipe.enqueue("matches", "match.created", {"match": "m1"})
     await pipe.drain()
     assert pipe.pending("matches") == 1
@@ -107,7 +107,7 @@ async def test_healthy_destination_unaffected_by_degraded_one() -> None:
 
 @pytest.mark.asyncio
 async def test_backoff_is_bounded() -> None:
-    rng = random.Random(0)
+    rng = random.Random(0)  # noqa: S311 - test rng
     for failures in range(1, 20):
         from kingdoms.core.services.delivery import _jittered_backoff
 
