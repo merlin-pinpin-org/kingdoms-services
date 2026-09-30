@@ -7,7 +7,6 @@ buy buttons of the diplomacy screen are asserted here.
 from __future__ import annotations
 
 import discord
-import pytest
 
 from kingdoms.mods.kingdoms.views import (
     DelayLine,
@@ -25,7 +24,7 @@ from kingdoms.mods.kingdoms.views import (
 
 def _assert_layout(view: object) -> discord.ui.LayoutView:
     assert isinstance(view, discord.ui.LayoutView)
-    components = view.to_components()
+    components = view.to_components()  # type: ignore[attr-defined]
     assert components, "a layout must serialize to at least one action row"
     return view
 
@@ -70,7 +69,7 @@ def test_diplomacy_layout_disables_buy_buttons() -> None:
     view = build_diplomacy_layout(
         "📖 Diplomatie",
         alliances=("🤝 Bretagne ↔ Northumbrie",),
-        actions=(SpecialActionCard(name="Embuscade", cost=2, description="Espionnage"),),
+        actions=(SpecialActionCard(key="embuscade", name="Embuscade", cost=2, description="Espionnage"),),
         tech_points_label="6",
     )
     _assert_layout(view)

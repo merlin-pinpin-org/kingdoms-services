@@ -20,7 +20,7 @@ from kingdoms.discord.ui.factory import (
     BLURPLE,
     Action,
     Container,
-    Section,
+    Row,
     Separator,
     Text,
     UILayout,
@@ -31,7 +31,7 @@ MOD_KEY = "kingdoms"
 
 async def _noop(interaction: discord.Interaction) -> None:
     """Placeholder callback: disabled buttons never wire real actions."""
-    return None
+    del interaction
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,8 +69,13 @@ class DelayLine:
 
 @dataclass(frozen=True, slots=True)
 class SpecialActionCard:
-    """One purchasable special action of the diplomacy screen (B4)."""
+    """One purchasable special action of the diplomacy screen (B4).
 
+    ``key`` is the slug used in custom_ids and config lookups; the
+    name is the pre-localized display label.
+    """
+
+    key: str
     name: str
     cost: int
     description: str = ""
@@ -150,26 +155,26 @@ def build_diplomacy_layout(
 ) -> discord.ui.LayoutView:
     """B4 — diplomacy: alliances plus the technology shop (C4 preview).
 
-    The buy buttons are rendered disabled: the purchase workflow is a
-    Lot C wiring, not a Lot B view — a disabled button never wires its
-    callback (SDK rule).
+    The buy buttons are rendered disabled in their own action row: the
+    purchase workflow is a Lot C wiring, not a Lot B view — a disabled
+    button never wires its callback (SDK rule).
     """
     container = Container(accent=BLURPLE).add(Text(f"# {title}"))
     container = container.add(Text(f"🔬 {tech_points_label}"))
     container = container.add(Separator())
     for alliance in alliances:
         container = container.add(Text(alliance))
-    container = container.add(Separator())
     for action in actions:
+        container = container.add(Text(f"**{action.name}** — {action.cost} 🔬"))
+        if action.description:
+            container = container.add(Text(action.description))
         button = Action(
-            f"{action.name} — {action.cost} 🔬",
-            f"{MOD_KEY}:tech:{action.name}",
+            action.name,
+            f"{MOD_KEY}:tech:{action.key}",
             _noop,
             disabled=True,
         )
-        container = container.add(
-            Section(Text(f"**{action.name}**"), Text(action.description), button=button)
-        )
+        container = container.add(Row(button))
     if footer:
         container = container.add(Separator()).add(Text(f"-# {footer}"))
     return UILayout().add(container).build()

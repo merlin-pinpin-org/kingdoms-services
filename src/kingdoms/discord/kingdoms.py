@@ -37,7 +37,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "gazette_name": "gazette",
         "gazette_description": "The weekly cycle summary",
         "gazette_title": "📣 The Gazette",
-        "no_season": "No season is running yet. An admin will launch the season soon — live data will show here once it starts.",
+        "no_season": (
+            "No season is running yet. An admin will launch the season soon "
+            "— live data will show here once it starts."
+        ),
         "footer": "Kingdoms — AoE2 territory conquest",
     },
     "fr": {
@@ -54,15 +57,18 @@ STRINGS: dict[str, dict[str, str]] = {
         "gazette_name": "gazette",
         "gazette_description": "Le résumé hebdomadaire du cycle",
         "gazette_title": "📣 La Gazette",
-        "no_season": "Aucune saison n'est en cours. Un admin lancera la saison prochainement — les données réelles s'afficheront ici dès le lancement.",
+        "no_season": (
+            "Aucune saison n'est en cours. Un admin lancera la saison prochainement "
+            "— les données réelles s'afficheront ici dès le lancement."
+        ),
         "footer": "Kingdoms — conquête de territoires AoE2",
     },
 }
 
 
-def _strings_for(locale: str | None) -> dict[str, str]:
+def _strings_for(locale: discord.Locale | None) -> dict[str, str]:
     """Pick the string set for an interaction locale (English fallback)."""
-    if locale and str(locale).startswith("fr"):
+    if locale is not None and str(locale).startswith("fr"):
         return STRINGS["fr"]
     return STRINGS[DEFAULT_LOCALE]
 
