@@ -20,6 +20,7 @@ from kingdoms.core.rpc.client import build_channel, call_with_retry
 from kingdoms.core.rpc.game import (
     game_map_from_wire,
     match_details_from_wire,
+    match_event_from_wire,
     player_stats_from_wire,
 )
 from kingdoms.rpc_generated.kingdoms.v1 import game_pb2, game_pb2_grpc
@@ -127,3 +128,29 @@ class GameProviderClient:
                 raise
         stats = player_stats_from_wire(reply)
         return PlayerStats(profile_id=profile_id, blocks=stats.blocks)
+
+    def stream_match_events(self, since: int):
+        """Stream live match events from the provider, degrading to silence.
+
+        The generator yields MatchEvent models as they arrive; on a
+        lost stream it yields nothing and returns — the caller (the
+        live aggregator loop) retries with backoff.
+        """
+        return self._stream_match_events(since)
+
+    async def _stream_match_events(self, since: int):
+        async with build_channel(self._provider_uri) as channel:
+            stub = game_pb2_grpc.GameStub(channel)
+            try:
+                call = stub.StreamMatchEvents(
+                    game_pb2.StreamMatchEventsRequest(since=since),
+                )
+                async for wire in call:
+                    yield match_event_from_wire(wire)
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in (
+                    grpc.StatusCode.UNIMPLEMENTED,
+                    grpc.StatusCode.UNAVAILABLE,
+                ):
+                    return
+                raise

@@ -69,6 +69,12 @@ already&nbsp;knows&nbsp;instead&nbsp;of&nbsp;failing&nbsp;the&nbsp;workflow.</sp
 
 <dl><dt>async <a name="GameProviderClient-list_maps"><strong>list_maps</strong></a>(self) -&gt; 'list[GameMap]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;map&nbsp;catalog,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
 
+<dl><dt><a name="GameProviderClient-stream_match_events"><strong>stream_match_events</strong></a>(self, since: 'int')</dt><dd><span class="code">Stream&nbsp;live&nbsp;match&nbsp;events&nbsp;from&nbsp;the&nbsp;provider,&nbsp;degrading&nbsp;to&nbsp;silence.<br>
+&nbsp;<br>
+The&nbsp;generator&nbsp;yields&nbsp;MatchEvent&nbsp;models&nbsp;as&nbsp;they&nbsp;arrive;&nbsp;on&nbsp;a<br>
+lost&nbsp;stream&nbsp;it&nbsp;yields&nbsp;nothing&nbsp;and&nbsp;returns&nbsp;—&nbsp;the&nbsp;caller&nbsp;(the<br>
+live&nbsp;aggregator&nbsp;loop)&nbsp;retries&nbsp;with&nbsp;backoff.</span></dd></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>provider_id</strong></dt>

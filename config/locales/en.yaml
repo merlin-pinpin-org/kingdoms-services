@@ -43,6 +43,12 @@ en:
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"
+    live_name: "live"
+    live_description: "Live test dashboard: linked players, lobbies and games"
+    live_link_name: "live-link"
+    live_link_description: "Link your AoE2 profile id to your account (test scope)"
+    live_unlink_name: "live-unlink"
+    live_unlink_description: "Unlink your AoE2 profile from your account"
   errors:
     validation: "Invalid input. Please check your values and try again."
     configuration: "Configuration error. Please contact an administrator."

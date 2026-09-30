@@ -43,6 +43,12 @@ fr:
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
+    live_name: "live"
+    live_description: "Dashboard de test en direct : joueurs liés, lobbys et parties"
+    live_link_name: "live-link"
+    live_link_description: "Lier votre profil AoE2 à votre compte (portée test)"
+    live_unlink_name: "live-unlink"
+    live_unlink_description: "Déliés votre profil AoE2 de votre compte"
   errors:
     validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
     configuration: "Erreur de configuration. Contactez un administrateur."
