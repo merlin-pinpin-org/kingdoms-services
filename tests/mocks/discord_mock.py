@@ -280,7 +280,12 @@ class MockTextChannel(discord.TextChannel):
         self.guild = guild or MockGuild()
         self._category = category
         self._permissions: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
-        self._creation_overwrites = dict(kwargs.pop("overwrites", None) or {})
+        overwrites = kwargs.pop("overwrites", None)
+        if overwrites is None:
+            overwrites = {}
+        if not isinstance(overwrites, dict):
+            raise TypeError("overwrites parameter expects a dict.")
+        self._creation_overwrites = dict(overwrites)
         self.messages: list[MockMessage] = []
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -408,7 +413,11 @@ class MockCategoryChannel(discord.CategoryChannel):
         self.position = position
         self.guild = guild or MockGuild()
         self._channels: list[MockChannel] = []
-        self._overwrites = dict(overwrites) if overwrites else {}
+        if overwrites is None:
+            overwrites = {}
+        if not isinstance(overwrites, dict):
+            raise TypeError("overwrites parameter expects a dict.")
+        self._overwrites = dict(overwrites)
         for key, value in kwargs.items():
             setattr(self, key, value)
 

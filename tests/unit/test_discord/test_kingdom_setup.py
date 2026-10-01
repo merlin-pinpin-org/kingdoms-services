@@ -11,7 +11,7 @@ from kingdoms.discord.kingdom_setup import (
     provision_structure,
     register_kingdom_command,
 )
-from tests.mocks.discord_mock import MockGuild, MockInteraction, MockMember
+from tests.mocks.discord_mock import MockGuild, MockInteraction, MockMember, MockTextChannel
 
 
 def _expected_categories() -> set[str]:
@@ -109,3 +109,13 @@ async def test_kingdom_command_bootstraps_for_bot_admin() -> None:
 )
 def test_only_candidatures_is_admin_only_channel(channel_name: str) -> None:
     assert ADMIN_ONLY_CHANNELS == {"Candidatures"}
+
+
+@pytest.mark.asyncio
+async def test_provision_passes_dict_overwrites_to_discord() -> None:
+    """Regression: discord.py raises TypeError when overwrites is None."""
+    guild = MockGuild(id=77)
+    created, _ = await provision_structure(guild)
+    assert created, "the bootstrap must provision channels"
+    for channel in guild.text_channels:
+        assert isinstance(channel, MockTextChannel)

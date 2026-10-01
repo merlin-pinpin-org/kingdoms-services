@@ -48,9 +48,9 @@ ADMIN_ONLY_CHANNELS = {"Candidatures"}
 
 def _everyone_overwrites(
     guild: discord.Guild,
-) -> dict[discord.Role | discord.Member, discord.PermissionOverwrite]:
+) -> dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite]:
     """Build the admin-only overwrites: @everyone denied, the bot allowed."""
-    overwrites: dict[discord.Role | discord.Member, discord.PermissionOverwrite] = {
+    overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
     }
     if guild.me is not None:
@@ -87,11 +87,11 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     for category_name, channel_names, category_admin_only in SALONS_FIRST_STRUCTURE:
         category = _find_category(guild, category_name)
         if category is None:
-            overwrites = _everyone_overwrites(guild) if category_admin_only else None
+            overwrites = _everyone_overwrites(guild) if category_admin_only else {}
             category = await guild.create_category(
                 category_name,
                 reason="kingdoms: salons-first bootstrap",
-                overwrites=overwrites,  # type: ignore[arg-type]
+                overwrites=overwrites,
             )
             created.append(category_name)
         else:
@@ -103,12 +103,12 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
                 adopted.append(f"{category_name}/{channel_name}")
                 continue
             admin_only = category_admin_only or channel_name in ADMIN_ONLY_CHANNELS
-            overwrites = _everyone_overwrites(guild) if admin_only else None
+            overwrites = _everyone_overwrites(guild) if admin_only else {}
             await guild.create_text_channel(
                 channel_name,
                 reason=f"kingdoms: provision the {channel_name} channel",
                 category=category,
-                overwrites=overwrites,  # type: ignore[arg-type]
+                overwrites=overwrites,
             )
             created.append(f"{category_name}/{channel_name}")
 
