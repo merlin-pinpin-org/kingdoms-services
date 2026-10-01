@@ -43,6 +43,8 @@ en:
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"
+    register_name: "register"
+    register_description: "Link your AoE2 profile to your account (DM enrollment)"
     live_name: "live"
     live_description: "Live test dashboard: linked players, lobbies and games"
     live_link_name: "live-link"
