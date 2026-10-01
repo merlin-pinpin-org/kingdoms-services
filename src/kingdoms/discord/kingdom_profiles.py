@@ -29,10 +29,10 @@ PROFILES_CATEGORY = "Profils"
 PENDING_REQUESTS_CHANNEL = "Demandes"
 
 STATE_MESSAGE_HEADER = "📋 Kingdoms — profil"
-DECISION_ACCEPT_LEAVE_ID = "kingdoms:profile:leave-approve"
-DECISION_REFUSE_LEAVE_ID = "kingdoms:profile:leave-refuse"
-DECISION_ACCEPT_EDIT_ID = "kingdoms:profile:edit-approve"
-DECISION_REFUSE_EDIT_ID = "kingdoms:profile:edit-refuse"
+DECISION_ACCEPT_LEAVE_ID = "kingdoms:request:leave-approve"
+DECISION_REFUSE_LEAVE_ID = "kingdoms:request:leave-refuse"
+DECISION_ACCEPT_EDIT_ID = "kingdoms:request:edit-approve"
+DECISION_REFUSE_EDIT_ID = "kingdoms:request:edit-refuse"
 
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
@@ -69,6 +69,20 @@ STRINGS: dict[str, dict[str, str]] = {
         "edit_approved": "The modification has been applied to the profile.",
         "edit_refused": "The modification request was refused.",
         "no_channel": "The profile channel could not be found.",
+        "admin_section": "Administration",
+        "remove_player_button": "🗑️ Remove a player / an application",
+        "remove_player_title": "Remove a player",
+        "remove_player_field": "Player (mention or id)",
+        "remove_player_not_found": "No player found — mention them or give their id.",
+        "remove_player_done": "{} has been removed from the season (roles revoked).",
+        "reset_salons_button": "♻️ Reset the salons",
+        "reset_confirm_title": "Reset the Kingdoms salons?",
+        "reset_confirm_hint": "This deletes every kingdoms channel and category (including profiles).",
+        "reset_confirm_button": "✅ Yes, reset",
+        "reset_cancel_button": "❌ Cancel",
+        "reset_cancelled": "Reset cancelled.",
+        "reset_done": "Reset complete — {} items deleted. Run /kingdom to bootstrap again.",
+        "reset_failed": "The reset failed — check the bot logs.",
     },
     "fr": {
         "profile_title": "📋 {} — profil Kingdoms",
@@ -104,6 +118,20 @@ STRINGS: dict[str, dict[str, str]] = {
         "edit_approved": "La modification a été appliquée au profil.",
         "edit_refused": "La demande de modification a été refusée.",
         "no_channel": "Le salon de profil n'a pas pu être trouvé.",
+        "admin_section": "Administration",
+        "remove_player_button": "🗑️ Retirer un joueur / une candidature",
+        "remove_player_title": "Retirer un joueur",
+        "remove_player_field": "Joueur (mention ou id)",
+        "remove_player_not_found": "Aucun joueur trouvé — mentionnez-le ou donnez son id.",
+        "remove_player_done": "{} a été retiré de la saison (rôles révoqués).",
+        "reset_salons_button": "♻️ Réinitialiser les salons",
+        "reset_confirm_title": "Réinitialiser les salons Kingdoms ?",
+        "reset_confirm_hint": "Cela supprime tous les salons et catégories kingdoms (profils inclus).",
+        "reset_confirm_button": "✅ Oui, réinitialiser",
+        "reset_cancel_button": "❌ Annuler",
+        "reset_cancelled": "Réinitialisation annulée.",
+        "reset_done": "Réinitialisation terminée — {} éléments supprimés. Relancez /kingdom pour recréer la structure.",
+        "reset_failed": "La réinitialisation a échoué — consultez les logs du bot.",
     },
 }
 
@@ -230,22 +258,18 @@ def build_profile_view(locale: str, *, validated: bool) -> discord.ui.View:
     async def on_leave(interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(_LeaveModal(locale))
 
-    edit_label = strings["edit_request_button"] if validated else strings["edit_button"]
-    buttons: list[tuple[str, str, Any]] = [
-        ("edit", edit_label, on_edit),
-        ("stats", strings["stats_button"], on_stats),
-        ("success", strings["success_button"], on_success),
-        ("leave", strings["leave_button"], on_leave),
-    ]
+    from kingdoms.discord.kingdom_persistent import KingdomProfileButton
+
+    labels = {
+        "edit": strings["edit_request_button"] if validated else strings["edit_button"],
+        "stats": strings["stats_button"],
+        "success": strings["success_button"],
+        "leave": strings["leave_button"],
+    }
     view = discord.ui.View(timeout=None)
-    for key, label, handler in buttons:
-        button: discord.ui.Button[Any] = discord.ui.Button(
-            label=label[:80],
-            style=discord.ButtonStyle.primary if key == "edit" else discord.ButtonStyle.secondary,
-            custom_id=f"kingdoms:profile:{key}",
-        )
-        button.callback = handler  # type: ignore[method-assign]
-        view.add_item(button)
+    for key, label in labels.items():
+        style = discord.ButtonStyle.primary if key == "edit" else discord.ButtonStyle.secondary
+        view.add_item(KingdomProfileButton(key, label[:80], style))
     return view
 
 
@@ -319,10 +343,10 @@ def _request_decision_view(locale: str, request_kind: str) -> discord.ui.View:
 
     view = discord.ui.View(timeout=None)
     approve: discord.ui.Button[Any] = discord.ui.Button(
-        label="✅", style=discord.ButtonStyle.success, custom_id=f"kingdoms:profile:{request_kind}-approve"
+        label="✅", style=discord.ButtonStyle.success, custom_id=f"kingdoms:request:{request_kind}-approve"
     )
     refuse: discord.ui.Button[Any] = discord.ui.Button(
-        label="❌", style=discord.ButtonStyle.danger, custom_id=f"kingdoms:profile:{request_kind}-refuse"
+        label="❌", style=discord.ButtonStyle.danger, custom_id=f"kingdoms:request:{request_kind}-refuse"
     )
 
     async def on_approve(interaction: discord.Interaction) -> None:

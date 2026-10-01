@@ -310,6 +310,10 @@ class MockTextChannel(discord.TextChannel):
         """The overwrite given at creation time (in-memory mirror)."""
         return self._creation_overwrites.get(target)
 
+    async def delete(self, *, delay: float | None = None) -> None:
+        """Remove the channel from its guild (in-memory mirror)."""
+        await self.guild.delete_channel(self)
+
     async def send(
         self,
         content: str | None = None,
@@ -432,6 +436,10 @@ class MockCategoryChannel(discord.CategoryChannel):
     def add_channel(self, channel: MockChannel) -> None:
         if channel not in self._channels:
             self._channels.append(channel)
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        """Remove the category from its guild (in-memory mirror)."""
+        self.guild._channels.pop(self.id, None)
 
     async def create_text_channel(self, name: str, **kwargs: Any) -> MockTextChannel:
         """Create a channel inside the category (in-memory mirror)."""

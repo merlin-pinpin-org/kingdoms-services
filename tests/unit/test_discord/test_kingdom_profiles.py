@@ -21,6 +21,7 @@ from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
     MockMember,
+    MockMessage,
 )
 
 
@@ -90,12 +91,14 @@ def strings_role_label_fr() -> str:
 async def test_profile_buttons_answer_placeholder() -> None:
     """Stats and achievements answer with the coming-soon note."""
     view = build_profile_view("fr", validated=False)
-    by_custom_id = {child.custom_id: child for child in view.children}
+    by_custom_id = {child.item.custom_id: child for child in view.children}
     interaction = MockInteraction(user=MockMember(name="p", guild=MockGuild(id=7)))
+    interaction.locale = "fr"
     await by_custom_id["kingdoms:profile:stats"].callback(interaction)
     assert "ultérieurement" in (interaction.response.message or "").content
 
     interaction = MockInteraction(user=MockMember(name="p", guild=MockGuild(id=7)))
+    interaction.locale = "fr"
     await by_custom_id["kingdoms:profile:success"].callback(interaction)
     assert "ultérieurement" in (interaction.response.message or "").content
 
@@ -104,8 +107,9 @@ async def test_profile_buttons_answer_placeholder() -> None:
 async def test_edit_button_before_validation_is_free() -> None:
     """Before validation, the edit button answers with the free-edit note."""
     view = build_profile_view("fr", validated=False)
-    by_custom_id = {child.custom_id: child for child in view.children}
+    by_custom_id = {child.item.custom_id: child for child in view.children}
     interaction = MockInteraction(user=MockMember(name="p", guild=MockGuild(id=7)))
+    interaction.locale = "fr"
     await by_custom_id["kingdoms:profile:edit"].callback(interaction)
     assert "pas encore été examinée" in (interaction.response.message or "").content
 
@@ -116,9 +120,13 @@ async def test_edit_button_after_validation_relays_request() -> None:
     guild = MockGuild(id=7)
     admin_category = await guild.create_category("Admin")
     demandes = await guild.create_text_channel(PENDING_REQUESTS_CHANNEL, category=admin_category)
+    from kingdoms.discord.kingdom_profiles import _strings as profile_strings
+
     view = build_profile_view("fr", validated=True)
-    by_custom_id = {child.custom_id: child for child in view.children}
+    by_custom_id = {child.item.custom_id: child for child in view.children}
     interaction = MockInteraction(user=MockMember(name="p", guild=guild), guild=guild)
+    interaction.locale = "fr"
+    interaction.message = MockMessage(content=profile_strings("fr")["state_validated"])
     await by_custom_id["kingdoms:profile:edit"].callback(interaction)
     assert len(demandes.messages) == 1
     assert demandes.messages[0].view is not None
@@ -148,3 +156,61 @@ async def test_request_decision_buttons_close_the_request() -> None:
     interaction.message = None
     await view.children[0].callback(interaction)
     assert interaction.response.sent is True
+
+
+@pytest.mark.asyncio
+async def test_admin_remove_button_opens_modal() -> None:
+    """The remove button (admin) opens the removal modal."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomAdminButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
+    permissions = discord.Permissions(administrator=True)
+    interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=_guild()
+    )
+    button = KingdomAdminButton("remove", "🗑️ Retirer un joueur", discord.ButtonStyle.danger)
+    await button.callback(interaction)
+    assert interaction.response.modal is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_reset_confirms_then_deletes_salons() -> None:
+    """The reset flow asks for confirmation, then deletes the salons."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomAdminButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+    from kingdoms.discord.kingdom_setup import provision_structure
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
+    guild = MockGuild(id=9)
+    await provision_structure(guild)
+    assert guild.text_channels, "structure provisioned"
+
+    permissions = discord.Permissions(administrator=True)
+    interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    interaction.guild = guild
+    interaction.locale = "fr"
+    reset = KingdomAdminButton("reset", "♻️ Réinitialiser", discord.ButtonStyle.danger)
+    await reset.callback(interaction)
+    assert interaction.response.message is not None
+    assert interaction.response.message.view is not None
+
+    confirm = next(
+        c for c in interaction.response.message.view.children if c.item.custom_id.endswith("reset-confirm")
+    )
+    confirm_interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    confirm_interaction.guild = guild
+    confirm_interaction.locale = "fr"
+    await confirm.callback(confirm_interaction)
+    remaining = {c.name.lower() for c in guild.text_channels}
+    assert not ({"postuler", "candidatures", "paramètres", "demandes"} & remaining), "salons deleted"

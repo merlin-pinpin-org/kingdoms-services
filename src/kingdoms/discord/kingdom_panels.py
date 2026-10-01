@@ -38,14 +38,8 @@ from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.ui import (
     BLURPLE,
     GREEN,
-    Action,
-    Container,
     Option,
-    Row,
     SelectMenu,
-    Separator,
-    Text,
-    UILayout,
 )
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
@@ -594,18 +588,12 @@ def _candidature_view(
                     note += " " + strings["no_service"]
         await interaction.followup.send(note, ephemeral=True)
 
-    class _DecisionButton(discord.ui.Button["discord.ui.View"]):
-        def __init__(self, decision: str, emoji: str, style: discord.ButtonStyle) -> None:
-            super().__init__(emoji=emoji, style=style)
-            self._decision = decision
-
-        async def callback(self, interaction: discord.Interaction) -> None:
-            await decide(interaction, self._decision)
+    from kingdoms.discord.kingdom_persistent import KingdomCandidatureButton
 
     view = discord.ui.View(timeout=None)
-    view.add_item(_DecisionButton("approve", "✅", discord.ButtonStyle.success))
-    view.add_item(_DecisionButton("pending", "⏳", discord.ButtonStyle.secondary))
-    view.add_item(_DecisionButton("refuse", "❌", discord.ButtonStyle.danger))
+    view.add_item(KingdomCandidatureButton("approve", "✅", discord.ButtonStyle.success))
+    view.add_item(KingdomCandidatureButton("pending", "⏳", discord.ButtonStyle.secondary))
+    view.add_item(KingdomCandidatureButton("refuse", "❌", discord.ButtonStyle.danger))
     return view
 
 
@@ -635,17 +623,25 @@ async def build_apply_panel(
             ephemeral=True,
         )
 
-    apply_button = Action(strings["apply_button"], APPLY_BUTTON_ID, on_apply, style="primary")
+    from kingdoms.discord.kingdom_persistent import KingdomApplyButton
+
+    del on_apply
+    apply_button = KingdomApplyButton(strings["apply_button"][:80], discord.ButtonStyle.primary)
     title = "Inscriptions" if locale.startswith("fr") else "Enrollment"
-    container = (
-        Container(accent=BLURPLE)
-        .add(Text(f"# 📝 {title}"))
-        .add(Separator())
-        .add(Row(apply_button))
-        .add(Separator())
-        .add(Text(f"-# {PANEL_MARKER}"))
+    apply_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    apply_row.add_item(apply_button)
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# 📝 {title}"),
+            discord.ui.Separator(),
+            apply_row,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"-# {PANEL_MARKER}"),
+            accent_colour=BLURPLE,
+        )
     )
-    return UILayout().add(container).build()
+    return view
 
 
 async def _write_guild_setting(
@@ -712,19 +708,44 @@ async def build_settings_panel(
         on_choose=on_timezone,
         placeholder=strings["timezone"],
     )
-    container = (
-        Container(accent=GREEN)
-        .add(Text(f"# {strings['settings_title']}"))
-        .add(Separator())
-        .add(Text(f"## 🌐 {strings['language']}"))
-        .add(Text(strings["language_hint"]))
-        .add(Row(locale_select))
-        .add(Separator())
-        .add(Text(f"## 🕒 {strings['timezone']}"))
-        .add(Text(strings["timezone_hint"]))
-        .add(Row(timezone_select))
+    from kingdoms.discord.kingdom_persistent import KingdomAdminButton
+    from kingdoms.discord.kingdom_profiles import _strings as profile_strings
+
+    admin_strings = profile_strings(locale)
+    remove_button = KingdomAdminButton(
+        "remove", admin_strings["remove_player_button"][:80], discord.ButtonStyle.danger
     )
-    return UILayout().add(container).build()
+    reset_button = KingdomAdminButton(
+        "reset", admin_strings["reset_salons_button"][:80], discord.ButtonStyle.danger
+    )
+    locale_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    locale_row.add_item(locale_select._to_discord())
+    timezone_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    timezone_row.add_item(timezone_select._to_discord())
+    remove_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    remove_row.add_item(remove_button)
+    reset_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    reset_row.add_item(reset_button)
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# {strings['settings_title']}"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"## 🌐 {strings['language']}"),
+            discord.ui.TextDisplay(strings["language_hint"]),
+            locale_row,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"## 🕒 {strings['timezone']}"),
+            discord.ui.TextDisplay(strings["timezone_hint"]),
+            timezone_row,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
+            remove_row,
+            reset_row,
+            accent_colour=GREEN,
+        )
+    )
+    return view
 
 
 async def deploy_panels(

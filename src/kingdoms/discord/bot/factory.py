@@ -164,11 +164,17 @@ class KingdomsBot(discord.Client):
         deploy (§3b state reconstruction contract).
         """
         from kingdoms.discord.admin_persistent import register_admin_panel_bot, register_admin_persistent_items
+        from kingdoms.discord.kingdom_persistent import (
+            register_kingdoms_panel_bot,
+            register_kingdoms_persistent_items,
+        )
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
+        register_kingdoms_persistent_items(self)
+        register_kingdoms_panel_bot(self)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""

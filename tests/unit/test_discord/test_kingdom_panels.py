@@ -302,7 +302,13 @@ async def test_cancel_button_cancels() -> None:
 @pytest.mark.asyncio
 async def test_candidature_approve_assigns_lord_role() -> None:
     """Approving a Lord application assigns the kingdoms_lord role."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
     roles = _FakeModRoles()
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("111",), mod_roles_service=roles))
     view = _candidature_view("en", bot_admins=("111",), mod_roles_service=roles, guild_id="42")
     assert len(view.children) == 3
 
@@ -310,7 +316,7 @@ async def test_candidature_approve_assigns_lord_role() -> None:
     message = MockMessage(content="role 🎖️ Lord <@999>")
     interaction.message = message
     button = view.children[0]
-    assert button.emoji is not None
+    assert button.item.emoji is not None
     await button.callback(interaction)
     assert roles.assigned == [("999", "kingdoms", ROLE_LORD)]
 
@@ -318,7 +324,13 @@ async def test_candidature_approve_assigns_lord_role() -> None:
 @pytest.mark.asyncio
 async def test_candidature_approve_assigns_king_role() -> None:
     """Approving a King application assigns the kingdoms_king role."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
     roles = _FakeModRoles()
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("111",), mod_roles_service=roles))
     view = _candidature_view("en", bot_admins=("111",), mod_roles_service=roles, guild_id="42")
 
     interaction = _admin_interaction()
