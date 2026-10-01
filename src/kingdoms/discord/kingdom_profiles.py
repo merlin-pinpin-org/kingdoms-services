@@ -118,6 +118,18 @@ STRINGS: dict[str, dict[str, str]] = {
         "add_kingdom_field": "Kingdom name",
         "add_kingdom_done": "The kingdom **{}** has been added to the season.",
         "add_kingdom_failed": "The kingdom could not be added — {}",
+        "launch_button": "▶️ Launch the season",
+        "launch_confirm_title": "Launch a new season?",
+        "launch_confirm_free_hint": "Free kingdoms: Kings found their own. Existing season data is wiped.",
+        "launch_confirm_imposed_hint": "Imposed kingdoms: list the names, comma-separated (leave empty for free mode).",
+        "launch_confirm_button": "✅ Yes, launch",
+        "launch_cancel_button": "❌ Cancel",
+        "launch_cancelled": "Season launch cancelled.",
+        "launch_modal_title": "Launch the season",
+        "launch_names_field": "Kingdom names (comma-separated, empty = free)",
+        "launch_done_free": "Season launched — kingdoms are free to found.",
+        "launch_done_imposed": "Season launched — imposed kingdoms: {}.",
+        "launch_failed": "The launch failed — {}",
     },
     "fr": {
         "profile_title": "📋 {} — profil Kingdoms",
@@ -203,6 +215,22 @@ STRINGS: dict[str, dict[str, str]] = {
         "add_kingdom_field": "Nom du royaume",
         "add_kingdom_done": "Le royaume **{}** a été ajouté à la saison.",
         "add_kingdom_failed": "Le royaume n'a pas pu être ajouté — {}",
+        "launch_button": "▶️ Lancer la saison",
+        "launch_confirm_title": "Lancer une nouvelle saison ?",
+        "launch_confirm_free_hint": (
+            "Royaumes libres : les Rois fondent le leur. Les données de la saison actuelle sont remises à zéro."
+        ),
+        "launch_confirm_imposed_hint": (
+            "Royaumes imposés : listez les noms, séparés par des virgules (vide = mode libre)."
+        ),
+        "launch_confirm_button": "✅ Oui, lancer",
+        "launch_cancel_button": "❌ Annuler",
+        "launch_cancelled": "Lancement de saison annulé.",
+        "launch_modal_title": "Lancer la saison",
+        "launch_names_field": "Noms des royaumes (virgules, vide = libre)",
+        "launch_done_free": "Saison lancée — les royaumes sont libres à fonder.",
+        "launch_done_imposed": "Saison lancée — royaumes imposés : {}.",
+        "launch_failed": "Le lancement a échoué — {}",
     },
 }
 

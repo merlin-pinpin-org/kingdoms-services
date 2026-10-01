@@ -57,7 +57,7 @@ QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
 SETTINGS_PANEL_MARKER = "kingdoms:panel:parametres"
 SEASON_STATUS_MARKER = "kingdoms:season:status"
-SEASON_STATUS_CHANNEL = "paramètre-saison-ii"
+SEASON_STATUS_CHANNEL = "saison"
 UPDATE_CHANNEL = "update"
 CHANGELOG_MARKER = "kingdoms:update:changelog"
 
@@ -158,6 +158,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "refused": "❌ refused",
         "role_assigned": "The {} role has been assigned.",
         "no_service": "The enrollment service is not available right now.",
+        "enroll_failed": "Enrollment failed ({}).",
+        "enroll_queued": "The player is now waiting in the queue.",
+        "enrolled_kingdom": "Enrolled in kingdom {}.",
         "settings_title": "⚙️ Kingdoms — settings",
         "language": "Language",
         "timezone": "Reference timezone",
@@ -222,6 +225,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "refused": "❌ refusée",
         "role_assigned": "Le rôle {} a été attribué.",
         "no_service": "Le service d'inscription n'est pas disponible pour le moment.",
+        "enroll_failed": "L'inscription a échoué ({}).",
+        "enroll_queued": "Le joueur est maintenant en attente d'un royaume.",
+        "enrolled_kingdom": "Inscrit dans le royaume {}.",
         "settings_title": "⚙️ Kingdoms — paramètres",
         "language": "Langue",
         "timezone": "Fuseau horaire de référence",
@@ -738,6 +744,7 @@ async def build_settings_panel(
 
     admin_strings = profile_strings(locale)
     buttons = (
+        ("launch", "launch_button", discord.ButtonStyle.success),
         ("status", "status_button", discord.ButtonStyle.secondary),
         ("deploy", "deploy_button", discord.ButtonStyle.primary),
         ("sync", "sync_button", discord.ButtonStyle.secondary),
@@ -749,7 +756,7 @@ async def build_settings_panel(
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 4 else maintenance_row
+        target = season_row if index < 5 else maintenance_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
@@ -776,8 +783,10 @@ async def refresh_season_status(
 ) -> bool:
     """Post (or refresh) the season status message in the dedicated channel."""
     strings = _strings(locale)
+    from kingdoms.discord.kingdom_setup import _slug
+
     channel = next(
-        (c for c in guild.text_channels if c.name.lower().replace(" ", "-") == SEASON_STATUS_CHANNEL),
+        (c for c in guild.text_channels if _slug(c.name) == SEASON_STATUS_CHANNEL),
         None,
     )
     if channel is None:

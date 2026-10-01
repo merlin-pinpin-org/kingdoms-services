@@ -43,7 +43,7 @@ SALONS_FIRST_STRUCTURE: tuple[tuple[str, tuple[tuple[str, str], ...], bool], ...
             ("Présentation", "announce"),
             ("Annonce", "announce"),
             ("Règles", "forum"),
-            ("Paramètre Saison II", "text"),
+            ("Saison", "text"),
             ("Update", "announce"),
             ("Taverne", "text"),
             ("Suggestion", "forum"),
@@ -174,7 +174,32 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
                 )
             created.append(f"{category_name}/{channel_name}")
 
+        await _reorder_category(category, channel_names)
+
     return created, adopted
+
+
+async def _reorder_category(
+    category: discord.CategoryChannel,
+    channel_names: tuple[tuple[str, str], ...],
+) -> None:
+    """Impose the designer's channel order inside one category (and adopt renames)."""
+    for position, (channel_name, _kind) in enumerate(channel_names):
+        channel = _find_channel(category.guild, category, channel_name)
+        if channel is None or not isinstance(channel, (discord.TextChannel, discord.ForumChannel)):
+            continue
+        current = _slug(getattr(channel, "name", ""))
+        if current != _slug(channel_name):
+            legacy = {"saison": {"parametre-saison-ii", "parameter-season-ii"}}
+            if current in legacy.get(_slug(channel_name), set()):
+                try:
+                    await channel.edit(name=channel_name, reason="kingdoms: rename legacy channel")
+                except Exception:
+                    logger.warning("KINGDOM SETUP: channel rename failed", exc_info=True)
+        try:
+            await channel.edit(position=position, reason="kingdoms: enforce channel order")
+        except Exception:
+            logger.warning("KINGDOM SETUP: channel reorder failed", exc_info=True)
 
 
 def build_setup_report_view(

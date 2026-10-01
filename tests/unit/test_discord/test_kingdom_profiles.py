@@ -305,3 +305,46 @@ async def test_admin_assign_and_add_kingdom_open_modals() -> None:
         button = KingdomAdminButton(action, action, discord.ButtonStyle.primary)
         await button.callback(interaction)
         assert interaction.response.modal is not None
+
+
+@pytest.mark.asyncio
+async def test_candidature_approval_enrolls_the_player() -> None:
+    """Approving a candidature enrolls the player into the season."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomCandidatureButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    class FakeLord:
+        in_queue = False
+        kingdom_id = "k-1"
+
+    class FakeService:
+        def __init__(self):
+            self.calls = []
+
+        async def enroll(self, player_id, display_name, role, kingdom_name=None, proposed_name=None):
+            self.calls.append((player_id, role, kingdom_name, proposed_name))
+            return FakeLord()
+
+        async def kingdoms(self):
+            return []
+
+        async def lords(self):
+            return []
+
+    service = FakeService()
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",), kingdoms_service=service))
+    guild = MockGuild(id=13)
+    permissions = discord.Permissions(administrator=True)
+    interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    interaction.guild = guild
+    interaction.locale = "fr"
+    message = MockMessage(content="📋 Hana\n**Rôle demandé** : 🪙 Roi\n**Royaume** : HeN\n<@555>", channel=None)
+    interaction.message = message
+    approve = KingdomCandidatureButton("approve", "✅", discord.ButtonStyle.success)
+    await approve.callback(interaction)
+    assert service.calls and service.calls[0][0] == "555"

@@ -193,7 +193,7 @@ def test_structure_includes_profils_general_and_support() -> None:
         "Présentation",
         "Annonce",
         "Règles",
-        "Paramètre Saison II",
+        "Saison",
         "Update",
         "Taverne",
         "Suggestion",

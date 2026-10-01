@@ -195,7 +195,7 @@ class KingdomCandidatureButton(
         return cls(decision, emoji, style)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Apply the decision through the live wiring (roles, notes)."""
+        """Apply the decision through the live wiring (roles, enrollment, notes)."""
         from kingdoms.discord.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
 
         wiring = _wiring()
@@ -213,9 +213,18 @@ class KingdomCandidatureButton(
         await interaction.response.edit_message(content=content, view=None)
         note = strings["decided"].format(label)
         if self.decision == "approve":
-            applicant = re.search(r"<@(\d+)>", content)
+            applicant = re.search(r"<@!?(\d+)>", content)
             is_king = strings["role_king"] in content
             role_key = ROLE_KING if is_king else ROLE_LORD
+            if applicant is not None and wiring.kingdoms_service is not None and interaction.guild is not None:
+                kingdom_name = _candidature_kingdom_name(content, strings)
+                note += " " + await _enroll_applicant(
+                    wiring.kingdoms_service,
+                    applicant.group(1),
+                    is_king=is_king,
+                    kingdom_name=kingdom_name,
+                    strings=strings,
+                )
             if wiring.mod_roles_service is not None and applicant is not None and interaction.guild is not None:
                 try:
                     await wiring.mod_roles_service.assign_mod_role(
@@ -227,6 +236,8 @@ class KingdomCandidatureButton(
                     note += " " + strings["no_service"]
             if interaction.guild is not None and applicant is not None:
                 await _send_welcome(interaction.guild, applicant.group(1), strings)
+            if interaction.guild is not None:
+                await _refresh_season_status_safe(interaction.guild, locale)
         await interaction.followup.send(note, ephemeral=True)
 
 
@@ -468,12 +479,47 @@ class KingdomAddKingdomModal(discord.ui.Modal):
         await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
 
 
+class KingdomLaunchModal(discord.ui.Modal):
+    """The admin form to launch a season (imposed kingdoms optional)."""
+
+    names: discord.ui.TextInput[KingdomLaunchModal] = discord.ui.TextInput(
+        label="Kingdom names (comma-separated, empty = free)",
+        placeholder="Aquitaine, Francie, …",
+        max_length=200,
+        required=False,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _profile_strings(self.locale)
+        self.names.label = strings["launch_names_field"][:45]
+        super().__init__(title=strings["launch_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        strings = _profile_strings(self.locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["launch_failed"].format("no service"), ephemeral=True)
+            return
+        raw = [name.strip() for name in (self.names.value or "").split(",") if name.strip()]
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await wiring.kingdoms_service.launch(imposed_names=raw or None)
+        except Exception as exc:
+            await interaction.followup.send(strings["launch_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        note = strings["launch_done_imposed"].format(", ".join(raw)) if raw else strings["launch_done_free"]
+        await interaction.followup.send(note, ephemeral=True)
+        if interaction.guild is not None:
+            await _refresh_season_status_safe(interaction.guild, self.locale)
+
+
 class KingdomAdminButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
         r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
-        r"|status|assign|add-kingdom)"
+        r"|status|assign|add-kingdom|launch)"
     ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
@@ -500,6 +546,7 @@ class KingdomAdminButton(
         strings = _profile_strings(locale)
         action = match.group("action")
         labels = {
+            "launch": strings["launch_button"],
             "remove": strings["remove_player_button"],
             "reset": strings["reset_salons_button"],
             "reset-confirm": strings["reset_confirm_button"],
@@ -515,6 +562,7 @@ class KingdomAdminButton(
             "add-kingdom": strings["add_kingdom_button"],
         }
         styles = {
+            "launch": discord.ButtonStyle.success,
             "remove": discord.ButtonStyle.danger,
             "reset": discord.ButtonStyle.danger,
             "reset-confirm": discord.ButtonStyle.success,
@@ -549,7 +597,11 @@ class KingdomAdminButton(
         if not _is_admin(interaction, wiring.bot_admins):
             await interaction.response.send_message("Only admins can use this panel.", ephemeral=True)
             return
+        async def open_launch(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomLaunchModal(locale))
+
         handlers: dict[str, Callable[..., Any]] = {
+            "launch": open_launch,
             "remove": open_remove,
             "assign": open_assign,
             "add-kingdom": open_add_kingdom,
@@ -671,6 +723,63 @@ async def _run_status(interaction: discord.Interaction, strings: dict[str, str])
         f"**{strings['status_queue']}** : {queued or strings['status_empty']}",
     ]
     await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+def _candidature_kingdom_name(content: str, strings: dict[str, str]) -> str | None:
+    """Extract the kingdom name from a candidature message (None when queued)."""
+    for line in content.splitlines():
+        if strings["queue_value"] in line:
+            return None
+        if line.startswith(f"**{strings['candidature_kingdom']}** : "):
+            return line.split("** : ", 1)[1].strip() or None
+    return None
+
+
+async def _enroll_applicant(
+    kingdoms_service: Any,
+    player_id: str,
+    *,
+    is_king: bool,
+    kingdom_name: str | None,
+    strings: dict[str, str],
+) -> str:
+    """Enroll the approved applicant into the running season; answer with a note."""
+    from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
+
+    display_name = f"<@{player_id}>"
+    try:
+        if is_king:
+            lord = await kingdoms_service.enroll(
+                player_id, display_name, KING_ROLE, proposed_name=kingdom_name
+            )
+        else:
+            lord = await kingdoms_service.enroll(
+                player_id, display_name, LORD_ROLE, kingdom_name=kingdom_name
+            )
+    except Exception as exc:
+        logger.warning("CANDIDATURES: enrollment failed for %s", player_id, exc_info=True)
+        return strings["enroll_failed"].format(type(exc).__name__)
+    if lord.in_queue:
+        return strings["enroll_queued"]
+    return strings["enrolled_kingdom"].format(kingdom_name or lord.kingdom_id)
+
+
+async def _refresh_season_status_safe(guild: discord.Guild, locale: str) -> None:
+    """Best-effort refresh of the season status message."""
+    try:
+        from kingdoms.discord.kingdom_panels import refresh_season_status
+
+        wiring = _wiring()
+        names: list[str] = []
+        queued = 0
+        if wiring.kingdoms_service is not None:
+            kingdoms = await wiring.kingdoms_service.kingdoms()
+            names = sorted(k.name for k in kingdoms if not k.is_gaia)
+            lords = await wiring.kingdoms_service.lords()
+            queued = sum(1 for lord in lords if not lord.left and lord.in_queue)
+        await refresh_season_status(guild, locale, kingdoms=names, queued=queued)
+    except Exception:
+        logger.info("KINGDOMS: season status refresh skipped", exc_info=True)
 
 
 async def _send_welcome(
