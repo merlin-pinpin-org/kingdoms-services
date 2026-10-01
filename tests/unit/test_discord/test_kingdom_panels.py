@@ -8,12 +8,17 @@ import discord
 import pytest
 
 from kingdoms.discord.kingdom_panels import (
+    QUEUE_VALUE,
     ROLE_KING,
     ROLE_LORD,
     SUPPORTED_LOCALES,
     SUPPORTED_TIMEZONES,
-    EnrollmentModal,
+    _ApplicationContext,
     _candidature_view,
+    _KingApplicationModal,
+    _kingdom_select_view,
+    _role_select_view,
+    _send_summary,
     _strings,
     build_apply_panel,
     build_settings_panel,
@@ -35,7 +40,6 @@ class _FakeLogsService:
     def __init__(self, locale: str = "en") -> None:
         self._locale = locale
         self.settings: dict[str, dict[str, Any]] = {}
-        self.db = self
 
     async def get_locale(self, guild_id: str) -> str:
         return self._locale
@@ -67,7 +71,25 @@ class _FakeModRoles:
         self.assigned.append((user_id, mod, role_key))
 
 
-def _fill(modal: EnrollmentModal, **values: str) -> None:
+class _FakeKingdom:
+    """KingdomsService.kingdoms() item double."""
+
+    def __init__(self, name: str, type: str = "player") -> None:
+        self.name = name
+        self.type = type
+
+
+class _FakeKingdomsService:
+    """KingdomsService double: declared kingdoms of the season."""
+
+    def __init__(self, names: list[str]) -> None:
+        self._kingdoms = [_FakeKingdom(n) for n in names]
+
+    async def kingdoms(self) -> list[_FakeKingdom]:
+        return list(self._kingdoms)
+
+
+def _fill(modal: discord.ui.Modal, **values: str) -> None:
     """Set modal field values through the internal payload."""
     for name, value in values.items():
         field = getattr(modal, name)
@@ -81,6 +103,24 @@ def _admin_interaction(admin: bool = True) -> MockInteraction:
     interaction = MockInteraction(user=member, guild=guild)
     interaction.guild_id = 42
     return interaction
+
+
+def _player_interaction(member_id: int = 999) -> MockInteraction:
+    member = MockMember(id=member_id, name="player")
+    guild = MockGuild(id=42)
+    interaction = MockInteraction(user=member, guild=guild)
+    interaction.guild_id = 42
+    return interaction
+
+
+def _context(**kwargs: Any) -> _ApplicationContext:
+    defaults: dict[str, Any] = {"locale": "en"}
+    defaults.update(kwargs)
+    return _ApplicationContext(**defaults)
+
+
+def _choose(interaction: MockInteraction, value: str) -> None:
+    interaction.data = {"values": [value]}
 
 
 @pytest.mark.parametrize("locale", ["en", "fr"])
@@ -97,63 +137,166 @@ def test_strings_cover_both_locales() -> None:
 
 
 @pytest.mark.asyncio
-async def test_modal_rejects_rules_not_accepted() -> None:
-    """Submitting without the rules confirmation is refused."""
-    modal = EnrollmentModal("en")
-    _fill(modal, role="Lord", insight_link="https://www.aoe2insight.com/x", game_id="12345678", accept_rules="NO")
-
-    interaction = MockInteraction(user=MockMember(name="player"), guild=MockGuild(id=42))
-    await modal.on_submit(interaction)
-
-    assert interaction.response.sent is True
-    assert "rules" in (interaction.response.message or "").content.lower()
+async def test_role_select_offers_only_lord_and_king() -> None:
+    """Step 1: the role menu offers exactly Seigneur and Roi (no free text)."""
+    view = _role_select_view(_context(locale="fr"))
+    select = view.children[0]
+    labels = [option.label for option in select.options]
+    assert labels == ["🎖️ Seigneur", "👑 Roi"]
 
 
 @pytest.mark.asyncio
-async def test_modal_rejects_bad_insight_and_game_id() -> None:
-    """Invalid Insight link and game ID are both refused."""
-    modal = EnrollmentModal("en")
-    _fill(modal, role="Lord", insight_link="not-a-url", game_id="12345678", accept_rules="YES")
-    interaction = MockInteraction(user=MockMember(name="player"), guild=MockGuild(id=42))
+async def test_king_choice_opens_king_modal_with_kingdom_name() -> None:
+    """Choosing Roi opens the King modal (kingdom name + insight + game id)."""
+    context = _context()
+    view = _role_select_view(context)
+    interaction = _player_interaction()
+    _choose(interaction, "king")
+    await view.children[0].callback(interaction)
+    assert interaction.response.modal is not None
+    fields = {type(field).__name__ for field in interaction.response.modal.children}
+    assert "TextInput" in fields
+
+
+@pytest.mark.asyncio
+async def test_lord_choice_lists_declared_kingdoms_and_queue() -> None:
+    """Choosing Seigneur lists the declared kingdoms plus the wait option."""
+    context = _context(kingdoms_service=_FakeKingdomsService(["Avalon", "Bretagne"]))
+    view = _role_select_view(context)
+    interaction = _player_interaction()
+    _choose(interaction, "lord")
+    await view.children[0].callback(interaction)
+    assert interaction.response.message is not None
+    kingdom_view = await _kingdom_select_view(context)
+    values = [option.value for option in kingdom_view.children[0].options]
+    assert "Avalon" in values and "Bretagne" in values
+    assert QUEUE_VALUE in values
+
+
+@pytest.mark.asyncio
+async def test_kingdom_select_includes_gaia_never() -> None:
+    """Gaïa kingdoms never appear in the join list."""
+    context = _context(
+        kingdoms_service=_FakeKingdomsService(["Avalon"]),
+    )
+    context.kingdoms_service = _FakeKingdomsService(["Avalon"])
+    context.kingdoms_service._kingdoms.append(_FakeKingdom("Gaïa", type="gaia"))
+    view = await _kingdom_select_view(context)
+    values = [option.value for option in view.children[0].options]
+    assert "Gaïa" not in values
+
+
+@pytest.mark.asyncio
+async def test_king_modal_validates_name_insight_game_id() -> None:
+    """The King modal refuses an empty name, a bad link and a bad game id."""
+    context = _context()
+    interaction = _player_interaction()
+    modal = _KingApplicationModal(context)
+    _fill(modal, kingdom_name="", insight_link="https://x.io/a", game_id="12345678")
+    await modal.on_submit(interaction)
+    assert "name" in (interaction.response.message or "").content.lower()
+
+    interaction = _player_interaction()
+    modal = _KingApplicationModal(context)
+    _fill(modal, kingdom_name="Avalon", insight_link="not-a-url", game_id="12345678")
     await modal.on_submit(interaction)
     assert "insight" in (interaction.response.message or "").content.lower()
 
-    modal = EnrollmentModal("en")
-    _fill(modal, role="Lord", insight_link="https://www.aoe2insight.com/x", game_id="abc", accept_rules="YES")
-    interaction = MockInteraction(user=MockMember(name="player"), guild=MockGuild(id=42))
+    interaction = _player_interaction()
+    modal = _KingApplicationModal(context)
+    _fill(modal, kingdom_name="Avalon", insight_link="https://x.io/a", game_id="abc")
     await modal.on_submit(interaction)
     assert "id" in (interaction.response.message or "").content.lower()
 
 
 @pytest.mark.asyncio
-async def test_modal_rejects_king_without_name() -> None:
-    """A King must suggest a kingdom name."""
-    modal = EnrollmentModal("en")
-    _fill(
-        modal,
-        role="King",
-        kingdom_name="",
-        insight_link="https://www.aoe2insight.com/x",
+async def test_valid_submission_shows_summary_with_rules_button() -> None:
+    """A valid form shows the review step with the rules-acceptance button."""
+    context = _context()
+    interaction = _player_interaction()
+    await _send_summary(
+        interaction,
+        context,
+        is_king=True,
+        kingdom_name="Avalon",
+        queued=False,
+        insight="https://www.aoe2insight.com/x",
         game_id="12345678",
-        accept_rules="YES",
     )
-    interaction = MockInteraction(user=MockMember(name="player"), guild=MockGuild(id=42))
-    await modal.on_submit(interaction)
-    assert "name" in (interaction.response.message or "").content.lower()
+    assert interaction.response.sent is True
+    assert interaction.response.message is not None
+    assert interaction.response.message.view is not None
+    labels = [
+        child.label for child in interaction.response.message.view.children if getattr(child, "label", None)
+    ]
+    assert any("rules" in (label or "").lower() or "accept" in (label or "").lower() for label in labels)
 
 
 @pytest.mark.asyncio
-async def test_modal_sends_candidature_to_channel() -> None:
-    """A valid application lands in the Candidatures channel with buttons."""
+async def test_rules_button_posts_candidature_to_channel() -> None:
+    """Ticking the rules button posts the application into Candidatures."""
     channel = MockTextChannel(name="candidatures", guild=MockGuild(id=42))
-    modal = EnrollmentModal("en", candidatures_channel=channel)
-    _fill(modal, role="Lord", insight_link="https://www.aoe2insight.com/x", game_id="12345678", accept_rules="YES")
-
-    interaction = MockInteraction(user=MockMember(name="player"), guild=MockGuild(id=42))
-    await modal.on_submit(interaction)
-
+    context = _context(candidatures_channel=channel)
+    interaction = _player_interaction(member_id=555)
+    await _send_summary(
+        interaction,
+        context,
+        is_king=False,
+        kingdom_name="Avalon",
+        queued=False,
+        insight="https://www.aoe2insight.com/x",
+        game_id="12345678",
+    )
+    view = interaction.response.message.view
+    submit_button = next(c for c in view.children if getattr(c, "label", "").startswith("✅"))
+    await submit_button.callback(interaction)
     assert len(channel.messages) == 1
-    assert channel.messages[0].view is not None
+    posted = channel.messages[0]
+    assert "12345678" in (posted.content or "")
+    assert "<@555>" in (posted.content or "")
+    assert posted.view is not None
+
+
+@pytest.mark.asyncio
+async def test_queued_lord_posts_queue_status() -> None:
+    """A queued Lord application posts the waiting status, not a kingdom."""
+    channel = MockTextChannel(name="candidatures", guild=MockGuild(id=42))
+    context = _context(candidatures_channel=channel)
+    interaction = _player_interaction()
+    await _send_summary(
+        interaction,
+        context,
+        is_king=False,
+        kingdom_name="",
+        queued=True,
+        insight="https://www.aoe2insight.com/x",
+        game_id="12345678",
+    )
+    view = interaction.response.message.view
+    submit_button = next(c for c in view.children if getattr(c, "label", "").startswith("✅"))
+    await submit_button.callback(interaction)
+    assert len(channel.messages) == 1
+    assert "waiting" in (channel.messages[0].content or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_cancel_button_cancels() -> None:
+    """The cancel button cancels the application."""
+    context = _context()
+    interaction = _player_interaction()
+    await _send_summary(
+        interaction,
+        context,
+        is_king=False,
+        kingdom_name="Avalon",
+        queued=False,
+        insight="https://www.aoe2insight.com/x",
+        game_id="12345678",
+    )
+    view = interaction.response.message.view
+    cancel_button = next(c for c in view.children if c.label == "Cancel")
+    await cancel_button.callback(interaction)
+    assert "cancel" in (interaction.response.message.content or "").lower()
 
 
 @pytest.mark.asyncio

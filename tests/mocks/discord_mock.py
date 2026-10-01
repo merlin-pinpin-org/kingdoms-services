@@ -690,6 +690,11 @@ class MockResponse:
         self.deferred = False
         self.ephemeral = False
         self.message: MockMessage | None = None
+        self.modal: discord.ui.Modal | None = None
+
+    async def send_modal(self, modal: discord.ui.Modal) -> None:
+        self.sent = True
+        self.modal = modal
 
     async def send_message(
         self,

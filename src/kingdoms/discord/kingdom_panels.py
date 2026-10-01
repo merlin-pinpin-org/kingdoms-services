@@ -3,10 +3,12 @@
 Three panels on top of the bootstrapped structure:
 
 - **Postuler** (open to all) — a pinned button opens an ephemeral,
-  per-player enrollment modal: role (Lord by default, King optional),
-  kingdom name when King, AoE II Insight link + game ID, and a
-  mandatory rules-acceptance checkbox (the modal cannot be submitted
-  without it);
+  per-player enrollment flow with no free-text role: a select menu
+  offers Seigneur or Roi; a Seigneur then picks a declared kingdom
+  from a list (or joins the waiting queue, for an admin to assign
+  later), a Roi types a kingdom name; both then give their AoE II
+  Insight link + game ID and confirm with a rules-acceptance button
+  (no typing);
 - **Candidatures** (admin only) — each submitted application lands as
   a message with admin-only buttons ✅ validated / ⏳ pending / ❌
   refused; validation assigns the kingdoms_lord or kingdoms_king mod
@@ -53,11 +55,15 @@ ROLE_LORD = "kingdoms_lord"
 ROLE_KING = "kingdoms_king"
 
 APPLY_BUTTON_ID = "kingdoms:apply:open"
+ROLE_SELECT_ID = "kingdoms:apply:role"
+KINGDOM_SELECT_ID = "kingdoms:apply:kingdom"
 DECISION_APPROVE_ID = "kingdoms:candidature:approve"
 DECISION_PENDING_ID = "kingdoms:candidature:pending"
 DECISION_REFUSE_ID = "kingdoms:candidature:refuse"
 LOCALE_SELECT_ID = "kingdoms:settings:locale"
 TIMEZONE_SELECT_ID = "kingdoms:settings:timezone"
+
+QUEUE_VALUE = "__queue__"
 
 SUPPORTED_LOCALES = ("en", "fr")
 SUPPORTED_TIMEZONES = ("Europe/Paris", "America/Montreal", "America/Sao_Paulo", "UTC")
@@ -69,28 +75,40 @@ STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "apply_button": "📋 Enroll",
         "apply_title": "Kingdoms enrollment",
-        "role_field": "Role",
-        "role_placeholder": "Lord (default) or King",
-        "kingdom_field": "Kingdom name (King only)",
+        "choose_role": "Choose your role",
+        "choose_kingdom": "Join a kingdom",
+        "queue_option": "⏳ Wait for a kingdom",
+        "queue_description": "Wait for kingdoms to be created — an admin will assign you later.",
+        "no_kingdoms_hint": "No kingdom exists yet — you can wait in the queue.",
+        "role_king": "👑 King",
+        "role_lord": "🎖️ Lord",
+        "kingdom_field": "Kingdom name",
         "kingdom_placeholder": "My Kingdom",
         "insight_field": "AoE II Insight link",
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "Game ID",
         "game_id_placeholder": "12345678",
-        "rules_label": "I have read and accept the rules",
-        "submit": "Submit my application",
-        "must_accept": "You must accept the rules to enroll.",
+        "summary_title": "📋 Review your application",
+        "summary_role": "Role",
+        "summary_kingdom": "Kingdom",
+        "summary_queue": "Status",
+        "queue_value": "waiting for a kingdom",
+        "summary_insight": "AoE II Insight",
+        "summary_game_id": "Game ID",
+        "rules_label": "I have read and I accept the rules",
+        "submit": "✅ I accept the rules — send my application",
+        "cancel": "Cancel",
         "bad_insight": "The AoE II Insight link must be a valid URL.",
         "bad_game_id": "The game ID must be 6 to 20 digits.",
         "king_needs_name": "A King must suggest a kingdom name.",
+        "cancelled": "Application cancelled.",
         "sent": "Your application has been sent — an admin will review it.",
         "candidature_title": "📋 New enrollment application",
         "candidature_role": "Requested role",
-        "candidature_kingdom": "Suggested kingdom",
+        "candidature_kingdom": "Kingdom",
+        "candidature_queue": "Status",
         "candidature_insight": "AoE II Insight",
         "candidature_game_id": "Game ID",
-        "role_king": "👑 King",
-        "role_lord": "🎖️ Lord",
         "decided": "The application has been marked {}.",
         "approved": "✅ validated",
         "pending": "⏳ pending",
@@ -107,28 +125,40 @@ STRINGS: dict[str, dict[str, str]] = {
     "fr": {
         "apply_button": "📋 S'inscrire",
         "apply_title": "Inscription Kingdoms",
-        "role_field": "Rôle",
-        "role_placeholder": "Seigneur (par défaut) ou Roi",
-        "kingdom_field": "Nom du royaume (Roi uniquement)",
+        "choose_role": "Choisissez votre rôle",
+        "choose_kingdom": "Rejoindre un royaume",
+        "queue_option": "⏳ En attente",
+        "queue_description": "Attendre la création des royaumes — un admin vous affectera plus tard.",
+        "no_kingdoms_hint": "Aucun royaume n'existe encore — vous pouvez vous mettre en attente.",
+        "role_king": "👑 Roi",
+        "role_lord": "🎖️ Seigneur",
+        "kingdom_field": "Nom du royaume",
         "kingdom_placeholder": "Mon Royaume",
         "insight_field": "Lien AoE II Insight",
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "ID de jeu",
         "game_id_placeholder": "12345678",
+        "summary_title": "📋 Vérifiez votre candidature",
+        "summary_role": "Rôle",
+        "summary_kingdom": "Royaume",
+        "summary_queue": "Statut",
+        "queue_value": "en attente d'un royaume",
+        "summary_insight": "AoE II Insight",
+        "summary_game_id": "ID de jeu",
         "rules_label": "J'ai lu et j'accepte les règles",
-        "submit": "Envoyer ma candidature",
-        "must_accept": "Vous devez accepter les règles pour vous inscrire.",
+        "submit": "✅ J'accepte les règles — envoyer ma candidature",
+        "cancel": "Annuler",
         "bad_insight": "Le lien AoE II Insight doit être une URL valide.",
         "bad_game_id": "L'ID de jeu doit contenir 6 à 20 chiffres.",
         "king_needs_name": "Un Roi doit suggérer un nom de royaume.",
+        "cancelled": "Candidature annulée.",
         "sent": "Votre candidature a été envoyée — un admin l'examinera.",
         "candidature_title": "📋 Nouvelle candidature",
         "candidature_role": "Rôle demandé",
-        "candidature_kingdom": "Royaume suggéré",
+        "candidature_kingdom": "Royaume",
+        "candidature_queue": "Statut",
         "candidature_insight": "AoE II Insight",
         "candidature_game_id": "ID de jeu",
-        "role_king": "👑 Roi",
-        "role_lord": "🎖️ Seigneur",
         "decided": "La candidature a été marquée {}.",
         "approved": "✅ validée",
         "pending": "⏳ en attente",
@@ -158,40 +188,8 @@ def _is_admin(interaction: discord.Interaction, bot_admins: tuple[str, ...]) -> 
     return bool(permissions and permissions.administrator)
 
 
-class EnrollmentModal(discord.ui.Modal):
-    """The per-player enrollment form (ephemeral, mandatory rules check)."""
-
-    role: discord.ui.TextInput[EnrollmentModal] = discord.ui.TextInput(
-        label="Role",
-        placeholder="Lord (default) or King",
-        default="Lord",
-        max_length=10,
-        required=True,
-    )
-    kingdom_name: discord.ui.TextInput[EnrollmentModal] = discord.ui.TextInput(
-        label="Kingdom name (King only)",
-        placeholder="My Kingdom",
-        max_length=40,
-        required=False,
-    )
-    insight_link: discord.ui.TextInput[EnrollmentModal] = discord.ui.TextInput(
-        label="AoE II Insight link",
-        placeholder="https://www.aoe2insight.com/…",
-        max_length=200,
-        required=True,
-    )
-    game_id: discord.ui.TextInput[EnrollmentModal] = discord.ui.TextInput(
-        label="Game ID",
-        placeholder="12345678",
-        max_length=20,
-        required=True,
-    )
-    accept_rules: discord.ui.TextInput[EnrollmentModal] = discord.ui.TextInput(
-        label="Type YES to confirm you have read and accept the rules",
-        placeholder="YES",
-        max_length=3,
-        required=True,
-    )
+class _ApplicationContext:
+    """Everything the ephemeral enrollment flow needs to carry along."""
 
     def __init__(
         self,
@@ -200,74 +198,286 @@ class EnrollmentModal(discord.ui.Modal):
         bot_admins: tuple[str, ...] = (),
         mod_roles_service: ModRolesService | None = None,
         guild_id: str = "",
+        kingdoms_service: Any = None,
     ) -> None:
         self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
         self.candidatures_channel = candidatures_channel
         self.bot_admins = bot_admins
         self.mod_roles_service = mod_roles_service
         self.guild_id = guild_id
-        strings = _strings(self.locale)
-        self.role.label = strings["role_field"][:45]
-        self.role.placeholder = strings["role_placeholder"][:100]
+        self.kingdoms_service = kingdoms_service
+
+    async def declared_kingdom_names(self) -> list[str]:
+        """Return the player kingdom names of the current season (empty if none)."""
+        if self.kingdoms_service is None:
+            return []
+        try:
+            kingdoms = await self.kingdoms_service.kingdoms()
+        except Exception:
+            logger.warning("KINGDOM PANELS: kingdom list read failed", exc_info=True)
+            return []
+        return sorted(k.name for k in kingdoms if getattr(k, "type", "player") != "gaia")
+
+
+class _KingApplicationModal(discord.ui.Modal):
+    """The King form: kingdom name + Insight link + game ID."""
+
+    kingdom_name: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
+        label="Kingdom name",
+        placeholder="My Kingdom",
+        max_length=40,
+        required=True,
+    )
+    insight_link: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
+        label="AoE II Insight link",
+        placeholder="https://www.aoe2insight.com/…",
+        max_length=200,
+        required=True,
+    )
+    game_id: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
+        label="Game ID",
+        placeholder="12345678",
+        max_length=20,
+        required=True,
+    )
+
+    def __init__(self, context: _ApplicationContext) -> None:
+        self.context = context
+        strings = _strings(context.locale)
         self.kingdom_name.label = strings["kingdom_field"][:45]
         self.kingdom_name.placeholder = strings["kingdom_placeholder"][:100]
         self.insight_link.label = strings["insight_field"][:45]
         self.insight_link.placeholder = strings["insight_placeholder"][:100]
         self.game_id.label = strings["game_id_field"][:45]
         self.game_id.placeholder = strings["game_id_placeholder"][:100]
-        self.accept_rules.label = strings["rules_label"][:45]
         super().__init__(title=strings["apply_title"][:45], timeout=300)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Validate the form, then forward the application to Candidatures."""
-        strings = _strings(self.locale)
-        role = (self.role.value or "").strip().lower()
-        is_king = role.startswith("king") or role.startswith("roi")
-        kingdom_name = (self.kingdom_name.value or "").strip()
-        insight = (self.insight_link.value or "").strip()
-        game_id = (self.game_id.value or "").strip()
-        accepted = (self.accept_rules.value or "").strip().upper() in {"YES", "OUI"}
+        await _send_summary(
+            interaction,
+            self.context,
+            is_king=True,
+            kingdom_name=(self.kingdom_name.value or "").strip(),
+            queued=False,
+            insight=(self.insight_link.value or "").strip(),
+            game_id=(self.game_id.value or "").strip(),
+        )
 
-        if not accepted:
-            await interaction.response.send_message(strings["must_accept"], ephemeral=True)
-            return
-        if is_king and not kingdom_name:
-            await interaction.response.send_message(strings["king_needs_name"], ephemeral=True)
-            return
-        if not INSIGHT_URL.match(insight):
-            await interaction.response.send_message(strings["bad_insight"], ephemeral=True)
-            return
-        if not GAME_ID.match(game_id):
-            await interaction.response.send_message(strings["bad_game_id"], ephemeral=True)
-            return
 
+class _LordApplicationModal(discord.ui.Modal):
+    """The Lord form (kingdom chosen beforehand): Insight link + game ID."""
+
+    insight_link: discord.ui.TextInput[_LordApplicationModal] = discord.ui.TextInput(
+        label="AoE II Insight link",
+        placeholder="https://www.aoe2insight.com/…",
+        max_length=200,
+        required=True,
+    )
+    game_id: discord.ui.TextInput[_LordApplicationModal] = discord.ui.TextInput(
+        label="Game ID",
+        placeholder="12345678",
+        max_length=20,
+        required=True,
+    )
+
+    def __init__(self, context: _ApplicationContext, kingdom_choice: str = "") -> None:
+        self.context = context
+        self.kingdom_choice = kingdom_choice
+        strings = _strings(context.locale)
+        self.insight_link.label = strings["insight_field"][:45]
+        self.insight_link.placeholder = strings["insight_placeholder"][:100]
+        self.game_id.label = strings["game_id_field"][:45]
+        self.game_id.placeholder = strings["game_id_placeholder"][:100]
+        super().__init__(title=strings["apply_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await _send_summary(
+            interaction,
+            self.context,
+            is_king=False,
+            kingdom_name=self.kingdom_choice,
+            queued=self.kingdom_choice == QUEUE_VALUE,
+            insight=(self.insight_link.value or "").strip(),
+            game_id=(self.game_id.value or "").strip(),
+        )
+
+
+async def _send_summary(
+    interaction: discord.Interaction,
+    context: _ApplicationContext,
+    *,
+    is_king: bool,
+    kingdom_name: str,
+    queued: bool,
+    insight: str,
+    game_id: str,
+) -> None:
+    """Validate the form, then show the review + rules-acceptance step."""
+    strings = _strings(context.locale)
+    if is_king and not kingdom_name:
+        await interaction.response.send_message(strings["king_needs_name"], ephemeral=True)
+        return
+    if not INSIGHT_URL.match(insight):
+        await interaction.response.send_message(strings["bad_insight"], ephemeral=True)
+        return
+    if not GAME_ID.match(game_id):
+        await interaction.response.send_message(strings["bad_game_id"], ephemeral=True)
+        return
+
+    role_label = strings["role_king"] if is_king else strings["role_lord"]
+    lines = [f"# {strings['summary_title']}", f"**{strings['summary_role']}** : {role_label}"]
+    if is_king:
+        lines.append(f"**{strings['summary_kingdom']}** : {kingdom_name}")
+    elif queued:
+        lines.append(f"**{strings['summary_queue']}** : {strings['queue_value']}")
+    else:
+        lines.append(f"**{strings['summary_kingdom']}** : {kingdom_name}")
+    lines.extend(
+        [
+            f"**{strings['summary_insight']}** : {insight}",
+            f"**{strings['summary_game_id']}** : {game_id}",
+            f"**{strings['rules_label']}**",
+        ]
+    )
+    view = _summary_view(
+        interaction.user.id,
+        is_king=is_king,
+        kingdom_name=kingdom_name,
+        queued=queued,
+        insight=insight,
+        game_id=game_id,
+        context=context,
+    )
+    await interaction.response.send_message("\n".join(lines), view=view, ephemeral=True)
+
+
+def _summary_view(
+    applicant_id: int,
+    *,
+    is_king: bool,
+    kingdom_name: str,
+    queued: bool,
+    insight: str,
+    game_id: str,
+    context: _ApplicationContext,
+) -> discord.ui.View:
+    """Build the review step: the rules checkbox (a button) + cancel."""
+    strings = _strings(context.locale)
+
+    async def submit(interaction: discord.Interaction) -> None:
         role_label = strings["role_king"] if is_king else strings["role_lord"]
         lines = [
             f"# {strings['candidature_title']}",
             f"**{strings['candidature_role']}** : {role_label}",
         ]
-        if is_king:
+        if is_king or not queued:
             lines.append(f"**{strings['candidature_kingdom']}** : {kingdom_name}")
+        else:
+            lines.append(f"**{strings['candidature_queue']}** : {strings['queue_value']}")
         lines.extend(
             [
                 f"**{strings['candidature_insight']}** : {insight}",
                 f"**{strings['candidature_game_id']}** : {game_id}",
-                f"<@{interaction.user.id}>",
+                f"<@{applicant_id}>",
             ]
         )
         view = _candidature_view(
-            self.locale,
-            bot_admins=self.bot_admins,
-            mod_roles_service=self.mod_roles_service,
-            guild_id=self.guild_id,
+            context.locale,
+            bot_admins=context.bot_admins,
+            mod_roles_service=context.mod_roles_service,
+            guild_id=context.guild_id,
         )
-        target = self.candidatures_channel
+        target = context.candidatures_channel
         await interaction.response.defer(ephemeral=True)
         if target is None:
             await interaction.followup.send(strings["no_service"], ephemeral=True)
             return
         await target.send("\n".join(lines), view=view)
         await interaction.followup.send(strings["sent"], ephemeral=True)
+
+    async def cancel(interaction: discord.Interaction) -> None:
+        await interaction.response.edit_message(content=strings["cancelled"], view=None)
+
+    submit_button: discord.ui.Button[Any] = discord.ui.Button(
+        label=strings["submit"][:80],
+        style=discord.ButtonStyle.success,
+        custom_id="kingdoms:apply:submit",
+    )
+    submit_button.callback = submit  # type: ignore[method-assign]
+    cancel_button: discord.ui.Button[Any] = discord.ui.Button(
+        label=strings["cancel"][:80],
+        style=discord.ButtonStyle.secondary,
+        custom_id="kingdoms:apply:cancel",
+    )
+    cancel_button.callback = cancel  # type: ignore[method-assign]
+    view = discord.ui.View(timeout=600)
+    view.add_item(submit_button)
+    view.add_item(cancel_button)
+    return view
+
+
+def _role_select_view(context: _ApplicationContext) -> discord.ui.View:
+    """Step 1: the role select (Seigneur / Roi — no free text)."""
+    strings = _strings(context.locale)
+
+    async def on_choose(interaction: discord.Interaction) -> None:
+        values = getattr(interaction, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        if chosen[0] == "king":
+            await interaction.response.send_modal(_KingApplicationModal(context))
+            return
+        await interaction.response.edit_message(
+            content=f"**{strings['choose_kingdom']}**\n{strings['no_kingdoms_hint']}"
+            if not await context.declared_kingdom_names()
+            else f"**{strings['choose_kingdom']}**",
+            view=await _kingdom_select_view(context),
+        )
+
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id=ROLE_SELECT_ID,
+        placeholder=strings["choose_role"],
+        options=[
+            discord.SelectOption(label=strings["role_lord"], value="lord"),
+            discord.SelectOption(label=strings["role_king"], value="king"),
+        ],
+    )
+    select.callback = on_choose  # type: ignore[method-assign]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
+async def _kingdom_select_view(context: _ApplicationContext) -> discord.ui.View:
+    """Step 2 (Seigneur): the declared kingdoms + the wait option."""
+    strings = _strings(context.locale)
+    names = await context.declared_kingdom_names()
+    options = [discord.SelectOption(label=name[:100], value=name[:100]) for name in names[:24]]
+    options.append(
+        discord.SelectOption(
+            label=strings["queue_option"],
+            value=QUEUE_VALUE,
+            description=strings["queue_description"][:100],
+        )
+    )
+
+    async def on_choose(interaction: discord.Interaction) -> None:
+        values = getattr(interaction, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await interaction.response.send_modal(_LordApplicationModal(context, chosen[0]))
+
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id=KINGDOM_SELECT_ID,
+        placeholder=strings["choose_kingdom"],
+        options=options,
+    )
+    select.callback = on_choose  # type: ignore[method-assign]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
 
 
 def _candidature_view(
@@ -280,8 +490,8 @@ def _candidature_view(
 
     Approving assigns the kingdoms_lord or kingdoms_king mod role to
     the applicant through the ModRolesService — never a raw Discord
-    role id. The role key rides the modal's application message: the
-    decision row is rebuilt from the wire (restart-proof by re-deploy).
+    role id. The role key rides the application message: the decision
+    row is rebuilt from the wire (restart-proof by re-deploy).
     """
     strings = _strings(locale)
 
@@ -319,9 +529,9 @@ def _candidature_view(
             await decide(interaction, self._decision)
 
     view = discord.ui.View(timeout=None)
-    view.add_item(_DecisionButton("approve", "\u2705", discord.ButtonStyle.success))
-    view.add_item(_DecisionButton("pending", "\u23f3", discord.ButtonStyle.secondary))
-    view.add_item(_DecisionButton("refuse", "\u274c", discord.ButtonStyle.danger))
+    view.add_item(_DecisionButton("approve", "✅", discord.ButtonStyle.success))
+    view.add_item(_DecisionButton("pending", "⏳", discord.ButtonStyle.secondary))
+    view.add_item(_DecisionButton("refuse", "❌", discord.ButtonStyle.danger))
     return view
 
 
@@ -331,13 +541,25 @@ async def build_apply_panel(
     bot_admins: tuple[str, ...] = (),
     mod_roles_service: ModRolesService | None = None,
     guild_id: str = "",
+    kingdoms_service: Any = None,
 ) -> discord.ui.LayoutView:
     """Build the Postuler pinned panel: one Enroll button."""
     strings = _strings(locale)
+    context = _ApplicationContext(
+        locale=locale,
+        candidatures_channel=candidatures_channel,
+        bot_admins=bot_admins,
+        mod_roles_service=mod_roles_service,
+        guild_id=guild_id,
+        kingdoms_service=kingdoms_service,
+    )
 
     async def on_apply(interaction: discord.Interaction) -> None:
-        modal = EnrollmentModal(locale, candidatures_channel, bot_admins, mod_roles_service, guild_id)
-        await interaction.response.send_modal(modal)
+        await interaction.response.send_message(
+            f"**{_strings(context.locale)['choose_role']}**",
+            view=_role_select_view(context),
+            ephemeral=True,
+        )
 
     apply_button = Action(strings["apply_button"], APPLY_BUTTON_ID, on_apply, style="primary")
     container = (
@@ -421,7 +643,7 @@ async def build_settings_panel(
         .add(Text(strings["language_hint"]))
         .add(Row(locale_select))
         .add(Separator())
-        .add(Text(f"## 🕐 {strings['timezone']}"))
+        .add(Text(f"## 🕒 {strings['timezone']}"))
         .add(Text(strings["timezone_hint"]))
         .add(Row(timezone_select))
     )
@@ -433,6 +655,7 @@ async def deploy_panels(
     logs_service: LogService | None,
     bot_admins: tuple[str, ...] = (),
     mod_roles_service: ModRolesService | None = None,
+    kingdoms_service: Any = None,
 ) -> dict[str, str]:
     """Deploy the pinned panels into Postuler and Paramètres.
 
@@ -452,7 +675,14 @@ async def deploy_panels(
     for channel in guild.text_channels:
         if channel.name.lower() == "postuler":
             await channel.send(
-                view=await build_apply_panel(locale, candidatures, bot_admins, mod_roles_service, guild_id)
+                view=await build_apply_panel(
+                    locale,
+                    candidatures,
+                    bot_admins,
+                    mod_roles_service,
+                    guild_id,
+                    kingdoms_service,
+                )
             )
             report["postuler"] = "deployed"
         if channel.name.lower() == "paramètres":
@@ -466,6 +696,7 @@ def register_kingdom_panels_command(
     logs_service: LogService | None = None,
     bot_admins: tuple[str, ...] = (),
     mod_roles_service: ModRolesService | None = None,
+    kingdoms_service: Any = None,
 ) -> None:
     """Register the /kingdom command: bootstrap + panels, admin only."""
 
@@ -494,7 +725,7 @@ def register_kingdom_panels_command(
             from kingdoms.discord.kingdom_setup import provision_structure
 
             created, adopted = await provision_structure(guild)
-            panels = await deploy_panels(guild, logs_service, bot_admins, mod_roles_service)
+            panels = await deploy_panels(guild, logs_service, bot_admins, mod_roles_service, kingdoms_service)
         except Exception as exc:
             logger.exception("KINGDOM SETUP: provisioning failed for guild %s", guild.id)
             await interaction.followup.send(f"❌ Setup failed: `{type(exc).__name__}: {exc}`"[:2000], ephemeral=True)

@@ -474,6 +474,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         logs_service=bot.logs_service,
         bot_admins=status.bot_admins,
         mod_roles_service=mod_roles_service,
+        kingdoms_service=kingdoms_service,
     )
     return bot
 
