@@ -41,7 +41,7 @@ class TestModDeclaration:
     def test_declaration_loads_and_validates(self) -> None:
         defs = load_mod_definitions(REPO_ROOT / "config")
         kingdoms = defs["kingdoms"]
-        assert kingdoms.enabled is False
+        assert kingdoms.enabled is True  # T2 enrollment lands (kingdoms-services#157)
         assert {c.key for c in kingdoms.channel_categories} == {
             "attack",
             "attack_delays",
