@@ -82,19 +82,6 @@ STRINGS: dict[str, dict[str, str]] = {
             "🔁 {incoming} replaces {outgoing} in **{kingdom}** — "
             "weekly attack/defense state inherited."
         ),
-        "errors": {
-            "no_season": "No season is running.",
-            "already_enrolled": "This player is already enrolled.",
-            "name_invalid": "This name breaks the configured rules.",
-            "kingdom_limit": "The season already counts its maximum of kingdoms.",
-            "imposed": "Kingdoms are imposed this season.",
-            "kingdom_not_found": "No kingdom with this name.",
-            "kingdom_full": "This kingdom already counts its maximum of Lords.",
-            "not_enrollable": "Gaïa kingdoms never enroll players.",
-            "not_queued": "This player is not waiting in the queue.",
-            "replacement": "The outgoing player has not left the season yet.",
-            "unexpected": "An unexpected error occurred. Try again.",
-        },
     },
     "fr": {
         "group_description": "Gestion de la saison Kingdoms : lancement, reset, noms, affectations",
@@ -150,33 +137,54 @@ STRINGS: dict[str, dict[str, str]] = {
             "🔁 {incoming} remplace {outgoing} dans **{kingdom}** — "
             "l'état attaque/défense de la semaine est hérité."
         ),
-        "errors": {
-            "no_season": "Aucune saison en cours.",
-            "already_enrolled": "Ce joueur est déjà inscrit.",
-            "name_invalid": "Ce nom ne respecte pas les règles configurées.",
-            "kingdom_limit": "La saison compte déjà son nombre maximum de royaumes.",
-            "imposed": "Les royaumes sont imposés cette saison.",
-            "kingdom_not_found": "Aucun royaume de ce nom.",
-            "kingdom_full": "Ce royaume compte déjà son nombre maximum de Seigneurs.",
-            "not_enrollable": "Les royaumes Gaïa n'inscrivent jamais de joueurs.",
-            "not_queued": "Ce joueur n'est pas en file d'attente.",
-            "replacement": "Le joueur sortant n'a pas encore quitté la saison.",
-            "unexpected": "Une erreur inattendue est survenue. Réessayez.",
-        },
     },
 }
+
+ERROR_STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "no_season": "No season is running.",
+        "already_enrolled": "This player is already enrolled.",
+        "name_invalid": "This name breaks the configured rules.",
+        "kingdom_limit": "The season already counts its maximum of kingdoms.",
+        "imposed": "Kingdoms are imposed this season.",
+        "kingdom_not_found": "No kingdom with this name.",
+        "kingdom_full": "This kingdom already counts its maximum of Lords.",
+        "not_enrollable": "Gaïa kingdoms never enroll players.",
+        "not_queued": "This player is not waiting in the queue.",
+        "replacement": "The outgoing player has not left the season yet.",
+        "unexpected": "An unexpected error occurred. Try again.",
+    },
+    "fr": {
+        "no_season": "Aucune saison en cours.",
+        "already_enrolled": "Ce joueur est déjà inscrit.",
+        "name_invalid": "Ce nom ne respecte pas les règles configurées.",
+        "kingdom_limit": "La saison compte déjà son nombre maximum de royaumes.",
+        "imposed": "Les royaumes sont imposés cette saison.",
+        "kingdom_not_found": "Aucun royaume de ce nom.",
+        "kingdom_full": "Ce royaume compte déjà son nombre maximum de Seigneurs.",
+        "not_enrollable": "Les royaumes Gaïa n'inscrivent jamais de joueurs.",
+        "not_queued": "Ce joueur n'est pas en file d'attente.",
+        "replacement": "Le joueur sortant n'a pas encore quitté la saison.",
+        "unexpected": "Une erreur inattendue est survenue. Réessayez.",
+    },
+}
+
+def _locale_key(locale: discord.Locale | None) -> str:
+    """Resolve an interaction locale to its string-set key (English fallback)."""
+    if locale is not None and str(locale).startswith("fr"):
+        return "fr"
+    return DEFAULT_LOCALE
 
 
 def _strings_for(locale: discord.Locale | None) -> dict[str, str]:
     """Pick the string set for an interaction locale (English fallback)."""
-    if locale is not None and str(locale).startswith("fr"):
-        return STRINGS["fr"]
-    return STRINGS[DEFAULT_LOCALE]
+    return STRINGS[_locale_key(locale)]
 
 
-def _error_text(strings: dict[str, str], error: KingdomsModError) -> str:
+def _error_text(locale: discord.Locale | None, error: KingdomsModError) -> str:
     """Resolve a mod error into its designer-authored message."""
-    return strings["errors"].get(error.message_key.split(".")[-1], strings["errors"]["unexpected"])
+    errors = ERROR_STRINGS[_locale_key(locale)]
+    return errors.get(error.message_key.split(".")[-1], errors["unexpected"])
 
 
 Guard = Callable[[discord.Interaction], Awaitable[bool]]
@@ -228,20 +236,24 @@ def _make_guard(
     return guard
 
 
-async def _require(
+async def _check(
     interaction: discord.Interaction,
     strings: dict[str, str],
     service: KingdomsService | None,
     guard: Guard,
-) -> bool:
-    """Defer, enforce the admin guard, then check the service wiring."""
+) -> KingdomsService | None:
+    """Defer, enforce the admin guard, then narrow the service wiring.
+
+    Returns None when the guard denied the caller or the service is not
+    wired (the caller already answered the user).
+    """
     await interaction.response.defer(ephemeral=True)
     if not await guard(interaction):
-        return False
+        return None
     if service is None:
         await interaction.followup.send(strings["service_unavailable"], ephemeral=True)
-        return False
-    return True
+        return None
+    return service
 
 
 def _member_id(member: discord.Member | discord.User) -> str:
@@ -275,13 +287,14 @@ def _register_launch(
     async def launch(interaction: discord.Interaction, names: str | None = None) -> None:
         """Launch a new season: wholesale reset, then the fresh state (D38)."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
         imposed = [part.strip() for part in (names or "").split(",") if part.strip()] or None
         try:
-            season = await service.launch(imposed)
+            season = await svc.launch(imposed)
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         await _answer_launch(interaction, strings, season, imposed)
 
@@ -325,9 +338,10 @@ def _register_reset(
     async def reset(interaction: discord.Interaction) -> None:
         """Reset the season data without launching anything."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
-        await service.reset()
+        await svc.reset()
         await interaction.followup.send(strings["reset_done"], ephemeral=True)
         logger.info("kingdoms: season data reset by %s", interaction.user.id)
 
@@ -352,14 +366,15 @@ def _register_status(
     async def status(interaction: discord.Interaction) -> None:
         """Summarize the running season: cycle, kingdoms, queue."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
-        season = await service.current_season()
+        season = await svc.current_season()
         if season is None:
             await interaction.followup.send(strings["status_none"], ephemeral=True)
             return
-        kingdoms = [kingdom for kingdom in await service.kingdoms() if not kingdom.is_gaia]
-        queue = [lord for lord in await service.lords() if lord.in_queue]
+        kingdoms = [kingdom for kingdom in await svc.kingdoms() if not kingdom.is_gaia]
+        queue = [lord for lord in await svc.lords() if lord.in_queue]
         await interaction.followup.send(
             strings["status_line"].format(
                 season=season.id,
@@ -418,12 +433,13 @@ def _register_decide_name(
     ) -> None:
         """Approve or refuse a proposed kingdom name (D21)."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
         try:
-            target = await service.decide_name(kingdom, decision.value == "approve")
+            target = await svc.decide_name(kingdom, decision.value == "approve")
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         await _answer_decision(interaction, strings, kingdom, decision.value, target)
 
@@ -499,16 +515,17 @@ def _register_assign(
     ) -> None:
         """Assign a queued player to a kingdom (admin action, D23)."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
         try:
-            await service.assign(
+            await svc.assign(
                 _member_id(player),
                 kingdom,
                 LordRole.KING if role.value == "king" else LordRole.LORD,
             )
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         role_label = strings["enroll_role_king" if role.value == "king" else "enroll_role_lord"]
         await interaction.followup.send(
@@ -556,14 +573,15 @@ def _register_replace(
     ) -> None:
         """Replace a departed player with a queued one (D23/D25)."""
         strings = _strings_for(interaction.locale)
-        if not await _require(interaction, strings, service, guard):
+        svc = await _check(interaction, strings, service, guard)
+        if svc is None:
             return
         try:
-            lord = await service.replace(_member_id(outgoing), _member_id(incoming))
+            lord = await svc.replace(_member_id(outgoing), _member_id(incoming))
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
-        kingdoms = await service.kingdoms()
+        kingdoms = await svc.kingdoms()
         kingdom_name = next(
             (kingdom.name for kingdom in kingdoms if kingdom.id == lord.kingdom_id), ""
         )

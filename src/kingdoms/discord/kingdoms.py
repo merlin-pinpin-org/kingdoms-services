@@ -83,19 +83,6 @@ STRINGS: dict[str, dict[str, str]] = {
             "No kingdom to display: name an existing kingdom, or enroll first "
             "(`/kingdoms join`)."
         ),
-        "errors": {
-            "no_season": "No season is running — an admin launches it with `/kingdoms-admin launch`.",
-            "already_enrolled": "You are already enrolled in the current season.",
-            "name_invalid": "This kingdom name breaks the configured rules (length or characters).",
-            "kingdom_limit": "The season already counts its maximum of kingdoms.",
-            "imposed": "Kingdoms are imposed this season — an admin assigns you.",
-            "kingdom_not_found": "No kingdom with this name in the current season.",
-            "kingdom_full": "This kingdom already counts its maximum of Lords.",
-            "not_enrollable": "Gaïa kingdoms never enroll players.",
-            "not_queued": "This player is not waiting in the queue.",
-            "replacement": "The outgoing player has not left the season yet.",
-            "unexpected": "An unexpected error occurred. Try again.",
-        },
     },
     "fr": {
         "group_description": "Écrans de la saison Kingdoms : cadastre, royaume, délais, diplomatie, gazette",
@@ -146,33 +133,54 @@ STRINGS: dict[str, dict[str, str]] = {
             "Aucun royaume à afficher : nommez un royaume existant, ou inscrivez-vous "
             "d'abord (`/kingdoms inscrire`)."
         ),
-        "errors": {
-            "no_season": "Aucune saison n'est en cours — un admin la lance avec `/kingdoms-admin lancer`.",
-            "already_enrolled": "Vous êtes déjà inscrit dans la saison en cours.",
-            "name_invalid": "Ce nom de royaume ne respecte pas les règles configurées (longueur ou caractères).",
-            "kingdom_limit": "La saison compte déjà son nombre maximum de royaumes.",
-            "imposed": "Les royaumes sont imposés cette saison — un admin vous affecte.",
-            "kingdom_not_found": "Aucun royaume de ce nom dans la saison en cours.",
-            "kingdom_full": "Ce royaume compte déjà son nombre maximum de Seigneurs.",
-            "not_enrollable": "Les royaumes Gaïa n'inscrivent jamais de joueurs.",
-            "not_queued": "Ce joueur n'est pas en file d'attente.",
-            "replacement": "Le joueur sortant n'a pas encore quitté la saison.",
-            "unexpected": "Une erreur inattendue est survenue. Réessayez.",
-        },
     },
 }
+
+ERROR_STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "no_season": "No season is running — an admin launches it with `/kingdoms-admin launch`.",
+        "already_enrolled": "You are already enrolled in the current season.",
+        "name_invalid": "This kingdom name breaks the configured rules (length or characters).",
+        "kingdom_limit": "The season already counts its maximum of kingdoms.",
+        "imposed": "Kingdoms are imposed this season — an admin assigns you.",
+        "kingdom_not_found": "No kingdom with this name in the current season.",
+        "kingdom_full": "This kingdom already counts its maximum of Lords.",
+        "not_enrollable": "Gaïa kingdoms never enroll players.",
+        "not_queued": "This player is not waiting in the queue.",
+        "replacement": "The outgoing player has not left the season yet.",
+        "unexpected": "An unexpected error occurred. Try again.",
+    },
+    "fr": {
+        "no_season": "Aucune saison n'est en cours — un admin la lance avec `/kingdoms-admin lancer`.",
+        "already_enrolled": "Vous êtes déjà inscrit dans la saison en cours.",
+        "name_invalid": "Ce nom de royaume ne respecte pas les règles configurées (longueur ou caractères).",
+        "kingdom_limit": "La saison compte déjà son nombre maximum de royaumes.",
+        "imposed": "Les royaumes sont imposés cette saison — un admin vous affecte.",
+        "kingdom_not_found": "Aucun royaume de ce nom dans la saison en cours.",
+        "kingdom_full": "Ce royaume compte déjà son nombre maximum de Seigneurs.",
+        "not_enrollable": "Les royaumes Gaïa n'inscrivent jamais de joueurs.",
+        "not_queued": "Ce joueur n'est pas en file d'attente.",
+        "replacement": "Le joueur sortant n'a pas encore quitté la saison.",
+        "unexpected": "Une erreur inattendue est survenue. Réessayez.",
+    },
+}
+
+def _locale_key(locale: discord.Locale | None) -> str:
+    """Resolve an interaction locale to its string-set key (English fallback)."""
+    if locale is not None and str(locale).startswith("fr"):
+        return "fr"
+    return DEFAULT_LOCALE
 
 
 def _strings_for(locale: discord.Locale | None) -> dict[str, str]:
     """Pick the string set for an interaction locale (English fallback)."""
-    if locale is not None and str(locale).startswith("fr"):
-        return STRINGS["fr"]
-    return STRINGS[DEFAULT_LOCALE]
+    return STRINGS[_locale_key(locale)]
 
 
-def _error_text(strings: dict[str, str], error: KingdomsModError) -> str:
+def _error_text(locale: discord.Locale | None, error: KingdomsModError) -> str:
     """Resolve a mod error into its designer-authored message."""
-    return strings["errors"].get(error.message_key.split(".")[-1], strings["errors"]["unexpected"])
+    errors = ERROR_STRINGS[_locale_key(locale)]
+    return errors.get(error.message_key.split(".")[-1], errors["unexpected"])
 
 
 async def _send_placeholder(
@@ -403,7 +411,7 @@ def _register_enroll(
                 proposed_name=name,
             )
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         await _answer_enrollment(interaction, strings, service, lord)
 
@@ -470,7 +478,7 @@ def _register_leave(
         try:
             await service.leave(str(interaction.user.id), reason or "")
         except KingdomsModError as error:
-            await interaction.followup.send(_error_text(strings, error), ephemeral=True)
+            await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         await interaction.followup.send(strings["left_season"])
         logger.info(
