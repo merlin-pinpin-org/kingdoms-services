@@ -59,7 +59,8 @@ re-running&nbsp;the&nbsp;bootstrap&nbsp;is&nbsp;safe.</span></dd></dl>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ADMIN_ONLY_CHANNELS</strong> = {'Candidatures'}<br>
 <strong>BLURPLE</strong> = 5793266<br>
-<strong>SALONS_FIRST_STRUCTURE</strong> = (('Conscription', ('Postuler', 'Candidatures'), False), ('Kingdoms', ('Géopolitique',), False), ('Époque', ('Âge sombre',), False), ('Royaume Gaïa', ('Patrouille', 'Territoire', 'Exploration'), False), ('Champs de Bataille', ('Délais-attaque', 'Attaquer', 'Pourparlers'), False), ('Scriptorium', ('Seigneurs', 'Diplomatie', 'Cadastre'), False), ('Profils', (), False), ('Admin', ('Paramètres', 'Demandes'), True))<br>
-<strong>__annotations__</strong> = {'SALONS_FIRST_STRUCTURE': 'tuple[tuple[str, tuple[str, ...], bool], ...]'}<br>
+<strong>PROFILES_CATEGORY</strong> = 'Profils'<br>
+<strong>SALONS_FIRST_STRUCTURE</strong> = (('Profils', (), False), ('Général', (('Présentation', 'announce'), ('Annonce', 'announce'), ('Règles', 'forum'), ('Paramètre Saison II', 'text'), ('Update', 'announce'), ('Taverne', 'text'), ('Suggestion', 'forum')), False), ('Conscription', (('Postuler', 'text'), ('Candidatures', 'text')), False), ('Kingdoms', (('Géopolitique', 'text'),), False), ('Époque', (('Âge sombre', 'text'),), False), ('Royaume Gaïa', (('Patrouille', 'text'), ('Territoire', 'text'), ('Exploration', 'text')), False), ('Champs de Bataille', (('Délais-attaque', 'text'), ('Attaquer', 'text'), ('Pourparlers', 'text')), False), ('Scriptorium', (('Seigneurs', 'text'), ('Diplomatie', 'text'), ('Cadastre', 'text')), False), ('Admin', (('Paramètres', 'text'), ('Demandes', 'text')), True), ('Support', (('Question', 'forum'), ('Signaler un Bug', 'forum')), False))<br>
+<strong>__annotations__</strong> = {'SALONS_FIRST_STRUCTURE': 'tuple[tuple[str, tuple[tuple[str, str], ...], bool], ...]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -648,6 +648,10 @@ Season&nbsp;lifecycle&nbsp;and&nbsp;enrollment&nbsp;rules&nbsp;over&nbsp;the&nbs
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="KingdomsService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seam&nbsp;and&nbsp;the&nbsp;validated&nbsp;season&nbsp;configuration.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-add_kingdom"><strong>add_kingdom</strong></a>(self, name: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Add&nbsp;a&nbsp;kingdom&nbsp;manually&nbsp;to&nbsp;the&nbsp;running&nbsp;season&nbsp;(admin&nbsp;action).<br>
+&nbsp;<br>
+The&nbsp;kingdom&nbsp;is&nbsp;created&nbsp;approved,&nbsp;up&nbsp;to&nbsp;the&nbsp;configured&nbsp;maximum.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-assign"><strong>assign</strong></a>(self, player_id: 'str', kingdom_name: 'str', role: 'LordRole') -&gt; 'LordModel'</dt><dd><span class="code">Assign&nbsp;a&nbsp;queued&nbsp;player&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;(admin&nbsp;action,&nbsp;D23).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-current_season"><strong>current_season</strong></a>(self) -&gt; 'SeasonState | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;latest&nbsp;launched&nbsp;season;&nbsp;None&nbsp;before&nbsp;the&nbsp;first&nbsp;launch.</span></dd></dl>
