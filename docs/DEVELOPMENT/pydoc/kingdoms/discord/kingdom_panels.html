@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_panels</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_panels</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_panels.py">SOURCE_ROOT/discord/kingdom_panels.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;Kingdoms&nbsp;salons-first&nbsp;panels&nbsp;(kingdoms#138):&nbsp;enrollment&nbsp;workflow.<br>
+&nbsp;<br>
+Three&nbsp;panels&nbsp;on&nbsp;top&nbsp;of&nbsp;the&nbsp;bootstrapped&nbsp;structure:<br>
+&nbsp;<br>
+-&nbsp;**Postuler**&nbsp;(open&nbsp;to&nbsp;all)&nbsp;—&nbsp;a&nbsp;pinned&nbsp;button&nbsp;opens&nbsp;an&nbsp;ephemeral,<br>
+&nbsp;&nbsp;per-player&nbsp;enrollment&nbsp;modal:&nbsp;role&nbsp;(Lord&nbsp;by&nbsp;default,&nbsp;King&nbsp;optional),<br>
+&nbsp;&nbsp;kingdom&nbsp;name&nbsp;when&nbsp;King,&nbsp;AoE&nbsp;II&nbsp;Insight&nbsp;link&nbsp;+&nbsp;game&nbsp;ID,&nbsp;and&nbsp;a<br>
+&nbsp;&nbsp;mandatory&nbsp;rules-acceptance&nbsp;checkbox&nbsp;(the&nbsp;modal&nbsp;cannot&nbsp;be&nbsp;submitted<br>
+&nbsp;&nbsp;without&nbsp;it);<br>
+-&nbsp;**Candidatures**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;each&nbsp;submitted&nbsp;application&nbsp;lands&nbsp;as<br>
+&nbsp;&nbsp;a&nbsp;message&nbsp;with&nbsp;admin-only&nbsp;buttons&nbsp;✅&nbsp;validated&nbsp;/&nbsp;⏳&nbsp;pending&nbsp;/&nbsp;❌<br>
+&nbsp;&nbsp;refused;&nbsp;validation&nbsp;assigns&nbsp;the&nbsp;kingdoms_lord&nbsp;or&nbsp;kingdoms_king&nbsp;mod<br>
+&nbsp;&nbsp;role&nbsp;to&nbsp;the&nbsp;player;<br>
+-&nbsp;**Paramètres**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;the&nbsp;guild&nbsp;language&nbsp;(fr/en)&nbsp;and&nbsp;the<br>
+&nbsp;&nbsp;reference&nbsp;timezone,&nbsp;persisted&nbsp;in&nbsp;the&nbsp;guild&nbsp;settings&nbsp;(the&nbsp;timezone&nbsp;is<br>
+&nbsp;&nbsp;the&nbsp;designer's&nbsp;common&nbsp;time&nbsp;reference&nbsp;for&nbsp;delays&nbsp;and&nbsp;events).<br>
+&nbsp;<br>
+The&nbsp;mod&nbsp;declares&nbsp;its&nbsp;roles&nbsp;in&nbsp;``config/mods/kingdoms.yaml``<br>
+(kingdoms_king,&nbsp;kingdoms_lord);&nbsp;the&nbsp;panels&nbsp;assign&nbsp;them&nbsp;through&nbsp;the<br>
+ModRolesService&nbsp;—&nbsp;never&nbsp;raw&nbsp;Discord&nbsp;role&nbsp;IDs.&nbsp;Panels&nbsp;degrade&nbsp;when&nbsp;the<br>
+stores&nbsp;are&nbsp;not&nbsp;wired&nbsp;(local&nbsp;runs):&nbsp;the&nbsp;buttons&nbsp;answer&nbsp;with&nbsp;a&nbsp;note.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.kingdom_panels.html#EnrollmentModal">EnrollmentModal</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EnrollmentModal">class <strong>EnrollmentModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EnrollmentModal">EnrollmentModal</a>(locale:&nbsp;'str'&nbsp;=&nbsp;'en',&nbsp;candidatures_channel:&nbsp;'discord.abc.Messageable&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mod_roles_service:&nbsp;'ModRolesService&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;guild_id:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;per-player&nbsp;enrollment&nbsp;form&nbsp;(ephemeral,&nbsp;mandatory&nbsp;rules&nbsp;check).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.kingdom_panels.html#EnrollmentModal">EnrollmentModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="EnrollmentModal-__init__"><strong>__init__</strong></a>(self, locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="EnrollmentModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Validate&nbsp;the&nbsp;form,&nbsp;then&nbsp;forward&nbsp;the&nbsp;application&nbsp;to&nbsp;Candidatures.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'accept_rules': 'discord.ui.TextInput[EnrollmentModal]', 'game_id': 'discord.ui.TextInput[EnrollmentModal]', 'insight_link': 'discord.ui.TextInput[EnrollmentModal]', 'kingdom_name': 'discord.ui.TextInput[EnrollmentModal]', 'role': 'discord.ui.TextInput[EnrollmentModal]'}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {'accept_rules': &lt;TextInput label='Type YES to confirm you have r...e rules' placeholder='YES' required=True id=None&gt;, 'game_id': &lt;TextInput label='Game ID' placeholder='12345678' required=True id=None&gt;, 'insight_link': &lt;TextInput label='AoE II Insight link' placehold...s://www.aoe2insight.com/…' required=True id=None&gt;, 'kingdom_name': &lt;TextInput label='Kingdom name (King only)' placeholder='My Kingdom' required=False id=None&gt;, 'role': &lt;TextInput label='Role' placeholder='Lord (default) or King' required=True id=None&gt;}</dl>
+
+<dl><dt><strong>accept_rules</strong> = &lt;TextInput label='Type YES to confirm you have r...e rules' placeholder='YES' required=True id=None&gt;</dl>
+
+<dl><dt><strong>game_id</strong> = &lt;TextInput label='Game ID' placeholder='12345678' required=True id=None&gt;</dl>
+
+<dl><dt><strong>insight_link</strong> = &lt;TextInput label='AoE II Insight link' placehold...s://www.aoe2insight.com/…' required=True id=None&gt;</dl>
+
+<dl><dt><strong>kingdom_name</strong> = &lt;TextInput label='Kingdom name (King only)' placeholder='My Kingdom' required=False id=None&gt;</dl>
+
+<dl><dt><strong>role</strong> = &lt;TextInput label='Role' placeholder='Lord (default) or King' required=True id=None&gt;</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="EnrollmentModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt>async <a name="EnrollmentModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;:meth:`on_submit`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="EnrollmentModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="EnrollmentModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="EnrollmentModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="EnrollmentModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="EnrollmentModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="EnrollmentModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="EnrollmentModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="EnrollmentModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="EnrollmentModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;one&nbsp;Enroll&nbsp;button.</span></dd></dl>
+ <dl><dt>async <a name="-build_settings_panel"><strong>build_settings_panel</strong></a>(logs_service: 'LogService | None', guild_id: 'str', by: 'str', bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;guild&nbsp;language&nbsp;+&nbsp;reference&nbsp;timezone.</span></dd></dl>
+ <dl><dt>async <a name="-deploy_panels"><strong>deploy_panels</strong></a>(guild: 'discord.Guild', logs_service: 'LogService | None', bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None) -&gt; 'dict[str, str]'</dt><dd><span class="code">Deploy&nbsp;the&nbsp;pinned&nbsp;panels&nbsp;into&nbsp;Postuler&nbsp;and&nbsp;Paramètres.<br>
+&nbsp;<br>
+Returns&nbsp;a&nbsp;report&nbsp;dict&nbsp;{panel:&nbsp;status}.&nbsp;Idempotent&nbsp;in&nbsp;v1:&nbsp;each<br>
+deployment&nbsp;pins&nbsp;a&nbsp;fresh&nbsp;panel&nbsp;message&nbsp;(existing&nbsp;pins&nbsp;from&nbsp;previous<br>
+versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nbsp;will&nbsp;adopt&nbsp;them).</span></dd></dl>
+ <dl><dt><a name="-register_kingdom_panels_command"><strong>register_kingdom_panels_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', logs_service: 'LogService | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;command:&nbsp;bootstrap&nbsp;+&nbsp;panels,&nbsp;admin&nbsp;only.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>APPLY_BUTTON_ID</strong> = 'kingdoms:apply:open'<br>
+<strong>BLURPLE</strong> = 5793266<br>
+<strong>DECISION_APPROVE_ID</strong> = 'kingdoms:candidature:approve'<br>
+<strong>DECISION_PENDING_ID</strong> = 'kingdoms:candidature:pending'<br>
+<strong>DECISION_REFUSE_ID</strong> = 'kingdoms:candidature:refuse'<br>
+<strong>GAME_ID</strong> = re.compile('^\\d{6,20}$')<br>
+<strong>GREEN</strong> = 5763719<br>
+<strong>INSIGHT_URL</strong> = re.compile('^https?://.+', re.IGNORECASE)<br>
+<strong>KINGDOM_MOD</strong> = 'kingdoms'<br>
+<strong>LOCALE_SELECT_ID</strong> = 'kingdoms:settings:locale'<br>
+<strong>ROLE_KING</strong> = 'kingdoms_king'<br>
+<strong>ROLE_LORD</strong> = 'kingdoms_lord'<br>
+<strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'candidature_game_id': 'Game ID', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Suggested kingdom', 'candidature_role': 'Requested role', 'candidature_title': '📋 New enrollment application', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'candidature_game_id': 'ID de jeu', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Royaume suggéré', 'candidature_role': 'Rôle demandé', 'candidature_title': '📋 Nouvelle candidature', ...}}<br>
+<strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
+<strong>SUPPORTED_TIMEZONES</strong> = ('Europe/Paris', 'America/Montreal', 'America/Sao_Paulo', 'UTC')<br>
+<strong>TIMEZONE_SELECT_ID</strong> = 'kingdoms:settings:timezone'<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_panels (WARNING)&gt;</td></tr></table>
+</body></html>

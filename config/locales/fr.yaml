@@ -96,6 +96,8 @@ fr:
     kingdoms_admin_replace_description: "Remplacer un joueur parti par un joueur en attente (D23)"
     kingdoms_admin_replace_outgoing_description: "Le joueur qui a quitté"
     kingdoms_admin_replace_incoming_description: "Le joueur en attente qui prend la place"
+    kingdom_name: "kingdom"
+    kingdom_description: "Installer le mod Kingdoms : salons et panneaux (admin uniquement)"
   errors:
     validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
     configuration: "Erreur de configuration. Contactez un administrateur."

@@ -121,12 +121,14 @@ class MockMember(discord.Member):
         guild: MockGuild | None = None,
         roles: list[MockRole] | None = None,
         bot: bool = False,
+        guild_permissions: discord.Permissions | None = None,
         **kwargs: Any,
     ) -> None:
         self._mock_id = id if id is not None else _next_id()
         self._mock_name = name
         self._mock_bot = bot
         self._roles: list[MockRole] = list(roles or [])
+        self._mock_guild_permissions = guild_permissions
         self.guild = guild or MockGuild()
         self.joined_at = None
         self.premium_since = None
@@ -139,6 +141,18 @@ class MockMember(discord.Member):
     @property
     def id(self) -> int:
         return self._mock_id
+
+    @property
+    def guild_permissions(self) -> discord.Permissions:
+        """Explicit when given, else the union of the member's role permissions."""
+        if self._mock_guild_permissions is not None:
+            return self._mock_guild_permissions
+        permissions = discord.Permissions()
+        for role in self._roles:
+            role_permissions = getattr(role, "_permissions", None)
+            if isinstance(role_permissions, discord.Permissions):
+                permissions |= role_permissions
+        return permissions
 
     @property
     def name(self) -> str:
@@ -865,6 +879,16 @@ class MockInteraction(discord.Interaction):
     @guild.setter
     def guild(self, value: MockGuild) -> None:
         self._guild = value
+
+    @property
+    def message(self) -> MockMessage | None:
+        """The message a component interaction is attached to (overridable)."""
+        message = self.__dict__.get("_mock_message")
+        return message if isinstance(message, MockMessage) else None
+
+    @message.setter
+    def message(self, value: MockMessage | None) -> None:
+        self.__dict__["_mock_message"] = value
 
     @property
     def client(self) -> Any:
