@@ -19,6 +19,8 @@ EXPECTED_SUBCOMMANDS = (
     "delays",
     "diplomacy",
     "gazette",
+    "join",
+    "leave",
 )
 
 
@@ -37,7 +39,7 @@ async def test_register_adds_the_kingdoms_group() -> None:
     await client.close()
 
 
-async def test_the_five_screens_are_registered() -> None:
+async def test_all_the_subcommands_are_registered() -> None:
     client, tree = _build_tree()
     group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
     assert isinstance(group, app_commands.Group)

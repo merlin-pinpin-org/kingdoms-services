@@ -1,8 +1,8 @@
 # Kingdoms mod (Season II territory-conquest AoE2).
 # Design: kingdoms repo docs/MODS/kingdoms/ (reference Season II + DECISIONS.md D1-D54).
-# Enabled=false until T2 (enrollment) lands; the declaration is validated at startup.
+# Enabled with T2 (enrollment); the declaration is validated at startup.
 id: kingdoms
-enabled: false
+enabled: true
 settings: {}
 channels:
   - key: attack

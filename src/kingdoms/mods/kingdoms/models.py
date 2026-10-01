@@ -44,6 +44,7 @@ class KingdomModel(BaseModel):
     type: KingdomType
     name: str
     marriage_capacity: int = Field(default=0, ge=0)
+    name_approved: bool = True
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -79,6 +80,8 @@ class LordModel(BaseModel):
     attack_used: int = Field(default=0, ge=0)
     defense_used: int = Field(default=0, ge=0)
     married_civilization: str | None = None
+    left: bool = False
+    left_reason: str | None = None
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -173,6 +176,7 @@ class SeasonState(BaseModel):
     weeks: int = Field(ge=1)
     current_cycle: int = Field(default=0, ge=0)
     current_age_key: str
+    imposed_kingdoms: bool = False
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

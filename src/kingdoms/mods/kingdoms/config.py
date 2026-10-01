@@ -20,6 +20,16 @@ from pydantic import BaseModel, ConfigDict, Field
 SEASON_CONFIG_FILENAME = "season.yaml"
 
 
+class NameRules(BaseModel):
+    """Kingdom name rules — length and characters, admin-tunable (D21)."""
+
+    model_config = ConfigDict(strict=True)
+
+    min_length: int = Field(default=2, ge=1)
+    max_length: int = Field(default=32, ge=1)
+    pattern: str = r"^[\w\s'\-]+$"
+
+
 class Epoch(BaseModel):
     """One age of the season (reference §15, decision D18)."""
 
@@ -101,6 +111,7 @@ class KingdomsSeasonConfig(BaseModel):
     starting_civilizations: int = Field(default=0, ge=0)
     garrison_enabled: bool = False
     ages: tuple[Epoch, ...] = ()
+    names: NameRules = Field(default_factory=NameRules)
     technologies: TechnologyCosts = Field(default_factory=TechnologyCosts)
     attacks: AttackSettings = Field(default_factory=AttackSettings)
     events: EventSettings = Field(default_factory=EventSettings)
