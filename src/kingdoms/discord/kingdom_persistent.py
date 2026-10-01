@@ -388,9 +388,91 @@ def _profile_strings(locale: str) -> dict[str, str]:
     return ps(locale)
 
 
+class KingdomAssignPlayerModal(discord.ui.Modal):
+    """The admin form to assign one waiting player to a kingdom."""
+
+    player: discord.ui.TextInput[KingdomAssignPlayerModal] = discord.ui.TextInput(
+        label="Player (mention or id)",
+        placeholder="@player",
+        max_length=32,
+        required=True,
+    )
+    kingdom: discord.ui.TextInput[KingdomAssignPlayerModal] = discord.ui.TextInput(
+        label="Kingdom name",
+        placeholder="Aquitaine",
+        max_length=45,
+        required=True,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _profile_strings(self.locale)
+        self.player.label = strings["assign_player_field"][:45]
+        self.kingdom.label = strings["assign_kingdom_field"][:45]
+        super().__init__(title=strings["assign_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        strings = _profile_strings(self.locale)
+        raw = (self.player.value or "").strip()
+        match = re.search(r"<@!?(\d+)>", raw) or re.search(r"^(\d{6,25})$", raw)
+        if match is None:
+            await interaction.response.send_message(strings["remove_player_not_found"], ephemeral=True)
+            return
+        user_id = match.group(1)
+        kingdom_name = (self.kingdom.value or "").strip()
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["assign_failed"].format("no service"), ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            lord = await wiring.kingdoms_service.assign(user_id, kingdom_name, "lord")
+        except Exception as exc:
+            await interaction.followup.send(strings["assign_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        mention = f"<@{user_id}>"
+        await interaction.followup.send(strings["assign_done"].format(mention, lord.kingdom_id), ephemeral=True)
+
+
+class KingdomAddKingdomModal(discord.ui.Modal):
+    """The admin form to add one kingdom manually to the season."""
+
+    kingdom: discord.ui.TextInput[KingdomAddKingdomModal] = discord.ui.TextInput(
+        label="Kingdom name",
+        placeholder="Aquitaine",
+        max_length=45,
+        required=True,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _profile_strings(self.locale)
+        self.kingdom.label = strings["add_kingdom_field"][:45]
+        super().__init__(title=strings["add_kingdom_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        strings = _profile_strings(self.locale)
+        kingdom_name = (self.kingdom.value or "").strip()
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["add_kingdom_failed"].format("no service"), ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.add_kingdom(kingdom_name)
+        except Exception as exc:
+            await interaction.followup.send(strings["add_kingdom_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
+
+
 class KingdomAdminButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel)",
+    template=(
+        r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
+        r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
+        r"|status|assign|add-kingdom)"
+    ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
 
@@ -420,51 +502,173 @@ class KingdomAdminButton(
             "reset": strings["reset_salons_button"],
             "reset-confirm": strings["reset_confirm_button"],
             "reset-cancel": strings["reset_cancel_button"],
+            "deploy": strings["deploy_button"],
+            "deploy-confirm": strings["deploy_confirm_button"],
+            "deploy-cancel": strings["deploy_cancel_button"],
+            "sync": strings["sync_button"],
+            "sync-confirm": strings["sync_confirm_button"],
+            "sync-cancel": strings["sync_cancel_button"],
+            "status": strings["status_button"],
+            "assign": strings["assign_button"],
+            "add-kingdom": strings["add_kingdom_button"],
         }
         styles = {
             "remove": discord.ButtonStyle.danger,
             "reset": discord.ButtonStyle.danger,
             "reset-confirm": discord.ButtonStyle.success,
             "reset-cancel": discord.ButtonStyle.secondary,
+            "deploy": discord.ButtonStyle.primary,
+            "deploy-confirm": discord.ButtonStyle.success,
+            "deploy-cancel": discord.ButtonStyle.secondary,
+            "sync": discord.ButtonStyle.secondary,
+            "sync-confirm": discord.ButtonStyle.success,
+            "sync-cancel": discord.ButtonStyle.secondary,
+            "status": discord.ButtonStyle.secondary,
+            "assign": discord.ButtonStyle.primary,
+            "add-kingdom": discord.ButtonStyle.primary,
         }
         return cls(action, labels[action][:80], styles[action])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Run the admin action (remove player or reset salons)."""
+        """Run the admin action chosen on the Paramètres panel."""
+
+        async def open_remove(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomRemovePlayerModal(locale))
+
+        async def open_assign(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomAssignPlayerModal(locale))
+
+        async def open_add_kingdom(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomAddKingdomModal(locale))
+
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _profile_strings(locale)
         wiring = _wiring()
         if not _is_admin(interaction, wiring.bot_admins):
             await interaction.response.send_message("Only admins can use this panel.", ephemeral=True)
             return
-        if self.action == "remove":
-            await interaction.response.send_modal(KingdomRemovePlayerModal(locale))
-            return
-        if self.action == "reset":
-            await _ask_reset_confirmation(interaction, strings)
-            return
-        if self.action == "reset-cancel":
-            await interaction.response.edit_message(content=strings["reset_cancelled"], view=None)
-            return
-        await _run_reset(interaction, strings)
+        handlers: dict[str, Callable[..., Any]] = {
+            "remove": open_remove,
+            "assign": open_assign,
+            "add-kingdom": open_add_kingdom,
+            "reset": lambda _i, _l: _ask_action_confirmation(interaction, strings, "reset"),
+            "reset-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["reset_cancelled"], view=None
+            ),
+            "deploy": lambda _i, _l: _ask_action_confirmation(interaction, strings, "deploy"),
+            "deploy-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["deploy_cancelled"], view=None
+            ),
+            "sync": lambda _i, _l: _ask_action_confirmation(interaction, strings, "sync"),
+            "sync-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["sync_cancelled"], view=None
+            ),
+            "status": lambda _i, _l: _run_status(interaction, strings),
+            "deploy-confirm": lambda _i, _l: _run_deploy(interaction, strings),
+            "sync-confirm": lambda _i, _l: _run_sync(interaction, strings),
+            "reset-confirm": lambda _i, _l: _run_reset(interaction, strings),
+        }
+        handler = handlers.get(self.action)
+        if handler is not None:
+            await handler(interaction, locale)
 
     @staticmethod
     def _confirm_button(verdict: str, label: str, style: discord.ButtonStyle) -> KingdomAdminButton:
         return KingdomAdminButton(verdict, label[:80], style)
 
-async def _ask_reset_confirmation(interaction: discord.Interaction, strings: dict[str, str]) -> None:
-    """Ask the admin to confirm the salons reset."""
+async def _ask_action_confirmation(interaction: discord.Interaction, strings: dict[str, str], action: str) -> None:
+    """Ask the admin to confirm a destructive/heavy panel action."""
     view = discord.ui.View(timeout=120)
     for verdict, label_key, style in (
-        ("reset-confirm", "reset_confirm_button", discord.ButtonStyle.success),
-        ("reset-cancel", "reset_cancel_button", discord.ButtonStyle.secondary),
+        (f"{action}-confirm", f"{action}_confirm_button", discord.ButtonStyle.success),
+        (f"{action}-cancel", f"{action}_cancel_button", discord.ButtonStyle.secondary),
     ):
         view.add_item(KingdomAdminButton(verdict, strings[label_key][:80], style))
     await interaction.response.send_message(
-        f"**{strings['reset_confirm_title']}**\n{strings['reset_confirm_hint']}",
+        f"**{strings[f'{action}_confirm_title']}**\n{strings[f'{action}_confirm_hint']}",
         view=view,
         ephemeral=True,
     )
+
+
+async def _run_deploy(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Provision the salons structure then re-pin every panel."""
+    from kingdoms.discord.kingdom_panels import deploy_panels
+    from kingdoms.discord.kingdom_setup import provision_structure
+
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        created, adopted = await provision_structure(guild)
+        wiring = _wiring()
+        report = await deploy_panels(
+            guild,
+            wiring.logs_service,
+            wiring.bot_admins,
+            wiring.mod_roles_service,
+            wiring.kingdoms_service,
+        )
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: deployment failed for guild %s", guild.id)
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+        return
+    await interaction.followup.send(
+        strings["deploy_done"].format(len(created), len(adopted)) + f" ({', '.join(report) or '—'})",
+        ephemeral=True,
+    )
+
+
+async def _run_sync(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Re-pin every panel without touching the salons."""
+    from kingdoms.discord.kingdom_panels import deploy_panels
+
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    wiring = _wiring()
+    try:
+        report = await deploy_panels(
+            guild,
+            wiring.logs_service,
+            wiring.bot_admins,
+            wiring.mod_roles_service,
+            wiring.kingdoms_service,
+        )
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: panel resync failed for guild %s", guild.id)
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+        return
+    await interaction.followup.send(strings["sync_done"].format(len(report)), ephemeral=True)
+
+
+async def _run_status(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Answer with the current season status (kingdoms, queue, players)."""
+    wiring = _wiring()
+    kingdoms: list[str] = []
+    queued = 0
+    enrolled = 0
+    if wiring.kingdoms_service is not None:
+        try:
+            all_kingdoms = await wiring.kingdoms_service.kingdoms()
+            kingdoms = sorted(k.name for k in all_kingdoms if not k.is_gaia)
+            lords = await wiring.kingdoms_service.lords()
+            active = [lord for lord in lords if not lord.left]
+            queued = sum(1 for lord in active if lord.in_queue)
+            enrolled = len(active) - queued
+        except Exception:
+            logger.warning("KINGDOMS ADMIN: status read failed", exc_info=True)
+    lines = [
+        f"# {strings['status_title']}",
+        f"**{strings['status_kingdoms']}** : {', '.join(kingdoms) if kingdoms else strings['status_empty']}",
+        f"**{strings['status_lords']}** : {enrolled or strings['status_empty']}",
+        f"**{strings['status_queue']}** : {queued or strings['status_empty']}",
+    ]
+    await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
 
 async def _send_welcome(

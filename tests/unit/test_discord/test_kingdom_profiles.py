@@ -214,3 +214,94 @@ async def test_admin_reset_confirms_then_deletes_salons() -> None:
     await confirm.callback(confirm_interaction)
     remaining = {c.name.lower() for c in guild.text_channels}
     assert not ({"postuler", "candidatures", "paramètres", "demandes"} & remaining), "salons deleted"
+
+
+@pytest.mark.asyncio
+async def test_admin_deploy_confirms_then_reprovisions() -> None:
+    """The deploy flow asks for confirmation, then re-provisions the salons."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomAdminButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
+    guild = MockGuild(id=11)
+    permissions = discord.Permissions(administrator=True)
+    interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    interaction.guild = guild
+    interaction.locale = "fr"
+    deploy = KingdomAdminButton("deploy", "🚀 Déployer", discord.ButtonStyle.primary)
+    await deploy.callback(interaction)
+    assert interaction.response.message is not None
+    assert interaction.response.message.view is not None
+    confirm = next(
+        c for c in interaction.response.message.view.children if c.item.custom_id.endswith("deploy-confirm")
+    )
+    confirm_interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    confirm_interaction.guild = guild
+    confirm_interaction.locale = "fr"
+    await confirm.callback(confirm_interaction)
+    assert guild.text_channels, "salons provisioned by the deploy action"
+
+
+@pytest.mark.asyncio
+async def test_admin_status_answers_kingdoms_and_queue() -> None:
+    """The status button answers with kingdoms, players and waiting counts."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomAdminButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    class FakeKingdom:
+        name = "Aquitaine"
+        is_gaia = False
+
+    class FakeLord:
+        in_queue = True
+        left = False
+
+    class FakeService:
+        async def kingdoms(self):
+            return [FakeKingdom()]
+
+        async def lords(self):
+            return [FakeLord()]
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",), kingdoms_service=FakeService()))
+    guild = _guild()
+    permissions = discord.Permissions(administrator=True)
+    interaction = MockInteraction(
+        user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild
+    )
+    interaction.guild = guild
+    interaction.locale = "fr"
+    status = KingdomAdminButton("status", "📊 Statut", discord.ButtonStyle.secondary)
+    await status.callback(interaction)
+    assert interaction.response.message is not None
+    assert "Aquitaine" in interaction.response.message.content
+
+
+@pytest.mark.asyncio
+async def test_admin_assign_and_add_kingdom_open_modals() -> None:
+    """Assign and add-kingdom open their respective admin modals."""
+    from kingdoms.discord.kingdom_persistent import (
+        KingdomAdminButton,
+        KingdomsPanelWiring,
+        register_kingdoms_panel_wiring,
+    )
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
+    permissions = discord.Permissions(administrator=True)
+    for action in ("assign", "add-kingdom"):
+        interaction = MockInteraction(
+            user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=_guild()
+        )
+        button = KingdomAdminButton(action, action, discord.ButtonStyle.primary)
+        await button.callback(interaction)
+        assert interaction.response.modal is not None

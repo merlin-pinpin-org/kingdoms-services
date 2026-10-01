@@ -38,8 +38,6 @@ from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.ui import (
     BLURPLE,
     GREEN,
-    Option,
-    SelectMenu,
 )
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
@@ -54,13 +52,57 @@ KINGDOM_SELECT_ID = "kingdoms:apply:kingdom"
 DECISION_APPROVE_ID = "kingdoms:candidature:approve"
 DECISION_PENDING_ID = "kingdoms:candidature:pending"
 DECISION_REFUSE_ID = "kingdoms:candidature:refuse"
-LOCALE_SELECT_ID = "kingdoms:settings:locale"
-TIMEZONE_SELECT_ID = "kingdoms:settings:timezone"
 
 QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
 SEASON_STATUS_MARKER = "kingdoms:season:status"
 SEASON_STATUS_CHANNEL = "paramètre-saison-ii"
+UPDATE_CHANNEL = "update"
+CHANGELOG_MARKER = "kingdoms:update:changelog"
+
+
+async def refresh_changelog(guild: discord.Guild, locale: str) -> bool:
+    """Post (or refresh) the kingdoms changelog message in the Update channel."""
+    channel = next((c for c in guild.text_channels if c.name.lower() == UPDATE_CHANNEL), None)
+    if channel is None:
+        return False
+    fr = str(locale).lower().startswith("fr")
+    items = (
+        "🛠️ Panneau admin enrichi : déploiement des salons + panels, resynchronisation, "
+        "statut de la saison, affectation des joueurs en attente, ajout manuel de royaume — "
+        "les actions sensibles demandent une confirmation."
+        if fr
+        else "🛠️ Richer admin panel: deploy salons + panels, resync, season status, "
+        "assign waiting players, add a kingdom manually — sensitive actions ask for confirmation."
+    )
+    content = f"{items}\n{CHANGELOG_MARKER}"
+    for message in list(getattr(channel, "messages", [])):
+        if CHANGELOG_MARKER in (message.content or ""):
+            try:
+                await message.edit(content=content)
+            except Exception:
+                logger.warning("KINGDOM PANELS: changelog refresh failed", exc_info=True)
+            return True
+    await channel.send(content)
+    return True
+
+
+async def post_update_note(guild: discord.Guild, locale: str, note: str) -> bool:
+    """Post a dated changelog note in the Update channel."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    channel = next((c for c in guild.text_channels if c.name.lower() == UPDATE_CHANNEL), None)
+    if channel is None:
+        return False
+    try:
+        tz = ZoneInfo("Europe/Paris")
+    except Exception:
+        tz = None
+    now = datetime.now(tz) if tz else datetime.now()
+    stamp = now.strftime("%d/%m/%Y %H:%M")
+    await channel.send(f"**🕘 Update — {stamp}**\n{note}")
+    return True
 
 SUPPORTED_LOCALES = ("en", "fr")
 SUPPORTED_TIMEZONES = ("Europe/Paris", "America/Montreal", "America/Sao_Paulo", "UTC")
@@ -670,30 +712,6 @@ async def build_apply_panel(
     return view
 
 
-async def _write_guild_setting(
-    logs_service: LogService | None,
-    guild_id: str,
-    by: str,
-    value: str,
-) -> None:
-    """Persist one guild setting: a locale or the reference timezone."""
-    if logs_service is None:
-        return
-    import time as _time
-
-    try:
-        if value in SUPPORTED_LOCALES:
-            await logs_service.set_locale(guild_id, value, by=by)
-            return
-        settings = await logs_service._safe(logs_service._db.get_guild_settings(guild_id)) or {}
-        settings["timezone"] = value
-        settings["updated_at"] = int(_time.time())
-        settings["updated_by"] = by
-        await logs_service._db.set_guild_settings(guild_id, settings)
-    except Exception:
-        logger.warning("KINGDOM SETTINGS: guild setting write failed", exc_info=True)
-
-
 async def build_settings_panel(
     logs_service: LogService | None,
     guild_id: str,
@@ -701,7 +719,11 @@ async def build_settings_panel(
     bot_admins: tuple[str, ...] = (),
     roles_service: Any = None,
 ) -> discord.ui.LayoutView:
-    """Build the Paramètres panel: guild language + reference timezone."""
+    """Build the Paramètres panel: the admin season actions.
+
+    Language and timezone live in the platform core (bot-admin) — the mod
+    only exposes its own season actions here.
+    """
     locale = "en"
     if logs_service is not None:
         try:
@@ -710,70 +732,37 @@ async def build_settings_panel(
             logger.warning("KINGDOM SETTINGS: locale read failed", exc_info=True)
     strings = _strings(locale)
 
-    async def apply_and_rerender(interaction: discord.Interaction, values: list[str]) -> None:
-        if not values or not _is_admin(interaction, bot_admins):
-            return
-        await _write_guild_setting(logs_service, guild_id, by, values[0])
-        await interaction.response.edit_message(view=await build_settings_panel(logs_service, guild_id, by, bot_admins))
-
-    async def on_locale(interaction: discord.Interaction, values: list[str]) -> None:
-        await apply_and_rerender(interaction, values)
-
-    async def on_timezone(interaction: discord.Interaction, values: list[str]) -> None:
-        await apply_and_rerender(interaction, values)
-
-    locale_select = SelectMenu(
-        custom_id=LOCALE_SELECT_ID,
-        options=tuple(Option(label, label) for label in SUPPORTED_LOCALES),
-        on_choose=on_locale,
-        placeholder=strings["language"],
-    )
-    timezone_select = SelectMenu(
-        custom_id=TIMEZONE_SELECT_ID,
-        options=tuple(Option(label, label) for label in SUPPORTED_TIMEZONES),
-        on_choose=on_timezone,
-        placeholder=strings["timezone"],
-    )
     from kingdoms.discord.kingdom_persistent import KingdomAdminButton
     from kingdoms.discord.kingdom_profiles import _strings as profile_strings
 
     admin_strings = profile_strings(locale)
-    remove_button = KingdomAdminButton(
-        "remove", admin_strings["remove_player_button"][:80], discord.ButtonStyle.danger
+    buttons = (
+        ("status", "status_button", discord.ButtonStyle.secondary),
+        ("deploy", "deploy_button", discord.ButtonStyle.primary),
+        ("sync", "sync_button", discord.ButtonStyle.secondary),
+        ("reset", "reset_salons_button", discord.ButtonStyle.danger),
+        ("assign", "assign_button", discord.ButtonStyle.primary),
+        ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
+        ("remove", "remove_player_button", discord.ButtonStyle.danger),
     )
-    reset_button = KingdomAdminButton(
-        "reset", admin_strings["reset_salons_button"][:80], discord.ButtonStyle.danger
-    )
-    locale_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    locale_row.add_item(locale_select._to_discord())
-    timezone_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    timezone_row.add_item(timezone_select._to_discord())
-    remove_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    remove_row.add_item(remove_button)
-    reset_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    reset_row.add_item(reset_button)
+    season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for index, (action, key, style) in enumerate(buttons):
+        target = season_row if index < 4 else maintenance_row
+        target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
+
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(f"# {strings['settings_title']}"),
             discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## 🌐 {strings['language']}"),
-            discord.ui.TextDisplay(strings["language_hint"]),
-            locale_row,
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## 🕒 {strings['timezone']}"),
-            discord.ui.TextDisplay(strings["timezone_hint"]),
-            timezone_row,
-            discord.ui.Separator(),
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
-            remove_row,
-            reset_row,
+            season_row,
+            maintenance_row,
             accent_colour=GREEN,
         )
     )
     return view
-
-
 
 
 async def refresh_season_status(
@@ -882,6 +871,11 @@ async def deploy_panels(
             report["statut saison"] = "deployed"
     except Exception:
         logger.warning("KINGDOM PANELS: season status deployment failed", exc_info=True)
+    try:
+        if await refresh_changelog(guild, locale):
+            report["update"] = "deployed"
+    except Exception:
+        logger.warning("KINGDOM PANELS: changelog deployment failed", exc_info=True)
     return report
 
 
