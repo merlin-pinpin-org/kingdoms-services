@@ -395,3 +395,48 @@ async def test_kingdom_command_bootstraps_and_deploys() -> None:
     assert len(postuler.messages) == 1
     assert interaction.followup.messages, "the report must be answered"
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_submission_creates_profile_channel_with_smurfs() -> None:
+    """A submitted application provisions the private profile channel."""
+    from kingdoms.discord.kingdom_profiles import PROFILES_CATEGORY
+
+    guild = MockGuild(id=42)
+    candidatures = MockTextChannel(name="candidatures", guild=guild)
+    guild._channels[candidatures.id] = candidatures
+    context = _context(candidatures_channel=candidatures)
+    interaction = _player_interaction(member_id=555)
+    interaction.guild = guild
+    await _send_summary(
+        interaction,
+        context,
+        is_king=True,
+        kingdom_name="HeN",
+        queued=False,
+        insight="https://www.aoe2insight.com/x",
+        game_id="11897201",
+        smurfs=("https://www.aoe2insight.com/s1",),
+    )
+    view = interaction.response.message.view
+    submit_button = next(c for c in view.children if getattr(c, "label", "").startswith("✅"))
+    await submit_button.callback(interaction)
+    categories = {c.name for c in guild.categories}
+    assert PROFILES_CATEGORY in categories
+    profile_channels = [c for c in guild.text_channels if c.name.startswith("profil-")]
+    assert len(profile_channels) == 1
+    assert profile_channels[0].messages, "the profile state message must be posted"
+    smurf_in_profile = any(
+        "aoe2insight.com/s1" in (m.content or "") for m in profile_channels[0].messages
+    )
+    assert smurf_in_profile, "declared smurfs must appear in the private profile"
+
+
+@pytest.mark.asyncio
+async def test_smurfs_parse_deduplicates() -> None:
+    """Smurf lines are cleaned and de-duplicated."""
+    from kingdoms.discord.kingdom_panels import _parse_smurfs
+
+    raw = "https://a.io/1\n\n  https://a.io/1  \nhttps://a.io/2\n"
+    assert _parse_smurfs(raw) == ("https://a.io/1", "https://a.io/2")
+    assert _parse_smurfs("") == ()

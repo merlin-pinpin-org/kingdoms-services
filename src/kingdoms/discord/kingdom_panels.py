@@ -64,6 +64,7 @@ LOCALE_SELECT_ID = "kingdoms:settings:locale"
 TIMEZONE_SELECT_ID = "kingdoms:settings:timezone"
 
 QUEUE_VALUE = "__queue__"
+PANEL_MARKER = "kingdoms:panel:postuler"
 
 SUPPORTED_LOCALES = ("en", "fr")
 SUPPORTED_TIMEZONES = ("Europe/Paris", "America/Montreal", "America/Sao_Paulo", "UTC")
@@ -88,6 +89,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "Game ID",
         "game_id_placeholder": "12345678",
+        "smurfs_field": "Other AoE II Insight accounts (smurfs)",
+        "smurfs_placeholder": "https://www.aoe2insight.com/… (one per line, optional)",
         "summary_title": "📋 Review your application",
         "summary_role": "Role",
         "summary_kingdom": "Kingdom",
@@ -95,6 +98,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "queue_value": "waiting for a kingdom",
         "summary_insight": "AoE II Insight",
         "summary_game_id": "Game ID",
+        "summary_smurfs": "Declared smurf accounts",
         "rules_label": "I have read and I accept the rules",
         "submit": "✅ I accept the rules — send my application",
         "cancel": "Cancel",
@@ -138,6 +142,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "ID de jeu",
         "game_id_placeholder": "12345678",
+        "smurfs_field": "Autres comptes AoE II Insight (smurfs)",
+        "smurfs_placeholder": "https://www.aoe2insight.com/… (une par ligne, facultatif)",
         "summary_title": "📋 Vérifiez votre candidature",
         "summary_role": "Rôle",
         "summary_kingdom": "Royaume",
@@ -145,6 +151,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "queue_value": "en attente d'un royaume",
         "summary_insight": "AoE II Insight",
         "summary_game_id": "ID de jeu",
+        "summary_smurfs": "Comptes smurfs déclarés",
         "rules_label": "J'ai lu et j'accepte les règles",
         "submit": "✅ J'accepte les règles — envoyer ma candidature",
         "cancel": "Annuler",
@@ -240,6 +247,13 @@ class _KingApplicationModal(discord.ui.Modal):
         max_length=20,
         required=True,
     )
+    smurfs: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
+        label="Smurf accounts",
+        style=discord.TextStyle.paragraph,
+        placeholder="https://www.aoe2insight.com/… (one per line, optional)",
+        max_length=400,
+        required=False,
+    )
 
     def __init__(self, context: _ApplicationContext) -> None:
         self.context = context
@@ -250,6 +264,8 @@ class _KingApplicationModal(discord.ui.Modal):
         self.insight_link.placeholder = strings["insight_placeholder"][:100]
         self.game_id.label = strings["game_id_field"][:45]
         self.game_id.placeholder = strings["game_id_placeholder"][:100]
+        self.smurfs.label = strings["smurfs_field"][:45]
+        self.smurfs.placeholder = strings["smurfs_placeholder"][:100]
         super().__init__(title=strings["apply_title"][:45], timeout=300)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -261,6 +277,7 @@ class _KingApplicationModal(discord.ui.Modal):
             queued=False,
             insight=(self.insight_link.value or "").strip(),
             game_id=(self.game_id.value or "").strip(),
+            smurfs=_parse_smurfs(self.smurfs.value or ""),
         )
 
 
@@ -279,6 +296,13 @@ class _LordApplicationModal(discord.ui.Modal):
         max_length=20,
         required=True,
     )
+    smurfs: discord.ui.TextInput[_LordApplicationModal] = discord.ui.TextInput(
+        label="Smurf accounts",
+        style=discord.TextStyle.paragraph,
+        placeholder="https://www.aoe2insight.com/… (one per line, optional)",
+        max_length=400,
+        required=False,
+    )
 
     def __init__(self, context: _ApplicationContext, kingdom_choice: str = "") -> None:
         self.context = context
@@ -288,6 +312,8 @@ class _LordApplicationModal(discord.ui.Modal):
         self.insight_link.placeholder = strings["insight_placeholder"][:100]
         self.game_id.label = strings["game_id_field"][:45]
         self.game_id.placeholder = strings["game_id_placeholder"][:100]
+        self.smurfs.label = strings["smurfs_field"][:45]
+        self.smurfs.placeholder = strings["smurfs_placeholder"][:100]
         super().__init__(title=strings["apply_title"][:45], timeout=300)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -299,7 +325,18 @@ class _LordApplicationModal(discord.ui.Modal):
             queued=self.kingdom_choice == QUEUE_VALUE,
             insight=(self.insight_link.value or "").strip(),
             game_id=(self.game_id.value or "").strip(),
+            smurfs=_parse_smurfs(self.smurfs.value or ""),
         )
+
+
+def _parse_smurfs(raw: str) -> tuple[str, ...]:
+    """Split the smurf textarea into clean, de-duplicated links."""
+    seen: dict[str, None] = {}
+    for line in raw.splitlines():
+        value = line.strip()
+        if value:
+            seen.setdefault(value, None)
+    return tuple(seen)
 
 
 async def _send_summary(
@@ -311,6 +348,7 @@ async def _send_summary(
     queued: bool,
     insight: str,
     game_id: str,
+    smurfs: tuple[str, ...] = (),
 ) -> None:
     """Validate the form, then show the review + rules-acceptance step."""
     strings = _strings(context.locale)
@@ -336,9 +374,11 @@ async def _send_summary(
         [
             f"**{strings['summary_insight']}** : {insight}",
             f"**{strings['summary_game_id']}** : {game_id}",
-            f"**{strings['rules_label']}**",
         ]
     )
+    if smurfs:
+        lines.append(f"**{strings['summary_smurfs']}** : {', '.join(smurfs)}")
+    lines.append(f"**{strings['rules_label']}**")
     view = _summary_view(
         interaction.user.id,
         is_king=is_king,
@@ -346,6 +386,7 @@ async def _send_summary(
         queued=queued,
         insight=insight,
         game_id=game_id,
+        smurfs=smurfs,
         context=context,
     )
     await interaction.response.send_message("\n".join(lines), view=view, ephemeral=True)
@@ -359,6 +400,7 @@ def _summary_view(
     queued: bool,
     insight: str,
     game_id: str,
+    smurfs: tuple[str, ...],
     context: _ApplicationContext,
 ) -> discord.ui.View:
     """Build the review step: the rules checkbox (a button) + cancel."""
@@ -378,9 +420,11 @@ def _summary_view(
             [
                 f"**{strings['candidature_insight']}** : {insight}",
                 f"**{strings['candidature_game_id']}** : {game_id}",
-                f"<@{applicant_id}>",
             ]
         )
+        if smurfs:
+            lines.append(f"**{strings['summary_smurfs']}** : {', '.join(smurfs)}")
+        lines.append(f"<@{applicant_id}>")
         view = _candidature_view(
             context.locale,
             bot_admins=context.bot_admins,
@@ -393,7 +437,37 @@ def _summary_view(
             await interaction.followup.send(strings["no_service"], ephemeral=True)
             return
         await target.send("\n".join(lines), view=view)
-        await interaction.followup.send(strings["sent"], ephemeral=True)
+        guild = interaction.guild
+        profile_note = ""
+        if guild is not None:
+            try:
+                from kingdoms.discord.kingdom_profiles import (
+                    build_profile_message,
+                    ensure_profile_channel,
+                )
+
+                profile_channel = await ensure_profile_channel(guild, interaction.user)  # type: ignore[arg-type]
+                if profile_channel is not None:
+                    role_label = strings["role_king"] if is_king else strings["role_lord"]
+                    content, profile_view = build_profile_message(
+                        context.locale,
+                        member_name=interaction.user.name or "joueur",
+                        state=strings["pending"],
+                        role_label=role_label,
+                        kingdom=kingdom_name,
+                        queued=queued,
+                        insight=insight,
+                        game_id=game_id,
+                        smurfs=smurfs,
+                    )
+                    await profile_channel.send(content, view=profile_view)
+                    profile_note = strings["sent"]
+            except Exception:
+                logger.warning("KINGDOM PANELS: profile provisioning failed", exc_info=True)
+        await interaction.followup.send(
+            f"{strings['sent']}\n{profile_note}" if profile_note else strings["sent"],
+            ephemeral=True,
+        )
 
     async def cancel(interaction: discord.Interaction) -> None:
         await interaction.response.edit_message(content=strings["cancelled"], view=None)
@@ -562,11 +636,14 @@ async def build_apply_panel(
         )
 
     apply_button = Action(strings["apply_button"], APPLY_BUTTON_ID, on_apply, style="primary")
+    title = "Inscriptions" if locale.startswith("fr") else "Enrollment"
     container = (
         Container(accent=BLURPLE)
-        .add(Text(f"# 📝 {'Inscriptions' if locale.startswith('fr') else 'Enrollment'}"))
+        .add(Text(f"# 📝 {title}"))
         .add(Separator())
         .add(Row(apply_button))
+        .add(Separator())
+        .add(Text(f"-# {PANEL_MARKER}"))
     )
     return UILayout().add(container).build()
 
@@ -674,6 +751,12 @@ async def deploy_panels(
     candidatures = next((c for c in guild.text_channels if c.name.lower() == "candidatures"), None)
     for channel in guild.text_channels:
         if channel.name.lower() == "postuler":
+            for message in list(getattr(channel, "messages", [])):
+                if PANEL_MARKER in (message.content or ""):
+                    try:
+                        await message.delete()
+                    except Exception:
+                        logger.warning("KINGDOM PANELS: old apply panel removal failed", exc_info=True)
             await channel.send(
                 view=await build_apply_panel(
                     locale,

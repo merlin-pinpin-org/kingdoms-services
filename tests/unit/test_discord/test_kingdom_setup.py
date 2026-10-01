@@ -54,7 +54,9 @@ async def test_admin_only_channels_deny_everyone() -> None:
     candidatures = next(c for c in guild.text_channels if c.name == "Candidatures")
     assert candidatures.creation_overwrite_for(guild.default_role) is not None
     admin_channels = [c for c in guild.text_channels if c.category.name == "Admin"]
-    assert {c.name for c in admin_channels} == {"Paramètres"}
+    assert {c.name for c in admin_channels} == {"Paramètres", "Demandes"}
+    for channel in admin_channels:
+        assert channel.creation_overwrite_for(guild.default_role) is not None
 
 
 @pytest.mark.asyncio
@@ -119,3 +121,11 @@ async def test_provision_passes_dict_overwrites_to_discord() -> None:
     assert created, "the bootstrap must provision channels"
     for channel in guild.text_channels:
         assert isinstance(channel, MockTextChannel)
+
+
+def test_structure_includes_profils_category_and_admin_demandes() -> None:
+    """The validated v2 structure adds Profils and the admin Demandes channel."""
+    names = {name for name, _, _ in SALONS_FIRST_STRUCTURE}
+    assert "Profils" in names
+    admin = next(entry for entry in SALONS_FIRST_STRUCTURE if entry[0] == "Admin")
+    assert "Demandes" in admin[1]

@@ -22,7 +22,8 @@ Design&nbsp;(validated&nbsp;with&nbsp;the&nbsp;game&nbsp;designer,&nbsp;kingdoms
 -&nbsp;**permissions**&nbsp;—&nbsp;the&nbsp;Admin&nbsp;category&nbsp;and&nbsp;the&nbsp;Candidatures&nbsp;channel&nbsp;are<br>
 &nbsp;&nbsp;admin-only&nbsp;(@everyone&nbsp;denied&nbsp;view);&nbsp;kingdom&nbsp;categories&nbsp;are<br>
 &nbsp;&nbsp;per-kingdom&nbsp;and&nbsp;provisioned&nbsp;later,&nbsp;at&nbsp;kingdom&nbsp;validation,&nbsp;by&nbsp;the<br>
-&nbsp;&nbsp;enrollment&nbsp;flow&nbsp;(not&nbsp;by&nbsp;this&nbsp;bootstrap).<br>
+&nbsp;&nbsp;enrollment&nbsp;flow&nbsp;(not&nbsp;by&nbsp;this&nbsp;bootstrap);&nbsp;the&nbsp;Profils&nbsp;category&nbsp;holds<br>
+&nbsp;&nbsp;one&nbsp;private&nbsp;channel&nbsp;per&nbsp;player,&nbsp;provisioned&nbsp;at&nbsp;application&nbsp;time.<br>
 &nbsp;<br>
 The&nbsp;command&nbsp;validates&nbsp;access&nbsp;at&nbsp;invocation&nbsp;time&nbsp;(BOT_ADMINS&nbsp;or&nbsp;guild<br>
 administrators)&nbsp;and&nbsp;answers&nbsp;with&nbsp;a&nbsp;report&nbsp;of&nbsp;what&nbsp;was&nbsp;created/adopted.<br>
@@ -58,7 +59,7 @@ re-running&nbsp;the&nbsp;bootstrap&nbsp;is&nbsp;safe.</span></dd></dl>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ADMIN_ONLY_CHANNELS</strong> = {'Candidatures'}<br>
 <strong>BLURPLE</strong> = 5793266<br>
-<strong>SALONS_FIRST_STRUCTURE</strong> = (('Conscription', ('Postuler', 'Candidatures'), False), ('Kingdoms', ('Géopolitique',), False), ('Époque', ('Âge sombre',), False), ('Royaume Gaïa', ('Patrouille', 'Territoire', 'Exploration'), False), ('Champs de Bataille', ('Délais-attaque', 'Attaquer', 'Pourparlers'), False), ('Scriptorium', ('Seigneurs', 'Diplomatie', 'Cadastre'), False), ('Admin', ('Paramètres',), True))<br>
+<strong>SALONS_FIRST_STRUCTURE</strong> = (('Conscription', ('Postuler', 'Candidatures'), False), ('Kingdoms', ('Géopolitique',), False), ('Époque', ('Âge sombre',), False), ('Royaume Gaïa', ('Patrouille', 'Territoire', 'Exploration'), False), ('Champs de Bataille', ('Délais-attaque', 'Attaquer', 'Pourparlers'), False), ('Scriptorium', ('Seigneurs', 'Diplomatie', 'Cadastre'), False), ('Profils', (), False), ('Admin', ('Paramètres', 'Demandes'), True))<br>
 <strong>__annotations__</strong> = {'SALONS_FIRST_STRUCTURE': 'tuple[tuple[str, tuple[str, ...], bool], ...]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>
 </body></html>

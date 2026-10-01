@@ -11,7 +11,8 @@ Design (validated with the game designer, kingdoms repo issue #138):
 - **permissions** — the Admin category and the Candidatures channel are
   admin-only (@everyone denied view); kingdom categories are
   per-kingdom and provisioned later, at kingdom validation, by the
-  enrollment flow (not by this bootstrap).
+  enrollment flow (not by this bootstrap); the Profils category holds
+  one private channel per player, provisioned at application time.
 
 The command validates access at invocation time (BOT_ADMINS or guild
 administrators) and answers with a report of what was created/adopted.
@@ -40,7 +41,8 @@ SALONS_FIRST_STRUCTURE: tuple[tuple[str, tuple[str, ...], bool], ...] = (
     ("Royaume Gaïa", ("Patrouille", "Territoire", "Exploration"), False),
     ("Champs de Bataille", ("Délais-attaque", "Attaquer", "Pourparlers"), False),
     ("Scriptorium", ("Seigneurs", "Diplomatie", "Cadastre"), False),
-    ("Admin", ("Paramètres",), True),
+    ("Profils", (), False),
+    ("Admin", ("Paramètres", "Demandes"), True),
 )
 
 ADMIN_ONLY_CHANNELS = {"Candidatures"}
