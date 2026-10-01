@@ -218,8 +218,11 @@ def profile_channel_name(member: discord.abc.User) -> str:
 
 
 def _find_channel_by_name(guild: discord.Guild, name: str) -> discord.TextChannel | None:
+    from kingdoms.discord.kingdom_setup import _slug
+
+    wanted = _slug(name)
     for channel in guild.text_channels:
-        if channel.name.lower() == name.lower():
+        if _slug(channel.name) == wanted:
             return channel
     return None
 

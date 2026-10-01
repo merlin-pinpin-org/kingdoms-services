@@ -44,8 +44,8 @@ async def test_ensure_profile_channel_creates_private_channel() -> None:
     assert channel is not None
     assert channel.name == profile_channel_name(member)
     assert channel.name.startswith("profil-")
-    categories = {c.name for c in guild.categories}
-    assert PROFILES_CATEGORY in categories
+    categories = {c.name.lower() for c in guild.categories}
+    assert PROFILES_CATEGORY.lower() in categories
 
     again = await ensure_profile_channel(guild, member)
     assert again.id == channel.id, "the profile channel must be adopted, not duplicated"

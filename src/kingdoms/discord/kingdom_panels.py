@@ -55,6 +55,7 @@ DECISION_REFUSE_ID = "kingdoms:candidature:refuse"
 
 QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
+SETTINGS_PANEL_MARKER = "kingdoms:panel:parametres"
 SEASON_STATUS_MARKER = "kingdoms:season:status"
 SEASON_STATUS_CHANNEL = "paramètre-saison-ii"
 UPDATE_CHANNEL = "update"
@@ -759,6 +760,8 @@ async def build_settings_panel(
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
             season_row,
             maintenance_row,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
             accent_colour=GREEN,
         )
     )
@@ -798,6 +801,31 @@ async def refresh_season_status(
     await channel.send(content)
     return True
 
+
+
+async def _deploy_settings_panel(
+    channel: discord.TextChannel,
+    logs_service: LogService | None,
+    guild_id: str,
+    bot_admins: tuple[str, ...],
+) -> None:
+    """Remove every stale settings message (old locale/timezone panel included), then pin the fresh one."""
+    for message in list(getattr(channel, "messages", [])):
+        stale = (
+            SETTINGS_PANEL_MARKER in (message.content or "")
+            or "kingdoms:settings:" in (message.content or "")
+            or (
+                getattr(message, "author", None) is not None
+                and bool(getattr(message.author, "bot", False))
+                and getattr(message, "view", None) is not None
+            )
+        )
+        if stale:
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM PANELS: old settings panel removal failed", exc_info=True)
+    await channel.send(view=await build_settings_panel(logs_service, guild_id, "system", bot_admins))
 
 
 async def _deploy_apply_panel(
@@ -849,15 +877,17 @@ async def deploy_panels(
             locale = await logs_service.get_locale(guild_id)
         except Exception:
             logger.warning("KINGDOM PANELS: locale read failed", exc_info=True)
-    candidatures = next((c for c in guild.text_channels if c.name.lower() == "candidatures"), None)
+    from kingdoms.discord.kingdom_setup import _slug
+
+    candidatures = next((c for c in guild.text_channels if _slug(c.name) == "candidatures"), None)
     for channel in guild.text_channels:
-        if channel.name.lower() == "postuler":
+        if _slug(channel.name) == "postuler":
             await _deploy_apply_panel(
                 channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
             )
             report["postuler"] = "deployed"
-        if channel.name.lower() == "paramètres":
-            await channel.send(view=await build_settings_panel(logs_service, guild_id, "system", bot_admins))
+        if _slug(channel.name) == "parametres":
+            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
             report["paramètres"] = "deployed"
     context = _ApplicationContext(
         locale=locale,

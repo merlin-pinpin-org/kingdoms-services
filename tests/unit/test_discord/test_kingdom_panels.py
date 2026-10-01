@@ -373,7 +373,7 @@ async def test_deploy_panels_posts_in_postuler_and_parametres() -> None:
     assert report.get("postuler") == "deployed"
     assert report.get("paramètres") == "deployed"
     postuler = next(c for c in guild.text_channels if c.name.lower() == "postuler")
-    parametres = next(c for c in guild.text_channels if c.name.lower() == "paramètres")
+    parametres = next(c for c in guild.text_channels if c.name.lower() == "parametres")
     assert len(postuler.messages) == 1
     assert len(parametres.messages) == 1
 
@@ -402,7 +402,7 @@ async def test_kingdom_command_bootstraps_and_deploys() -> None:
     await command._callback(interaction)  # type: ignore[union-attr]
 
     categories = {c.name for c in guild.categories}
-    assert "Conscription" in categories and "Admin" in categories
+    assert "conscription" in categories and "admin" in categories
     postuler = next(c for c in guild.text_channels if c.name.lower() == "postuler")
     assert len(postuler.messages) == 1
     assert interaction.followup.messages, "the report must be answered"
@@ -433,8 +433,8 @@ async def test_submission_creates_profile_channel_with_smurfs() -> None:
     view = interaction.response.message.view
     submit_button = next(c for c in view.children if getattr(c, "label", "").startswith("✅"))
     await submit_button.callback(interaction)
-    categories = {c.name for c in guild.categories}
-    assert PROFILES_CATEGORY in categories
+    categories = {c.name.lower() for c in guild.categories}
+    assert PROFILES_CATEGORY.lower() in categories
     profile_channels = [c for c in guild.text_channels if c.name.startswith("profil-")]
     assert len(profile_channels) == 1
     assert profile_channels[0].messages, "the profile state message must be posted"

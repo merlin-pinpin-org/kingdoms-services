@@ -138,8 +138,10 @@ class KingdomApplyButton(
         guild = interaction.guild
         candidatures = None
         if guild is not None:
+            from kingdoms.discord.kingdom_setup import _slug
+
             candidatures = next(
-                (c for c in guild.text_channels if c.name.lower() == "candidatures"),
+                (c for c in guild.text_channels if _slug(c.name) == "candidatures"),
                 None,
             )
         context = _ApplicationContext(
@@ -699,7 +701,7 @@ async def _send_welcome(
 
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) -> None:
     """Delete every kingdoms channel/category, then report."""
-    from kingdoms.discord.kingdom_setup import SALONS_FIRST_STRUCTURE
+    from kingdoms.discord.kingdom_setup import SALONS_FIRST_STRUCTURE, _slug
 
     guild = interaction.guild
     if guild is None:
@@ -710,19 +712,19 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) 
     try:
         structure_names: set[str] = set()
         for category_name, channel_names, _ in SALONS_FIRST_STRUCTURE:
-            structure_names.add(category_name.lower())
-            structure_names.update(ch.lower() for ch, _ in channel_names)
+            structure_names.add(_slug(category_name))
+            structure_names.update(_slug(ch) for ch, _ in channel_names)
         channels = [*list(guild.text_channels), *list(getattr(guild, "forums", []))]
         categories = list(getattr(guild, "categories", []))
         for channel in channels:
-            if channel.name.lower() in structure_names or channel.name.lower().startswith("profil-"):
+            if _slug(channel.name) in structure_names or _slug(channel.name).startswith("profil-"):
                 try:
                     await channel.delete()
                     deleted += 1
                 except Exception:
                     logger.warning("KINGDOMS ADMIN: channel delete failed", exc_info=True)
         for category in categories:
-            if category.name.lower() in structure_names:
+            if _slug(category.name) in structure_names:
                 try:
                     await category.delete()
                     deleted += 1

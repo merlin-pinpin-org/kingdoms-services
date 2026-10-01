@@ -44,6 +44,15 @@ __all__ = [
 ]
 
 
+def _discord_slug(name: str) -> str:
+    """Normalize a channel name the way Discord does (lowercase, no accents, dashes)."""
+    import unicodedata
+
+    decomposed = unicodedata.normalize("NFKD", name.lower())
+    without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return without_accents.replace(" ", "-").strip("-")
+
+
 def _next_id() -> int:
     """Return a stable, process-unique snowflake-like id.
 
@@ -611,7 +620,7 @@ class MockGuild(discord.Guild):
         return role
 
     async def create_text_channel(self, name: str, **kwargs: Any) -> MockTextChannel:
-        channel = MockTextChannel(name=name, guild=self, **kwargs)
+        channel = MockTextChannel(name=_discord_slug(name), guild=self, **kwargs)
         self._channels[channel.id] = channel
         if channel.category is not None:
             channel.category.add_channel(channel)
@@ -625,14 +634,14 @@ class MockGuild(discord.Guild):
         return channel
 
     async def create_forum(self, name: str, **kwargs: Any) -> MockForumChannel:
-        channel = MockForumChannel(name=name, guild=self, **kwargs)
+        channel = MockForumChannel(name=_discord_slug(name), guild=self, **kwargs)
         self._channels[channel.id] = channel
         if channel.category is not None and isinstance(channel.category, MockCategoryChannel):
             channel.category.add_channel(channel)
         return channel
 
     async def create_category(self, name: str, **kwargs: Any) -> MockCategoryChannel:
-        channel = MockCategoryChannel(name=name, guild=self, **kwargs)
+        channel = MockCategoryChannel(name=_discord_slug(name), guild=self, **kwargs)
         self._channels[channel.id] = channel
         return channel
 
