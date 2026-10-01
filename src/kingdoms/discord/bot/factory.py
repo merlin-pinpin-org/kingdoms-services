@@ -467,6 +467,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
     )
+    from kingdoms.discord.kingdom_setup import register_kingdom_command
+
+    register_kingdom_command(bot.tree, bot_admins=status.bot_admins)
     return bot
 
 

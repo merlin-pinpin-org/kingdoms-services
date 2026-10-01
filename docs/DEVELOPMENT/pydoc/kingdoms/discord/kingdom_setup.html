@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_setup</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_setup</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_setup.py">SOURCE_ROOT/discord/kingdom_setup.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(kingdoms#138):&nbsp;salons-first&nbsp;setup.<br>
+&nbsp;<br>
+Design&nbsp;(validated&nbsp;with&nbsp;the&nbsp;game&nbsp;designer,&nbsp;kingdoms&nbsp;repo&nbsp;issue&nbsp;#138):<br>
+&nbsp;<br>
+-&nbsp;**one&nbsp;command&nbsp;for&nbsp;the&nbsp;whole&nbsp;lifecycle**&nbsp;—&nbsp;``/kingdom``&nbsp;(admin&nbsp;only)<br>
+&nbsp;&nbsp;bootstraps&nbsp;the&nbsp;mod:&nbsp;it&nbsp;creates&nbsp;the&nbsp;Discord&nbsp;categories&nbsp;and&nbsp;channels&nbsp;of<br>
+&nbsp;&nbsp;the&nbsp;salons-first&nbsp;architecture&nbsp;and&nbsp;re-runs&nbsp;are&nbsp;idempotent&nbsp;(existing<br>
+&nbsp;&nbsp;channels&nbsp;are&nbsp;adopted,&nbsp;never&nbsp;duplicated);<br>
+-&nbsp;**no&nbsp;"kingdoms-"&nbsp;prefix&nbsp;in&nbsp;names**&nbsp;—&nbsp;a&nbsp;root&nbsp;category&nbsp;``Kingdoms``,<br>
+&nbsp;&nbsp;simple&nbsp;channel&nbsp;names,&nbsp;per&nbsp;the&nbsp;designer's&nbsp;decision;<br>
+-&nbsp;**permissions**&nbsp;—&nbsp;the&nbsp;Admin&nbsp;category&nbsp;and&nbsp;the&nbsp;Candidatures&nbsp;channel&nbsp;are<br>
+&nbsp;&nbsp;admin-only&nbsp;(@everyone&nbsp;denied&nbsp;view);&nbsp;kingdom&nbsp;categories&nbsp;are<br>
+&nbsp;&nbsp;per-kingdom&nbsp;and&nbsp;provisioned&nbsp;later,&nbsp;at&nbsp;kingdom&nbsp;validation,&nbsp;by&nbsp;the<br>
+&nbsp;&nbsp;enrollment&nbsp;flow&nbsp;(not&nbsp;by&nbsp;this&nbsp;bootstrap).<br>
+&nbsp;<br>
+The&nbsp;command&nbsp;validates&nbsp;access&nbsp;at&nbsp;invocation&nbsp;time&nbsp;(BOT_ADMINS&nbsp;or&nbsp;guild<br>
+administrators)&nbsp;and&nbsp;answers&nbsp;with&nbsp;a&nbsp;report&nbsp;of&nbsp;what&nbsp;was&nbsp;created/adopted.<br>
+Panels&nbsp;themselves&nbsp;(Postuler,&nbsp;Admin&nbsp;settings,&nbsp;…)&nbsp;are&nbsp;deployed&nbsp;by&nbsp;later<br>
+slices&nbsp;on&nbsp;top&nbsp;of&nbsp;this&nbsp;structure.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_setup_report_view"><strong>build_setup_report_view</strong></a>(created: 'list[str]', adopted: 'list[str]', locale: 'str' = 'en') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;bootstrap&nbsp;report&nbsp;layout&nbsp;(what&nbsp;was&nbsp;created&nbsp;vs&nbsp;adopted).</span></dd></dl>
+ <dl><dt>async <a name="-provision_structure"><strong>provision_structure</strong></a>(guild: 'discord.Guild') -&gt; 'tuple[list[str], list[str]]'</dt><dd><span class="code">Create&nbsp;(or&nbsp;adopt)&nbsp;the&nbsp;salons-first&nbsp;structure&nbsp;on&nbsp;a&nbsp;guild.<br>
+&nbsp;<br>
+Returns&nbsp;(created,&nbsp;adopted)&nbsp;display&nbsp;paths&nbsp;("Category/Channel").&nbsp;A<br>
+channel&nbsp;that&nbsp;already&nbsp;exists&nbsp;by&nbsp;name&nbsp;is&nbsp;adopted,&nbsp;never&nbsp;duplicated&nbsp;—<br>
+re-running&nbsp;the&nbsp;bootstrap&nbsp;is&nbsp;safe.</span></dd></dl>
+ <dl><dt><a name="-register_kingdom_command"><strong>register_kingdom_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(admin&nbsp;only)&nbsp;on&nbsp;the&nbsp;tree.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADMIN_ONLY_CHANNELS</strong> = {'Candidatures'}<br>
+<strong>BLURPLE</strong> = 5793266<br>
+<strong>SALONS_FIRST_STRUCTURE</strong> = (('Conscription', ('Postuler', 'Candidatures'), False), ('Kingdoms', ('Géopolitique',), False), ('Époque', ('Âge sombre',), False), ('Royaume Gaïa', ('Patrouille', 'Territoire', 'Exploration'), False), ('Champs de Bataille', ('Délais-attaque', 'Attaquer', 'Pourparlers'), False), ('Scriptorium', ('Seigneurs', 'Diplomatie', 'Cadastre'), False), ('Admin', ('Paramètres',), True))<br>
+<strong>__annotations__</strong> = {'SALONS_FIRST_STRUCTURE': 'tuple[tuple[str, tuple[str, ...], bool], ...]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>
+</body></html>

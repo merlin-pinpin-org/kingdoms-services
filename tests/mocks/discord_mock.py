@@ -160,6 +160,9 @@ class MockMember(discord.Member):
     def roles(self) -> list[MockRole]:
         return list(self._roles)
 
+    def __hash__(self) -> int:
+        return hash(self._mock_id)
+
     async def add_roles(self, *roles: discord.Role, reason: str | None = None, atomic: bool = True) -> None:
         for role in roles:
             if role not in self._roles:
@@ -263,6 +266,7 @@ class MockTextChannel(discord.TextChannel):
         self.guild = guild or MockGuild()
         self._category = category
         self._permissions: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
+        self._creation_overwrites = dict(kwargs.pop("overwrites", None) or {})
         self.messages: list[MockMessage] = []
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -278,6 +282,14 @@ class MockTextChannel(discord.TextChannel):
     @category.setter
     def category(self, value: MockCategoryChannel | None) -> None:
         self._category = value
+
+    @property
+    def category_id(self) -> int | None:
+        return self._category.id if self._category is not None else None
+
+    def creation_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
+        """The overwrite given at creation time (in-memory mirror)."""
+        return self._creation_overwrites.get(target)
 
     async def send(
         self,
@@ -374,6 +386,7 @@ class MockCategoryChannel(discord.CategoryChannel):
         *,
         guild: MockGuild | None = None,
         position: int = 0,
+        overwrites: Any = None,
         **kwargs: Any,
     ) -> None:
         self.id = id if id is not None else _next_id()
@@ -381,6 +394,7 @@ class MockCategoryChannel(discord.CategoryChannel):
         self.position = position
         self.guild = guild or MockGuild()
         self._channels: list[MockChannel] = []
+        self._overwrites = dict(overwrites) if overwrites else {}
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -395,6 +409,14 @@ class MockCategoryChannel(discord.CategoryChannel):
     def add_channel(self, channel: MockChannel) -> None:
         if channel not in self._channels:
             self._channels.append(channel)
+
+    async def create_text_channel(self, name: str, **kwargs: Any) -> MockTextChannel:
+        """Create a channel inside the category (in-memory mirror)."""
+        kwargs.setdefault("category", self)
+        channel = MockTextChannel(name=name, guild=self.guild, **kwargs)
+        self.guild._channels[channel.id] = channel
+        self.add_channel(channel)
+        return channel
 
     def remove_channel(self, channel: MockChannel) -> None:
         if channel in self._channels:
@@ -497,6 +519,18 @@ class MockGuild(discord.Guild):
     @property
     def channels(self) -> list[MockChannel]:
         return list(self._channels.values())
+
+    @property
+    def categories(self) -> list[MockCategoryChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockCategoryChannel)]
+
+    @property
+    def default_role(self) -> MockRole:
+        role = self.__dict__.get("_default_role")
+        if role is None:
+            role = MockRole(name="@everyone", guild=self)
+            self.__dict__["_default_role"] = role
+        return role
 
     @property
     def system_channel(self) -> MockTextChannel | None:
