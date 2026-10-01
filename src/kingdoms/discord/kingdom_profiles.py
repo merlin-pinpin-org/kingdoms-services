@@ -153,13 +153,6 @@ def _find_channel_by_name(guild: discord.Guild, name: str) -> discord.TextChanne
     return None
 
 
-def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
-    for category in getattr(guild, "categories", []):
-        if category.name.lower() == name.lower():
-            return category  # type: ignore[no-any-return]
-    return None
-
-
 def _profile_overwrites(guild: discord.Guild, member: discord.Member) -> dict[Any, discord.PermissionOverwrite]:
     """Build the profile channel permissions: the player + the bot + admins only."""
     overwrites: dict[Any, discord.PermissionOverwrite] = {
@@ -176,12 +169,15 @@ async def ensure_profile_channel(
     member: discord.Member,
 ) -> discord.TextChannel | None:
     """Create (or adopt) the private profile channel of one player."""
+    from kingdoms.discord.kingdom_setup import _find_category
+
     category = _find_category(guild, PROFILES_CATEGORY)
     if category is None:
         category = await guild.create_category(
             PROFILES_CATEGORY,
             reason="kingdoms: player profiles",
             overwrites={},
+            position=0,
         )
     name = profile_channel_name(member)
     existing = _find_channel_by_name(guild, name)

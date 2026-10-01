@@ -399,6 +399,14 @@ class MockVoiceChannel(discord.VoiceChannel):
         return f"<MockVoiceChannel id={self.id} name={self.name!r}>"
 
 
+class MockForumChannel(MockTextChannel):
+    """In-memory :class:`discord.ForumChannel` (a text channel with a forum type)."""
+
+    @property
+    def type(self) -> discord.ChannelType:
+        return discord.ChannelType.forum
+
+
 class MockCategoryChannel(discord.CategoryChannel):
     """In-memory :class:`discord.CategoryChannel` grouping other channels."""
 
@@ -545,7 +553,15 @@ class MockGuild(discord.Guild):
 
     @property
     def text_channels(self) -> list[MockTextChannel]:
-        return [ch for ch in self._channels.values() if isinstance(ch, MockTextChannel)]
+        return [
+            ch
+            for ch in self._channels.values()
+            if isinstance(ch, MockTextChannel) and not isinstance(ch, MockForumChannel)
+        ]
+
+    @property
+    def forums(self) -> list[MockForumChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockForumChannel)]
 
     @property
     def channels(self) -> list[MockChannel]:
@@ -603,6 +619,13 @@ class MockGuild(discord.Guild):
 
     async def create_voice_channel(self, name: str, **kwargs: Any) -> MockVoiceChannel:
         channel = MockVoiceChannel(name=name, guild=self, **kwargs)
+        self._channels[channel.id] = channel
+        if channel.category is not None and isinstance(channel.category, MockCategoryChannel):
+            channel.category.add_channel(channel)
+        return channel
+
+    async def create_forum(self, name: str, **kwargs: Any) -> MockForumChannel:
+        channel = MockForumChannel(name=name, guild=self, **kwargs)
         self._channels[channel.id] = channel
         if channel.category is not None and isinstance(channel.category, MockCategoryChannel):
             channel.category.add_channel(channel)

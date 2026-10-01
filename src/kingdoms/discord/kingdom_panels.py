@@ -59,6 +59,8 @@ TIMEZONE_SELECT_ID = "kingdoms:settings:timezone"
 
 QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
+SEASON_STATUS_MARKER = "kingdoms:season:status"
+SEASON_STATUS_CHANNEL = "paramètre-saison-ii"
 
 SUPPORTED_LOCALES = ("en", "fr")
 SUPPORTED_TIMEZONES = ("Europe/Paris", "America/Montreal", "America/Sao_Paulo", "UTC")
@@ -119,6 +121,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "language_hint": "Applied to every kingdoms message in this server.",
         "timezone_hint": "Every displayed time (delays, events) uses this reference.",
         "saved": "Saved.",
+        "welcome_title": "🏰 Welcome to Kingdoms — Season II!",
+        "welcome_body": (
+            "Your enrollment has been validated. Read the rules, present yourself in Présentation,"
+            " and good luck on the battlefield!"
+        ),
+        "welcome_fallback": "(Sent here because your private messages are closed.)",
+        "season_status_title": "📊 Kingdoms — Season II status",
+        "season_status_kingdoms": "👑 Kingdoms",
+        "season_status_queue": "⏳ Waiting players",
+        "season_status_empty": "none yet",
+        "season_status_hint": "This message is refreshed automatically by the bot.",
     },
     "fr": {
         "apply_button": "📋 S'inscrire",
@@ -172,6 +185,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "language_hint": "Appliquée à tous les messages kingdoms de ce serveur.",
         "timezone_hint": "Toutes les heures affichées (délais, événements) suivent cette référence.",
         "saved": "Enregistré.",
+        "welcome_title": "🏰 Bienvenue dans Kingdoms — Saison II !",
+        "welcome_body": (
+            "Votre inscription a été validée. Lisez les règles, présentez-vous dans Présentation,"
+            " et bonne chance sur le champ de bataille !"
+        ),
+        "welcome_fallback": "(Envoyé ici car vos messages privés sont fermés.)",
+        "season_status_title": "📊 Kingdoms — Statut de la Saison II",
+        "season_status_kingdoms": "👑 Royaumes",
+        "season_status_queue": "⏳ Joueurs en attente",
+        "season_status_empty": "aucun pour le moment",
+        "season_status_hint": "Ce message est mis à jour automatiquement par le bot.",
     },
 }
 
@@ -375,6 +399,7 @@ async def _send_summary(
     lines.append(f"**{strings['rules_label']}**")
     view = _summary_view(
         interaction.user.id,
+        interaction.user.name,
         is_king=is_king,
         kingdom_name=kingdom_name,
         queued=queued,
@@ -388,6 +413,7 @@ async def _send_summary(
 
 def _summary_view(
     applicant_id: int,
+    applicant_name: str,
     *,
     is_king: bool,
     kingdom_name: str,
@@ -403,7 +429,7 @@ def _summary_view(
     async def submit(interaction: discord.Interaction) -> None:
         role_label = strings["role_king"] if is_king else strings["role_lord"]
         lines = [
-            f"# {strings['candidature_title']}",
+            f"# 📋 {applicant_name}",
             f"**{strings['candidature_role']}** : {role_label}",
         ]
         if is_king or not queued:
@@ -748,6 +774,71 @@ async def build_settings_panel(
     return view
 
 
+
+
+async def refresh_season_status(
+    guild: discord.Guild,
+    locale: str,
+    kingdoms: tuple[str, ...] | list[str] = (),
+    queued: int = 0,
+) -> bool:
+    """Post (or refresh) the season status message in the dedicated channel."""
+    strings = _strings(locale)
+    channel = next(
+        (c for c in guild.text_channels if c.name.lower().replace(" ", "-") == SEASON_STATUS_CHANNEL),
+        None,
+    )
+    if channel is None:
+        return False
+    names = list(kingdoms)
+    lines = [
+        f"# {strings['season_status_title']}",
+        f"**{strings['season_status_kingdoms']}** : {', '.join(names) if names else strings['season_status_empty']}",
+        f"**{strings['season_status_queue']}** : {queued if queued else strings['season_status_empty']}",
+        f"*{strings['season_status_hint']}*",
+        SEASON_STATUS_MARKER,
+    ]
+    content = "\n".join(lines)
+    for message in list(getattr(channel, "messages", [])):
+        if SEASON_STATUS_MARKER in (message.content or ""):
+            try:
+                await message.edit(content=content)
+            except Exception:
+                logger.warning("KINGDOM PANELS: season status refresh failed", exc_info=True)
+            return True
+    await channel.send(content)
+    return True
+
+
+
+async def _deploy_apply_panel(
+    channel: discord.TextChannel,
+    candidatures: discord.TextChannel | None,
+    locale: str,
+    bot_admins: tuple[str, ...],
+    mod_roles_service: ModRolesService | None,
+    guild_id: str,
+    kingdoms_service: Any,
+) -> None:
+    """Remove the old apply panel then pin a fresh one."""
+    for message in list(getattr(channel, "messages", [])):
+        if PANEL_MARKER in (message.content or ""):
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM PANELS: old apply panel removal failed", exc_info=True)
+    await channel.send(
+        view=await build_apply_panel(
+            locale,
+            candidatures,
+            bot_admins,
+            mod_roles_service,
+            guild_id,
+            kingdoms_service,
+        )
+    )
+
+
 async def deploy_panels(
     guild: discord.Guild,
     logs_service: LogService | None,
@@ -772,26 +863,25 @@ async def deploy_panels(
     candidatures = next((c for c in guild.text_channels if c.name.lower() == "candidatures"), None)
     for channel in guild.text_channels:
         if channel.name.lower() == "postuler":
-            for message in list(getattr(channel, "messages", [])):
-                if PANEL_MARKER in (message.content or ""):
-                    try:
-                        await message.delete()
-                    except Exception:
-                        logger.warning("KINGDOM PANELS: old apply panel removal failed", exc_info=True)
-            await channel.send(
-                view=await build_apply_panel(
-                    locale,
-                    candidatures,
-                    bot_admins,
-                    mod_roles_service,
-                    guild_id,
-                    kingdoms_service,
-                )
+            await _deploy_apply_panel(
+                channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
             )
             report["postuler"] = "deployed"
         if channel.name.lower() == "paramètres":
             await channel.send(view=await build_settings_panel(logs_service, guild_id, "system", bot_admins))
             report["paramètres"] = "deployed"
+    context = _ApplicationContext(
+        locale=locale,
+        bot_admins=bot_admins,
+        mod_roles_service=mod_roles_service,
+        guild_id=guild_id,
+        kingdoms_service=kingdoms_service,
+    )
+    try:
+        if await refresh_season_status(guild, locale, kingdoms=await context.declared_kingdom_names()):
+            report["statut saison"] = "deployed"
+    except Exception:
+        logger.warning("KINGDOM PANELS: season status deployment failed", exc_info=True)
     return report
 
 

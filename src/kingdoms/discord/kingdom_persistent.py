@@ -223,6 +223,8 @@ class KingdomCandidatureButton(
                 except Exception:
                     logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
                     note += " " + strings["no_service"]
+            if interaction.guild is not None and applicant is not None:
+                await _send_welcome(interaction.guild, applicant.group(1), strings)
         await interaction.followup.send(note, ephemeral=True)
 
 
@@ -465,6 +467,32 @@ async def _ask_reset_confirmation(interaction: discord.Interaction, strings: dic
     )
 
 
+async def _send_welcome(
+    guild: discord.Guild,
+    applicant_id: str,
+    strings: dict[str, str],
+) -> None:
+    """DM the validated player; fall back to the profile channel if DMs are closed."""
+    member = guild.get_member(int(applicant_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(applicant_id))
+        except Exception:
+            member = None
+    if member is None:
+        return
+    welcome = f"# {strings['welcome_title']}\n{strings['welcome_body']}"
+    try:
+        await member.send(welcome)
+    except Exception:
+        logger.info("CANDIDATURES: welcome DM failed, falling back to the profile channel")
+        from kingdoms.discord.kingdom_profiles import ensure_profile_channel
+
+        channel = await ensure_profile_channel(guild, member)
+        if channel is not None:
+            await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
+
+
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) -> None:
     """Delete every kingdoms channel/category, then report."""
     from kingdoms.discord.kingdom_setup import SALONS_FIRST_STRUCTURE
@@ -479,8 +507,8 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) 
         structure_names: set[str] = set()
         for category_name, channel_names, _ in SALONS_FIRST_STRUCTURE:
             structure_names.add(category_name.lower())
-            structure_names.update(ch.lower() for ch in channel_names)
-        channels = list(guild.text_channels)
+            structure_names.update(ch.lower() for ch, _ in channel_names)
+        channels = [*list(guild.text_channels), *list(getattr(guild, "forums", []))]
         categories = list(getattr(guild, "categories", []))
         for channel in channels:
             if channel.name.lower() in structure_names or channel.name.lower().startswith("profil-"):

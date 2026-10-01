@@ -32,20 +32,36 @@ from kingdoms.discord.ui import BLURPLE, Container, Separator, Text, UILayout
 
 logger = logging.getLogger("kingdoms.kingdom")
 
-# (category_name, [channel names], admin_only) — the validated
-# salons-first structure, in the designer's order (kingdoms#138).
-SALONS_FIRST_STRUCTURE: tuple[tuple[str, tuple[str, ...], bool], ...] = (
-    ("Conscription", ("Postuler", "Candidatures"), False),
-    ("Kingdoms", ("Géopolitique",), False),
-    ("Époque", ("Âge sombre",), False),
-    ("Royaume Gaïa", ("Patrouille", "Territoire", "Exploration"), False),
-    ("Champs de Bataille", ("Délais-attaque", "Attaquer", "Pourparlers"), False),
-    ("Scriptorium", ("Seigneurs", "Diplomatie", "Cadastre"), False),
+# The validated salons-first structure (kingdoms#138). Each channel is
+# (name, kind): kind is "text", "forum" or "announce" (admin-written,
+# everyone-readable). Categories run top-to-bottom in the designer order.
+SALONS_FIRST_STRUCTURE: tuple[tuple[str, tuple[tuple[str, str], ...], bool], ...] = (
     ("Profils", (), False),
-    ("Admin", ("Paramètres", "Demandes"), True),
+    (
+        "Général",
+        (
+            ("Présentation", "announce"),
+            ("Annonce", "announce"),
+            ("Règles", "forum"),
+            ("Paramètre Saison II", "text"),
+            ("Update", "announce"),
+            ("Taverne", "text"),
+            ("Suggestion", "forum"),
+        ),
+        False,
+    ),
+    ("Conscription", (("Postuler", "text"), ("Candidatures", "text")), False),
+    ("Kingdoms", (("Géopolitique", "text"),), False),
+    ("Époque", (("Âge sombre", "text"),), False),
+    ("Royaume Gaïa", (("Patrouille", "text"), ("Territoire", "text"), ("Exploration", "text")), False),
+    ("Champs de Bataille", (("Délais-attaque", "text"), ("Attaquer", "text"), ("Pourparlers", "text")), False),
+    ("Scriptorium", (("Seigneurs", "text"), ("Diplomatie", "text"), ("Cadastre", "text")), False),
+    ("Admin", (("Paramètres", "text"), ("Demandes", "text")), True),
+    ("Support", (("Question", "forum"), ("Signaler un Bug", "forum")), False),
 )
 
 ADMIN_ONLY_CHANNELS = {"Candidatures"}
+PROFILES_CATEGORY = "Profils"
 
 
 def _everyone_overwrites(
@@ -60,20 +76,50 @@ def _everyone_overwrites(
     return overwrites
 
 
+def _slug(name: str) -> str:
+    """Normalize a channel/category name the way Discord does.
+
+    Discord lowercases, strips accents and turns spaces into dashes:
+    "Âge sombre" is stored as "age-sombre". Comparing raw names made
+    the bootstrap re-create the Époque channel on every run.
+    """
+    import unicodedata
+
+    decomposed = unicodedata.normalize("NFKD", name.lower())
+    without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return without_accents.replace(" ", "-").strip("-")
+
+
 def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
+    wanted = _slug(name)
     for category in getattr(guild, "categories", []):
-        if category.name.lower() == name.lower():
+        if _slug(category.name) == wanted:
             return category  # type: ignore[no-any-return]
     return None
 
 
-def _find_text_channel(
+def _find_channel(
     guild: discord.Guild, category: discord.CategoryChannel | None, name: str
-) -> discord.TextChannel | None:
-    for channel in guild.text_channels:
-        if channel.name.lower() == name.lower() and (category is None or channel.category_id == category.id):
-            return channel
+) -> discord.abc.GuildChannel | None:
+    """Find a structure channel by name, whatever its kind (text or forum)."""
+    wanted = _slug(name)
+    candidates = [*guild.text_channels, *getattr(guild, "forums", [])]
+    for channel in candidates:
+        if _slug(channel.name) == wanted and (category is None or channel.category_id == category.id):
+            return channel  # type: ignore[no-any-return]
     return None
+
+
+def _announce_overwrites(
+    guild: discord.Guild,
+) -> dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite]:
+    """Admin-written, everyone-readable: @everyone may not send messages."""
+    overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
+    }
+    if guild.me is not None:
+        overwrites[guild.me] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+    return overwrites
 
 
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
@@ -86,7 +132,7 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     created: list[str] = []
     adopted: list[str] = []
 
-    for category_name, channel_names, category_admin_only in SALONS_FIRST_STRUCTURE:
+    for index, (category_name, channel_names, category_admin_only) in enumerate(SALONS_FIRST_STRUCTURE):
         category = _find_category(guild, category_name)
         if category is None:
             overwrites = _everyone_overwrites(guild) if category_admin_only else {}
@@ -94,24 +140,38 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
                 category_name,
                 reason="kingdoms: salons-first bootstrap",
                 overwrites=overwrites,
+                position=index,
             )
             created.append(category_name)
         else:
             adopted.append(category_name)
 
-        for channel_name in channel_names:
-            existing = _find_text_channel(guild, category, channel_name)
+        for channel_name, channel_kind in channel_names:
+            existing = _find_channel(guild, category, channel_name)
             if existing is not None:
                 adopted.append(f"{category_name}/{channel_name}")
                 continue
             admin_only = category_admin_only or channel_name in ADMIN_ONLY_CHANNELS
-            overwrites = _everyone_overwrites(guild) if admin_only else {}
-            await guild.create_text_channel(
-                channel_name,
-                reason=f"kingdoms: provision the {channel_name} channel",
-                category=category,
-                overwrites=overwrites,
-            )
+            if admin_only:
+                overwrites = _everyone_overwrites(guild)
+            elif channel_kind == "announce":
+                overwrites = _announce_overwrites(guild)
+            else:
+                overwrites = {}
+            if channel_kind == "forum":
+                await guild.create_forum(
+                    channel_name,
+                    reason=f"kingdoms: provision the {channel_name} forum",
+                    category=category,
+                    overwrites=overwrites,
+                )
+            else:
+                await guild.create_text_channel(
+                    channel_name,
+                    reason=f"kingdoms: provision the {channel_name} channel",
+                    category=category,
+                    overwrites=overwrites,
+                )
             created.append(f"{category_name}/{channel_name}")
 
     return created, adopted
