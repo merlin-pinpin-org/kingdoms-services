@@ -33,7 +33,11 @@ needed), `providers`, `librematch`, `aoe2lobby`, `bot`. Narrower boot:
 `contracts/` are wire-compat-guarded: run `make contracts` after any
 `.proto` edit — CI fails if committed stubs drift (`make contracts-check`).
 
-The bot serves `http://localhost:8000/healthz`. Unit and integration
+The bot serves `http://localhost:8000/healthz`. A didactic `kingdoms`
+CLI is also installed by `make setup` — check your environment
+(`kingdoms doctor`), drive the local stack, manage a remote server over
+SSH, or set up a self-hosted runner: see [docs/CLI.md](docs/CLI.md).
+Unit and integration
 tests (MockDiscord, SimCord) never need a Discord token or network —
 see [docs/DEVELOPER.md](docs/DEVELOPER.md) and
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full guides.
