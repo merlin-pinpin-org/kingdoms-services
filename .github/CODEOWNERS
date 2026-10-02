@@ -1,14 +1,22 @@
 # Code ownership (kingdoms-services).
-# Combined with the "main" ruleset (require code owner review, 1
-# approval), no change merges without a maintainer.
-# Team: @merlin-pinpin-org/maintainers (developer + ops).
-#
-# Default: a maintainer reviews everything
+# The ruleset on main requires a code-owner review (1 approval); this file
+# decides who owns what. Mod-only code is owned by the game designers:
+# their sessions drive mod PRs from draft to automerge on their own.
+# Core, platform and deploy paths are owned by the maintainers
+# (developer + ops): every core/platform change gets a platform review.
+
+## Default: a maintainer reviews everything not explicitly delegated
 *                       @merlin-pinpin-org/maintainers
 
-# CI/CD workflows: the deploy path is security-sensitive
-/.github/workflows/     @merlin-pinpin-org/maintainers
+## Game mods: owned by the game designers (mod-only PRs need no platform review)
+/src/kingdoms/mods/     @merlin-pinpin-org/game-designers
+/config/mods/           @merlin-pinpin-org/game-designers
+/tests/unit/test_mods/  @merlin-pinpin-org/game-designers
 
-# Docker and entrypoint: what runs on the VPS
+## Core and platform: maintainer review (the deploy path is security-sensitive)
+/src/kingdoms/core/     @merlin-pinpin-org/maintainers
+/src/kingdoms/discord/  @merlin-pinpin-org/maintainers
+/contracts/             @merlin-pinpin-org/maintainers
+/.github/workflows/     @merlin-pinpin-org/maintainers
 /Dockerfile             @merlin-pinpin-org/maintainers
 /docker/                @merlin-pinpin-org/maintainers
