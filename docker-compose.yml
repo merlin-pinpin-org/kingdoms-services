@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    profiles: ["all", "bot"]
     ports:
       - "8000:8000"
     volumes:
@@ -17,11 +18,11 @@ services:
       - kingdoms-mongo
       - kingdoms-redis
       - kingdoms-core
-
   kingdoms-core:
     build:
       context: .
       dockerfile: Dockerfile
+    profiles: ["all", "core"]
     environment:
       - KINGDOMS_PROCESS=core
       - MONGO_URI=mongodb://kingdoms-mongo:27017
@@ -36,8 +37,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    profiles: ["all", "providers", "librematch"]
     environment:
       - KINGDOMS_PROCESS=ext-librematch
+      - LIBREMATCH_API_URL=${LIBREMATCH_API_URL:-https://community.ageofempires.com}
+      - LIBREMATCH_API_KEY=${LIBREMATCH_API_KEY:-}
       - EXT_GRPC_PORT=50061
     expose:
       - "50061"
@@ -45,26 +49,27 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    profiles: ["all", "providers", "aoe2lobby"]
     environment:
       - KINGDOMS_PROCESS=ext-aoe2lobby
+      - AOE2LOBBY_WS_URL=${AOE2LOBBY_WS_URL:-wss://aoe2lobby.com/ws}
       - EXT_GRPC_PORT=50062
     expose:
       - "50062"
-
   kingdoms-mongo:
     image: mongo:7.0
+    profiles: ["all", "bot", "core"]
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-
   kingdoms-redis:
     image: redis:7.2
+    profiles: ["all", "bot", "core"]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
 volumes:
   mongo_data:
   redis_data:
