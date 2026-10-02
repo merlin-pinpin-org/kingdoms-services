@@ -47,6 +47,15 @@ mods, YAML configs.
   against the live guild state (BOT_ADMINS, guild-admin permissions,
   or the `bot-admins` role via the RolesService). `default_permissions`
   only hides the command entry; it never replaces the check.
+- **Guild-level settings & admin surface:** generic, mod-independent
+  settings (guild locale, reference timezone, managed channels) are
+  **core guild settings** — a mod never re-declares them or ships its
+  own locale/timezone pickers; a mod's admin needs extend the pinned
+  bot-admins panel through the core runtime seam, never a forked panel;
+  user-facing times are Discord `<t:…>` timestamps, never formatted
+  strings — see kingdoms CONVENTIONS.md (*Guild-level settings and the
+  admin surface*) and the discord-ui skill (*Times are Discord
+  timestamps*).
 - **Admin surface (transparency rule):** admin messages with actions
   live in the guild's `🛡-bot-admins` channel (AdminChannelService,
   cache-aside provisioning); the BOT_ADMINS are synced into the
