@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.cli.runner</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.cli.html" class="white">cli</a>.runner</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/cli/runner.py">SOURCE_ROOT/cli/runner.py</a></td></tr></table>
+    <p><span class="code">Guided&nbsp;setup&nbsp;of&nbsp;a&nbsp;self-hosted&nbsp;GitHub&nbsp;Actions&nbsp;runner&nbsp;(optional).<br>
+&nbsp;<br>
+Never&nbsp;downloads&nbsp;or&nbsp;executes&nbsp;anything&nbsp;on&nbsp;its&nbsp;own:&nbsp;this&nbsp;module&nbsp;explains&nbsp;the<br>
+steps,&nbsp;checks&nbsp;the&nbsp;local&nbsp;`gh`&nbsp;CLI,&nbsp;and&nbsp;prints&nbsp;the&nbsp;exact&nbsp;commands&nbsp;to&nbsp;run<br>
+(kingdoms-services#193).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="shutil.html">shutil</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-cmd_setup"><strong>cmd_setup</strong></a>(repo: 'str | None') -&gt; 'int'</dt><dd><span class="code">Print&nbsp;the&nbsp;guided&nbsp;setup&nbsp;path;&nbsp;interactive&nbsp;confirmation&nbsp;first.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str]') -&gt; 'int'</dt><dd><span class="code">Dispatch&nbsp;`kingdoms&nbsp;runner&nbsp;&lt;action&gt;`;&nbsp;return&nbsp;exit&nbsp;code.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>SECURITY_NOTES</strong> = ('Read this first — self-hosted runners execute arbitrary workflow code:', ' - Use a DEDICATED machine or VM for the runner, never your daily laptop.', ' - Never expose the runner to the public internet; it polls GitHub over TLS.', " - Prefer org-level runners with tight labels, and repo 'Allow select actions'.", ' - The registration token is short-lived; still, never paste it anywhere else.')</td></tr></table>
+</body></html>

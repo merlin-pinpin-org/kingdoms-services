@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.cli.doctor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.cli.html" class="white">cli</a>.doctor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/cli/doctor.py">SOURCE_ROOT/cli/doctor.py</a></td></tr></table>
+    <p><span class="code">Doctor&nbsp;command:&nbsp;checks&nbsp;the&nbsp;local&nbsp;environment&nbsp;and&nbsp;prints&nbsp;actionable&nbsp;advice.<br>
+&nbsp;<br>
+Never&nbsp;raises&nbsp;raw&nbsp;stacktraces&nbsp;at&nbsp;the&nbsp;user;&nbsp;every&nbsp;failed&nbsp;check&nbsp;comes&nbsp;with<br>
+"what&nbsp;do&nbsp;I&nbsp;do&nbsp;now?"&nbsp;guidance&nbsp;(kingdoms-services#190).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="shutil.html">shutil</a><br>
+</td><td class="multicolumn"><a href="socket.html">socket</a><br>
+<a href="subprocess.html">subprocess</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.cli.doctor.html#Check">Check</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Check">class <strong>Check</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Check">Check</a>(name:&nbsp;'str',&nbsp;status:&nbsp;'str',&nbsp;detail:&nbsp;'str',&nbsp;fix:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Result&nbsp;of&nbsp;a&nbsp;single&nbsp;doctor&nbsp;check.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="Check-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="Check-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="Check-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="Check-__init__"><strong>__init__</strong></a>(self, name: 'str', status: 'str', detail: 'str', fix: 'str | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="Check-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="Check-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'detail': 'str', 'fix': 'str | None', 'name': 'str', 'status': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'detail': Field(name='detail',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'fix': Field(name='fix',type='str | None',default=None,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'status': Field(name='status',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'status', 'detail', 'fix')</dl>
+
+<dl><dt><strong>fix</strong> = None</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-print_report"><strong>print_report</strong></a>(checks: 'list[Check]') -&gt; 'int'</dt><dd><span class="code">Print&nbsp;the&nbsp;report;&nbsp;return&nbsp;the&nbsp;process&nbsp;exit&nbsp;code.</span></dd></dl>
+ <dl><dt><a name="-run_checks"><strong>run_checks</strong></a>(root: 'str') -&gt; 'list[Check]'</dt><dd><span class="code">Run&nbsp;all&nbsp;doctor&nbsp;checks&nbsp;and&nbsp;return&nbsp;their&nbsp;results.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FAIL</strong> = 'FAIL'<br>
+<strong>HEALTH_HOST</strong> = '127.0.0.1'<br>
+<strong>HEALTH_PORT</strong> = 8000<br>
+<strong>HEALTH_TIMEOUT</strong> = 0.5<br>
+<strong>OK</strong> = 'OK '<br>
+<strong>WARN</strong> = 'WARN'</td></tr></table>
+</body></html>
