@@ -11,10 +11,12 @@
 # environments (PROTECTED_ENVS in kingdoms-infra deploy.yml) never deploy
 # a PR — they pin released vX.Y.Z images only.
 #
-# Gating (kingdoms-services#67): only repository collaborators with
-# write, maintain or admin permission may use it, and fork PRs are rejected
-# outright (see the authorize step); kingdoms-infra's Actions policy is the
-# second layer on the dispatch side.
+# Gating: the roster authority matrix (CONTRIBUTORS.md, kingdoms repo)
+# decides — any rostered contributor with an accepted CLA may request a
+# /deploy (the requestor's entry and the PR author's agent-scope are both
+# checked by the reusable authorize.yml gate); fork PRs are rejected
+# outright; kingdoms-infra's Actions policy is the second layer on the
+# dispatch side. Prod-like environments never deploy a PR.
 #
 # Cross-repo state write: the dispatch uses an ephemeral GitHub App token
 # (actions/create-github-app-token), minted from the
@@ -47,7 +49,7 @@ jobs:
        startsWith(github.event.comment.body, '/deploy '))
     runs-on: ubuntu-latest
     steps:
-      - name: Authorize the requestor
+      - name: Authorize the requestor (roster authority matrix)
         id: authorize
         uses: actions/github-script@v7
         with:
@@ -64,16 +66,15 @@ jobs:
               core.setFailed("This pull request comes from a fork: only branches of this repository may be deployed to test.");
               return;
             }
-            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: commenter,
-            });
-            if (!["admin", "maintain", "write"].includes(perm.permission)) {
-              core.setFailed(`${commenter} is not allowed to deploy: only repository collaborators with write access may use /deploy.`);
-            } else {
-              core.notice(`${commenter} has ${perm.permission}: allowed.`);
-            }
+            // Expose the PR author for the agent-scope half of the gate,
+            // then hand over to the reusable roster gate.
+            core.setOutput("pr_author", pr.user.login);
+      - name: Roster gate — who may deploy
+        uses: merlin-pinpin-org/kingdoms/.github/workflows/authorize.yml@main
+        with:
+          capability: deploy
+          requestor: ${{ github.event.comment.user.login }}
+          pr-author: ${{ steps.authorize.outputs.pr_author }}
 
       - name: Parse the command (target environment)
         id: env
