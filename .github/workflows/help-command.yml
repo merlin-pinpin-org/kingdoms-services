@@ -1,0 +1,135 @@
+# /help — list the PR-comment commands available to the requestor.
+#
+# "/help" posts one line per command the requestor's roster roles grant
+# (authority matrix in CONTRIBUTORS.md, kingdoms repo — the source of
+# truth); "/help /<cmd>" posts that command's detailed usage. Every
+# command is listed even when a stricter condition applies at call time
+# (env, CLA, agent-scope): the listing shows what the roles grant, the
+# authorize gate decides at execution.
+name: Help command (comments)
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: help-command-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  help:
+    name: List the requestor's commands
+    if: |
+      github.event.issue.pull_request &&
+      (github.event.comment.body == '/help' ||
+       startsWith(github.event.comment.body, '/help /'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the roster (kingdoms main — the source of truth)
+        uses: actions/checkout@v4
+        with:
+          repository: merlin-pinpin-org/kingdoms
+          ref: main
+          sparse-checkout: |
+            CONTRIBUTORS.md
+            scripts/roster.py
+
+      - name: Acknowledge (what, why — per the conventions)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = context.payload.comment.body.trim().split(/\s+/)[1] || "";
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `**/help intercepted** — listing the commands your roster roles grant, **@${context.payload.comment.user.login}** (CONTRIBUTORS.md authority matrix). Right away.`,
+            });
+
+      - name: Build the listing
+        id: listing
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          REQUESTOR: ${{ github.event.comment.user.login }}
+        run: |
+          set -euo pipefail
+          target="$(echo "$COMMENT_BODY" | awk '{print $2}')"
+          if [[ -n "$target" && "$target" == /* ]]; then
+            # /help /<cmd>: detailed usage of one command
+            cmd="${target#/}"
+            case "$cmd" in
+              deploy) cap="deploy";;
+              restart|start|stop|status) cap="env-control";;
+              logs) cap="env-logs";;
+              dump-db) cap="db-dump";;
+              release) cap="release";;
+              rollback) cap="rollback";;
+              sync-teams) cap="sync-teams";;
+              *) echo "unknown-command=$cmd" >> "$GITHUB_OUTPUT"; exit 0;;
+            esac
+            python3 scripts/roster.py "$REQUESTOR" "$cap" --roster CONTRIBUTORS.md >/dev/null 2>&1 \
+              || { echo "not-authorized=$cap" >> "$GITHUB_OUTPUT"; exit 0; }
+            usage="$(python3 scripts/roster.py --usage "$cap" --roster CONTRIBUTORS.md)"
+            {
+              echo "detail<<EOF"
+              echo "/$cmd — $usage"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            # /help: one line per granted command
+            python3 scripts/roster.py "$REQUESTOR" --list --roster CONTRIBUTORS.md \
+              > /tmp/listing.json
+            {
+              echo "list<<EOF"
+              python3 - <<'PY'
+          import json
+          data = json.load(open("/tmp/listing.json"))
+          for c in data["capabilities"]:
+              print(f"/{c['capability']} — {c['help']}")
+          PY
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post the listing
+        if: steps.listing.outputs.list != '' || steps.listing.outputs.detail != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const list = `${{ steps.listing.outputs.list }}`;
+            const detail = `${{ steps.listing.outputs.detail }}`;
+            const body = list
+              ? `**Commands for your roles** (details: \`/help /<cmd>\`):\n\n${list.split("\n").map(l => "- " + l).join("\n")}`
+              : detail;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Post the error verdicts (fail-closed, still helpful)
+        if: steps.listing.outputs.unknown-command != '' || steps.listing.outputs.not-authorized != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const unknown = "${{ steps.listing.outputs.unknown-command }}";
+            const notAuth = "${{ steps.listing.outputs.not-authorized }}";
+            const login = context.payload.comment.user.login;
+            let body;
+            if (unknown) {
+              body = `ⓘ \`/${unknown}\` is not a platform command. Post \`/help\` for the list.`;
+            } else {
+              body = `ⓘ **@${login}** — your roster roles do not grant \`/${notAuth}\` (CONTRIBUTORS.md authority matrix). Post \`/help\` for what you can use.`;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
