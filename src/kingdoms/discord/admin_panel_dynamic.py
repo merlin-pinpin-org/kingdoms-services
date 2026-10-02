@@ -309,27 +309,46 @@ async def build_pin_main_menu(
     admin_channel_service: Any = None,
 ) -> discord.ui.LayoutView:
     """Build the pinned main menu: fully dynamic, no captured state."""
+    from kingdoms.discord.admin_panel_mods import (
+        PinModRouteSelect,
+        registered_admin_mod_sections,
+    )
+
     status = await _managed_channel_status(logs_service, guild_id, admin_channel_service)
     view = discord.ui.LayoutView(timeout=None)
+    container_blocks = [
+        discord.ui.TextDisplay(f"# \u2699\ufe0f {_t(catalog, locale, 'title')}"),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(f"## \ud83c\udf0d {_t(catalog, locale, 'language')}"),
+        discord.ui.TextDisplay(
+            _t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))
+        ),
+        _select_row(PinLocaleSelect(locale)),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(f"## \ud83d\udccb {_t(catalog, locale, 'channels')}"),
+        _select_row(
+            PinChannelMenu.create(
+                catalog,
+                locale,
+                status,
+                placeholder=_t(catalog, locale, "channels_placeholder"),
+            )
+        ),
+    ]
+    sections = registered_admin_mod_sections()
+    if sections:
+        container_blocks.append(discord.ui.Separator())
+        container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))
+        container_blocks.append(
+            _select_row(
+                PinModRouteSelect.create(
+                    placeholder=_t(catalog, locale, "mods_placeholder"),
+                )
+            )
+        )
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(f"# \u2699\ufe0f {_t(catalog, locale, 'title')}"),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## \ud83c\udf0d {_t(catalog, locale, 'language')}"),
-            discord.ui.TextDisplay(
-                _t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))
-            ),
-            _select_row(PinLocaleSelect(locale)),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## \ud83d\udccb {_t(catalog, locale, 'channels')}"),
-            _select_row(
-                PinChannelMenu.create(
-                    catalog,
-                    locale,
-                    status,
-                    placeholder=_t(catalog, locale, "channels_placeholder"),
-                )
-            ),
+            *container_blocks,
             accent_colour=discord.Colour(BLURPLE),
         )
     )
