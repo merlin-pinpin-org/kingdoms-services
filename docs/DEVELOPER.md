@@ -25,6 +25,7 @@ this repo*.
 | `src/kingdoms/core_process/` | svc-core process entrypoint (ADR-0020) |
 | `tests/` | Unit + integration tests, `tests/mocks/` (MockDiscord) |
 | `Makefile` | `make lint`, `make typecheck`, `make test`, `make docs` |
+| `src/kingdoms/cli/` | `kingdoms` developer CLI — doctor, local stack, remote ssh, runner ([docs/CLI.md](CLI.md)) |
 
 ## Toolchain
 
