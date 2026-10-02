@@ -21,10 +21,17 @@ To run the bot locally with MongoDB and Redis:
 
 ```bash
 cp .env.example .env   # fill in DISCORD_TOKEN (never commit it)
-make dev-up             # bot + MongoDB + Redis via docker compose
+make dev-up             # full ADR-0020 stack: bot + core + providers + MongoDB + Redis
 make dev-logs           # follow the logs
 make dev-down           # stop
 ```
+
+The stack uses compose profiles (`ADR-0020` process split): `all`
+(default for `make dev-*`), `core` (svc-core + data, no Discord token
+needed), `providers`, `librematch`, `aoe2lobby`, `bot`. Narrower boot:
+`docker compose --profile core up -d`. The gRPC contracts in
+`contracts/` are wire-compat-guarded: run `make contracts` after any
+`.proto` edit — CI fails if committed stubs drift (`make contracts-check`).
 
 The bot serves `http://localhost:8000/healthz`. Unit and integration
 tests (MockDiscord, SimCord) never need a Discord token or network —

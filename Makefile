@@ -1,17 +1,18 @@
-.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check battery contracts
+.PHONY: dev dev-up dev-down dev-logs test lint format typecheck build clean setup docs docs-check check battery contracts contracts-check
 
-# Dev
+# Dev: compose profiles (ADR-0020) — 'all' = bot + core + providers + data.
+# Narrower: docker compose --profile core up -d (no Discord token needed).
 dev:
-	@docker compose down && docker compose up --build
+	@docker compose --profile all down && docker compose --profile all up --build
 
 dev-up:
-	@docker compose up -d --build
+	@docker compose --profile all up -d --build
 
 dev-down:
-	@docker compose down
+	@docker compose --profile all down
 
 dev-logs:
-	@docker compose logs -f
+	@docker compose --profile all logs -f
 
 # Tests & Quality
 test:
@@ -92,6 +93,11 @@ changelog:
 # release-notes: print the conventional release notes body for TAG
 release-notes:
 	@uv run python scripts/generate_changelog.py --tag $(TAG) --notes
+
+# contracts-check: fail closed when committed stubs drift from contracts/
+# (wire-compatibility guard, kingdoms-services#128). CI runs it too.
+contracts-check:
+	@uv run python scripts/check_contracts_fresh.py
 
 # contracts: regenerate the gRPC stubs from contracts/ (ADR-0020).
 contracts:

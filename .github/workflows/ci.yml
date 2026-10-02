@@ -74,6 +74,21 @@ jobs:
       - name: Check source purity
         run: ./scripts/check_image_purity.py --source-only
 
+  contracts:
+    # kingdoms-services#128: wire-compatibility guard for the gRPC contracts
+    # (ADR-0020). The committed stubs must match contracts/ exactly.
+    name: Contracts wire-compat (stubs match contracts/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Check stub freshness against contracts/
+        run: |
+          uv sync
+          uv run python scripts/check_contracts_fresh.py
+
   compose:
     name: Validate and boot docker-compose.yml
     runs-on: ubuntu-latest
@@ -88,6 +103,24 @@ jobs:
           timeout 60 bash -c "until docker compose exec -T kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
           timeout 60 bash -c "until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
           echo "COMPOSE STACK BOOTS OK"
+      # kingdoms-services#128: all four ADR-0020 processes boot via compose
+      # profiles (make dev / --profile all). The bot needs a Discord token,
+      # so it boots only when DISCORD_TOKEN is available on the runner.
+      - name: Boot the core and provider processes (profile all)
+        run: |
+          cp .env.example .env
+          docker compose --profile all up -d --build kingdoms-core kingdoms-ext-librematch kingdoms-ext-aoe2lobby
+          timeout 90 bash -c "until docker compose --profile all ps --status running kingdoms-core | grep -q kingdoms-core; do
+            if [ "$(docker inspect -f '{{.State.Status}}' kingdoms-services-kingdoms-core-1)" != running ]; then
+              echo '::error::svc-core container exited before serving'
+              docker compose --profile all logs kingdoms-core
+              exit 1
+            fi
+            sleep 2
+          done"
+          timeout 60 bash -c "until docker compose --profile all ps --status running | grep -q ext-librematch; do sleep 2; done"
+          timeout 60 bash -c "until docker compose --profile all ps --status running | grep -q ext-aoe2lobby; do sleep 2; done"
+          echo "CORE + PROVIDERS BOOT OK (ADR-0020 processes)"
       - name: Tear down
         if: always()
         run: docker compose down -v || true
