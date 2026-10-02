@@ -439,6 +439,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.kingdoms import register_kingdoms_command
+    from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
@@ -446,6 +448,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
+    register_kingdoms_command(bot.tree)
+    register_live_commands(bot.tree, catalog=bot.messages)
     register_admin_command(
         bot.tree,
         bot_admins=status.bot_admins,

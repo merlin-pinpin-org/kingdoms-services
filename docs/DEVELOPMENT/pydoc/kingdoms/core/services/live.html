@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.live</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.live</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/live.py">SOURCE_ROOT/core/services/live.py</a></td></tr></table>
+    <p><span class="code">Live&nbsp;dashboard&nbsp;aggregator:&nbsp;provider&nbsp;events&nbsp;→&nbsp;per-player&nbsp;state&nbsp;(#147).<br>
+&nbsp;<br>
+svc-core&nbsp;consumes&nbsp;the&nbsp;providers'&nbsp;``StreamMatchEvents``&nbsp;(ext-aoe2lobby<br>
+live&nbsp;layer,&nbsp;ext-librematch&nbsp;the&nbsp;source&nbsp;of&nbsp;truth),&nbsp;resolves&nbsp;profile&nbsp;ids<br>
+to&nbsp;platform&nbsp;users&nbsp;through&nbsp;the&nbsp;registration&nbsp;bindings,&nbsp;and&nbsp;maintains&nbsp;the<br>
+per-player&nbsp;dashboard&nbsp;state&nbsp;served&nbsp;over&nbsp;``kingdoms.v1.Live``.<br>
+&nbsp;<br>
+Degradation&nbsp;is&nbsp;a&nbsp;first-class&nbsp;state:&nbsp;with&nbsp;no&nbsp;provider&nbsp;reachable,&nbsp;every<br>
+linked&nbsp;player&nbsp;shows&nbsp;offline&nbsp;and&nbsp;the&nbsp;snapshot&nbsp;is&nbsp;flagged&nbsp;degraded.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.live.html#LiveAggregator">LiveAggregator</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.live.html#BindingsDatabase">BindingsDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.live.html#MatchEventStream">MatchEventStream</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BindingsDatabase">class <strong>BindingsDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BindingsDatabase">BindingsDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam&nbsp;over&nbsp;the&nbsp;registration&nbsp;profile&nbsp;bindings&nbsp;(#133).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.live.html#BindingsDatabase">BindingsDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="BindingsDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="BindingsDatabase-list_bindings_for_game"><strong>list_bindings_for_game</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;profile&nbsp;binding&nbsp;of&nbsp;a&nbsp;game&nbsp;(user_id&nbsp;+&nbsp;profile_id).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="BindingsDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'list_bindings_for_game'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="BindingsDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="BindingsDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LiveAggregator">class <strong>LiveAggregator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LiveAggregator">LiveAggregator</a>(database:&nbsp;'<a href="#BindingsDatabase">BindingsDatabase</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Aggregate&nbsp;provider&nbsp;events&nbsp;into&nbsp;per-player&nbsp;dashboard&nbsp;snapshots.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LiveAggregator-__init__"><strong>__init__</strong></a>(self, database: 'BindingsDatabase') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;bindings&nbsp;seam;&nbsp;the&nbsp;player&nbsp;state&nbsp;starts&nbsp;empty.</span></dd></dl>
+
+<dl><dt>async <a name="LiveAggregator-apply_event"><strong>apply_event</strong></a>(self, event: 'Any') -&gt; 'None'</dt><dd><span class="code">Fold&nbsp;one&nbsp;provider&nbsp;MatchEvent&nbsp;into&nbsp;the&nbsp;player&nbsp;state.<br>
+&nbsp;<br>
+lobby_opened/game_started&nbsp;set&nbsp;per-profile&nbsp;state;&nbsp;lobby_closed<br>
+keeps&nbsp;the&nbsp;state&nbsp;for&nbsp;the&nbsp;AoE2&nbsp;grace&nbsp;period&nbsp;(the&nbsp;game&nbsp;module's<br>
+15&nbsp;s)&nbsp;before&nbsp;downgrading&nbsp;—&nbsp;approximated&nbsp;here&nbsp;by&nbsp;applying&nbsp;the<br>
+downgrade&nbsp;immediately&nbsp;on&nbsp;lobby_closed/game_ended&nbsp;for&nbsp;the<br>
+dashboard,&nbsp;which&nbsp;is&nbsp;display-only;&nbsp;the&nbsp;ladder&nbsp;domain&nbsp;applies&nbsp;the<br>
+real&nbsp;grace&nbsp;period&nbsp;(#134/#146).</span></dd></dl>
+
+<dl><dt><a name="LiveAggregator-mark_degraded"><strong>mark_degraded</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Flag&nbsp;the&nbsp;aggregated&nbsp;state&nbsp;as&nbsp;provider-less&nbsp;(all&nbsp;offline).</span></dd></dl>
+
+<dl><dt>async <a name="LiveAggregator-snapshot"><strong>snapshot</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MatchEventStream">class <strong>MatchEventStream</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MatchEventStream">MatchEventStream</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+One&nbsp;provider's&nbsp;live&nbsp;event&nbsp;stream&nbsp;(GameProviderClient.stream_match_events).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.live.html#MatchEventStream">MatchEventStream</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MatchEventStream-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="MatchEventStream-stream_match_events"><strong>stream_match_events</strong></a>(self, since: 'int') -&gt; 'Any'</dt><dd><span class="code">Async&nbsp;iterator&nbsp;of&nbsp;MatchEvent&nbsp;from&nbsp;the&nbsp;provider.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="MatchEventStream-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {'provider_id': 'str'}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'provider_id', 'stream_match_events'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="MatchEventStream-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="MatchEventStream-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>EVENT_GAME_ENDED</strong> = 'game_ended'<br>
+<strong>EVENT_GAME_STARTED</strong> = 'game_started'<br>
+<strong>EVENT_LOBBY_CLOSED</strong> = 'lobby_closed'<br>
+<strong>EVENT_LOBBY_OPENED</strong> = 'lobby_opened'<br>
+<strong>GRACE_MS</strong> = 15000<br>
+<strong>STATE_IN_GAME</strong> = 'in_game'<br>
+<strong>STATE_IN_LOBBY</strong> = 'in_lobby'<br>
+<strong>STATE_OFFLINE</strong> = 'offline'</td></tr></table>
+</body></html>

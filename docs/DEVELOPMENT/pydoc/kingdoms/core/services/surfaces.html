@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.surfaces</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.surfaces</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/surfaces.py">SOURCE_ROOT/core/services/surfaces.py</a></td></tr></table>
+    <p><span class="code">Named&nbsp;surfaces&nbsp;&amp;&nbsp;permission&nbsp;queries&nbsp;(kingdoms-services#130).<br>
+&nbsp;<br>
+A&nbsp;**surface**&nbsp;is&nbsp;a&nbsp;mod-declared,&nbsp;named&nbsp;place&nbsp;the&nbsp;bot&nbsp;manages:&nbsp;a&nbsp;channel<br>
+category,&nbsp;resolved&nbsp;through&nbsp;the&nbsp;ChannelService&nbsp;and&nbsp;addressed&nbsp;by&nbsp;its<br>
+``mod:key``&nbsp;logical&nbsp;key&nbsp;(never&nbsp;by&nbsp;raw&nbsp;Discord&nbsp;ID).&nbsp;The&nbsp;ladder&nbsp;needs:<br>
+play,&nbsp;leaderboard,&nbsp;matches,&nbsp;players,&nbsp;admins&nbsp;(kingdoms<br>
+docs/MODS/ladder).<br>
+&nbsp;<br>
+Permission&nbsp;queries&nbsp;("is&nbsp;ladder&nbsp;admin/player")&nbsp;stay&nbsp;on&nbsp;the&nbsp;platform&nbsp;side<br>
+and&nbsp;delegate&nbsp;to&nbsp;the&nbsp;existing&nbsp;seams:&nbsp;the&nbsp;runtime&nbsp;PermissionService<br>
+(component&nbsp;actions)&nbsp;and&nbsp;the&nbsp;mod-role&nbsp;resolver&nbsp;(logical&nbsp;role&nbsp;keys).<br>
+This&nbsp;service&nbsp;composes&nbsp;them&nbsp;into&nbsp;the&nbsp;two&nbsp;questions&nbsp;mods&nbsp;actually&nbsp;ask,<br>
+keeping&nbsp;mod&nbsp;code&nbsp;free&nbsp;of&nbsp;platform&nbsp;details.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.surfaces.html#SurfaceService">SurfaceService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.surfaces.html#SurfaceChannels">SurfaceChannels</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.surfaces.html#SurfacePermissions">SurfacePermissions</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SurfaceChannels">class <strong>SurfaceChannels</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SurfaceChannels">SurfaceChannels</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam&nbsp;on&nbsp;the&nbsp;ChannelService:&nbsp;resolve&nbsp;a&nbsp;mod-scoped&nbsp;category.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.surfaces.html#SurfaceChannels">SurfaceChannels</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="SurfaceChannels-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="SurfaceChannels-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;key&nbsp;(``mod:key``&nbsp;or&nbsp;platform&nbsp;key).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="SurfaceChannels-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'get_channel_for_category'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="SurfaceChannels-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="SurfaceChannels-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SurfacePermissions">class <strong>SurfacePermissions</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SurfacePermissions">SurfacePermissions</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam&nbsp;on&nbsp;the&nbsp;runtime&nbsp;PermissionService&nbsp;(kingdoms-services#55).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.surfaces.html#SurfacePermissions">SurfacePermissions</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="SurfacePermissions-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="SurfacePermissions-user_has_role"><strong>user_has_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;member&nbsp;holds&nbsp;one&nbsp;mod&nbsp;role,&nbsp;resolved&nbsp;through&nbsp;the&nbsp;mapping.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="SurfacePermissions-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'user_has_role'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="SurfacePermissions-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="SurfacePermissions-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SurfaceService">class <strong>SurfaceService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SurfaceService">SurfaceService</a>(channels:&nbsp;'<a href="#SurfaceChannels">SurfaceChannels</a>',&nbsp;permissions:&nbsp;'<a href="#SurfacePermissions">SurfacePermissions</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Resolve&nbsp;named&nbsp;surfaces&nbsp;and&nbsp;answer&nbsp;surface-level&nbsp;permission&nbsp;queries.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="SurfaceService-__init__"><strong>__init__</strong></a>(self, channels: 'SurfaceChannels', permissions: 'SurfacePermissions') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;channel&nbsp;and&nbsp;permission&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="SurfaceService-has_surface_role"><strong>has_surface_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;user&nbsp;holds&nbsp;a&nbsp;mod&nbsp;role&nbsp;on&nbsp;this&nbsp;surface&nbsp;(e.g.&nbsp;ladder&nbsp;admin/player).</span></dd></dl>
+
+<dl><dt>async <a name="SurfaceService-surface_channel"><strong>surface_channel</strong></a>(self, guild_id: 'str', mod: 'str', surface_key: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;mod's&nbsp;named&nbsp;surface&nbsp;to&nbsp;its&nbsp;channel&nbsp;(provisions&nbsp;on&nbsp;demand).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core.surfaces (WARNING)&gt;</td></tr></table>
+</body></html>
