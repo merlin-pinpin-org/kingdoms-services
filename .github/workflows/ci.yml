@@ -110,16 +110,15 @@ jobs:
         run: |
           cp .env.example .env
           docker compose --profile all up -d --build kingdoms-core kingdoms-ext-librematch kingdoms-ext-aoe2lobby
-          timeout 90 bash -c "until docker compose --profile all ps --status running kingdoms-core | grep -q kingdoms-core; do
-            if [ "$(docker inspect -f '{{.State.Status}}' kingdoms-services-kingdoms-core-1)" != running ]; then
-              echo '::error::svc-core container exited before serving'
-              docker compose --profile all logs kingdoms-core
-              exit 1
-            fi
-            sleep 2
-          done"
-          timeout 60 bash -c "until docker compose --profile all ps --status running | grep -q ext-librematch; do sleep 2; done"
-          timeout 60 bash -c "until docker compose --profile all ps --status running | grep -q ext-aoe2lobby; do sleep 2; done"
+          # svc-core must reach steady state; providers must be running.
+          timeout 90 bash -c 'until docker compose --profile all ps --status running kingdoms-core | grep -q kingdoms-core; do sleep 2; done'
+          if [ "$(docker inspect -f '{{.State.Status}}' kingdoms-services-kingdoms-core-1)" != running ]; then
+            echo '::error::svc-core container exited before serving'
+            docker compose --profile all logs kingdoms-core
+            exit 1
+          fi
+          timeout 60 bash -c 'until docker compose --profile all ps --status running | grep -q ext-librematch; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose --profile all ps --status running | grep -q ext-aoe2lobby; do sleep 2; done'
           echo "CORE + PROVIDERS BOOT OK (ADR-0020 processes)"
       - name: Tear down
         if: always()
