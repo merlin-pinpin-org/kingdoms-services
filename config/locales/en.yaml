@@ -70,6 +70,7 @@ en:
     language_placeholder: "Guild language — {value}"
     channels: "Channels"
     channels_placeholder: "Manage a channel…"
+    mods_placeholder: "A mod's section…"
     back: "← Back"
     channel: "Channel"
     visibility: "Visibility"
