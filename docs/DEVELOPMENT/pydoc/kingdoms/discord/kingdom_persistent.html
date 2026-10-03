@@ -620,7 +620,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomsPanelWiring">class <strong>KingdomsPanelWiring</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsPanelWiring">KingdomsPanelWiring</a>(logs_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mod_roles_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;kingdoms_service:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsPanelWiring">KingdomsPanelWiring</a>(logs_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mod_roles_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;kingdoms_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;channel_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;registry:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 The&nbsp;services&nbsp;a&nbsp;reconstructed&nbsp;Kingdoms&nbsp;component&nbsp;needs&nbsp;at&nbsp;click&nbsp;time.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -636,7 +636,7 @@ The&nbsp;services&nbsp;a&nbsp;reconstructed&nbsp;Kingdoms&nbsp;component&nbsp;ne
 
 <dl><dt><a name="KingdomsPanelWiring-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="KingdomsPanelWiring-__init__"><strong>__init__</strong></a>(self, logs_service: 'Any' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'Any' = None, kingdoms_service: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="KingdomsPanelWiring-__init__"><strong>__init__</strong></a>(self, logs_service: 'Any' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'Any' = None, kingdoms_service: 'Any' = None, channel_service: 'Any' = None, registry: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="KingdomsPanelWiring-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -648,21 +648,25 @@ The&nbsp;services&nbsp;a&nbsp;reconstructed&nbsp;Kingdoms&nbsp;component&nbsp;ne
 Data descriptors defined here:<br>
 <dl><dt><strong>bot_admins</strong></dt>
 </dl>
+<dl><dt><strong>channel_service</strong></dt>
+</dl>
 <dl><dt><strong>kingdoms_service</strong></dt>
 </dl>
 <dl><dt><strong>logs_service</strong></dt>
 </dl>
 <dl><dt><strong>mod_roles_service</strong></dt>
 </dl>
+<dl><dt><strong>registry</strong></dt>
+</dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'bot_admins': 'tuple[str, ...]', 'kingdoms_service': 'Any', 'logs_service': 'Any', 'mod_roles_service': 'Any'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'bot_admins': 'tuple[str, ...]', 'channel_service': 'Any', 'kingdoms_service': 'Any', 'logs_service': 'Any', 'mod_roles_service': 'Any', 'registry': 'Any'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'bot_admins': Field(name='bot_admins',type='tuple[str, ...]',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kingdoms_service': Field(name='kingdoms_service',type='Any',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'logs_service': Field(name='logs_service',type='Any',default=Non...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod_roles_service': Field(name='mod_roles_service',type='Any',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'bot_admins': Field(name='bot_admins',type='tuple[str, ...]',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channel_service': Field(name='channel_service',type='Any',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kingdoms_service': Field(name='kingdoms_service',type='Any',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'logs_service': Field(name='logs_service',type='Any',default=Non...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod_roles_service': Field(name='mod_roles_service',type='Any',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'registry': Field(name='registry',type='Any',default=None,de...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('logs_service', 'bot_admins', 'mod_roles_service', 'kingdoms_service')</dl>
+<dl><dt><strong>__match_args__</strong> = ('logs_service', 'bot_admins', 'mod_roles_service', 'kingdoms_service', 'channel_service', 'registry')</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">

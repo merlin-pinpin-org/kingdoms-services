@@ -24,9 +24,8 @@ Three&nbsp;panels&nbsp;on&nbsp;top&nbsp;of&nbsp;the&nbsp;bootstrapped&nbsp;struc
 &nbsp;&nbsp;a&nbsp;message&nbsp;with&nbsp;admin-only&nbsp;buttons&nbsp;✅&nbsp;validated&nbsp;/&nbsp;⏳&nbsp;pending&nbsp;/&nbsp;❌<br>
 &nbsp;&nbsp;refused;&nbsp;validation&nbsp;assigns&nbsp;the&nbsp;kingdoms_lord&nbsp;or&nbsp;kingdoms_king&nbsp;mod<br>
 &nbsp;&nbsp;role&nbsp;to&nbsp;the&nbsp;player;<br>
--&nbsp;**Paramètres**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;the&nbsp;guild&nbsp;language&nbsp;(fr/en)&nbsp;and&nbsp;the<br>
-&nbsp;&nbsp;reference&nbsp;timezone,&nbsp;persisted&nbsp;in&nbsp;the&nbsp;guild&nbsp;settings&nbsp;(the&nbsp;timezone&nbsp;is<br>
-&nbsp;&nbsp;the&nbsp;designer's&nbsp;common&nbsp;time&nbsp;reference&nbsp;for&nbsp;delays&nbsp;and&nbsp;events).<br>
+-&nbsp;**Paramètres**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;the&nbsp;mod's&nbsp;own&nbsp;season&nbsp;actions;&nbsp;language<br>
+&nbsp;&nbsp;and&nbsp;timezone&nbsp;live&nbsp;in&nbsp;the&nbsp;platform&nbsp;core&nbsp;(bot-admin).<br>
 &nbsp;<br>
 The&nbsp;mod&nbsp;declares&nbsp;its&nbsp;roles&nbsp;in&nbsp;``config/mods/kingdoms.yaml``<br>
 (kingdoms_king,&nbsp;kingdoms_lord);&nbsp;the&nbsp;panels&nbsp;assign&nbsp;them&nbsp;through&nbsp;the<br>
@@ -88,8 +87,6 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
 <strong>SEASON_STATUS_MARKER</strong> = 'kingdoms:season:status'<br>
 <strong>SETTINGS_PANEL_MARKER</strong> = 'kingdoms:panel:parametres'<br>
 <strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'cancel': 'Cancel', 'cancelled': 'Application cancelled.', 'candidature_game_id': 'Game ID', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Kingdom', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'cancel': 'Annuler', 'cancelled': 'Candidature annulée.', 'candidature_game_id': 'ID de jeu', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Royaume', ...}}<br>
-<strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
-<strong>SUPPORTED_TIMEZONES</strong> = ('Europe/Paris', 'America/Montreal', 'America/Sao_Paulo', 'UTC')<br>
 <strong>UPDATE_CHANNEL</strong> = 'update'<br>
 <strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom_panels (WARNING)&gt;</td></tr></table>
