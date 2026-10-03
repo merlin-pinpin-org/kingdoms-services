@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_content.py">SOURCE_ROOT/discord/kingdom_content.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;salons-first&nbsp;live&nbsp;content&nbsp;(kingdoms#138,&nbsp;group&nbsp;1).<br>
+&nbsp;<br>
+Best-effort&nbsp;refreshers&nbsp;that&nbsp;keep&nbsp;the&nbsp;designer's&nbsp;channels&nbsp;alive&nbsp;with<br>
+the&nbsp;T2&nbsp;service&nbsp;only:&nbsp;the&nbsp;Époque&nbsp;channel&nbsp;carries&nbsp;the&nbsp;current&nbsp;age&nbsp;(the<br>
+channel&nbsp;itself&nbsp;is&nbsp;renamed&nbsp;on&nbsp;each&nbsp;age&nbsp;switch),&nbsp;the&nbsp;Seigneurs&nbsp;channel<br>
+carries&nbsp;the&nbsp;per-kingdom&nbsp;roster,&nbsp;the&nbsp;Géopolitique&nbsp;channel&nbsp;receives<br>
+the&nbsp;enrollment&nbsp;announcements,&nbsp;the&nbsp;Présentation&nbsp;announce&nbsp;channel&nbsp;pins<br>
+the&nbsp;designer's&nbsp;pitch&nbsp;of&nbsp;the&nbsp;mod,&nbsp;and&nbsp;the&nbsp;Taverne/Règles&nbsp;channels&nbsp;get<br>
+their&nbsp;designer&nbsp;descriptions.<br>
+&nbsp;<br>
+Every&nbsp;refresher&nbsp;is&nbsp;marker-based&nbsp;(edit&nbsp;the&nbsp;marked&nbsp;message&nbsp;when&nbsp;present,<br>
+post&nbsp;otherwise)&nbsp;and&nbsp;never&nbsp;raises:&nbsp;a&nbsp;missing&nbsp;channel&nbsp;or&nbsp;service&nbsp;simply<br>
+skips&nbsp;the&nbsp;refresh,&nbsp;exactly&nbsp;like&nbsp;``refresh_season_status``.<br>
+&nbsp;<br>
+Designer-authored&nbsp;content&nbsp;(the&nbsp;mod&nbsp;pitch,&nbsp;the&nbsp;Taverne&nbsp;and&nbsp;Règles<br>
+descriptions)&nbsp;is&nbsp;French-only&nbsp;by&nbsp;decision&nbsp;—&nbsp;it&nbsp;is&nbsp;the&nbsp;designer's&nbsp;voice,<br>
+not&nbsp;the&nbsp;bot&nbsp;UI.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_enrollment"><strong>announce_enrollment</strong></a>(guild: 'discord.Guild', locale: 'str', display_name: 'str', kingdom_name: 'str | None', is_king: 'bool') -&gt; 'None'</dt><dd><span class="code">Announce&nbsp;one&nbsp;validated&nbsp;enrollment&nbsp;in&nbsp;Géopolitique&nbsp;(best&nbsp;effort).</span></dd></dl>
+ <dl><dt>async <a name="-announce_geopolitics"><strong>announce_geopolitics</strong></a>(guild: 'discord.Guild', locale: 'str', text: 'str') -&gt; 'bool'</dt><dd><span class="code">Send&nbsp;one&nbsp;announcement&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;channel&nbsp;(best&nbsp;effort).</span></dd></dl>
+ <dl><dt>async <a name="-refresh_channel_descriptions"><strong>refresh_channel_descriptions</strong></a>(guild: 'discord.Guild') -&gt; 'dict[str, str]'</dt><dd><span class="code">Set&nbsp;the&nbsp;designer&nbsp;descriptions&nbsp;of&nbsp;the&nbsp;Taverne&nbsp;and&nbsp;Règles&nbsp;channels.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_epoch_channel"><strong>refresh_epoch_channel</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Rename&nbsp;the&nbsp;Époque&nbsp;channel&nbsp;to&nbsp;the&nbsp;current&nbsp;age&nbsp;and&nbsp;pin&nbsp;its&nbsp;bonuses.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_lords_roster"><strong>refresh_lords_roster</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;per-kingdom&nbsp;roster&nbsp;in&nbsp;the&nbsp;Seigneurs&nbsp;channel.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_presentation"><strong>refresh_presentation</strong></a>(guild: 'discord.Guild') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;designer's&nbsp;mod&nbsp;pitch&nbsp;in&nbsp;the&nbsp;Présentation&nbsp;channel.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_salons_content"><strong>refresh_salons_content</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'dict[str, str]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;group-1&nbsp;channel&nbsp;content;&nbsp;return&nbsp;a&nbsp;deploy-style&nbsp;report.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>EPOCH_CATEGORY</strong> = 'Époque'<br>
+<strong>EPOCH_FALLBACK_CHANNEL</strong> = 'Âge sombre'<br>
+<strong>EPOCH_MARKER</strong> = 'kingdoms:epoch:status'<br>
+<strong>GEOPOLITICS_CHANNEL</strong> = 'Géopolitique'<br>
+<strong>LORDS_CHANNEL</strong> = 'Seigneurs'<br>
+<strong>LORDS_MARKER</strong> = 'kingdoms:lords:roster'<br>
+<strong>PRESENTATION_CHANNEL</strong> = 'Présentation'<br>
+<strong>PRESENTATION_MARKER</strong> = 'kingdoms:presentation'<br>
+<strong>PRESENTATION_MESSAGE</strong> = '# ⚔️ Kingdoms — Saison II<span class="repr">\n\n</span>Kingdoms est un événe...s, pour en savoir plus, à consulter les règles !<span class="repr">\n</span>'<br>
+<strong>REGLES_DESCRIPTION</strong> = 'Les règles complètes du mod Kingdoms — Saison II...tre · 🏆 Fin de saison · ⚖️ Fair-play &amp; sanctions.'<br>
+<strong>REGLES_FORUM</strong> = 'Règles'<br>
+<strong>STRINGS</strong> = {'en': {'epoch_bonus_marriage': 'Bonus marriages', 'epoch_bonus_tech': 'Tech points per cycle', 'epoch_gaia_ai': 'Gaïa AI level', 'epoch_hint': 'The age switches automatically on Wednesday at midnight.', 'epoch_progress': 'Season — cycle {}/{}', 'epoch_title': '🕰️ Current age', 'geo_founded': '🏛️ The kingdom **{}** has been founded by {} — long live the {}!', 'geo_joined': '⚔️ {} has joined the kingdom **{}** as a Lord.', 'geo_queued': '⏳ {} has entered the waiting queue.', 'lords_empty': 'No kingdom yet — enrollments are open in Postuler.', ...}, 'fr': {'epoch_bonus_marriage': 'Mariages bonus', 'epoch_bonus_tech': 'Points de tech par cycle', 'epoch_gaia_ai': "Niveau d'IA Gaïa", 'epoch_hint': "L'époque bascule automatiquement le mercredi à minuit.", 'epoch_progress': 'Saison — cycle {}/{}', 'epoch_title': '🕰️ Époque actuelle', 'geo_founded': '🏛️ Le royaume **{}** a été fondé par {} — longue vie au {} !', 'geo_joined': '⚔️ {} a rejoint le royaume **{}** en tant que Seigneur.', 'geo_queued': "⏳ {} est entré dans la file d'attente.", 'lords_empty': 'Aucun royaume pour le moment — les inscriptions sont ouvertes dans Postuler.', ...}}<br>
+<strong>TAVERNE_CHANNEL</strong> = 'Taverne'<br>
+<strong>TAVERNE_DESCRIPTION</strong> = "La taverne du serveur — discussions libres autour d'un chaudron."<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_content (WARNING)&gt;</td></tr></table>
+</body></html>

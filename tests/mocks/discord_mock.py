@@ -273,6 +273,15 @@ class MockRole(discord.Role):
 class MockTextChannel(discord.TextChannel):
     """In-memory :class:`discord.TextChannel` with message history capture."""
 
+    @property
+    def name(self) -> str:
+        """Channel name, stored slugified the way Discord does."""
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = _discord_slug(value)
+
     def __init__(
         self,
         id: int | None = None,

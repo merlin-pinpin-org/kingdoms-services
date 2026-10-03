@@ -220,15 +220,17 @@ class KingdomCandidatureButton(
             applicant = re.search(r"<@!?(\d+)>", content)
             is_king = strings["role_king"] in content
             role_key = ROLE_KING if is_king else ROLE_LORD
+            kingdom_name = _candidature_kingdom_name(content, strings)
+            enrolled = False
             if applicant is not None and wiring.kingdoms_service is not None and interaction.guild is not None:
-                kingdom_name = _candidature_kingdom_name(content, strings)
-                note += " " + await _enroll_applicant(
+                enrollment_note, enrolled = await _enroll_applicant(
                     wiring.kingdoms_service,
                     applicant.group(1),
                     is_king=is_king,
                     kingdom_name=kingdom_name,
                     strings=strings,
                 )
+                note += " " + enrollment_note
             if wiring.mod_roles_service is not None and applicant is not None and interaction.guild is not None:
                 try:
                     await wiring.mod_roles_service.assign_mod_role(
@@ -242,6 +244,14 @@ class KingdomCandidatureButton(
                 await _send_welcome(interaction.guild, applicant.group(1), strings)
             if interaction.guild is not None:
                 await _refresh_season_status_safe(interaction.guild, locale)
+                if enrolled and applicant is not None:
+                    await _announce_enrollment_safe(
+                        interaction.guild,
+                        locale,
+                        f"<@{applicant.group(1)}>",
+                        kingdom_name,
+                        is_king,
+                    )
         await interaction.followup.send(note, ephemeral=True)
 
 
@@ -746,8 +756,8 @@ async def _enroll_applicant(
     is_king: bool,
     kingdom_name: str | None,
     strings: dict[str, str],
-) -> str:
-    """Enroll the approved applicant into the running season; answer with a note."""
+) -> tuple[str, bool]:
+    """Enroll the approved applicant; answer with a note and a success flag."""
     from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
 
     display_name = f"<@{player_id}>"
@@ -762,28 +772,52 @@ async def _enroll_applicant(
             )
     except Exception as exc:
         logger.warning("CANDIDATURES: enrollment failed for %s", player_id, exc_info=True)
-        return strings["enroll_failed"].format(type(exc).__name__)
+        return strings["enroll_failed"].format(type(exc).__name__), False
     if lord.in_queue:
-        return strings["enroll_queued"]
-    return strings["enrolled_kingdom"].format(kingdom_name or lord.kingdom_id)
+        return strings["enroll_queued"], True
+    return strings["enrolled_kingdom"].format(kingdom_name or lord.kingdom_id), True
 
 
 async def _refresh_season_status_safe(guild: discord.Guild, locale: str) -> None:
-    """Best-effort refresh of the season status message."""
+    """Best-effort refresh of the season status message (progress included)."""
     try:
         from kingdoms.discord.kingdom_panels import refresh_season_status
+        from kingdoms.mods.kingdoms.snapshot import season_label
 
         wiring = _wiring()
         names: list[str] = []
         queued = 0
+        progress = ""
         if wiring.kingdoms_service is not None:
             kingdoms = await wiring.kingdoms_service.kingdoms()
             names = sorted(k.name for k in kingdoms if not k.is_gaia)
             lords = await wiring.kingdoms_service.lords()
             queued = sum(1 for lord in lords if not lord.left and lord.in_queue)
-        await refresh_season_status(guild, locale, kingdoms=names, queued=queued)
+            season = await wiring.kingdoms_service.current_season()
+            if season is not None:
+                progress = season_label(season, wiring.kingdoms_service.config, locale=locale)
+        await refresh_season_status(guild, locale, kingdoms=names, queued=queued, progress=progress)
     except Exception:
         logger.info("KINGDOMS: season status refresh skipped", exc_info=True)
+
+
+async def _announce_enrollment_safe(
+    guild: discord.Guild,
+    locale: str,
+    display_name: str,
+    kingdom_name: str | None,
+    is_king: bool,
+) -> None:
+    """Best-effort Géopolitique announcement + Seigneurs roster refresh."""
+    try:
+        from kingdoms.discord.kingdom_content import announce_enrollment, refresh_lords_roster
+
+        wiring = _wiring()
+        if display_name:
+            await announce_enrollment(guild, locale, display_name, kingdom_name, is_king)
+        await refresh_lords_roster(guild, locale, wiring.kingdoms_service)
+    except Exception:
+        logger.info("KINGDOMS: enrollment announcement skipped", exc_info=True)
 
 
 async def _send_welcome(
@@ -832,7 +866,7 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) 
 
 
 def _declared_structure_slugs(registry: Any) -> set[str]:
-    """Slugs of every declared group and channel name; empty set when unknown."""
+    """Slugs of every declared group and category name; empty set when unknown."""
     from kingdoms.discord.kingdom_setup import MOD_NAME, _slug
 
     names: set[str] = set()
@@ -851,14 +885,18 @@ def _declared_structure_slugs(registry: Any) -> set[str]:
 
 
 async def _delete_matching_channels(guild: discord.Guild, structure_names: set[str]) -> int:
-    """Delete the declared channels (and profile channels); return the count."""
+    """Delete the structure channels, the profile channels and the epoch members."""
     from kingdoms.discord.kingdom_setup import _slug
 
     deleted = 0
     channels = [*list(guild.text_channels), *list(getattr(guild, "forums", []))]
     for channel in channels:
-        slug = _slug(channel.name)
-        if slug in structure_names or slug.startswith("profil-"):
+        category = getattr(channel, "category", None)
+        in_epoch = (
+            category is not None and _slug(getattr(category, "name", "")) == _slug("Époque")
+        )
+        name = _slug(channel.name)
+        if in_epoch or name in structure_names or name.startswith("profil-"):
             try:
                 await channel.delete()
                 deleted += 1
@@ -868,11 +906,11 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
 
 
 async def _delete_matching_categories(guild: discord.Guild, structure_names: set[str]) -> int:
-    """Delete the declared categories; return the count."""
+    """Delete the declared structure categories."""
     from kingdoms.discord.kingdom_setup import _slug
 
     deleted = 0
-    for category in getattr(guild, "categories", []):
+    for category in list(getattr(guild, "categories", [])):
         if _slug(category.name) in structure_names:
             try:
                 await category.delete()
