@@ -17,6 +17,7 @@ from kingdoms.discord.kingdom_profiles import (
     ensure_profile_channel,
     profile_channel_name,
 )
+from tests.mocks.provision import provisioned_wiring
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
@@ -180,15 +181,11 @@ async def test_admin_remove_button_opens_modal() -> None:
 @pytest.mark.asyncio
 async def test_admin_reset_confirms_then_deletes_salons() -> None:
     """The reset flow asks for confirmation, then deletes the salons."""
-    from kingdoms.discord.kingdom_persistent import (
-        KingdomAdminButton,
-        KingdomsPanelWiring,
-        register_kingdoms_panel_wiring,
-    )
+    from kingdoms.discord.kingdom_persistent import KingdomAdminButton
     from kingdoms.discord.kingdom_setup import provision_structure
 
-    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
     guild = MockGuild(id=9)
+    provisioned_wiring(guild, bot_admins=("1",))
     await provision_structure(guild)
     assert guild.text_channels, "structure provisioned"
 
@@ -219,14 +216,10 @@ async def test_admin_reset_confirms_then_deletes_salons() -> None:
 @pytest.mark.asyncio
 async def test_admin_deploy_confirms_then_reprovisions() -> None:
     """The deploy flow asks for confirmation, then re-provisions the salons."""
-    from kingdoms.discord.kingdom_persistent import (
-        KingdomAdminButton,
-        KingdomsPanelWiring,
-        register_kingdoms_panel_wiring,
-    )
+    from kingdoms.discord.kingdom_persistent import KingdomAdminButton
 
-    register_kingdoms_panel_wiring(KingdomsPanelWiring(bot_admins=("1",)))
     guild = MockGuild(id=11)
+    provisioned_wiring(guild, bot_admins=("1",))
     permissions = discord.Permissions(administrator=True)
     interaction = MockInteraction(
         user=MockMember(id=1, name="admin", guild_permissions=permissions), guild=guild

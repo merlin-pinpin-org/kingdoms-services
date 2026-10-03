@@ -43,6 +43,8 @@ class KingdomsPanelWiring:
     bot_admins: tuple[str, ...] = ()
     mod_roles_service: Any = None
     kingdoms_service: Any = None
+    channel_service: Any = None
+    registry: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -73,6 +75,8 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             bot_admins=tuple(getattr(status, "bot_admins", ())),
             mod_roles_service=getattr(bot, "mod_roles_service", None),
             kingdoms_service=getattr(bot, "kingdoms_service", None),
+            channel_service=getattr(bot, "channel_service", None),
+            registry=getattr(bot, "registry", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -810,7 +814,7 @@ async def _send_welcome(
 
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) -> None:
     """Delete every kingdoms channel/category, then report."""
-    from kingdoms.discord.kingdom_setup import SALONS_FIRST_STRUCTURE, _slug
+    from kingdoms.discord.kingdom_setup import MOD_NAME, _slug
 
     guild = interaction.guild
     if guild is None:
@@ -819,10 +823,21 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) 
     await interaction.response.defer(ephemeral=True)
     deleted = 0
     try:
+        wiring = _wiring()
         structure_names: set[str] = set()
-        for category_name, channel_names, _ in SALONS_FIRST_STRUCTURE:
-            structure_names.add(_slug(category_name))
-            structure_names.update(_slug(ch) for ch, _ in channel_names)
+        registry = getattr(wiring, "registry", None)
+        mod = None
+        if registry is not None:
+            try:
+                mod = registry.require(MOD_NAME)
+            except Exception:
+                logger.warning("KINGDOMS ADMIN: mod registry lookup failed", exc_info=True)
+                mod = None
+        if mod is not None:
+            for group in mod.channel_groups:
+                structure_names.add(_slug(group.display_name))
+            for category in mod.channel_categories:
+                structure_names.add(_slug(category.display_name))
         channels = [*list(guild.text_channels), *list(getattr(guild, "forums", []))]
         categories = list(getattr(guild, "categories", []))
         for channel in channels:

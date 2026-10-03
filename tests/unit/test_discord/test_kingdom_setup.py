@@ -1,4 +1,10 @@
-"""Unit tests for the /kingdom salons-first bootstrap (kingdoms#138)."""
+"""Unit tests for the /kingdom salons-first bootstrap (kingdoms#138).
+
+kingdoms-services#175 — the structure is data: these tests run the real
+core provisioning path (declaration -> ChannelService -> platform) against
+the in-memory mock guild, and assert what the declaration says, never a
+parallel hardcoded copy of it.
+"""
 
 from __future__ import annotations
 
@@ -6,8 +12,7 @@ import discord
 import pytest
 
 from kingdoms.discord.kingdom_setup import (
-    ADMIN_ONLY_CHANNELS,
-    SALONS_FIRST_STRUCTURE,
+    MOD_NAME,
     _slug,
     provision_structure,
     register_kingdom_command,
@@ -16,63 +21,70 @@ from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
     MockMember,
-    MockTextChannel,
+)
+from tests.mocks.provision import (
+    all_guild_channels,
+    expected_category_slugs,
+    expected_channel_slugs,
+    expected_group_names,
+    kingdoms_definition,
+    provisioned_wiring,
 )
 
 
-def _expected_categories() -> set[str]:
-    return {name for name, _, _ in SALONS_FIRST_STRUCTURE}
+def test_declaration_is_the_validated_structure() -> None:
+    """The declaration carries the validated v2 structure and kinds."""
+    groups = list(kingdoms_definition().channel_groups)
+    assert [group.key for group in groups][0] == "profiles"
+    assert [group.key for group in groups][1] == "general"
+    assert [group.key for group in groups][-1] == "support"
+    admin = next(group for group in groups if group.key == "admin")
+    assert admin.admin_only is True
+    kinds = {category.key: category.kind for category in kingdoms_definition().channel_categories}
+    assert kinds["rules"] == "forum"
+    assert kinds["update"] == "announce"
+    assert kinds["presentation"] == "announce"
 
 
-def _expected_channels() -> set[str]:
-    return {f"{category}/{channel}" for category, channels, _ in SALONS_FIRST_STRUCTURE for channel, _ in channels}
-
-
-def _all_guild_channels(guild: MockGuild) -> list[MockTextChannel]:
-    return [*guild.text_channels, *guild.forums]
-
-
-def _expected_category_slugs() -> set[str]:
-    return {_slug(name) for name, _, _ in SALONS_FIRST_STRUCTURE}
-
-
-def _expected_channel_slugs() -> set[str]:
-    return {
-        f"{_slug(category)}/{_slug(channel)}"
-        for category, channels, _ in SALONS_FIRST_STRUCTURE
-        for channel, _ in channels
-    }
+def test_slug_normalizes_like_discord() -> None:
+    assert _slug("Âge sombre") == "age-sombre"
+    assert _slug("Époque") == "epoque"
 
 
 @pytest.mark.asyncio
-async def test_provision_creates_the_validated_structure() -> None:
-    """A fresh guild gets every category and channel, in the designer's order."""
+async def test_provision_creates_the_declared_structure() -> None:
+    """A fresh guild gets every declared group and channel, nothing else."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     created, adopted = await provision_structure(guild)
-    assert {_slug(c.name) for c in guild.categories} == _expected_category_slugs()
-    paths = {f"{_slug(c.category.name)}/{_slug(c.name)}" for c in _all_guild_channels(guild)}
-    assert paths == _expected_channel_slugs()
+    assert {_slug(category.name) for category in guild.categories} == expected_category_slugs()
+    paths = {
+        f"{_slug(channel.category.name)}/{_slug(channel.name)}" for channel in all_guild_channels(guild)
+    }
+    assert paths == expected_channel_slugs()
     assert created and not adopted
 
 
 @pytest.mark.asyncio
 async def test_provision_creates_forums_and_announce_channels() -> None:
-    """Règles/Suggestion/Support are forums; admin-written channels deny sends."""
+    """Forums are forums; announce channels deny sends for @everyone."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     await provision_structure(guild)
-    forum_names = {_slug(c.name) for c in guild.forums}
+    forum_names = {_slug(channel.name) for channel in guild.forums}
     assert {"regles", "suggestion", "question", "signaler-un-bug"} <= forum_names
-    annonce = next(c for c in guild.text_channels if c.name == "annonce")
+    annonce = next(channel for channel in guild.text_channels if channel.name == "annonce")
     overwrite = annonce.creation_overwrite_for(guild.default_role)
     assert overwrite is not None and overwrite.send_messages is False and overwrite.view_channel is True
 
 
 @pytest.mark.asyncio
-async def test_provision_orders_categories_by_structure() -> None:
-    """Profils first, Général second, Support last."""
+async def test_provision_orders_categories_by_declaration() -> None:
+    """Profils first, Général second, Support last — declaration order."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     await provision_structure(guild)
-    positions = {c.name: c.position for c in guild.categories}
+    positions = {category.name: category.position for category in guild.categories}
     assert positions["profils"] == 0
     assert positions["general"] == 1
     assert max(positions.values()) == positions["support"]
@@ -82,43 +94,58 @@ async def test_provision_orders_categories_by_structure() -> None:
 async def test_provision_is_idempotent() -> None:
     """Re-running the bootstrap adopts the existing structure, no duplicates."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     await provision_structure(guild)
     created, adopted = await provision_structure(guild)
     assert not created
-    assert set(adopted) == {name for name, _, _ in SALONS_FIRST_STRUCTURE} | _expected_channels()
-    paths = {f"{_slug(c.category.name)}/{_slug(c.name)}" for c in _all_guild_channels(guild)}
-    assert paths == _expected_channel_slugs()
+    assert set(adopted) == set(expected_group_names().values()) | {
+        f"{expected_group_names()[category.group]}/{category.display_name}"
+        for category in kingdoms_definition().channel_categories
+    }
+    paths = {
+        f"{_slug(channel.category.name)}/{_slug(channel.name)}" for channel in all_guild_channels(guild)
+    }
+    assert paths == expected_channel_slugs()
 
 
 @pytest.mark.asyncio
 async def test_provision_never_duplicates_after_three_runs() -> None:
-    """Regression: 'Âge sombre' (accent + space) used to be re-created on each run."""
+    """Regression: 'Âge sombre' (accent + space) must not be re-created."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     for _ in range(3):
         await provision_structure(guild)
-    names = [c.name for c in _all_guild_channels(guild)]
+    names = [channel.name for channel in all_guild_channels(guild)]
     assert names.count("age-sombre") == 1
-    for _category, channels, _ in SALONS_FIRST_STRUCTURE:
-        for channel, _kind in channels:
-            assert names.count(_slug(channel)) == 1, f"{channel} duplicated"
-
-
-def test_slug_normalizes_like_discord() -> None:
-    assert _slug("Âge sombre") == "age-sombre"
-    assert _slug("Époque") == "epoque"
+    for category in kingdoms_definition().channel_categories:
+        assert names.count(_slug(category.display_name)) == 1, f"{category.display_name} duplicated"
 
 
 @pytest.mark.asyncio
 async def test_admin_only_channels_deny_everyone() -> None:
-    """Candidatures and the Admin category deny @everyone at creation."""
+    """Candidatures and the Admin group (category + channels) deny @everyone."""
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     await provision_structure(guild)
-    candidatures = next(c for c in guild.text_channels if c.name == "candidatures")
+    candidatures = next(channel for channel in guild.text_channels if channel.name == "candidatures")
     assert candidatures.creation_overwrite_for(guild.default_role) is not None
-    admin_channels = [c for c in guild.text_channels if c.category.name == "admin"]
-    assert {c.name for c in admin_channels} == {"parametres", "demandes"}
+    admin_category = next(category for category in guild.categories if category.name == "admin")
+    assert guild.default_role in admin_category._overwrites
+    admin_channels = [channel for channel in guild.text_channels if channel.category is admin_category]
+    assert {channel.name for channel in admin_channels} == {"parametres", "demandes"}
     for channel in admin_channels:
         assert channel.creation_overwrite_for(guild.default_role) is not None
+
+
+@pytest.mark.asyncio
+async def test_provision_without_channel_service_fails_loudly() -> None:
+    """No wired ChannelService means an explicit error, never silent success."""
+    from kingdoms.discord.kingdom_persistent import KingdomsPanelWiring, register_kingdoms_panel_wiring
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring())
+    guild = MockGuild(id=1)
+    with pytest.raises(RuntimeError, match="ChannelService is not wired"):
+        await provision_structure(guild)
 
 
 @pytest.mark.asyncio
@@ -154,50 +181,15 @@ async def test_kingdom_command_bootstraps_for_bot_admin() -> None:
     register_kingdom_command(tree, bot_admins=("111111111",))
     command = next(c for c in tree.get_commands() if c.name == "kingdom")
     guild = MockGuild(id=42)
+    provisioned_wiring(guild, bot_admins=("111111111",))
     member = MockMember(id=111111111, name="op", guild=guild)
     interaction = MockInteraction(user=member, guild=guild)
     interaction.guild_id = 42
     await command._callback(interaction)  # type: ignore[union-attr]
-    assert {_slug(c.name) for c in guild.categories} == _expected_category_slugs()
+    assert {_slug(category.name) for category in guild.categories} == expected_category_slugs()
     assert interaction.followup.messages, "the bootstrap report must be answered"
     await client.close()
 
 
-@pytest.mark.parametrize(
-    "channel_name",
-    sorted(ADMIN_ONLY_CHANNELS),
-)
-def test_only_candidatures_is_admin_only_channel(channel_name: str) -> None:
-    assert ADMIN_ONLY_CHANNELS == {"Candidatures"}
-
-
-@pytest.mark.asyncio
-async def test_provision_passes_dict_overwrites_to_discord() -> None:
-    """Regression: discord.py raises TypeError when overwrites is None."""
-    guild = MockGuild(id=77)
-    created, _ = await provision_structure(guild)
-    assert created, "the bootstrap must provision channels"
-    for channel in _all_guild_channels(guild):
-        assert isinstance(channel, MockTextChannel)
-
-
-def test_structure_includes_profils_general_and_support() -> None:
-    """The validated v2 structure: Profils first, Général second, Support last."""
-    names = [name for name, _, _ in SALONS_FIRST_STRUCTURE]
-    assert names[0] == "Profils"
-    assert names[1] == "Général"
-    assert names[-1] == "Support"
-    general = next(entry for entry in SALONS_FIRST_STRUCTURE if entry[0] == "Général")
-    general_names = [channel for channel, _ in general[1]]
-    assert general_names == [
-        "Présentation",
-        "Annonce",
-        "Règles",
-        "Saison",
-        "Update",
-        "Taverne",
-        "Suggestion",
-    ]
-    kinds = dict(general[1])
-    assert kinds["Règles"] == "forum"
-    assert kinds["Update"] == "announce"
+def test_mod_name_matches_the_declaration() -> None:
+    assert MOD_NAME == kingdoms_definition().name

@@ -13,9 +13,8 @@ Three panels on top of the bootstrapped structure:
   a message with admin-only buttons ✅ validated / ⏳ pending / ❌
   refused; validation assigns the kingdoms_lord or kingdoms_king mod
   role to the player;
-- **Paramètres** (admin only) — the guild language (fr/en) and the
-  reference timezone, persisted in the guild settings (the timezone is
-  the designer's common time reference for delays and events).
+- **Paramètres** (admin only) — the mod's own season actions; language
+  and timezone live in the platform core (bot-admin).
 
 The mod declares its roles in ``config/mods/kingdoms.yaml``
 (kingdoms_king, kingdoms_lord); the panels assign them through the
@@ -105,9 +104,6 @@ async def post_update_note(guild: discord.Guild, locale: str, note: str) -> bool
     await channel.send(f"**🕘 Update — {stamp}**\n{note}")
     return True
 
-SUPPORTED_LOCALES = ("en", "fr")
-SUPPORTED_TIMEZONES = ("Europe/Paris", "America/Montreal", "America/Sao_Paulo", "UTC")
-
 INSIGHT_URL = re.compile(r"^https?://.+", re.IGNORECASE)
 GAME_ID = re.compile(r"^\d{6,20}$")
 
@@ -162,11 +158,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "enroll_queued": "The player is now waiting in the queue.",
         "enrolled_kingdom": "Enrolled in kingdom {}.",
         "settings_title": "⚙️ Kingdoms — settings",
-        "language": "Language",
-        "timezone": "Reference timezone",
-        "language_hint": "Applied to every kingdoms message in this server.",
-        "timezone_hint": "Every displayed time (delays, events) uses this reference.",
-        "saved": "Saved.",
         "welcome_title": "🏰 Welcome to Kingdoms — Season II!",
         "welcome_body": (
             "Your enrollment has been validated. Read the rules, present yourself in Présentation,"
@@ -229,11 +220,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "enroll_queued": "Le joueur est maintenant en attente d'un royaume.",
         "enrolled_kingdom": "Inscrit dans le royaume {}.",
         "settings_title": "⚙️ Kingdoms — paramètres",
-        "language": "Langue",
-        "timezone": "Fuseau horaire de référence",
-        "language_hint": "Appliquée à tous les messages kingdoms de ce serveur.",
-        "timezone_hint": "Toutes les heures affichées (délais, événements) suivent cette référence.",
-        "saved": "Enregistré.",
         "welcome_title": "🏰 Bienvenue dans Kingdoms — Saison II !",
         "welcome_body": (
             "Votre inscription a été validée. Lisez les règles, présentez-vous dans Présentation,"

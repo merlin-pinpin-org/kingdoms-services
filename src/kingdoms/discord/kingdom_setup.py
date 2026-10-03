@@ -1,28 +1,21 @@
 """The /kingdom bootstrap command (kingdoms#138): salons-first setup.
 
-Design (validated with the game designer, kingdoms repo issue #138):
+kingdoms-services#175 — the structure is data: the channel groups
+(categories), channel kinds (text/forum/announce) and admin-only flags
+live in ``config/mods/kingdoms.yaml`` and the core ``ChannelService``
+provisions them (cache -> database -> adoption -> creation, idempotent,
+adopt-by-slug). This module only drives the core and renders the report:
+no feature code creates Discord channels, categories or roles directly.
 
-- **one command for the whole lifecycle** — ``/kingdom`` (admin only)
-  bootstraps the mod: it creates the Discord categories and channels of
-  the salons-first architecture and re-runs are idempotent (existing
-  channels are adopted, never duplicated);
-- **no "kingdoms-" prefix in names** — a root category ``Kingdoms``,
-  simple channel names, per the designer's decision;
-- **permissions** — the Admin category and the Candidatures channel are
-  admin-only (@everyone denied view); kingdom categories are
-  per-kingdom and provisioned later, at kingdom validation, by the
-  enrollment flow (not by this bootstrap); the Profils category holds
-  one private channel per player, provisioned at application time.
-
-The command validates access at invocation time (BOT_ADMINS or guild
-administrators) and answers with a report of what was created/adopted.
-Panels themselves (Postuler, Admin settings, …) are deployed by later
-slices on top of this structure.
+Name helpers (``_slug``, ``_find_category``) stay lookup-only: finding an
+existing channel by its Discord slug is reading the guild, not
+provisioning it.
 """
 
 from __future__ import annotations
 
 import logging
+import unicodedata
 
 import discord
 from discord import app_commands
@@ -32,68 +25,25 @@ from kingdoms.discord.ui import BLURPLE, Container, Separator, Text, UILayout
 
 logger = logging.getLogger("kingdoms.kingdom")
 
-# The validated salons-first structure (kingdoms#138). Each channel is
-# (name, kind): kind is "text", "forum" or "announce" (admin-written,
-# everyone-readable). Categories run top-to-bottom in the designer order.
-SALONS_FIRST_STRUCTURE: tuple[tuple[str, tuple[tuple[str, str], ...], bool], ...] = (
-    ("Profils", (), False),
-    (
-        "Général",
-        (
-            ("Présentation", "announce"),
-            ("Annonce", "announce"),
-            ("Règles", "forum"),
-            ("Saison", "text"),
-            ("Update", "announce"),
-            ("Taverne", "text"),
-            ("Suggestion", "forum"),
-        ),
-        False,
-    ),
-    ("Conscription", (("Postuler", "text"), ("Candidatures", "text")), False),
-    ("Kingdoms", (("Géopolitique", "text"),), False),
-    ("Époque", (("Âge sombre", "text"),), False),
-    ("Royaume Gaïa", (("Patrouille", "text"), ("Territoire", "text"), ("Exploration", "text")), False),
-    ("Champs de Bataille", (("Délais-attaque", "text"), ("Attaquer", "text"), ("Pourparlers", "text")), False),
-    ("Scriptorium", (("Seigneurs", "text"), ("Diplomatie", "text"), ("Cadastre", "text")), False),
-    ("Admin", (("Paramètres", "text"), ("Demandes", "text")), True),
-    ("Support", (("Question", "forum"), ("Signaler un Bug", "forum")), False),
-)
-
-ADMIN_ONLY_CHANNELS = {"Candidatures"}
-PROFILES_CATEGORY = "Profils"
-
-
-def _everyone_overwrites(
-    guild: discord.Guild,
-) -> dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite]:
-    """Build the admin-only overwrites: @everyone denied, the bot allowed."""
-    overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-    }
-    if guild.me is not None:
-        overwrites[guild.me] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-    return overwrites
+MOD_NAME = "kingdoms"
 
 
 def _slug(name: str) -> str:
     """Normalize a channel/category name the way Discord does.
 
     Discord lowercases, strips accents and turns spaces into dashes:
-    "Âge sombre" is stored as "age-sombre". Comparing raw names made
-    the bootstrap re-create the Époque channel on every run.
+    "Âge sombre" is stored as "age-sombre".
     """
-    import unicodedata
-
     decomposed = unicodedata.normalize("NFKD", name.lower())
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return without_accents.replace(" ", "-").strip("-")
 
 
 def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
+    """Find a category by its Discord slug (read-only lookup)."""
     wanted = _slug(name)
     for category in getattr(guild, "categories", []):
-        if _slug(category.name) == wanted:
+        if _slug(getattr(category, "name", "")) == wanted:
             return category  # type: ignore[no-any-return]
     return None
 
@@ -110,96 +60,25 @@ def _find_channel(
     return None
 
 
-def _announce_overwrites(
-    guild: discord.Guild,
-) -> dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite]:
-    """Admin-written, everyone-readable: @everyone may not send messages."""
-    overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
-    }
-    if guild.me is not None:
-        overwrites[guild.me] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-    return overwrites
-
-
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
-    """Create (or adopt) the salons-first structure on a guild.
+    """Provision the declared salons-first structure through the core.
 
-    Returns (created, adopted) display paths ("Category/Channel"). A
-    channel that already exists by name is adopted, never duplicated —
-    re-running the bootstrap is safe.
+    The declaration (``config/mods/kingdoms.yaml``) is the single source
+    of truth: groups in declaration order, then each group's channels —
+    kinds, admin-only flags and positions are data. Existing channels are
+    adopted (never duplicated); re-running is safe. Returns (created,
+    adopted) display paths.
     """
-    created: list[str] = []
-    adopted: list[str] = []
+    from kingdoms.discord.kingdom_persistent import _wiring
 
-    for index, (category_name, channel_names, category_admin_only) in enumerate(SALONS_FIRST_STRUCTURE):
-        category = _find_category(guild, category_name)
-        if category is None:
-            overwrites = _everyone_overwrites(guild) if category_admin_only else {}
-            category = await guild.create_category(
-                category_name,
-                reason="kingdoms: salons-first bootstrap",
-                overwrites=overwrites,
-                position=index,
-            )
-            created.append(category_name)
-        else:
-            adopted.append(category_name)
-
-        for channel_name, channel_kind in channel_names:
-            existing = _find_channel(guild, category, channel_name)
-            if existing is not None:
-                adopted.append(f"{category_name}/{channel_name}")
-                continue
-            admin_only = category_admin_only or channel_name in ADMIN_ONLY_CHANNELS
-            if admin_only:
-                overwrites = _everyone_overwrites(guild)
-            elif channel_kind == "announce":
-                overwrites = _announce_overwrites(guild)
-            else:
-                overwrites = {}
-            if channel_kind == "forum":
-                await guild.create_forum(
-                    channel_name,
-                    reason=f"kingdoms: provision the {channel_name} forum",
-                    category=category,
-                    overwrites=overwrites,
-                )
-            else:
-                await guild.create_text_channel(
-                    channel_name,
-                    reason=f"kingdoms: provision the {channel_name} channel",
-                    category=category,
-                    overwrites=overwrites,
-                )
-            created.append(f"{category_name}/{channel_name}")
-
-        await _reorder_category(category, channel_names)
-
-    return created, adopted
-
-
-async def _reorder_category(
-    category: discord.CategoryChannel,
-    channel_names: tuple[tuple[str, str], ...],
-) -> None:
-    """Impose the designer's channel order inside one category (and adopt renames)."""
-    for position, (channel_name, _kind) in enumerate(channel_names):
-        channel = _find_channel(category.guild, category, channel_name)
-        if channel is None or not isinstance(channel, (discord.TextChannel, discord.ForumChannel)):
-            continue
-        current = _slug(getattr(channel, "name", ""))
-        if current != _slug(channel_name):
-            legacy = {"saison": {"parametre-saison-ii", "parameter-season-ii"}}
-            if current in legacy.get(_slug(channel_name), set()):
-                try:
-                    await channel.edit(name=channel_name, reason="kingdoms: rename legacy channel")
-                except Exception:
-                    logger.warning("KINGDOM SETUP: channel rename failed", exc_info=True)
-        try:
-            await channel.edit(position=position, reason="kingdoms: enforce channel order")
-        except Exception:
-            logger.warning("KINGDOM SETUP: channel reorder failed", exc_info=True)
+    wiring = _wiring()
+    channel_service = wiring.channel_service
+    if channel_service is None:
+        raise RuntimeError(
+            "the ChannelService is not wired — the salons-first bootstrap needs the platform services"
+        )
+    report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
+    return list(report.created), list(report.adopted)
 
 
 def build_setup_report_view(

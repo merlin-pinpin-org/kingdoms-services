@@ -11,8 +11,6 @@ from kingdoms.discord.kingdom_panels import (
     QUEUE_VALUE,
     ROLE_KING,
     ROLE_LORD,
-    SUPPORTED_LOCALES,
-    SUPPORTED_TIMEZONES,
     _ApplicationContext,
     _candidature_view,
     _KingApplicationModal,
@@ -25,6 +23,7 @@ from kingdoms.discord.kingdom_panels import (
     deploy_panels,
     register_kingdom_panels_command,
 )
+from tests.mocks.provision import provisioned_wiring
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
@@ -352,12 +351,23 @@ async def test_candidature_refused_assigns_nothing() -> None:
 
 
 @pytest.mark.asyncio
-async def test_settings_panel_builds_with_both_selects() -> None:
-    """The Paramètres panel renders the language and timezone selects."""
+async def test_settings_panel_renders_the_season_actions() -> None:
+    """The Paramètres panel carries the admin season action buttons."""
     logs = _FakeLogsService(locale="fr")
     view = await build_settings_panel(logs, "42", "system", ("111",))
     assert view is not None
-    assert set(SUPPORTED_LOCALES) | set(SUPPORTED_TIMEZONES)
+
+    def _flatten(item: Any) -> list[Any]:
+        found: list[Any] = []
+        for child in getattr(item, "children", ()) or ():
+            found.append(child)
+            found.extend(_flatten(child))
+        return found
+
+    from kingdoms.discord.kingdom_persistent import KingdomAdminButton
+
+    buttons = [child for child in _flatten(view) if isinstance(child, KingdomAdminButton)]
+    assert len(buttons) == 8
 
 
 @pytest.mark.asyncio
@@ -366,6 +376,7 @@ async def test_deploy_panels_posts_in_postuler_and_parametres() -> None:
     from kingdoms.discord.kingdom_setup import provision_structure
 
     guild = MockGuild(id=1)
+    provisioned_wiring(guild)
     await provision_structure(guild)
     logs = _FakeLogsService(locale="fr")
     report = await deploy_panels(guild, logs, bot_admins=("111",))
@@ -396,6 +407,7 @@ async def test_kingdom_command_bootstraps_and_deploys() -> None:
     command = next(c for c in tree.get_commands() if c.name == "kingdom")
 
     guild = MockGuild(id=42)
+    provisioned_wiring(guild, bot_admins=("111111111",))
     member = MockMember(id=111111111, name="op", guild=guild)
     interaction = MockInteraction(user=member, guild=guild)
     interaction.guild_id = 42
