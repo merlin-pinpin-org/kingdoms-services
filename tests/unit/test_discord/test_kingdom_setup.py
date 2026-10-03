@@ -34,15 +34,12 @@ from tests.mocks.provision import (
 
 def test_declaration_is_the_validated_structure() -> None:
     """The declaration carries the validated v2 structure and kinds."""
-    group_keys = [group.key for group in kingdoms_definition().channel_groups]
-    assert group_keys[0] == "profiles"
-    assert group_keys[1] == "general"
-    assert group_keys[-1] == "support"
-    admin = next(
-        group
-        for group in kingdoms_definition().channel_groups
-        if group.key == "admin"
-    )
+    groups = list(kingdoms_definition().channel_groups)
+    keys = [group.key for group in groups]
+    assert keys[0] == "profiles"
+    assert keys[1] == "general"
+    assert keys[-1] == "support"
+    admin = next(group for group in groups if group.key == "admin")
     assert admin.admin_only is True
     kinds = {category.key: category.kind for category in kingdoms_definition().channel_categories}
     assert kinds["rules"] == "forum"
@@ -197,3 +194,39 @@ async def test_kingdom_command_bootstraps_for_bot_admin() -> None:
 
 def test_mod_name_matches_the_declaration() -> None:
     assert MOD_NAME == kingdoms_definition().name
+
+
+@pytest.mark.asyncio
+async def test_epoch_channel_is_read_only_for_everyone() -> None:
+    """The epoch channel (adopt: group_single) is read-only for @everyone."""
+    from kingdoms.discord.kingdom_setup import EPOCH_CATEGORY, EPOCH_CHANNEL_KEY
+
+    guild = MockGuild(id=1)
+    provisioned_wiring(guild)
+    created, _ = await provision_structure(guild)
+    assert created
+    epoch_group = next(c for c in guild.categories if c.name == _slug(EPOCH_CATEGORY))
+    epoch = next(c for c in guild.text_channels if c.category is epoch_group)
+    overwrite = epoch.permission_overwrite_for(guild.default_role)
+    assert overwrite is not None and overwrite.view_channel is True and overwrite.send_messages is False
+    mine = epoch.permission_overwrite_for(guild.me)
+    assert mine is not None and mine.send_messages is True
+    assert EPOCH_CHANNEL_KEY == "epoch"
+
+
+@pytest.mark.asyncio
+async def test_epoch_channel_adopted_by_group_after_rename() -> None:
+    """A renamed epoch channel is adopted back by its group, never duplicated."""
+    guild = MockGuild(id=1)
+    provisioned_wiring(guild)
+    await provision_structure(guild)
+    epoch = next(c for c in guild.text_channels if c.name == "age-sombre")
+    epoch.name = "Âge féodal"  # renamed at an age switch
+
+    created, adopted = await provision_structure(guild)
+
+    assert not created
+    assert "Époque/Âge sombre" in adopted
+    names = [c.name for c in guild.text_channels]
+    assert names.count("age-sombre") == 0
+    assert names.count("age-feodal") == 1

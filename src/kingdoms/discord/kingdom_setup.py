@@ -60,6 +60,32 @@ def _find_channel(
     return None
 
 
+
+EPOCH_CATEGORY = "Époque"
+"""The group that holds the renameable current-age channel (kingdoms#138):
+the channel is renamed at each age switch, so the core adopts it by group
+(``adopt: group_single`` in the declaration), whatever its name."""
+
+EPOCH_CHANNEL_KEY = "epoch"
+
+
+async def _enforce_epoch_overwrites(guild: discord.Guild, channel: discord.TextChannel) -> None:
+    """Make the epoch channel read-only for @everyone (best effort).
+
+    Decision (lecture stricte): the bot writes the current age, the
+    players read it. Enforcement is idempotent and re-applied at every
+    bootstrap so adopted channels converge too.
+    """
+    try:
+        overwrite = discord.PermissionOverwrite(view_channel=True, send_messages=False)
+        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+        if guild.me is not None:
+            await channel.set_permissions(
+                guild.me, overwrite=discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            )
+    except Exception:
+        logger.warning("KINGDOM SETUP: epoch overwrites failed", exc_info=True)
+
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
     """Provision the declared salons-first structure through the core.
 
@@ -78,6 +104,10 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
             "the ChannelService is not wired — the salons-first bootstrap needs the platform services"
         )
     report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
+    epoch_id = report.channel_ids.get(EPOCH_CHANNEL_KEY)
+    epoch_channel = guild.get_channel(int(epoch_id)) if epoch_id and epoch_id.isdigit() else None
+    if isinstance(epoch_channel, discord.TextChannel):
+        await _enforce_epoch_overwrites(guild, epoch_channel)
     return list(report.created), list(report.adopted)
 
 

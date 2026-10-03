@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import discord
@@ -35,9 +36,9 @@ from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.roles import ModRolesService
 from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.ui import (
-    BLURPLE,
     GREEN,
 )
+from kingdoms.mods.kingdoms.snapshot import season_label
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
 
@@ -658,6 +659,24 @@ def _candidature_view(
     return view
 
 
+# Designer-authored Postuler header (kingdoms#138 group 1): golden
+# accent (the King colour), artwork thumbnail when the asset is
+# bundled, one tagline — everything else lives in the flow itself.
+APPLY_TITLE = "⚔️ INSCRIPTION — KINGDOMS SAISON II"
+APPLY_TAGLINE = "Choisis ton rôle et pars à la conquête des territoires !"
+GOLD = discord.Colour(0xE6B800)
+
+
+def _apply_artwork_path() -> Path:
+    """Return the bundled Postuler artwork path (may not exist).
+
+    Computed lazily instead of as a module constant: pydoc renders module
+    data values verbatim, and an absolute path here would make the generated
+    docs depend on the checkout directory (pydoc freshness gate).
+    """
+    return Path(__file__).resolve().parent.parent / "assets" / "kingdoms_artwork.png"
+
+
 async def build_apply_panel(
     locale: str = "en",
     candidatures_channel: discord.abc.Messageable | None = None,
@@ -668,38 +687,45 @@ async def build_apply_panel(
 ) -> discord.ui.LayoutView:
     """Build the Postuler pinned panel: one Enroll button."""
     strings = _strings(locale)
-    context = _ApplicationContext(
-        locale=locale,
-        candidatures_channel=candidatures_channel,
-        bot_admins=bot_admins,
-        mod_roles_service=mod_roles_service,
-        guild_id=guild_id,
-        kingdoms_service=kingdoms_service,
+    del (
+        candidatures_channel,
+        bot_admins,
+        mod_roles_service,
+        guild_id,
+        kingdoms_service,
     )
-
-    async def on_apply(interaction: discord.Interaction) -> None:
-        await interaction.response.send_message(
-            f"**{_strings(context.locale)['choose_role']}**",
-            view=_role_select_view(context),
-            ephemeral=True,
-        )
 
     from kingdoms.discord.kingdom_persistent import KingdomApplyButton
 
-    del on_apply
     apply_button = KingdomApplyButton(strings["apply_button"][:80], discord.ButtonStyle.primary)
-    title = "Inscriptions" if locale.startswith("fr") else "Enrollment"
     apply_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     apply_row.add_item(apply_button)
     view = discord.ui.LayoutView(timeout=None)
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay(f"# 📝 {title}"),
+    items: list[discord.ui.Item[discord.ui.LayoutView]] = [
+        discord.ui.TextDisplay(f"# {APPLY_TITLE}"),
+        discord.ui.Separator(),
+    ]
+    if _apply_artwork_path().is_file():
+        items.append(
+            discord.ui.Section(
+                discord.ui.TextDisplay(APPLY_TAGLINE),
+                accessory=discord.ui.Thumbnail(media="attachment://kingdoms_artwork.png"),
+            )
+        )
+    else:
+        items.append(discord.ui.TextDisplay(APPLY_TAGLINE))
+    items.extend(
+        [
             discord.ui.Separator(),
             apply_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {PANEL_MARKER}"),
-            accent_colour=BLURPLE,
+        ]
+    )
+    view.add_item(
+        discord.ui.Container(
+            *items,
+            accent_colour=GOLD,
         )
     )
     return view
@@ -766,6 +792,7 @@ async def refresh_season_status(
     locale: str,
     kingdoms: tuple[str, ...] | list[str] = (),
     queued: int = 0,
+    progress: str = "",
 ) -> bool:
     """Post (or refresh) the season status message in the dedicated channel."""
     strings = _strings(locale)
@@ -780,11 +807,18 @@ async def refresh_season_status(
     names = list(kingdoms)
     lines = [
         f"# {strings['season_status_title']}",
-        f"**{strings['season_status_kingdoms']}** : {', '.join(names) if names else strings['season_status_empty']}",
-        f"**{strings['season_status_queue']}** : {queued if queued else strings['season_status_empty']}",
-        f"*{strings['season_status_hint']}*",
-        SEASON_STATUS_MARKER,
     ]
+    if progress:
+        lines.append(f"**{progress}**")
+    names_line = ", ".join(names) if names else strings["season_status_empty"]
+    lines.extend(
+        [
+            f"**{strings['season_status_kingdoms']}** : {names_line}",
+            f"**{strings['season_status_queue']}** : {queued if queued else strings['season_status_empty']}",
+            f"*{strings['season_status_hint']}*",
+            SEASON_STATUS_MARKER,
+        ]
+    )
     content = "\n".join(lines)
     for message in list(getattr(channel, "messages", [])):
         if SEASON_STATUS_MARKER in (message.content or ""):
@@ -839,6 +873,9 @@ async def _deploy_apply_panel(
                 await message.delete()
             except Exception:
                 logger.warning("KINGDOM PANELS: old apply panel removal failed", exc_info=True)
+    kwargs: dict[str, Any] = {}
+    if _apply_artwork_path().is_file():
+        kwargs["file"] = discord.File(_apply_artwork_path(), filename="kingdoms_artwork.png")
     await channel.send(
         view=await build_apply_panel(
             locale,
@@ -847,7 +884,8 @@ async def _deploy_apply_panel(
             mod_roles_service,
             guild_id,
             kingdoms_service,
-        )
+        ),
+        **kwargs,
     )
 
 
@@ -892,7 +930,12 @@ async def deploy_panels(
         kingdoms_service=kingdoms_service,
     )
     try:
-        if await refresh_season_status(guild, locale, kingdoms=await context.declared_kingdom_names()):
+        if await refresh_season_status(
+            guild,
+            locale,
+            kingdoms=await context.declared_kingdom_names(),
+            progress=await _season_progress(kingdoms_service, locale),
+        ):
             report["statut saison"] = "deployed"
     except Exception:
         logger.warning("KINGDOM PANELS: season status deployment failed", exc_info=True)
@@ -901,7 +944,24 @@ async def deploy_panels(
             report["update"] = "deployed"
     except Exception:
         logger.warning("KINGDOM PANELS: changelog deployment failed", exc_info=True)
+    from kingdoms.discord.kingdom_content import refresh_salons_content
+
+    report.update(await refresh_salons_content(guild, locale, kingdoms_service))
     return report
+
+
+async def _season_progress(kingdoms_service: Any, locale: str) -> str:
+    """Compute the cycle/age progress line (empty when no season runs)."""
+    if kingdoms_service is None:
+        return ""
+    try:
+        season = await kingdoms_service.current_season()
+        if season is None:
+            return ""
+        return season_label(season, kingdoms_service.config, locale=locale)
+    except Exception:
+        logger.warning("KINGDOM PANELS: season progress read failed", exc_info=True)
+        return ""
 
 
 def register_kingdom_panels_command(

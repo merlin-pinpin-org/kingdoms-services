@@ -59,7 +59,7 @@ deployment&nbsp;pins&nbsp;a&nbsp;fresh&nbsp;panel&nbsp;message&nbsp;(existing&nb
 versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nbsp;will&nbsp;adopt&nbsp;them).</span></dd></dl>
  <dl><dt>async <a name="-post_update_note"><strong>post_update_note</strong></a>(guild: 'discord.Guild', locale: 'str', note: 'str') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;a&nbsp;dated&nbsp;changelog&nbsp;note&nbsp;in&nbsp;the&nbsp;Update&nbsp;channel.</span></dd></dl>
  <dl><dt>async <a name="-refresh_changelog"><strong>refresh_changelog</strong></a>(guild: 'discord.Guild', locale: 'str') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;kingdoms&nbsp;changelog&nbsp;message&nbsp;in&nbsp;the&nbsp;Update&nbsp;channel.</span></dd></dl>
- <dl><dt>async <a name="-refresh_season_status"><strong>refresh_season_status</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms: 'tuple[str, ...] | list[str]' = (), queued: 'int' = 0) -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;season&nbsp;status&nbsp;message&nbsp;in&nbsp;the&nbsp;dedicated&nbsp;channel.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_season_status"><strong>refresh_season_status</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms: 'tuple[str, ...] | list[str]' = (), queued: 'int' = 0, progress: 'str' = '') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;season&nbsp;status&nbsp;message&nbsp;in&nbsp;the&nbsp;dedicated&nbsp;channel.</span></dd></dl>
  <dl><dt><a name="-register_kingdom_panels_command"><strong>register_kingdom_panels_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', logs_service: 'LogService | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, kingdoms_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;command:&nbsp;bootstrap&nbsp;+&nbsp;panels,&nbsp;admin&nbsp;only.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -68,12 +68,14 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>APPLY_BUTTON_ID</strong> = 'kingdoms:apply:open'<br>
-<strong>BLURPLE</strong> = 5793266<br>
+<strong>APPLY_TAGLINE</strong> = 'Choisis ton rôle et pars à la conquête des territoires !'<br>
+<strong>APPLY_TITLE</strong> = '⚔️ INSCRIPTION — KINGDOMS SAISON II'<br>
 <strong>CHANGELOG_MARKER</strong> = 'kingdoms:update:changelog'<br>
 <strong>DECISION_APPROVE_ID</strong> = 'kingdoms:candidature:approve'<br>
 <strong>DECISION_PENDING_ID</strong> = 'kingdoms:candidature:pending'<br>
 <strong>DECISION_REFUSE_ID</strong> = 'kingdoms:candidature:refuse'<br>
 <strong>GAME_ID</strong> = re.compile('^\\d{6,20}$')<br>
+<strong>GOLD</strong> = &lt;Colour value=15120384&gt;<br>
 <strong>GREEN</strong> = 5763719<br>
 <strong>INSIGHT_URL</strong> = re.compile('^https?://.+', re.IGNORECASE)<br>
 <strong>KINGDOM_MOD</strong> = 'kingdoms'<br>
