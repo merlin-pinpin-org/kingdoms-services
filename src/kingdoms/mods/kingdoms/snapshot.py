@@ -52,11 +52,15 @@ def _tech_name(key: str, locale: str) -> str:
 
 
 def tech_shop(config: TechnologyCosts, *, locale: str = DEFAULT_LOCALE) -> tuple[SpecialActionCard, ...]:
-    """Project the config technology costs into the shop cards (B4)."""
+    """Project the config technology costs into the shop cards (B4).
+
+    Only the integer costs become cards: the ``limits`` mapping is
+    admin data (D36), not a shop entry.
+    """
     cards = [
         SpecialActionCard(key=key, name=_tech_name(key, locale), cost=cost)
         for key, cost in config.model_dump().items()
-        if cost > 0
+        if isinstance(cost, int) and cost > 0
     ]
     return tuple(cards)
 

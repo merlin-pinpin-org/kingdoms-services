@@ -162,6 +162,78 @@ class TechnologyState(BaseModel):
         return True
 
 
+class AttackKind(StrEnum):
+    """A kingdom-vs-kingdom attack or a Gaïa free-for-all (D6)."""
+
+    PLAYER = "player"
+    GAIA = "gaia"
+
+
+class AttackState(StrEnum):
+    """State machine of an attack (reference §12).
+
+    ``declared`` waits for a defender until the delay expires;
+    ``defended`` waits for the game result; ``expired`` applied the
+    admin-configured no-defense outcome; ``resolved`` carries the final
+    winner (capture or conservation) and never moves again.
+    """
+
+    DECLARED = "declared"
+    DEFENDED = "defended"
+    EXPIRED = "expired"
+    RESOLVED = "resolved"
+
+
+class AttackModel(BaseModel):
+    """An attack of the current season on one territory (§11-§13).
+
+    Player attacks are 1v1 without reinforcements (D41) and never share
+    a target with another ongoing attack (D42). Gaïa attacks are a
+    free-for-all: the first declarer reserves the territory and the
+    slot (§13.2), one lord per kingdom, up to the configured maximum
+    participants (D6/D42).
+
+    ``effects`` carries the combat-technology effects engaged on this
+    attack (sabotaged civilizations, counter-espionage…), keyed by
+    technology name — data for the surface and the game setup.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(alias="_id")
+    season_id: str
+    kind: AttackKind
+    state: AttackState = AttackState.DECLARED
+    territory_id: str
+    map_key: str
+    defender_kingdom_id: str
+    attacker_lord_id: str
+    attacker_kingdom_id: str
+    lobby_url: str = ""
+    declared_at: datetime
+    expires_at: datetime
+    defender_lord_id: str | None = None
+    resolved_at: datetime | None = None
+    winner_kingdom_id: str | None = None
+    restituted: bool = False
+    participants: list[str] = Field(default_factory=list)
+    effects: dict[str, Any] = Field(default_factory=dict)
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> AttackModel:
+        """Build from a MongoDB document."""
+        return cls.model_validate(data)
+
+    @property
+    def is_over(self) -> bool:
+        """Whether the attack reached a final state."""
+        return self.state in (AttackState.RESOLVED, AttackState.EXPIRED)
+
+
 class SeasonState(BaseModel):
     """The current season: its schedule and progression (D1, D38, D52).
 

@@ -32,7 +32,10 @@ the&nbsp;territory&nbsp;``map_key``&nbsp;as&nbsp;the&nbsp;map&nbsp;label&nbsp;un
 Reads&nbsp;the&nbsp;current&nbsp;age&nbsp;display&nbsp;name&nbsp;from&nbsp;the&nbsp;config;&nbsp;an&nbsp;unknown&nbsp;age<br>
 key&nbsp;(config&nbsp;changed&nbsp;mid-season)&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;raw&nbsp;key.</span></dd></dl>
  <dl><dt><a name="-tech_points_of"><strong>tech_points_of</strong></a>(state: 'TechnologyState | None') -&gt; 'int'</dt><dd><span class="code">Read&nbsp;a&nbsp;kingdom's&nbsp;tech&nbsp;points&nbsp;(a&nbsp;missing&nbsp;state&nbsp;reads&nbsp;as&nbsp;zero).</span></dd></dl>
- <dl><dt><a name="-tech_shop"><strong>tech_shop</strong></a>(config: 'TechnologyCosts', *, locale: 'str' = 'fr') -&gt; 'tuple[SpecialActionCard, ...]'</dt><dd><span class="code">Project&nbsp;the&nbsp;config&nbsp;technology&nbsp;costs&nbsp;into&nbsp;the&nbsp;shop&nbsp;cards&nbsp;(B4).</span></dd></dl>
+ <dl><dt><a name="-tech_shop"><strong>tech_shop</strong></a>(config: 'TechnologyCosts', *, locale: 'str' = 'fr') -&gt; 'tuple[SpecialActionCard, ...]'</dt><dd><span class="code">Project&nbsp;the&nbsp;config&nbsp;technology&nbsp;costs&nbsp;into&nbsp;the&nbsp;shop&nbsp;cards&nbsp;(B4).<br>
+&nbsp;<br>
+Only&nbsp;the&nbsp;integer&nbsp;costs&nbsp;become&nbsp;cards:&nbsp;the&nbsp;``limits``&nbsp;mapping&nbsp;is<br>
+admin&nbsp;data&nbsp;(D36),&nbsp;not&nbsp;a&nbsp;shop&nbsp;entry.</span></dd></dl>
  <dl><dt><a name="-territory_lines"><strong>territory_lines</strong></a>(territories: 'Sequence[TerritoryModel]', kingdoms_by_id: 'Mapping[str, KingdomModel]') -&gt; 'tuple[TerritoryLine, ...]'</dt><dd><span class="code">Project&nbsp;the&nbsp;season&nbsp;territories&nbsp;into&nbsp;cadastre&nbsp;lines&nbsp;(B1).<br>
 &nbsp;<br>
 A&nbsp;territory&nbsp;whose&nbsp;owner&nbsp;is&nbsp;unknown&nbsp;(a&nbsp;dangling&nbsp;id&nbsp;in&nbsp;a&nbsp;mid-transfer<br>
