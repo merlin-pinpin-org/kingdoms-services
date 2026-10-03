@@ -229,6 +229,29 @@ class KingdomsService:
         logger.info("kingdoms: queued player %s assigned to %s", player_id, kingdom.name)
         return lord
 
+    async def add_kingdom(self, name: str) -> KingdomModel:
+        """Add a kingdom manually to the running season (admin action).
+
+        The kingdom is created approved, up to the configured maximum.
+        """
+        season = await self._require_season()
+        self._check_name(name)
+        kingdoms = await self.kingdoms()
+        if len([k for k in kingdoms if not k.is_gaia]) >= self._config.kingdoms_count:
+            raise KingdomLimitError("the season already counts its maximum of kingdoms")
+        if any(k.name.casefold() == name.strip().casefold() for k in kingdoms):
+            raise KingdomNameInvalidError("a kingdom with this name already exists")
+        kingdom = self._new_kingdom(
+            f"k-{len(kingdoms)}",
+            KingdomType.PLAYER,
+            season.id,
+            name=name.strip(),
+            name_approved=True,
+        )
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info("kingdoms: kingdom %s added manually by an admin", kingdom.name)
+        return kingdom
+
     async def replace(self, outgoing_player_id: str, incoming_player_id: str) -> LordModel:
         """Replace a player who left with a queued player (D23/D25).
 

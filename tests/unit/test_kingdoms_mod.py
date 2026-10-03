@@ -43,11 +43,30 @@ class TestModDeclaration:
         kingdoms = defs["kingdoms"]
         assert kingdoms.enabled is True  # T2 enrollment lands (kingdoms-services#157)
         assert {c.key for c in kingdoms.channel_categories} == {
+            "announce",
+            "applications",
+            "apply",
             "attack",
             "attack_delays",
+            "bug",
             "cadastre",
             "diplomacy",
+            "epoch",
+            "exploration",
             "geopolitics",
+            "lords",
+            "patrol",
+            "presentation",
+            "question",
+            "requests",
+            "rules",
+            "season",
+            "settings",
+            "suggestions",
+            "talks",
+            "tavern",
+            "territory",
+            "update",
         }
         assert {r.key for r in kingdoms.roles} == {
             "kingdoms_king",
