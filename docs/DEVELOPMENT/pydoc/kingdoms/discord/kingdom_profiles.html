@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_profiles</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_profiles</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_profiles.py">SOURCE_ROOT/discord/kingdom_profiles.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;Kingdoms&nbsp;per-player&nbsp;profiles&nbsp;(kingdoms#138):&nbsp;salons-first&nbsp;v2.<br>
+&nbsp;<br>
+Each&nbsp;enrolled&nbsp;applicant&nbsp;gets&nbsp;a&nbsp;**private&nbsp;profile&nbsp;channel**&nbsp;under&nbsp;the<br>
+Profils&nbsp;category&nbsp;—&nbsp;visible&nbsp;only&nbsp;to&nbsp;them&nbsp;and&nbsp;the&nbsp;admins:<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;pinned&nbsp;**state&nbsp;message**&nbsp;(pending&nbsp;/&nbsp;validated&nbsp;/&nbsp;refused),&nbsp;updated<br>
+&nbsp;&nbsp;on&nbsp;every&nbsp;admin&nbsp;decision;<br>
+-&nbsp;a&nbsp;**Modify**&nbsp;flow:&nbsp;free&nbsp;edit&nbsp;before&nbsp;validation,&nbsp;"request&nbsp;a&nbsp;change"<br>
+&nbsp;&nbsp;(admin-approved,&nbsp;relayed&nbsp;to&nbsp;the&nbsp;admin&nbsp;Demandes&nbsp;channel)&nbsp;after;<br>
+-&nbsp;**Stats**&nbsp;and&nbsp;**Succès**&nbsp;placeholders&nbsp;("coming&nbsp;later");<br>
+-&nbsp;a&nbsp;**Leave&nbsp;the&nbsp;season**&nbsp;flow&nbsp;with&nbsp;a&nbsp;reason,&nbsp;relayed&nbsp;to&nbsp;the&nbsp;admin<br>
+&nbsp;&nbsp;Demandes&nbsp;channel&nbsp;with&nbsp;decision&nbsp;buttons.<br>
+&nbsp;<br>
+Smurf&nbsp;accounts&nbsp;declared&nbsp;at&nbsp;enrollment&nbsp;are&nbsp;shown&nbsp;only&nbsp;here&nbsp;and&nbsp;in&nbsp;the<br>
+candidature&nbsp;message&nbsp;—&nbsp;never&nbsp;in&nbsp;public&nbsp;channels.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_profile_message"><strong>build_profile_message</strong></a>(locale: 'str', *, member_name: 'str', state: 'str', role_label: 'str', kingdom: 'str', queued: 'bool', insight: 'str', game_id: 'str', smurfs: 'tuple[str, ...]' = ()) -&gt; 'tuple[str, discord.ui.View]'</dt><dd><span class="code">Build&nbsp;the&nbsp;profile&nbsp;state&nbsp;message&nbsp;content&nbsp;+&nbsp;its&nbsp;action&nbsp;buttons.</span></dd></dl>
+ <dl><dt><a name="-build_profile_view"><strong>build_profile_view</strong></a>(locale: 'str', *, validated: 'bool') -&gt; 'discord.ui.View'</dt><dd><span class="code">Build&nbsp;the&nbsp;profile&nbsp;action&nbsp;row:&nbsp;modify&nbsp;(or&nbsp;request),&nbsp;stats,&nbsp;success,&nbsp;leave.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_profile_channel"><strong>ensure_profile_channel</strong></a>(guild: 'discord.Guild', member: 'discord.Member') -&gt; 'discord.TextChannel | None'</dt><dd><span class="code">Create&nbsp;(or&nbsp;adopt)&nbsp;the&nbsp;private&nbsp;profile&nbsp;channel&nbsp;of&nbsp;one&nbsp;player.</span></dd></dl>
+ <dl><dt><a name="-profile_channel_name"><strong>profile_channel_name</strong></a>(member: 'discord.abc.User') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;profile&nbsp;channel&nbsp;slug&nbsp;of&nbsp;one&nbsp;player&nbsp;(stable&nbsp;per&nbsp;member&nbsp;id).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DECISION_ACCEPT_EDIT_ID</strong> = 'kingdoms:request:edit-approve'<br>
+<strong>DECISION_ACCEPT_LEAVE_ID</strong> = 'kingdoms:request:leave-approve'<br>
+<strong>DECISION_REFUSE_EDIT_ID</strong> = 'kingdoms:request:edit-refuse'<br>
+<strong>DECISION_REFUSE_LEAVE_ID</strong> = 'kingdoms:request:leave-refuse'<br>
+<strong>PENDING_REQUESTS_CHANNEL</strong> = 'Demandes'<br>
+<strong>PROFILES_CATEGORY</strong> = 'Profils'<br>
+<strong>STATE_MESSAGE_HEADER</strong> = '📋 Kingdoms — profil'<br>
+<strong>STRINGS</strong> = {'en': {'add_kingdom_button': '+ Add a kingdom manually', 'add_kingdom_done': 'The kingdom **{}** has been added to the season.', 'add_kingdom_failed': 'The kingdom could not be added — {}', 'add_kingdom_field': 'Kingdom name', 'add_kingdom_modal_title': 'Add a kingdom', 'admin_section': 'Administration', 'assign_button': '📥 Assign a waiting player', 'assign_done': '{} has been assigned to {}.', 'assign_failed': 'The assignment failed — {}', 'assign_kingdom_field': 'Kingdom name', ...}, 'fr': {'add_kingdom_button': '+ Ajouter un royaume manuellement', 'add_kingdom_done': 'Le royaume **{}** a été ajouté à la saison.', 'add_kingdom_failed': "Le royaume n'a pas pu être ajouté — {}", 'add_kingdom_field': 'Nom du royaume', 'add_kingdom_modal_title': 'Ajouter un royaume', 'admin_section': 'Administration', 'assign_button': '📥 Affecter un joueur en attente', 'assign_done': '{} a été affecté à {}.', 'assign_failed': "L'affectation a échoué — {}", 'assign_kingdom_field': 'Nom du royaume', ...}}<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_profiles (WARNING)&gt;</td></tr></table>
+</body></html>
