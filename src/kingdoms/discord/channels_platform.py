@@ -94,7 +94,7 @@ class DiscordChannelsPlatform:
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
-        overwrites: dict[discord.Role | discord.Member, discord.PermissionOverwrite] = {}
+        overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {}
         if admin_only:
             overwrites[guild.default_role] = discord.PermissionOverwrite(view_channel=False)
             if guild.me is not None:
@@ -136,7 +136,7 @@ class DiscordChannelsPlatform:
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
-        overwrites: dict[discord.Role | discord.Member, discord.PermissionOverwrite] = {}
+        overwrites: dict[discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite] = {}
         if admin_only:
             overwrites[guild.default_role] = discord.PermissionOverwrite(view_channel=False)
         elif kind == "announce":
@@ -147,7 +147,7 @@ class DiscordChannelsPlatform:
         fetched = guild.get_channel(int(group_id)) if group_id and group_id.isdigit() else None
         category = fetched if isinstance(fetched, discord.CategoryChannel) else None
         if kind == "forum":
-            channel = await guild.create_forum(
+            channel: discord.ForumChannel | discord.TextChannel = await guild.create_forum(
                 name,
                 reason=f"kingdoms: provision the {name} forum",
                 category=category,
