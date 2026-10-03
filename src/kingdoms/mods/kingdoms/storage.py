@@ -17,6 +17,7 @@ LORDS_COLLECTION = "kingdoms_lords"
 TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
 ATTACKS_COLLECTION = "kingdoms_attacks"
+SHOWMATCH_COLLECTION = "kingdoms_showmatch"
 
 
 class KingdomsStore(Protocol):
@@ -84,6 +85,14 @@ class KingdomsStore(Protocol):
 
     async def find_technologies(self) -> list[dict[str, Any]]:
         """Return every technology document of the current data set."""
+        ...
+
+    async def upsert_showmatch(self, document: dict[str, Any]) -> None:
+        """Insert or replace the ShowMatch document by ``_id``."""
+        ...
+
+    async def find_showmatches(self) -> list[dict[str, Any]]:
+        """Return every ShowMatch document of the current data set."""
         ...
 
     async def wipe_season_data(self) -> None:
@@ -180,6 +189,17 @@ class MongoKingdomsStore:
         cursor = self._database[TECHNOLOGIES_COLLECTION].find({})
         return [dict(doc) async for doc in cursor]
 
+    async def upsert_showmatch(self, document: dict[str, Any]) -> None:
+        """Insert or replace the ShowMatch document by ``_id``."""
+        await self._database[SHOWMATCH_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_showmatches(self) -> list[dict[str, Any]]:
+        """Return every ShowMatch document of the current data set."""
+        cursor = self._database[SHOWMATCH_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38).
 
@@ -193,5 +213,6 @@ class MongoKingdomsStore:
             TERRITORIES_COLLECTION,
             TECHNOLOGIES_COLLECTION,
             ATTACKS_COLLECTION,
+            SHOWMATCH_COLLECTION,
         ):
             await self._database[collection].delete_many({})

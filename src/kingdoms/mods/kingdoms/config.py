@@ -106,6 +106,7 @@ class TechnologyCosts(BaseModel):
             "jeu_d_armes": 1,
             "patrouille": 2,
             "sabotage": 2,
+            "explorateur": 1,
         }
     )
     """Per-season purchase limits (D36); 0 or absent = unlimited.
@@ -147,6 +148,38 @@ class EventSettings(BaseModel):
     age_cron: str = "0 0 * * WED"
     exploration_cron: str = "0 14 * * SAT"
     lords_day_new_maps: int = Field(default=8, ge=0)
+    exploration_first_tech: int = Field(default=1, ge=0)
+    exploration_second_tech: int = Field(default=3, ge=0)
+    exploration_third_tech: int = Field(default=2, ge=0)
+    exploration_other_tech: int = Field(default=1, ge=0)
+
+
+class CivilizationCondition(BaseModel):
+    """One civilization unlock condition (CIVILIZATIONS.md, issue #160).
+
+    Pure data: ``requires_map_keys``/``requires_map_types`` match the
+    owned territories, ``requires_civilization`` chains (Shu/Wei/Wu
+    behind Chinois), and ``requires_kingdom_name_pattern`` covers the
+    referential Hungarian rule (the admin tunes the pattern).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    key: str
+    display_name: str
+    requires_map_keys: tuple[str, ...] = ()
+    requires_map_types: tuple[str, ...] = ()
+    requires_civilization: str | None = None
+    requires_kingdom_name_pattern: str | None = None
+
+
+class ShowMatchSettings(BaseModel):
+    """ShowMatch PA2 tunables (D50)."""
+
+    model_config = ConfigDict(strict=True)
+
+    fallback_map_key: str = "megarandom"
+    wins_needed: int = Field(default=2, ge=1)
 
 
 class KingdomsSeasonConfig(BaseModel):
@@ -167,6 +200,9 @@ class KingdomsSeasonConfig(BaseModel):
     garrison_enabled: bool = False
     maps: tuple[MapEntry, ...] = ()
     ages: tuple[Epoch, ...] = ()
+    civilizations: tuple[CivilizationCondition, ...] = ()
+    hungarian_kingdom_pattern: str = "(?i).*hen.*"
+    showmatch: ShowMatchSettings = Field(default_factory=ShowMatchSettings)
     names: NameRules = Field(default_factory=NameRules)
     technologies: TechnologyCosts = Field(default_factory=TechnologyCosts)
     attacks: AttackSettings = Field(default_factory=AttackSettings)

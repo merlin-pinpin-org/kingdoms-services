@@ -236,6 +236,12 @@ Fails&nbsp;atomically&nbsp;with&nbsp;an&nbsp;admin-actionable&nbsp;error&nbsp;wh
 is&nbsp;too&nbsp;small&nbsp;(§7)&nbsp;—&nbsp;nothing&nbsp;is&nbsp;persisted&nbsp;then.&nbsp;``seed``&nbsp;exists&nbsp;for<br>
 deterministic&nbsp;tests&nbsp;only.</span></dd></dl>
 
+<dl><dt>async <a name="TerritoryService-draw_map_for"><strong>draw_map_for</strong></a>(self, owner_kingdom_id: 'str', map_key: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Draw&nbsp;one&nbsp;specific&nbsp;allowed&nbsp;map&nbsp;as&nbsp;a&nbsp;territory&nbsp;(T5/T7&nbsp;helper).<br>
+&nbsp;<br>
+Refuses&nbsp;out&nbsp;maps&nbsp;(§8)&nbsp;and&nbsp;maps&nbsp;outside&nbsp;the&nbsp;admin&nbsp;catalog;&nbsp;used<br>
+by&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;Gaia&nbsp;draw,&nbsp;the&nbsp;exploration&nbsp;reward&nbsp;and&nbsp;the<br>
+Explorateur&nbsp;technology.</span></dd></dl>
+
 <dl><dt>async <a name="TerritoryService-drawn_map_keys"><strong>drawn_map_keys</strong></a>(self) -&gt; 'set[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;"out"&nbsp;map&nbsp;keys:&nbsp;drawn&nbsp;once,&nbsp;never&nbsp;redrawn&nbsp;this&nbsp;season&nbsp;(§8).<br>
 &nbsp;<br>
 Drawn&nbsp;territories&nbsp;plus&nbsp;the&nbsp;ejected&nbsp;maps&nbsp;recorded&nbsp;on&nbsp;the&nbsp;season<br>

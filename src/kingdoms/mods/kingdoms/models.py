@@ -11,7 +11,7 @@ svc-core; the Discord surface reads them over the gRPC seams.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -45,6 +45,9 @@ class KingdomModel(BaseModel):
     name: str
     marriage_capacity: int = Field(default=0, ge=0)
     name_approved: bool = True
+    civilizations: list[str] = Field(default_factory=list)
+    secured_civilizations: list[str] = Field(default_factory=list)
+    tech_points_bank: int = Field(default=0, ge=0)
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -107,6 +110,9 @@ class TerritoryModel(BaseModel):
     map_key: str
     owner_kingdom_id: str
     drawn_at: datetime
+    protected_until: datetime | None = None
+    """Anti-attack/anti-corruption shield (D15/D37/D47): Garde Royale
+    and Corruption protect a territory until the recorded instant."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -116,6 +122,15 @@ class TerritoryModel(BaseModel):
     def from_mongo(cls, data: dict[str, Any]) -> TerritoryModel:
         """Build from a MongoDB document."""
         return cls.model_validate(data)
+
+    def is_protected_at(self, now: datetime) -> bool:
+        """Whether the anti-attack/anti-corruption shield is active (D15/D37/D47)."""
+        if self.protected_until is None:
+            return False
+        until = self.protected_until
+        if until.tzinfo is None:
+            until = until.replace(tzinfo=UTC)
+        return until > now
 
 
 class TechnologyState(BaseModel):
@@ -250,6 +265,11 @@ class SeasonState(BaseModel):
     current_age_key: str
     imposed_kingdoms: bool = False
     out_maps: list[str] = Field(default_factory=list)
+    finished: bool = False
+    winner_kingdom_id: str | None = None
+    pending_marriage_losses: list[str] = Field(default_factory=list)
+    """Kingdom ids that lost a combat since the last cycle switch: their
+    lords' marriages drop at the next recalculation (D34/D53)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -257,5 +277,66 @@ class SeasonState(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> SeasonState:
+        """Build from a MongoDB document."""
+        return cls.model_validate(data)
+
+
+class DuelModel(BaseModel):
+    """One ShowMatch PA2 duel (D50): a 1v1 between two lords.
+
+    Maps come from the duelist's own territories without reuse, civs
+    never repeat, and the Megarandom fallback picks a random civ when
+    the pool is empty. ``players`` holds the team members of each side
+    once the format escalates to 2v2/3v3.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    index: int
+    format: str = "1v1"
+    side_a: list[str] = Field(default_factory=list)
+    side_b: list[str] = Field(default_factory=list)
+    map_key: str | None = None
+    civilizations: dict[str, str] = Field(default_factory=dict)
+    winner_side: str | None = None
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> DuelModel:
+        """Build from a MongoDB document."""
+        return cls.model_validate(data)
+
+
+class ShowMatchModel(BaseModel):
+    """The ShowMatch PA2 deciding a tied Conquest finish (D50).
+
+    Two kingdoms play mandatory duels until one leads 2-0 (1v1 first,
+    then 2v2, 3v3... when every lord has dueled); a 1-1 tie chains a
+    new duel with other lords. Maps and civs never repeat.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(alias="_id")
+    season_id: str
+    kingdom_a: str
+    kingdom_b: str
+    score_a: int = Field(default=0, ge=0)
+    score_b: int = Field(default=0, ge=0)
+    duels: list[DuelModel] = Field(default_factory=list)
+    used_map_keys: list[str] = Field(default_factory=list)
+    used_civilizations: list[str] = Field(default_factory=list)
+    finished: bool = False
+    winner_kingdom_id: str | None = None
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> ShowMatchModel:
         """Build from a MongoDB document."""
         return cls.model_validate(data)
