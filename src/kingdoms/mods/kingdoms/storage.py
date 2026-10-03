@@ -53,6 +53,18 @@ class KingdomsStore(Protocol):
         """Drop one lord document by ``_id``."""
         ...
 
+    async def upsert_territory(self, document: dict[str, Any]) -> None:
+        """Insert or replace one territory document by ``_id``."""
+        ...
+
+    async def find_territories(self) -> list[dict[str, Any]]:
+        """Return every territory document of the current data set."""
+        ...
+
+    async def delete_territory(self, territory_id: str) -> None:
+        """Drop one territory document by ``_id``."""
+        ...
+
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38): seasons, kingdoms, lords."""
         ...
@@ -105,6 +117,21 @@ class MongoKingdomsStore:
     async def delete_lord(self, lord_id: str) -> None:
         """Drop one lord document by ``_id``."""
         await self._database[LORDS_COLLECTION].delete_one({"_id": lord_id})
+
+    async def upsert_territory(self, document: dict[str, Any]) -> None:
+        """Insert or replace one territory document by ``_id``."""
+        await self._database[TERRITORIES_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_territories(self) -> list[dict[str, Any]]:
+        """Return every territory document of the current data set."""
+        cursor = self._database[TERRITORIES_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
+    async def delete_territory(self, territory_id: str) -> None:
+        """Drop one territory document by ``_id``."""
+        await self._database[TERRITORIES_COLLECTION].delete_one({"_id": territory_id})
 
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38).

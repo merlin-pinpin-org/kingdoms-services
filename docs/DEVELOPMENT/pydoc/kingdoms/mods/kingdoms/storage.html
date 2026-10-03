@@ -61,17 +61,23 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsStore-delete_lord"><strong>delete_lord</strong></a>(self, lord_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-upsert_kingdom"><strong>upsert_kingdom</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;kingdom&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-upsert_territory"><strong>upsert_territory</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-wipe_season_data"><strong>wipe_season_data</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;season&nbsp;data&nbsp;wholesale&nbsp;(D38):&nbsp;seasons,&nbsp;kingdoms,&nbsp;lords.</span></dd></dl>
 
@@ -95,7 +101,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_kingdom', 'delete_lord', 'find_kingdoms', 'find_lords', 'find_seasons', 'upsert_kingdom', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_kingdom', 'delete_lord', 'delete_territory', 'find_kingdoms', 'find_lords', 'find_seasons', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -129,17 +135,23 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 
 <dl><dt>async <a name="MongoKingdomsStore-delete_lord"><strong>delete_lord</strong></a>(self, lord_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-upsert_kingdom"><strong>upsert_kingdom</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;kingdom&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-upsert_territory"><strong>upsert_territory</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-wipe_season_data"><strong>wipe_season_data</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;season&nbsp;data&nbsp;wholesale&nbsp;(D38).<br>
 &nbsp;<br>

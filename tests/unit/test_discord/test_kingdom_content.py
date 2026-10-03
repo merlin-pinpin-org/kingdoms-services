@@ -280,4 +280,4 @@ async def test_reset_deletes_a_renamed_epoch_channel() -> None:
     confirm_interaction.locale = "fr"
     await confirm.callback(confirm_interaction)
     remaining = {c.name for c in guild.text_channels}
-    assert "age-feodal" not in remaining
+    assert "Âge féodal" not in remaining
