@@ -23,7 +23,6 @@ from kingdoms.discord.kingdom_panels import (
     deploy_panels,
     register_kingdom_panels_command,
 )
-from tests.mocks.provision import provisioned_wiring
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
