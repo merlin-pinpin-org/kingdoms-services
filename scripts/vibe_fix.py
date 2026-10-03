@@ -36,6 +36,9 @@ def edit(path: str, replacements: list[tuple[str, str]]) -> None:
     p = ROOT / path
     text = p.read_text(encoding="utf-8")
     for old, new in replacements:
+        if old == new:
+            print(f"FATAL: no-op replacement in {path}: {old[:80]!r}")
+            sys.exit(1)
         if old in text:
             text = text.replace(old, new)
             print(f"applied edit in {path}: {old[:60]!r}")
@@ -44,6 +47,25 @@ def edit(path: str, replacements: list[tuple[str, str]]) -> None:
         else:
             print(f"FATAL: pattern not found in {path}: {old[:80]!r}")
             sys.exit(1)
+    p.write_text(text, encoding="utf-8")
+
+
+def dedup_defs(path: str, marker: str, end_marker: str) -> None:
+    """Keep only the first definition block between marker and end_marker.
+
+    An earlier revision of this script inserted a helper block whose
+    pattern matched its own output, so the block duplicated itself on
+    every run. This collapses any number of consecutive duplicate
+    definitions back to one, by index, robust to formatting.
+    """
+    p = ROOT / path
+    text = p.read_text(encoding="utf-8")
+    first = text.find(marker)
+    second = text.find(marker, first + 1)
+    end = text.find(end_marker)
+    if first >= 0 and second > first and end > second:
+        text = text[:second] + text[end:]
+        print(f"collapsed duplicate definitions in {path} ({marker.strip()})")
     p.write_text(text, encoding="utf-8")
 
 
@@ -199,7 +221,10 @@ def main() -> int:
         )],
     )
 
-    # 9. C901: split _resolve_channel_id into focused helpers.
+    # 9. C901: _resolve_channel_id delegates to focused helpers. The
+    #    helpers themselves were already inserted by an earlier revision
+    #    of this script (which then duplicated them on every run);
+    #    dedup_defs below collapses any duplicates back to one copy.
     edit(
         "src/kingdoms/core/services/channel.py",
         [
@@ -228,10 +253,10 @@ def main() -> int:
                 '            if sink is not None:\n'
                 '                sink[category] = "created"\n'
                 '            return created_group\n',
-                "        if as_group:\n"
-                "            return await self._resolve_group_category(\n"
-                "                guild_id, category, structured, sink\n"
-                "            )\n",
+                '        if as_group:\n'
+                '            return await self._resolve_group_category(\n'
+                '                guild_id, category, structured, sink\n'
+                '            )\n',
             ),
             (
                 '        group_id: str | None = None\n'
@@ -260,109 +285,59 @@ def main() -> int:
                 '            return created\n'
                 '\n'
                 '        return await self._resolve_flat(guild_id, category, name, sink)\n',
-                "        if structured is not None and group_key:\n"
-                "            resolved = await self._resolve_in_group(\n"
-                "                guild_id, category, group_key, structured, sink\n"
-                "            )\n"
-                "            if resolved is not None:\n"
-                "                return resolved\n"
-                "\n"
-                "        return await self._resolve_flat(guild_id, category, name, sink)\n",
-            ),
-            (
-                "    async def _resolve_flat(\n"
-                "        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n"
-                "    ) -> str:",
-                '    async def _resolve_group_category(\n'
-                '        self,\n'
-                '        guild_id: str,\n'
-                '        category: str,\n'
-                '        structured: StructuredChannelsPlatform | None,\n'
-                '        sink: dict[str, str] | None,\n'
-                '    ) -> str:\n'
-                '        """Resolve a declared group (a container, never persisted) to its id."""\n'
-                '        name, _kind, _group, admin_only, position, _adopt = self._spec_for_category(\n'
-                '            category, as_group=True\n'
-                '        )\n'
-                '        if structured is None:\n'
-                '            # Legacy platform without the structured seam: the group\n'
-                '            # degrades to a flat channel under its display name.\n'
-                '            return await self._resolve_flat(guild_id, category, name, sink)\n'
-                '        found = await structured.find_group_by_name(guild_id, name)\n'
-                '        if found is not None:\n'
-                '            if sink is not None:\n'
-                '                sink[category] = "adopted"\n'
-                '            return found\n'
-                '        created_group = await structured.create_group(guild_id, name, position, admin_only)\n'
-                '        if sink is not None:\n'
-                '            sink[category] = "created"\n'
-                '        return created_group\n'
+                '        if structured is not None and group_key:\n'
+                '            resolved = await self._resolve_in_group(\n'
+                '                guild_id, category, group_key, structured, sink\n'
+                '            )\n'
+                '            if resolved is not None:\n'
+                '                return resolved\n'
                 '\n'
-                '    async def _resolve_in_group(\n'
-                '        self,\n'
-                '        guild_id: str,\n'
-                '        category: str,\n'
-                '        group_key: str,\n'
-                '        structured: StructuredChannelsPlatform,\n'
-                '        sink: dict[str, str] | None,\n'
-                '    ) -> str | None:\n'
-                '        """Resolve a channel inside its declared group; None to fall back flat."""\n'
-                '        name, kind, _group_key, admin_only, position, adopt = self._spec_for_category(\n'
-                '            category, as_group=False\n'
-                '        )\n'
-                '        mod_name = category.partition(":")[0]\n'
-                '        group = self._registry.require(mod_name).channel_group(group_key)\n'
-                '        group_id = await self._resolve_group_id(guild_id, group)\n'
-                '        if group_id is None:\n'
-                '            return None\n'
-                '        found = await structured.find_channel_of_kind(guild_id, name, kind, group_id)\n'
-                '        if found is None and adopt == "group_single":\n'
-                '            found = await structured.single_channel_in_group(guild_id, group_id, kind)\n'
-                '        if found is not None:\n'
-                '            await self._persist(guild_id, category, found, name)\n'
-                '            if sink is not None:\n'
-                '                sink[category] = "adopted"\n'
-                '            return found\n'
-                '        created = await structured.create_channel_of_kind(\n'
-                '            guild_id, name, kind, group_id, admin_only or group.admin_only, position\n'
-                '        )\n'
-                '        await self._persist(guild_id, category, created, name)\n'
-                '        if sink is not None:\n'
-                '            sink[category] = "created"\n'
-                '        return created\n'
-                '\n'
-                '    async def _resolve_flat(\n'
-                '        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n'
-                '    ) -> str:',
+                '        return await self._resolve_flat(guild_id, category, name, sink)\n',
             ),
         ],
     )
+    dedup_defs(
+        "src/kingdoms/core/services/channel.py",
+        "    async def _resolve_group_category(",
+        "    async def _resolve_flat(",
+    )
 
-    # 10. channels_platform.py: D401 docstrings and mypy guards.
+    # 10. channels_platform.py: mypy strict fixes.
     edit(
         "src/kingdoms/discord/channels_platform.py",
         [
+            # discord.py accepts Object-keyed overwrites mappings.
             (
-                '        """The guild\'s live channels of a declared kind (forum vs text)."""',
-                '        """Return the guild\'s live channels of a declared kind (forum vs text)."""',
+                '        overwrites: dict[discord.Role | discord.Member, '
+                'discord.PermissionOverwrite] = {}',
+                '        overwrites: dict[discord.Role | discord.Member | '
+                'discord.Object, discord.PermissionOverwrite] = {}',
+            ),
+            # _channels_of_kind returns list[object]: read ids via getattr.
+            (
+                '            if slugify(getattr(channel, "name", "")) == wanted:\n'
+                '                return str(channel.id)\n'
+                '        return None\n'
+                '\n'
+                '    async def create_channel_of_kind(',
+                '            if slugify(getattr(channel, "name", "")) == wanted:\n'
+                '                return str(getattr(channel, "id"))\n'
+                '        return None\n'
+                '\n'
+                '    async def create_channel_of_kind(',
+            ),
+            # The forum/text branches assign different channel types.
+            (
+                '        if kind == "forum":\n'
+                '            channel = await guild.create_forum(',
+                '        if kind == "forum":\n'
+                '            channel: discord.ForumChannel | discord.TextChannel '
+                '= await guild.create_forum(',
             ),
             (
-                '        """The group\'s single channel of a kind, whatever its name; '
-                'None otherwise."""',
-                '        """Return the group\'s single channel of a kind, whatever its '
-                'name; None otherwise."""',
-            ),
-            (
-                "        category = guild.get_channel(int(group_id)) if group_id and "
-                "group_id.isdigit() else None",
-                "        fetched = guild.get_channel(int(group_id)) if group_id and "
-                "group_id.isdigit() else None\n"
-                "        category = fetched if isinstance(fetched, "
-                "discord.CategoryChannel) else None",
-            ),
-            (
-                "        return str(found.id) if found is not None else None",
-                '        return str(getattr(found, "id")) if found is not None else None',
+                '        return str(found.id) if found is not None else None',
+                '        return str(getattr(found, "id")) if found is not None '
+                'else None',
             ),
         ],
     )
