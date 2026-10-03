@@ -2,7 +2,7 @@ name: Check commits
 
 # Conventional Commits enforcement (kingdoms-services#28): every commit
 # on a PR must match the specification — the release changelog
-# (scripts/generate_changelog.py) groups commits by type, so a
+# (.github/workflows/scripts/generate_changelog.py) groups commits by type, so a
 # non-conventional subject would silently drop out of the release notes.
 # The history is already 100% conventional (squash merges); this locks it
 # in at the only gate where it matters: the PR.
