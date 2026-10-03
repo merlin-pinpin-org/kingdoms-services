@@ -55,7 +55,7 @@ def main() -> int:
         [
             (
                 'ChannelGroupDef(key="admin", display_name="Admin", admin_only=True),',
-                "ChannelGroupDef(key="admin", display_name="Admin", admin_only=True, position=1),',
+                'ChannelGroupDef(key="admin", display_name="Admin", admin_only=True, position=1),',
             ),
             (
                 'ChannelCategoryDef(key="announce", display_name="Annonces", group="main", kind="announce"),',
@@ -85,7 +85,7 @@ def main() -> int:
         "tests/unit/test_core/test_mod_registry.py",
         [(
             'def _write_mod(tmp_path: "Path", body: str) -> None:',
-            "def _write_mod(tmp_path: Path, body: str) -> None:",
+            'def _write_mod(tmp_path: Path, body: str) -> None:',
         )],
     )
 
