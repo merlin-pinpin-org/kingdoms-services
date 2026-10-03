@@ -1,10 +1,10 @@
 name: Vibe session checks
 
-# Temporary session tooling for kingdoms-services#175: replays the unit
-# tests, lint and type checks on every push and reports the failures as a
-# PR comment so the vibe session can iterate without local tooling.
+# Temporary session tooling for kingdoms-services#175: applies the drift
+# fixes, replays the unit tests, lint and type checks on every push and
+# reports the failures as a PR comment so the vibe session can iterate.
 # Regenerates the pydoc pages and commits them when stale (make docs).
-# This file is removed once the stack is green.
+# This file and scripts/vibe_fix.py are removed once the stack is green.
 
 on:
   pull_request:
@@ -19,11 +19,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12.14"
       - name: Install dependencies
         run: uv sync --frozen 2>&1 | tee /tmp/sync.log
+        continue-on-error: true
+      - name: Apply session fixes and commit
+        run: |
+          uv run python scripts/vibe_fix.py 2>&1 | tee /tmp/fix.log
+          uv run ruff check --fix . 2>&1 | tee -a /tmp/fix.log || true
+          if ! git diff --quiet; then
+            git config user.name "Drasah"
+            git config user.email "mabilais.dylan@hotmail.fr"
+            git add -A
+            git commit \
+              -m "fix: apply the kingdoms-services#175 drift fixes (session tooling)" \
+              -m "Co-authored-by: Mistral AI <noreply@mistral.ai>"
+            git push 2>&1 | tee -a /tmp/fix.log
+          fi
         continue-on-error: true
       - name: Unit tests (pytest)
         run: uv run pytest -q --tb=short 2>&1 | tee /tmp/pytest.log
@@ -46,6 +62,8 @@ jobs:
           else
             cat /tmp/pydoc-diff.txt | tee -a /tmp/pydoc.log
             rm -rf docs/DEVELOPMENT/pydoc
+            mkdir -p docs/DEVELOMENT_PLACEHOLDER
+            rm -rf docs/DEVELOMENT_PLACEHOLDER
             mkdir -p docs/DEVELOPMENT/pydoc
             cp -r /tmp/pydoc-fresh/. docs/DEVELOPMENT/pydoc/
             git config user.name "Drasah"
@@ -69,21 +87,23 @@ jobs:
           import pathlib
           import urllib.request
 
-          def tail(name, limit=9000):
+          def tail(name, limit):
               p = pathlib.Path("/tmp/%s.log" % name)
               if not p.exists():
                   return "(no output)"
               return p.read_text(errors="replace")[-limit:]
 
           body = (
-              "## Vibe session checks\n\n### pytest\n```\n"
-              + tail("pytest")
+              "## Vibe session checks\n\n### fixes\n```\n"
+              + tail("fix", 3000)
+              + "\n```\n### pytest\n```\n"
+              + tail("pytest", 12000)
               + "\n```\n### ruff\n```\n"
-              + tail("ruff")
+              + tail("ruff", 25000)
               + "\n```\n### mypy\n```\n"
-              + tail("mypy")
+              + tail("mypy", 20000)
               + "\n```\n### pydoc\n```\n"
-              + tail("pydoc")
+              + tail("pydoc", 3000)
               + "\n```\n"
           )
           payload = json.dumps({"body": body}).encode()
