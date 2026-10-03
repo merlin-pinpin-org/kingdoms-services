@@ -23,7 +23,8 @@ jobs:
         with:
           python-version: "3.12.14"
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen 2>&1 | tee /tmp/sync.log
+        continue-on-error: true
       - name: Unit tests (pytest)
         run: uv run pytest -q --tb=short 2>&1 | tee /tmp/pytest.log
         continue-on-error: true
@@ -35,14 +36,15 @@ jobs:
         continue-on-error: true
       - name: Regenerate pydoc and commit when stale
         run: |
+          set -x
           uv run python scripts/generate_pydoc.py \
             --source src/kingdoms \
-            --output /tmp/pydoc-fresh
+            --output /tmp/pydoc-fresh 2>&1 | tee /tmp/pydoc.log
           if diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc \
             --exclude=.gitkeep > /tmp/pydoc-diff.txt 2>&1; then
             echo "pydoc is fresh"
           else
-            cat /tmp/pydoc-diff.txt
+            cat /tmp/pydoc-diff.txt | tee -a /tmp/pydoc.log
             rm -rf docs/DEVELOPMENT/pydoc
             mkdir -p docs/DEVELOPMENT/pydoc
             cp -r /tmp/pydoc-fresh/. docs/DEVELOPMENT/pydoc/
@@ -52,15 +54,16 @@ jobs:
             git commit \
               -m "docs: regenerate pydoc after the salons-first drift fixes (kingdoms-services#175)" \
               -m "Co-authored-by: Mistral AI <noreply@mistral.ai>"
-            git push
+            git push 2>&1 | tee -a /tmp/pydoc.log
           fi
+        continue-on-error: true
       - name: Report on the PR
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          uv run python - <<'PY'
+          python3 - <<'PY'
           import json
           import os
           import pathlib
@@ -79,6 +82,8 @@ jobs:
               + tail("ruff")
               + "\n```\n### mypy\n```\n"
               + tail("mypy")
+              + "\n```\n### pydoc\n```\n"
+              + tail("pydoc")
               + "\n```\n"
           )
           payload = json.dumps({"body": body}).encode()
