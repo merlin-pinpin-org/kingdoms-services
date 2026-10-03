@@ -12,3 +12,9 @@
 # Docker and entrypoint: what runs on the VPS
 /Dockerfile             @merlin-pinpin-org/maintainers
 /docker/                @merlin-pinpin-org/maintainers
+
+# Mod code: owned by the mod's designer (per the roster 'owns' column,
+# kingdoms repo). Default owner for unclaimed mods is Merlin (the
+# platform developer) — the contributors-sync ownership check keeps
+# this file and the roster in sync.
+/src/kingdoms/mods/ladder/   @merlin-pinpin
