@@ -97,7 +97,7 @@ jobs:
             core.notice(`pin-state dispatched for ${image} on deploy/prod`);
 
       # Single implementation of the watch-the-pin-then-the-deploy pattern
-      # (scripts/watch_deploy.sh, also used by the PR deploy workflow and
+      # (.github/workflows/scripts/watch_deploy.sh, also used by the PR deploy workflow and
       # agent sessions). The checkout brings the script; the prod deploy run
       # waits for the prod environment reviewers while this step watches.
       - name: Checkout (watch_deploy.sh)
@@ -105,4 +105,4 @@ jobs:
       - name: Watch the kingdoms-infra prod deploy run
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: scripts/watch_deploy.sh prod "$TAG" 60 60
+        run: .github/workflows/scripts/watch_deploy.sh prod "$TAG" 60 60

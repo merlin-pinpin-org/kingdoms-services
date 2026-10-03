@@ -37,7 +37,7 @@ jobs:
           ref: main
           sparse-checkout: |
             CONTRIBUTORS.md
-            scripts/roster.py
+            .github/workflows/scripts/roster.py
 
       - name: Acknowledge (what, why — per the conventions)
         uses: actions/github-script@v7
@@ -72,9 +72,9 @@ jobs:
               sync-teams) cap="sync-teams";;
               *) echo "unknown-command=$cmd" >> "$GITHUB_OUTPUT"; exit 0;;
             esac
-            python3 scripts/roster.py "$REQUESTOR" "$cap" --roster CONTRIBUTORS.md >/dev/null 2>&1 \
+            python3 .github/workflows/scripts/roster.py "$REQUESTOR" "$cap" --roster CONTRIBUTORS.md >/dev/null 2>&1 \
               || { echo "not-authorized=$cap" >> "$GITHUB_OUTPUT"; exit 0; }
-            usage="$(python3 scripts/roster.py --usage "$cap" --roster CONTRIBUTORS.md)"
+            usage="$(python3 .github/workflows/scripts/roster.py --usage "$cap" --roster CONTRIBUTORS.md)"
             {
               echo "detail<<EOF"
               echo "/$cmd — $usage"
@@ -82,7 +82,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           else
             # /help: one line per granted command
-            python3 scripts/roster.py "$REQUESTOR" --list --roster CONTRIBUTORS.md \
+            python3 .github/workflows/scripts/roster.py "$REQUESTOR" --list --roster CONTRIBUTORS.md \
               > /tmp/listing.json
             {
               echo "list<<EOF"

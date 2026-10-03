@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 from shutil import which
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Test tooling that must never appear in production code or the runtime
 # image. The image check lists installed packages only: unittest.mock is

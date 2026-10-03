@@ -66,6 +66,7 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = [".github/workflows"]
 
 [[tool.mypy.overrides]]
 module = ["kingdoms.rpc_generated.*", "kingdoms.core.rpc.*", "kingdoms.core_process.*"]

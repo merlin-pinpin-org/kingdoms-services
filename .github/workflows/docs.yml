@@ -2,7 +2,7 @@ name: Docs
 # Generates the technical documentation (pydoc HTML) from this repo's own
 # source into docs/DEVELOPMENT/pydoc/ — the source repo hosts its generated
 # docs. On every PR, a freshness step fails when the committed copy is stale
-# (fix: run `make docs` locally, or python3 scripts/generate_pydoc.py, and
+# (fix: run `make docs` locally, or python3 .github/workflows/scripts/generate_pydoc.py, and
 # commit the result). Fail-closed: the freshness check is a required gate.
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
         run: uv sync --frozen
       - name: Check pydoc freshness
         run: |
-          uv run python scripts/generate_pydoc.py \
+          uv run python .github/workflows/scripts/generate_pydoc.py \
             --source src/kingdoms \
             --output /tmp/pydoc-fresh
           if diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc \
