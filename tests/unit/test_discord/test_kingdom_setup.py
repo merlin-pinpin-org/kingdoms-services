@@ -38,7 +38,11 @@ def test_declaration_is_the_validated_structure() -> None:
     assert group_keys[0] == "profiles"
     assert group_keys[1] == "general"
     assert group_keys[-1] == "support"
-    admin = next(group for group in groups if group.key == "admin")
+    admin = next(
+        group
+        for group in kingdoms_definition().channel_groups
+        if group.key == "admin"
+    )
     assert admin.admin_only is True
     kinds = {category.key: category.kind for category in kingdoms_definition().channel_categories}
     assert kinds["rules"] == "forum"
