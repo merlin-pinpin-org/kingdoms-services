@@ -32,8 +32,10 @@ from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.permissions import PermissionService
+from kingdoms.core.services.registration import RegistrationService
 from kingdoms.core.services.roles import ModRolesService, RolesService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
+from kingdoms.core.services.workflow import WorkflowEngine
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
 from kingdoms.discord.commands_i18n import CatalogTranslator
 from kingdoms.discord.error_handler import answer_kingdoms_error
@@ -150,6 +152,7 @@ class KingdomsBot(discord.Client):
         self._provision_task: asyncio.Task[None] | None = None
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
+        self.registration_engine: WorkflowEngine | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -439,12 +442,24 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.live import register_live_commands
+    from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
 
     guild_id = resolved.sync_guild_id.strip()
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
+    )
+    register_live_commands(bot.tree, catalog=bot.messages)
+    registration_engine, registration_service = _build_registration(resolved)
+    bot.registration_engine = registration_engine
+    register_registration_command(
+        bot.tree,
+        registration_engine,
+        registration_service,
+        catalog=bot.messages,
+        bot=bot,
     )
     register_admin_command(
         bot.tree,
@@ -496,6 +511,36 @@ def _build_permission_service(
         roles=resolver,
         bot_admins=bot_admins,
     )
+
+
+def _build_registration(config: BotConfig) -> tuple[WorkflowEngine | None, RegistrationService | None]:
+    """Wire the DM enrollment stack (#133): engine + AoE2-validated service.
+
+    Returns (None, None) when Mongo/Redis are not configured (unit tests,
+    local runs) — the /register command then answers with a note.
+    """
+    if not config.mongo_uri or not config.redis_uri:
+        return None, None
+    import os
+
+    from kingdoms.core.models.db import get_async_database
+    from kingdoms.core.services.state import StateService
+    from kingdoms.core.services.workflow import MongoWorkflowStore, WorkflowEngine
+    from kingdoms.core.workflows.registration import RegistrationWorkflow
+    from kingdoms.discord.registration_platform import (
+        Aoe2ProfileValidationSeam,
+        MongoRegistrationDatabase,
+    )
+
+    database = get_async_database()
+    state = StateService(redis_uri=config.redis_uri or os.environ.get("REDIS_URI"))
+    engine = WorkflowEngine(MongoWorkflowStore(database), state)
+    service = RegistrationService(
+        MongoRegistrationDatabase(database),
+        profile_seams={"aoe2": Aoe2ProfileValidationSeam()},
+    )
+    engine.register_workflow(RegistrationWorkflow(service))
+    return engine, service
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
