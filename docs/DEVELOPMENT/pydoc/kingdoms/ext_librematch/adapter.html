@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_librematch.adapter</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.ext_librematch.html" class="white">ext_librematch</a>.adapter</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_librematch/adapter.py">SOURCE_ROOT/ext_librematch/adapter.py</a></td></tr></table>
+    <p><span class="code">ext-librematch&nbsp;live&nbsp;adapter:&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;Community&nbsp;API&nbsp;client.<br>
+&nbsp;<br>
+Source&nbsp;of&nbsp;truth&nbsp;for&nbsp;AoE2&nbsp;reference&nbsp;data&nbsp;(developer&nbsp;direction):&nbsp;lobby<br>
+listings&nbsp;come&nbsp;from&nbsp;the&nbsp;public&nbsp;Community&nbsp;API&nbsp;endpoint&nbsp;documented&nbsp;by&nbsp;the<br>
+LibreMatch&nbsp;wiki&nbsp;(``GET&nbsp;/community/advertisement/findAdvertisements``).<br>
+The&nbsp;slotinfo/options&nbsp;fields&nbsp;of&nbsp;each&nbsp;lobby&nbsp;are&nbsp;base64+zlib&nbsp;blobs&nbsp;decoded<br>
+by&nbsp;the&nbsp;game&nbsp;module&nbsp;(``kingdoms.core.games.aoe2.blobs``).<br>
+&nbsp;<br>
+Conservative&nbsp;by&nbsp;design:&nbsp;on&nbsp;any&nbsp;decode&nbsp;or&nbsp;transport&nbsp;failure&nbsp;the&nbsp;adapter<br>
+serves&nbsp;what&nbsp;it&nbsp;has&nbsp;and&nbsp;degrades&nbsp;—&nbsp;never&nbsp;fails&nbsp;the&nbsp;provider&nbsp;process.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="httpx.html">httpx</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.ext_librematch.adapter.html#LibrematchAdapter">LibrematchAdapter</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LibrematchAdapter">class <strong>LibrematchAdapter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LibrematchAdapter">LibrematchAdapter</a>(base_url:&nbsp;'str'&nbsp;=&nbsp;'<a href="https://community.ageofempires.com">https://community.ageofempires.com</a>',&nbsp;timeout_s:&nbsp;'float'&nbsp;=&nbsp;10.0,&nbsp;transport:&nbsp;'httpx.AsyncBaseTransport&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;api_key:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+HTTP&nbsp;client&nbsp;for&nbsp;the&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;Community&nbsp;API&nbsp;(lobbies).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LibrematchAdapter-__init__"><strong>__init__</strong></a>(self, base_url: 'str' = 'https://community.ageofempires.com', timeout_s: 'float' = 10.0, transport: 'httpx.AsyncBaseTransport | None' = None, api_key: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchAdapter-fetch_lobbies"><strong>fetch_lobbies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;public&nbsp;lobby&nbsp;listings&nbsp;(raw&nbsp;API&nbsp;payloads).</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchAdapter-list_maps"><strong>list_maps</strong></a>(self) -&gt; 'list[GameMap]'</dt><dd><span class="code">Serve&nbsp;the&nbsp;map&nbsp;catalog&nbsp;seen&nbsp;across&nbsp;the&nbsp;current&nbsp;lobbies.<br>
+&nbsp;<br>
+The&nbsp;Community&nbsp;API&nbsp;exposes&nbsp;no&nbsp;dedicated&nbsp;map&nbsp;catalog;&nbsp;the&nbsp;distinct<br>
+maps&nbsp;of&nbsp;the&nbsp;live&nbsp;lobbies&nbsp;are&nbsp;the&nbsp;best&nbsp;available&nbsp;catalog&nbsp;view.</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchAdapter-match_details"><strong>match_details</strong></a>(self, match_ref: 'str') -&gt; 'MatchDetails | None'</dt><dd><span class="code">Build&nbsp;MatchDetails&nbsp;for&nbsp;a&nbsp;lobby,&nbsp;decoding&nbsp;slotinfo/options&nbsp;blobs.<br>
+&nbsp;<br>
+Cross-checks&nbsp;the&nbsp;advertisement&nbsp;list&nbsp;for&nbsp;the&nbsp;referenced&nbsp;lobby;<br>
+returns&nbsp;None&nbsp;when&nbsp;the&nbsp;lobby&nbsp;is&nbsp;not&nbsp;visible&nbsp;(expired&nbsp;or&nbsp;unknown).</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchAdapter-player_stats"><strong>player_stats</strong></a>(self, profile_id: 'str') -&gt; 'PlayerStats | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;leaderboard&nbsp;stats&nbsp;as&nbsp;pre-formatted&nbsp;blocks.<br>
+&nbsp;<br>
+Uses&nbsp;the&nbsp;authenticated&nbsp;leaderboard&nbsp;endpoint&nbsp;when&nbsp;an&nbsp;API&nbsp;key&nbsp;is<br>
+configured;&nbsp;without&nbsp;one,&nbsp;degrades&nbsp;to&nbsp;None&nbsp;(the&nbsp;caller&nbsp;falls&nbsp;back<br>
+to&nbsp;the&nbsp;manual&nbsp;path).&nbsp;Transport/decode&nbsp;failures&nbsp;also&nbsp;degrade&nbsp;—<br>
+the&nbsp;provider&nbsp;never&nbsp;fails&nbsp;the&nbsp;serving&nbsp;process.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_BASE_URL</strong> = 'https://community.ageofempires.com'<br>
+<strong>LEADERBOARDS_PATH</strong> = '/api/leaderboard'<br>
+<strong>LEADERBOARD_KEYS</strong> = {'0': 'rm_1v1', '1': 'rm_team', '2': 'unranked', '3': 'dm_1v1', '4': 'dm_team'}<br>
+<strong>LOBBIES_PATH</strong> = '/community/advertisement/findAdvertisements'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ext_librematch.adapter (WARNING)&gt;</td></tr></table>
+</body></html>

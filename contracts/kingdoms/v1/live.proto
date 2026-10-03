@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package kingdoms.v1;
+
+// Live test dashboard (kingdoms-services#147): svc-core aggregates the
+// provider event streams (ext-aoe2lobby live layer, ext-librematch as the
+// source of truth) and serves the per-player dashboard state to the bot.
+// The bot renders it through /live in a dedicated channel.
+
+service Live {
+  // Server-stream the current dashboard state: one snapshot immediately,
+  // then a new snapshot on every aggregated state change.
+  rpc WatchDashboard(WatchDashboardRequest) returns (stream DashboardState);
+}
+
+message WatchDashboardRequest {
+  string game_key = 1;      // e.g. "aoe2"
+  int64 since = 2;          // ignore events older than this epoch-ms
+}
+
+message DashboardState {
+  repeated PlayerState players = 1; // every linked player, sorted by user_id
+  int64 generated_at = 2;   // epoch ms of this snapshot
+  bool degraded = 3;        // true: no provider reachable, all states offline
+}
+
+message PlayerState {
+  string user_id = 1;       // platform user id (resolved from the link store)
+  string profile_id = 2;    // game profile id
+  string state = 3;         // offline | in_lobby | in_game
+  string match_ref = 4;    // opaque provider match id, empty when offline
+  int64 since = 5;          // epoch ms of the last state change
+}

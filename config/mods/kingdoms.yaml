@@ -1,0 +1,37 @@
+# Kingdoms mod (Season II territory-conquest AoE2).
+# Design: kingdoms repo docs/MODS/kingdoms/ (reference Season II + DECISIONS.md D1-D54).
+# Enabled with T2 (enrollment); the declaration is validated at startup.
+id: kingdoms
+enabled: true
+settings: {}
+channels:
+  - key: attack
+    display_name: ⚔️-attaquer
+    description: Attack declarations
+  - key: attack_delays
+    display_name: 🕰️-délais-attaque
+    description: Attack delay tracking
+  - key: cadastre
+    display_name: 🧾-cadastre
+    description: Territories and their cadastre effects
+  - key: diplomacy
+    display_name: 📖-diplomatie
+    description: Alliances and civilizations
+  - key: geopolitics
+    display_name: 📣-géopolitique
+    description: Announcements, treaties and political rules
+roles:
+  - key: kingdoms_king
+    display_name: Kingdoms King
+    color: 0xE6B800
+    hoisted: true
+  - key: kingdoms_lord
+    display_name: Kingdoms Lord
+    color: 0x3498DB
+  - key: kingdoms_admin
+    display_name: Kingdoms Admin
+    color: 0xE74C3C
+    hoisted: true
+workflows: []
+commands: []
+dependencies: []

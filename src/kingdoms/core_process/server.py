@@ -1,16 +1,21 @@
 """svc-core gRPC server (ADR-0020 bootstrap seam).
 
-Serves the kingdoms.v1 contracts from ``contracts/``. The first service
-is Status (cross-process wiring assert); ladder/game services land with
-their issues.
+Serves the kingdoms.v1 contracts from ``contracts/``: Status (the
+cross-process wiring assert) and Live (the aggregated dashboard of
+#147 — the background loop consumes the providers' StreamMatchEvents
+and folds them into the LiveAggregator).
 """
 from __future__ import annotations
 
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from kingdoms import __version__
 from kingdoms.core.rpc.status import CoreStatus, build_status_server
+
+if TYPE_CHECKING:
+    from kingdoms.core.services.live import LiveAggregator
 
 logger = logging.getLogger("kingdoms.core_process")
 
@@ -28,14 +33,75 @@ def main() -> None:
 
 
 async def _serve(port: str) -> None:
+    import asyncio
+
     server = build_status_server(
         lambda: CoreStatus(version=__version__, process="svc-core"),
     )
+    from kingdoms.core.rpc.live import LiveServicer, add_live_servicer
+    from kingdoms.core.services.live import LiveAggregator
+
+    aggregator = LiveAggregator(_CoreBindingsDatabase())
+    add_live_servicer(server, LiveServicer(aggregator))
+    consumer = asyncio.ensure_future(_consume_provider_events(aggregator))
     bind = f"[::]:{port}"
     server.add_insecure_port(bind)
     await server.start()
     logger.info("SVC_CORE_READY port=%s version=%s", port, __version__)
-    await server.wait_for_termination()
+    try:
+        await server.wait_for_termination()
+    finally:
+        consumer.cancel()
+
+
+async def _consume_provider_events(aggregator: LiveAggregator) -> None:
+    """Fold every configured provider's event stream into the aggregator."""
+    import asyncio
+
+    providers = [
+        ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", ""), "aoe2"),
+        ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", ""), "aoe2"),
+    ]
+    tasks = [
+        _consume_one(aggregator, provider_id, uri, game_key)
+        for provider_id, uri, game_key in providers
+        if uri
+    ]
+    if not tasks:
+        aggregator.mark_degraded()
+        return
+    await asyncio.gather(*tasks)
+
+
+async def _consume_one(
+    aggregator: LiveAggregator, provider_id: str, uri: str, game_key: str
+) -> None:
+    """Consume one provider stream forever, degrading on silence."""
+    import asyncio
+
+    from kingdoms.core.rpc.game_client import GameProviderClient
+
+    client = GameProviderClient(uri, provider_id, game_key)
+    while True:
+        try:
+            async for event in client.stream_match_events(since=0):
+                await aggregator.apply_event(event)
+        except Exception:
+            aggregator.mark_degraded()
+            logger.warning("provider %s stream lost; retrying in 5s", provider_id)
+            await asyncio.sleep(5)
+
+
+class _CoreBindingsDatabase:
+    """Mongo-backed bindings seam for the live aggregator (#147)."""
+
+    async def list_bindings_for_game(self, game_key: str) -> list[dict[str, object]]:
+        """List a game's profile bindings from the profile_bindings collection."""
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
+
+        cursor = get_async_database()[PROFILE_BINDINGS_COLLECTION].find({"game_key": game_key})
+        return [dict(doc) async for doc in cursor]
 
 
 if __name__ == "__main__":

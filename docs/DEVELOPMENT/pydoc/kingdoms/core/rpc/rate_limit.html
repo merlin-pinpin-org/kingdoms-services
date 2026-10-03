@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.rate_limit</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.rate_limit</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/rate_limit.py">SOURCE_ROOT/core/rpc/rate_limit.py</a></td></tr></table>
+    <p><span class="code">Redis-backed&nbsp;rate&nbsp;limiting&nbsp;for&nbsp;game&nbsp;provider&nbsp;calls&nbsp;(reference&nbsp;2.4).<br>
+&nbsp;<br>
+Every&nbsp;external&nbsp;API&nbsp;call&nbsp;from&nbsp;a&nbsp;provider&nbsp;adapter&nbsp;goes&nbsp;through&nbsp;this<br>
+throttle:&nbsp;Redis&nbsp;counters&nbsp;under&nbsp;``game:{game_key}:rate``.&nbsp;The&nbsp;limit&nbsp;is<br>
+per&nbsp;provider&nbsp;process&nbsp;and&nbsp;degrades&nbsp;fail-open&nbsp;when&nbsp;Redis&nbsp;is&nbsp;unavailable<br>
+—&nbsp;a&nbsp;throttle&nbsp;outage&nbsp;must&nbsp;never&nbsp;take&nbsp;the&nbsp;provider&nbsp;down.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="redis.asyncio.html">redis.asyncio</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.rate_limit.html#ProviderRateLimiter">ProviderRateLimiter</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderRateLimiter">class <strong>ProviderRateLimiter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderRateLimiter">ProviderRateLimiter</a>(client:&nbsp;'redis.Redis',&nbsp;game_key:&nbsp;'str',&nbsp;max_calls:&nbsp;'int',&nbsp;window_s:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Fixed-window&nbsp;rate&nbsp;limiter&nbsp;backed&nbsp;by&nbsp;a&nbsp;Redis&nbsp;counter.<br>
+&nbsp;<br>
+The&nbsp;window&nbsp;key&nbsp;is&nbsp;``game:{game_key}:rate:{window_start}``&nbsp;so<br>
+concurrent&nbsp;processes&nbsp;share&nbsp;the&nbsp;same&nbsp;budget;&nbsp;each&nbsp;key&nbsp;expires&nbsp;one<br>
+window&nbsp;after&nbsp;its&nbsp;start.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderRateLimiter-__init__"><strong>__init__</strong></a>(self, client: 'redis.Redis', game_key: 'str', max_calls: 'int', window_s: 'int') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderRateLimiter-check"><strong>check</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">Consume&nbsp;one&nbsp;call&nbsp;slot,&nbsp;returning&nbsp;False&nbsp;when&nbsp;over&nbsp;budget.<br>
+&nbsp;<br>
+Fail-open&nbsp;on&nbsp;Redis&nbsp;errors:&nbsp;a&nbsp;throttle&nbsp;outage&nbsp;must&nbsp;never&nbsp;block<br>
+the&nbsp;provider&nbsp;(the&nbsp;external&nbsp;API&nbsp;will&nbsp;enforce&nbsp;its&nbsp;own&nbsp;limit).</span></dd></dl>
+
+<dl><dt>async <a name="ProviderRateLimiter-wait_next_window"><strong>wait_next_window</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;epoch&nbsp;seconds&nbsp;until&nbsp;the&nbsp;next&nbsp;window&nbsp;opens.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>

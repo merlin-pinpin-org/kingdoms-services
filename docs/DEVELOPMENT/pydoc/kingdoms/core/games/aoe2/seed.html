@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.seed</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.seed</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/seed.py">SOURCE_ROOT/core/games/aoe2/seed.py</a></td></tr></table>
+    <p><span class="code">AoE2&nbsp;seeding:&nbsp;MongoDB&nbsp;adapters&nbsp;and&nbsp;idempotent&nbsp;seed&nbsp;orchestration&nbsp;(#137).<br>
+&nbsp;<br>
+Loads&nbsp;``config/games/aoe2/seed.yaml``&nbsp;and&nbsp;drives&nbsp;the&nbsp;real&nbsp;services<br>
+(GameData,&nbsp;Ladder,&nbsp;Season)&nbsp;through&nbsp;a&nbsp;single&nbsp;async&nbsp;MongoDB&nbsp;adapter,&nbsp;so<br>
+both&nbsp;write&nbsp;paths&nbsp;of&nbsp;reference&nbsp;§2/§4&nbsp;stay&nbsp;consistent:&nbsp;seeding&nbsp;goes&nbsp;through<br>
+the&nbsp;services,&nbsp;never&nbsp;direct&nbsp;DB&nbsp;edits,&nbsp;and&nbsp;remains&nbsp;safe&nbsp;to&nbsp;re-run.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.aoe2.seed.html#MongoAoE2Database">MongoAoE2Database</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.games.aoe2.seed.html#NullAudit">NullAudit</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoAoE2Database">class <strong>MongoAoE2Database</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoAoE2Database">MongoAoE2Database</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;GameData,&nbsp;Season&nbsp;and&nbsp;Ladder&nbsp;seams.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoAoE2Database-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(``get_async_database``).</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_active_match"><strong>find_active_match</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;live&nbsp;match&nbsp;on&nbsp;the&nbsp;ladder;&nbsp;None&nbsp;when&nbsp;free.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_active_season"><strong>find_active_season</strong></a>(self, ladder_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;ladder's&nbsp;active&nbsp;season;&nbsp;None&nbsp;when&nbsp;none.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_ladder_by_owner"><strong>find_ladder_by_owner</strong></a>(self, owner_ref: 'str', game_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;ladder&nbsp;of&nbsp;one&nbsp;owner&nbsp;for&nbsp;a&nbsp;game;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_ladder_matches"><strong>find_ladder_matches</strong></a>(self, ladder_id: 'str', statuses: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;ladder's&nbsp;matches&nbsp;in&nbsp;any&nbsp;of&nbsp;the&nbsp;given&nbsp;statuses.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_ladder_players"><strong>find_ladder_players</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;registered&nbsp;player&nbsp;of&nbsp;a&nbsp;ladder.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_ladder_seasons"><strong>find_ladder_seasons</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;seasons&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending&nbsp;by&nbsp;start).</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_open_activations"><strong>find_open_activations</strong></a>(self, map_pool_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;still-open&nbsp;activations&nbsp;referencing&nbsp;one&nbsp;pool.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_player"><strong>find_player</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;player&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_queued_players"><strong>find_queued_players</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;players&nbsp;currently&nbsp;queued&nbsp;on&nbsp;a&nbsp;ladder.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_rating_history"><strong>find_rating_history</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;a&nbsp;player's&nbsp;rating-history&nbsp;lines&nbsp;(ascending).</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_season"><strong>find_season</strong></a>(self, season_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;season&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-upsert_entry"><strong>upsert_entry</strong></a>(self, collection: 'str', document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="NullAudit">class <strong>NullAudit</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">No-op&nbsp;audit&nbsp;seam&nbsp;for&nbsp;seeding&nbsp;(catalog&nbsp;writes&nbsp;are&nbsp;audited&nbsp;as&nbsp;a&nbsp;batch).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt>async <a name="NullAudit-record"><strong>record</strong></a>(self, action: 'str', payload: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Accept&nbsp;the&nbsp;audit&nbsp;line&nbsp;and&nbsp;drop&nbsp;it.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-collection_name"><strong>collection_name</strong></a>(kind: 'str') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;a&nbsp;seed&nbsp;collection&nbsp;kind&nbsp;to&nbsp;its&nbsp;MongoDB&nbsp;name.</span></dd></dl>
+ <dl><dt><a name="-load_seed_data"><strong>load_seed_data</strong></a>(path: 'Path' = PosixPath('config/games/aoe2/seed.yaml')) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Parse&nbsp;the&nbsp;AoE2&nbsp;seed&nbsp;YAML&nbsp;document.</span></dd></dl>
+ <dl><dt>async <a name="-seed_aoe2"><strong>seed_aoe2</strong></a>(database: 'Any', data: 'dict[str, Any]', now: 'int | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Idempotently&nbsp;seed&nbsp;the&nbsp;AoE2&nbsp;catalog,&nbsp;pools,&nbsp;ladders&nbsp;and&nbsp;seasons.<br>
+&nbsp;<br>
+Returns&nbsp;per-section&nbsp;created&nbsp;counts.&nbsp;Re-running&nbsp;skips&nbsp;anything&nbsp;that<br>
+already&nbsp;exists&nbsp;(same&nbsp;ids),&nbsp;so&nbsp;a&nbsp;crashed&nbsp;deployment&nbsp;can&nbsp;just&nbsp;re-seed.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DAY_MS</strong> = 86400000<br>
+<strong>LADDERS_COLLECTION</strong> = 'ladders'<br>
+<strong>MATCHES_COLLECTION</strong> = 'matches'<br>
+<strong>PLAYERS_COLLECTION</strong> = 'players'<br>
+<strong>RATING_HISTORY_COLLECTION</strong> = 'rating_history'<br>
+<strong>SEED_PATH</strong> = PosixPath('config/games/aoe2/seed.yaml')</td></tr></table>
+</body></html>

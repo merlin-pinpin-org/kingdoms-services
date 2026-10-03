@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.rpc_generated.html" class="white">rpc_generated</a>.<a href="kingdoms.rpc_generated.kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.rpc_generated.kingdoms.v1.html" class="white">v1</a>.game_pb2_grpc</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/rpc_generated/kingdoms/v1/game_pb2_grpc.py">SOURCE_ROOT/rpc_generated/kingdoms/v1/game_pb2_grpc.py</a></td></tr></table>
+    <p><span class="code">Client&nbsp;and&nbsp;server&nbsp;classes&nbsp;corresponding&nbsp;to&nbsp;protobuf-defined&nbsp;services.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2.html">kingdoms.rpc_generated.kingdoms.v1.game_pb2</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#Game">Game</a>
+</dt><dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">GameServicer</a>
+</dt><dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameStub">GameStub</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Game">class <strong>Game</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Game">Game</a>&nbsp;provider&nbsp;service&nbsp;(ADR-0020):&nbsp;an&nbsp;external&nbsp;game&nbsp;data&nbsp;provider&nbsp;process<br>
+(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;serves&nbsp;this&nbsp;contract&nbsp;to&nbsp;svc-core.<br>
+The&nbsp;core&nbsp;never&nbsp;interprets&nbsp;provider-internal&nbsp;identifiers:&nbsp;match_ref,<br>
+profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&nbsp;the&nbsp;contract&nbsp;level.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Static methods defined here:<br>
+<dl><dt><a name="Game-GetCapabilities"><strong>GetCapabilities</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-GetMatchDetails"><strong>GetMatchDetails</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-GetMatchLinks"><strong>GetMatchLinks</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-GetMatchResult"><strong>GetMatchResult</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-GetPlayerStats"><strong>GetPlayerStats</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-ListMaps"><strong>ListMaps</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-ResolveProfile"><strong>ResolveProfile</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<dl><dt><a name="Game-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(request, target, options=(), channel_credentials=None, call_credentials=None, insecure=False, compression=None, wait_for_ready=None, timeout=None, metadata=None)</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameServicer">class <strong>GameServicer</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Game">Game</a>&nbsp;provider&nbsp;service&nbsp;(ADR-0020):&nbsp;an&nbsp;external&nbsp;game&nbsp;data&nbsp;provider&nbsp;process<br>
+(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;serves&nbsp;this&nbsp;contract&nbsp;to&nbsp;svc-core.<br>
+The&nbsp;core&nbsp;never&nbsp;interprets&nbsp;provider-internal&nbsp;identifiers:&nbsp;match_ref,<br>
+profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&nbsp;the&nbsp;contract&nbsp;level.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameServicer-GetCapabilities"><strong>GetCapabilities</strong></a>(self, request, context)</dt><dd><span class="code">Declare&nbsp;what&nbsp;this&nbsp;provider&nbsp;actually&nbsp;supports.&nbsp;The&nbsp;core&nbsp;degrades<br>
+cleanly&nbsp;on&nbsp;anything&nbsp;absent&nbsp;(reference:&nbsp;ladder&nbsp;spec&nbsp;1.2).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-GetMatchDetails"><strong>GetMatchDetails</strong></a>(self, request, context)</dt><dd><span class="code">Full&nbsp;match&nbsp;details:&nbsp;map,&nbsp;slotinfo&nbsp;(per-slot&nbsp;state)&nbsp;and&nbsp;the&nbsp;raw<br>
+game&nbsp;options&nbsp;(map&nbsp;size,&nbsp;speed,&nbsp;victory&nbsp;condition,&nbsp;...).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-GetMatchLinks"><strong>GetMatchLinks</strong></a>(self, request, context)</dt><dd><span class="code"><a href="#Game">Game</a>&nbsp;action&nbsp;links&nbsp;(join/spectate/insights)&nbsp;as&nbsp;opaque&nbsp;label+url&nbsp;pairs.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-GetMatchResult"><strong>GetMatchResult</strong></a>(self, request, context)</dt><dd><span class="code">Fetch&nbsp;the&nbsp;result&nbsp;of&nbsp;a&nbsp;finished&nbsp;game&nbsp;(winner,&nbsp;duration,&nbsp;map,&nbsp;factions).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-GetPlayerStats"><strong>GetPlayerStats</strong></a>(self, request, context)</dt><dd><span class="code">Named&nbsp;stats&nbsp;blocks&nbsp;for&nbsp;a&nbsp;player&nbsp;profile&nbsp;(rendered&nbsp;by&nbsp;the&nbsp;platform<br>
+adapter;&nbsp;the&nbsp;core&nbsp;never&nbsp;formats&nbsp;them).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-ListMaps"><strong>ListMaps</strong></a>(self, request, context)</dt><dd><span class="code">The&nbsp;maps&nbsp;this&nbsp;provider&nbsp;knows&nbsp;about&nbsp;for&nbsp;its&nbsp;game&nbsp;(catalog&nbsp;data).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-ResolveProfile"><strong>ResolveProfile</strong></a>(self, request, context)</dt><dd><span class="code">Resolve&nbsp;which&nbsp;mod&nbsp;user&nbsp;matches&nbsp;a&nbsp;game&nbsp;profile.&nbsp;Used&nbsp;for&nbsp;profile<br>
+validation&nbsp;at&nbsp;registration&nbsp;and&nbsp;for&nbsp;match&nbsp;participant&nbsp;resolution.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(self, request, context)</dt><dd><span class="code">Stream&nbsp;match&nbsp;lifecycle&nbsp;events&nbsp;(lobby_opened,&nbsp;lobby_closed,<br>
+game_started,&nbsp;game_ended)&nbsp;for&nbsp;the&nbsp;matches&nbsp;this&nbsp;provider&nbsp;can&nbsp;see.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameStub">class <strong>GameStub</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameStub">GameStub</a>(channel)<br>
+&nbsp;<br>
+<a href="#Game">Game</a>&nbsp;provider&nbsp;service&nbsp;(ADR-0020):&nbsp;an&nbsp;external&nbsp;game&nbsp;data&nbsp;provider&nbsp;process<br>
+(ext-librematch,&nbsp;ext-aoe2lobby,&nbsp;...)&nbsp;serves&nbsp;this&nbsp;contract&nbsp;to&nbsp;svc-core.<br>
+The&nbsp;core&nbsp;never&nbsp;interprets&nbsp;provider-internal&nbsp;identifiers:&nbsp;match_ref,<br>
+profile_id&nbsp;and&nbsp;faction_key&nbsp;are&nbsp;opaque&nbsp;strings&nbsp;at&nbsp;the&nbsp;contract&nbsp;level.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameStub-__init__"><strong>__init__</strong></a>(self, channel)</dt><dd><span class="code">Constructor.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;channel:&nbsp;A&nbsp;grpc.Channel.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_GameServicer_to_server"><strong>add_GameServicer_to_server</strong></a>(servicer, server)</dt></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GRPC_GENERATED_VERSION</strong> = '1.84.0'<br>
+<strong>GRPC_VERSION</strong> = '1.84.0'</td></tr></table>
+</body></html>
