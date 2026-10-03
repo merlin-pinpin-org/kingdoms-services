@@ -1,40 +1,49 @@
-"""Vibe session fix loop (v5).
+"""Vibe session fix loop (v6).
 
-Residual mypy fixes: channels_platform.py accesses ".id" on
-object-typed variables. Replace with getattr() so mypy passes.
-Regex-based and idempotent: safe to run on every CI loop run.
+Residual mypy fix in channels_platform.py: _channels_of_kind()
+is typed "list[object]", so ".id" access fails mypy strict.
+Type it (and the "found" accumulator) as ForumChannel/TextChannel
+so attribute access is valid. Plain typing edits: ruff --fix
+leaves them untouched (unlike getattr() rewrites, which ruff
+reverted in the previous run).
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 PATH = Path("src/kingdoms/discord/channels_platform.py")
-BAD = re.compile(r"str\((channel|found)\.id\)")
 
+UNION = "discord.ForumChannel | discord.TextChannel"
 
-def fix_text(text: str) -> tuple[str, list[str]]:
-    hits = [line for line in text.splitlines() if BAD.search(line)]
-    def repl(match: re.Match[str]) -> str:
-        var = match.group(1)
-        return f'str(getattr({var}, "id"))'
-    return BAD.sub(repl, text), hits
+EDITS: list[tuple[str, str]] = [
+    (
+        "def _channels_of_kind(self, guild: discord.Guild, kind: str) -> list[object]:",
+        "def _channels_of_kind(self, guild: discord.Guild, kind: str) -> list[" + UNION + "]:",
+    ),
+    (
+        "return list(guild.text_channels)",
+        "return list[" + UNION + "](guild.text_channels)",
+    ),
+    (
+        "found: object | None = None",
+        "found: " + UNION + " | None = None",
+    ),
+]
 
 
 def main() -> None:
     text = PATH.read_text(encoding="utf-8")
-    new_text, hits = fix_text(text)
-    if hits:
-        for line in hits:
-            print(f"fixing: {line.strip()}")
-        PATH.write_text(new_text, encoding="utf-8")
-        print(f"applied {len(hits)} getattr fix(es) in {PATH}")
-    else:
-        print("no direct .id access left; nothing to do")
-    remaining = [l for l in new_text.splitlines() if BAD.search(l)]
-    print(f"remaining direct .id lines: {len(remaining)}")
-    for line in remaining:
-        print(f"STILL BAD: {line.strip()}")
+    for old, new in EDITS:
+        if new in text:
+            print("already applied:", new)
+            continue
+        if old not in text:
+            print("MISSING PATTERN (FATAL):", old)
+            raise SystemExit(1)
+        text = text.replace(old, new, 1)
+        print("applied edit:", new)
+    PATH.write_text(text, encoding="utf-8")
+    print("done")
 
 
 if __name__ == "__main__":
