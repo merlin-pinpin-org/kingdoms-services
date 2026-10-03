@@ -52,7 +52,8 @@ class FakeChannelsPlatform:
         self.created: list[str] = []
         self.names: dict[str, str] = {}
 
-    async def find_channel_by_name(self, guild_id: str, name: str) -> str | None:
+    async def find_channel_by_name(self, guild_id: str, name: str) -> str | No
+ne:
         return self.adoptable.get(name)
 
     async def create_channel(self, guild_id: str, name: str) -> str:
@@ -106,7 +107,8 @@ class TestPlatformCategories:
     async def test_second_resolution_hits_the_cache(self) -> None:
         service, db, platform, _store, _clock = make_service()
         first = await service.get_channel_for_category(GUILD, "logs")
-        platform.created.clear()
+        platf
+orm.created.clear()
         db.upserts.clear()
         second = await service.get_channel_for_category(GUILD, "logs")
         assert second.id == first.id
@@ -149,7 +151,8 @@ class TestCacheAsideFlow:
         service, db, platform, _store, _clock = make_service()
         platform.live.add("ch-existing")
         platform.adoptable["LOGS"] = "ch-existing"
-        channel = await service.get_channel_for_category(GUILD, "logs")
+        channel = awai
+t service.get_channel_for_category(GUILD, "logs")
         assert channel.id == "ch-existing"
         assert db.channels[f"{GUILD}:logs"].channel_id == "ch-existing"
 
@@ -191,6 +194,7 @@ class FakeStructuredPlatform(FakeChannelsPlatform):
 
     def __init__(self) -> None:
         super().__init__()
+
         self.group_seq = 100
         self.groups: dict[str, str] = {}
         self.group_names: dict[str, str] = {}
@@ -242,7 +246,8 @@ class FakeStructuredPlatform(FakeChannelsPlatform):
         return channel_id
 
     async def single_channel_in_group(self, guild_id: str, group_id: str, kind: str) -> str | None:
-        for channel_id, member_of in self.channel_group.items():
+        for channel_id, member_of in self.channel_gro
+up.items():
             if member_of == group_id and self.channel_kind.get(channel_id) == kind:
                 return channel_id
         return None
@@ -260,13 +265,17 @@ def make_structured_service() -> (
             name="example",
             channel_groups=(
                 ChannelGroupDef(key="main", display_name="Salons"),
-                ChannelGroupDef(key="admin", display_name="Admin", admin_only=True),
+                ChannelGroupDef(key="admin", display_name="Admin", admin_only=True, position=1),
             ),
             channel_categories=(
-                ChannelCategoryDef(key="announce", display_name="Annonces", group="main", kind="announce"),
-                ChannelCategoryDef(key="rules", display_name="Règles", group="main", kind="forum"),
-                ChannelCategoryDef(key="epoch", display_name="Âge sombre", group="main", adopt="group_single"),
-                ChannelCategoryDef(key="requests", display_name="Demandes", group="admin", admin_only=True),
+                ChannelCategoryDef(
+                    key="announce", display_name="Annonces", group="main", kind="announce", position=0
+                ),
+                ChannelCategoryDef(key="rules", display_name="Règles", group="main", kind="forum", position=1),
+                ChannelCategoryDef(
+                    key="epoch", display_name="Âge sombre", group="main", adopt="group_single", position=2
+                ),
+                ChannelCategoryDef(key="requests", display_name="Demandes", group="admin", admin_only=True, position=0),
             ),
             roles=(RoleDef(key="member", display_name="Example Member"),),
         )
@@ -289,7 +298,8 @@ async def test_provision_mod_channels_creates_groups_then_channels() -> None:
     assert [name for name, _, _ in platform.created_groups] == ["Salons", "Admin"]
     assert platform.created_groups[1] == ("Admin", 1, True)
     kinds = {
-        (name, kind): (group, admin_only, position)
+        (name, kind)
+: (group, admin_only, position)
         for name, kind, group, admin_only, position in platform.created_of_kind
     }
     assert kinds[("Annonces", "announce")] == ("grp100", False, 0)
@@ -333,7 +343,8 @@ async def test_provision_mod_channels_adopts_existing_group_and_channel_by_name(
 
 
 @pytest.mark.asyncio
-async def test_provision_mod_channels_adopts_group_single_channel_whatever_its_name() -> None:
+async def
+ test_provision_mod_channels_adopts_group_single_channel_whatever_its_name() -> None:
     """A renameable singleton is adopted by its group, never by its name."""
     service, _, platform, _ = make_structured_service()
     platform.groups["Salons"] = "grp9"
@@ -370,5 +381,5 @@ async def test_provision_mod_channels_falls_back_to_the_legacy_seam() -> None:
     )
     report = await service.provision_mod_channels(GUILD, "example")
     assert "Salons" in report.created
-    assert "Annonces" in report.created
+    assert "Salons/Annonces" in report.created
     assert platform.created == ["Salons", "Annonces"]

@@ -1,12 +1,13 @@
 """ChannelService: channel category management.
 
 Resolves any category key — platform-level (ChannelCategory enum) or
-mod-scoped (``mod:key``, declared in mod YAML and exposed by ModRegistry)
+mod-scoped (`mod:key`, declared in mod YAML and exposed by ModRegistry)
 — to a concrete channel. Resolution order: cache -> database -> platform
 creation. The service is generic: it never enumerates mod categories.
 
 Implemented in kingdoms-services#5. Mod-scoped categories and per-mod
-provisioning: kingdoms-services#26, ADR-0003.
+provisioning: kingdoms-services#26, ADR-0003. Declaration-driven channel
+groups, kinds and adopt policies: kingdoms-services#175.
 """
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from typing import Protocol
 
 from kingdoms.core.interfaces.platform import IChannel
 from kingdoms.core.models.channel import ChannelModel
-from kingdoms.core.services.mod_registry import ModRegistry
 from kingdoms.core.services.mod_definition import ChannelGroupDef
+from kingdoms.core.services.mod_registry import ModRegistry
 
 logger = logging.getLogger("kingdoms.channels")
 
@@ -132,7 +133,7 @@ class ChannelService:
         cache: ChannelsCache,
         registry: ModRegistry,
     ) -> None:
-        """Wire the stores; ``cache`` is a StateService (Redis cache-aside)."""
+        """Wire the stores; `cache` is a StateService (Redis cache-aside)."""
         self._db = database
         self._platform = platform
         self._cache = cache
@@ -142,7 +143,7 @@ class ChannelService:
         """Resolve a category key to its channel display name.
 
         Platform-level categories use their enum name; mod-scoped keys
-        (``mod:key``) resolve through the mod's declaration — an unknown
+        (`mod:key`) resolve through the mod's declaration — an unknown
         key fails loudly (never provision an undeclared channel).
         """
         if ":" in category:
@@ -168,20 +169,23 @@ class ChannelService:
         return structured  # type: ignore[return-value]
 
     def _spec_for_category(
-        self, category: str
-    ) -> tuple[str, str, str, bool, int, str, bool]:
-        """(name, kind, group key, admin_only, position, adopt, is_group).
+        self, category: str, *, as_group: bool
+    ) -> tuple[str, str, str, bool, int, str]:
+        """(name, kind, group key, admin_only, position, adopt) for one key.
 
-        Mod-scoped keys read their declaration (group membership, kind,
-        admin-only flag, adopt policy); group keys resolve as categories;
+        `as_group` decides what a same-key group/channel pair means
+        (`mod:epoch` declares both): the caller states whether it asks
+        for the group or the channel — a group key never resolves as a
+        channel and vice versa. Mod-scoped keys read their declaration
+        (group membership, kind, admin-only flag, adopt policy);
         platform categories keep the flat legacy flow.
         """
         if ":" in category:
             mod_name, _, key = category.partition(":")
             definition = self._registry.require(mod_name)
-            for group in definition.channel_groups:
-                if group.key == key:
-                    return (group.display_name, "text", "", group.admin_only, group.position, "name", True)
+            if as_group:
+                group = definition.channel_group(key)
+                return (group.display_name, "text", "", group.admin_only, group.position, "name")
             declared = definition.channel_category(key)
             return (
                 declared.display_name,
@@ -190,45 +194,75 @@ class ChannelService:
                 declared.admin_only,
                 declared.position,
                 declared.adopt,
-                False,
             )
-        return (self._category_name(category), "text", "", False, 0, "name", False)
+        return (self._category_name(category), "text", "", False, 0, "name")
 
-    def _group_def_for_category(self, category: str) -> ChannelGroupDef:
-        """The ChannelGroupDef behind a ``mod:<group>`` category key."""
-        mod_name, _, key = category.partition(":")
-        return self._registry.require(mod_name).channel_group(key)
+    async def _resolve_group_id(self, guild_id: str, group: ChannelGroupDef) -> str | None:
+        """Resolve a declared channel group to its platform id.
 
-    async def _resolve_group_id(self, guild_id: str, group_category: str, group: ChannelGroupDef) -> str:
-        """Resolve a declared channel group (category) to its platform id."""
+        Groups are containers, not channels: they resolve through the
+        structured seam on every call (find by name, else create) and
+        are never persisted in the channel stores.
+        """
         structured = self._structured_platform()
         if structured is None:
-            return ""
-        adopted = await structured.find_group_by_name(guild_id, group.display_name)
-        if adopted is not None:
-            await self._persist(guild_id, group_category, adopted, group.display_name)
-            return adopted
-        created = await structured.create_group(guild_id, group.display_name, group.position, group.admin_only)
-        await self._persist(guild_id, group_category, created, group.display_name)
-        return created
+            return None
+        found = await structured.find_group_by_name(guild_id, group.display_name)
+        if found is not None:
+            return found
+        return await structured.create_group(guild_id, group.display_name, group.position, group.admin_only)
 
-    async def get_channel_for_category(self, guild_id: str, category: str) -> IChannel:
-        """Resolve a channel for a category (cache -> database -> creation).
+    async def get_channel_for_category(
+        self, guild_id: str, category: str, *, as_group: bool = False
+    ) -> IChannel:
+        """Resolve a channel (or, with `as_group`, a group) for a category.
 
-        The platform seam guarantees existence of the returned channel id;
-        this method returns the core-side channel view built from it.
+        Channels resolve cache -> database -> creation; groups resolve
+        through the structured seam only. The platform seam guarantees
+        existence of the returned channel id; this method returns the
+        core-side channel view built from it.
         """
-        channel_id = await self._resolve_channel_id(guild_id, category)
-        return _ResolvedChannel(id=channel_id, name=self._category_name(category))
+        channel_id = await self._resolve_channel_id(guild_id, category, as_group=as_group)
+        return _ResolvedChannel(id=channel_id, name=self._spec_for_category(category, as_group=as_group)[0])
 
     async def _resolve_channel_id(
-        self, guild_id: str, category: str, sink: dict[str, str] | None = None
+        self,
+        guild_id: str,
+        category: str,
+        *,
+        as_group: bool = False,
+        sink: dict[str, str] | None = None,
     ) -> str:
-        """Cache-aside resolution of one guild category to a channel id.
+        """Resolve one guild category to a platform id.
 
-        ``sink`` (optional) records the outcome of the *resolution*
-        (``created``/``adopted``) for declaration-driven provisioning.
+        Channels resolve cache -> database -> platform creation. Groups
+        (Discord categories) resolve through the structured seam only
+        and never enter the channel stores: a group is a container, not
+        a channel, and a same-key group/channel pair (`mod:epoch`)
+        must never collide in the cache or the database. `sink`
+        (optional) records the outcome (created/adopted) for
+        declaration-driven provisioning.
         """
+        name, kind, group_key, admin_only, position, adopt = self._spec_for_category(
+            category, as_group=as_group
+        )
+        structured = self._structured_platform()
+
+        if as_group:
+            if structured is None:
+                # Legacy platform without the structured seam: the group
+                # degrades to a flat channel under its display name.
+                return await self._resolve_flat(guild_id, category, name, sink)
+            found = await structured.find_group_by_name(guild_id, name)
+            if found is not None:
+                if sink is not None:
+                    sink[category] = "adopted"
+                return found
+            created_group = await structured.create_group(guild_id, name, position, admin_only)
+            if sink is not None:
+                sink[category] = "created"
+            return created_group
+
         cache_key = f"{guild_id}:{category}"
         cached = await self._cache.get_state(CHANNELS_COLLECTION, cache_key)
         if cached is not None and cached.get("channel_id"):
@@ -244,28 +278,13 @@ class ChannelService:
                 return stored.channel_id
             await self._db.delete_channel(guild_id, category)
 
-        name, kind, group_key, admin_only, position, adopt, is_group = self._spec_for_category(category)
-        structured = self._structured_platform()
-        if structured is not None and is_group:
-            group_def = self._group_def_for_category(category)
-            found = await structured.find_group_by_name(guild_id, group_def.display_name)
-            if found is not None:
-                await self._persist(guild_id, category, found, group_def.display_name)
-                if sink is not None:
-                    sink[category] = "adopted"
-                return found
-            created_group = await structured.create_group(
-                guild_id, group_def.display_name, group_def.position, group_def.admin_only
-            )
-            await self._persist(guild_id, category, created_group, group_def.display_name)
-            if sink is not None:
-                sink[category] = "created"
-            return created_group
         group_id: str | None = None
+        group_admin_only = False
         if structured is not None and group_key:
             mod_name = category.partition(":")[0]
             group = self._registry.require(mod_name).channel_group(group_key)
-            group_id = await self._resolve_group_id(guild_id, f"{mod_name}:{group_key}", group)
+            group_id = await self._resolve_group_id(guild_id, group)
+            group_admin_only = group.admin_only
 
         if structured is not None and group_id is not None:
             found = await structured.find_channel_of_kind(guild_id, name, kind, group_id)
@@ -277,13 +296,19 @@ class ChannelService:
                     sink[category] = "adopted"
                 return found
             created = await structured.create_channel_of_kind(
-                guild_id, name, kind, group_id, admin_only, position
+                guild_id, name, kind, group_id, admin_only or group_admin_only, position
             )
             await self._persist(guild_id, category, created, name)
             if sink is not None:
                 sink[category] = "created"
             return created
 
+        return await self._resolve_flat(guild_id, category, name, sink)
+
+    async def _resolve_flat(
+        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None
+    ) -> str:
+        """Legacy flat seam: adopt by exact name, else create; persist the outcome."""
         adopted = await self._platform.find_channel_by_name(guild_id, name)
         if adopted is not None:
             await self._persist(guild_id, category, adopted, name)
@@ -327,12 +352,12 @@ class ChannelService:
         """Provision every channel group and channel declared by a mod.
 
         Generic: reads the mod's declaration via ModRegistry and resolves
-        each ``mod:key`` category with the same flow as any other category.
+        each `mod:key` category with the same flow as any other category.
         """
         definition = self._registry.require(mod_name)
         channels: dict[str, IChannel] = {}
         for group in definition.channel_groups:
-            await self.get_channel_for_category(guild_id, f"{mod_name}:{group.key}")
+            await self.get_channel_for_category(guild_id, f"{mod_name}:{group.key}", as_group=True)
         for category_def in definition.channel_categories:
             category = f"{mod_name}:{category_def.key}"
             channels[category] = await self.get_channel_for_category(guild_id, category)
@@ -355,12 +380,16 @@ class ChannelService:
         channel_ids: dict[str, str] = {}
         for group in definition.channel_groups:
             group_category = f"{mod_name}:{group.key}"
-            group_ids[group.key] = await self._resolve_channel_id(guild_id, group_category, sink)
+            group_ids[group.key] = await self._resolve_channel_id(
+                guild_id, group_category, as_group=True, sink=sink
+            )
             label = group.display_name
             (created if sink.get(group_category) == "created" else adopted).append(label)
         for category_def in definition.channel_categories:
             category = f"{mod_name}:{category_def.key}"
-            channel_ids[category_def.key] = await self._resolve_channel_id(guild_id, category, sink)
+            channel_ids[category_def.key] = await self._resolve_channel_id(
+                guild_id, category, as_group=False, sink=sink
+            )
             label = (
                 f"{definition.channel_group(category_def.group).display_name}/{category_def.display_name}"
                 if category_def.group
