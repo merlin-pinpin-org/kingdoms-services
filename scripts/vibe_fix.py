@@ -9,17 +9,19 @@ is idempotent across runs. Removed once the stack is green.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+GIT = shutil.which("git") or "/usr/bin/git"
 
 
 def restore(path: str, from_commit: str) -> None:
     """Restore one file's clean content from the git history."""
     out = subprocess.run(
-        ["git", "show", f"{from_commit}:{path}"],
+        [GIT, "show", f"{from_commit}:{path}"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -108,12 +110,14 @@ def main() -> int:
         "tests/unit/test_discord/test_kingdom_panels.py",
         [
             (
-                "from tests.mocks.provision import provisioned_wiring\nfrom tests.mocks.discord_mock import (",
+                "from tests.mocks.provision import provisioned_wiring\n"
+                "from tests.mocks.discord_mock import (",
                 "from tests.mocks.discord_mock import (",
             ),
             (
                 ")\n\n\nclass _FakeLogsService:",
-                ")\nfrom tests.mocks.provision import provisioned_wiring\n\n\nclass _FakeLogsService:",
+                ")\nfrom tests.mocks.provision import provisioned_wiring\n"
+                "\n\nclass _FakeLogsService:",
             ),
         ],
     )
@@ -121,12 +125,14 @@ def main() -> int:
         "tests/unit/test_discord/test_kingdom_profiles.py",
         [
             (
-                "from tests.mocks.provision import provisioned_wiring\nfrom tests.mocks.discord_mock import (",
+                "from tests.mocks.provision import provisioned_wiring\n"
+                "from tests.mocks.discord_mock import (",
                 "from tests.mocks.discord_mock import (",
             ),
             (
                 ")\n\n\ndef _guild() -> MockGuild:",
-                ")\nfrom tests.mocks.provision import provisioned_wiring\n\n\ndef _guild() -> MockGuild:",
+                ")\nfrom tests.mocks.provision import provisioned_wiring\n"
+                "\n\ndef _guild() -> MockGuild:",
             ),
         ],
     )
@@ -139,14 +145,29 @@ def main() -> int:
             '    assert [group.key for group in groups][0] == "profiles"\n'
             '    assert [group.key for group in groups][1] == "general"\n'
             '    assert [group.key for group in groups][-1] == "support"',
-            '    group_keys = [group.key for group in kingdoms_definition().channel_groups]\n'
+            '    group_keys = [group.key for group in '
+            'kingdoms_definition().channel_groups]\n'
             '    assert group_keys[0] == "profiles"\n'
             '    assert group_keys[1] == "general"\n'
             '    assert group_keys[-1] == "support"',
         )],
     )
 
-    # 5. The profiles module lands with the next PR in the stack: the
+    # 5. The groups variable went away with the RUF015 edit: resolve the
+    #    admin group lookup straight from the declaration (ruff F821).
+    edit(
+        "tests/unit/test_discord/test_kingdom_setup.py",
+        [(
+            '    admin = next(group for group in groups if group.key == "admin")',
+            '    admin = next(\n'
+            '        group\n'
+            '        for group in kingdoms_definition().channel_groups\n'
+            '        if group.key == "admin"\n'
+            '    )',
+        )],
+    )
+
+    # 6. The profiles module lands with the next PR in the stack: the
     #    panels test that touches it skips until then.
     edit(
         "tests/unit/test_discord/test_kingdom_panels.py",
@@ -159,7 +180,7 @@ def main() -> int:
         )],
     )
 
-    # 6. mypy: load_mod_definitions already returns the declarations.
+    # 7. mypy: load_mod_definitions already returns the declarations.
     edit(
         "tests/mocks/provision.py",
         [(
@@ -169,7 +190,7 @@ def main() -> int:
         )],
     )
 
-    # 7. D401: imperative docstring (ruff).
+    # 8. D401: imperative docstring (ruff).
     edit(
         "src/kingdoms/core/services/channel.py",
         [(
@@ -178,7 +199,7 @@ def main() -> int:
         )],
     )
 
-    # 8. C901: split _resolve_channel_id into focused helpers.
+    # 9. C901: split _resolve_channel_id into focused helpers.
     edit(
         "src/kingdoms/core/services/channel.py",
         [
@@ -207,10 +228,10 @@ def main() -> int:
                 '            if sink is not None:\n'
                 '                sink[category] = "created"\n'
                 '            return created_group\n',
-                "        if as_group:\n"
-                "            return await self._resolve_group_category(\n"
-                "                guild_id, category, structured, sink\n"
-                "            )\n",
+                '        if as_group:\n'
+                '            return await self._resolve_group_category(\n'
+                '                guild_id, category, structured, sink\n'
+                '            )\n',
             ),
             (
                 '        group_id: str | None = None\n'
@@ -239,19 +260,19 @@ def main() -> int:
                 '            return created\n'
                 '\n'
                 '        return await self._resolve_flat(guild_id, category, name, sink)\n',
-                "        if structured is not None and group_key:\n"
-                "            resolved = await self._resolve_in_group(\n"
-                "                guild_id, category, group_key, structured, sink\n"
-                "            )\n"
-                "            if resolved is not None:\n"
-                "                return resolved\n"
-                "\n"
-                "        return await self._resolve_flat(guild_id, category, name, sink)\n",
+                '        if structured is not None and group_key:\n'
+                '            resolved = await self._resolve_in_group(\n'
+                '                guild_id, category, group_key, structured, sink\n'
+                '            )\n'
+                '            if resolved is not None:\n'
+                '                return resolved\n'
+                '\n'
+                '        return await self._resolve_flat(guild_id, category, name, sink)\n',
             ),
             (
-                "    async def _resolve_flat(\n"
-                "        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n"
-                "    ) -> str:",
+                '    async def _resolve_flat(\n'
+                '        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n'
+                '    ) -> str:',
                 '    async def _resolve_group_category(\n'
                 '        self,\n'
                 '        guild_id: str,\n'
@@ -317,7 +338,7 @@ def main() -> int:
         ],
     )
 
-    # 9. channels_platform.py: D401 docstrings and mypy guards.
+    # 10. channels_platform.py: D401 docstrings and mypy guards.
     edit(
         "src/kingdoms/discord/channels_platform.py",
         [
@@ -326,26 +347,27 @@ def main() -> int:
                 '        """Return the guild\'s live channels of a declared kind (forum vs text)."""',
             ),
             (
-                '        """The group\'s single channel of a kind, whatever its name; None otherwise."""',
-                '        """Return the group\'s single channel of a kind, whatever its name; '
+                '        """The group\'s single channel of a kind, whatever its name; '
                 'None otherwise."""',
+                '        """Return the group\'s single channel of a kind, whatever its '
+                'name; None otherwise."""',
             ),
             (
-                "        category = guild.get_channel(int(group_id)) if group_id and "
-                "group_id.isdigit() else None",
-                "        fetched = guild.get_channel(int(group_id)) if group_id and "
-                "group_id.isdigit() else None\n"
-                "        category = fetched if isinstance(fetched, discord.CategoryChannel) "
-                "else None",
+                '        category = guild.get_channel(int(group_id)) if group_id and '
+                'group_id.isdigit() else None',
+                '        fetched = guild.get_channel(int(group_id)) if group_id and '
+                'group_id.isdigit() else None\n'
+                '        category = fetched if isinstance(fetched, '
+                'discord.CategoryChannel) else None',
             ),
             (
-                "        return str(found.id) if found is not None else None",
+                '        return str(found.id) if found is not None else None',
                 '        return str(getattr(found, "id")) if found is not None else None',
             ),
         ],
     )
 
-    # 10. kingdom_persistent.py: C901 — split _run_reset into helpers.
+    # 11. kingdom_persistent.py: C901 — split _run_reset into helpers.
     edit(
         "src/kingdoms/discord/kingdom_persistent.py",
         [(
@@ -464,6 +486,47 @@ def main() -> int:
             '            except Exception:\n'
             '                logger.warning("KINGDOMS ADMIN: category delete failed", exc_info=True)\n'
             '    return deleted\n',
+        )],
+    )
+
+    # 12. The mod declaration now carries the salons-first channel
+    #     categories: the validated-set test expects them all.
+    edit(
+        "tests/unit/test_kingdoms_mod.py",
+        [(
+            '        assert {c.key for c in kingdoms.channel_categories} == {\n'
+            '            "attack",\n'
+            '            "attack_delays",\n'
+            '            "cadastre",\n'
+            '            "diplomacy",\n'
+            '            "geopolitics",\n'
+            '        }',
+            '        assert {c.key for c in kingdoms.channel_categories} == {\n'
+            '            "announce",\n'
+            '            "applications",\n'
+            '            "apply",\n'
+            '            "attack",\n'
+            '            "attack_delays",\n'
+            '            "bug",\n'
+            '            "cadastre",\n'
+            '            "diplomacy",\n'
+            '            "epoch",\n'
+            '            "exploration",\n'
+            '            "geopolitics",\n'
+            '            "lords",\n'
+            '            "patrol",\n'
+            '            "presentation",\n'
+            '            "question",\n'
+            '            "requests",\n'
+            '            "rules",\n'
+            '            "season",\n'
+            '            "settings",\n'
+            '            "suggestions",\n'
+            '            "talks",\n'
+            '            "tavern",\n'
+            '            "territory",\n'
+            '            "update",\n'
+            '        }',
         )],
     )
     return 0
