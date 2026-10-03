@@ -123,6 +123,24 @@ class TerritoryService:
         logger.info("kingdoms: initial draw — %s territories over %s kingdoms", cursor, len(player_kingdoms) + 1)
         return created
 
+    async def draw_map_for(self, owner_kingdom_id: str, map_key: str) -> TerritoryModel:
+        """Draw one specific allowed map as a territory (T5/T7 helper).
+
+        Refuses out maps (§8) and maps outside the admin catalog; used
+        by the Lord's Day Gaia draw, the exploration reward and the
+        Explorateur technology.
+        """
+        season = await self._require_season()
+        catalog = {entry.key for entry in self._config.maps}
+        if map_key not in catalog:
+            raise TerritoryNotFoundError("this map is not in the allowed catalog")
+        if map_key in await self.drawn_map_keys():
+            raise MapPoolExhaustedError("this map is already out for the season", missing=0)
+        territory = self._new_territory(season, map_key, owner_kingdom_id)
+        await self._store.upsert_territory(territory.to_mongo())
+        logger.info("kingdoms: map %s drawn for %s", map_key, owner_kingdom_id)
+        return territory
+
     async def transfer(self, territory_id: str, new_owner_kingdom_id: str) -> TerritoryModel:
         """Idempotent ownership transfer (§9, primitive for T4/T5/T7).
 

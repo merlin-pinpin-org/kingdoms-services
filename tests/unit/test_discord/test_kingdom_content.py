@@ -226,7 +226,7 @@ async def test_epoch_readonly_and_adoption_after_rename() -> None:
     service = _FakeService(_season("feudal_age"))
     assert await refresh_epoch_channel(guild, "fr", service)
     epoch = next(c for c in guild.text_channels if _slug(getattr(c.category, "name", "")) == "epoque")
-    assert epoch.name == "age-feodal"
+    assert epoch.name == "Âge féodal"
     created_overwrite = epoch.creation_overwrite_for(guild.default_role)
     assert created_overwrite is not None and created_overwrite.send_messages is False
 
@@ -260,7 +260,7 @@ async def test_reset_deletes_a_renamed_epoch_channel() -> None:
     guild = await _provisioned()
     service = _FakeService(_season("feudal_age"))
     assert await refresh_epoch_channel(guild, "fr", service)
-    assert any(c.name == "age-feodal" for c in guild.text_channels)
+    assert any(c.name == "Âge féodal" for c in guild.text_channels)
 
     permissions = discord.Permissions(administrator=True)
     interaction = MockInteraction(

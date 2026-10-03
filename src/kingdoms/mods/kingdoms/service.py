@@ -431,8 +431,8 @@ class KingdomsService:
             raise KingdomNotFoundError("no kingdom with this name in the current season")
         return found
 
-    @staticmethod
     def _new_kingdom(
+        self,
         kingdom_id: str,
         kind: KingdomType,
         season_id: str,
@@ -441,10 +441,12 @@ class KingdomsService:
         name_approved: bool = True,
     ) -> KingdomModel:
         """Build one kingdom document (Gaïa keeps its reserved name)."""
+        capacity = self._config.ages[0].extra_marriages if self._config.ages else 0
         return KingdomModel(
             _id=kingdom_id,
             season_id=season_id,
             type=kind,
             name=name if name is not None else GAIA_KINGDOM_KEY,
             name_approved=name_approved,
+            marriage_capacity=0 if kind is KingdomType.GAIA else capacity,
         )

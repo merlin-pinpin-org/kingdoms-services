@@ -73,6 +73,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-find_showmatches"><strong>find_showmatches</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;ShowMatch&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-find_technologies"><strong>find_technologies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;technology&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -84,6 +86,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="KingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-upsert_showmatch"><strong>upsert_showmatch</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;ShowMatch&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_technology"><strong>upsert_technology</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;technology&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -157,6 +161,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 
 <dl><dt>async <a name="MongoKingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-find_showmatches"><strong>find_showmatches</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;ShowMatch&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-find_technologies"><strong>find_technologies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;technology&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -168,6 +174,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 <dl><dt>async <a name="MongoKingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-upsert_showmatch"><strong>upsert_showmatch</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;ShowMatch&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_technology"><strong>upsert_technology</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;technology&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -196,6 +204,7 @@ Data descriptors defined here:<br>
 <strong>KINGDOMS_COLLECTION</strong> = 'kingdoms_kingdoms'<br>
 <strong>LORDS_COLLECTION</strong> = 'kingdoms_lords'<br>
 <strong>SEASONS_COLLECTION</strong> = 'kingdoms_seasons'<br>
+<strong>SHOWMATCH_COLLECTION</strong> = 'kingdoms_showmatch'<br>
 <strong>TECHNOLOGIES_COLLECTION</strong> = 'kingdoms_technologies'<br>
 <strong>TERRITORIES_COLLECTION</strong> = 'kingdoms_territories'</td></tr></table>
 </body></html>

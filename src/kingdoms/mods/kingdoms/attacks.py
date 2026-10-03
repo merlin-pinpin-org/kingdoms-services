@@ -191,12 +191,15 @@ class AttackService:
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        timestamp = now or _now()
         territory = await self._territory_by_map(map_key)
         if territory.owner_kingdom_id == lord.kingdom_id:
             raise TerritoryNotAttackableError("a kingdom cannot attack its own territory")
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if owner.is_gaia:
             raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
+        if territory.is_protected_at(timestamp):
+            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
         if await self._territory_busy(territory.id):
             raise TerritoryBusyError("the territory already has an ongoing attack")
         if lord.attack_used >= self._config.attacks.attacks_per_week:
@@ -205,7 +208,6 @@ class AttackService:
             raise AttackError("the attacker must provide the game lobby link")
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
-        timestamp = now or _now()
         attack = AttackModel(
             _id=f"{season.id}-a-{territory.id}-{lord.id}",
             season_id=season.id,
@@ -363,10 +365,13 @@ class AttackService:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         if lord.attack_used >= self._config.attacks.attacks_per_week:
             raise NoBudgetError("the weekly attack budget is spent")
+        timestamp = now or _now()
         territory = await self._territory_by_map(map_key)
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if not owner.is_gaia:
             raise TerritoryNotAttackableError("the free-for-all targets a Gaïa territory")
+        if territory.is_protected_at(timestamp):
+            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
         attack = next(
             (
                 item
@@ -377,28 +382,48 @@ class AttackService:
             ),
             None,
         )
-        timestamp = now or _now()
         if attack is None:
             lord.attack_used += 1
             await self._store.upsert_lord(lord.to_mongo())
-            attack = AttackModel(
-                _id=f"{season.id}-g-{territory.id}",
-                season_id=season.id,
-                kind=AttackKind.GAIA,
-                territory_id=territory.id,
-                map_key=territory.map_key,
-                defender_kingdom_id=territory.owner_kingdom_id,
-                attacker_lord_id=lord.id,
-                attacker_kingdom_id=lord.kingdom_id,
-                lobby_url=lobby_url.strip(),
-                declared_at=timestamp,
-                expires_at=timestamp
-                + timedelta(hours=self._config.attacks.gaia_attack_delay_hours),
-                participants=[lord.id],
-            )
+            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp)
             await self._store.upsert_attack(attack.to_mongo())
             logger.info("kingdoms: %s opens the Gaïa free-for-all on %s", lord.id, territory.map_key)
             return attack
+        return await self._join_gaia_attack(attack, lord, territory)
+
+
+
+    def _new_gaia_attack(
+        self,
+        season: SeasonState,
+        territory: TerritoryModel,
+        lord: LordModel,
+        lobby_url: str,
+        timestamp: datetime,
+    ) -> AttackModel:
+        """Build the first declaration of a Gaïa free-for-all."""
+        if lord.kingdom_id is None:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        return AttackModel(
+            _id=f"{season.id}-g-{territory.id}",
+            season_id=season.id,
+            kind=AttackKind.GAIA,
+            territory_id=territory.id,
+            map_key=territory.map_key,
+            defender_kingdom_id=territory.owner_kingdom_id,
+            attacker_lord_id=lord.id,
+            attacker_kingdom_id=lord.kingdom_id,
+            lobby_url=lobby_url.strip(),
+            declared_at=timestamp,
+            expires_at=timestamp
+            + timedelta(hours=self._config.attacks.gaia_attack_delay_hours),
+            participants=[lord.id],
+        )
+
+    async def _join_gaia_attack(
+        self, attack: AttackModel, lord: LordModel, territory: TerritoryModel
+    ) -> AttackModel:
+        """Add one lord to an open Gaïa free-for-all (D6/D42)."""
         if attack.state is not AttackState.DECLARED:
             raise AttackStateError("the free-for-all no longer accepts participants")
         if any(participant == lord.id for participant in attack.participants):

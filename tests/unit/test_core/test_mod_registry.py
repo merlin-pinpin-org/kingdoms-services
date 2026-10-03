@@ -97,7 +97,7 @@ def test_load_mod_definitions_empty_dir(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _write_mod(tmp_path: Path, body: str) -> None:
+def _write_mod(tmp_path: "Path", body: str) -> None:
     mods_dir = tmp_path / "mods"
     mods_dir.mkdir(exist_ok=True)
     (mods_dir / "shiny.yaml").write_text(body)
