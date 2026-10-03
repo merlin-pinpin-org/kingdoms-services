@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_panels</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_panels</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_panels.py">SOURCE_ROOT/discord/kingdom_panels.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;Kingdoms&nbsp;salons-first&nbsp;panels&nbsp;(kingdoms#138):&nbsp;enrollment&nbsp;workflow.<br>
+&nbsp;<br>
+Three&nbsp;panels&nbsp;on&nbsp;top&nbsp;of&nbsp;the&nbsp;bootstrapped&nbsp;structure:<br>
+&nbsp;<br>
+-&nbsp;**Postuler**&nbsp;(open&nbsp;to&nbsp;all)&nbsp;—&nbsp;a&nbsp;pinned&nbsp;button&nbsp;opens&nbsp;an&nbsp;ephemeral,<br>
+&nbsp;&nbsp;per-player&nbsp;enrollment&nbsp;flow&nbsp;with&nbsp;no&nbsp;free-text&nbsp;role:&nbsp;a&nbsp;select&nbsp;menu<br>
+&nbsp;&nbsp;offers&nbsp;Seigneur&nbsp;or&nbsp;Roi;&nbsp;a&nbsp;Seigneur&nbsp;then&nbsp;picks&nbsp;a&nbsp;declared&nbsp;kingdom<br>
+&nbsp;&nbsp;from&nbsp;a&nbsp;list&nbsp;(or&nbsp;joins&nbsp;the&nbsp;waiting&nbsp;queue,&nbsp;for&nbsp;an&nbsp;admin&nbsp;to&nbsp;assign<br>
+&nbsp;&nbsp;later),&nbsp;a&nbsp;Roi&nbsp;types&nbsp;a&nbsp;kingdom&nbsp;name;&nbsp;both&nbsp;then&nbsp;give&nbsp;their&nbsp;AoE&nbsp;II<br>
+&nbsp;&nbsp;Insight&nbsp;link&nbsp;+&nbsp;game&nbsp;ID&nbsp;and&nbsp;confirm&nbsp;with&nbsp;a&nbsp;rules-acceptance&nbsp;button<br>
+&nbsp;&nbsp;(no&nbsp;typing);<br>
+-&nbsp;**Candidatures**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;each&nbsp;submitted&nbsp;application&nbsp;lands&nbsp;as<br>
+&nbsp;&nbsp;a&nbsp;message&nbsp;with&nbsp;admin-only&nbsp;buttons&nbsp;✅&nbsp;validated&nbsp;/&nbsp;⏳&nbsp;pending&nbsp;/&nbsp;❌<br>
+&nbsp;&nbsp;refused;&nbsp;validation&nbsp;assigns&nbsp;the&nbsp;kingdoms_lord&nbsp;or&nbsp;kingdoms_king&nbsp;mod<br>
+&nbsp;&nbsp;role&nbsp;to&nbsp;the&nbsp;player;<br>
+-&nbsp;**Paramètres**&nbsp;(admin&nbsp;only)&nbsp;—&nbsp;the&nbsp;mod's&nbsp;own&nbsp;season&nbsp;actions;&nbsp;language<br>
+&nbsp;&nbsp;and&nbsp;timezone&nbsp;live&nbsp;in&nbsp;the&nbsp;platform&nbsp;core&nbsp;(bot-admin).<br>
+&nbsp;<br>
+The&nbsp;mod&nbsp;declares&nbsp;its&nbsp;roles&nbsp;in&nbsp;``config/mods/kingdoms.yaml``<br>
+(kingdoms_king,&nbsp;kingdoms_lord);&nbsp;the&nbsp;panels&nbsp;assign&nbsp;them&nbsp;through&nbsp;the<br>
+ModRolesService&nbsp;—&nbsp;never&nbsp;raw&nbsp;Discord&nbsp;role&nbsp;IDs.&nbsp;Panels&nbsp;degrade&nbsp;when&nbsp;the<br>
+stores&nbsp;are&nbsp;not&nbsp;wired&nbsp;(local&nbsp;runs):&nbsp;the&nbsp;buttons&nbsp;answer&nbsp;with&nbsp;a&nbsp;note.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;one&nbsp;Enroll&nbsp;button.</span></dd></dl>
+ <dl><dt>async <a name="-build_settings_panel"><strong>build_settings_panel</strong></a>(logs_service: 'LogService | None', guild_id: 'str', by: 'str', bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;the&nbsp;admin&nbsp;season&nbsp;actions.<br>
+&nbsp;<br>
+Language&nbsp;and&nbsp;timezone&nbsp;live&nbsp;in&nbsp;the&nbsp;platform&nbsp;core&nbsp;(bot-admin)&nbsp;—&nbsp;the&nbsp;mod<br>
+only&nbsp;exposes&nbsp;its&nbsp;own&nbsp;season&nbsp;actions&nbsp;here.</span></dd></dl>
+ <dl><dt>async <a name="-deploy_panels"><strong>deploy_panels</strong></a>(guild: 'discord.Guild', logs_service: 'LogService | None', bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, kingdoms_service: 'Any' = None) -&gt; 'dict[str, str]'</dt><dd><span class="code">Deploy&nbsp;the&nbsp;pinned&nbsp;panels&nbsp;into&nbsp;Postuler&nbsp;and&nbsp;Paramètres.<br>
+&nbsp;<br>
+Returns&nbsp;a&nbsp;report&nbsp;dict&nbsp;{panel:&nbsp;status}.&nbsp;Idempotent&nbsp;in&nbsp;v1:&nbsp;each<br>
+deployment&nbsp;pins&nbsp;a&nbsp;fresh&nbsp;panel&nbsp;message&nbsp;(existing&nbsp;pins&nbsp;from&nbsp;previous<br>
+versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nbsp;will&nbsp;adopt&nbsp;them).</span></dd></dl>
+ <dl><dt>async <a name="-post_update_note"><strong>post_update_note</strong></a>(guild: 'discord.Guild', locale: 'str', note: 'str') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;a&nbsp;dated&nbsp;changelog&nbsp;note&nbsp;in&nbsp;the&nbsp;Update&nbsp;channel.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_changelog"><strong>refresh_changelog</strong></a>(guild: 'discord.Guild', locale: 'str') -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;kingdoms&nbsp;changelog&nbsp;message&nbsp;in&nbsp;the&nbsp;Update&nbsp;channel.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_season_status"><strong>refresh_season_status</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms: 'tuple[str, ...] | list[str]' = (), queued: 'int' = 0) -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;season&nbsp;status&nbsp;message&nbsp;in&nbsp;the&nbsp;dedicated&nbsp;channel.</span></dd></dl>
+ <dl><dt><a name="-register_kingdom_panels_command"><strong>register_kingdom_panels_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', logs_service: 'LogService | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, kingdoms_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;command:&nbsp;bootstrap&nbsp;+&nbsp;panels,&nbsp;admin&nbsp;only.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>APPLY_BUTTON_ID</strong> = 'kingdoms:apply:open'<br>
+<strong>BLURPLE</strong> = 5793266<br>
+<strong>CHANGELOG_MARKER</strong> = 'kingdoms:update:changelog'<br>
+<strong>DECISION_APPROVE_ID</strong> = 'kingdoms:candidature:approve'<br>
+<strong>DECISION_PENDING_ID</strong> = 'kingdoms:candidature:pending'<br>
+<strong>DECISION_REFUSE_ID</strong> = 'kingdoms:candidature:refuse'<br>
+<strong>GAME_ID</strong> = re.compile('^\\d{6,20}$')<br>
+<strong>GREEN</strong> = 5763719<br>
+<strong>INSIGHT_URL</strong> = re.compile('^https?://.+', re.IGNORECASE)<br>
+<strong>KINGDOM_MOD</strong> = 'kingdoms'<br>
+<strong>KINGDOM_SELECT_ID</strong> = 'kingdoms:apply:kingdom'<br>
+<strong>PANEL_MARKER</strong> = 'kingdoms:panel:postuler'<br>
+<strong>QUEUE_VALUE</strong> = '__queue__'<br>
+<strong>ROLE_KING</strong> = 'kingdoms_king'<br>
+<strong>ROLE_LORD</strong> = 'kingdoms_lord'<br>
+<strong>ROLE_SELECT_ID</strong> = 'kingdoms:apply:role'<br>
+<strong>SEASON_STATUS_CHANNEL</strong> = 'saison'<br>
+<strong>SEASON_STATUS_MARKER</strong> = 'kingdoms:season:status'<br>
+<strong>SETTINGS_PANEL_MARKER</strong> = 'kingdoms:panel:parametres'<br>
+<strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'cancel': 'Cancel', 'cancelled': 'Application cancelled.', 'candidature_game_id': 'Game ID', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Kingdom', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'cancel': 'Annuler', 'cancelled': 'Candidature annulée.', 'candidature_game_id': 'ID de jeu', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Royaume', ...}}<br>
+<strong>UPDATE_CHANNEL</strong> = 'update'<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_panels (WARNING)&gt;</td></tr></table>
+</body></html>

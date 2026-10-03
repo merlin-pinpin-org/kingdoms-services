@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.kingdom_setup</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.kingdom_setup</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/kingdom_setup.py">SOURCE_ROOT/discord/kingdom_setup.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(kingdoms#138):&nbsp;salons-first&nbsp;setup.<br>
+&nbsp;<br>
+kingdoms-services#175&nbsp;—&nbsp;the&nbsp;structure&nbsp;is&nbsp;data:&nbsp;the&nbsp;channel&nbsp;groups<br>
+(categories),&nbsp;channel&nbsp;kinds&nbsp;(text/forum/announce)&nbsp;and&nbsp;admin-only&nbsp;flags<br>
+live&nbsp;in&nbsp;``config/mods/kingdoms.yaml``&nbsp;and&nbsp;the&nbsp;core&nbsp;``ChannelService``<br>
+provisions&nbsp;them&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;adoption&nbsp;-&gt;&nbsp;creation,&nbsp;idempotent,<br>
+adopt-by-slug).&nbsp;This&nbsp;module&nbsp;only&nbsp;drives&nbsp;the&nbsp;core&nbsp;and&nbsp;renders&nbsp;the&nbsp;report:<br>
+no&nbsp;feature&nbsp;code&nbsp;creates&nbsp;Discord&nbsp;channels,&nbsp;categories&nbsp;or&nbsp;roles&nbsp;directly.<br>
+&nbsp;<br>
+Name&nbsp;helpers&nbsp;(``_slug``,&nbsp;``_find_category``)&nbsp;stay&nbsp;lookup-only:&nbsp;finding&nbsp;an<br>
+existing&nbsp;channel&nbsp;by&nbsp;its&nbsp;Discord&nbsp;slug&nbsp;is&nbsp;reading&nbsp;the&nbsp;guild,&nbsp;not<br>
+provisioning&nbsp;it.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="unicodedata.html">unicodedata</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_setup_report_view"><strong>build_setup_report_view</strong></a>(created: 'list[str]', adopted: 'list[str]', locale: 'str' = 'en') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;bootstrap&nbsp;report&nbsp;layout&nbsp;(what&nbsp;was&nbsp;created&nbsp;vs&nbsp;adopted).</span></dd></dl>
+ <dl><dt>async <a name="-provision_structure"><strong>provision_structure</strong></a>(guild: 'discord.Guild') -&gt; 'tuple[list[str], list[str]]'</dt><dd><span class="code">Provision&nbsp;the&nbsp;declared&nbsp;salons-first&nbsp;structure&nbsp;through&nbsp;the&nbsp;core.<br>
+&nbsp;<br>
+The&nbsp;declaration&nbsp;(``config/mods/kingdoms.yaml``)&nbsp;is&nbsp;the&nbsp;single&nbsp;source<br>
+of&nbsp;truth:&nbsp;groups&nbsp;in&nbsp;declaration&nbsp;order,&nbsp;then&nbsp;each&nbsp;group's&nbsp;channels&nbsp;—<br>
+kinds,&nbsp;admin-only&nbsp;flags&nbsp;and&nbsp;positions&nbsp;are&nbsp;data.&nbsp;Existing&nbsp;channels&nbsp;are<br>
+adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe.&nbsp;Returns&nbsp;(created,<br>
+adopted)&nbsp;display&nbsp;paths.</span></dd></dl>
+ <dl><dt><a name="-register_kingdom_command"><strong>register_kingdom_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(admin&nbsp;only)&nbsp;on&nbsp;the&nbsp;tree.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BLURPLE</strong> = 5793266<br>
+<strong>MOD_NAME</strong> = 'kingdoms'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>
+</body></html>

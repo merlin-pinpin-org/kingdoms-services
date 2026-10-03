@@ -96,6 +96,8 @@ en:
     kingdoms_admin_replace_description: "Replace a departed player with a queued one (D23)"
     kingdoms_admin_replace_outgoing_description: "The player who left"
     kingdoms_admin_replace_incoming_description: "The queued player taking over"
+    kingdom_name: "kingdom"
+    kingdom_description: "Bootstrap the Kingdoms mod: salons and panels (admin only)"
   errors:
     validation: "Invalid input. Please check your values and try again."
     configuration: "Configuration error. Please contact an administrator."
