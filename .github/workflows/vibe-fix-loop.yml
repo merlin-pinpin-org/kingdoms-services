@@ -5,6 +5,7 @@ name: Vibe session checks
 # reports the failures as a PR comment so the vibe session can iterate.
 # Regenerates the pydoc pages and commits them when stale (make docs).
 # This file and scripts/vibe_fix.py are removed once the stack is green.
+# Loop revision: v6 (typing-based mypy fix).
 
 on:
   pull_request
@@ -56,7 +57,8 @@ jobs:
       - name: Typecheck (mypy)
         run: uv run mypy src/ 2>&1 | tee /tmp/mypy.log
         continue-on-error: true
-      - name: Lint workflows (actionlint)
+      -
+ name: Lint workflows (actionlint)
         run: |
           curl -sSL -o /tmp/get-actionlint.bash \
             https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash
@@ -105,7 +107,8 @@ jobs:
               return p.read_text(errors="replace")[-limit:]
 
           body = (
-              "## Vibe session checks\n\n### fixes\n```\n"
+              "## Vibe session 
+checks\n\n### fixes\n```\n"
               + tail("fix", 3000)
               + "\n```\n### pytest\n```\n"
               + tail("pytest", 12000)
