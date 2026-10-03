@@ -30,6 +30,42 @@ class NameRules(BaseModel):
     pattern: str = r"^[\w\s'\-]+$"
 
 
+class MapTypes(BaseModel):
+    """Map type flags (CIVILIZATIONS.md reference taxonomy).
+
+    Pure data: the flags drive the cadastre effects and civilization
+    conditions of later slices (T5/T6); this slice only stores them.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    water: bool = False
+    open: bool = False
+    nomad: bool = False
+    desert: bool = False
+    mountain: bool = False
+    marsh: bool = False
+    lakes: bool = False
+    golden: bool = False
+    start_wall: bool = False
+
+
+class MapEntry(BaseModel):
+    """One allowed map of the admin-managed catalog (§6, issue #163).
+
+    ``cadastre`` carries the map's cadastre effects as raw data
+    (CADASTRE.md) — keyed effect descriptors the later slices apply;
+    this slice keeps them admin-editable without touching code.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    key: str
+    display_name: str
+    types: MapTypes = Field(default_factory=MapTypes)
+    cadastre: dict[str, Any] = Field(default_factory=dict)
+
+
 class Epoch(BaseModel):
     """One age of the season (reference §15, decision D18)."""
 
@@ -110,6 +146,7 @@ class KingdomsSeasonConfig(BaseModel):
     gaia_territories: int = Field(default=8, ge=0)
     starting_civilizations: int = Field(default=0, ge=0)
     garrison_enabled: bool = False
+    maps: tuple[MapEntry, ...] = ()
     ages: tuple[Epoch, ...] = ()
     names: NameRules = Field(default_factory=NameRules)
     technologies: TechnologyCosts = Field(default_factory=TechnologyCosts)
@@ -117,9 +154,50 @@ class KingdomsSeasonConfig(BaseModel):
     events: EventSettings = Field(default_factory=EventSettings)
 
 
+def default_map_catalog() -> tuple[MapEntry, ...]:
+    """Return the default allowed-map catalog (issue #163, §6).
+
+    A starter catalog of classic AoE2 maps so the season is playable
+    with no local override; every entry (and its cadastre effects) is
+    admin-editable data through ``config/kingdoms/season.yaml``.
+    """
+    def _map(key: str, name: str, **flags: bool) -> MapEntry:
+        return MapEntry(key=key, display_name=name, types=MapTypes(**flags))
+
+    return (
+        _map("arabia", "Arabia", open=True, desert=True),
+        _map("acropolis", "Acropolis", mountain=True, open=True),
+        _map("african-clearing", "African Clearing", open=True),
+        _map("altai", "Altai", mountain=True),
+        _map("amazon-tunnel", "Amazon Tunnel", start_wall=True, marsh=True),
+        _map("arena", "Arena", start_wall=True),
+        _map("babel", "Babel"),
+        _map("black-forest", "Black Forest", water=True),
+        _map("cenotes", "Cenotes", water=True, open=True),
+        _map("continental", "Continental", water=True),
+        _map("crater-lake", "Crater Lake", water=True, lakes=True),
+        _map("fortress", "Fortress", start_wall=True),
+        _map("ghost-lake", "Ghost Lake", lakes=True, open=True),
+        _map("gold-rush", "Gold Rush", golden=True),
+        _map("hideout", "Hideout", mountain=True),
+        _map("highland", "Highland", water=True, mountain=True),
+        _map("islands", "Islands", water=True),
+        _map("megarandom", "Megarandom"),
+        _map("migration", "Migration", water=True),
+        _map("mongolia", "Mongolia", nomad=True, open=True),
+        _map("nomad", "Nomad", nomad=True),
+        _map("oasis", "Oasis", desert=True, open=True),
+        _map("steppe", "Steppe", open=True, nomad=True),
+        _map("salt-marsh", "Salt Marsh", marsh=True),
+        _map("siberia", "Siberia", water=True),
+        _map("yucatan", "Yucatan", open=True),
+    )
+
+
 def default_season_config() -> KingdomsSeasonConfig:
     """Return the Season II default configuration (reference §15, D18)."""
     return KingdomsSeasonConfig(
+        maps=default_map_catalog(),
         ages=(
             Epoch(key="dark_age", display_name="Âge sombre", gaia_ai_level=2, tech_points=0, extra_marriages=1),
             Epoch(key="feudal_age", display_name="Âge féodal", gaia_ai_level=3, tech_points=1, extra_marriages=1),

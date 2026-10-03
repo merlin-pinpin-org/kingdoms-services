@@ -177,6 +177,7 @@ class SeasonState(BaseModel):
     current_cycle: int = Field(default=0, ge=0)
     current_age_key: str
     imposed_kingdoms: bool = False
+    out_maps: list[str] = Field(default_factory=list)
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
