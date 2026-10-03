@@ -101,6 +101,18 @@ class TechnologyCosts(BaseModel):
     corruption: int = Field(default=4, ge=0)
     garde_royale: int = Field(default=1, ge=0)
 
+    limits: dict[str, int] = Field(
+        default_factory=lambda: {
+            "jeu_d_armes": 1,
+            "patrouille": 2,
+            "sabotage": 2,
+        }
+    )
+    """Per-season purchase limits (D36); 0 or absent = unlimited.
+
+    Sabotage is additionally capped per game (2 sniped civilizations,
+    D12) by the attack service, not by this counter."""
+
 
 class AttackSettings(BaseModel):
     """Attack/defense budgets and delays (reference §11-§13)."""
@@ -113,6 +125,13 @@ class AttackSettings(BaseModel):
     gaia_attack_delay_hours: int = Field(default=3, ge=0)
     gaia_attack_max_per_kingdom: int = Field(default=1, ge=1)
     gaia_attack_max_total: int = Field(default=7, ge=1)
+    gaia_max_participants: int = Field(default=7, ge=1)
+    no_defense_outcome: str = Field(default="auto_victory")
+    """D8: what happens when no defender answers in the delay.
+
+    ``auto_victory`` (default): the attacker captures the territory;
+    ``vs_ai``: the attack resolves through a game against Gaïa's AI —
+    the result still comes through the game contract (D20)."""
 
 
 class EventSettings(BaseModel):

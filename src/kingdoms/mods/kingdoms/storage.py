@@ -16,6 +16,7 @@ KINGDOMS_COLLECTION = "kingdoms_kingdoms"
 LORDS_COLLECTION = "kingdoms_lords"
 TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
+ATTACKS_COLLECTION = "kingdoms_attacks"
 
 
 class KingdomsStore(Protocol):
@@ -63,6 +64,26 @@ class KingdomsStore(Protocol):
 
     async def delete_territory(self, territory_id: str) -> None:
         """Drop one territory document by ``_id``."""
+        ...
+
+    async def upsert_attack(self, document: dict[str, Any]) -> None:
+        """Insert or replace one attack document by ``_id``."""
+        ...
+
+    async def find_attacks(self) -> list[dict[str, Any]]:
+        """Return every attack document of the current data set."""
+        ...
+
+    async def delete_attack(self, attack_id: str) -> None:
+        """Drop one attack document by ``_id``."""
+        ...
+
+    async def upsert_technology(self, document: dict[str, Any]) -> None:
+        """Insert or replace one technology document by ``_id``."""
+        ...
+
+    async def find_technologies(self) -> list[dict[str, Any]]:
+        """Return every technology document of the current data set."""
         ...
 
     async def wipe_season_data(self) -> None:
@@ -133,6 +154,32 @@ class MongoKingdomsStore:
         """Drop one territory document by ``_id``."""
         await self._database[TERRITORIES_COLLECTION].delete_one({"_id": territory_id})
 
+    async def upsert_attack(self, document: dict[str, Any]) -> None:
+        """Insert or replace one attack document by ``_id``."""
+        await self._database[ATTACKS_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_attacks(self) -> list[dict[str, Any]]:
+        """Return every attack document of the current data set."""
+        cursor = self._database[ATTACKS_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
+    async def delete_attack(self, attack_id: str) -> None:
+        """Drop one attack document by ``_id``."""
+        await self._database[ATTACKS_COLLECTION].delete_one({"_id": attack_id})
+
+    async def upsert_technology(self, document: dict[str, Any]) -> None:
+        """Insert or replace one technology document by ``_id``."""
+        await self._database[TECHNOLOGIES_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_technologies(self) -> list[dict[str, Any]]:
+        """Return every technology document of the current data set."""
+        cursor = self._database[TECHNOLOGIES_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38).
 
@@ -145,5 +192,6 @@ class MongoKingdomsStore:
             LORDS_COLLECTION,
             TERRITORIES_COLLECTION,
             TECHNOLOGIES_COLLECTION,
+            ATTACKS_COLLECTION,
         ):
             await self._database[collection].delete_many({})
