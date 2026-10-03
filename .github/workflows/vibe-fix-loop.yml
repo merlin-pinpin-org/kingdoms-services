@@ -7,16 +7,22 @@ name: Vibe session checks
 # This file and scripts/vibe_fix.py are removed once the stack is green.
 
 on:
-  pull_request:
+  pull_request
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: vibe-session-checks
+  cancel-in-progress: false
+
 jobs:
   checks:
     name: Vibe session checks
     runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.head_ref }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,7 +44,7 @@ jobs:
             git commit \
               -m "fix: apply the kingdoms-services#175 drift fixes (session tooling)" \
               -m "Co-authored-by: Mistral AI <noreply@mistral.ai>"
-            git push 2>&1 | tee -a /tmp/fix.log
+            git push origin HEAD:"$BRANCH" 2>&1 | tee -a /tmp/fix.log
           fi
         continue-on-error: true
       - name: Unit tests (pytest)
@@ -50,6 +56,13 @@ jobs:
       - name: Typecheck (mypy)
         run: uv run mypy . 2>&1 | tee /tmp/mypy.log
         continue-on-error: true
+      - name: Lint workflows (actionlint)
+        run: |
+          curl -sSL -o /tmp/get-actionlint.bash \
+            https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash
+          bash /tmp/get-actionlint.bash
+          ./actionlint 2>&1 | tee /tmp/actionlint.log || true
+        continue-on-error: true
       - name: Regenerate pydoc and commit when stale
         run: |
           set -x
@@ -60,10 +73,8 @@ jobs:
             --exclude=.gitkeep > /tmp/pydoc-diff.txt 2>&1; then
             echo "pydoc is fresh"
           else
-            cat /tmp/pydoc-diff.txt | tee -a /tmp/pydoc.log
+            tee -a /tmp/pydoc.log < /tmp/pydoc-diff.txt
             rm -rf docs/DEVELOPMENT/pydoc
-            mkdir -p docs/DEVELOMENT_PLACEHOLDER
-            rm -rf docs/DEVELOMENT_PLACEHOLDER
             mkdir -p docs/DEVELOPMENT/pydoc
             cp -r /tmp/pydoc-fresh/. docs/DEVELOPMENT/pydoc/
             git config user.name "Drasah"
@@ -72,7 +83,7 @@ jobs:
             git commit \
               -m "docs: regenerate pydoc after the salons-first drift fixes (kingdoms-services#175)" \
               -m "Co-authored-by: Mistral AI <noreply@mistral.ai>"
-            git push 2>&1 | tee -a /tmp/pydoc.log
+            git push origin HEAD:"$BRANCH" 2>&1 | tee -a /tmp/pydoc.log
           fi
         continue-on-error: true
       - name: Report on the PR
@@ -102,6 +113,8 @@ jobs:
               + tail("ruff", 25000)
               + "\n```\n### mypy\n```\n"
               + tail("mypy", 20000)
+              + "\n```\n### actionlint\n```\n"
+              + tail("actionlint", 8000)
               + "\n```\n### pydoc\n```\n"
               + tail("pydoc", 3000)
               + "\n```\n"
