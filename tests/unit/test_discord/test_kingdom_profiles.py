@@ -17,13 +17,13 @@ from kingdoms.discord.kingdom_profiles import (
     ensure_profile_channel,
     profile_channel_name,
 )
-from tests.mocks.provision import provisioned_wiring
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
     MockMember,
     MockMessage,
 )
+from tests.mocks.provision import provisioned_wiring
 
 
 def _guild() -> MockGuild:

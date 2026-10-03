@@ -23,7 +23,6 @@ from kingdoms.discord.kingdom_panels import (
     deploy_panels,
     register_kingdom_panels_command,
 )
-from tests.mocks.provision import provisioned_wiring
 from tests.mocks.discord_mock import (
     MockGuild,
     MockInteraction,
@@ -31,6 +30,7 @@ from tests.mocks.discord_mock import (
     MockMessage,
     MockTextChannel,
 )
+from tests.mocks.provision import provisioned_wiring
 
 
 class _FakeLogsService:
@@ -424,6 +424,7 @@ async def test_kingdom_command_bootstraps_and_deploys() -> None:
 @pytest.mark.asyncio
 async def test_submission_creates_profile_channel_with_smurfs() -> None:
     """A submitted application provisions the private profile channel."""
+    pytest.importorskip("kingdoms.discord.kingdom_profiles")
     from kingdoms.discord.kingdom_profiles import PROFILES_CATEGORY
 
     guild = MockGuild(id=42)

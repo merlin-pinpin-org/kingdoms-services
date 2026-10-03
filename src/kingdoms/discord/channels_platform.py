@@ -108,7 +108,7 @@ class DiscordChannelsPlatform:
         return str(category.id)
 
     def _channels_of_kind(self, guild: discord.Guild, kind: str) -> list[object]:
-        """The guild's live channels of a declared kind (forum vs text)."""
+        """Return the guild's live channels of a declared kind (forum vs text)."""
         if kind == "forum":
             return list(getattr(guild, "forums", []) or [])
         return list(guild.text_channels)
@@ -144,7 +144,8 @@ class DiscordChannelsPlatform:
         if admin_only or kind == "announce":
             if guild.me is not None:
                 overwrites[guild.me] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-        category = guild.get_channel(int(group_id)) if group_id and group_id.isdigit() else None
+        fetched = guild.get_channel(int(group_id)) if group_id and group_id.isdigit() else None
+        category = fetched if isinstance(fetched, discord.CategoryChannel) else None
         if kind == "forum":
             channel = await guild.create_forum(
                 name,
@@ -164,7 +165,7 @@ class DiscordChannelsPlatform:
         return str(channel.id)
 
     async def single_channel_in_group(self, guild_id: str, group_id: str, kind: str) -> str | None:
-        """The group's single channel of a kind, whatever its name; None otherwise."""
+        """Return the group's single channel of a kind, whatever its name; None otherwise."""
         guild = await self._guild(guild_id)
         if guild is None or not group_id.isdigit():
             return None

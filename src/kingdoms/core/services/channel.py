@@ -155,7 +155,7 @@ class ChannelService:
         return ChannelCategory(category).name
 
     def _structured_platform(self) -> StructuredChannelsPlatform | None:
-        """The platform's structured seam, when it implements it."""
+        """Return the platform's structured seam, when it implements it."""
         structured = self._platform
         for method in (
             "find_group_by_name",
@@ -243,25 +243,15 @@ class ChannelService:
         (optional) records the outcome (created/adopted) for
         declaration-driven provisioning.
         """
-        name, kind, group_key, admin_only, position, adopt = self._spec_for_category(
+        name, _kind, group_key, _admin_only, _position, _adopt = self._spec_for_category(
             category, as_group=as_group
         )
         structured = self._structured_platform()
 
         if as_group:
-            if structured is None:
-                # Legacy platform without the structured seam: the group
-                # degrades to a flat channel under its display name.
-                return await self._resolve_flat(guild_id, category, name, sink)
-            found = await structured.find_group_by_name(guild_id, name)
-            if found is not None:
-                if sink is not None:
-                    sink[category] = "adopted"
-                return found
-            created_group = await structured.create_group(guild_id, name, position, admin_only)
-            if sink is not None:
-                sink[category] = "created"
-            return created_group
+            return await self._resolve_group_category(
+                guild_id, category, structured, sink
+            )
 
         cache_key = f"{guild_id}:{category}"
         cached = await self._cache.get_state(CHANNELS_COLLECTION, cache_key)
@@ -278,32 +268,72 @@ class ChannelService:
                 return stored.channel_id
             await self._db.delete_channel(guild_id, category)
 
-        group_id: str | None = None
-        group_admin_only = False
         if structured is not None and group_key:
-            mod_name = category.partition(":")[0]
-            group = self._registry.require(mod_name).channel_group(group_key)
-            group_id = await self._resolve_group_id(guild_id, group)
-            group_admin_only = group.admin_only
-
-        if structured is not None and group_id is not None:
-            found = await structured.find_channel_of_kind(guild_id, name, kind, group_id)
-            if found is None and adopt == "group_single":
-                found = await structured.single_channel_in_group(guild_id, group_id, kind)
-            if found is not None:
-                await self._persist(guild_id, category, found, name)
-                if sink is not None:
-                    sink[category] = "adopted"
-                return found
-            created = await structured.create_channel_of_kind(
-                guild_id, name, kind, group_id, admin_only or group_admin_only, position
+            resolved = await self._resolve_in_group(
+                guild_id, category, group_key, structured, sink
             )
-            await self._persist(guild_id, category, created, name)
-            if sink is not None:
-                sink[category] = "created"
-            return created
+            if resolved is not None:
+                return resolved
 
         return await self._resolve_flat(guild_id, category, name, sink)
+
+    async def _resolve_group_category(
+        self,
+        guild_id: str,
+        category: str,
+        structured: StructuredChannelsPlatform | None,
+        sink: dict[str, str] | None,
+    ) -> str:
+        """Resolve a declared group (a container, never persisted) to its id."""
+        name, _kind, _group, admin_only, position, _adopt = self._spec_for_category(
+            category, as_group=True
+        )
+        if structured is None:
+            # Legacy platform without the structured seam: the group
+            # degrades to a flat channel under its display name.
+            return await self._resolve_flat(guild_id, category, name, sink)
+        found = await structured.find_group_by_name(guild_id, name)
+        if found is not None:
+            if sink is not None:
+                sink[category] = "adopted"
+            return found
+        created_group = await structured.create_group(guild_id, name, position, admin_only)
+        if sink is not None:
+            sink[category] = "created"
+        return created_group
+
+    async def _resolve_in_group(
+        self,
+        guild_id: str,
+        category: str,
+        group_key: str,
+        structured: StructuredChannelsPlatform,
+        sink: dict[str, str] | None,
+    ) -> str | None:
+        """Resolve a channel inside its declared group; None to fall back flat."""
+        name, kind, _group_key, admin_only, position, adopt = self._spec_for_category(
+            category, as_group=False
+        )
+        mod_name = category.partition(":")[0]
+        group = self._registry.require(mod_name).channel_group(group_key)
+        group_id = await self._resolve_group_id(guild_id, group)
+        if group_id is None:
+            return None
+        found = await structured.find_channel_of_kind(guild_id, name, kind, group_id)
+        if found is None and adopt == "group_single":
+            found = await structured.single_channel_in_group(guild_id, group_id, kind)
+        if found is not None:
+            await self._persist(guild_id, category, found, name)
+            if sink is not None:
+                sink[category] = "adopted"
+            return found
+        created = await structured.create_channel_of_kind(
+            guild_id, name, kind, group_id, admin_only or group.admin_only, position
+        )
+        await self._persist(guild_id, category, created, name)
+        if sink is not None:
+            sink[category] = "created"
+        return created
 
     async def _resolve_flat(
         self, guild_id: str, category: str, name: str, sink: dict[str, str] | None

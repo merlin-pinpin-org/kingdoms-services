@@ -74,7 +74,7 @@ def provisioned_wiring(guild: MockGuild, bot_admins: tuple[str, ...] = ()) -> Ki
 
 def kingdoms_definition() -> ModDefinition:
     """The kingdoms mod declaration from the repository's real config."""
-    definitions: dict[str, ModDefinition] = load_mod_definitions(REPO_CONFIG_DIR)  # type: ignore[assignment]
+    definitions = load_mod_definitions(REPO_CONFIG_DIR)
     return definitions["kingdoms"]
 
 

@@ -34,10 +34,10 @@ from tests.mocks.provision import (
 
 def test_declaration_is_the_validated_structure() -> None:
     """The declaration carries the validated v2 structure and kinds."""
-    groups = list(kingdoms_definition().channel_groups)
-    assert [group.key for group in groups][0] == "profiles"
-    assert [group.key for group in groups][1] == "general"
-    assert [group.key for group in groups][-1] == "support"
+    group_keys = [group.key for group in kingdoms_definition().channel_groups]
+    assert group_keys[0] == "profiles"
+    assert group_keys[1] == "general"
+    assert group_keys[-1] == "support"
     admin = next(group for group in groups if group.key == "admin")
     assert admin.admin_only is True
     kinds = {category.key: category.kind for category in kingdoms_definition().channel_categories}

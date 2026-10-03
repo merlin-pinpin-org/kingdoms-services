@@ -207,10 +207,10 @@ def main() -> int:
                 '            if sink is not None:\n'
                 '                sink[category] = "created"\n'
                 '            return created_group\n',
-                '        if as_group:\n'
-                '            return await self._resolve_group_category(\n'
-                '                guild_id, category, structured, sink\n'
-                '            )\n',
+                "        if as_group:\n"
+                "            return await self._resolve_group_category(\n"
+                "                guild_id, category, structured, sink\n"
+                "            )\n",
             ),
             (
                 '        group_id: str | None = None\n'
@@ -239,19 +239,19 @@ def main() -> int:
                 '            return created\n'
                 '\n'
                 '        return await self._resolve_flat(guild_id, category, name, sink)\n',
-                '        if structured is not None and group_key:\n'
-                '            resolved = await self._resolve_in_group(\n'
-                '                guild_id, category, group_key, structured, sink\n'
-                '            )\n'
-                '            if resolved is not None:\n'
-                '                return resolved\n'
-                '\n'
-                '        return await self._resolve_flat(guild_id, category, name, sink)\n',
+                "        if structured is not None and group_key:\n"
+                "            resolved = await self._resolve_in_group(\n"
+                "                guild_id, category, group_key, structured, sink\n"
+                "            )\n"
+                "            if resolved is not None:\n"
+                "                return resolved\n"
+                "\n"
+                "        return await self._resolve_flat(guild_id, category, name, sink)\n",
             ),
             (
-                '    async def _resolve_flat(\n'
-                '        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n'
-                '    ) -> str:',
+                "    async def _resolve_flat(\n"
+                "        self, guild_id: str, category: str, name: str, sink: dict[str, str] | None\n"
+                "    ) -> str:",
                 '    async def _resolve_group_category(\n'
                 '        self,\n'
                 '        guild_id: str,\n'
@@ -331,15 +331,15 @@ def main() -> int:
                 'None otherwise."""',
             ),
             (
-                '        category = guild.get_channel(int(group_id)) if group_id and '
-                'group_id.isdigit() else None',
-                '        fetched = guild.get_channel(int(group_id)) if group_id and '
-                'group_id.isdigit() else None\n'
-                '        category = fetched if isinstance(fetched, discord.CategoryChannel) '
-                'else None',
+                "        category = guild.get_channel(int(group_id)) if group_id and "
+                "group_id.isdigit() else None",
+                "        fetched = guild.get_channel(int(group_id)) if group_id and "
+                "group_id.isdigit() else None\n"
+                "        category = fetched if isinstance(fetched, discord.CategoryChannel) "
+                "else None",
             ),
             (
-                '        return str(found.id) if found is not None else None',
+                "        return str(found.id) if found is not None else None",
                 '        return str(getattr(found, "id")) if found is not None else None',
             ),
         ],
