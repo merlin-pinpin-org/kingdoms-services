@@ -107,11 +107,11 @@ class DiscordChannelsPlatform:
         )
         return str(category.id)
 
-    def _channels_of_kind(self, guild: discord.Guild, kind: str) -> list[object]:
+    def _channels_of_kind(self, guild: discord.Guild, kind: str) -> list[discord.ForumChannel | discord.TextChannel]:
         """Return the guild's live channels of a declared kind (forum vs text)."""
         if kind == "forum":
             return list(getattr(guild, "forums", []) or [])
-        return list(guild.text_channels)
+        return list[discord.ForumChannel | discord.TextChannel](guild.text_channels)
 
     async def find_channel_of_kind(
         self, guild_id: str, name: str, kind: str, group_id: str | None
@@ -170,7 +170,7 @@ class DiscordChannelsPlatform:
         if guild is None or not group_id.isdigit():
             return None
         category_id = int(group_id)
-        found: object | None = None
+        found: discord.ForumChannel | discord.TextChannel | None = None
         for channel in self._channels_of_kind(guild, kind):
             if getattr(channel, "category_id", None) != category_id:
                 continue
