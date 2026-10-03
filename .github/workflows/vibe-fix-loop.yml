@@ -36,7 +36,7 @@ jobs:
       - name: Apply session fixes and commit
         run: |
           uv run python scripts/vibe_fix.py 2>&1 | tee /tmp/fix.log
-          uv run ruff check --fix . 2>&1 | tee -a /tmp/fix.log || true
+          uv run ruff check --fix src/ tests/ 2>&1 | tee -a /tmp/fix.log || true
           if ! git diff --quiet; then
             git config user.name "Drasah"
             git config user.email "mabilais.dylan@hotmail.fr"
@@ -51,10 +51,10 @@ jobs:
         run: uv run pytest -q --tb=short 2>&1 | tee /tmp/pytest.log
         continue-on-error: true
       - name: Lint (ruff)
-        run: uv run ruff check . 2>&1 | tee /tmp/ruff.log
+        run: uv run ruff check src/ tests/ 2>&1 | tee /tmp/ruff.log
         continue-on-error: true
       - name: Typecheck (mypy)
-        run: uv run mypy . 2>&1 | tee /tmp/mypy.log
+        run: uv run mypy src/ 2>&1 | tee /tmp/mypy.log
         continue-on-error: true
       - name: Lint workflows (actionlint)
         run: |
