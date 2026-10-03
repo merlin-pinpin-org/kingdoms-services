@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[3]
 CONTRACTS = REPO / "contracts"
 COMMITTED = REPO / "src" / "kingdoms" / "rpc_generated" / "kingdoms" / "v1"
 

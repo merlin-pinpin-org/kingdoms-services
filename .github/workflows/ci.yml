@@ -22,7 +22,7 @@ jobs:
       - name: Run actionlint
         run: actionlint -color
       - name: Run the pin-payload cap guard
-        run: ./scripts/check_pin_payloads.sh
+        run: ./.github/workflows/scripts/check_pin_payloads.sh
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check source purity
-        run: ./scripts/check_image_purity.py --source-only
+        run: ./.github/workflows/scripts/check_image_purity.py --source-only
 
   contracts:
     # kingdoms-services#128: wire-compatibility guard for the gRPC contracts
@@ -87,7 +87,7 @@ jobs:
       - name: Check stub freshness against contracts/
         run: |
           uv sync
-          uv run python scripts/check_contracts_fresh.py
+          uv run python .github/workflows/scripts/check_contracts_fresh.py
 
   compose:
     name: Validate and boot docker-compose.yml
@@ -227,7 +227,7 @@ jobs:
         run: |
           docker run --rm --network kingdoms-ci \
             -e MONGO_URI -e REDIS_URI -e LOG_LEVEL=DEBUG \
-            -v "$PWD/scripts/smoke_test.py:/app/smoke_test.py:ro" \
+            -v "$PWD/.github/workflows/scripts/smoke_test.py:/app/smoke_test.py:ro" \
             --entrypoint python \
             kingdoms-bot:ci /app/smoke_test.py
 

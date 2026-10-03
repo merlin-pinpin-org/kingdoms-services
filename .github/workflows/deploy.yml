@@ -329,7 +329,7 @@ jobs:
             });
 
       # Single implementation of the watch-the-pin-then-the-deploy pattern
-      # (scripts/watch_deploy.sh, also used by agent sessions and release.yml).
+      # (.github/workflows/scripts/watch_deploy.sh, also used by agent sessions and release.yml).
       - name: Watch the kingdoms-infra deploy run
         id: watch-infra
         if: success()
@@ -338,7 +338,7 @@ jobs:
         run: |
           label="${{ steps.label.outputs.tag }}"
           env_name="${{ steps.env.outputs.name }}"
-          scripts/watch_deploy.sh "$env_name" "$label"
+          .github/workflows/scripts/watch_deploy.sh "$env_name" "$label"
           run_url="https://github.com/merlin-pinpin-org/kingdoms-infra/actions"
           # Recover the deploy run URL for the tracking comment. The state
           # commit is the one carrying OUR label — not merely the latest

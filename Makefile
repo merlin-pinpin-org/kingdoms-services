@@ -44,15 +44,15 @@ check:
 	@command -v actionlint >/dev/null \
 	  && actionlint -color \
 	  || echo "check: actionlint not installed — CI runs it; install locally for full coverage"
-	@./scripts/check_pin_payloads.sh
-	@./scripts/check_image_purity.py --source-only
+	@./.github/workflows/scripts/check_pin_payloads.sh
+	@./.github/workflows/scripts/check_image_purity.py --source-only
 
 # Docs (generated into this repo, fail-closed freshness check in CI)
 docs:
-	@uv run python scripts/generate_pydoc.py --source src/kingdoms --output docs/DEVELOPMENT/pydoc
+	@uv run python .github/workflows/scripts/generate_pydoc.py --source src/kingdoms --output docs/DEVELOPMENT/pydoc
 
 docs-check:
-	@uv run python scripts/generate_pydoc.py --source src/kingdoms --output /tmp/pydoc-fresh
+	@uv run python .github/workflows/scripts/generate_pydoc.py --source src/kingdoms --output /tmp/pydoc-fresh
 	@diff -rq /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc --exclude=.gitkeep \
 	  && echo "Generated docs are fresh" \
 	  || (echo "ERROR: docs/DEVELOPMENT/pydoc is stale — run 'make docs' and commit"; exit 1)
@@ -84,20 +84,20 @@ pre-release:
 
 # watch-deploy: follow a deploy/<env> pin and its deploy run (ENV, LABEL)
 watch-deploy:
-	@./scripts/watch_deploy.sh $(ENV) $(LABEL)
+	@./.github/workflows/scripts/watch_deploy.sh $(ENV) $(LABEL)
 
 # changelog: regenerate the conventional CHANGELOG.md section for TAG
 changelog:
-	@uv run python scripts/generate_changelog.py --tag $(TAG) --changelog CHANGELOG.md
+	@uv run python .github/workflows/scripts/generate_changelog.py --tag $(TAG) --changelog CHANGELOG.md
 
 # release-notes: print the conventional release notes body for TAG
 release-notes:
-	@uv run python scripts/generate_changelog.py --tag $(TAG) --notes
+	@uv run python .github/workflows/scripts/generate_changelog.py --tag $(TAG) --notes
 
 # contracts-check: fail closed when committed stubs drift from contracts/
 # (wire-compatibility guard, kingdoms-services#128). CI runs it too.
 contracts-check:
-	@uv run python scripts/check_contracts_fresh.py
+	@uv run python .github/workflows/scripts/check_contracts_fresh.py
 
 # contracts: regenerate the gRPC stubs from contracts/ (ADR-0020).
 contracts:
