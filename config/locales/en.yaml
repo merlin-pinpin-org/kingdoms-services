@@ -43,6 +43,9 @@ en:
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"
+
+    drasah_name: "drasah"
+    drasah_description: "Greet the kingdom in medieval fashion"
   errors:
     validation: "Invalid input. Please check your values and try again."
     configuration: "Configuration error. Please contact an administrator."
@@ -70,7 +73,6 @@ en:
     language_placeholder: "Guild language — {value}"
     channels: "Channels"
     channels_placeholder: "Manage a channel…"
-    mods_placeholder: "A mod's section…"
     back: "← Back"
     channel: "Channel"
     visibility: "Visibility"

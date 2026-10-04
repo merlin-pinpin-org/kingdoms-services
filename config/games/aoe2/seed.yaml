@@ -1,0 +1,144 @@
+game_key: aoe2
+ladders:
+  - owner_ref: "guild:default"
+    name: "AoE2 Community Ladder"
+    map_pool: "Season 1"
+    season:
+      name: "Season 1"
+      start_in_days: 0
+      duration_days: 90
+      reset_ratings: false
+maps:
+  - name: Arabia
+    filename: "arabia"
+    description: "The classic open map"
+  - name: Cenotes
+    filename: "cenotes"
+    description: "Open map with neutral water pockets"
+  - name: Land Madness
+    filename: "land_madness"
+    description: "Open rush-friendly map"
+  - name: Lombardia
+    filename: "lombardia"
+    description: "Three-player land map"
+  - name: Steppe
+    filename: "steppe"
+    description: "Open nomad-style steppe"
+  - name: Serengeti
+    filename: "serengeti"
+    description: "Open map with scattered wood"
+  - name: Amazon Tunnel
+    filename: "amazon_tunnel"
+    description: "Closed tunnel map"
+  - name: African Clearing
+    filename: "african_clearing"
+    description: "Open map with central woodlines"
+  - name: Socotra
+    filename: "socotra"
+    description: "Treeless island-like open map"
+  - name: Golden Pit
+    filename: "golden_pit"
+    description: "Map with a central gold pit"
+map_pools:
+  - name: "Season 1"
+    description: "First competitive pool"
+    maps:
+      - Arabia
+      - Cenotes
+      - Land Madness
+      - Lombardia
+      - Steppe
+      - Serengeti
+      - Amazon Tunnel
+      - African Clearing
+      - Socotra
+      - Golden Pit
+civs:
+  - name: Armenians
+    faction_key: "armenians"
+  - name: Aztecs
+    faction_key: "aztecs"
+  - name: Bengalis
+    faction_key: "bengalis"
+  - name: Berbers
+    faction_key: "berbers"
+  - name: Bohemians
+    faction_key: "bohemians"
+  - name: Britons
+    faction_key: "britons"
+  - name: Bulgarians
+    faction_key: "bulgarians"
+  - name: Burmese
+    faction_key: "burmese"
+  - name: Byzantines
+    faction_key: "byzantines"
+  - name: Celts
+    faction_key: "celts"
+  - name: Chinese
+    faction_key: "chinese"
+  - name: Cumans
+    faction_key: "cumans"
+  - name: Dravidians
+    faction_key: "dravidians"
+  - name: Ethiopians
+    faction_key: "ethiopians"
+  - name: Franks
+    faction_key: "franks"
+  - name: Georgians
+    faction_key: "georgians"
+  - name: Goths
+    faction_key: "goths"
+  - name: Gurjaras
+    faction_key: "gurjaras"
+  - name: Huns
+    faction_key: "huns"
+  - name: Incas
+    faction_key: "incas"
+  - name: Hindustanis
+    faction_key: "hindustanis"
+  - name: Italians
+    faction_key: "italians"
+  - name: Japanese
+    faction_key: "japanese"
+  - name: Khitans
+    faction_key: "khitans"
+  - name: Khmer
+    faction_key: "khmer"
+  - name: Koreans
+    faction_key: "koreans"
+  - name: Lithuanians
+    faction_key: "lithuanians"
+  - name: Magyars
+    faction_key: "magyars"
+  - name: Malians
+    faction_key: "malians"
+  - name: Mayans
+    faction_key: "mayans"
+  - name: Mongols
+    faction_key: "mongols"
+  - name: Persians
+    faction_key: "persians"
+  - name: Poles
+    faction_key: "poles"
+  - name: Portuguese
+    faction_key: "portuguese"
+  - name: Romans
+    faction_key: "romans"
+  - name: Saracens
+    faction_key: "saracens"
+  - name: Sicilians
+    faction_key: "sicilians"
+  - name: Slavs
+    faction_key: "slavs"
+  - name: Spanish
+    faction_key: "spanish"
+  - name: Tatars
+    faction_key: "tatars"
+  - name: Teutons
+    faction_key: "teutons"
+  - name: Turks
+    faction_key: "turks"
+  - name: Vietnamese
+    faction_key: "vietnamese"
+  - name: Vikings
+    faction_key: "vikings"
