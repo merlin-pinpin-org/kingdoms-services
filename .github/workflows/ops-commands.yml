@@ -73,9 +73,11 @@ jobs:
             rollback) capability=rollback ;;
             dump-db)  capability=db-dump ;;
           esac
-          echo "command=${command#/}" >> "$GITHUB_OUTPUT"
-          echo "environment=$env_name" >> "$GITHUB_OUTPUT"
-          echo "capability=$capability" >> "$GITHUB_OUTPUT"
+          {
+            echo "command=${command#/}"
+            echo "environment=$env_name"
+            echo "capability=$capability"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge (what, why — before the gate, per the conventions)
         id: ack
