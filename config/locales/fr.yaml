@@ -43,6 +43,9 @@ fr:
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
+
+    drasah_name: "drasah"
+    drasah_description: "Salue le royaume à la médiévale"
   errors:
     validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
     configuration: "Erreur de configuration. Contactez un administrateur."
@@ -70,7 +73,6 @@ fr:
     language_placeholder: "Langue de la guilde — {value}"
     channels: "Channels"
     channels_placeholder: "Gérer un channel…"
-    mods_placeholder: "Section d'un mod…"
     back: "← Retour"
     channel: "Channel"
     visibility: "Visibilité"

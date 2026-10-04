@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.game_client</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.game_client</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/game_client.py">SOURCE_ROOT/core/rpc/game_client.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;provider&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;client&nbsp;side&nbsp;(kingdoms.v1.Game).<br>
+&nbsp;<br>
+svc-core&nbsp;consumes&nbsp;game&nbsp;providers&nbsp;through&nbsp;these&nbsp;typed&nbsp;helpers.&nbsp;Every&nbsp;call<br>
+degrades&nbsp;cleanly:&nbsp;an&nbsp;unreachable&nbsp;provider&nbsp;declares&nbsp;zero&nbsp;capabilities&nbsp;and<br>
+the&nbsp;core&nbsp;keeps&nbsp;running&nbsp;on&nbsp;the&nbsp;manual&nbsp;path;&nbsp;an&nbsp;explicitly&nbsp;unsupported<br>
+capability&nbsp;surfaces&nbsp;as&nbsp;``<a href="#UnsupportedCapabilityError">UnsupportedCapabilityError</a>``&nbsp;for&nbsp;the&nbsp;caller&nbsp;to&nbsp;catch.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2.html">kingdoms.rpc_generated.kingdoms.v1.game_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc</a><br>
+</td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.game_client.html#UnsupportedCapabilityError">UnsupportedCapabilityError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.game_client.html#GameProviderClient">GameProviderClient</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameProviderClient">class <strong>GameProviderClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameProviderClient">GameProviderClient</a>(provider_uri:&nbsp;'str',&nbsp;provider_id:&nbsp;'str',&nbsp;game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Typed&nbsp;client&nbsp;for&nbsp;a&nbsp;kingdoms.v1.Game&nbsp;provider&nbsp;process.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameProviderClient-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str', provider_id: 'str', game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-get_capabilities"><strong>get_capabilities</strong></a>(self) -&gt; 'ProviderCapabilities'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;declared&nbsp;capabilities,&nbsp;degrading&nbsp;to&nbsp;zero.</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-get_match_details"><strong>get_match_details</strong></a>(self, match_ref: 'str') -&gt; 'MatchDetails | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;match's&nbsp;slotinfo&nbsp;and&nbsp;raw&nbsp;options,&nbsp;degrading&nbsp;to&nbsp;None.<br>
+&nbsp;<br>
+A&nbsp;provider&nbsp;that&nbsp;cannot&nbsp;serve&nbsp;match&nbsp;details&nbsp;(unsupported&nbsp;or<br>
+unknown&nbsp;match)&nbsp;yields&nbsp;None:&nbsp;callers&nbsp;fall&nbsp;back&nbsp;to&nbsp;what&nbsp;the&nbsp;match<br>
+already&nbsp;knows&nbsp;instead&nbsp;of&nbsp;failing&nbsp;the&nbsp;workflow.</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-get_player_stats"><strong>get_player_stats</strong></a>(self, profile_id: 'str') -&gt; 'PlayerStats | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;stats&nbsp;blocks,&nbsp;degrading&nbsp;to&nbsp;None&nbsp;(no&nbsp;stats).</span></dd></dl>
+
+<dl><dt>async <a name="GameProviderClient-list_maps"><strong>list_maps</strong></a>(self) -&gt; 'list[GameMap]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;map&nbsp;catalog,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
+
+<dl><dt><a name="GameProviderClient-stream_match_events"><strong>stream_match_events</strong></a>(self, since: 'int')</dt><dd><span class="code">Stream&nbsp;live&nbsp;match&nbsp;events&nbsp;from&nbsp;the&nbsp;provider,&nbsp;degrading&nbsp;to&nbsp;silence.<br>
+&nbsp;<br>
+The&nbsp;generator&nbsp;yields&nbsp;MatchEvent&nbsp;models&nbsp;as&nbsp;they&nbsp;arrive;&nbsp;on&nbsp;a<br>
+lost&nbsp;stream&nbsp;it&nbsp;yields&nbsp;nothing&nbsp;and&nbsp;returns&nbsp;—&nbsp;the&nbsp;caller&nbsp;(the<br>
+live&nbsp;aggregator&nbsp;loop)&nbsp;retries&nbsp;with&nbsp;backoff.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>provider_id</strong></dt>
+<dd><span class="code">Provider&nbsp;identity&nbsp;used&nbsp;in&nbsp;logs&nbsp;and&nbsp;audit&nbsp;trails.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UnsupportedCapabilityError">class <strong>UnsupportedCapabilityError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;provider&nbsp;does&nbsp;not&nbsp;support&nbsp;this&nbsp;capability&nbsp;(clean&nbsp;degradation).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.rpc.game_client.html#UnsupportedCapabilityError">UnsupportedCapabilityError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="UnsupportedCapabilityError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="UnsupportedCapabilityError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="UnsupportedCapabilityError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#UnsupportedCapabilityError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="UnsupportedCapabilityError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#UnsupportedCapabilityError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_RETRYABLE_CODES': 'tuple[grpc.StatusCode, ...]'}</td></tr></table>
+</body></html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.grace</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.grace</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/grace.py">SOURCE_ROOT/core/games/aoe2/grace.py</a></td></tr></table>
+    <p><span class="code">AoE2&nbsp;lobby-closed&nbsp;grace&nbsp;period&nbsp;(reference&nbsp;5.2,&nbsp;known&nbsp;trap).<br>
+&nbsp;<br>
+The&nbsp;AoE2&nbsp;lobby&nbsp;always&nbsp;closes&nbsp;a&nbsp;few&nbsp;moments&nbsp;before&nbsp;the&nbsp;game&nbsp;starts:&nbsp;a<br>
+``lobby_closed``&nbsp;event&nbsp;in&nbsp;LOBBY&nbsp;status&nbsp;must&nbsp;wait&nbsp;out&nbsp;a&nbsp;grace&nbsp;period<br>
+(15&nbsp;s&nbsp;default,&nbsp;configurable&nbsp;adapter-side)&nbsp;before&nbsp;any&nbsp;downgrade,&nbsp;because<br>
+a&nbsp;``game_started``&nbsp;may&nbsp;arrive&nbsp;in&nbsp;between.&nbsp;This&nbsp;module&nbsp;holds&nbsp;the&nbsp;rule<br>
+once,&nbsp;in&nbsp;the&nbsp;game&nbsp;module&nbsp;—&nbsp;both&nbsp;providers&nbsp;and&nbsp;the&nbsp;ladder&nbsp;core&nbsp;consume<br>
+it,&nbsp;none&nbsp;re-implements&nbsp;it.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.aoe2.grace.html#LobbyClosedGrace">LobbyClosedGrace</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LobbyClosedGrace">class <strong>LobbyClosedGrace</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LobbyClosedGrace">LobbyClosedGrace</a>(grace_s:&nbsp;'int'&nbsp;=&nbsp;15)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Track&nbsp;lobby_closed&nbsp;grace&nbsp;windows&nbsp;per&nbsp;match&nbsp;reference.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LobbyClosedGrace-__init__"><strong>__init__</strong></a>(self, grace_s: 'int' = 15) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LobbyClosedGrace-forget"><strong>forget</strong></a>(self, match_ref: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;the&nbsp;tracking&nbsp;once&nbsp;the&nbsp;match&nbsp;reached&nbsp;a&nbsp;terminal&nbsp;state.</span></dd></dl>
+
+<dl><dt><a name="LobbyClosedGrace-on_game_started"><strong>on_game_started</strong></a>(self, match_ref: 'str') -&gt; 'None'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;pending&nbsp;downgrade:&nbsp;a&nbsp;game_started&nbsp;arrived.</span></dd></dl>
+
+<dl><dt><a name="LobbyClosedGrace-on_lobby_closed"><strong>on_lobby_closed</strong></a>(self, match_ref: 'str', now: 'float | None' = None) -&gt; 'None'</dt><dd><span class="code">Record&nbsp;a&nbsp;lobby_closed&nbsp;event&nbsp;for&nbsp;the&nbsp;match.</span></dd></dl>
+
+<dl><dt><a name="LobbyClosedGrace-should_downgrade"><strong>should_downgrade</strong></a>(self, match_ref: 'str', now: 'float | None' = None) -&gt; 'bool'</dt><dd><span class="code">Report&nbsp;whether&nbsp;the&nbsp;grace&nbsp;period&nbsp;has&nbsp;fully&nbsp;elapsed&nbsp;since&nbsp;lobby_closed.<br>
+&nbsp;<br>
+No&nbsp;recorded&nbsp;lobby_closed&nbsp;means&nbsp;nothing&nbsp;to&nbsp;downgrade&nbsp;(idempotent<br>
+—&nbsp;external&nbsp;events&nbsp;can&nbsp;be&nbsp;received&nbsp;multiple&nbsp;times).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GRACE_PERIOD_S</strong> = 15</td></tr></table>
+</body></html>

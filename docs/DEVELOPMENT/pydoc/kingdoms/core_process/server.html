@@ -11,9 +11,10 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core_process/server.py">SOURCE_ROOT/core_process/server.py</a></td></tr></table>
     <p><span class="code">svc-core&nbsp;gRPC&nbsp;server&nbsp;(ADR-0020&nbsp;bootstrap&nbsp;seam).<br>
 &nbsp;<br>
-Serves&nbsp;the&nbsp;kingdoms.v1&nbsp;contracts&nbsp;from&nbsp;``contracts/``.&nbsp;The&nbsp;first&nbsp;service<br>
-is&nbsp;Status&nbsp;(cross-process&nbsp;wiring&nbsp;assert);&nbsp;ladder/game&nbsp;services&nbsp;land&nbsp;with<br>
-their&nbsp;issues.</span></p>
+Serves&nbsp;the&nbsp;kingdoms.v1&nbsp;contracts&nbsp;from&nbsp;``contracts/``:&nbsp;Status&nbsp;(the<br>
+cross-process&nbsp;wiring&nbsp;assert)&nbsp;and&nbsp;Live&nbsp;(the&nbsp;aggregated&nbsp;dashboard&nbsp;of<br>
+#147&nbsp;—&nbsp;the&nbsp;background&nbsp;loop&nbsp;consumes&nbsp;the&nbsp;providers'&nbsp;StreamMatchEvents<br>
+and&nbsp;folds&nbsp;them&nbsp;into&nbsp;the&nbsp;LiveAggregator).</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -35,5 +36,6 @@ their&nbsp;issues.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core_process (WARNING)&gt;</td></tr></table>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core_process (WARNING)&gt;</td></tr></table>
 </body></html>

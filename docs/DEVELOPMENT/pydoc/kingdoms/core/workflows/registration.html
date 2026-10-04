@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.workflows.registration</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.workflows.html" class="white">workflows</a>.registration</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/workflows/registration.py">SOURCE_ROOT/core/workflows/registration.py</a></td></tr></table>
+    <p><span class="code">Registration&nbsp;DM&nbsp;workflow:&nbsp;bind&nbsp;a&nbsp;user&nbsp;to&nbsp;a&nbsp;validated&nbsp;game&nbsp;profile&nbsp;(kingdoms-services#133).<br>
+&nbsp;<br>
+Stateless&nbsp;executor&nbsp;driven&nbsp;by&nbsp;the&nbsp;WorkflowEngine&nbsp;(ADR-0002):&nbsp;each&nbsp;step<br>
+returns&nbsp;the&nbsp;next&nbsp;transition;&nbsp;persistence&nbsp;is&nbsp;the&nbsp;engine's.&nbsp;The&nbsp;flow:<br>
+&nbsp;<br>
+``entry``&nbsp;→&nbsp;confirm&nbsp;the&nbsp;enrollment&nbsp;request&nbsp;→&nbsp;``profile``&nbsp;→&nbsp;the&nbsp;user&nbsp;types<br>
+their&nbsp;in-game&nbsp;id&nbsp;(3-second&nbsp;rule:&nbsp;reply&nbsp;within&nbsp;the&nbsp;step&nbsp;timeout)&nbsp;→&nbsp;the<br>
+RegistrationService&nbsp;validates&nbsp;and&nbsp;binds&nbsp;→&nbsp;``done``.<br>
+&nbsp;<br>
+Events&nbsp;carry&nbsp;the&nbsp;step&nbsp;payload;&nbsp;the&nbsp;engine&nbsp;persists&nbsp;it&nbsp;so&nbsp;the&nbsp;flow<br>
+survives&nbsp;restarts&nbsp;by&nbsp;construction.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="kingdoms.core.interfaces.platform.html#IWorkflow">kingdoms.core.interfaces.platform.IWorkflow</a>(<a href="typing.html#Protocol">typing.Protocol</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.workflows.registration.html#RegistrationWorkflow">RegistrationWorkflow</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RegistrationWorkflow">class <strong>RegistrationWorkflow</strong></a>(<a href="kingdoms.core.interfaces.platform.html#IWorkflow">kingdoms.core.interfaces.platform.IWorkflow</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RegistrationWorkflow">RegistrationWorkflow</a>(registration:&nbsp;'RegistrationService',&nbsp;game_key:&nbsp;'str'&nbsp;=&nbsp;'aoe2')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+DM&nbsp;enrollment&nbsp;+&nbsp;game-profile&nbsp;binding,&nbsp;one&nbsp;step&nbsp;per&nbsp;interaction.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.workflows.registration.html#RegistrationWorkflow">RegistrationWorkflow</a></dd>
+<dd><a href="kingdoms.core.interfaces.platform.html#IWorkflow">kingdoms.core.interfaces.platform.IWorkflow</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RegistrationWorkflow-__init__"><strong>__init__</strong></a>(self, registration: 'RegistrationService', game_key: 'str' = 'aoe2') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;registration&nbsp;service&nbsp;and&nbsp;the&nbsp;target&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationWorkflow-handle_interaction"><strong>handle_interaction</strong></a>(self, state: 'WorkflowTransition', event: 'dict[str, Any]') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Advance&nbsp;one&nbsp;step&nbsp;per&nbsp;interaction;&nbsp;the&nbsp;envelope&nbsp;carries&nbsp;the&nbsp;step&nbsp;data.</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationWorkflow-on_timeout"><strong>on_timeout</strong></a>(self, state: 'WorkflowTransition') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Cancel&nbsp;a&nbsp;timed-out&nbsp;DM&nbsp;flow&nbsp;(the&nbsp;user&nbsp;can&nbsp;restart&nbsp;it).</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationWorkflow-start"><strong>start</strong></a>(self, context: 'dict[str, Any]') -&gt; 'WorkflowTransition'</dt><dd><span class="code">Open&nbsp;the&nbsp;flow&nbsp;at&nbsp;the&nbsp;entry&nbsp;step,&nbsp;pending&nbsp;the&nbsp;confirm&nbsp;interaction.</span></dd></dl>
+
+<dl><dt><a name="RegistrationWorkflow-steps"><strong>steps</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Ordered&nbsp;step&nbsp;names;&nbsp;the&nbsp;first&nbsp;is&nbsp;the&nbsp;entry&nbsp;step.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="RegistrationWorkflow-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>name</strong></dt>
+<dd><span class="code">Unique&nbsp;workflow&nbsp;name&nbsp;(registration&nbsp;key&nbsp;for&nbsp;the&nbsp;engine).</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.interfaces.platform.html#IWorkflow">kingdoms.core.interfaces.platform.IWorkflow</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="kingdoms.core.interfaces.platform.html#IWorkflow">kingdoms.core.interfaces.platform.IWorkflow</a>:<br>
+<dl><dt><strong>__non_callable_proto_members__</strong> = {'name'}</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'handle_interaction', 'name', 'on_timeout', 'start', 'steps'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="RegistrationWorkflow-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="RegistrationWorkflow-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>STATUS_PENDING</strong> = 'PENDING'<br>
+<strong>STEP_DONE</strong> = 'done'<br>
+<strong>STEP_ENTRY</strong> = 'entry'<br>
+<strong>STEP_PROFILE</strong> = 'profile'</td></tr></table>
+</body></html>

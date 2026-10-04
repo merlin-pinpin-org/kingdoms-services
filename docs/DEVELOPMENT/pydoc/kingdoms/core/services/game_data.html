@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.game_data</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.game_data</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/game_data.py">SOURCE_ROOT/core/services/game_data.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;data&nbsp;service:&nbsp;versioned&nbsp;catalog&nbsp;CRUD,&nbsp;pools&nbsp;and&nbsp;packs&nbsp;(kingdoms-services#131).<br>
+&nbsp;<br>
+Generic&nbsp;core&nbsp;contract&nbsp;``games/&lt;game&gt;/data/``:&nbsp;the&nbsp;service&nbsp;is&nbsp;game-agnostic,<br>
+keyed&nbsp;by&nbsp;``game_key``.&nbsp;Both&nbsp;write&nbsp;paths&nbsp;—&nbsp;YAML&nbsp;seeding&nbsp;(bulk&nbsp;initial&nbsp;data)<br>
+and&nbsp;the&nbsp;Discord&nbsp;admin&nbsp;surface&nbsp;—&nbsp;go&nbsp;through&nbsp;this&nbsp;service,&nbsp;never&nbsp;direct&nbsp;DB<br>
+edits,&nbsp;so&nbsp;the&nbsp;versioned&nbsp;data&nbsp;and&nbsp;the&nbsp;audit&nbsp;trail&nbsp;stay&nbsp;consistent.<br>
+&nbsp;<br>
+Invariants&nbsp;(JeanJack&nbsp;V2.0&nbsp;reference&nbsp;§2/§4):<br>
+-&nbsp;stable&nbsp;IDs:&nbsp;an&nbsp;entry's&nbsp;``_id``&nbsp;never&nbsp;changes;&nbsp;rotation&nbsp;never&nbsp;breaks<br>
+&nbsp;&nbsp;in-progress&nbsp;seasons;<br>
+-&nbsp;archival-only&nbsp;deletes:&nbsp;``archived_at``&nbsp;is&nbsp;set,&nbsp;the&nbsp;entry&nbsp;stays&nbsp;readable<br>
+&nbsp;&nbsp;for&nbsp;history;<br>
+-&nbsp;unique&nbsp;``(game_key,&nbsp;name)``&nbsp;among&nbsp;non-archived&nbsp;entries;<br>
+-&nbsp;pool&nbsp;activation&nbsp;is&nbsp;transactional:&nbsp;the&nbsp;previous&nbsp;activation&nbsp;is<br>
+&nbsp;&nbsp;deactivated,&nbsp;the&nbsp;new&nbsp;one&nbsp;recorded&nbsp;(the&nbsp;pool&nbsp;history),&nbsp;the&nbsp;ladder's<br>
+&nbsp;&nbsp;``active_map_pool_id``&nbsp;moves&nbsp;—&nbsp;all&nbsp;or&nbsp;nothing;<br>
+-&nbsp;the&nbsp;active&nbsp;pool&nbsp;can&nbsp;never&nbsp;be&nbsp;archived;<br>
+-&nbsp;every&nbsp;mutation&nbsp;is&nbsp;audited&nbsp;(``admin_audit``&nbsp;collection&nbsp;seam).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.game_data.html#ActivePoolArchiveError">ActivePoolArchiveError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#ArchivedEntryError">ArchivedEntryError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#NameTakenError">NameTakenError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.game_data.html#GameDataService">GameDataService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.game_data.html#GameDataAudit">GameDataAudit</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#GameDataDatabase">GameDataDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ActivePoolArchiveError">class <strong>ActivePoolArchiveError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;pool&nbsp;is&nbsp;active&nbsp;on&nbsp;a&nbsp;ladder:&nbsp;it&nbsp;cannot&nbsp;be&nbsp;archived.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#ActivePoolArchiveError">ActivePoolArchiveError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ActivePoolArchiveError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ActivePoolArchiveError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ActivePoolArchiveError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ActivePoolArchiveError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ActivePoolArchiveError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ActivePoolArchiveError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ArchivedEntryError">class <strong>ArchivedEntryError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;entry&nbsp;is&nbsp;archived:&nbsp;read-only,&nbsp;never&nbsp;mutated.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#ArchivedEntryError">ArchivedEntryError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ArchivedEntryError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ArchivedEntryError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ArchivedEntryError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ArchivedEntryError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ArchivedEntryError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ArchivedEntryError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ArchivedEntryError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ArchivedEntryError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ArchivedEntryError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ArchivedEntryError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ArchivedEntryError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataAudit">class <strong>GameDataAudit</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataAudit">GameDataAudit</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;audit&nbsp;seam:&nbsp;every&nbsp;mutation&nbsp;is&nbsp;recorded&nbsp;(best-effort).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#GameDataAudit">GameDataAudit</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GameDataAudit-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="GameDataAudit-record"><strong>record</strong></a>(self, action: 'str', payload: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;one&nbsp;admin-audit&nbsp;line.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="GameDataAudit-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'record'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="GameDataAudit-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GameDataAudit-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataDatabase">class <strong>GameDataDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataDatabase">GameDataDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#GameDataService">GameDataService</a>&nbsp;depends&nbsp;on.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#GameDataDatabase">GameDataDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GameDataDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_open_activations"><strong>find_open_activations</strong></a>(self, map_pool_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;still-open&nbsp;activations&nbsp;referencing&nbsp;one&nbsp;pool.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-upsert_entry"><strong>upsert_entry</strong></a>(self, collection: 'str', document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="GameDataDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_civs', 'find_active_maps', 'find_by_name', 'find_entry', 'find_ladder_activations', 'find_open_activations', ...}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="GameDataDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GameDataDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameDataService">class <strong>GameDataService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameDataService">GameDataService</a>(database:&nbsp;'<a href="#GameDataDatabase">GameDataDatabase</a>',&nbsp;audit:&nbsp;'<a href="#GameDataAudit">GameDataAudit</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+CRUD&nbsp;+&nbsp;lifecycle&nbsp;for&nbsp;the&nbsp;game&nbsp;catalog,&nbsp;pools&nbsp;and&nbsp;packs.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GameDataService-__init__"><strong>__init__</strong></a>(self, database: 'GameDataDatabase', audit: 'GameDataAudit | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;persistence&nbsp;and&nbsp;audit&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-activate_map_pool"><strong>activate_map_pool</strong></a>(self, ladder_id: 'str', map_pool_id: 'str') -&gt; 'MapPoolActivationModel'</dt><dd><span class="code">Activate&nbsp;a&nbsp;pool&nbsp;on&nbsp;a&nbsp;ladder,&nbsp;transactionally&nbsp;(reference&nbsp;§4).<br>
+&nbsp;<br>
+The&nbsp;previous&nbsp;active&nbsp;activation&nbsp;is&nbsp;deactivated,&nbsp;the&nbsp;new&nbsp;activation<br>
+is&nbsp;recorded,&nbsp;and&nbsp;the&nbsp;ladder's&nbsp;``active_map_pool_id``&nbsp;moves&nbsp;—&nbsp;the<br>
+caller&nbsp;persists&nbsp;the&nbsp;ladder&nbsp;field;&nbsp;this&nbsp;method&nbsp;owns&nbsp;the&nbsp;history<br>
+rows&nbsp;so&nbsp;the&nbsp;switch&nbsp;is&nbsp;atomic&nbsp;from&nbsp;the&nbsp;store's&nbsp;point&nbsp;of&nbsp;view.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-archive_civ"><strong>archive_civ</strong></a>(self, entry_id: 'str') -&gt; 'CivModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;civ&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-archive_map"><strong>archive_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-archive_map_pack"><strong>archive_map_pack</strong></a>(self, entry_id: 'str') -&gt; 'MapPackModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;pack&nbsp;(archival-only).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-archive_map_pool"><strong>archive_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;pool&nbsp;—&nbsp;never&nbsp;the&nbsp;pool&nbsp;active&nbsp;on&nbsp;some&nbsp;ladder.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-archive_rule"><strong>archive_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;rule&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-assert_pool_archivable"><strong>assert_pool_archivable</strong></a>(self, entry_id: 'str') -&gt; 'None'</dt><dd><span class="code">Guard:&nbsp;refuse&nbsp;archiving&nbsp;a&nbsp;pool&nbsp;still&nbsp;active&nbsp;on&nbsp;a&nbsp;ladder.<br>
+&nbsp;<br>
+Callers&nbsp;that&nbsp;track&nbsp;the&nbsp;ladder's&nbsp;``active_map_pool_id``&nbsp;use&nbsp;this<br>
+before&nbsp;the&nbsp;archive;&nbsp;the&nbsp;service&nbsp;itself&nbsp;keeps&nbsp;the&nbsp;check&nbsp;where&nbsp;the<br>
+ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-create_civ"><strong>create_civ</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '') -&gt; 'CivModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;civilization/faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '') -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-create_map_pack"><strong>create_map_pack</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]', description: 'str' = '') -&gt; 'MapPackModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;named&nbsp;bundle&nbsp;of&nbsp;maps.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-create_map_pool"><strong>create_map_pool</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]' = (), map_pack_ids: 'tuple[str, ...]' = (), description: 'str' = '') -&gt; 'MapPoolModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;pool&nbsp;referencing&nbsp;maps&nbsp;and/or&nbsp;packs;&nbsp;at&nbsp;least&nbsp;one&nbsp;map&nbsp;resolved.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-create_rule"><strong>create_rule</strong></a>(self, game_key: 'str', name: 'str', rule_key: 'str' = '', params: 'dict[str, str] | None' = None, description: 'str' = '') -&gt; 'RuleModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;game&nbsp;rule/format&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name&nbsp;(a&nbsp;new&nbsp;stable&nbsp;id).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-get_civ"><strong>get_civ</strong></a>(self, entry_id: 'str') -&gt; 'CivModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;civ;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-get_map"><strong>get_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-get_map_pack"><strong>get_map_pack</strong></a>(self, entry_id: 'str') -&gt; 'MapPackModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map&nbsp;pack;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-get_map_pool"><strong>get_map_pool</strong></a>(self, entry_id: 'str') -&gt; 'MapPoolModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map&nbsp;pool;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-get_rule"><strong>get_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;rule;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-list_civs"><strong>list_civs</strong></a>(self, game_key: 'str') -&gt; 'list[CivModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-list_maps"><strong>list_maps</strong></a>(self, game_key: 'str') -&gt; 'list[MapModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-resolve_pool_map_ids"><strong>resolve_pool_map_ids</strong></a>(self, pool: 'MapPoolModel') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Union&nbsp;of&nbsp;the&nbsp;pool's&nbsp;direct&nbsp;maps&nbsp;and&nbsp;its&nbsp;packs'&nbsp;maps&nbsp;(archived&nbsp;included).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-seed_from_data"><strong>seed_from_data</strong></a>(self, game_key: 'str', data: 'dict[str, Any]') -&gt; 'dict[str, int]'</dt><dd><span class="code">Seed&nbsp;a&nbsp;game's&nbsp;catalog&nbsp;from&nbsp;a&nbsp;parsed&nbsp;YAML&nbsp;document&nbsp;(idempotent).<br>
+&nbsp;<br>
+Sections&nbsp;``maps``,&nbsp;``civs``,&nbsp;``rules``:&nbsp;each&nbsp;a&nbsp;list&nbsp;of&nbsp;entries&nbsp;with<br>
+a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&nbsp;present&nbsp;(same&nbsp;id)<br>
+are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="NameTakenError">class <strong>NameTakenError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">A&nbsp;non-archived&nbsp;entry&nbsp;already&nbsp;exists&nbsp;for&nbsp;this&nbsp;``(game_key,&nbsp;name)``.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#NameTakenError">NameTakenError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="NameTakenError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="NameTakenError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="NameTakenError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="NameTakenError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="NameTakenError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="NameTakenError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="NameTakenError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="NameTakenError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#NameTakenError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="NameTakenError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#NameTakenError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADMIN_AUDIT_COLLECTION</strong> = 'admin_audit'<br>
+<strong>CIVS_COLLECTION</strong> = 'civs'<br>
+<strong>MAPS_COLLECTION</strong> = 'maps'<br>
+<strong>MAP_PACKS_COLLECTION</strong> = 'map_packs'<br>
+<strong>MAP_POOLS_COLLECTION</strong> = 'map_pools'<br>
+<strong>MAP_POOL_HISTORY_COLLECTION</strong> = 'map_pool_history'<br>
+<strong>RULES_COLLECTION</strong> = 'rules'<br>
+<strong>T</strong> = ~T<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.game_data (WARNING)&gt;</td></tr></table>
+</body></html>

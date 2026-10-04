@@ -67,6 +67,11 @@ def write_pages(
             "0xMEMORY_ADDRESS",
             content,
         )
+        content = re.sub(
+            r"\.\.\.[0-9a-f]{6,}",
+            "...MEMORY_ADDRESS",
+            content,
+        )
         src_prefix = re.escape(str(src_root.resolve()))
         content = re.sub(
             rf"{src_prefix}",

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.game</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.game</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/game.py">SOURCE_ROOT/core/rpc/game.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;provider&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;(kingdoms.v1.Game).<br>
+&nbsp;<br>
+A&nbsp;game&nbsp;provider&nbsp;process&nbsp;(ext-librematch,&nbsp;ext-aoe2lobby)&nbsp;builds&nbsp;its&nbsp;gRPC<br>
+server&nbsp;from&nbsp;these&nbsp;servicers,&nbsp;backed&nbsp;by&nbsp;its&nbsp;own&nbsp;adapters&nbsp;to&nbsp;the&nbsp;external<br>
+APIs.&nbsp;The&nbsp;seam&nbsp;keeps&nbsp;provider&nbsp;code&nbsp;out&nbsp;of&nbsp;the&nbsp;core:&nbsp;it&nbsp;only&nbsp;translates<br>
+between&nbsp;the&nbsp;wire&nbsp;contract&nbsp;and&nbsp;plain&nbsp;core&nbsp;models.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2.html">kingdoms.rpc_generated.kingdoms.v1.game_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc</a><br>
+</td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.game.html#GameServicer">GameServicer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameServicer">class <strong>GameServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameServicer">GameServicer</a>(capabilities:&nbsp;'Callable[[],&nbsp;ProviderCapabilities]',&nbsp;match_details:&nbsp;'Callable[[str],&nbsp;Awaitable[MatchDetails&nbsp;|&nbsp;None]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;list_maps:&nbsp;'Callable[[],&nbsp;Awaitable[list[GameMap]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;match_events:&nbsp;'Callable[[],&nbsp;AsyncIterator[MatchEvent]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;player_stats:&nbsp;'Callable[[str],&nbsp;Awaitable[PlayerStats&nbsp;|&nbsp;None]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Serve&nbsp;the&nbsp;kingdoms.v1.Game&nbsp;contract&nbsp;from&nbsp;provider-backed&nbsp;callables.<br>
+&nbsp;<br>
+Providers&nbsp;register&nbsp;plain&nbsp;async&nbsp;callables;&nbsp;this&nbsp;servicer&nbsp;adapts&nbsp;them&nbsp;to<br>
+gRPC.&nbsp;Providers&nbsp;that&nbsp;do&nbsp;not&nbsp;support&nbsp;a&nbsp;capability&nbsp;raise<br>
+``UnsupportedCapability``&nbsp;in&nbsp;the&nbsp;backing&nbsp;callable,&nbsp;mapped&nbsp;to<br>
+UNIMPLEMENTED&nbsp;on&nbsp;the&nbsp;wire&nbsp;so&nbsp;the&nbsp;core&nbsp;degrades&nbsp;cleanly.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.rpc.game.html#GameServicer">GameServicer</a></dd>
+<dd><a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="GameServicer-GetCapabilities"><strong>GetCapabilities</strong></a>(self, request: 'game_pb2.CapabilitiesRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.Capabilities'</dt><dd><span class="code">Serve&nbsp;the&nbsp;provider's&nbsp;declared&nbsp;capabilities&nbsp;as&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+
+<dl><dt>async <a name="GameServicer-GetMatchDetails"><strong>GetMatchDetails</strong></a>(self, request: 'game_pb2.GetMatchDetailsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.MatchDetails'</dt><dd><span class="code">Serve&nbsp;a&nbsp;match's&nbsp;slotinfo&nbsp;and&nbsp;raw&nbsp;game&nbsp;options&nbsp;when&nbsp;known.</span></dd></dl>
+
+<dl><dt>async <a name="GameServicer-GetPlayerStats"><strong>GetPlayerStats</strong></a>(self, request: 'game_pb2.GetPlayerStatsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.PlayerStats'</dt><dd><span class="code">Serve&nbsp;a&nbsp;profile's&nbsp;named&nbsp;stats&nbsp;blocks&nbsp;when&nbsp;the&nbsp;provider&nbsp;has&nbsp;them.</span></dd></dl>
+
+<dl><dt>async <a name="GameServicer-ListMaps"><strong>ListMaps</strong></a>(self, request: 'game_pb2.ListMapsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'game_pb2.GameMaps'</dt><dd><span class="code">Serve&nbsp;the&nbsp;provider's&nbsp;known&nbsp;map&nbsp;catalog&nbsp;for&nbsp;its&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="GameServicer-StreamMatchEvents"><strong>StreamMatchEvents</strong></a>(self, request: 'game_pb2.StreamMatchEventsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'AsyncIterator[game_pb2.MatchEvent]'</dt><dd><span class="code">Stream&nbsp;live&nbsp;match&nbsp;lifecycle&nbsp;events&nbsp;from&nbsp;the&nbsp;provider.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-__init__"><strong>__init__</strong></a>(self, capabilities: 'Callable[[], ProviderCapabilities]', match_details: 'Callable[[str], Awaitable[MatchDetails | None]] | None' = None, list_maps: 'Callable[[], Awaitable[list[GameMap]]] | None' = None, match_events: 'Callable[[], AsyncIterator[MatchEvent]] | None' = None, player_stats: 'Callable[[str], Awaitable[PlayerStats | None]] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>:<br>
+<dl><dt><a name="GameServicer-GetMatchLinks"><strong>GetMatchLinks</strong></a>(self, request, context)</dt><dd><span class="code">Game&nbsp;action&nbsp;links&nbsp;(join/spectate/insights)&nbsp;as&nbsp;opaque&nbsp;label+url&nbsp;pairs.</span></dd></dl>
+
+<dl><dt><a name="GameServicer-GetMatchResult"><strong>GetMatchResult</strong></a>(self, request, context)</dt><dd><span class="code">Fetch&nbsp;the&nbsp;result&nbsp;of&nbsp;a&nbsp;finished&nbsp;game&nbsp;(winner,&nbsp;duration,&nbsp;map,&nbsp;factions).</span></dd></dl>
+
+<dl><dt><a name="GameServicer-ResolveProfile"><strong>ResolveProfile</strong></a>(self, request, context)</dt><dd><span class="code">Resolve&nbsp;which&nbsp;mod&nbsp;user&nbsp;matches&nbsp;a&nbsp;game&nbsp;profile.&nbsp;Used&nbsp;for&nbsp;profile<br>
+validation&nbsp;at&nbsp;registration&nbsp;and&nbsp;for&nbsp;match&nbsp;participant&nbsp;resolution.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.html#GameServicer">kingdoms.rpc_generated.kingdoms.v1.game_pb2_grpc.GameServicer</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-capabilities_from_wire"><strong>capabilities_from_wire</strong></a>(wire: 'game_pb2.Capabilities') -&gt; 'ProviderCapabilities'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;capability&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-capabilities_to_wire"><strong>capabilities_to_wire</strong></a>(caps: 'ProviderCapabilities') -&gt; 'game_pb2.Capabilities'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;capability&nbsp;declaration&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-game_map_from_wire"><strong>game_map_from_wire</strong></a>(wire: 'game_pb2.GameMap') -&gt; 'GameMap'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;game-map&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-game_map_to_wire"><strong>game_map_to_wire</strong></a>(game_map: 'GameMap') -&gt; 'game_pb2.GameMap'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;game-map&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-match_details_from_wire"><strong>match_details_from_wire</strong></a>(wire: 'game_pb2.MatchDetails') -&gt; 'MatchDetails'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-details&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-match_details_to_wire"><strong>match_details_to_wire</strong></a>(details: 'MatchDetails') -&gt; 'game_pb2.MatchDetails'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-details&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-match_event_from_wire"><strong>match_event_from_wire</strong></a>(wire: 'game_pb2.MatchEvent') -&gt; 'MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;match-event&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-match_event_to_wire"><strong>match_event_to_wire</strong></a>(event: 'MatchEvent') -&gt; 'game_pb2.MatchEvent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;match-event&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-player_stats_from_wire"><strong>player_stats_from_wire</strong></a>(wire: 'game_pb2.PlayerStats') -&gt; 'PlayerStats'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;player-stats&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-player_stats_to_wire"><strong>player_stats_to_wire</strong></a>(stats: 'PlayerStats') -&gt; 'game_pb2.PlayerStats'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;player-stats&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-slot_from_wire"><strong>slot_from_wire</strong></a>(wire: 'game_pb2.Slot') -&gt; 'Slot'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;slot&nbsp;message&nbsp;into&nbsp;the&nbsp;core&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-slot_to_wire"><strong>slot_to_wire</strong></a>(slot: 'Slot') -&gt; 'game_pb2.Slot'</dt><dd><span class="code">Translate&nbsp;a&nbsp;core&nbsp;slot&nbsp;model&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+</td></tr></table>
+</body></html>
