@@ -35,16 +35,20 @@ concurrency:
 
 jobs:
   authorize:
-    name: Roster gate
+    name: Parse, acknowledge, pre-check
     if: >-
       startsWith(github.event.comment.body, '/logs') ||
       startsWith(github.event.comment.body, '/restart') ||
+      startsWith(github.event.comment.body, '/start') ||
+      startsWith(github.event.comment.body, '/stop') ||
+      startsWith(github.event.comment.body, '/status') ||
       startsWith(github.event.comment.body, '/rollback') ||
       startsWith(github.event.comment.body, '/dump-db')
     runs-on: ubuntu-latest
     outputs:
       command: ${{ steps.parse.outputs.command }}
       environment: ${{ steps.parse.outputs.environment }}
+      capability: ${{ steps.parse.outputs.capability }}
     steps:
       - name: Parse the command (untrusted input — env var, never inline)
         id: parse
@@ -54,14 +58,24 @@ jobs:
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
           case "$command" in
-            /logs|/restart|/rollback|/dump-db) ;;
+            /logs|/restart|/start|/stop|/status|/rollback|/dump-db) ;;
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
           # A flag token in second position means the default env (test).
           [[ -n "$env_name" && "$env_name" != -* ]] || env_name="test"
+          # Each command maps to one roster capability (CONTRIBUTORS.md
+          # authority matrix): the routing and the gate share this mapping.
+          case "${command#/}" in
+            logs)    capability=env-logs ;;
+            restart|start|stop) capability=env-control ;;
+            status)  capability=env-control ;;
+            rollback) capability=rollback ;;
+            dump-db)  capability=db-dump ;;
+          esac
           echo "command=${command#/}" >> "$GITHUB_OUTPUT"
           echo "environment=$env_name" >> "$GITHUB_OUTPUT"
+          echo "capability=$capability" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge (what, why — before the gate, per the conventions)
         id: ack
@@ -73,6 +87,9 @@ jobs:
             const body = {
               logs: `**/${cmd} intercepted** — collecting the ${env} logs and posting them back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-logs\`) — verdict right away.`,
               restart: `**/${cmd} intercepted** — restarting the ${env} stack in place (no pull, no recreate, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
+              start: `**/${cmd} intercepted** — starting the ${env} stack in place (no pull, no recreate, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
+              stop: `**/${cmd} intercepted** — stopping the ${env} stack in place (containers kept, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
+              status: `**/${cmd} intercepted** — reporting the ${env} stack state back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
               rollback: `**/${cmd} intercepted** — reverting the last pinned image on deploy/${env} (the push re-triggers the deployment of the previous known-good image). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`rollback\`) — verdict right away.`,
               "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
             }[cmd];
@@ -83,17 +100,23 @@ jobs:
               body,
             });
 
-      - name: Roster gate (fail-closed — no dispatch without it)
-        uses: merlin-pinpin-org/kingdoms/.github/workflows/authorize.yml@main
-        with:
-          capability: ${{ steps.parse.outputs.command == 'logs' && 'env-logs' || steps.parse.outputs.command == 'restart' && 'env-control' || steps.parse.outputs.command }}
-          environment: ${{ steps.parse.outputs.environment }}
-          requestor: ${{ github.event.comment.user.login }}
-          pr-number: ${{ github.event.issue.number }}
+
+  # A reusable workflow can only be called at the job level (a job with
+  # `uses:` cannot mix in `steps:`) — the roster gate is its own job
+  # between the parse/ack job and the dispatch job.
+  gate:
+    name: Roster gate
+    needs: authorize
+    uses: merlin-pinpin-org/kingdoms/.github/workflows/authorize.yml@main
+    with:
+      capability: ${{ needs.authorize.outputs.capability }}
+      environment: ${{ needs.authorize.outputs.environment }}
+      requestor: ${{ github.event.comment.user.login }}
+      pr-number: ${{ github.event.issue.number }}
 
   execute:
     name: Dispatch to kingdoms-infra
-    needs: [authorize]
+    needs: [authorize, gate]
     runs-on: ubuntu-latest
     steps:
       - name: Mint the kingdoms-deployer App token
@@ -131,6 +154,12 @@ jobs:
               gh workflow run env-control.yml \
                 --repo merlin-pinpin-org/kingdoms-infra \
                 -f command=restart \
+                -f environment="$ENVIRONMENT"
+              ;;
+            start|stop|status)
+              gh workflow run env-control.yml \
+                --repo merlin-pinpin-org/kingdoms-infra \
+                -f command="$COMMAND" \
                 -f environment="$ENVIRONMENT"
               ;;
             rollback)
