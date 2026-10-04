@@ -2,7 +2,9 @@ name: Docker
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "vibe/*/main"
     tags: ["v*.*.*"]
   pull_request:
 
@@ -115,6 +117,59 @@ jobs:
         run: |
           docker rm -f kingdoms-mongo kingdoms-redis 2>/dev/null || true
           docker network rm kingdoms-ci 2>/dev/null || true
+
+  autopin-personal-env:
+    # Personal environments (docs/ENVIRONMENTS.md of kingdoms-infra): a push
+    # to a vibe/<alias>/main integration branch builds the image and pins it
+    # on that alias's deploy/<alias> state branch — the personal env follows
+    # its user's integration branch head automatically. No command, no PR:
+    # the pin push triggers the deploy of the personal env.
+    name: Autopin the image on deploy/<alias>
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/vibe/') && endsWith(github.ref, '/main')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint an ephemeral GitHub App token for kingdoms-infra
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin-org
+          repositories: kingdoms-infra
+      - name: Pin the built image on the alias's state branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            // vibe/<alias>/main -> <alias> (one personal env per alias).
+            const alias = context.ref
+              .replace("refs/heads/vibe/", "")
+              .replace("/main", "");
+            const sha = context.sha;
+            const short = sha.slice(0, 7);
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:sha-${short}`;
+            await github.rest.repos.createDispatchEvent({
+              owner: "merlin-pinpin-org",
+              repo: "kingdoms-infra",
+              event_type: "pin-state",
+              client_payload: {
+                env: alias,
+                image,
+                version_label: `${alias}@${short}`,
+                deploy_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
+                deploy_kind: "integration",
+                deploy_ref: short,
+                deploy_tree_url: `https://github.com/merlin-pinpin-org/kingdoms-services/tree/${sha}`,
+                deploy_branch: `vibe/${alias}/main`,
+                // The CI job that built the image: this run. The Pin state
+                // workflow resolves its id and number from the run lookup
+                // (the payload stays at exactly 10 properties).
+                ci_run: String(context.runId),
+                deployed_by: `${context.actor} (autopin vibe/${alias}/main)`,
+              },
+            });
+            core.notice(`pin-state dispatched for ${image} on deploy/${alias}`);
 
   pin-release-test:
     name: Pin the released image on deploy/test
