@@ -450,7 +450,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     kingdoms_service = _build_kingdoms_service(resolved)
 
     from kingdoms.discord.admin import register_admin_command
-    from kingdoms.discord.drasah import register_drasah_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
     from kingdoms.discord.kingdoms_admin import register_kingdoms_admin_command
     from kingdoms.discord.live import register_live_commands
@@ -465,9 +464,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     if kingdoms_service is not None:
         register_kingdoms_admin_command(bot.tree, kingdoms_service, status.bot_admins, roles_service)
     register_live_commands(bot.tree, catalog=bot.messages)
-    drasah = registry.get("drasah")
-    if drasah is not None and drasah.enabled:
-        register_drasah_command(bot.tree, catalog=bot.messages)
     register_admin_command(
         bot.tree,
         bot_admins=status.bot_admins,

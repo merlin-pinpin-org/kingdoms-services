@@ -7,7 +7,7 @@ discord.ui classes, never content= on a V2 message (the wire rule).
 Season state reads are Lot C wiring: until a season is launched every
 screen renders the no-season placeholder — the screen structure is
 real, the season data arrives with the T2 launch (reference §3, D38/D52).
-Strings follow the drasah pattern (designer-authored, FR/EN dict) for
+Strings follow the designer-authored pattern (FR/EN dict) for
 the runtime screens; the command names and descriptions are
 localizable through the shared catalog (``commands.kingdoms_*`` keys
 in ``config/locales/<locale>.yaml``), so a French client sees

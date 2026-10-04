@@ -121,7 +121,7 @@ STRINGS: dict[str, dict[str, str]] = {
 
 
 def _strings(locale: str) -> dict[str, str]:
-    """Resolve the catalog for one locale (French fallback, drasah pattern)."""
+    """Resolve the catalog for one locale (French fallback, designer-authored pattern)."""
     return STRINGS["fr"] if str(locale).lower().startswith("fr") else STRINGS["en"]
 
 

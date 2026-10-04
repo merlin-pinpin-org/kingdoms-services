@@ -47,7 +47,7 @@ DEFAULT_LOCALE = "fr"
 
 
 def _tech_name(key: str, locale: str) -> str:
-    """Resolve a technology display name (French fallback, drasah pattern)."""
+    """Resolve a technology display name (French fallback, designer-authored pattern)."""
     return TECHNOLOGY_NAMES.get(key, {}).get(locale, TECHNOLOGY_NAMES.get(key, {}).get(DEFAULT_LOCALE, key))
 
 

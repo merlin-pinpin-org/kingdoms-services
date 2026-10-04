@@ -1,9 +1,0 @@
-id: drasah
-enabled: true
-settings: {}
-channels: []
-roles: []
-workflows: []
-commands:
-  - drasah
-dependencies: []
