@@ -12,8 +12,22 @@ import subprocess
 import tomllib
 from dataclasses import dataclass
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "kingdoms")
-CONFIG_PATH = os.path.join(CONFIG_DIR, "cli.toml")
+CONFIG_DIRNAME = ".config/kingdoms"
+CONFIG_FILENAME = "cli.toml"
+
+
+def _config_dir() -> str:
+    """Per-user config directory (~/.config/kingdoms), resolved lazily.
+
+    Lazy resolution keeps the module import free of machine-specific
+    values, so the generated pydoc is identical on every machine.
+    """
+    return os.path.join(os.path.expanduser("~"), *CONFIG_DIRNAME.split("/"))
+
+
+def _config_path() -> str:
+    """Full path of the user's hosts config file."""
+    return os.path.join(_config_dir(), CONFIG_FILENAME)
 FIELDS = ("host", "user", "port", "key")
 DESTRUCTIVE = ("rm ", "rm -", "mkfs", "dd ", ":(){", "shutdown", "reboot", "drop database")
 
@@ -30,14 +44,15 @@ class Host:
 
 
 def _ensure_dir() -> None:
-    os.makedirs(CONFIG_DIR, exist_ok=True)
+    os.makedirs(_config_dir(), exist_ok=True)
 
 
 def load_hosts() -> dict[str, Host]:
     """Read hosts from the TOML config; missing file means no hosts."""
-    if not os.path.isfile(CONFIG_PATH):
+    path = _config_path()
+    if not os.path.isfile(path):
         return {}
-    with open(CONFIG_PATH, "rb") as fh:
+    with open(path, "rb") as fh:
         data = tomllib.load(fh)
     hosts: dict[str, Host] = {}
     for name, table in data.get("hosts", {}).items():
@@ -53,7 +68,7 @@ def _write_hosts(hosts: dict[str, Host]) -> None:
         lines.append(f"port = {host.port}\n")
         if host.key:
             lines.append(f'key = "{host.key}"\n')
-    with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
+    with open(_config_path(), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
 
 
@@ -84,7 +99,7 @@ def cmd_add(name: str, host: str, user: str, port: str, key: str | None) -> int:
         return 0
     hosts[name] = new
     _write_hosts(hosts)
-    print(f"Saved host '{name}' in {CONFIG_PATH}")
+    print(f"Saved host '{name}' in {_config_path()}")
     print("Test it: kingdoms remote status " + name)
     return 0
 
@@ -94,7 +109,7 @@ def cmd_list() -> int:
     hosts = load_hosts()
     if not hosts:
         print("No hosts yet. Add one: kingdoms remote add --name myhost --host 1.2.3.4 --user root")
-        print(f"(stored in {CONFIG_PATH} — no passwords, only ssh keys.)")
+        print(f"(stored in {_config_path()} — no passwords, only ssh keys.)")
         return 0
     for h in hosts.values():
         print(f"{h.name}: {h.user}@{h.host}:{h.port}" + (f" key={h.key}" if h.key else ""))
@@ -150,17 +165,25 @@ def _connect(h: Host, remote_cmd: list[str], *, interactive: bool = False, confi
     return rc
 
 
+def _usage() -> None:
+    """Print the remote usage block."""
+    print("Usage: kingdoms remote <action> [args]")
+    print("  add --name N --host H --user U [--port 22] [--key ~/.ssh/id_ed25519]")
+    print("  list | rm <name> | ssh <name>")
+    print("  status <name> | logs <name> | run <name> '<command>' | deploy <name>")
+
+
 def main(argv: list[str]) -> int:
     """Dispatch `kingdoms remote <action>`; return exit code."""
-    if len(argv) < 2:
-        print("Usage: kingdoms remote <action> [args]")
-        print("  add --name N --host H --user U [--port 22] [--key ~/.ssh/id_ed25519]")
-        print("  list | rm <name> | ssh <name>")
-        print("  status <name> | logs <name> | run <name> '<command>' | deploy <name>")
-        return 2 if argv else 0
+    if not argv:
+        _usage()
+        return 0
     action, rest = argv[0], argv[1:]
     if action == "list" and not rest:
         return cmd_list()
+    if len(argv) < 2:
+        _usage()
+        return 2
     if action == "add" and rest:
         opts = _parse_add(rest)
         return cmd_add(
