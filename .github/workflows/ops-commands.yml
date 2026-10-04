@@ -140,13 +140,22 @@ jobs:
           case "$COMMAND" in
             logs)
               # /logs [env] [--service S] [--since 30m] [--from iso] [--to iso] [--tail N]
-              # Drop the command and env tokens; forward the filter tokens verbatim.
-              filters="$(echo "$COMMENT_BODY" | cut -d' ' -f3-)"
-              gh api --method POST repos/merlin-pinpin-org/kingdoms-infra/dispatches \
-                -f event_type=env-logs \
-                -f 'client_payload[environment]='"$ENVIRONMENT" \
-                -f 'client_payload[filters]='"$filters" \
-                -f 'client_payload[requestor]='"$REQUESTOR"
+              # The env-logs job declares the GitHub environment <env> (its
+              # secrets carry DISCORD_TOKEN), so the deployment branch policy
+              # applies: dispatch on the state branch deploy/<env>, like every
+              # other environment job, and forward the filter tokens as inputs.
+              SERVICE="$(echo "$COMMENT_BODY" | grep -oP '(?<=--service )\S+' || true)"
+              SINCE="$(echo "$COMMENT_BODY" | grep -oP '(?<=--since )\S+' || true)"
+              FROM="$(echo "$COMMENT_BODY" | grep -oP '(?<=--from )\S+' || true)"
+              TO="$(echo "$COMMENT_BODY" | grep -oP '(?<=--to )\S+' || true)"
+              TAIL="$(echo "$COMMENT_BODY" | grep -oP '(?<=--tail )\S+' || true)"
+              ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT")
+              [[ -n "$SERVICE" ]] && ARGS+=(-f service="$SERVICE")
+              [[ -n "$SINCE" ]]   && ARGS+=(-f since="$SINCE")
+              [[ -n "$FROM" ]]    && ARGS+=(-f from="$FROM")
+              [[ -n "$TO" ]]      && ARGS+=(-f to="$TO")
+              [[ -n "$TAIL" ]]    && ARGS+=(-f tail="$TAIL")
+              gh workflow run env-logs.yml "${ARGS[@]}"
               ;;
             restart|start|stop|status)
               # env-control is workflow_dispatch-only (two choice lists);
