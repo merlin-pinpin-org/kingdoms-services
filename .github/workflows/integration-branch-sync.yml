@@ -1,0 +1,79 @@
+# Integration-branch sync (CONVENTIONS.md § "Integration branches").
+#
+# vibe/<alias>/main is a contributor's integration branch: CI-gated merges
+# land there without review, and the road back to main is a classic
+# code-owner-reviewed PR. This workflow keeps those branches from drifting
+# from main (retrospective kingdoms#156, cause R1): every day, and on
+# demand, it merges main into each declared integration branch.
+#
+# Rules:
+#   - merge, never rebase: integration branches carry merge commits and
+#     their history is never rewritten (no force-push, ever);
+#   - a conflict is reported, never resolved silently: the workflow fails
+#     and (the session-drift watchdog aside) the owner resolves it —
+#     a bot-authored conflict resolution on gameplay code would be a
+#     silent game-design decision.
+#
+# Declared branches: add one entry to the integration-branches list of
+# the dispatch input (single source of truth for which branches exist;
+# creation of a new integration branch stays a push, not a workflow).
+name: Integration branch sync
+
+on:
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+    inputs:
+      integration-branch:
+        description: "Integration branch to sync (empty = all)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: integration-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge main into the integration branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out kingdoms-services (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge main into each integration branch
+        env:
+          TARGET: ${{ inputs.integration-branch }}
+        run: |
+          set -euo pipefail
+          branches=$(git ls-remote --heads origin 'refs/heads/vibe/*/main' \
+            | sed 's|.*refs/heads/||' | sort)
+          if [ -n "${TARGET}" ]; then
+            echo "${branches}" | grep -qx "${TARGET}" \
+              || { echo "::error::integration branch '${TARGET}' not found (expected one of: $(echo ${branches} | tr '\n' ' '))"; exit 1; }
+            branches="${TARGET}"
+          fi
+          [ -n "${branches}" ] || { echo "no integration branch (vibe/*/main) to sync"; exit 0; }
+          git config user.name "kingdoms-deployer[bot]"
+          git config user.email "kingdoms-deployer[bot]@users.noreply.github.com"
+          for branch in ${branches}; do
+            echo "::group::sync ${branch}"
+            git checkout --quiet "origin/${branch}" -B tmp-sync
+            if git merge --no-ff --no-edit origin/main; then
+              if git diff --quiet "origin/${branch}" tmp-sync; then
+                echo "${branch}: already in sync with main"
+              else
+                git push origin "tmp-sync:refs/heads/${branch}"
+                echo "${branch}: synced with main"
+              fi
+            else
+              git merge --abort || true
+              echo "::error::${branch} conflicts with main — the owner resolves it (merge main into ${branch} locally); this workflow never auto-resolves gameplay code"
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
