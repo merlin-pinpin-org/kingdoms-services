@@ -54,6 +54,8 @@ jobs:
         id: parse
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
@@ -62,8 +64,16 @@ jobs:
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
-          # A flag token in second position means the default env (test).
-          [[ -n "$env_name" && "$env_name" != -* ]] || env_name="test"
+          # No explicit env means the requestor's personal environment
+          # (their roster alias — sandbox first; e.g. "/status test"
+          # targets the shared validation env explicitly). The alias is
+          # resolved from the roster on kingdoms main via the GitHub
+          # API, lowercased to match the env naming.
+          if [[ -z "$env_name" || "$env_name" == -* ]]; then
+            alias="$(gh api /repos/merlin-pinpin-org/kingdoms/contents/CONTRIBUTORS.md --jq .content | base64 -d | grep -F "| @${COMMENTER} |" | head -1 | awk -F"|" "{print \$3}" | tr -d " ")"
+            [[ -n "$alias" ]] || { echo "::error::requestor has no roster entry — cannot resolve the default env; pass an explicit env (e.g. /${command#/} test)" >&2; exit 1; }
+            env_name="${alias,,}"
+          fi
           # Each command maps to one roster capability (CONTRIBUTORS.md
           # authority matrix): the routing and the gate share this mapping.
           case "${command#/}" in
