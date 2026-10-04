@@ -36,6 +36,13 @@ clone — no credentials, no Discord token, no external services; keep it
 that way. Run `make lint` and `make test` before pushing; all tests must
 pass.
 
+The `kingdoms` CLI ([docs/CLI.md](CLI.md)) is the front door for environment
+and ops work: `kingdoms doctor` checks your machine, `kingdoms local ...`
+drives the dev stack, `kingdoms remote ...` manages servers over SSH and
+`kingdoms runner setup` guides a self-hosted Actions runner. Prefer it to
+improvised shell commands — if something recurring is missing from it, add
+it there (a module per domain in `src/kingdoms/cli/`).
+
 ## Architecture rules
 
 - The core (`src/kingdoms/core/`) is **platform-agnostic**: no discord.py

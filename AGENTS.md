@@ -84,3 +84,10 @@ mods, YAML configs.
   [Automate or learn](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/automate-or-learn.md)
   skill and CONVENTIONS.md (*Human GitHub scope*, *Everything is
   automation*).
+- **CLI-first mandate:** the `kingdoms` CLI
+  (`src/kingdoms/cli/`, [docs/CLI.md](docs/CLI.md)) is the front door
+  for environments and ops — doctor (local env checks), local stack,
+  remote SSH, runner setup. New environment/ops surface goes in the
+  CLI (a module per domain, `main(argv) -> int`), not in ad-hoc
+  commands; sessions use `uv run kingdoms ...` and teach it to
+  designers instead of improvising shell commands.

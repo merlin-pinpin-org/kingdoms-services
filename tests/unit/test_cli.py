@@ -39,8 +39,8 @@ def test_doctor_check_env(tmp_path: pytest.TempPathFactory, capsys: pytest.Captu
 def test_remote_add_list_rm(tmp_path: pytest.TempPathFactory, capsys: pytest.CaptureFixture[str]) -> None:
     key = tmp_path / "id_ed25519"
     key.write_text("fake key\n")
-    with mock.patch.object(remote, "CONFIG_PATH", str(tmp_path / "cli.toml")), \
-         mock.patch.object(remote, "CONFIG_DIR", str(tmp_path)):
+    with mock.patch.object(remote, "_config_path", return_value=str(tmp_path / "cli.toml")), \
+         mock.patch.object(remote, "_config_dir", return_value=str(tmp_path)):
         rc = remote.cmd_add(name="myhost", host="1.2.3.4", user="root", port="22", key=str(key))
         assert rc == 0
         hosts = remote.load_hosts()
@@ -52,8 +52,8 @@ def test_remote_add_list_rm(tmp_path: pytest.TempPathFactory, capsys: pytest.Cap
 
 
 def test_remote_add_bad_key(tmp_path: pytest.TempPathFactory) -> None:
-    with mock.patch.object(remote, "CONFIG_PATH", str(tmp_path / "cli.toml")), \
-         mock.patch.object(remote, "CONFIG_DIR", str(tmp_path)):
+    with mock.patch.object(remote, "_config_path", return_value=str(tmp_path / "cli.toml")), \
+         mock.patch.object(remote, "_config_dir", return_value=str(tmp_path)):
         rc = remote.cmd_add(name="h", host="1.2.3.4", user="root", port="22", key="/no/such/key")
         assert rc == 1
         assert remote.load_hosts() == {}
@@ -85,6 +85,18 @@ def test_parse_add_flags() -> None:
     assert opts == {"name": "n", "host": "h", "user": "u", "port": "2222", "key": None}
 
 
+def test_remote_list_no_args_is_not_usage_error(
+    tmp_path: pytest.TempPathFactory, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with mock.patch.object(remote, "_config_path", return_value=str(tmp_path / "cli.toml")), \
+         mock.patch.object(remote, "_config_dir", return_value=str(tmp_path)):
+        assert remote.main(["list"]) == 0
+        out = capsys.readouterr().out
+        assert "No hosts yet" in out
+        assert remote.main([]) == 0
+        assert remote.main(["badaction"]) == 2
+
+
 def test_main_dispatch_help(capsys: pytest.CaptureFixture[str]) -> None:
     from kingdoms.cli.__main__ import main
 
@@ -112,8 +124,8 @@ def test_doctor_python_check() -> None:
 
 
 def test_remote_config_path_no_secrets(tmp_path: pytest.TempPathFactory) -> None:
-    with mock.patch.object(remote, "CONFIG_PATH", str(tmp_path / "cli.toml")), \
-         mock.patch.object(remote, "CONFIG_DIR", str(tmp_path)):
+    with mock.patch.object(remote, "_config_path", return_value=str(tmp_path / "cli.toml")), \
+         mock.patch.object(remote, "_config_dir", return_value=str(tmp_path)):
         remote.cmd_add(name="a", host="1.1.1.1", user="u", port="22", key=None)
         content = (tmp_path / "cli.toml").read_text()
         assert "password" not in content.lower()
