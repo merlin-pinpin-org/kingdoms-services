@@ -105,12 +105,15 @@ jobs:
         id: env
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTOR_ALIAS: ${{ needs.gate.outputs.alias }}
           # The comment body is untrusted input: it flows through an
           # environment variable, never through inline ${{ }} interpolation
           # (script-injection hardening).
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          # /deploy [<env>] — the environment defaults to test. Environments
+          # /deploy [<env>] — the environment defaults to the requestor's
+          # personal environment (their roster alias: sandbox first, the
+          # shared validation env is an explicit /deploy test). Environments
           # are data on kingdoms-infra (one directory under envs/): validate
           # the target against that listing instead of a hardcoded list, so
           # adding a custom env needs no change here. Prod-like environments
@@ -118,7 +121,7 @@ jobs:
           body="$COMMENT_BODY"
           env_name="${body#/deploy}"
           env_name="${env_name// /}"
-          if [[ -z "$env_name" ]]; then env_name="test"; fi
+          if [[ -z "$env_name" ]]; then env_name="${REQUESTOR_ALIAS,,}"; fi
           if [[ "$env_name" == "prod" ]]; then
             echo "::error::prod is a protected environment: PR deploys are test-like only (released images deploy to prod)."
             exit 1
