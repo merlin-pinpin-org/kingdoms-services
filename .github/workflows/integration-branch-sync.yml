@@ -50,17 +50,18 @@ jobs:
           TARGET: ${{ inputs.integration-branch }}
         run: |
           set -euo pipefail
-          branches=$(git ls-remote --heads origin 'refs/heads/vibe/*/main' \
-            | sed 's|.*refs/heads/||' | sort)
-          if [ -n "${TARGET}" ]; then
-            echo "${branches}" | grep -qx "${TARGET}" \
-              || { echo "::error::integration branch '${TARGET}' not found (expected one of: $(echo ${branches} | tr '\n' ' '))"; exit 1; }
-            branches="${TARGET}"
+          git ls-remote --heads origin 'refs/heads/vibe/*/main' \
+            | sed 's|.*refs/heads/||' | sort > /tmp/integration-branches.txt
+          if [ -n "${TARGET:-}" ]; then
+            grep -qx "${TARGET}" /tmp/integration-branches.txt \
+              || { echo "::error::integration branch '${TARGET}' not found (expected one of: $(paste -sd' ' /tmp/integration-branches.txt))"; exit 1; }
+            printf '%s\n' "${TARGET}" > /tmp/integration-branches.txt
           fi
-          [ -n "${branches}" ] || { echo "no integration branch (vibe/*/main) to sync"; exit 0; }
+          [ -s /tmp/integration-branches.txt ] || { echo "no integration branch (vibe/*/main) to sync"; exit 0; }
           git config user.name "kingdoms-deployer[bot]"
           git config user.email "kingdoms-deployer[bot]@users.noreply.github.com"
-          for branch in ${branches}; do
+          while IFS= read -r branch; do
+            [ -z "${branch}" ] && continue
             echo "::group::sync ${branch}"
             git checkout --quiet "origin/${branch}" -B tmp-sync
             if git merge --no-ff --no-edit origin/main; then
@@ -76,4 +77,4 @@ jobs:
               exit 1
             fi
             echo "::endgroup::"
-          done
+          done < /tmp/integration-branches.txt
