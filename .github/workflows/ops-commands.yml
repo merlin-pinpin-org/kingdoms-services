@@ -148,17 +148,16 @@ jobs:
                 -f 'client_payload[filters]='"$filters" \
                 -f 'client_payload[requestor]='"$REQUESTOR"
               ;;
-            restart)
+            restart|start|stop|status)
               # env-control is workflow_dispatch-only (two choice lists);
               # reuse it through gh workflow run with its own inputs.
+              # Dispatch on the state branch deploy/<env>: the job targets
+              # the GitHub environment <env>, whose deployment branch policy
+              # only allows deploy/<env> — a dispatch from main is rejected
+              # by the environment protection.
               gh workflow run env-control.yml \
                 --repo merlin-pinpin-org/kingdoms-infra \
-                -f command=restart \
-                -f environment="$ENVIRONMENT"
-              ;;
-            start|stop|status)
-              gh workflow run env-control.yml \
-                --repo merlin-pinpin-org/kingdoms-infra \
+                --ref "deploy/$ENVIRONMENT" \
                 -f command="$COMMAND" \
                 -f environment="$ENVIRONMENT"
               ;;
