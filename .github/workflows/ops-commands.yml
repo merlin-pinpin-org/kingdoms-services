@@ -1,23 +1,27 @@
-# Ops commands — /logs, /restart, /rollback, /dump-db as PR or issue
-# comments. The debugging and incident handle for ops (and the agent
-# sessions working for them): read the test logs from a thread to debug
-# a failed deployment, restart a stuck stack, roll a bad pin back,
-# dump a database for a prod bug ticket.
+# Ops commands — /logs, /restart, /start, /stop, /status, /rollback,
+# /dump-db as PR or issue comments. The debugging and incident handle
+# for ops (and the agent sessions working for them): read the test logs
+# to debug a failed deployment, restart a stuck stack, roll a bad pin
+# back, dump a database for a prod bug ticket.
+#
+# UX contract (kingdoms-services#195 review): ONE tracking comment per
+# command, created at interception and UPDATED in place as the command
+# progresses — never a stream of unrelated comments. The comment always
+# carries: who ran it, the command, the target env, and the outcome
+# (verdict → dispatched → run link / result). Large outputs (logs, dumps)
+# are linked, not pasted.
 #
 # Gating (fail-closed, before any dispatch): the roster authority
 # matrix (CONTRIBUTORS.md, kingdoms repo) decides per command through
 # the reusable authorize.yml gate —
-#   /logs      capability env-logs    (ops anywhere; dev on test)
-#   /restart   capability env-control (ops anywhere; dev on test)
-#   /rollback  capability rollback     (ops only)
-#   /dump-db   capability db-dump     (ops only)
-# Every command gets an immediate acknowledgment: what will happen and
-# why the requestor may ask for it.
+#   /logs /restart /start /stop /status   env-control or env-logs
+#   /rollback                             rollback (ops only)
+#   /dump-db                              db-dump  (ops only)
 #
 # Execution: kingdoms-infra owns the environments, so each command
-# dispatches there (repository_dispatch / workflow_dispatch through the
-# kingdoms-deployer App token — same single-writer design as /deploy).
-# The infra side runs on the environment's own runner and reports back.
+# dispatches there through the kingdoms-deployer App token, ON the
+# state branch deploy/<env> (the environment deployment branch policy
+# only allows that ref).
 name: Ops commands (comments)
 
 on:
@@ -49,6 +53,7 @@ jobs:
       command: ${{ steps.parse.outputs.command }}
       environment: ${{ steps.parse.outputs.environment }}
       capability: ${{ steps.parse.outputs.capability }}
+      tracking_id: ${{ steps.ack.outputs.tracking_id }}
     steps:
       - name: Parse the command (untrusted input — env var, never inline)
         id: parse
@@ -68,8 +73,7 @@ jobs:
           # authority matrix): the routing and the gate share this mapping.
           case "${command#/}" in
             logs)    capability=env-logs ;;
-            restart|start|stop) capability=env-control ;;
-            status)  capability=env-control ;;
+            restart|start|stop|status) capability=env-control ;;
             rollback) capability=rollback ;;
             dump-db)  capability=db-dump ;;
           esac
@@ -79,33 +83,43 @@ jobs:
             echo "capability=$capability"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Acknowledge (what, why — before the gate, per the conventions)
+      - name: Open the tracking comment (updated in place, never duplicated)
         id: ack
         uses: actions/github-script@v7
         with:
           script: |
             const cmd = "${{ steps.parse.outputs.command }}";
             const env = "${{ steps.parse.outputs.environment }}";
-            const body = {
-              logs: `**/${cmd} intercepted** — collecting the ${env} logs and posting them back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-logs\`) — verdict right away.`,
-              restart: `**/${cmd} intercepted** — restarting the ${env} stack in place (no pull, no recreate, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
-              start: `**/${cmd} intercepted** — starting the ${env} stack in place (no pull, no recreate, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
-              stop: `**/${cmd} intercepted** — stopping the ${env} stack in place (containers kept, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
-              status: `**/${cmd} intercepted** — reporting the ${env} stack state back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
-              rollback: `**/${cmd} intercepted** — reverting the last pinned image on deploy/${env} (the push re-triggers the deployment of the previous known-good image). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`rollback\`) — verdict right away.`,
-              "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
+            const who = context.payload.comment.user.login;
+            const effects = {
+              logs: "collecting the logs (read-only)",
+              restart: "restarting the stack in place",
+              start: "starting the stack in place",
+              stop: "stopping the stack in place",
+              status: "reporting the stack state (read-only)",
+              rollback: "reverting to the previous pinned image",
+              "dump-db": "dumping the databases",
             }[cmd];
-            await github.rest.issues.createComment({
+            const body = [
+              "<!-- kingdoms-ops-tracking -->",
+              `**/${cmd} ${env}** — run by **@${who}**`,
+              "",
+              `**Status:** ⏳ ${effects} — checking authorization…`,
+              "",
+              "_Updated in place as the command progresses._",
+            ].join("\n");
+            const { data: comment } = await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body,
             });
-
+            core.setOutput("tracking_id", comment.id);
 
   # A reusable workflow can only be called at the job level (a job with
   # `uses:` cannot mix in `steps:`) — the roster gate is its own job
-  # between the parse/ack job and the dispatch job.
+  # between the parse/ack job and the dispatch job. The gate posts its
+  # own verdict comment; the tracking comment carries the outcome.
   gate:
     name: Roster gate
     needs: authorize
@@ -130,7 +144,22 @@ jobs:
           owner: merlin-pinpin-org
           repositories: kingdoms-infra
 
+      - name: Mark the tracking comment — dispatching
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const id = ${{ needs.authorize.outputs.tracking_id }};
+            const { data: c } = await github.rest.issues.getComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id,
+            });
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id,
+              body: c.body.replace(/\*\*Status:\*\* [^\n]*/,
+                "**Status:** 🔵 dispatching to kingdoms-infra…"),
+            });
+
       - name: Route the command
+        id: route
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -158,6 +187,7 @@ jobs:
               [[ -n "$TO" ]]      && ARGS+=(-f to="$TO")
               [[ -n "$TAIL" ]]    && ARGS+=(-f tail="$TAIL")
               gh workflow run env-logs.yml "${ARGS[@]}"
+              echo "workflow=Environment logs" >> "$GITHUB_OUTPUT"
               ;;
             restart|start|stop|status)
               # env-control is workflow_dispatch-only (two choice lists);
@@ -171,6 +201,7 @@ jobs:
                 --ref "deploy/$ENVIRONMENT" \
                 -f command="$COMMAND" \
                 -f environment="$ENVIRONMENT"
+              echo "workflow=Environment control" >> "$GITHUB_OUTPUT"
               ;;
             rollback)
               gh api --method POST repos/merlin-pinpin-org/kingdoms-infra/dispatches \
@@ -178,10 +209,45 @@ jobs:
                 -f 'client_payload[env]='"$ENVIRONMENT" \
                 -f 'client_payload[reason]="/'"$COMMAND"' requested by '"$REQUESTOR"' on #'"$THREAD" \
                 -f 'client_payload[requestor]='"$REQUESTOR"
+              echo "workflow=Rollback state" >> "$GITHUB_OUTPUT"
               ;;
             dump-db)
               gh workflow run db-daily-dump.yml \
                 --repo merlin-pinpin-org/kingdoms-infra \
+                --ref "deploy/$ENVIRONMENT" \
                 -f environment="$ENVIRONMENT"
+              echo "workflow=Daily DB dump" >> "$GITHUB_OUTPUT"
               ;;
           esac
+
+      - name: Mark the tracking comment — dispatched (watch the run)
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const id = ${{ needs.authorize.outputs.tracking_id }};
+            const wf = "${{ steps.route.outputs.workflow }}";
+            const env = "${{ needs.authorize.outputs.environment }}";
+            const { data: c } = await github.rest.issues.getComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id,
+            });
+            const body = c.body.replace(/\*\*Status:\*\* [^\n]*/,
+              `**Status:** 🔵 dispatched — [${wf} runs on kingdoms-infra](https://github.com/merlin-pinpin-org/kingdoms-infra/actions?query=branch%3Adeploy%2F${env})`);
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id, body,
+            });
+
+      - name: Mark the tracking comment — failed
+        if: failure() || cancelled()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const id = ${{ needs.authorize.outputs.tracking_id }};
+            const { data: c } = await github.rest.issues.getComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id,
+            });
+            const body = c.body.replace(/\*\*Status:\*\* [^\n]*/,
+              `**Status:** ❌ failed — see the [pipeline run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`);
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: id, body,
+            });
