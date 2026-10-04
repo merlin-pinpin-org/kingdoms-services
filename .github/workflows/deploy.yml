@@ -41,13 +41,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Build and deploy the PR
+  intercept:
+    name: Acknowledge and pre-check the /deploy command
     if: >
       github.event.issue.pull_request &&
       (github.event.comment.body == '/deploy' ||
        startsWith(github.event.comment.body, '/deploy '))
     runs-on: ubuntu-latest
+    outputs:
+      pr_author: ${{ steps.authorize.outputs.pr_author }}
     steps:
       - name: Acknowledge the command (who, what, why)
         id: intercepted
@@ -81,14 +83,24 @@ jobs:
             // Expose the PR author for the agent-scope half of the gate,
             // then hand over to the reusable roster gate.
             core.setOutput("pr_author", pr.user.login);
-      - name: Roster gate — who may deploy
-        uses: merlin-pinpin-org/kingdoms/.github/workflows/authorize.yml@main
-        with:
-          capability: deploy
-          requestor: ${{ github.event.comment.user.login }}
-          pr-author: ${{ steps.authorize.outputs.pr_author }}
-          pr-number: ${{ github.event.issue.number }}
+  # A reusable workflow can only be called at the job level (a job with
+  # `uses:` cannot mix in `steps:`) — the roster gate is therefore its own
+  # job between the interception pre-checks and the build/deploy job.
+  gate:
+    name: Roster gate — who may deploy
+    needs: intercept
+    uses: merlin-pinpin-org/kingdoms/.github/workflows/authorize.yml@main
+    with:
+      capability: deploy
+      requestor: ${{ github.event.comment.user.login }}
+      pr-author: ${{ needs.intercept.outputs.pr_author }}
+      pr-number: ${{ github.event.issue.number }}
 
+  deploy:
+    name: Build and deploy the PR
+    needs: [intercept, gate]
+    runs-on: ubuntu-latest
+    steps:
       - name: Parse the command (target environment)
         id: env
         env:
