@@ -1,13 +1,4 @@
 game_key: aoe2
-ladders:
-  - owner_ref: "guild:default"
-    name: "AoE2 Community Ladder"
-    map_pool: "Season 1"
-    season:
-      name: "Season 1"
-      start_in_days: 0
-      duration_days: 90
-      reset_ratings: false
 maps:
   - name: Arabia
     filename: "arabia"
@@ -39,20 +30,6 @@ maps:
   - name: Golden Pit
     filename: "golden_pit"
     description: "Map with a central gold pit"
-map_pools:
-  - name: "Season 1"
-    description: "First competitive pool"
-    maps:
-      - Arabia
-      - Cenotes
-      - Land Madness
-      - Lombardia
-      - Steppe
-      - Serengeti
-      - Amazon Tunnel
-      - African Clearing
-      - Socotra
-      - Golden Pit
 civs:
   - name: Armenians
     faction_key: "armenians"

@@ -1,4 +1,4 @@
-# Legacy ladder data transfer: import and export of the two legacy
+# Ladder data transfer: import and export of the two
 # perimeters, dispatched manually (workflow_dispatch).
 #
 # Symmetric design (kingdoms-services#138): four operations, one for
@@ -28,7 +28,7 @@
 # code and the Mongo network are both available. The CLIs read
 # MONGO_URI/MONGO_DB from the container environment.
 
-name: Legacy data transfer
+name: Data transfer
 
 on:
   workflow_dispatch:
@@ -57,7 +57,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: legacy-data-${{ inputs.environment }}
+  group: data-transfer-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:

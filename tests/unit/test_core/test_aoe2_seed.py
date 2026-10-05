@@ -112,9 +112,6 @@ async def test_seed_yaml_file_is_valid() -> None:
     data = yaml.safe_load(path.read_text())
     assert data["game_key"] == "aoe2"
     assert len(data["maps"]) >= 8
-    pool_maps = {m["name"] for m in data["maps"]}
-    for pool in data["map_pools"]:
-        assert set(pool["maps"]) <= pool_maps
     civs = {c["name"] for c in data["civs"]}
     assert len(civs) == len(data["civs"])
     assert "Franks" in civs
