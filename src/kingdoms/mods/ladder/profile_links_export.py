@@ -3,8 +3,6 @@
 Symmetric counterpart of ``profile_links_import.py``: reads the ladder
 players and writes the association CSV (one row per linked profile).
 
-The ``profile_created_at`` column is written empty: the import does not
-persist it, and the column exists only for legacy-dump fidelity.
 """
 
 from __future__ import annotations
@@ -20,7 +18,6 @@ ASSOCIATION_COLUMNS = (
     "discord_id",
     "ladder_name",
     "profile_id",
-    "profile_created_at",
 )
 
 
@@ -58,7 +55,6 @@ async def export_profile_links(
                     "discord_id": doc.get("user_id", ""),
                     "ladder_name": doc.get("display_name", ""),
                     "profile_id": profile_id,
-                    "profile_created_at": "",
                 }
             )
     rows.sort(key=lambda r: (r["discord_id"], r["profile_id"]))

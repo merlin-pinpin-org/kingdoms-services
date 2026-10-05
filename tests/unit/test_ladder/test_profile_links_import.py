@@ -16,12 +16,12 @@ from kingdoms.mods.ladder.profile_links_import import import_profile_links
 
 USERS_CSV = "\n".join(
     [
-        "discord_id,ladder_name,profile_id,profile_created_at",
-        "111,Alpha,101,2026-02-07 16:10:00",
-        "111,Alpha,102,2026-02-07 16:10:00",
-        "111,Alpha,101,2026-02-07 16:10:00",
-        "222,Bravo,201,2026-02-07 16:10:00",
-        "333,Charlie,301,2026-02-07 16:10:00",
+        "discord_id,ladder_name,profile_id",
+        "111,Alpha,101",
+        "111,Alpha,102",
+        "111,Alpha,101",
+        "222,Bravo,201",
+        "333,Charlie,301",
         "",
     ]
 )

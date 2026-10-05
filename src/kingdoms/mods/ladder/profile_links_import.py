@@ -36,7 +36,6 @@ class AssociationUser:
     discord_id: str
     ladder_name: str
     profile_id: str
-    profile_created_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +59,6 @@ def load_association_users(path: Path) -> list[AssociationUser]:
                     discord_id=discord_id,
                     ladder_name=(row.get("ladder_name") or "").strip(),
                     profile_id=(row.get("profile_id") or "").strip(),
-                    profile_created_at=(row.get("profile_created_at") or "").strip(),
                 )
             )
     return users
