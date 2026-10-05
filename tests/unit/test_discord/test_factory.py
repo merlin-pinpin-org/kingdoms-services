@@ -150,3 +150,57 @@ async def test_provision_default_channels_survives_one_guild_failure(config_dir:
     bot.logs_service.resolve_channel = _boom  # type: ignore[method-assign]
     await bot._provision_default_channels()
     assert admin.resolved == [("42", bot.status_service.bot_admins)]
+
+
+class _FakeStateService:
+    """Stand-in StateService recording start/close calls (no Redis)."""
+
+    def __init__(self) -> None:
+        self.started = False
+        self.closed = False
+
+    async def start(self) -> None:
+        self.started = True
+
+    async def close(self) -> None:
+        self.closed = True
+
+
+def test_create_bot_without_redis_has_no_state_service(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    assert bot.state_service is None
+
+
+def test_create_bot_with_redis_wires_shared_state_service(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir, redis_uri="redis://localhost:6379"))
+    assert bot.state_service is not None
+
+
+async def test_setup_hook_starts_the_state_service(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    fake = _FakeStateService()
+    bot.state_service = fake  # type: ignore[assignment]
+    await bot.setup_hook()
+    assert fake.started is True
+
+
+async def test_setup_hook_survives_state_start_failure(config_dir: str) -> None:
+    class _Failing:
+        async def start(self) -> None:
+            raise RuntimeError("redis down")
+
+        async def close(self) -> None:
+            pass
+
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    bot.state_service = _Failing()  # type: ignore[assignment]
+    await bot.setup_hook()  # must not raise
+
+
+async def test_close_stops_the_state_service(config_dir: str) -> None:
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    fake = _FakeStateService()
+    bot.state_service = fake  # type: ignore[assignment]
+    await bot.close()
+    assert fake.closed is True
+    assert bot.state_service is None
