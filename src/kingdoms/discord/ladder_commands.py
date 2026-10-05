@@ -133,9 +133,50 @@ def register_ladder_commands(
             body = "Queue is empty."
         else:
             body = "\n".join(
-                f"{i + 1}. <@{row.user_id}> (since <t:{row.queued_at // 1000}:R>)" for i, row in enumerate(rows)
+                f"{i + 1}. <@{row.user_id}> — {row.rating} (waiting {row.wait_seconds // 60}m, "
+                f"threshold ±{row.threshold})"
+                for i, row in enumerate(rows)
             )
         await interaction.response.send_message(body, ephemeral=True)
+
+    @group.command(name="join")
+    async def join_command(interaction: discord.Interaction) -> None:
+        """Join the ladder queue after the profile precondition."""
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
+        from kingdoms.mods.ladder.surface import ACTION_JOIN_QUEUE, LadderSurface
+
+        user_id = str(interaction.user.id)
+        database = get_async_database()
+        binding = await database[PROFILE_BINDINGS_COLLECTION].find_one({"user_id": user_id})
+        if binding is None:
+            await interaction.response.send_message("No AoE2 profile linked — use /register first.", ephemeral=True)
+            return
+        surface = LadderSurface(wiring.service)
+        result = await surface.execute(
+            ACTION_JOIN_QUEUE,
+            ladder_id,
+            user_id,
+            now=_now_ms(),
+            has_game_profile=True,
+        )
+        if result.ok:
+            await interaction.response.send_message("You joined the queue.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Could not join: {result.reason}", ephemeral=True)
+
+    @group.command(name="leave")
+    async def leave_command(interaction: discord.Interaction) -> None:
+        """Leave the ladder queue."""
+        from kingdoms.mods.ladder.surface import ACTION_LEAVE_QUEUE, LadderSurface
+
+        user_id = str(interaction.user.id)
+        surface = LadderSurface(wiring.service)
+        result = await surface.execute(ACTION_LEAVE_QUEUE, ladder_id, user_id, now=_now_ms())
+        if result.ok:
+            await interaction.response.send_message("You left the queue.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Could not leave: {result.reason}", ephemeral=True)
 
     @group.command(name="leaderboard")
     async def leaderboard_command(interaction: discord.Interaction) -> None:
