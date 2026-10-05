@@ -5,7 +5,7 @@ keyed by ``game_key``. Both write paths — YAML seeding (bulk initial data)
 and the Discord admin surface — go through this service, never direct DB
 edits, so the versioned data and the audit trail stay consistent.
 
-Invariants (JeanJack V2.0 reference §2/§4):
+Invariants (legacy reference §2/§4):
 - stable IDs: an entry's ``_id`` never changes; rotation never breaks
   in-progress seasons;
 - archival-only deletes: ``archived_at`` is set, the entry stays readable

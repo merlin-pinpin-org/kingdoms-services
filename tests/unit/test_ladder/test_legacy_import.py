@@ -1,10 +1,9 @@
-"""Unit tests for the JeanJack import pipeline (kingdoms-services#138).
+"""Unit tests for the legacy match-history import (kingdoms-services#138).
 
-Covers the acceptance properties: imported players can join the ladder,
-imported history appears in rating_history, the leaderboard reflects it.
-The fixtures reproduce the real export's quirks: cartesian-product
-duplicate rows (one per side-profile pair), CANCELED matches, a player
-without any match, and multiple profile links per user.
+The ladder perimeter: matches.csv rows deduplicate by ladder_match_id,
+CANCELED is skipped, elo replays into rating_history, players keep their
+last replayed rating, and ghost players (absent from any association
+dump, e.g. unlinked profiles) import from the match rows alone.
 """
 
 from __future__ import annotations
@@ -13,22 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from kingdoms.mods.ladder.jeanjack_import import import_jeanjack, load_matches, load_users
+from kingdoms.mods.ladder.legacy_import import import_legacy, load_matches
 
-USERS_CSV = "\n".join(
-    [
-        "discord_id,ladder_name,profile_id,profile_created_at",
-        "111,Alpha,101,2026-02-07 16:10:00",
-        "111,Alpha,102,2026-02-07 16:10:00",
-        "222,Bravo,201,2026-02-07 16:10:00",
-        "333,Charlie,301,2026-02-07 16:10:00",
-        "444,Delta,401,2026-04-10 21:55:23",
-        "",
-    ]
-)
-
-# 555 (Ghost) played with profiles 501/502 he later unlinked: he appears in
-# matches but not in the users export (the Aubin case).
 GHOST_DISCORD_ID = "555"
 
 _MATCH_HEADER = (
@@ -85,37 +70,28 @@ class FakeDatabase:
 
 
 @pytest.fixture()
-def csv_files(tmp_path: Path) -> tuple[Path, Path]:
-    """Write the fixture CSVs to the tmp dir."""
-    users = tmp_path / "users.csv"
-    users.write_text(USERS_CSV, encoding="utf-8")
-    matches = tmp_path / "matches.csv"
-    matches.write_text(MATCHES_CSV, encoding="utf-8")
-    return users, matches
+def matches_csv(tmp_path: Path) -> Path:
+    """Write the match-history fixture CSV to the tmp dir."""
+    path = tmp_path / "matches.csv"
+    path.write_text(MATCHES_CSV, encoding="utf-8")
+    return path
 
 
-def test_load_users_keeps_one_row_per_link(csv_files: tuple[Path, Path]) -> None:
-    """Users load one row per profile link; the import dedups by discord_id."""
-    users = load_users(csv_files[0])
-    assert [u.discord_id for u in users] == ["111", "111", "222", "333", "444"]
-
-
-def test_load_matches_deduplicates_cartesian_rows(csv_files: tuple[Path, Path]) -> None:
+def test_load_matches_deduplicates_cartesian_rows(matches_csv: Path) -> None:
     """The cartesian duplicate collapses; CANCELED is skipped."""
-    matches = load_matches(csv_files[1])
+    matches = load_matches(matches_csv)
     assert [m.ladder_match_id for m in matches] == ["9", "12", "10"]
     assert all(m.winner_discord_id for m in matches)
 
 
 @pytest.mark.asyncio
-async def test_import_creates_players_matches_and_history(csv_files: tuple[Path, Path]) -> None:
+async def test_import_creates_players_matches_and_history(matches_csv: Path) -> None:
     """Players, matches and rating_history all land in the database."""
     db = FakeDatabase()
-    report = await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    report = await import_legacy(db, "lad-1", matches_csv)
     assert report.players == 5
     assert report.matches == 3
     assert report.rating_history_entries == 6
-    assert report.detached_profiles == 2
 
     players = db.collections["players"].docs
     matches = db.collections["matches"].docs
@@ -126,24 +102,24 @@ async def test_import_creates_players_matches_and_history(csv_files: tuple[Path,
         "player:lad-1:222",
         "player:lad-1:333",
         "player:lad-1:444",
-        "player:lad-1:555",
+        f"player:lad-1:{GHOST_DISCORD_ID}",
     }
-    assert set(matches) == {"jj:10", "jj:12", "jj:9"}
+    assert set(matches) == {"legacy:10", "legacy:12", "legacy:9"}
     assert set(history) == {
-        "rh:jj:10:222",
-        "rh:jj:10:333",
-        "rh:jj:12:111",
-        "rh:jj:12:222",
-        "rh:jj:9:444",
-        "rh:jj:9:555",
+        "rh:legacy:10:222",
+        "rh:legacy:10:333",
+        "rh:legacy:12:111",
+        "rh:legacy:12:222",
+        "rh:legacy:9:444",
+        f"rh:legacy:9:{GHOST_DISCORD_ID}",
     }
 
 
 @pytest.mark.asyncio
-async def test_final_ratings_replay_the_recorded_elo(csv_files: tuple[Path, Path]) -> None:
+async def test_final_ratings_replay_the_recorded_elo(matches_csv: Path) -> None:
     """The final rating is the last replayed elo (Alpha 1020, Bravo 1005...)."""
     db = FakeDatabase()
-    await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    await import_legacy(db, "lad-1", matches_csv)
     players = db.collections["players"].docs
     assert players["player:lad-1:111"]["rating"] == 1020
     assert players["player:lad-1:111"]["wins"] == 1
@@ -155,59 +131,44 @@ async def test_final_ratings_replay_the_recorded_elo(csv_files: tuple[Path, Path
 
 
 @pytest.mark.asyncio
-async def test_ghost_player_is_imported_from_match_rows(csv_files: tuple[Path, Path]) -> None:
-    """A player absent from the users export is still imported (Aubin).
+async def test_ghost_player_is_imported_from_match_rows(matches_csv: Path) -> None:
+    """A player absent from any association dump is still imported.
 
     His display name comes from the match rows, his rating from the
-    replay, and his detached profiles are recorded but never linked.
+    replay. The match-import does not write profile rosters — the
+    association import (profile_links_import) owns them.
     """
     db = FakeDatabase()
-    await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    await import_legacy(db, "lad-1", matches_csv)
     ghost = db.collections["players"].docs[f"player:lad-1:{GHOST_DISCORD_ID}"]
     assert ghost["display_name"] == "Ghost"
     assert ghost["rating"] == 1012
     assert ghost["wins"] == 1
-    assert ghost["jeanjack_linked_profiles"] == []
-    assert sorted(ghost["jeanjack_detached_profiles"]) == ["501", "502"]
 
 
 @pytest.mark.asyncio
-async def test_linked_players_keep_their_profiles(csv_files: tuple[Path, Path]) -> None:
-    """Linked profiles are recorded as active; Delta's one match shows."""
-    db = FakeDatabase()
-    await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
-    alpha = db.collections["players"].docs["player:lad-1:111"]
-    assert sorted(alpha["jeanjack_linked_profiles"]) == ["101", "102"]
-    assert alpha["jeanjack_detached_profiles"] == []
-    delta = db.collections["players"].docs["player:lad-1:444"]
-    assert delta["rating"] == 988
-    assert delta["losses"] == 1
-    assert delta["jeanjack_linked_profiles"] == ["401"]
-
-
-@pytest.mark.asyncio
-async def test_import_is_idempotent(csv_files: tuple[Path, Path]) -> None:
+async def test_import_is_idempotent(matches_csv: Path) -> None:
     """Re-running the import over the same data changes nothing."""
     db = FakeDatabase()
-    first = await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    first = await import_legacy(db, "lad-1", matches_csv)
     snapshot = {name: dict(col.docs) for name, col in db.collections.items()}
-    second = await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    second = await import_legacy(db, "lad-1", matches_csv)
     assert second == first
     assert {name: dict(col.docs) for name, col in db.collections.items()} == snapshot
 
 
 @pytest.mark.asyncio
-async def test_history_entries_carry_the_recorded_deltas(csv_files: tuple[Path, Path]) -> None:
+async def test_history_entries_carry_the_recorded_deltas(matches_csv: Path) -> None:
     """Each rating_history line replays before/after/delta as exported."""
     db = FakeDatabase()
-    await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    await import_legacy(db, "lad-1", matches_csv)
     history = db.collections["rating_history"].docs
-    alpha = history["rh:jj:12:111"]
+    alpha = history["rh:legacy:12:111"]
     assert alpha["rating_before"] == 1000.0
     assert alpha["rating_after"] == 1020.0
     assert alpha["delta"] == 20.0
     assert alpha["reason"] == "MATCH_RESULT"
-    bravo_late = history["rh:jj:10:222"]
+    bravo_late = history["rh:legacy:10:222"]
     assert bravo_late["rating_before"] == 1020.0
     assert bravo_late["rating_after"] == 1005.0
-    assert history["rh:jj:12:222"]["rating_before"] == 1000.0
+    assert history["rh:legacy:12:222"]["rating_before"] == 1000.0

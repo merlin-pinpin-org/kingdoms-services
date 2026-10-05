@@ -1,0 +1,144 @@
+# Legacy ladder data transfer: import and export of the two legacy
+# perimeters, dispatched manually (workflow_dispatch).
+#
+# Symmetric design (kingdoms-services#138): four operations, one for
+# each (direction x perimeter):
+#
+#   import  associations — load a users.csv (Discord<->AoE2 links)
+#   import  matches      — load a matches.csv (match history + elo replay)
+#   export  associations — dump the ladder's profile links to users.csv
+#   export  matches      — dump the ladder's legacy matches to matches.csv
+#
+# The two perimeters are independent and idempotent: run either, both,
+# in any order, re-run safely.
+#
+# Execution model (same as db-daily-dump.yml): the job runs on the
+# target environment's own runner (label env-<name>), checks out the
+# env config from the deploy/<env> state branch, and runs the CLI
+# inside the env's kingdoms-core container — the only place where the
+# code and the Mongo network are both available. The CLIs read
+# MONGO_URI/MONGO_DB from the container environment.
+#
+# Inputs:
+#   environment  — target env (a directory under envs/)
+#   operation    — import | export
+#   perimeter    — associations | matches
+#   ladder_id    — the ladder to import into / export from
+#   dump_name    — dataset name: sources at data/ladder_dumps/<dump_name>/
+#                  import: users.csv / matches.csv read from there
+#                  export: written there (same layout, round-trippable)
+#
+# The dump lives in the kingdoms-services sources (never in the Docker
+# image — kingdoms-services#138): the workflow checks out kingdoms-services
+# main, docker-cp's the CSV in/out of the container, and commits an
+# exported dump back to the repo.
+
+name: Legacy data transfer
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment (a directory under envs/)"
+        required: true
+        type: choice
+        options: [test, merlin, drasah, prod]
+      operation:
+        description: "Direction"
+        required: true
+        type: choice
+        options: [import, export]
+      perimeter:
+        description: "Perimeter"
+        required: true
+        type: choice
+        options: [associations, matches]
+      ladder_id:
+        description: "Ladder id (import into / export from)"
+        required: true
+        type: string
+      dump_name:
+        description: "Dataset name (data/ladder_dumps/<name>/ in kingdoms-services)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-data-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    name: ${{ inputs.operation }} ${{ inputs.perimeter }} (${{ inputs.environment }})
+    runs-on: ${{ fromJSON(format('["self-hosted", "kingdoms", "env-{0}"]', inputs.environment)) }}
+    steps:
+      - name: Check out the environment configuration
+        uses: actions/checkout@v4
+        with:
+          ref: deploy/${{ inputs.environment }}
+
+      - name: Check out kingdoms-services (CLIs and dump datasets)
+        uses: actions/checkout@v4
+        with:
+          repository: merlin-pinpin-org/kingdoms-services
+          ref: main
+          path: kingdoms-services
+
+      - name: Validate the dump dataset
+        run: |
+          dump="kingdoms-services/data/ladder_dumps/${{ inputs.dump_name }}"
+          [[ -d "$dump" ]] || { echo "ERROR: no dump dataset $dump"; exit 1; }
+          if [[ "${{ inputs.perimeter }}" == associations ]]; then
+            file="users.csv"
+          else
+            file="matches.csv"
+          fi
+          if [[ "${{ inputs.operation }}" == import ]]; then
+            [[ -f "$dump/$file" ]] || { echo "ERROR: $dump/$file missing"; exit 1; }
+          fi
+          echo "dump_dir=$dump" >> "$GITHUB_ENV"
+          echo "dump_file=$file" >> "$GITHUB_ENV"
+
+      - name: Run the ${{ inputs.operation }} CLI in the env container
+        run: |
+          cd envs/${{ inputs.environment }}
+          if [[ "${{ inputs.operation }}" == import ]]; then
+            docker compose cp "${{ env.dump_dir }}/${{ env.dump_file }}" kingdoms-core:/tmp/${{ env.dump_file }}
+            if [[ "${{ inputs.perimeter }}" == associations ]]; then
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.profile_links_import_cli \
+                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+            else
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.legacy_import_cli \
+                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+            fi
+          else
+            if [[ "${{ inputs.perimeter }}" == associations ]]; then
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.profile_links_export_cli \
+                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+            else
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.legacy_export_cli \
+                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+            fi
+            docker compose cp "kingdoms-core:/tmp/${{ env.dump_file }}" \
+              "${{ env.dump_dir }}/${{ env.dump_file }}"
+          fi
+
+      - name: Commit an exported dump back to the sources
+        if: inputs.operation == 'export'
+        run: |
+          cd kingdoms-services
+          git config user.name "kingdoms-bot"
+          git config user.email "bot@kingdoms.invalid"
+          git add "data/ladder_dumps/${{ inputs.dump_name }}"
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(data): export ${{ inputs.perimeter }} dump ${{ inputs.dump_name }} from ${{ inputs.environment }}"
+          git push
