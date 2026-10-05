@@ -91,7 +91,7 @@ async def test_links_export_writes_one_row_per_profile(
     assert report.players == 2
     assert report.rows == 3
     lines = out.read_text(encoding="utf-8").strip().splitlines()
-    assert lines[0] == "discord_id,ladder_name,profile_id"
+    assert lines[0] == "discord_id,display_name,profile_id"
     assert lines[1] == "111,Alpha,101"
     assert lines[2] == "111,Alpha,102"
     assert lines[3] == "222,Bravo,201"

@@ -11,7 +11,7 @@ Layout — one directory per perimeter, timestamp prefix so dumps sort
 chronologically:
 
 - `data/core/<timestamp>-users.csv` — the association dumps
-  (discord_id, ladder_name, profile_id; one row per profile link,
+  (discord_id, display_name, profile_id; one row per profile link,
   duplicate rows exist)
 - `data/mods/ladder/<timestamp>-matches.csv` — the match-history dumps
   (one row per side-profile cartesian product; the import

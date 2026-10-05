@@ -34,7 +34,7 @@ class AssociationUser:
     """One association row: a Discord id with one AoE2 profile link."""
 
     discord_id: str
-    ladder_name: str
+    display_name: str
     profile_id: str
 
 
@@ -57,7 +57,7 @@ def load_association_users(path: Path) -> list[AssociationUser]:
             users.append(
                 AssociationUser(
                     discord_id=discord_id,
-                    ladder_name=(row.get("ladder_name") or "").strip(),
+                    display_name=(row.get("display_name") or "").strip(),
                     profile_id=(row.get("profile_id") or "").strip(),
                 )
             )
@@ -85,8 +85,8 @@ async def import_profile_links(
             profiles = set(linked.get(user.discord_id, ()))
             profiles.add(user.profile_id)
             linked[user.discord_id] = tuple(sorted(profiles))
-        if user.ladder_name:
-            names.setdefault(user.discord_id, user.ladder_name)
+        if user.display_name:
+            names.setdefault(user.discord_id, user.display_name)
 
     players = 0
     links_total = 0

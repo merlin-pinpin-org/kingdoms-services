@@ -16,7 +16,7 @@ from kingdoms.mods.ladder.models import PLAYERS_COLLECTION
 
 ASSOCIATION_COLUMNS = (
     "discord_id",
-    "ladder_name",
+    "display_name",
     "profile_id",
 )
 
@@ -53,7 +53,7 @@ async def export_profile_links(
             rows.append(
                 {
                     "discord_id": doc.get("user_id", ""),
-                    "ladder_name": doc.get("display_name", ""),
+                    "display_name": doc.get("display_name", ""),
                     "profile_id": profile_id,
                 }
             )
