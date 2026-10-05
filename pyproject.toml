@@ -59,6 +59,8 @@ ignore = ["D203", "D213", "D107", "S603"]
 "scripts/**" = ["D", "S101", "T201"]
 "src/kingdoms/discord/bot/main.py" = ["T201", "T203"]
 "src/kingdoms/cli/**" = ["T201", "T203", "S603", "S607"]
+"src/kingdoms/core/games/aoe2/seed_cli.py" = ["T201"]
+"src/kingdoms/mods/ladder/jeanjack_import_cli.py" = ["T201"]
 
 [tool.mypy]
 python_version = "3.12"
