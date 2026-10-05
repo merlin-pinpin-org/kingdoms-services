@@ -81,7 +81,7 @@ class MatchDataService:
         return extracted
 
     async def enrich_live_match(self, match_ref: str) -> dict[str, Any] | None:
-        """Serve live match details through the 30s cache, or fetch."""
+        """Serve live match details through the 5s cache, or fetch."""
         provider = self._live or self._cold
         if provider is None or not match_ref:
             return None

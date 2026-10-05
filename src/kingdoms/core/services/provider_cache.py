@@ -28,7 +28,7 @@ from typing import Any
 
 from kingdoms.core.services.state import StateService
 
-MATCH_TTL_S = 30
+MATCH_TTL_S = 5
 PROFILE_TTL_S = 300
 SWEEP_PROFILE_STALE_S = 86_400
 
@@ -51,7 +51,7 @@ class ProviderDataCache:
         self._state = state
 
     async def get_match_details(self, game_key: str, provider: str, match_ref: str) -> CacheDecision:
-        """Live match details: 30s TTL, then a fresh provider call."""
+        """Live match details: 5s TTL, then a fresh provider call."""
         cached = await self._state.get_state(_SCOPE, f"{game_key}:match:{provider}:{match_ref}")
         if cached is not None:
             return CacheDecision(value=cached, should_fetch=False)
