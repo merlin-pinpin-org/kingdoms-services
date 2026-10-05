@@ -13,12 +13,21 @@ MATCH_RESULT), and the final player rating is the last replayed value.
 CANCELED matches are skipped; players without matches start at the
 ladder's initial rating. user_id = the Discord id, so imported players
 keep their identity when they join the new ladder.
+
+**Detached profiles.** A player can appear in matches with AoE2 profiles
+he later unlinked (the profile link is gone from the users export). The
+import still registers the player (name and rating come from the match
+rows) and records every profile id seen in his match rows, split in two
+sets: the *linked* ones (present in the users export, active for the
+/register validation seam) and the *detached* ones (ghost links kept for
+traceability, never active). A detached profile is never treated as a
+current link: the player must /register a live profile to join a queue.
 """
 
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +57,14 @@ class JeanJackUser:
 
 
 @dataclass(frozen=True, slots=True)
+class JeanJackProfileLinks:
+    """A player's AoE2 profiles, split linked vs detached."""
+
+    linked: tuple[str, ...] = ()
+    detached: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class JeanJackMatch:
     """One deduplicated legacy match (COMPLETED, with a winner)."""
 
@@ -62,6 +79,10 @@ class JeanJackMatch:
     guest_rating_before: int
     guest_delta: int
     winner_discord_id: str
+    host_name: str
+    guest_name: str
+    host_profiles: tuple[str, ...] = ()
+    guest_profiles: tuple[str, ...] = ()
 
 
 def load_users(path: Path) -> list[JeanJackUser]:
@@ -92,9 +113,20 @@ def load_matches(path: Path) -> list[JeanJackMatch]:
     without a winner are skipped entirely.
     """
     matches: dict[str, JeanJackMatch] = {}
+    profiles_seen: dict[str, dict[str, set[str]]] = {}
     with path.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
             match_key = (row.get("ladder_match_id") or "").strip()
+            row_profiles = (
+                (row.get("host_discord_id") or "").strip(),
+                (row.get("guest_discord_id") or "").strip(),
+                (row.get("host_profile_id") or "").strip(),
+                (row.get("guest_profile_id") or "").strip(),
+            )
+            if match_key and row_profiles[2] and row_profiles[3]:
+                sides = profiles_seen.setdefault(match_key, {})
+                sides.setdefault(row_profiles[0], set()).add(row_profiles[2])
+                sides.setdefault(row_profiles[1], set()).add(row_profiles[3])
             if not match_key or match_key in matches:
                 continue
             status = (row.get("status") or "").strip()
@@ -120,12 +152,25 @@ def load_matches(path: Path) -> list[JeanJackMatch]:
                     guest_rating_before=int(row.get("guest_elo_before") or 0),
                     guest_delta=int(row.get("guest_elo_diff") or 0),
                     winner_discord_id=winner,
+                    host_name=(row.get("host_name") or "").strip(),
+                    guest_name=(row.get("guest_name") or "").strip(),
                 )
             except ValueError:
                 matches[match_key] = _skipped(match_key)
                 continue
             matches[match_key] = match
-    played = [m for m in matches.values() if m.winner_discord_id]
+    played: list[JeanJackMatch] = []
+    for match in matches.values():
+        if not match.winner_discord_id:
+            continue
+        sides = profiles_seen.get(match.ladder_match_id, {})
+        played.append(
+            replace(
+                match,
+                host_profiles=tuple(sorted(sides.get(match.host_discord_id, set()))),
+                guest_profiles=tuple(sorted(sides.get(match.guest_discord_id, set()))),
+            )
+        )
     played.sort(key=lambda m: (m.completed_at, m.ladder_match_id))
     return played
 
@@ -144,7 +189,40 @@ def _skipped(match_key: str) -> JeanJackMatch:
         guest_rating_before=0,
         guest_delta=0,
         winner_discord_id="",
+        host_name="",
+        guest_name="",
     )
+
+
+def resolve_profiles(
+    users: list[JeanJackUser], matches: list[JeanJackMatch]
+) -> dict[str, JeanJackProfileLinks]:
+    """Split each player's seen profiles into linked vs detached.
+
+    Linked: present in the users export (active). Detached: seen in match
+    rows but absent from the users export (ghost links, traceability
+    only). Display names also surface here for players who only appear
+    in matches (their user rows are gone with the unlinked profiles).
+    """
+    linked: dict[str, set[str]] = {}
+    seen: dict[str, set[str]] = {}
+    for user in users:
+        if user.profile_id:
+            linked.setdefault(user.discord_id, set()).add(user.profile_id)
+    for match in matches:
+        for discord_id, profile_ids in (
+            (match.host_discord_id, match.host_profiles),
+            (match.guest_discord_id, match.guest_profiles),
+        ):
+            for profile_id in profile_ids:
+                seen.setdefault(discord_id, set()).add(profile_id)
+    return {
+        discord_id: JeanJackProfileLinks(
+            linked=tuple(sorted(linked.get(discord_id, set()))),
+            detached=tuple(sorted(seen.get(discord_id, set()) - linked.get(discord_id, set()))),
+        )
+        for discord_id in set(linked) | set(seen)
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,7 +232,7 @@ class ImportReport:
     players: int
     matches: int
     rating_history_entries: int
-    skipped_rows: int
+    detached_profiles: int
 
 
 async def import_jeanjack(
@@ -171,6 +249,7 @@ async def import_jeanjack(
     """
     users = load_users(users_path)
     matches = load_matches(matches_path)
+    profiles = resolve_profiles(users, matches)
 
     imported_matches = 0
     imported_history = 0
@@ -232,6 +311,9 @@ async def import_jeanjack(
                 user_id,
                 {"user_id": user_id, "display_name": user_id, "rating": INITIAL_RATING, "wins": 0, "losses": 0},
             )
+            match_name = _match_name(match, user_id)
+            if match_name:
+                stats["display_name"] = match_name
             stats["rating"] = before + delta
             if user_id == match.winner_discord_id:
                 stats["wins"] += 1
@@ -252,11 +334,26 @@ async def import_jeanjack(
             streak=0,
             registered_at=0,
         )
-        await database[PLAYERS_COLLECTION].replace_one({"_id": player.id}, player.to_mongo(), upsert=True)
+        doc = player.to_mongo()
+        links = profiles.get(user_id)
+        if links is not None:
+            doc["jeanjack_linked_profiles"] = list(links.linked)
+            doc["jeanjack_detached_profiles"] = list(links.detached)
+        await database[PLAYERS_COLLECTION].replace_one({"_id": player.id}, doc, upsert=True)
 
+    detached = sum(len(links.detached) for links in profiles.values())
     return ImportReport(
         players=len(players),
         matches=imported_matches,
         rating_history_entries=imported_history,
-        skipped_rows=0,
+        detached_profiles=detached,
     )
+
+
+def _match_name(match: JeanJackMatch, user_id: str) -> str:
+    """Resolve a side's display name from the match row (ghost players)."""
+    if user_id == match.host_discord_id:
+        return match.host_name
+    if user_id == match.guest_discord_id:
+        return match.guest_name
+    return ""

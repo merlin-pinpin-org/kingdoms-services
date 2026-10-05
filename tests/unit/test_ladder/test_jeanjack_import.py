@@ -27,6 +27,10 @@ USERS_CSV = "\n".join(
     ]
 )
 
+# 555 (Ghost) played with profiles 501/502 he later unlinked: he appears in
+# matches but not in the users export (the Aubin case).
+GHOST_DISCORD_ID = "555"
+
 _MATCH_HEADER = (
     "ladder_match_id,status,match_id,map_name,game_started_at,game_completed_at,"
     "game_duration,host_name,host_discord_id,host_profile_id,host_elo_before,"
@@ -45,6 +49,11 @@ MATCHES_CSV = "\n".join(
         "11,CANCELED,,Hideout,,,,,Alpha,111,101,,,Bravo,222,201,,,,,,,,",
         "10,COMPLETED,9001,Arabia,50,160,60,Bravo,222,201,1020,-15,"
         "Charlie,333,301,1000,15,huns,incas,Charlie,333,Bravo,222",
+        "9,COMPLETED,9000,Hideout,10,70,60,Ghost,555,501,1000,12,"
+        "Delta,444,401,1000,-12,goths,mayans,Ghost,555,Delta,444",
+        "9,COMPLETED,9000,Hideout,10,70,60,Ghost,555,502,1000,12,"
+        "Delta,444,401,1000,-12,goths,mayans,Ghost,555,Delta,444",
+        "8,CANCELED,,Arabia,,,,,Ghost,555,501,,,Bravo,222,201,,,,,,,,",
         "",
     ]
 )
@@ -94,7 +103,7 @@ def test_load_users_keeps_one_row_per_link(csv_files: tuple[Path, Path]) -> None
 def test_load_matches_deduplicates_cartesian_rows(csv_files: tuple[Path, Path]) -> None:
     """The cartesian duplicate collapses; CANCELED is skipped."""
     matches = load_matches(csv_files[1])
-    assert [m.ladder_match_id for m in matches] == ["12", "10"]
+    assert [m.ladder_match_id for m in matches] == ["9", "12", "10"]
     assert all(m.winner_discord_id for m in matches)
 
 
@@ -103,9 +112,10 @@ async def test_import_creates_players_matches_and_history(csv_files: tuple[Path,
     """Players, matches and rating_history all land in the database."""
     db = FakeDatabase()
     report = await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
-    assert report.players == 4
-    assert report.matches == 2
-    assert report.rating_history_entries == 4
+    assert report.players == 5
+    assert report.matches == 3
+    assert report.rating_history_entries == 6
+    assert report.detached_profiles == 2
 
     players = db.collections["players"].docs
     matches = db.collections["matches"].docs
@@ -116,13 +126,16 @@ async def test_import_creates_players_matches_and_history(csv_files: tuple[Path,
         "player:lad-1:222",
         "player:lad-1:333",
         "player:lad-1:444",
+        "player:lad-1:555",
     }
-    assert set(matches) == {"jj:10", "jj:12"}
+    assert set(matches) == {"jj:10", "jj:12", "jj:9"}
     assert set(history) == {
         "rh:jj:10:222",
         "rh:jj:10:333",
         "rh:jj:12:111",
         "rh:jj:12:222",
+        "rh:jj:9:444",
+        "rh:jj:9:555",
     }
 
 
@@ -142,13 +155,34 @@ async def test_final_ratings_replay_the_recorded_elo(csv_files: tuple[Path, Path
 
 
 @pytest.mark.asyncio
-async def test_player_without_match_starts_at_initial(csv_files: tuple[Path, Path]) -> None:
-    """Delta played no match: initial rating, zero counts (can join)."""
+async def test_ghost_player_is_imported_from_match_rows(csv_files: tuple[Path, Path]) -> None:
+    """A player absent from the users export is still imported (Aubin).
+
+    His display name comes from the match rows, his rating from the
+    replay, and his detached profiles are recorded but never linked.
+    """
     db = FakeDatabase()
     await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
-    player = db.collections["players"].docs["player:lad-1:444"]
-    assert player["rating"] == 1000
-    assert player["matches_count"] == 0
+    ghost = db.collections["players"].docs[f"player:lad-1:{GHOST_DISCORD_ID}"]
+    assert ghost["display_name"] == "Ghost"
+    assert ghost["rating"] == 1012
+    assert ghost["wins"] == 1
+    assert ghost["jeanjack_linked_profiles"] == []
+    assert sorted(ghost["jeanjack_detached_profiles"]) == ["501", "502"]
+
+
+@pytest.mark.asyncio
+async def test_linked_players_keep_their_profiles(csv_files: tuple[Path, Path]) -> None:
+    """Linked profiles are recorded as active; Delta's one match shows."""
+    db = FakeDatabase()
+    await import_jeanjack(db, "lad-1", csv_files[0], csv_files[1])
+    alpha = db.collections["players"].docs["player:lad-1:111"]
+    assert sorted(alpha["jeanjack_linked_profiles"]) == ["101", "102"]
+    assert alpha["jeanjack_detached_profiles"] == []
+    delta = db.collections["players"].docs["player:lad-1:444"]
+    assert delta["rating"] == 988
+    assert delta["losses"] == 1
+    assert delta["jeanjack_linked_profiles"] == ["401"]
 
 
 @pytest.mark.asyncio
