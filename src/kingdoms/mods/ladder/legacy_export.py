@@ -24,17 +24,21 @@ MATCH_COLUMNS = (
     "status",
     "match_id",
     "map_name",
+    "game_started_at",
     "game_completed_at",
+    "game_duration",
     "host_name",
     "host_discord_id",
     "host_profile_id",
     "host_elo_before",
     "host_elo_diff",
+    "host_faction_key",
     "guest_name",
     "guest_discord_id",
     "guest_profile_id",
     "guest_elo_before",
     "guest_elo_diff",
+    "guest_faction_key",
     "winner_discord_id",
 )
 
@@ -68,27 +72,38 @@ async def export_legacy(
         winner_id = doc.get("winner_user_id", "") or ""
         host_elo = await _elo(database, match_id, host_id)
         guest_elo = await _elo(database, match_id, guest_id)
+        game = doc.get("game", {})
+        civs = {p.get("user_id", ""): p.get("faction_key", "") for p in game.get("participants", ())}
         rows.append(
             {
                 "ladder_match_id": match_id.removeprefix("legacy:"),
                 "status": doc.get("status", ""),
-                "match_id": "",
+                "match_id": game.get("match_ref") or "",
                 "map_name": doc.get("map_snapshot", {}).get("name", ""),
+                "game_started_at": str(game.get("started_at") or ""),
                 "game_completed_at": str(doc.get("completed_at") or ""),
+                "game_duration": str(game.get("duration") or ""),
                 "host_name": names.get(host_id, host_id),
                 "host_discord_id": host_id,
                 "host_profile_id": "",
                 "host_elo_before": host_elo[0],
                 "host_elo_diff": host_elo[1],
+                "host_faction_key": civs.get(host_id, ""),
                 "guest_name": names.get(guest_id, guest_id),
                 "guest_discord_id": guest_id,
                 "guest_profile_id": "",
                 "guest_elo_before": guest_elo[0],
                 "guest_elo_diff": guest_elo[1],
+                "guest_faction_key": civs.get(guest_id, ""),
                 "winner_discord_id": winner_id,
             }
         )
-    rows.sort(key=lambda r: int(r["game_completed_at"] or 0), reverse=True)
+
+    def _ms(value: str) -> int:
+        raw = int(value or 0)
+        return raw * 1000 if 0 < raw < 10**12 else raw
+
+    rows.sort(key=lambda r: _ms(r["game_completed_at"]), reverse=True)
     with matches_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=MATCH_COLUMNS)
         writer.writeheader()
@@ -98,9 +113,7 @@ async def export_legacy(
 
 async def _elo(database: Any, match_id: str, user_id: str) -> tuple[str, str]:
     """Fetch the rating-history entry (before, delta) for one side."""
-    doc = await database[RATING_HISTORY_COLLECTION].find_one(
-        {"_id": f"rh:{match_id}:{user_id}"}
-    )
+    doc = await database[RATING_HISTORY_COLLECTION].find_one({"_id": f"rh:{match_id}:{user_id}"})
     if doc is None:
         return ("", "")
     return (

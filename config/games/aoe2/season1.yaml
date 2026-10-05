@@ -123,6 +123,7 @@ ladders:
     map_pool: "Season 1 — Rotation 1"
     season:
       name: "Season 1"
+      map_pool: "Season 1 — Rotation 3"
       start_in_days: 0
       duration_days: 180
       reset_ratings: false

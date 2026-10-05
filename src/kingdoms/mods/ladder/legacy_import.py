@@ -34,6 +34,7 @@ from kingdoms.mods.ladder.models import (
     PLAYERS_COLLECTION,
     RATING_HISTORY_COLLECTION,
     RATING_REASON_MATCH_RESULT,
+    MatchGameModel,
     MatchModel,
     MatchSideModel,
     PlayerModel,
@@ -51,6 +52,10 @@ class LegacyMatch:
     match_id: str
     map_name: str
     completed_at: int
+    started_at: int
+    duration: int
+    host_civ: str
+    guest_civ: str
     host_discord_id: str
     guest_discord_id: str
     host_rating_before: int
@@ -105,6 +110,10 @@ def load_matches(path: Path) -> list[LegacyMatch]:
                     match_id=(row.get("match_id") or "").strip(),
                     map_name=(row.get("map_name") or "").strip(),
                     completed_at=int(row.get("game_completed_at") or 0),
+                    started_at=int(row.get("game_started_at") or 0),
+                    duration=int(row.get("game_duration") or 0),
+                    host_civ=(row.get("host_faction_key") or "").strip(),
+                    guest_civ=(row.get("guest_faction_key") or "").strip(),
                     host_discord_id=host,
                     guest_discord_id=guest,
                     host_rating_before=int(row.get("host_elo_before") or 0),
@@ -142,6 +151,10 @@ def _skipped(match_key: str) -> LegacyMatch:
         match_id="",
         map_name="",
         completed_at=0,
+        started_at=0,
+        duration=0,
+        host_civ="",
+        guest_civ="",
         host_discord_id="",
         guest_discord_id="",
         host_rating_before=0,
@@ -182,6 +195,12 @@ async def import_legacy(
     players: dict[str, dict[str, Any]] = {}
 
     for match in matches:
+        participants = []
+        if match.host_civ or match.guest_civ:
+            participants = [
+                {"user_id": match.host_discord_id, "faction_key": match.host_civ},
+                {"user_id": match.guest_discord_id, "faction_key": match.guest_civ},
+            ]
         match_doc = MatchModel(
             _id=f"legacy:{match.ladder_match_id}",
             ladder_id=ladder_id,
@@ -191,6 +210,14 @@ async def import_legacy(
             guest=MatchSideModel(user_id=match.guest_discord_id),
             origin="legacy-import",
             map_snapshot={"name": match.map_name} if match.map_name else {},
+            game=MatchGameModel(
+                match_ref=match.match_id or None,
+                started_at=match.started_at or None,
+                ended_at=match.completed_at or None,
+                duration=match.duration or None,
+                map_name=match.map_name or None,
+                participants=tuple(participants),
+            ),
             winner_user_id=match.winner_discord_id,
             loser_user_id=match.guest_discord_id
             if match.winner_discord_id == match.host_discord_id
@@ -198,9 +225,7 @@ async def import_legacy(
             confirm_user_id="import",
             completed_at=match.completed_at,
         )
-        await database[MATCHES_COLLECTION].replace_one(
-            {"_id": match_doc.id}, match_doc.to_mongo(), upsert=True
-        )
+        await database[MATCHES_COLLECTION].replace_one({"_id": match_doc.id}, match_doc.to_mongo(), upsert=True)
         imported_matches += 1
 
         for user_id, before, delta in (
@@ -219,9 +244,7 @@ async def import_legacy(
                 reason=RATING_REASON_MATCH_RESULT,
                 created_at=match.completed_at,
             )
-            await database[RATING_HISTORY_COLLECTION].replace_one(
-                {"_id": entry.id}, entry.to_mongo(), upsert=True
-            )
+            await database[RATING_HISTORY_COLLECTION].replace_one({"_id": entry.id}, entry.to_mongo(), upsert=True)
             imported_history += 1
 
             stats = players.setdefault(

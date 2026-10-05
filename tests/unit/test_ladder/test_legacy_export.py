@@ -21,7 +21,7 @@ class FakeCollection:
     def __init__(self) -> None:
         self.docs: dict[str, dict] = {}
 
-    def find(self, filt: dict) -> "_AsyncCursor":
+    def find(self, filt: dict) -> _AsyncCursor:
         del filt
         return _AsyncCursor(list(self.docs.values()))
 
@@ -40,7 +40,7 @@ class _AsyncCursor:
     def __init__(self, docs: list[dict]) -> None:
         self._docs = docs
 
-    def __aiter__(self) -> "_AsyncCursor":
+    def __aiter__(self) -> _AsyncCursor:
         return self
 
     async def __anext__(self) -> dict:
@@ -68,6 +68,16 @@ def _match(match_id: str, host: str, guest: str, winner: str) -> dict:
         "host": {"user_id": host},
         "guest": {"user_id": guest},
         "map_snapshot": {"name": "Frigid Lake"},
+        "game": {
+            "match_ref": "508879537",
+            "started_at": 1790262333,
+            "duration": 1077,
+            "map_name": "Frigid Lake",
+            "participants": (
+                {"user_id": host, "faction_key": "incas"},
+                {"user_id": guest, "faction_key": "dravidians"},
+            ),
+        },
         "winner_user_id": winner,
         "loser_user_id": guest if winner == host else host,
         "completed_at": 1790263410,
@@ -115,9 +125,7 @@ def populated_db() -> FakeDatabase:
 
 
 @pytest.mark.asyncio
-async def test_export_writes_one_minimal_row_per_match(
-    populated_db: FakeDatabase, tmp_path: Path
-) -> None:
+async def test_export_writes_one_minimal_row_per_match(populated_db: FakeDatabase, tmp_path: Path) -> None:
     out = tmp_path / "matches.csv"
     report = await export_legacy(populated_db, "lad-1", out)
     assert report.matches == 1
@@ -125,25 +133,29 @@ async def test_export_writes_one_minimal_row_per_match(
     assert lines[0].startswith("ladder_match_id,status,match_id,map_name")
     row = lines[1].split(",")
     assert row[0] == "245"
-    assert row[4] == "1790263410"
-    assert row[5] == "Alpha"
-    assert row[6] == "111"
-    assert row[8] == "1116"
-    assert row[9] == "17"
-    assert row[10] == "Bravo"
-    assert row[15] == "111"
+    assert row[4] == "1790262333"
+    assert row[5] == "1790263410"
+    assert row[6] == "1077"
+    assert row[7] == "Alpha"
+    assert row[8] == "111"
+    assert row[10] == "1116"
+    assert row[11] == "17"
+    assert row[12] == "incas"
+    assert row[13] == "Bravo"
+    assert row[19] == "111"
 
 
 @pytest.mark.asyncio
-async def test_export_reimports_symmetrically(
-    populated_db: FakeDatabase, tmp_path: Path
-) -> None:
+async def test_export_reimports_symmetrically(populated_db: FakeDatabase, tmp_path: Path) -> None:
     out = tmp_path / "matches.csv"
     await export_legacy(populated_db, "lad-1", out)
     matches = load_matches(out)
     assert len(matches) == 1
     assert matches[0].ladder_match_id == "245"
     assert matches[0].winner_discord_id == "111"
+    assert matches[0].duration == 1077
+    assert matches[0].host_civ == "incas"
+    assert matches[0].guest_civ == "dravidians"
 
     target = FakeDatabase()
     report = await import_legacy(target, "lad-1", out)

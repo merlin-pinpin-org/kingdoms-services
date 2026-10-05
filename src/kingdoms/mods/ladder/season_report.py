@@ -188,9 +188,23 @@ def replay_season(
                 "winner": _display_name(match, winner),
                 "loser": _display_name(match, loser),
                 "delta": abs(match.host_delta),
+                "host_civ": match.host_civ,
+                "guest_civ": match.guest_civ,
+                "duration_s": match.duration or None,
             }
         )
     return SeasonReport(standings=standings, matches=condensed)
+
+
+def _fmt_duration(seconds: int | None) -> str:
+    """Render a duration as h:mm:ss or mm:ss; dash when unknown."""
+    if not seconds:
+        return "-"
+    hours, rem = divmod(seconds, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
 
 
 def _fmt_date(ms: int) -> str:
@@ -255,14 +269,14 @@ def format_report(report: SeasonReport, top: int | None = None) -> str:
     lines += [*rows, ""]
 
     lines += ["## Matchs — liste condensée", ""]
-    lines.append("# | Date | Map | Hôte | Invité | Elo fin | Vainqueur | Δ")
-    lines.append("--- | --- | --- | --- | --- | --- | --- | ---")
+    lines.append("# | Date | Map | Hôte (civ) | Invité (civ) | Elo fin | Vainqueur | Δ | Durée")
+    lines.append("--- | --- | --- | --- | --- | --- | --- | --- | ---")
     for m in sorted(report.matches, key=lambda x: (-x["completed_at"], x["ladder_match_id"])):
+        host = f"{m['host']} ({m['host_civ']})" if m["host_civ"] else m["host"]
+        guest = f"{m['guest']} ({m['guest_civ']})" if m["guest_civ"] else m["guest"]
         lines.append(
             f"{m['ladder_match_id']} | {_fmt_date(m['completed_at'])} | {m['map']} | "
-            f"{m['host']} | {m['guest']} | {m['host_elo']}-{m['guest_elo']} | "
-            f"**{m['winner']}** | {m['delta']}"
+            f"{host} | {guest} | {m['host_elo']}-{m['guest_elo']} | "
+            f"**{m['winner']}** | {m['delta']} | {_fmt_duration(m['duration_s'])}"
         )
-    civ_note = "Civs et durées : absentes du dump minimal (colonnes retirées du CSV en #138) — non affichées."
-    lines += ["", f"_{civ_note}_", ""]
     return "\n".join(lines)

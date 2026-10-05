@@ -251,6 +251,8 @@ class GameDataService:
         is recorded, and the ladder's ``active_map_pool_id`` moves — the
         caller persists the ladder field; this method owns the history
         rows so the switch is atomic from the store's point of view.
+        Re-activating the pool that is already active is a no-op (the
+        history stays one row per real switch).
         """
         pool = await self._require(MAP_POOLS_COLLECTION, map_pool_id, MapPoolModel.from_mongo)
         if pool.archived_at is not None:
@@ -259,6 +261,8 @@ class GameDataService:
         for doc in await self._db.find_ladder_activations(ladder_id):
             activation = MapPoolActivationModel.from_mongo(doc)
             if activation.deactivated_at is None:
+                if activation.map_pool_id == map_pool_id:
+                    return activation
                 closed = activation.model_copy(update={"deactivated_at": now})
                 await self._db.upsert_entry(MAP_POOL_HISTORY_COLLECTION, closed.to_mongo())
         activation = MapPoolActivationModel(

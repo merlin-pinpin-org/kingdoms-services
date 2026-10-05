@@ -96,6 +96,12 @@ async def import_season(
     pool_names = [spec["name"] for spec in data.get("map_pools", []) or []]
     pool_ids = [f"map_pool:{game_key}:{name}" for name in pool_names]
     boundaries = [_ms(b) for b in _rotation_boundaries(matches_csv, len(pool_ids))]
+    season_name = ladder_spec.get("season", {}).get("name", "Season 1")
+    season_id = f"season:{ladder_id}:{season_name}"
+    season = await season_service.get_season(season_id)
+    if season is not None and season.state != SEASON_STATE_ACTIVE:
+        start = boundaries[0] if boundaries else season.start_at
+        await season_service.activate_season(season_id, start)
     rotations = 0
     existing_activations = await adapter.find_ladder_activations(ladder_id)
     already_replayed = bool(existing_activations) and (
@@ -110,12 +116,6 @@ async def import_season(
             await ladder_service.set_active_pool(ladder_id, pool_id)
             rotations += 1
 
-    season_name = ladder_spec.get("season", {}).get("name", "Season 1")
-    season_id = f"season:{ladder_id}:{season_name}"
-    season = await season_service.get_season(season_id)
-    if season is not None and season.state != SEASON_STATE_ACTIVE:
-        start = boundaries[0] if boundaries else season.start_at
-        await season_service.activate_season(season_id, start)
 
     links_report = await import_profile_links(database, ladder_id, users_csv)
     legacy_report = await import_legacy(database, ladder_id, matches_csv)
