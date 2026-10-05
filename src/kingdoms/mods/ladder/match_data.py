@@ -22,6 +22,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from kingdoms.core.debug import capture
 from kingdoms.core.services.provider_cache import ProviderDataCache
 
 
@@ -69,14 +70,24 @@ class MatchDataService:
         """
         provider = self._cold or self._live
         if provider is None or not match_ref:
+            capture("enrich.skip", game=self._game_key, match_ref=match_ref, reason="no_provider")
             return None
         if not await self._cache.should_fetch_completed(self._game_key, provider.provider_key, match_ref):
+            capture("enrich.skip", game=self._game_key, match_ref=match_ref, reason="already_fetched")
             return None
         details = await provider.fetch_match(match_ref)
+        capture(
+            "provider.fetch",
+            game=self._game_key,
+            provider=provider.provider_key,
+            match_ref=match_ref,
+            answer=details,
+        )
         if details is None:
             return None
         await self._cache.store_completed(self._game_key, provider.provider_key, match_ref, details)
         extracted = self.extract(details)
+        capture("enrich.extract", game=self._game_key, match_ref=match_ref, extracted=extracted)
         await self._cache.record_match_extraction(self._game_key, match_ref, extracted)
         return extracted
 
@@ -89,6 +100,13 @@ class MatchDataService:
         if not decision.should_fetch:
             return decision.value
         details = await provider.fetch_match(match_ref)
+        capture(
+            "provider.fetch",
+            game=self._game_key,
+            provider=provider.provider_key,
+            match_ref=match_ref,
+            answer=details,
+        )
         if details is not None:
             await self._cache.store_match_details(self._game_key, provider.provider_key, match_ref, details)
         return details

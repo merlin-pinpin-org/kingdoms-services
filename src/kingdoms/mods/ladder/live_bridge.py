@@ -13,6 +13,8 @@ import asyncio
 import logging
 from typing import Any
 
+from kingdoms.core.debug import capture
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +46,7 @@ class Aoe2LobbySnapshotBridge:
                 self._apply(event)
             except Exception:
                 logger.warning("lobby snapshot update failed", exc_info=True)
+                capture("lobby.event_failed", event=event)
 
     def _apply(self, event: dict[str, Any]) -> None:
         """Fold one normalized event into the snapshot of its match."""
@@ -69,6 +72,7 @@ class Aoe2LobbySnapshotBridge:
             snapshot["map_name"] = str(metadata["mapname"])
         if kind == "lobby_closed":
             snapshot["closed"] = True
+        capture("lobby.event", match_ref=match_ref, event_type=kind)
 
     async def fetch_match(self, match_ref: str) -> dict[str, Any] | None:
         """Serve the latest snapshot of a match, None when unknown."""

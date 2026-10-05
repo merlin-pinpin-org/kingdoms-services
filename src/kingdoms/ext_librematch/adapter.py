@@ -18,6 +18,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from kingdoms.core.debug import capture
 from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
 from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats, Slot, StatsBlock, StatsEntry
 from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
@@ -132,9 +133,7 @@ class LibrematchAdapter:
             return None
         return PlayerStats(profile_id=profile_id, blocks=tuple(blocks))
 
-    def _parse_leaderboard_entry(
-        self, payload: dict[str, Any], profile_id: str
-    ) -> list[StatsEntry]:
+    def _parse_leaderboard_entry(self, payload: dict[str, Any], profile_id: str) -> list[StatsEntry]:
         """Extract one profile's stats entries from a leaderboard reply."""
         for item in payload.get("result", payload.get("leaderboard", [])):
             if not isinstance(item, dict):
@@ -166,15 +165,20 @@ class LibrematchAdapter:
                 continue
             try:
                 decoded = decode_blob(blob)
-            except BlobDecodeError:
+            except BlobDecodeError as exc:
                 logger.warning("undecodable %s blob for lobby %s", blob_field, lobby.get("match_id"))
+                capture(
+                    "blob.decode_failed",
+                    blob_field=blob_field,
+                    match_id=lobby.get("match_id"),
+                    error=str(exc),
+                    blob_head=blob[:120],
+                )
                 continue
             if target == "slots":
                 slots_raw = self._parse_slots(decoded)
             else:
-                options_raw = tuple(
-                    (str(k), str(v)) for k, v in decoded.items() if not k.startswith("_")
-                )
+                options_raw = tuple((str(k), str(v)) for k, v in decoded.items() if not k.startswith("_"))
         return MatchDetails(
             match_ref=str(lobby.get("advertiserId", lobby.get("match_id", ""))),
             map_name=str(lobby.get("mapname", lobby.get("mapName", ""))),
