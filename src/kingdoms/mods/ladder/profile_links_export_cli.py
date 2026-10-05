@@ -25,16 +25,14 @@ def main() -> int:
     from kingdoms.mods.ladder.profile_links_export import export_profile_links
 
     async def run() -> None:
+        """Run the import/export and close the database connection."""
         database = get_async_database()
         try:
             users_csv.parent.mkdir(parents=True, exist_ok=True)
             report = await export_profile_links(database, ladder_id, users_csv)
         finally:
             await close_async_client()
-        print(
-            f"profile-links export: {report.players} players, "
-            f"{report.rows} rows -> {users_csv}"
-        )
+        print(f"profile-links export: {report.players} players, {report.rows} rows -> {users_csv}")
 
     asyncio.run(run())
     return 0

@@ -25,6 +25,7 @@ def main() -> int:
     from kingdoms.mods.ladder.legacy_import import import_legacy
 
     async def run() -> None:
+        """Run the import/export and close the database connection."""
         database = get_async_database()
         try:
             report = await import_legacy(database, ladder_id, matches_csv)

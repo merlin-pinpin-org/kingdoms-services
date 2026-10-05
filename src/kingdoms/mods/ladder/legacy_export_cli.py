@@ -25,15 +25,14 @@ def main() -> int:
     from kingdoms.mods.ladder.legacy_export import export_legacy
 
     async def run() -> None:
+        """Run the import/export and close the database connection."""
         database = get_async_database()
         try:
             matches_csv.parent.mkdir(parents=True, exist_ok=True)
             report = await export_legacy(database, ladder_id, matches_csv)
         finally:
             await close_async_client()
-        print(
-            f"legacy export: {report.matches} matches -> {matches_csv}"
-        )
+        print(f"legacy export: {report.matches} matches -> {matches_csv}")
 
     asyncio.run(run())
     return 0

@@ -31,6 +31,7 @@ def main() -> int:
     from kingdoms.mods.ladder.season_import import import_season
 
     async def run() -> None:
+        """Run the import/export and close the database connection."""
         database = get_async_database()
         try:
             report = await import_season(database, season_yaml, users_csv, matches_csv, owner_ref)
