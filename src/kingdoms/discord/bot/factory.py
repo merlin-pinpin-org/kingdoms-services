@@ -47,6 +47,7 @@ from kingdoms.discord.error_report import (
 
 if TYPE_CHECKING:
 
+
     from kingdoms.core.services.state import StateService
     from kingdoms.mods.kingdoms.service import KingdomsService
 
@@ -105,7 +106,8 @@ class BotConfig:
             deploy_label=env.get("KINGDOMS_DEPLOY_LABEL", ""),
             deploy_run_url=env.get("KINGDOMS_DEPLOY_RUN_URL", ""),
             deploy_infra_label=env.get("KINGDOMS_DEPLOY_INFRA_LABEL", ""),
-            deploy_infra_url=env.get(
+            deploy_infra_url=env.get
+(
 "KINGDOMS_DEPLOY_INFRA_URL", ""),
             deploy_kind=env.get("KINGDOMS_DEPLOY_KIND", ""),
             deploy_ref=env.get("KINGDOMS_DEPLOY_REF", ""),
@@ -147,7 +149,8 @@ class KingdomsBot(discord.Client):
         self.status_service = status
         self.registry = registry
         self.logs_service = logs
-        self.messages = 
+        self.messages 
+= 
 MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
@@ -160,11 +163,6 @@ MessageCatalog(config.config_dir)
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.state_service: StateService | None = None
-        # The Kingdoms mod service: read by the persistent panels
-        # (kingdom_persistent._wiring) — the season launch modal and the
-        # candidature flows answer 'no service' without it (T2 validation
-        # on kingdoms_testing caught the missing assignment).
-        self.kingdoms_service: object | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -185,7 +183,8 @@ MessageCatalog(config.config_dir)
             register_kingdoms_panel_bot,
             register_kingdoms_persistent_items,
         )
-        from kingdoms.discord.ui.persistent import register_persistent_items
+        from kingdoms.discord.ui.persistent import register_persisten
+t_items
 
         register_persistent_items(self)
         register_admin_persistent_items(self)
@@ -234,7 +233,8 @@ tion."""
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
         if self._synced:
             return
-        self._synced = True
+        self._synced =
+ True
         try:
             if self.config.sync_guild_id.strip().isdigit():
                 guild = discord.Object(id=int(self.config.sync_guild_id))
@@ -277,7 +277,8 @@ ait self.tree.sync()
                 try:
                     await self.logs_service.resolve_channel(guild_id)
                 except Exception:
-                    logger.warning("LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
+                    logger.warning(
+"LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
             if self.admin_channel_service is not None:
                 try:
                     await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
@@ -321,7 +322,8 @@ ait self.tree.sync()
                         self.status_service.bot_admins,
                         self.messages,
                     )
-                except Exception:
+ 
+               except Exception:
                     logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
             await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
@@ -365,7 +367,8 @@ _roles_service: ModRolesService,
         if isinstance(exc, KingdomsError):
             locale = await self._locale_for(interaction)
             answered = await answer_kingdoms_error(
-                interaction,
+               
+ interaction,
                 exc,
                 self.messages,
                 logs_service=self.logs_service,
@@ -417,7 +420,8 @@ _roles_service: ModRolesService,
         exc = exc_info[1] if exc_info[1] is not None else None
         if exc is None:
             return
-        await report_guild_error(
+        awa
+it report_guild_error(
             exc,
             [str(guild.id) for guild in self.guilds],
             self.config.deploy_tree_url,
@@ -464,7 +468,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_run_number=resolved.deploy_run_number,
         deploy_run_ts=resolved.deploy_run_ts,
         deploy_image=resolved.deploy_image,
-        deploy_branch=resolved.deploy_branch,
+        deplo
+y_branch=resolved.deploy_branch,
         deploy_pr_title=resolved.deploy_pr_title,
         deploy_commit_ts=resolved.deploy_commit_ts,
         deploy_infra_commit_ts=resolved.deploy_infra_commit_ts,
@@ -486,7 +491,6 @@ eploy_ci_run_number,
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
     kingdoms_service = _build_kingdoms_service(resolved)
-    bot.kingdoms_service = kingdoms_service
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
@@ -501,7 +505,8 @@ eploy_ci_run_number,
     )
     register_kingdoms_command(bot.tree, service=kingdoms_service)
     if kingdoms_service is not None:
-        register_kingdoms_admin_command(bot.tree, kingdoms_service, status.bot_admins, roles_service)
+        register_kingdoms_admin_comm
+and(bot.tree, kingdoms_service, status.bot_admins, roles_service)
     register_live_commands(bot.tree, catalog=bot.messages)
     register_admin_command(
         bot.tree,
@@ -553,7 +558,8 @@ def _build_permission_service(
             if self._mod_roles is not None:
                 try:
                     return await self._mod_roles.resolve_role_id(guild_id, mod, role_key)
-                except KeyError:
+                excep
+t KeyError:
                     return None
             return None
 
@@ -606,7 +612,8 @@ def _build_mod_provisioning(
         database = get_async_database()
         channel_service = ChannelService(
             database=MongoLogsDatabase(database),
-            platform=DiscordChannelsPlatform(bot),
+            platform=DiscordChannelsPlatform(
+bot),
             cache=state,
             registry=registry,
         )
@@ -662,6 +669,7 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
     """
     if not config.mongo_uri:
         return None
+
     try:
         from kingdoms.core.models.db import get_async_database
         from kingdoms.mods.kingdoms.config import load_season_config
