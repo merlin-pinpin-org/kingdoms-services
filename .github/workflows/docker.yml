@@ -92,6 +92,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # OCI description labels (kingdoms-services#144): one image per
+          # process must stay identifiable in the registry and docker images.
+          labels: |
+            org.opencontainers.image.title=Kingdoms bot (Discord + svc-core, ADR-0020 multi-process image)
+            org.opencontainers.image.description=Kingdoms Discord bot — bot-discord, svc-core and ext-* provider processes, single image, KINGDOMS_PROCESS-selected entrypoint
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
           tags: |
             type=ref,event=branch
             # The raw tag name (vX.Y.Z): the state branches pin this exact
