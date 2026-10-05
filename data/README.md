@@ -14,8 +14,8 @@ chronologically:
   (discord_id, display_name, profile_id; one row per profile link,
   duplicate rows exist)
 - `data/mods/ladder/<timestamp>-matches.csv` — the match-history dumps
-  (one row per side-profile cartesian product; the import
-  deduplicates by ladder_match_id and skips CANCELED rows)
+  (one row per match, minimal columns; the import deduplicates by
+  ladder_match_id and skips CANCELED rows)
 
 Imports always take the **latest** dump of their perimeter; exports
 always create a new timestamped one — history is kept, nothing is

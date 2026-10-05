@@ -1,9 +1,8 @@
 """Unit tests for the legacy match-history export (kingdoms-services#138).
 
 Symmetric counterpart of the import tests: legacy matches with their
-rating-history entries and profile rosters become CSV rows in the legacy
-dump format (cartesian product per side-profile pair, including detached
-ghosts). The export re-imports cleanly (round-trip).
+rating-history entries become one minimal CSV row per match — exactly
+the columns the import reads. The export re-imports cleanly (round-trip).
 """
 
 from __future__ import annotations
@@ -106,8 +105,6 @@ def populated_db() -> FakeDatabase:
         "ladder_id": "lad-1",
         "user_id": "222",
         "display_name": "Bravo",
-        "legacy_linked_profiles": [],
-        "legacy_detached_profiles": ["201", "202"],
     }
     matches = db.collections.setdefault("matches", FakeCollection())
     matches.docs["legacy:245"] = _match("245", "111", "222", "111")
@@ -118,20 +115,23 @@ def populated_db() -> FakeDatabase:
 
 
 @pytest.mark.asyncio
-async def test_export_writes_cartesian_rows_with_ghost_profiles(
+async def test_export_writes_one_minimal_row_per_match(
     populated_db: FakeDatabase, tmp_path: Path
 ) -> None:
     out = tmp_path / "matches.csv"
     report = await export_legacy(populated_db, "lad-1", out)
     assert report.matches == 1
-    assert report.rows == 2
     lines = out.read_text(encoding="utf-8").strip().splitlines()
     assert lines[0].startswith("ladder_match_id,status,match_id,map_name")
-    assert "245,COMPLETED,,Frigid Lake,,,1790263410,,Alpha,111,101,1116,17" in lines[1] + "," + lines[1]
-    row1 = lines[1].split(",")
-    assert row1[10] == "101"
-    row2 = lines[2].split(",")
-    assert row2[15] in {"201", "202"}
+    row = lines[1].split(",")
+    assert row[0] == "245"
+    assert row[4] == "1790263410"
+    assert row[5] == "Alpha"
+    assert row[6] == "111"
+    assert row[8] == "1116"
+    assert row[9] == "17"
+    assert row[10] == "Bravo"
+    assert row[15] == "111"
 
 
 @pytest.mark.asyncio
@@ -144,8 +144,6 @@ async def test_export_reimports_symmetrically(
     assert len(matches) == 1
     assert matches[0].ladder_match_id == "245"
     assert matches[0].winner_discord_id == "111"
-    assert matches[0].host_profiles == ("101",)
-    assert set(matches[0].guest_profiles) == {"201", "202"}
 
     target = FakeDatabase()
     report = await import_legacy(target, "lad-1", out)
