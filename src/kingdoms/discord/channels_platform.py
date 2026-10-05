@@ -7,6 +7,7 @@ seam with real discord.py calls only — no business logic lives here.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import discord
 
@@ -51,3 +52,78 @@ class DiscordChannelsPlatform:
         if guild is None or not channel_id.isdigit():
             return False
         return guild.get_channel(int(channel_id)) is not None
+
+    async def apply_access_policy(
+        self, guild_id: str, channel_id: str, policy: dict[str, Any]
+    ) -> None:
+        """Apply a category's declared access policy as overwrites (#57).
+
+        The bot overwrite is set first so the bot can never lock itself
+        out; then @everyone, then the declared roles (resolved by name
+        through the guild's role list — logical keys map to role names).
+        """
+        guild = await self._guild(guild_id)
+        if guild is None or not channel_id.isdigit():
+            return
+        channel = guild.get_channel(int(channel_id))
+        if not isinstance(channel, discord.TextChannel):
+            return
+        if bool(policy.get("bot_overwrite", True)):
+            await channel.set_permissions(
+                guild.me,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, read_message_history=True, manage_messages=True
+                ),
+                reason="kingdoms: access policy bot overwrite",
+            )
+        everyone_view = bool(policy.get("everyone_view", True))
+        everyone_post = bool(policy.get("everyone_post", False))
+        await channel.set_permissions(
+            guild.default_role,
+            overwrite=discord.PermissionOverwrite(
+                view_channel=everyone_view,
+                send_messages=everyone_post if not everyone_view else None,
+                read_message_history=everyone_view,
+            ),
+            reason="kingdoms: access policy everyone overwrite",
+        )
+        role_keys: list[str] = list(policy.get("view") or ()) + list(policy.get("post") or ())
+        for role_key in role_keys:
+            role = discord.utils.get(guild.roles, name=role_key)
+            if role is None:
+                continue
+            await channel.set_permissions(
+                role,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=role_key in (policy.get("post") or ()),
+                    read_message_history=True,
+                ),
+                reason="kingdoms: access policy role overwrite",
+            )
+
+    async def get_channel_overwrites(
+        self, guild_id: str, channel_id: str
+    ) -> dict[str, dict[str, bool]] | None:
+        """Actual permission overwrites: target id -> {permission: bool}."""
+        guild = await self._guild(guild_id)
+        if guild is None or not channel_id.isdigit():
+            return None
+        channel = guild.get_channel(int(channel_id))
+        if not isinstance(channel, discord.TextChannel):
+            return None
+        result: dict[str, dict[str, bool]] = {}
+        for target, overwrite in channel.overwrites.items():
+            key = "@everyone" if target == guild.default_role else str(target.id)
+            allow, deny = overwrite.pair()
+            permissions: dict[str, bool] = {}
+            if allow.view_channel:
+                permissions["view_channel"] = True
+            if deny.view_channel:
+                permissions["view_channel"] = False
+            if allow.send_messages:
+                permissions["send_messages"] = True
+            if deny.send_messages:
+                permissions["send_messages"] = False
+            result[key] = permissions
+        return result

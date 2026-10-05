@@ -259,6 +259,34 @@ class KingdomsBot(discord.Client):
                     registry=self.registry,
                 )
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
+            await self._audit_channel_drift(guild_id)
+
+    async def _audit_channel_drift(self, guild_id: str) -> None:
+        """Audit declared policies vs runtime overwrites; log the drift (#57).
+
+        Drift is reported only — repair happens through the on-demand
+        sync (kingdoms-services#58). Best-effort: a failed audit never
+        blocks startup.
+        """
+        if self.channel_service is None or self.registry is None:
+            return
+        try:
+            from kingdoms.core.models.db import get_async_database
+            from kingdoms.core.services.channel_audit import ChannelAuditService
+            from kingdoms.discord.logs_platform import MongoLogsDatabase
+
+            audit = ChannelAuditService(
+                database=MongoLogsDatabase(get_async_database()),
+                platform=self.channel_service.platform,
+                registry=self.registry,
+            )
+            report = await audit.audit_guild(guild_id)
+            if not report.clean:
+                logger.warning(
+                    "CHANNEL AUDIT drift (guild %s): %d findings", guild_id, len(report.findings)
+                )
+        except Exception:
+            logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
     async def _maintain_pinned_menus(self) -> None:
         """Keep the pinned admin menu alive in every guild (self-healing).

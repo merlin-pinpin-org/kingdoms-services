@@ -97,3 +97,7 @@ fr:
     visibility_failed: "Échec du changement de visibilité — voir les logs du bot."
     no_service: "Les réglages admin sont indisponibles (pas de LogService câblé)."
     panel_failed: "La gestion des logs a échoué — `{detail}`"
+  channel_audit:
+    clean: "Audit des canaux : aucun écart détecté."
+    header: "Audit des canaux — {count} écart(s) :"
+    finding: "[{severity}] {category} : {kind} (attendu {expected}, constaté {actual})"

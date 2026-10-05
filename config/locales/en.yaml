@@ -97,3 +97,7 @@ en:
     visibility_failed: "Visibility change failed — see the bot logs."
     no_service: "Admin settings are unavailable (no LogService wired)."
     panel_failed: "Bot logs management failed — `{detail}`"
+  channel_audit:
+    clean: "Channel audit: no drift detected."
+    header: "Channel audit — {count} drift finding(s):"
+    finding: "[{severity}] {category}: {kind} (expected {expected}, actual {actual})"
