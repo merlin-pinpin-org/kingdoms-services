@@ -63,7 +63,14 @@ jobs:
             fi
 
             checks="$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | join(",")' <<<"$ruleset")"
-            for expected in check cla; do
+            case "$repo" in
+              merlin-pinpin-org/kingdoms) expected_checks="check cla" ;;
+              merlin-pinpin-org/kingdoms-infra)
+                expected_checks="Validate compose manifests Validate infrastructure files Backup/restore round-trip test Smoke test (test stack boot) cla Lint scripts and workflows" ;;
+              merlin-pinpin-org/kingdoms-services)
+                expected_checks="Lint (ruff) Typecheck (mypy strict) Unit tests (pytest) Validate and boot docker-compose.yml Smoke test (bot image + MongoDB + Redis) Discord smoke (real gateway via the CI/CD bot) Build and test the image Generate and check pydoc freshness cla" ;;
+            esac
+            for expected in $expected_checks; do
               if [[ ",$checks," != *",$expected,"* ]]; then
                 echo "- $repo: required status check \`$expected\` missing or renamed (live: \`$checks\`)" >> "$drift_file"
               fi
