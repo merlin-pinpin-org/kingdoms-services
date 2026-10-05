@@ -32,8 +32,7 @@ def main() -> int:
         finally:
             await close_async_client()
         print(
-            f"legacy export: {report.matches} matches, "
-            f"{report.rows} rows -> {matches_csv}"
+            f"legacy export: {report.matches} matches -> {matches_csv}"
         )
 
     asyncio.run(run())

@@ -87,7 +87,12 @@ jobs:
             prefix="matches"
           fi
           if [[ "${{ inputs.operation }}" == import ]]; then
-            file="$(ls -1 "$data_dir" | grep -E "^[0-9]+T[0-9]+Z-${prefix}\.csv$" | sort | tail -1 || true)"
+            file=""
+            for candidate in "$data_dir"/*-"${prefix}.csv"; do
+              [[ "$candidate" =~ ^[0-9]+T[0-9]+Z- ]] || continue
+              [[ -z "$file" || "$candidate" > "$file" ]] && file="$candidate"
+            done
+            file="${file#"$data_dir"/}"
             [[ -n "$file" ]] || { echo "ERROR: no ${prefix}.csv dump in $data_dir"; exit 1; }
           else
             file="$(date -u +%Y%m%dT%H%M%SZ)-${prefix}.csv"

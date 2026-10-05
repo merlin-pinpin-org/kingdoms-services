@@ -48,6 +48,7 @@ class LegacyExportReport:
     """Counts of the export, printed by the CLI."""
 
     matches: int
+    rows: int
 
 
 async def export_legacy(
@@ -108,7 +109,7 @@ async def export_legacy(
         writer = csv.DictWriter(handle, fieldnames=MATCH_COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
-    return LegacyExportReport(matches=len(rows))
+    return LegacyExportReport(matches=len(rows), rows=len(rows))
 
 
 async def _elo(database: Any, match_id: str, user_id: str) -> tuple[str, str]:

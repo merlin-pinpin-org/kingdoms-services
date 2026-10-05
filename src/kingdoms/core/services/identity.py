@@ -55,8 +55,10 @@ class IdentityCache(Protocol):
         """Read one cached value; None on miss (store may be down)."""
         ...
 
-    async def set_state(self, scope: str, key: str, value: dict[str, object], ttl: int) -> None:
-        """Write one cached value with a TTL (best-effort)."""
+    async def set_state(
+        self, scope: str, key: str, value: dict[str, object], ttl: int | None = None
+    ) -> bool:
+        """Write one cached value with a TTL (best-effort); True when written."""
         ...
 
     async def delete_state(self, scope: str, key: str) -> bool:

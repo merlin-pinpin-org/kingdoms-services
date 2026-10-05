@@ -127,7 +127,8 @@ class MatchDataService:
         stats = await fetch_stats(profile_id)
         if stats is not None:
             await self._cache.store_profile(self._game_key, provider.provider_key, profile_id, stats)
-        return stats
+            return dict(stats)
+        return None
 
     async def sweep_registered_profiles(self, profile_ids: list[str], fetch_stats: Any) -> MatchDataReport:
         """Re-fetch stats of registered players stale for over a day."""

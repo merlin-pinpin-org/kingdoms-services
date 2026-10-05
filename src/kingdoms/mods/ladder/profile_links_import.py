@@ -82,9 +82,8 @@ async def import_profile_links(
     names: dict[str, str] = {}
     for user in users:
         if user.profile_id:
-            profiles = set(linked.get(user.discord_id, ()))
-            profiles.add(user.profile_id)
-            linked[user.discord_id] = tuple(sorted(profiles))
+            profiles = linked.get(user.discord_id, ())
+            linked[user.discord_id] = tuple(sorted({*profiles, user.profile_id}))
         if user.display_name:
             names.setdefault(user.discord_id, user.display_name)
 

@@ -292,7 +292,10 @@ Typed&nbsp;gateway&nbsp;to&nbsp;hot&nbsp;state;&nbsp;the&nbsp;only&nbsp;entry&nb
 
 <dl><dt>async <a name="StateService-release_lock"><strong>release_lock</strong></a>(self, scope: 'str', key: 'str', token: 'str') -&gt; 'bool'</dt><dd><span class="code">Release&nbsp;a&nbsp;lock;&nbsp;only&nbsp;the&nbsp;token&nbsp;returned&nbsp;by&nbsp;``acquire_lock``&nbsp;succeeds.</span></dd></dl>
 
-<dl><dt>async <a name="StateService-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry&nbsp;with&nbsp;an&nbsp;optional&nbsp;TTL&nbsp;in&nbsp;seconds.</span></dd></dl>
+<dl><dt>async <a name="StateService-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None, only_if_absent: 'bool' = False) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry;&nbsp;True&nbsp;when&nbsp;the&nbsp;write&nbsp;landed.<br>
+&nbsp;<br>
+``only_if_absent``&nbsp;maps&nbsp;to&nbsp;SET&nbsp;NX:&nbsp;the&nbsp;write&nbsp;lands&nbsp;only&nbsp;when&nbsp;no<br>
+entry&nbsp;exists&nbsp;yet&nbsp;—&nbsp;the&nbsp;atomic&nbsp;first-writer-wins&nbsp;marker.</span></dd></dl>
 
 <dl><dt>async <a name="StateService-start"><strong>start</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Connect&nbsp;the&nbsp;underlying&nbsp;store.</span></dd></dl>
 

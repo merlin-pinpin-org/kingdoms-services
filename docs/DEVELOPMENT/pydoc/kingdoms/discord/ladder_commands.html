@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ladder_commands</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ladder_commands</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ladder_commands.py">SOURCE_ROOT/discord/ladder_commands.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;wiring&nbsp;for&nbsp;the&nbsp;ladder&nbsp;mod:&nbsp;service,&nbsp;live&nbsp;provider,&nbsp;commands,&nbsp;sweep.<br>
+&nbsp;<br>
+Built&nbsp;lazily&nbsp;from&nbsp;the&nbsp;environment&nbsp;(Mongo&nbsp;+&nbsp;Redis&nbsp;configured).&nbsp;Everything<br>
+degrades&nbsp;to&nbsp;None&nbsp;when&nbsp;the&nbsp;stores&nbsp;are&nbsp;absent&nbsp;(unit&nbsp;tests,&nbsp;local&nbsp;runs)&nbsp;—<br>
+the&nbsp;bot&nbsp;starts&nbsp;regardless.<br>
+&nbsp;<br>
+The&nbsp;daily&nbsp;sweep&nbsp;(provider&nbsp;freshness&nbsp;contract)&nbsp;runs&nbsp;as&nbsp;a&nbsp;background&nbsp;task<br>
+started&nbsp;by&nbsp;the&nbsp;bot's&nbsp;setup,&nbsp;not&nbsp;from&nbsp;this&nbsp;module's&nbsp;construction.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.ladder_commands.html#LadderWiring">LadderWiring</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LadderWiring">class <strong>LadderWiring</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderWiring">LadderWiring</a>(database:&nbsp;'AsyncDatabase[dict[str,&nbsp;Any]]',&nbsp;state:&nbsp;'StateService',&nbsp;librematch:&nbsp;'LibrematchAdapter')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;ladder&nbsp;stack&nbsp;wired&nbsp;for&nbsp;one&nbsp;bot&nbsp;process.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LadderWiring-__init__"><strong>__init__</strong></a>(self, database: 'AsyncDatabase[dict[str, Any]]', state: 'StateService', librematch: 'LibrematchAdapter') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="LadderWiring-enrich_completed"><strong>enrich_completed</strong></a>(self, match_ref: 'str', match_doc: 'dict[str, Any]') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Enrich&nbsp;a&nbsp;completed&nbsp;match&nbsp;through&nbsp;the&nbsp;cold&nbsp;provider&nbsp;seam.</span></dd></dl>
+
+<dl><dt>async <a name="LadderWiring-sweep_once"><strong>sweep_once</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;one&nbsp;daily-sweep&nbsp;pass&nbsp;over&nbsp;the&nbsp;registered&nbsp;profiles.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_ladder_wiring"><strong>build_ladder_wiring</strong></a>() -&gt; 'LadderWiring | None'</dt><dd><span class="code">Build&nbsp;the&nbsp;wiring&nbsp;from&nbsp;env;&nbsp;None&nbsp;when&nbsp;Mongo/Redis&nbsp;are&nbsp;not&nbsp;configured.</span></dd></dl>
+ <dl><dt><a name="-register_ladder_commands"><strong>register_ladder_commands</strong></a>(tree: 'Any', wiring: 'LadderWiring', owner_ref: 'str') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/ladder&nbsp;command&nbsp;group&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
+ <dl><dt><a name="-start_ladder_sweep"><strong>start_ladder_sweep</strong></a>(wiring: 'LadderWiring') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Run&nbsp;the&nbsp;provider&nbsp;freshness&nbsp;sweep&nbsp;every&nbsp;hour,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['LadderWiring', 'build_ladder_wiring', 'register_ladder_commands', 'start_ladder_sweep']</td></tr></table>
+</body></html>

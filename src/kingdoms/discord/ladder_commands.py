@@ -17,7 +17,8 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from kingdoms.core.models.db import AsyncDatabase
+    from pymongo.asynchronous.database import AsyncDatabase
+
     from kingdoms.core.services.game_data import GameDataService
     from kingdoms.core.services.state import StateService
     from kingdoms.ext_librematch.adapter import LibrematchAdapter
@@ -34,15 +35,16 @@ class LadderWiring:
 
     def __init__(
         self,
-        database: AsyncDatabase,
+        database: AsyncDatabase[dict[str, Any]],
         state: StateService,
         librematch: LibrematchAdapter,
     ) -> None:
-        from kingdoms.core.games.aoe2.database import MongoAoE2Database
+        from kingdoms.core.games.aoe2.seed import MongoAoE2Database
         from kingdoms.core.services.game_data import GameDataService
         from kingdoms.core.services.provider_cache import ProviderDataCache
         from kingdoms.mods.ladder.match_data import MatchDataService
         from kingdoms.mods.ladder.provider_bridge import LibrematchProviderBridge
+        from kingdoms.mods.ladder.service import LadderService
 
         adapter = MongoAoE2Database(database)
         self.game_data: GameDataService = GameDataService(adapter)
@@ -52,6 +54,7 @@ class LadderWiring:
             self.provider_cache, game_key=GAME_KEY, cold_provider=bridge, live_provider=bridge
         )
         self.providers: list[LibrematchProviderBridge] = [bridge]
+        self.service = LadderService(adapter, self.game_data, match_data=self.match_data)
 
     async def enrich_completed(self, match_ref: str, match_doc: dict[str, Any]) -> dict[str, Any] | None:
         """Enrich a completed match through the cold provider seam."""
