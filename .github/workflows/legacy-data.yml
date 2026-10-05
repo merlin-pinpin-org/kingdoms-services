@@ -4,13 +4,22 @@
 # Symmetric design (kingdoms-services#138): four operations, one for
 # each (direction x perimeter):
 #
-#   import  associations — load a users.csv (Discord<->AoE2 links)
-#   import  matches      — load a matches.csv (match history + elo replay)
-#   export  associations — dump the ladder's profile links to users.csv
-#   export  matches      — dump the ladder's legacy matches to matches.csv
+#   import  associations — load the latest users.csv (Discord<->AoE2 links)
+#   import  matches      — load the latest matches.csv (match history + elo replay)
+#   export  associations — dump the ladder's profile links to a timestamped users.csv
+#   export  matches      — dump the ladder's legacy matches to a timestamped matches.csv
 #
 # The two perimeters are independent and idempotent: run either, both,
 # in any order, re-run safely.
+#
+# Data layout in the sources (never in the Docker image — #138):
+#
+#   data/core/<timestamp>-users.csv        — the association dumps
+#   data/mods/ladder/<timestamp>-matches.csv — the match-history dumps
+#
+# The timestamp prefix keeps the dumps sorted chronologically. Imports
+# always take the LATEST dump of their perimeter; exports always create
+# a new one — history is kept, nothing is overwritten.
 #
 # Execution model (same as db-daily-dump.yml): the job runs on the
 # target environment's own runner (label env-<name>), checks out the
@@ -18,20 +27,6 @@
 # inside the env's kingdoms-core container — the only place where the
 # code and the Mongo network are both available. The CLIs read
 # MONGO_URI/MONGO_DB from the container environment.
-#
-# Inputs:
-#   environment  — target env (a directory under envs/)
-#   operation    — import | export
-#   perimeter    — associations | matches
-#   ladder_id    — the ladder to import into / export from
-#   dump_name    — dataset name: sources at data/ladder_dumps/<dump_name>/
-#                  import: users.csv / matches.csv read from there
-#                  export: written there (same layout, round-trippable)
-#
-# The dump lives in the kingdoms-services sources (never in the Docker
-# image — kingdoms-services#138): the workflow checks out kingdoms-services
-# main, docker-cp's the CSV in/out of the container, and commits an
-# exported dump back to the repo.
 
 name: Legacy data transfer
 
@@ -57,13 +52,9 @@ on:
         description: "Ladder id (import into / export from)"
         required: true
         type: string
-      dump_name:
-        description: "Dataset name (data/ladder_dumps/<name>/ in kingdoms-services)"
-        required: true
-        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: legacy-data-${{ inputs.environment }}
@@ -79,54 +70,55 @@ jobs:
         with:
           ref: deploy/${{ inputs.environment }}
 
-      - name: Check out kingdoms-services (CLIs and dump datasets)
+      - name: Check out kingdoms-services (CLIs and data dumps)
         uses: actions/checkout@v4
         with:
           repository: merlin-pinpin-org/kingdoms-services
           ref: main
           path: kingdoms-services
 
-      - name: Validate the dump dataset
+      - name: Resolve the data file
         run: |
-          dump="kingdoms-services/data/ladder_dumps/${{ inputs.dump_name }}"
-          [[ -d "$dump" ]] || { echo "ERROR: no dump dataset $dump"; exit 1; }
           if [[ "${{ inputs.perimeter }}" == associations ]]; then
-            file="users.csv"
+            data_dir="kingdoms-services/data/core"
+            prefix="users"
           else
-            file="matches.csv"
+            data_dir="kingdoms-services/data/mods/ladder"
+            prefix="matches"
           fi
           if [[ "${{ inputs.operation }}" == import ]]; then
-            [[ -f "$dump/$file" ]] || { echo "ERROR: $dump/$file missing"; exit 1; }
+            file="$(ls -1 "$data_dir" | grep -E "^[0-9]+T[0-9]+Z-${prefix}\.csv$" | sort | tail -1 || true)"
+            [[ -n "$file" ]] || { echo "ERROR: no ${prefix}.csv dump in $data_dir"; exit 1; }
+          else
+            file="$(date -u +%Y%m%dT%H%M%SZ)-${prefix}.csv"
           fi
-          echo "dump_dir=$dump" >> "$GITHUB_ENV"
-          echo "dump_file=$file" >> "$GITHUB_ENV"
+          echo "data_dir=$data_dir" >> "$GITHUB_ENV"
+          echo "data_file=$file" >> "$GITHUB_ENV"
 
       - name: Run the ${{ inputs.operation }} CLI in the env container
         run: |
           cd envs/${{ inputs.environment }}
           if [[ "${{ inputs.operation }}" == import ]]; then
-            docker compose cp "${{ env.dump_dir }}/${{ env.dump_file }}" kingdoms-core:/tmp/${{ env.dump_file }}
+            docker compose cp "${{ env.data_dir }}/${{ env.data_file }}" kingdoms-core:/tmp/data.csv
             if [[ "${{ inputs.perimeter }}" == associations ]]; then
               docker compose exec -T kingdoms-core python -m \
                 kingdoms.mods.ladder.profile_links_import_cli \
-                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+                "${{ inputs.ladder_id }}" /tmp/data.csv
             else
               docker compose exec -T kingdoms-core python -m \
                 kingdoms.mods.ladder.legacy_import_cli \
-                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+                "${{ inputs.ladder_id }}" /tmp/data.csv
             fi
           else
             if [[ "${{ inputs.perimeter }}" == associations ]]; then
-              docker compose exec -T kingdoms-core python -m \
-                kingdoms.mods.ladder.profile_links_export_cli \
-                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+              cli="kingdoms.mods.ladder.profile_links_export_cli"
             else
-              docker compose exec -T kingdoms-core python -m \
-                kingdoms.mods.ladder.legacy_export_cli \
-                "${{ inputs.ladder_id }}" "/tmp/${{ env.dump_file }}"
+              cli="kingdoms.mods.ladder.legacy_export_cli"
             fi
-            docker compose cp "kingdoms-core:/tmp/${{ env.dump_file }}" \
-              "${{ env.dump_dir }}/${{ env.dump_file }}"
+            docker compose exec -T kingdoms-core python -m "$cli" \
+              "${{ inputs.ladder_id }}" /tmp/data.csv
+            docker compose cp "kingdoms-core:/tmp/data.csv" \
+              "${{ env.data_dir }}/${{ env.data_file }}"
           fi
 
       - name: Commit an exported dump back to the sources
@@ -135,10 +127,10 @@ jobs:
           cd kingdoms-services
           git config user.name "kingdoms-bot"
           git config user.email "bot@kingdoms.invalid"
-          git add "data/ladder_dumps/${{ inputs.dump_name }}"
+          git add "${{ env.data_dir }}"
           if git diff --cached --quiet; then
             echo "no changes to commit"
             exit 0
           fi
-          git commit -m "chore(data): export ${{ inputs.perimeter }} dump ${{ inputs.dump_name }} from ${{ inputs.environment }}"
+          git commit -m "chore(data): export ${{ inputs.perimeter }} dump ${{ env.data_file }} from ${{ inputs.environment }}"
           git push
