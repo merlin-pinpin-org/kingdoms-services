@@ -153,6 +153,7 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
+        self._ladder_sweep_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -282,9 +283,7 @@ class KingdomsBot(discord.Client):
             )
             report = await audit.audit_guild(guild_id)
             if not report.clean:
-                logger.warning(
-                    "CHANNEL AUDIT drift (guild %s): %d findings", guild_id, len(report.findings)
-                )
+                logger.warning("CHANNEL AUDIT drift (guild %s): %d findings", guild_id, len(report.findings))
         except Exception:
             logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
@@ -427,6 +426,8 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
+        if self._ladder_sweep_task is not None:
+            self._ladder_sweep_task.cancel()
         await super().close()
 
 
@@ -498,7 +499,23 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
     )
+    from kingdoms.discord.ladder_commands import (
+        build_ladder_wiring,
+        register_ladder_commands,
+        start_ladder_sweep,
+    )
+
+    ladder_wiring = build_ladder_wiring()
+    if ladder_wiring is not None:
+        register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
+        bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
     return bot
+
+
+def _ladder_owner_ref(config: BotConfig) -> str:
+    """Owner reference of the default ladder (guild-scoped by sync config)."""
+    guild_id = (config.sync_guild_id or "").strip()
+    return guild_id if guild_id else "default"
 
 
 def _build_permission_service(
