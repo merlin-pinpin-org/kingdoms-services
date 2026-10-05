@@ -11,7 +11,8 @@
 #   test-season   — generate the synthetic dataset (scripts/generate_test_data.py,
 #                   deterministic core+mods test data) and import it as a full
 #                   season via season_import_cli; the ladder_id input is the
-#                   owner_ref (guild). Import-only; not for prod.
+#                   owner_ref (guild). Import-only, and NEVER on prod — the job
+#                   fails closed on prod + test-season before any data moves.
 #
 # The two perimeters are independent and idempotent: run either, both,
 # in any order, re-run safely.
@@ -81,6 +82,11 @@ jobs:
           ref: main
           path: kingdoms-services
 
+      - name: Fail closed on synthetic data in prod
+        if: inputs.environment == 'prod' && inputs.perimeter == 'test-season'
+        run: |
+          echo "::error::test-season (synthetic data) is never allowed in prod — use the associations/matches perimeters with real dumps"
+          exit 1
       - name: Resolve the data file
         run: |
           if [[ "${{ inputs.perimeter }}" == associations ]]; then
