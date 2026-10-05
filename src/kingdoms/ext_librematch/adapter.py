@@ -20,6 +20,7 @@ import httpx
 
 from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
 from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats, Slot, StatsBlock, StatsEntry
+from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,12 @@ _SLOT_KINDS = {True: "human", False: "open"}
 
 
 class LibrematchAdapter:
-    """HTTP client for the Worlds Edge Link Community API (lobbies)."""
+    """HTTP client for the Worlds Edge Link Community API (lobbies).
+
+    Every external call goes through the Redis-backed throttle
+    (``game:{game_key}:rate``, reference 2.4); over budget degrades to
+    an empty answer, never an error.
+    """
 
     def __init__(
         self,
@@ -40,14 +46,25 @@ class LibrematchAdapter:
         timeout_s: float = 10.0,
         transport: httpx.AsyncBaseTransport | None = None,
         api_key: str = "",
+        rate_limiter: ProviderRateLimiter | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout_s = timeout_s
         self._transport = transport
         self._api_key = api_key
+        self._rate_limiter = rate_limiter
+
+    async def _allowed(self) -> bool:
+        """Consume one throttle slot; no limiter configured means allowed."""
+        if self._rate_limiter is None:
+            return True
+        return await self._rate_limiter.check()
 
     async def fetch_lobbies(self) -> list[dict[str, Any]]:
         """Fetch the current public lobby listings (raw API payloads)."""
+        if not await self._allowed():
+            logger.warning("librematch call over rate budget; degrading to empty lobby list")
+            return []
         async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:
             reply = await client.get(urljoin(self._base_url + "/", LOBBIES_PATH.lstrip("/")))
             reply.raise_for_status()
@@ -90,6 +107,9 @@ class LibrematchAdapter:
         the provider never fails the serving process.
         """
         if not self._api_key or not profile_id:
+            return None
+        if not await self._allowed():
+            logger.warning("librematch call over rate budget; degrading stats to None")
             return None
         blocks: list[StatsBlock] = []
         async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:

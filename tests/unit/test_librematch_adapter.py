@@ -150,3 +150,53 @@ async def test_player_stats_unknown_profile_returns_none() -> None:
         base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
     )
     assert await adapter.player_stats("12345") is None
+
+
+class _FakeRedis:
+    """Minimal async Redis stand-in counting INCR calls per key."""
+
+    def __init__(self) -> None:
+        self.counts: dict[str, int] = {}
+        self.expirations: dict[str, int] = {}
+
+    async def incr(self, key: str) -> int:
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        self.expirations[key] = seconds
+        return True
+
+
+def _throttled_adapter(payload: object, max_calls: int = 1) -> tuple[LibrematchAdapter, _FakeRedis]:
+    fake = _FakeRedis()
+    from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
+
+    limiter = ProviderRateLimiter(fake, game_key="aoe2", max_calls=max_calls, window_s=60)
+    return LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), rate_limiter=limiter), fake
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_over_budget_degrades_to_empty_lobbies() -> None:
+    """Over the rate budget the lobby list degrades to empty, not an error."""
+    adapter, fake = _throttled_adapter([_lobby("777")], max_calls=1)
+    first = await adapter.fetch_lobbies()
+    assert first  # first call within budget
+    second = await adapter.fetch_lobbies()
+    assert second == []  # over budget: degrade
+    assert fake.counts, "the Redis counter was used (game:{game_key}:rate)"
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_keys_carry_game_key() -> None:
+    """The throttle keys are namespaced game:{game_key}:rate:* (2.4)."""
+    adapter, fake = _throttled_adapter([_lobby("777")], max_calls=10)
+    await adapter.fetch_lobbies()
+    assert all(key.startswith("game:aoe2:rate:") for key in fake.counts)
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_fail_open_without_limiter() -> None:
+    """Without a configured limiter the adapter calls through (fail-open)."""
+    adapter = _adapter([_lobby("777")])
+    assert await adapter.fetch_lobbies()
