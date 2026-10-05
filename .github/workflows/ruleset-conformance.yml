@@ -1,0 +1,114 @@
+name: Ruleset conformance
+
+# Compares the live GitHub rulesets of the three repositories against the
+# expected state documented in kingdoms docs/GUIDES/rulesets.md (#183).
+# The doc is the source of truth; GitHub is the reality. Drift fails the
+# workflow and opens an issue flagged for maintainers — humans resolve
+# it in the web UI, the doc drives GitHub (same model as CONTRIBUTORS.md).
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+env:
+  EXPECTED_MERGE_METHODS: rebase
+
+jobs:
+  conformance:
+    name: Compare live rulesets against docs/GUIDES/rulesets.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare the live main rulesets against the documented expectation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOS: merlin-pinpin-org/kingdoms merlin-pinpin-org/kingdoms-infra merlin-pinpin-org/kingdoms-services
+        run: |
+          set -euo pipefail
+          drift_file="$RUNNER_TEMP/drift.md"
+          : > "$drift_file"
+
+          for repo in $REPOS; do
+            echo "::group::$repo"
+            ruleset_id="$(gh api "repos/$repo/rulesets" --jq '.[] | select(.name == "main") | .id')"
+            if [[ -z "$ruleset_id" ]]; then
+              echo "- $repo: no \`main\` ruleset found" >> "$drift_file"
+              echo "::error::no main ruleset"
+              continue
+            fi
+            ruleset="$(gh api "repos/$repo/rulesets/$ruleset_id")"
+
+            enforcement="$(jq -r '.enforcement' <<<"$ruleset")"
+            if [[ "$enforcement" != "active" ]]; then
+              echo "- $repo: main ruleset enforcement is \`$enforcement\`, expected \`active\`" >> "$drift_file"
+            fi
+
+            methods="$(jq -r '[.rules[] | select(.type == "pull_request") | .parameters.allowed_merge_methods[]?] | join(",")' <<<"$ruleset")"
+            if [[ "$methods" != "$EXPECTED_MERGE_METHODS" ]]; then
+              echo "- $repo: allowed_merge_methods is \`$methods\`, expected \`$EXPECTED_MERGE_METHODS\` (rebase-only)" >> "$drift_file"
+            fi
+
+            owner_review="$(jq -r '[.rules[] | select(.type == "pull_request") | .parameters.require_code_owner_review] | first' <<<"$ruleset")"
+            if [[ "$owner_review" != "true" ]]; then
+              echo "- $repo: code-owner review requirement missing on the main ruleset" >> "$drift_file"
+            fi
+
+            linear="$(jq -r '[.rules[] | select(.type == "required_linear_history")] | length' <<<"$ruleset")"
+            if [[ "$linear" != "1" ]]; then
+              echo "- $repo: required linear history rule missing on the main ruleset" >> "$drift_file"
+            fi
+
+            checks="$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | join(",")' <<<"$ruleset")"
+            for expected in check cla; do
+              if [[ ",$checks," != *",$expected,"* ]]; then
+                echo "- $repo: required status check \`$expected\` missing or renamed (live: \`$checks\`)" >> "$drift_file"
+              fi
+            done
+          done
+
+          {
+            echo "## Ruleset conformance report"
+            echo
+            if [[ -s "$drift_file" ]]; then
+              echo "**Drift detected** between docs/GUIDES/rulesets.md and the live rulesets:"
+              echo
+              cat "$drift_file"
+              echo
+              echo "Resolve in the GitHub web UI — the doc is the source of truth."
+            else
+              echo "All \`main\` rulesets conform to docs/GUIDES/rulesets.md: rebase-only, active, code-owner review, required checks (check, cla)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ -s "$drift_file" ]]; then
+            echo "DRIFT_FILE=$drift_file" >> "$GITHUB_ENV"
+            echo "::error::ruleset drift detected — see the workflow summary"
+            exit 1
+          fi
+
+      - name: Open a flagged issue for maintainers on drift
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          title="Ruleset drift detected — live rulesets diverge from docs/GUIDES/rulesets.md"
+          body_file="$RUNNER_TEMP/issue-body.md"
+          {
+            echo "## Ruleset drift"
+            echo
+            echo "The scheduled ruleset-conformance workflow detected drift between the documented expectation and the live GitHub rulesets."
+            echo
+            cat "${DRIFT_FILE:-$RUNNER_TEMP/drift.md}"
+            echo
+            echo "---"
+            echo "Humans resolve this in the GitHub web UI (Settings → Rules → Rulesets). The documentation is the source of truth: kingdoms docs/GUIDES/rulesets.md."
+            echo
+            echo "_Flag: \`ruleset-drift\` · opened automatically by the ruleset-conformance workflow._"
+          } > "$body_file"
+          gh issue create --repo "$REPO" --title "$title" --body-file "$body_file" --label "ruleset-drift"
