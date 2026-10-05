@@ -11,6 +11,7 @@
 #   /restart   capability env-control (ops anywhere; dev on test)
 #   /rollback  capability rollback     (ops only)
 #   /dump-db   capability db-dump     (ops only)
+#   /reset-env capability env-reset   (self env only; ops anywhere)
 # Every command gets an immediate acknowledgment: what will happen and
 # why the requestor may ask for it.
 #
@@ -43,7 +44,8 @@ jobs:
       startsWith(github.event.comment.body, '/stop') ||
       startsWith(github.event.comment.body, '/status') ||
       startsWith(github.event.comment.body, '/rollback') ||
-      startsWith(github.event.comment.body, '/dump-db')
+      startsWith(github.event.comment.body, '/dump-db') ||
+      startsWith(github.event.comment.body, '/reset-env')
     runs-on: ubuntu-latest
     outputs:
       command: ${{ steps.parse.outputs.command }}
@@ -60,7 +62,7 @@ jobs:
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
           case "$command" in
-            /logs|/restart|/start|/stop|/status|/rollback|/dump-db) ;;
+            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env) ;;
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
@@ -82,6 +84,7 @@ jobs:
             status)  capability=env-control ;;
             rollback) capability=rollback ;;
             dump-db)  capability=db-dump ;;
+            reset-env) capability=env-reset ;;
           esac
           {
             echo "command=${command#/}"
@@ -104,6 +107,7 @@ jobs:
               status: `**/${cmd} intercepted** — reporting the ${env} stack state back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
               rollback: `**/${cmd} intercepted** — reverting the last pinned image on deploy/${env} (the push re-triggers the deployment of the previous known-good image). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`rollback\`) — verdict right away.`,
               "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
+              "reset-env": `**/${cmd} intercepted** — wiping the ${env} data volumes and reseeding from the workflow datasets (destructive: the env's data is lost). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-reset\`: self env only, ops anywhere) — verdict right away.`,
             }[cmd];
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -180,6 +184,16 @@ jobs:
                 --repo merlin-pinpin-org/kingdoms-infra \
                 --ref "deploy/$ENVIRONMENT" \
                 -f command="$COMMAND" \
+                -f environment="$ENVIRONMENT"
+              ;;
+            reset-env)
+              # Destructive: gated by the env-reset capability (self env
+              # only, ops anywhere) in the roster matrix; env-control's
+              # reset command does the wipe + reseed on the env's runner.
+              gh workflow run env-control.yml \
+                --repo merlin-pinpin-org/kingdoms-infra \
+                --ref "deploy/$ENVIRONMENT" \
+                -f command=reset \
                 -f environment="$ENVIRONMENT"
               ;;
             rollback)
