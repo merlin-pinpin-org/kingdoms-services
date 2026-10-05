@@ -46,6 +46,7 @@ from kingdoms.discord.error_report import (
 )
 
 if TYPE_CHECKING:
+
     from kingdoms.core.services.state import StateService
     from kingdoms.mods.kingdoms.service import KingdomsService
 
@@ -104,7 +105,8 @@ class BotConfig:
             deploy_label=env.get("KINGDOMS_DEPLOY_LABEL", ""),
             deploy_run_url=env.get("KINGDOMS_DEPLOY_RUN_URL", ""),
             deploy_infra_label=env.get("KINGDOMS_DEPLOY_INFRA_LABEL", ""),
-            deploy_infra_url=env.get("KINGDOMS_DEPLOY_INFRA_URL", ""),
+            deploy_infra_url=env.get(
+"KINGDOMS_DEPLOY_INFRA_URL", ""),
             deploy_kind=env.get("KINGDOMS_DEPLOY_KIND", ""),
             deploy_ref=env.get("KINGDOMS_DEPLOY_REF", ""),
             deploy_tree_url=env.get("KINGDOMS_DEPLOY_TREE_URL", ""),
@@ -145,7 +147,8 @@ class KingdomsBot(discord.Client):
         self.status_service = status
         self.registry = registry
         self.logs_service = logs
-        self.messages = MessageCatalog(config.config_dir)
+        self.messages = 
+MessageCatalog(config.config_dir)
         self.tree = app_commands.CommandTree(self)
         self._synced = False
         self.admin_channel_service: AdminChannelService | None = None
@@ -157,6 +160,11 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.state_service: StateService | None = None
+        # The Kingdoms mod service: read by the persistent panels
+        # (kingdom_persistent._wiring) — the season launch modal and the
+        # candidature flows answer 'no service' without it (T2 validation
+        # on kingdoms_testing caught the missing assignment).
+        self.kingdoms_service: object | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -186,7 +194,8 @@ class KingdomsBot(discord.Client):
         register_kingdoms_panel_bot(self)
 
     async def close(self) -> None:
-        """Stop the shared state store, then close the Discord connection."""
+        """Stop the shared state store, then close the Discord connec
+tion."""
         if self.state_service is not None:
             with suppress(Exception):
                 await self.state_service.close()
@@ -232,7 +241,8 @@ class KingdomsBot(discord.Client):
                 await self.tree.sync(guild=guild)
                 logger.info("Slash commands synced to guild %s", self.config.sync_guild_id)
             else:
-                await self.tree.sync()
+                aw
+ait self.tree.sync()
                 logger.info("Slash commands synced globally")
         except Exception:
             self._synced = False
@@ -273,7 +283,8 @@ class KingdomsBot(discord.Client):
                     await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
                 except Exception:
                     logger.warning(
-                        "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
+          
+              "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
                     )
             if self.channel_service is not None and self.mod_roles_service is not None and self.registry is not None:
                 await self._provision_mods(
@@ -318,7 +329,8 @@ class KingdomsBot(discord.Client):
         self,
         guild_id: str,
         channel_service: ChannelService,
-        mod_roles_service: ModRolesService,
+        mod
+_roles_service: ModRolesService,
         registry: ModRegistry,
     ) -> None:
         """Provision channels and roles for every enabled mod (best-effort, idempotent)."""
@@ -364,6 +376,7 @@ class KingdomsBot(discord.Client):
         logger.exception("APP COMMAND FAILED", exc_info=error)
         await report_interaction_error(
             interaction,
+
             exc,
             self.config.deploy_tree_url,
             self.logs_service,
@@ -414,7 +427,8 @@ class KingdomsBot(discord.Client):
         )
 
     async def close(self) -> None:
-        """Log the stop lifecycle event, then close the gateway connection."""
+        """Log the stop lifecycle event, then c
+lose the gateway connection."""
         if self.logs_service is not None:
             for guild in self.guilds:
                 locale = await self.logs_service.get_locale(str(guild.id))
@@ -456,7 +470,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_infra_commit_ts=resolved.deploy_infra_commit_ts,
         deploy_commit=resolved.deploy_commit,
         deploy_ci_run_id=resolved.deploy_ci_run_id,
-        deploy_ci_run_number=resolved.deploy_ci_run_number,
+        deploy_ci_run_number=resolved.d
+eploy_ci_run_number,
         deploy_ci_run_ts=resolved.deploy_ci_run_ts,
     )
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
@@ -471,6 +486,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
     kingdoms_service = _build_kingdoms_service(resolved)
+    bot.kingdoms_service = kingdoms_service
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
@@ -494,7 +510,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         roles_service=roles_service,
         catalog=bot.messages,
         admin_channel_service=admin_channel_service,
-        error_reporter=bot.crash_report,
+        error
+_reporter=bot.crash_report,
     )
     from kingdoms.discord.kingdom_panels import register_kingdom_panels_command
 
@@ -548,7 +565,8 @@ def _build_permission_service(
     )
 
 
-def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None) -> RolesService | None:
+def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None) -> 
+RolesService | None:
     """Wire the Discord platform seam + the shared Redis state into RolesService.
 
     Returns None when Redis is not configured (unit tests, local runs):
@@ -600,7 +618,8 @@ def _build_mod_provisioning(
             cache=state,
         )
         return channel_service, mod_roles_service
-    except Exception:
+    
+except Exception:
         logger.exception("MOD PROVISIONING WIRING FAILED — mod channels/roles provision lazily")
         return None, None
 
@@ -651,7 +670,8 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
 
         return KingdomsService(
             store=MongoKingdomsStore(get_async_database()),
-            config=load_season_config(Path(config.config_dir)),
+            
+config=load_season_config(Path(config.config_dir)),
         )
     except Exception:
         logger.exception("KINGDOMS SERVICE WIRING FAILED — season features disabled")
