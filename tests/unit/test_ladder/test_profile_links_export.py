@@ -21,7 +21,7 @@ class FakeCollection:
     def __init__(self) -> None:
         self.docs: dict[str, dict] = {}
 
-    def find(self, filt: dict) -> "_AsyncCursor":
+    def find(self, filt: dict) -> _AsyncCursor:
         del filt
         return _AsyncCursor(list(self.docs.values()))
 
@@ -40,7 +40,7 @@ class _AsyncCursor:
     def __init__(self, docs: list[dict]) -> None:
         self._docs = docs
 
-    def __aiter__(self) -> "_AsyncCursor":
+    def __aiter__(self) -> _AsyncCursor:
         return self
 
     async def __anext__(self) -> dict:
@@ -74,18 +74,14 @@ def _player(user_id: str, name: str, linked: list[str]) -> dict:
 def populated_db() -> FakeDatabase:
     db = FakeDatabase()
     players = db.collections.setdefault("players", FakeCollection())
-    players.docs[_player("111", "Alpha", ["101", "102"])["_id"]] = _player(
-        "111", "Alpha", ["101", "102"]
-    )
+    players.docs[_player("111", "Alpha", ["101", "102"])["_id"]] = _player("111", "Alpha", ["101", "102"])
     players.docs[_player("222", "Bravo", ["201"])["_id"]] = _player("222", "Bravo", ["201"])
     players.docs[_player("333", "Charlie", [])["_id"]] = _player("333", "Charlie", [])
     return db
 
 
 @pytest.mark.asyncio
-async def test_links_export_writes_one_row_per_profile(
-    populated_db: FakeDatabase, tmp_path: Path
-) -> None:
+async def test_links_export_writes_one_row_per_profile(populated_db: FakeDatabase, tmp_path: Path) -> None:
     out = tmp_path / "users.csv"
     report = await export_profile_links(populated_db, "lad-1", out)
     assert report.players == 2
@@ -98,9 +94,7 @@ async def test_links_export_writes_one_row_per_profile(
 
 
 @pytest.mark.asyncio
-async def test_links_export_reimports_symmetrically(
-    populated_db: FakeDatabase, tmp_path: Path
-) -> None:
+async def test_links_export_reimports_symmetrically(populated_db: FakeDatabase, tmp_path: Path) -> None:
     out = tmp_path / "users.csv"
     await export_profile_links(populated_db, "lad-1", out)
     target = FakeDatabase()
