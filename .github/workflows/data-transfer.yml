@@ -8,6 +8,10 @@
 #   import  matches      — load the latest matches.csv (match history + elo replay)
 #   export  associations — dump the ladder's profile links to a timestamped users.csv
 #   export  matches      — dump the ladder's legacy matches to a timestamped matches.csv
+#   season        — import the real season catalog (maps, pools, ladder,
+#                   season) from the LATEST data/core/<timestamp>-season.yaml;
+#                   import-only, prod allowed (the catalog is configuration,
+#                   not data — it IS the prod init). Export: not applicable.
 #   test-season   — generate the synthetic dataset (scripts/generate_test_data.py,
 #                   deterministic core+mods test data) and import it as a full
 #                   season via season_import_cli; the ladder_id input is the
@@ -52,7 +56,7 @@ on:
         description: "Perimeter"
         required: true
         type: choice
-        options: [associations, matches, test-season]
+        options: [associations, matches, season, test-season]
       ladder_id:
         description: "Ladder id (owner_ref for test-season)"
         required: true
@@ -92,6 +96,9 @@ jobs:
           if [[ "${{ inputs.perimeter }}" == associations ]]; then
             data_dir="kingdoms-services/data/core"
             prefix="users"
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            data_dir="kingdoms-services/data/core"
+            prefix="season"
           elif [[ "${{ inputs.perimeter }}" == test-season ]]; then
             data_dir="kingdoms-services/data/test"
             prefix=""
@@ -101,6 +108,14 @@ jobs:
           fi
           if [[ "${{ inputs.perimeter }}" == test-season ]]; then
             file="test-season"
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            file=""
+            for candidate in "$data_dir"/*-"${prefix}.yaml"; do
+              [[ "$candidate" =~ ^[0-9]+T[0-9]+Z- ]] || continue
+              [[ -z "$file" || "$candidate" > "$file" ]] && file="$candidate"
+            done
+            file="${file#"$data_dir"/}"
+            [[ -n "$file" ]] || { echo "ERROR: no ${prefix}.yaml dump in $data_dir"; exit 1; }
           elif [[ "${{ inputs.operation }}" == import ]]; then
             file=""
             for candidate in "$data_dir"/*-"${prefix}.csv"; do
@@ -127,6 +142,11 @@ jobs:
               kingdoms.mods.ladder.season_import_cli \
               /tmp/test-season.yaml /tmp/test-users.csv /tmp/test-matches.csv \
               "${{ inputs.ladder_id }}" 
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            docker compose cp "${{ env.data_dir }}/${{ env.data_file }}" kingdoms-core:/tmp/season.yaml
+            docker compose exec -T kingdoms-core python -m \
+              kingdoms.core.games.aoe2.seed_cli_yaml \
+              /tmp/season.yaml "${{ inputs.ladder_id }}"
           elif [[ "${{ inputs.operation }}" == import ]]; then
             docker compose cp "${{ env.data_dir }}/${{ env.data_file }}" kingdoms-core:/tmp/data.csv
             if [[ "${{ inputs.perimeter }}" == associations ]]; then
