@@ -435,8 +435,13 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
     registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
+    games_dir = Path(resolved.config_dir) / "games"
+    games = tuple(
+        sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())
+    ) if games_dir.is_dir() else ()
     status = StatusService(
         registry=registry,
+        games=games,
         bot_admins=parse_bot_admins(resolved.bot_admins),
         deploy_url=resolved.deploy_url,
         deploy_label=resolved.deploy_label,
