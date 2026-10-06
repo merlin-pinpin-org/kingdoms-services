@@ -75,7 +75,7 @@ jobs:
           python-version: "3.12"
       - name: Install the deps (httpx, websockets)
         run: |
-          python -m pip install --quiet httpx websockets
+          python -m pip install --quiet httpx websockets redis
       - name: Run the probe (real provider calls, raw payloads printed)
         env:
           PROFILE_ID: ${{ inputs.profile_id }}

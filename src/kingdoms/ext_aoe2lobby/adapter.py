@@ -25,6 +25,7 @@ from kingdoms.core.games.aoe2.grace import LobbyClosedGrace
 logger = logging.getLogger(__name__)
 
 DEFAULT_WS_URL = "wss://aoe2lobby.com/ws"
+AOE2LOBBY_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
 _EVENT_TYPES = {
     "lobby_opened": "lobby_opened",
@@ -59,7 +60,9 @@ class Aoe2LobbyAdapter:
 
         while True:
             try:
-                async with websockets.connect(self._ws_url) as ws:
+                async with websockets.connect(
+                    self._ws_url, user_agent=AOE2LOBBY_USER_AGENT
+                ) as ws:
                     async for raw in ws:
                         event = self._normalize(raw)
                         if event is not None:
