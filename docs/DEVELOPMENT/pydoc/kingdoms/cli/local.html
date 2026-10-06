@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.cli.local</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.cli.html" class="white">cli</a>.local</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/cli/local.py">SOURCE_ROOT/cli/local.py</a></td></tr></table>
+    <p><span class="code">Local&nbsp;stack&nbsp;wrappers:&nbsp;didactic&nbsp;front-ends&nbsp;to&nbsp;the&nbsp;Makefile&nbsp;docker&nbsp;targets.<br>
+&nbsp;<br>
+Never&nbsp;duplicates&nbsp;the&nbsp;logic:&nbsp;every&nbsp;action&nbsp;shells&nbsp;out&nbsp;to&nbsp;`make`&nbsp;(which&nbsp;owns<br>
+docker&nbsp;compose)&nbsp;after&nbsp;explaining&nbsp;what&nbsp;it&nbsp;will&nbsp;do&nbsp;(kingdoms-services#191).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="shutil.html">shutil</a><br>
+</td><td class="multicolumn"><a href="subprocess.html">subprocess</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-cmd_down"><strong>cmd_down</strong></a>() -&gt; 'int'</dt><dd><span class="code">Stop&nbsp;the&nbsp;local&nbsp;stack&nbsp;(make&nbsp;dev-down).</span></dd></dl>
+ <dl><dt><a name="-cmd_lint"><strong>cmd_lint</strong></a>() -&gt; 'int'</dt><dd><span class="code">Run&nbsp;ruff&nbsp;then&nbsp;mypy&nbsp;(make&nbsp;lint,&nbsp;make&nbsp;typecheck).</span></dd></dl>
+ <dl><dt><a name="-cmd_logs"><strong>cmd_logs</strong></a>() -&gt; 'int'</dt><dd><span class="code">Follow&nbsp;the&nbsp;bot&nbsp;logs&nbsp;(make&nbsp;dev-logs).</span></dd></dl>
+ <dl><dt><a name="-cmd_reset"><strong>cmd_reset</strong></a>() -&gt; 'int'</dt><dd><span class="code">Stop&nbsp;the&nbsp;stack&nbsp;and&nbsp;delete&nbsp;local&nbsp;data&nbsp;volumes&nbsp;(make&nbsp;clean).</span></dd></dl>
+ <dl><dt><a name="-cmd_status"><strong>cmd_status</strong></a>() -&gt; 'int'</dt><dd><span class="code">Show&nbsp;local&nbsp;containers&nbsp;state&nbsp;(docker&nbsp;compose&nbsp;ps).</span></dd></dl>
+ <dl><dt><a name="-cmd_test"><strong>cmd_test</strong></a>() -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;test&nbsp;suite&nbsp;(make&nbsp;test).</span></dd></dl>
+ <dl><dt><a name="-cmd_up"><strong>cmd_up</strong></a>() -&gt; 'int'</dt><dd><span class="code">Start&nbsp;the&nbsp;local&nbsp;stack&nbsp;(make&nbsp;dev-up).</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str]') -&gt; 'int'</dt><dd><span class="code">Dispatch&nbsp;`kingdoms&nbsp;local&nbsp;&lt;action&gt;`;&nbsp;return&nbsp;exit&nbsp;code.</span></dd></dl>
+ <dl><dt><a name="-require_make"><strong>require_make</strong></a>() -&gt; 'int'</dt><dd><span class="code">Fail&nbsp;with&nbsp;actionable&nbsp;advice&nbsp;when&nbsp;make&nbsp;is&nbsp;missing.</span></dd></dl>
+</td></tr></table>
+</body></html>

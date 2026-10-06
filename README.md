@@ -21,12 +21,23 @@ To run the bot locally with MongoDB and Redis:
 
 ```bash
 cp .env.example .env   # fill in DISCORD_TOKEN (never commit it)
-make dev-up             # bot + MongoDB + Redis via docker compose
+make dev-up             # full ADR-0020 stack: bot + core + providers + MongoDB + Redis
 make dev-logs           # follow the logs
 make dev-down           # stop
 ```
 
-The bot serves `http://localhost:8000/healthz`. Unit and integration
+The stack uses compose profiles (`ADR-0020` process split): `all`
+(default for `make dev-*`), `core` (svc-core + data, no Discord token
+needed), `providers`, `librematch`, `aoe2lobby`, `bot`. Narrower boot:
+`docker compose --profile core up -d`. The gRPC contracts in
+`contracts/` are wire-compat-guarded: run `make contracts` after any
+`.proto` edit — CI fails if committed stubs drift (`make contracts-check`).
+
+The bot serves `http://localhost:8000/healthz`. A didactic `kingdoms`
+CLI is also installed by `make setup` — check your environment
+(`kingdoms doctor`), drive the local stack, manage a remote server over
+SSH, or set up a self-hosted runner: see [docs/CLI.md](docs/CLI.md).
+Unit and integration
 tests (MockDiscord, SimCord) never need a Discord token or network —
 see [docs/DEVELOPER.md](docs/DEVELOPER.md) and
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full guides.
@@ -65,7 +76,7 @@ Cut a release with `make release TAG=vX.Y.Z` (`scripts/release.sh`: fails
  closed unless `main` is clean, up to date and all checks green; creates the
 tag and the GitHub release, which triggers the image build and the
 `deploy/test` pin). Follow a deployment with `make watch-deploy ENV=test
-LABEL=<label>` (`scripts/watch_deploy.sh`: watches the pin commit land on
+LABEL=<label>` (`.github/workflows/scripts/watch_deploy.sh`: watches the pin commit land on
 `deploy/<env>`, then the Deploy environment run — the same script the
 deploy and release workflows use).
 

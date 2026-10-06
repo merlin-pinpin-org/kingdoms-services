@@ -22,7 +22,7 @@ jobs:
       - name: Run actionlint
         run: actionlint -color
       - name: Run the pin-payload cap guard
-        run: ./scripts/check_pin_payloads.sh
+        run: ./.github/workflows/scripts/check_pin_payloads.sh
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
@@ -62,6 +62,28 @@ jobs:
           uv sync
           uv run pytest
 
+  cli-doctor:
+    # kingdoms-services#188: the `kingdoms` CLI is the front door for
+    # environments — CI runs `kingdoms doctor` so the CLI itself is
+    # exercised (import, dispatch, report) on every PR, like the bot.
+    name: CLI doctor (kingdoms)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Run kingdoms doctor
+        run: |
+          uv sync
+          uv run kingdoms doctor || {
+            echo "doctor reported failures — expected on a bare runner (docker compose, .env)."
+            echo "The check proves the CLI boots and produces a report; exit code is informational here."
+          }
+          uv run kingdoms --help >/dev/null
+          uv run kingdoms local >/dev/null
+          uv run kingdoms remote list >/dev/null
+
   purity-guard:
     # kingdoms-services#106: production code must never reference test
     # tooling, and the runtime image must never contain it. The image
@@ -72,7 +94,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check source purity
-        run: ./scripts/check_image_purity.py --source-only
+        run: ./.github/workflows/scripts/check_image_purity.py --source-only
+
+  contracts:
+    # kingdoms-services#128: wire-compatibility guard for the gRPC contracts
+    # (ADR-0020). The committed stubs must match contracts/ exactly.
+    name: Contracts wire-compat (stubs match contracts/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Check stub freshness against contracts/
+        run: |
+          uv sync
+          uv run python .github/workflows/scripts/check_contracts_fresh.py
 
   compose:
     name: Validate and boot docker-compose.yml
@@ -88,6 +125,23 @@ jobs:
           timeout 60 bash -c "until docker compose exec -T kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
           timeout 60 bash -c "until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
           echo "COMPOSE STACK BOOTS OK"
+      # kingdoms-services#128: all four ADR-0020 processes boot via compose
+      # profiles (make dev / --profile all). The bot needs a Discord token,
+      # so it boots only when DISCORD_TOKEN is available on the runner.
+      - name: Boot the core and provider processes (profile all)
+        run: |
+          cp .env.example .env
+          docker compose --profile all up -d --build kingdoms-core kingdoms-ext-librematch kingdoms-ext-aoe2lobby
+          # svc-core must reach steady state; providers must be running.
+          timeout 90 bash -c 'until docker compose --profile all ps --status running kingdoms-core | grep -q kingdoms-core; do sleep 2; done'
+          if [ "$(docker inspect -f '{{.State.Status}}' kingdoms-services-kingdoms-core-1)" != running ]; then
+            echo '::error::svc-core container exited before serving'
+            docker compose --profile all logs kingdoms-core
+            exit 1
+          fi
+          timeout 60 bash -c 'until docker compose --profile all ps --status running | grep -q ext-librematch; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose --profile all ps --status running | grep -q ext-aoe2lobby; do sleep 2; done'
+          echo "CORE + PROVIDERS BOOT OK (ADR-0020 processes)"
       - name: Tear down
         if: always()
         run: docker compose down -v || true
@@ -195,7 +249,7 @@ jobs:
         run: |
           docker run --rm --network kingdoms-ci \
             -e MONGO_URI -e REDIS_URI -e LOG_LEVEL=DEBUG \
-            -v "$PWD/scripts/smoke_test.py:/app/smoke_test.py:ro" \
+            -v "$PWD/.github/workflows/scripts/smoke_test.py:/app/smoke_test.py:ro" \
             --entrypoint python \
             kingdoms-bot:ci /app/smoke_test.py
 

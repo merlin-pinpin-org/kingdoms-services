@@ -1,0 +1,55 @@
+# CLI integration smoke (kingdoms-services#188) — exercises the `kingdoms`
+# CLI on a GitHub runner exactly the way an agent session or a developer
+# would: doctor (environment report), local (dispatch + graceful failure
+# when docker compose is absent), remote (config lifecycle: add, list,
+# rm — key auth paths only, no network), runner (guide printing).
+# The goal is the CLI-first mandate in AGENTS.md: the CLI is a product
+# with its own CI surface, not an afterthought.
+name: CLI smoke
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: kingdoms CLI end-to-end (doctor, local, remote, runner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install the CLI
+        run: uv sync
+      - name: kingdoms doctor (failures expected on a bare runner — exit code informational)
+        run: |
+          uv run kingdoms doctor || echo "doctor exit=$? (expected: no .env/compose on the runner)"
+      - name: kingdoms local (usage paths; compose stack not booted on the runner)
+        run: |
+          uv run kingdoms local
+          if uv run kingdoms local badaction; then
+            echo "::error::local badaction should exit 2"; exit 1
+          fi
+      - name: kingdoms remote (config lifecycle, no network)
+        run: |
+          uv run kingdoms remote
+          uv run kingdoms remote add --name ci-host --host 127.0.0.1 --user ci
+          uv run kingdoms remote list | grep -q ci-host
+          uv run kingdoms remote rm ci-host
+          if uv run kingdoms remote list | grep -q ci-host; then
+            echo "::error::ci-host should be gone"; exit 1
+          fi
+          if uv run kingdoms remote badaction; then
+            echo "::error::remote badaction should exit 2"; exit 1
+          fi
+      - name: kingdoms runner (usage path)
+        run: |
+          uv run kingdoms runner
+          if uv run kingdoms runner badaction; then
+            echo "::error::runner badaction should exit 2"; exit 1
+          fi

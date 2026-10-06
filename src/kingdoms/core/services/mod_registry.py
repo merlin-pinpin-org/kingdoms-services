@@ -16,9 +16,8 @@ from pathlib import Path
 import yaml
 
 from kingdoms.core.services.mod_definition import (
-    CHANNEL_KINDS,
+    ChannelAccessPolicy,
     ChannelCategoryDef,
-    ChannelGroupDef,
     ModDefinition,
     RoleDef,
 )
@@ -35,47 +34,10 @@ def _parse_str_list(declared: object, label: str, source: Path) -> list[str]:
     return list(declared)
 
 
-def _parse_channel_groups(declared: object, source: Path) -> list[ChannelGroupDef]:
-    """Parse the 'channel_groups' section of a mod declaration.
-
-    The declaration order is the display order (positions are assigned
-    from it); a group may be admin-only (@everyone denied at creation).
-    """
-    if not isinstance(declared, list):
-        raise ValueError(f"{source}: 'channel_groups' must be a list")
-    groups: list[ChannelGroupDef] = []
-    for position, entry in enumerate(declared):
-        if not isinstance(entry, dict):
-            raise ValueError(f"{source}: each channel group entry must be a mapping")
-        key = entry.get("key")
-        display = entry.get("display_name")
-        if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
-            raise ValueError(f"{source}: channel group entries need 'key' and 'display_name'")
-        groups.append(
-            ChannelGroupDef(
-                key=key,
-                display_name=display,
-                admin_only=bool(entry.get("admin_only", False)),
-                position=position,
-            )
-        )
-    return groups
-
-
-def _parse_channel_categories(
-    declared: object, source: Path, groups: list[ChannelGroupDef]
-) -> list[ChannelCategoryDef]:
-    """Parse the 'channels' section of a mod declaration.
-
-    Each channel may declare a ``group`` (parent category key), a ``kind``
-    (text/forum/announce), ``admin_only`` (deny @everyone) and an
-    ``adopt`` policy (``name`` or ``group_single`` — adopt the group's
-    single channel whatever its name, for renameable singletons).
-    """
+def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCategoryDef]:
+    """Parse the 'channels' section of a mod declaration."""
     if not isinstance(declared, list):
         raise ValueError(f"{source}: 'channels' must be a list")
-    known_groups = {group.key for group in groups}
-    positions: dict[str, int] = {}
     categories: list[ChannelCategoryDef] = []
     for entry in declared:
         if not isinstance(entry, dict):
@@ -84,32 +46,19 @@ def _parse_channel_categories(
         display = entry.get("display_name")
         if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
-        group = str(entry.get("group", ""))
-        if group and group not in known_groups:
-            raise ValueError(f"{source}: channel '{key}' references undeclared group '{group}'")
-        kind = str(entry.get("kind", "text"))
-        if kind not in CHANNEL_KINDS:
-            raise ValueError(f"{source}: channel '{key}' has unknown kind '{kind}' ({CHANNEL_KINDS})")
-        adopt = str(entry.get("adopt", "name"))
-        if adopt not in ("name", "group_single"):
-            raise ValueError(f"{source}: channel '{key}' has unknown adopt policy '{adopt}'")
-        if group:
-            positions[group] = positions.get(group, 0)
-            position = positions[group]
-            positions[group] += 1
-        else:
-            position = 0
+        access_data = entry.get("access")
+        access = (
+            ChannelAccessPolicy.from_dict(access_data)
+            if isinstance(access_data, dict)
+            else ChannelAccessPolicy()
+        )
         categories.append(
             ChannelCategoryDef(
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),
                 per_instance=bool(entry.get("per_instance", False)),
-                group=group,
-                kind=kind,
-                admin_only=bool(entry.get("admin_only", False)),
-                position=position,
-                adopt=adopt,
+                access=access,
             )
         )
     return categories
@@ -146,8 +95,7 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     if not name.replace("_", "").replace("-", "").isalnum() or ":" in name:
         raise ValueError(f"{source}: mod id '{name}' must be a simple slug (no ':')")
 
-    groups = _parse_channel_groups(data.get("channel_groups", []), source)
-    categories = _parse_channel_categories(data.get("channels", []), source, groups)
+    categories = _parse_channel_categories(data.get("channels", []), source)
     roles = _parse_roles(data.get("roles", []), source)
 
     workflows = _parse_str_list(data.get("workflows", []), "workflows", source)
@@ -159,7 +107,6 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
         enabled=bool(data.get("enabled", True)),
         channel_categories=tuple(categories),
         roles=tuple(roles),
-        channel_groups=tuple(groups),
         workflows=tuple(workflows),
         commands=tuple(commands),
         dependencies=tuple(dependencies),
@@ -184,11 +131,10 @@ def load_mod_definitions(config_dir: Path) -> ModDefs:
         definition = _parse_mod_yaml(data, path)
         definitions[definition.name] = definition
         logger.info(
-            "Mod declared: %s (enabled=%s, %d channels, %d groups, %d roles)",
+            "Mod declared: %s (enabled=%s, %d channels, %d roles)",
             definition.name,
             definition.enabled,
             len(definition.channel_categories),
-            len(definition.channel_groups),
             len(definition.roles),
         )
     return definitions

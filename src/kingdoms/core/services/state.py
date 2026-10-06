@@ -246,9 +246,20 @@ class StateService:
         raw = await self._store.get(state_key(scope, key))
         return json.loads(raw) if raw is not None else None
 
-    async def set_state(self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None) -> None:
-        """Write a hot-state entry with an optional TTL in seconds."""
-        await self._store.set(state_key(scope, key), json.dumps(value), ttl=ttl)
+    async def set_state(
+        self,
+        scope: str,
+        key: str,
+        value: dict[str, Any],
+        ttl: int | None = None,
+        only_if_absent: bool = False,
+    ) -> bool:
+        """Write a hot-state entry; True when the write landed.
+
+        ``only_if_absent`` maps to SET NX: the write lands only when no
+        entry exists yet — the atomic first-writer-wins marker.
+        """
+        return await self._store.set(state_key(scope, key), json.dumps(value), ttl=ttl, only_if_absent=only_if_absent)
 
     async def delete_state(self, scope: str, key: str) -> bool:
         """Delete a hot-state entry; returns True when a key was removed."""

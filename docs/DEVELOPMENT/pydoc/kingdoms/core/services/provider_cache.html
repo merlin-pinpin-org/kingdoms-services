@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.provider_cache</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.provider_cache</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/provider_cache.py">SOURCE_ROOT/core/services/provider_cache.py</a></td></tr></table>
+    <p><span class="code">Provider&nbsp;data&nbsp;cache:&nbsp;freshness&nbsp;rules&nbsp;between&nbsp;the&nbsp;bot&nbsp;and&nbsp;providers&nbsp;(#205).<br>
+&nbsp;<br>
+Match&nbsp;data&nbsp;is&nbsp;expensive&nbsp;and&nbsp;mostly&nbsp;immutable:&nbsp;a&nbsp;completed&nbsp;match&nbsp;never<br>
+changes,&nbsp;a&nbsp;player's&nbsp;stats&nbsp;barely&nbsp;move&nbsp;in&nbsp;five&nbsp;minutes.&nbsp;This&nbsp;module&nbsp;is<br>
+the&nbsp;cache-aside&nbsp;layer&nbsp;every&nbsp;provider&nbsp;lookup&nbsp;goes&nbsp;through&nbsp;—&nbsp;backed&nbsp;by<br>
+the&nbsp;StateService&nbsp;(Redis),&nbsp;the&nbsp;single&nbsp;entry&nbsp;point&nbsp;to&nbsp;hot&nbsp;state.<br>
+&nbsp;<br>
+Rules&nbsp;(kingdoms-services#205):<br>
+&nbsp;<br>
+-&nbsp;**completed&nbsp;match**:&nbsp;fetched&nbsp;at&nbsp;most&nbsp;once,&nbsp;ever&nbsp;—&nbsp;the&nbsp;marker&nbsp;key&nbsp;is<br>
+&nbsp;&nbsp;set&nbsp;atomically&nbsp;(``SET&nbsp;NX``);&nbsp;a&nbsp;second&nbsp;fetch&nbsp;is&nbsp;a&nbsp;no-op;<br>
+-&nbsp;**match&nbsp;details**&nbsp;(live,&nbsp;before/during):&nbsp;short&nbsp;TTL,&nbsp;overwritten&nbsp;by<br>
+&nbsp;&nbsp;each&nbsp;provider&nbsp;answer;<br>
+-&nbsp;**player&nbsp;profile**:&nbsp;at&nbsp;most&nbsp;one&nbsp;fetch&nbsp;per&nbsp;5&nbsp;minutes&nbsp;(TTL&nbsp;on&nbsp;the<br>
+&nbsp;&nbsp;cached&nbsp;answer);<br>
+-&nbsp;**registered&nbsp;players**:&nbsp;refreshed&nbsp;at&nbsp;least&nbsp;once&nbsp;a&nbsp;day&nbsp;by&nbsp;the&nbsp;daily<br>
+&nbsp;&nbsp;sweep,&nbsp;which&nbsp;re-queues&nbsp;stale&nbsp;profiles.<br>
+&nbsp;<br>
+Keys&nbsp;live&nbsp;under&nbsp;``provider_cache:{game}:{kind}:{provider}:{id}``&nbsp;and<br>
+the&nbsp;once-markers&nbsp;under&nbsp;``provider_fetched:{game}:match:{provider}:{id}``.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.provider_cache.html#CacheDecision">CacheDecision</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.provider_cache.html#ProviderDataCache">ProviderDataCache</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="CacheDecision">class <strong>CacheDecision</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#CacheDecision">CacheDecision</a>(value:&nbsp;'dict[str,&nbsp;Any]&nbsp;|&nbsp;None',&nbsp;should_fetch:&nbsp;'bool')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Outcome&nbsp;of&nbsp;a&nbsp;cache&nbsp;lookup:&nbsp;hit,&nbsp;or&nbsp;miss&nbsp;needing&nbsp;a&nbsp;provider&nbsp;call.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="CacheDecision-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__init__"><strong>__init__</strong></a>(self, value: 'dict[str, Any] | None', should_fetch: 'bool') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="CacheDecision-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>should_fetch</strong></dt>
+</dl>
+<dl><dt><strong>value</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'should_fetch': 'bool', 'value': 'dict[str, Any] | None'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'should_fetch': Field(name='should_fetch',type='bool',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'value': Field(name='value',type='dict[str, Any] | None',...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('value', 'should_fetch')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderDataCache">class <strong>ProviderDataCache</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderDataCache">ProviderDataCache</a>(state:&nbsp;'StateService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Cache-aside&nbsp;layer&nbsp;for&nbsp;provider&nbsp;data,&nbsp;freshness&nbsp;rules&nbsp;enforced.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderDataCache-__init__"><strong>__init__</strong></a>(self, state: 'StateService') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProviderDataCache-dump_extraction_json"><strong>dump_extraction_json</strong></a>(self, extracted: 'dict[str, Any]') -&gt; 'str'</dt><dd><span class="code">Serialize&nbsp;an&nbsp;extraction&nbsp;for&nbsp;storage&nbsp;or&nbsp;the&nbsp;comparison&nbsp;script.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-get_completed"><strong>get_completed</strong></a>(self, game_key: 'str', provider: 'str', match_ref: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;a&nbsp;cached&nbsp;completed-match&nbsp;answer;&nbsp;None&nbsp;on&nbsp;miss.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-get_match_details"><strong>get_match_details</strong></a>(self, game_key: 'str', provider: 'str', match_ref: 'str') -&gt; 'CacheDecision'</dt><dd><span class="code">Live&nbsp;match&nbsp;details:&nbsp;5s&nbsp;TTL,&nbsp;then&nbsp;a&nbsp;fresh&nbsp;provider&nbsp;call.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-get_match_extraction"><strong>get_match_extraction</strong></a>(self, game_key: 'str', match_ref: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;recorded&nbsp;extraction&nbsp;of&nbsp;a&nbsp;match;&nbsp;None&nbsp;on&nbsp;miss.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-get_profile"><strong>get_profile</strong></a>(self, game_key: 'str', provider: 'str', profile_id: 'str') -&gt; 'CacheDecision'</dt><dd><span class="code">Player&nbsp;profile:&nbsp;5-minute&nbsp;freshness&nbsp;between&nbsp;two&nbsp;fetches.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-mark_profile_refreshed"><strong>mark_profile_refreshed</strong></a>(self, game_key: 'str', provider: 'str', profile_id: 'str', now_s: 'int') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;last&nbsp;daily-sweep&nbsp;refresh&nbsp;of&nbsp;a&nbsp;profile.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-record_match_extraction"><strong>record_match_extraction</strong></a>(self, game_key: 'str', match_ref: 'str', extracted: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;raw&nbsp;extracted&nbsp;fields&nbsp;for&nbsp;the&nbsp;comparison&nbsp;tooling.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-should_fetch_completed"><strong>should_fetch_completed</strong></a>(self, game_key: 'str', provider: 'str', match_ref: 'str') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;true&nbsp;only&nbsp;for&nbsp;the&nbsp;first&nbsp;fetch&nbsp;of&nbsp;a&nbsp;completed&nbsp;match,&nbsp;ever.<br>
+&nbsp;<br>
+The&nbsp;marker&nbsp;is&nbsp;set&nbsp;atomically&nbsp;(set-if-absent):&nbsp;concurrent<br>
+completions&nbsp;race,&nbsp;exactly&nbsp;one&nbsp;wins&nbsp;and&nbsp;fetches.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-stale_registered_profiles"><strong>stale_registered_profiles</strong></a>(self, game_key: 'str', provider: 'str', profile_ids: 'list[str]', now_s: 'int') -&gt; 'list[str]'</dt><dd><span class="code">Profiles&nbsp;of&nbsp;registered&nbsp;players&nbsp;not&nbsp;refreshed&nbsp;within&nbsp;a&nbsp;day.<br>
+&nbsp;<br>
+The&nbsp;daily&nbsp;sweep&nbsp;calls&nbsp;this&nbsp;with&nbsp;the&nbsp;full&nbsp;list&nbsp;of&nbsp;registered<br>
+profiles;&nbsp;only&nbsp;the&nbsp;stale&nbsp;ones&nbsp;get&nbsp;re-queued&nbsp;for&nbsp;a&nbsp;fetch.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-store_completed"><strong>store_completed</strong></a>(self, game_key: 'str', provider: 'str', match_ref: 'str', details: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;a&nbsp;completed&nbsp;match&nbsp;answer&nbsp;for&nbsp;the&nbsp;day-scale&nbsp;horizon.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-store_match_details"><strong>store_match_details</strong></a>(self, game_key: 'str', provider: 'str', match_ref: 'str', details: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Cache&nbsp;a&nbsp;live&nbsp;match&nbsp;answer;&nbsp;short&nbsp;TTL,&nbsp;overwritten&nbsp;by&nbsp;events.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderDataCache-store_profile"><strong>store_profile</strong></a>(self, game_key: 'str', provider: 'str', profile_id: 'str', stats: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Cache&nbsp;a&nbsp;profile&nbsp;answer;&nbsp;re-fetch&nbsp;allowed&nbsp;after&nbsp;the&nbsp;TTL.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MATCH_TTL_S</strong> = 5<br>
+<strong>PROFILE_TTL_S</strong> = 300<br>
+<strong>SWEEP_PROFILE_STALE_S</strong> = 86400</td></tr></table>
+</body></html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.registration_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.registration_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/registration_platform.py">SOURCE_ROOT/discord/registration_platform.py</a></td></tr></table>
+    <p><span class="code">Discord-side&nbsp;adapters&nbsp;for&nbsp;the&nbsp;registration&nbsp;stack&nbsp;(kingdoms-services#133).<br>
+&nbsp;<br>
+Production&nbsp;wiring&nbsp;of&nbsp;the&nbsp;RegistrationService&nbsp;seams:&nbsp;the&nbsp;Mongo&nbsp;adapter<br>
+for&nbsp;the&nbsp;game-side&nbsp;profile&nbsp;bindings,&nbsp;and&nbsp;the&nbsp;AoE2&nbsp;profile-validation<br>
+seam&nbsp;—&nbsp;a&nbsp;profile&nbsp;id&nbsp;is&nbsp;valid&nbsp;when&nbsp;the&nbsp;provider&nbsp;(ext-librematch&nbsp;via&nbsp;the<br>
+kingdoms.v1.Game&nbsp;contract)&nbsp;can&nbsp;resolve&nbsp;its&nbsp;stats.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.registration_platform.html#Aoe2ProfileValidationSeam">Aoe2ProfileValidationSeam</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.registration_platform.html#MongoRegistrationDatabase">MongoRegistrationDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Aoe2ProfileValidationSeam">class <strong>Aoe2ProfileValidationSeam</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Aoe2ProfileValidationSeam">Aoe2ProfileValidationSeam</a>(provider_uri:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+AoE2&nbsp;profile&nbsp;validation&nbsp;through&nbsp;the&nbsp;provider&nbsp;(kingdoms.v1.Game).<br>
+&nbsp;<br>
+A&nbsp;profile&nbsp;id&nbsp;is&nbsp;valid&nbsp;when&nbsp;the&nbsp;configured&nbsp;provider&nbsp;can&nbsp;resolve&nbsp;its<br>
+stats.&nbsp;With&nbsp;no&nbsp;provider&nbsp;URI&nbsp;(local&nbsp;runs),&nbsp;every&nbsp;id&nbsp;is&nbsp;rejected&nbsp;—<br>
+validation&nbsp;is&nbsp;the&nbsp;whole&nbsp;point&nbsp;of&nbsp;the&nbsp;binding&nbsp;(reference&nbsp;§0/§6).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="Aoe2ProfileValidationSeam-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Read&nbsp;the&nbsp;provider&nbsp;address&nbsp;from&nbsp;the&nbsp;environment&nbsp;by&nbsp;default.</span></dd></dl>
+
+<dl><dt>async <a name="Aoe2ProfileValidationSeam-validate_profile"><strong>validate_profile</strong></a>(self, profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;profile's&nbsp;public&nbsp;data&nbsp;when&nbsp;the&nbsp;provider&nbsp;knows&nbsp;it.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoRegistrationDatabase">class <strong>MongoRegistrationDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoRegistrationDatabase">MongoRegistrationDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;RegistrationService&nbsp;persistence&nbsp;seam.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoRegistrationDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(``get_async_database``).</span></dd></dl>
+
+<dl><dt>async <a name="MongoRegistrationDatabase-find_binding_by_profile"><strong>find_binding_by_profile</strong></a>(self, game_key: 'str', profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;binding&nbsp;owning&nbsp;a&nbsp;profile;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
+
+<dl><dt>async <a name="MongoRegistrationDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoRegistrationDatabase-find_user_bindings"><strong>find_user_bindings</strong></a>(self, user_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;game-profile&nbsp;bindings&nbsp;of&nbsp;a&nbsp;user&nbsp;(all&nbsp;games).</span></dd></dl>
+
+<dl><dt>async <a name="MongoRegistrationDatabase-list_bindings_for_game"><strong>list_bindings_for_game</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;profile&nbsp;binding&nbsp;of&nbsp;a&nbsp;game&nbsp;(live&nbsp;dashboard&nbsp;reuse,&nbsp;#147).</span></dd></dl>
+
+<dl><dt>async <a name="MongoRegistrationDatabase-upsert_entry"><strong>upsert_entry</strong></a>(self, collection: 'str', document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PROFILE_BINDINGS_COLLECTION</strong> = 'profile_bindings'</td></tr></table>
+</body></html>

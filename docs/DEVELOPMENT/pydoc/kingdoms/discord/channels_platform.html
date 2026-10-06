@@ -56,6 +56,12 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;channels&nbsp;platform&nbsp
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="DiscordChannelsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;and&nbsp;channel&nbsp;lookups.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordChannelsPlatform-apply_access_policy"><strong>apply_access_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;a&nbsp;category's&nbsp;declared&nbsp;access&nbsp;policy&nbsp;as&nbsp;overwrites&nbsp;(#57).<br>
+&nbsp;<br>
+The&nbsp;bot&nbsp;overwrite&nbsp;is&nbsp;set&nbsp;first&nbsp;so&nbsp;the&nbsp;bot&nbsp;can&nbsp;never&nbsp;lock&nbsp;itself<br>
+out;&nbsp;then&nbsp;@everyone,&nbsp;then&nbsp;the&nbsp;declared&nbsp;roles&nbsp;(resolved&nbsp;by&nbsp;name<br>
+through&nbsp;the&nbsp;guild's&nbsp;role&nbsp;list&nbsp;—&nbsp;logical&nbsp;keys&nbsp;map&nbsp;to&nbsp;role&nbsp;names).</span></dd></dl>
+
 <dl><dt>async <a name="DiscordChannelsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
@@ -71,6 +77,8 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;channels&nbsp;platform&nbsp
 <dl><dt>async <a name="DiscordChannelsPlatform-find_group_by_name"><strong>find_group_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;category&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;(slug-normalized)&nbsp;name.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-single_channel_in_group"><strong>single_channel_in_group</strong></a>(self, guild_id: 'str', group_id: 'str', kind: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;group's&nbsp;single&nbsp;channel&nbsp;of&nbsp;a&nbsp;kind,&nbsp;whatever&nbsp;its&nbsp;name;&nbsp;None&nbsp;otherwise.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-get_channel_overwrites"><strong>get_channel_overwrites</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'dict[str, dict[str, bool]] | None'</dt><dd><span class="code">Actual&nbsp;permission&nbsp;overwrites:&nbsp;target&nbsp;id&nbsp;-&gt;&nbsp;{permission:&nbsp;bool}.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

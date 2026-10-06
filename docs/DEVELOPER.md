@@ -25,6 +25,7 @@ this repo*.
 | `src/kingdoms/core_process/` | svc-core process entrypoint (ADR-0020) |
 | `tests/` | Unit + integration tests, `tests/mocks/` (MockDiscord) |
 | `Makefile` | `make lint`, `make typecheck`, `make test`, `make docs` |
+| `src/kingdoms/cli/` | `kingdoms` developer CLI — doctor, local stack, remote ssh, runner ([docs/CLI.md](CLI.md)) |
 
 ## Toolchain
 
@@ -34,6 +35,13 @@ uses **Makefile tasks** (`make lint`, `make typecheck`, `make test`,
 clone — no credentials, no Discord token, no external services; keep it
 that way. Run `make lint` and `make test` before pushing; all tests must
 pass.
+
+The `kingdoms` CLI ([docs/CLI.md](CLI.md)) is the front door for environment
+and ops work: `kingdoms doctor` checks your machine, `kingdoms local ...`
+drives the dev stack, `kingdoms remote ...` manages servers over SSH and
+`kingdoms runner setup` guides a self-hosted Actions runner. Prefer it to
+improvised shell commands — if something recurring is missing from it, add
+it there (a module per domain in `src/kingdoms/cli/`).
 
 ## Architecture rules
 
@@ -136,10 +144,10 @@ built `--no-dev` with only `src/`, `config/` and the entrypoint copied in.
 This is enforced, not conventional — two fail-closed guards:
 
 - `make check` and the CI `Purity guard` job fail when `src/` references
-  test tooling (`scripts/check_image_purity.py --source-only`);
+  test tooling (`.github/workflows/scripts/check_image_purity.py --source-only`);
 - the Docker workflow fails unless `import simcord` / `import pytest`
   raises `ModuleNotFoundError` inside the built image
-  (`scripts/check_image_purity.py --image`).
+  (`.github/workflows/scripts/check_image_purity.py --image`).
 
 ### The battery (standalone journey suite)
 

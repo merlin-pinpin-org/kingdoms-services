@@ -16,7 +16,7 @@ keyed&nbsp;by&nbsp;``game_key``.&nbsp;Both&nbsp;write&nbsp;paths&nbsp;—&nbsp;Y
 and&nbsp;the&nbsp;Discord&nbsp;admin&nbsp;surface&nbsp;—&nbsp;go&nbsp;through&nbsp;this&nbsp;service,&nbsp;never&nbsp;direct&nbsp;DB<br>
 edits,&nbsp;so&nbsp;the&nbsp;versioned&nbsp;data&nbsp;and&nbsp;the&nbsp;audit&nbsp;trail&nbsp;stay&nbsp;consistent.<br>
 &nbsp;<br>
-Invariants&nbsp;(JeanJack&nbsp;V2.0&nbsp;reference&nbsp;§2/§4):<br>
+Invariants&nbsp;(legacy&nbsp;reference&nbsp;§2/§4):<br>
 -&nbsp;stable&nbsp;IDs:&nbsp;an&nbsp;entry's&nbsp;``_id``&nbsp;never&nbsp;changes;&nbsp;rotation&nbsp;never&nbsp;breaks<br>
 &nbsp;&nbsp;in-progress&nbsp;seasons;<br>
 -&nbsp;archival-only&nbsp;deletes:&nbsp;``archived_at``&nbsp;is&nbsp;set,&nbsp;the&nbsp;entry&nbsp;stays&nbsp;readable<br>
@@ -335,7 +335,9 @@ CRUD&nbsp;+&nbsp;lifecycle&nbsp;for&nbsp;the&nbsp;game&nbsp;catalog,&nbsp;pools&
 The&nbsp;previous&nbsp;active&nbsp;activation&nbsp;is&nbsp;deactivated,&nbsp;the&nbsp;new&nbsp;activation<br>
 is&nbsp;recorded,&nbsp;and&nbsp;the&nbsp;ladder's&nbsp;``active_map_pool_id``&nbsp;moves&nbsp;—&nbsp;the<br>
 caller&nbsp;persists&nbsp;the&nbsp;ladder&nbsp;field;&nbsp;this&nbsp;method&nbsp;owns&nbsp;the&nbsp;history<br>
-rows&nbsp;so&nbsp;the&nbsp;switch&nbsp;is&nbsp;atomic&nbsp;from&nbsp;the&nbsp;store's&nbsp;point&nbsp;of&nbsp;view.</span></dd></dl>
+rows&nbsp;so&nbsp;the&nbsp;switch&nbsp;is&nbsp;atomic&nbsp;from&nbsp;the&nbsp;store's&nbsp;point&nbsp;of&nbsp;view.<br>
+Re-activating&nbsp;the&nbsp;pool&nbsp;that&nbsp;is&nbsp;already&nbsp;active&nbsp;is&nbsp;a&nbsp;no-op&nbsp;(the<br>
+history&nbsp;stays&nbsp;one&nbsp;row&nbsp;per&nbsp;real&nbsp;switch).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-archive_civ"><strong>archive_civ</strong></a>(self, entry_id: 'str') -&gt; 'CivModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;civ&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
 

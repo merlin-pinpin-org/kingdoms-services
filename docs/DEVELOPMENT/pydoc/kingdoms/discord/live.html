@@ -15,7 +15,7 @@ The&nbsp;live&nbsp;test&nbsp;dashboard:&nbsp;a&nbsp;dedicated&nbsp;``live-dashbo
 persistent&nbsp;message&nbsp;showing&nbsp;every&nbsp;linked&nbsp;player's&nbsp;current&nbsp;state<br>
 (offline&nbsp;/&nbsp;in&nbsp;lobby&nbsp;/&nbsp;in&nbsp;game,&nbsp;match&nbsp;ref,&nbsp;since&nbsp;when).&nbsp;The&nbsp;message&nbsp;is<br>
 edited&nbsp;in&nbsp;place&nbsp;on&nbsp;every&nbsp;update&nbsp;—&nbsp;no&nbsp;spam.&nbsp;``/live``&nbsp;renders&nbsp;the&nbsp;same<br>
-dashboard&nbsp;ephemerally;&nbsp;``/live-link``&nbsp;and&nbsp;``/live-unlink``&nbsp;manage&nbsp;the<br>
+dashboard&nbsp;ephemerally;&nbsp;``/game-link``&nbsp;and&nbsp;``/game-unlink``&nbsp;manage&nbsp;the<br>
 minimal&nbsp;profile&nbsp;links&nbsp;needed&nbsp;to&nbsp;test&nbsp;the&nbsp;providers&nbsp;(test-scoped,&nbsp;kept<br>
 simple&nbsp;per&nbsp;#147).</span></p>
 <p>
@@ -35,7 +35,7 @@ simple&nbsp;per&nbsp;#147).</span></p>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-ensure_live_dashboard_channel"><strong>ensure_live_dashboard_channel</strong></a>(guild: 'discord.Guild') -&gt; 'discord.TextChannel'</dt><dd><span class="code">Resolve&nbsp;or&nbsp;create&nbsp;the&nbsp;guild's&nbsp;live-dashboard&nbsp;channel&nbsp;(idempotent).</span></dd></dl>
- <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/live,&nbsp;/live-link&nbsp;and&nbsp;/live-unlink&nbsp;commands.<br>
+ <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/live,&nbsp;/game-link&nbsp;and&nbsp;/game-unlink&nbsp;commands.<br>
 &nbsp;<br>
 The&nbsp;commands&nbsp;read&nbsp;svc-core's&nbsp;Live&nbsp;service&nbsp;through&nbsp;``LiveClient``<br>
 when&nbsp;``CORE_URI``&nbsp;is&nbsp;set;&nbsp;without&nbsp;it&nbsp;(local&nbsp;runs,&nbsp;providers&nbsp;down),<br>

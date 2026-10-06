@@ -62,6 +62,18 @@ class ChannelsPlatform(Protocol):
         """Whether the channel still exists on the platform."""
         ...
 
+    async def apply_access_policy(
+        self, guild_id: str, channel_id: str, policy: dict[str, object]
+    ) -> None:
+        """Apply a category's declared access policy as permission overwrites."""
+        ...
+
+    async def get_channel_overwrites(
+        self, guild_id: str, channel_id: str
+    ) -> dict[str, dict[str, bool]] | None:
+        """Actual permission overwrites: target id -> {permission: bool}."""
+        ...
+
 
 class ChannelsCache(Protocol):
     """Narrow cache seam (StateService); values are JSON dicts."""
@@ -70,8 +82,10 @@ class ChannelsCache(Protocol):
         """Read one cached value; None on miss (store may be down)."""
         ...
 
-    async def set_state(self, scope: str, key: str, value: dict[str, object], ttl: int) -> None:
-        """Write one cached value with a TTL (best-effort)."""
+    async def set_state(
+        self, scope: str, key: str, value: dict[str, object], ttl: int | None = None
+    ) -> bool:
+        """Write one cached value with a TTL (best-effort); True when written."""
         ...
 
     async def delete_state(self, scope: str, key: str) -> bool:
@@ -138,6 +152,11 @@ class ChannelService:
         self._platform = platform
         self._cache = cache
         self._registry = registry
+
+    @property
+    def platform(self) -> ChannelsPlatform:
+        """The platform seam (audit and sync reuse it, kingdoms-services#57)."""
+        return self._platform
 
     def _category_name(self, category: str) -> str:
         """Resolve a category key to its channel display name.
@@ -391,6 +410,17 @@ class ChannelService:
         for category_def in definition.channel_categories:
             category = f"{mod_name}:{category_def.key}"
             channels[category] = await self.get_channel_for_category(guild_id, category)
+            try:
+                await self._platform.apply_access_policy(
+                    guild_id, channels[category].id, category_def.access.to_dict()
+                )
+            except Exception:
+                logger.warning(
+                    "ACCESS POLICY application failed (guild %s, category %s) — best-effort",
+                    guild_id,
+                    category,
+                    exc_info=True,
+                )
         return channels
 
     async def provision_mod_channels(self, guild_id: str, mod_name: str) -> ChannelProvisionReport:

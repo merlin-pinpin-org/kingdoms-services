@@ -4,7 +4,7 @@ The live test dashboard: a dedicated ``live-dashboard`` channel hosts one
 persistent message showing every linked player's current state
 (offline / in lobby / in game, match ref, since when). The message is
 edited in place on every update — no spam. ``/live`` renders the same
-dashboard ephemerally; ``/live-link`` and ``/live-unlink`` manage the
+dashboard ephemerally; ``/game-link`` and ``/game-unlink`` manage the
 minimal profile links needed to test the providers (test-scoped, kept
 simple per #147).
 """
@@ -36,7 +36,7 @@ def render_dashboard(snapshot: dict[str, Any], locale: str = "en") -> str:
         lines.append("⚠️ Providers unreachable — states may be stale, all shown offline.")
     players = snapshot.get("players", [])
     if not players:
-        lines.append("No linked players yet — link a profile with /live-link.")
+        lines.append("No linked players yet — link a profile with /game-link.")
     for p in players:
         icon = _STATE_ICONS.get(p["state"], "⚫")
         since = f" (since <t:{p['since'] // 1000}:R>)" if p.get("since") else ""
@@ -49,7 +49,7 @@ def register_live_commands(
     tree: app_commands.CommandTree[discord.Client],
     catalog: MessageCatalog | None = None,
 ) -> None:
-    """Register the /live, /live-link and /live-unlink commands.
+    """Register the /live, /game-link and /game-unlink commands.
 
     The commands read svc-core's Live service through ``LiveClient``
     when ``CORE_URI`` is set; without it (local runs, providers down),
@@ -84,13 +84,13 @@ def register_live_commands(
         await interaction.followup.send(body, ephemeral=True)
 
     @tree.command(
-        name=localized("commands.live_link_name", "live-link"),
+        name=localized("commands.game_link_name", "game-link"),
         description=localized(
-            "commands.live_link_description", "Link your AoE2 profile id to your account (test scope)"
+            "commands.game_link_description", "Link your AoE2 profile id to your account (test scope)"
         ),
     )
     @app_commands.describe(profile_id="Your AoE2 profile id")
-    async def live_link_command(interaction: discord.Interaction, profile_id: str) -> None:
+    async def game_link_command(interaction: discord.Interaction, profile_id: str) -> None:
         """Link the invoker's AoE2 profile (minimal test-scoped link)."""
         from kingdoms.core.models.db import get_async_database
         from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
@@ -113,10 +113,10 @@ def register_live_commands(
         )
 
     @tree.command(
-        name=localized("commands.live_unlink_name", "live-unlink"),
-        description=localized("commands.live_unlink_description", "Unlink your AoE2 profile from your account"),
+        name=localized("commands.game_unlink_name", "game-unlink"),
+        description=localized("commands.game_unlink_description", "Unlink your AoE2 profile from your account"),
     )
-    async def live_unlink_command(interaction: discord.Interaction) -> None:
+    async def game_unlink_command(interaction: discord.Interaction) -> None:
         """Remove the invoker's AoE2 profile link."""
         from kingdoms.core.models.db import get_async_database
         from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION

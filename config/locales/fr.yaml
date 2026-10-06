@@ -43,7 +43,14 @@ fr:
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"
-
+    register_name: "inscription"
+    register_description: "Lier votre profil AoE2 à votre compte (inscription en DM)"
+    live_name: "live"
+    live_description: "Dashboard de test en direct : joueurs liés, lobbys et parties"
+    game_link_name: "game-link"
+    game_link_description: "Lier votre profil AoE2 à votre compte (portée test)"
+    game_unlink_name: "game-unlink"
+    game_unlink_description: "Détachez votre profil AoE2 de votre compte"
   errors:
     validation: "Entrée invalide. Vérifiez vos valeurs et réessayez."
     configuration: "Erreur de configuration. Contactez un administrateur."
@@ -71,6 +78,7 @@ fr:
     language_placeholder: "Langue de la guilde — {value}"
     channels: "Channels"
     channels_placeholder: "Gérer un channel…"
+    mods_placeholder: "Section d'un mod…"
     back: "← Retour"
     channel: "Channel"
     visibility: "Visibilité"
@@ -89,3 +97,7 @@ fr:
     visibility_failed: "Échec du changement de visibilité — voir les logs du bot."
     no_service: "Les réglages admin sont indisponibles (pas de LogService câblé)."
     panel_failed: "La gestion des logs a échoué — `{detail}`"
+  channel_audit:
+    clean: "Audit des canaux : aucun écart détecté."
+    header: "Audit des canaux — {count} écart(s) :"
+    finding: "[{severity}] {category} : {kind} (attendu {expected}, constaté {actual})"

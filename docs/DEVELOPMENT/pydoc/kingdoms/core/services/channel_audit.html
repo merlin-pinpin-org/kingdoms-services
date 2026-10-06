@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.channel_audit</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.channel_audit</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/channel_audit.py">SOURCE_ROOT/core/services/channel_audit.py</a></td></tr></table>
+    <p><span class="code">Channel&nbsp;audit:&nbsp;declared&nbsp;access&nbsp;policies&nbsp;vs&nbsp;runtime&nbsp;overwrites&nbsp;(kingdoms-services#57).<br>
+&nbsp;<br>
+The&nbsp;mod&nbsp;declarations&nbsp;are&nbsp;the&nbsp;source&nbsp;of&nbsp;truth;&nbsp;the&nbsp;Discord&nbsp;permission<br>
+overwrites&nbsp;are&nbsp;the&nbsp;runtime&nbsp;state.&nbsp;They&nbsp;can&nbsp;drift&nbsp;(a&nbsp;human&nbsp;edits&nbsp;channel<br>
+permissions,&nbsp;a&nbsp;role&nbsp;is&nbsp;deleted,&nbsp;a&nbsp;channel&nbsp;is&nbsp;moved).&nbsp;This&nbsp;service<br>
+compares&nbsp;the&nbsp;two&nbsp;per&nbsp;guild&nbsp;and&nbsp;produces&nbsp;a&nbsp;structured&nbsp;<a href="#DriftReport">DriftReport</a>&nbsp;—<br>
+drift&nbsp;is&nbsp;reported,&nbsp;never&nbsp;silently&nbsp;repaired&nbsp;(repair&nbsp;is&nbsp;the&nbsp;on-demand<br>
+sync,&nbsp;kingdoms-services#58).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.channel_audit.html#ChannelAuditService">ChannelAuditService</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.channel_audit.html#DriftFinding">DriftFinding</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.channel_audit.html#DriftReport">DriftReport</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.channel_audit.html#ChannelAuditSink">ChannelAuditSink</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelAuditService">class <strong>ChannelAuditService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelAuditService">ChannelAuditService</a>(database:&nbsp;'ChannelsDatabase',&nbsp;platform:&nbsp;'ChannelsPlatform',&nbsp;registry:&nbsp;'ModRegistry',&nbsp;sink:&nbsp;'<a href="#ChannelAuditSink">ChannelAuditSink</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;i18n:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;locale:&nbsp;'str'&nbsp;=&nbsp;'en')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Compare&nbsp;declared&nbsp;access&nbsp;policies&nbsp;with&nbsp;the&nbsp;runtime&nbsp;overwrites.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ChannelAuditService-__init__"><strong>__init__</strong></a>(self, database: 'ChannelsDatabase', platform: 'ChannelsPlatform', registry: 'ModRegistry', sink: 'ChannelAuditSink | None' = None, i18n: 'Any' = None, locale: 'str' = 'en') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;the&nbsp;sink&nbsp;and&nbsp;i18n&nbsp;are&nbsp;optional&nbsp;(report-only).</span></dd></dl>
+
+<dl><dt>async <a name="ChannelAuditService-audit_and_report"><strong>audit_and_report</strong></a>(self, guild_id: 'str') -&gt; 'DriftReport'</dt><dd><span class="code">Audit&nbsp;one&nbsp;guild&nbsp;and&nbsp;route&nbsp;the&nbsp;report&nbsp;to&nbsp;the&nbsp;sink&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="ChannelAuditService-audit_guild"><strong>audit_guild</strong></a>(self, guild_id: 'str') -&gt; 'DriftReport'</dt><dd><span class="code">Audit&nbsp;one&nbsp;guild:&nbsp;every&nbsp;declared&nbsp;category&nbsp;of&nbsp;every&nbsp;enabled&nbsp;mod.</span></dd></dl>
+
+<dl><dt><a name="ChannelAuditService-render_report"><strong>render_report</strong></a>(self, report: 'DriftReport') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;human-readable&nbsp;summary&nbsp;(i18n&nbsp;when&nbsp;available).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ChannelAuditSink">class <strong>ChannelAuditSink</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelAuditSink">ChannelAuditSink</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam&nbsp;to&nbsp;route&nbsp;a&nbsp;human-readable&nbsp;drift&nbsp;report.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.channel_audit.html#ChannelAuditSink">ChannelAuditSink</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ChannelAuditSink-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ChannelAuditSink-send_drift_report"><strong>send_drift_report</strong></a>(self, guild_id: 'str', report: 'DriftReport') -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;the&nbsp;report&nbsp;summary&nbsp;to&nbsp;the&nbsp;admin&nbsp;audience.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ChannelAuditSink-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'send_drift_report'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ChannelAuditSink-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ChannelAuditSink-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DriftFinding">class <strong>DriftFinding</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DriftFinding">DriftFinding</a>(category:&nbsp;'str',&nbsp;kind:&nbsp;'str',&nbsp;expected:&nbsp;'str',&nbsp;actual:&nbsp;'str',&nbsp;severity:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;observed&nbsp;difference&nbsp;between&nbsp;declaration&nbsp;and&nbsp;runtime.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DriftFinding-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__init__"><strong>__init__</strong></a>(self, category: 'str', kind: 'str', expected: 'str', actual: 'str', severity: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="DriftFinding-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>actual</strong></dt>
+</dl>
+<dl><dt><strong>category</strong></dt>
+</dl>
+<dl><dt><strong>expected</strong></dt>
+</dl>
+<dl><dt><strong>kind</strong></dt>
+</dl>
+<dl><dt><strong>severity</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'actual': 'str', 'category': 'str', 'expected': 'str', 'kind': 'str', 'severity': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'actual': Field(name='actual',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'category': Field(name='category',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'expected': Field(name='expected',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'severity': Field(name='severity',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('category', 'kind', 'expected', 'actual', 'severity')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DriftReport">class <strong>DriftReport</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DriftReport">DriftReport</a>(guild_id:&nbsp;'str',&nbsp;findings:&nbsp;'tuple[<a href="#DriftFinding">DriftFinding</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+The&nbsp;audit&nbsp;result&nbsp;for&nbsp;one&nbsp;guild:&nbsp;findings&nbsp;by&nbsp;category.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DriftReport-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__init__"><strong>__init__</strong></a>(self, guild_id: 'str', findings: 'tuple[DriftFinding, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="DriftReport-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>clean</strong></dt>
+<dd><span class="code">Whether&nbsp;the&nbsp;runtime&nbsp;matches&nbsp;the&nbsp;declarations.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>findings</strong></dt>
+</dl>
+<dl><dt><strong>guild_id</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'findings': 'tuple[DriftFinding, ...]', 'guild_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'findings': Field(name='findings',type='tuple[DriftFinding, ...appingproxy({}),kw_only=False,_field_type=_FIELD), 'guild_id': Field(name='guild_id',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('guild_id', 'findings')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DRIFT_SEVERITY_MISSING_CHANNEL</strong> = 'high'<br>
+<strong>DRIFT_SEVERITY_MISSING_ROLE</strong> = 'high'<br>
+<strong>DRIFT_SEVERITY_UNDECLARED_MANAGED</strong> = 'low'<br>
+<strong>DRIFT_SEVERITY_WRONG_OVERWRITE</strong> = 'medium'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.channels.audit (WARNING)&gt;</td></tr></table>
+</body></html>

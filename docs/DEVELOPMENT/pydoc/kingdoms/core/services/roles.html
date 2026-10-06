@@ -186,7 +186,7 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="RolesCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;hot-state&nbsp;entry;&nbsp;None&nbsp;when&nbsp;missing&nbsp;or&nbsp;expired.</span></dd></dl>
 
-<dl><dt>async <a name="RolesCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry&nbsp;with&nbsp;a&nbsp;TTL&nbsp;in&nbsp;seconds.</span></dd></dl>
+<dl><dt>async <a name="RolesCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry&nbsp;with&nbsp;a&nbsp;TTL;&nbsp;True&nbsp;when&nbsp;the&nbsp;write&nbsp;landed.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

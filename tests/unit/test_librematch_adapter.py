@@ -9,20 +9,37 @@ from __future__ import annotations
 
 import base64
 import json
+import struct
 import zlib
 from typing import Any
 
 import httpx
 import pytest
 
-from kingdoms.core.games.aoe2.blobs import decode_blob  # noqa: F401 - cross-ref
+from kingdoms.core.games.aoe2.blobs import decode_blob, decode_options, decode_slotinfo  # noqa: F401
 from kingdoms.core.models.game import MatchDetails, Slot
 from kingdoms.ext_librematch.adapter import LibrematchAdapter
 
 
-def _blob(payload: dict[str, Any]) -> str:
-    """Encode a payload as the APIs do: base64(zlib(json))."""
-    return base64.b64encode(zlib.compress(json.dumps(payload).encode())).decode()
+def _slotinfo_blob(slots: list[dict[str, Any]]) -> str:
+    """Encode a slotinfo payload as the API does: base64(zlib("<N>,<json>"))."""
+    payload = f"{len(slots)},{json.dumps(slots)}"
+    return base64.b64encode(zlib.compress(payload.encode())).decode()
+
+
+def _options_blob(pairs: list[tuple[str, str]]) -> str:
+    """Encode an options payload as the API does: base64(zlib(b64(records))).
+
+    The inner stream is a sequence of uint32 LE length-prefixed ASCII
+    "<key>:<value>" records, itself base64-encoded (the double-base64
+    documented by the LibreMatch wiki).
+    """
+    records = [f"{k}:{v}" for k, v in pairs]
+    stream = bytes([len(records)]) + b"".join(
+        struct.pack("<I", len(r.encode())) + r.encode() for r in records
+    )
+    inner = base64.b64encode(stream).decode()
+    return base64.b64encode(zlib.compress(inner.encode())).decode()
 
 
 def _lobby(match_id: str = "777") -> dict[str, Any]:
@@ -30,15 +47,13 @@ def _lobby(match_id: str = "777") -> dict[str, Any]:
     return {
         "advertiserId": match_id,
         "mapname": "Arabia",
-        "slotinfo": _blob(
-            {
-                "slots": [
-                    {"slot_index": 0, "profile_id": "p1", "civ": 1, "team": 1, "filled": True},
-                    {"slot_index": 1, "profile_id": "p2", "civ": 7, "team": 2, "filled": True},
-                ]
-            }
+        "slotinfo": _slotinfo_blob(
+            [
+                {"profileInfo.id": 8488501, "stationID": 1, "teamID": 0, "factionID": 1, "isReady": 1},
+                {"profileInfo.id": 925136, "stationID": 2, "teamID": 1, "factionID": 7, "isReady": 1},
+            ]
         ),
-        "options": _blob({"map_size": "huge", "speed": "standard"}),
+        "options": _options_blob([("8", "2"), ("10", "9"), ("29", "200"), ("42", "3")]),
     }
 
 
@@ -66,10 +81,10 @@ async def test_match_details_decodes_blobs() -> None:
         match_ref="777",
         map_name="Arabia",
         slots=(
-            Slot(slot_index=0, profile_id="p1", faction_key="1", team=1, filled=True, slot_kind="human"),
-            Slot(slot_index=1, profile_id="p2", faction_key="7", team=2, filled=True, slot_kind="human"),
+            Slot(slot_index=1, profile_id="8488501", faction_key="1", team=0, filled=True, slot_kind="human"),
+            Slot(slot_index=2, profile_id="925136", faction_key="7", team=1, filled=True, slot_kind="human"),
         ),
-        options=(("map_size", "huge"), ("speed", "standard")),
+        options=(("8", "2"), ("10", "9"), ("29", "200"), ("42", "3")),
         started_at=0,
         match_kind="lobby",
     )
@@ -92,7 +107,7 @@ async def test_undecodable_blob_degrades_to_empty() -> None:
     assert details is not None
     assert details.map_name == "Arabia"
     assert details.slots == ()
-    assert details.options == (("map_size", "huge"), ("speed", "standard"))
+    assert details.options == (("8", "2"), ("10", "9"), ("29", "200"), ("42", "3"))
 
 
 @pytest.mark.asyncio
@@ -150,3 +165,53 @@ async def test_player_stats_unknown_profile_returns_none() -> None:
         base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
     )
     assert await adapter.player_stats("12345") is None
+
+
+class _FakeRedis:
+    """Minimal async Redis stand-in counting INCR calls per key."""
+
+    def __init__(self) -> None:
+        self.counts: dict[str, int] = {}
+        self.expirations: dict[str, int] = {}
+
+    async def incr(self, key: str) -> int:
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        self.expirations[key] = seconds
+        return True
+
+
+def _throttled_adapter(payload: object, max_calls: int = 1) -> tuple[LibrematchAdapter, _FakeRedis]:
+    fake = _FakeRedis()
+    from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
+
+    limiter = ProviderRateLimiter(fake, game_key="aoe2", max_calls=max_calls, window_s=60)
+    return LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), rate_limiter=limiter), fake
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_over_budget_degrades_to_empty_lobbies() -> None:
+    """Over the rate budget the lobby list degrades to empty, not an error."""
+    adapter, fake = _throttled_adapter([_lobby("777")], max_calls=1)
+    first = await adapter.fetch_lobbies()
+    assert first  # first call within budget
+    second = await adapter.fetch_lobbies()
+    assert second == []  # over budget: degrade
+    assert fake.counts, "the Redis counter was used (game:{game_key}:rate)"
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_keys_carry_game_key() -> None:
+    """The throttle keys are namespaced game:{game_key}:rate:* (2.4)."""
+    adapter, fake = _throttled_adapter([_lobby("777")], max_calls=10)
+    await adapter.fetch_lobbies()
+    assert all(key.startswith("game:aoe2:rate:") for key in fake.counts)
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_fail_open_without_limiter() -> None:
+    """Without a configured limiter the adapter calls through (fail-open)."""
+    adapter = _adapter([_lobby("777")])
+    assert await adapter.fetch_lobbies()

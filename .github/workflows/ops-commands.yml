@@ -11,6 +11,7 @@
 #   /restart   capability env-control (ops anywhere; dev on test)
 #   /rollback  capability rollback     (ops only)
 #   /dump-db   capability db-dump     (ops only)
+#   /reset-env capability env-reset   (self env only; ops anywhere)
 # Every command gets an immediate acknowledgment: what will happen and
 # why the requestor may ask for it.
 #
@@ -43,7 +44,8 @@ jobs:
       startsWith(github.event.comment.body, '/stop') ||
       startsWith(github.event.comment.body, '/status') ||
       startsWith(github.event.comment.body, '/rollback') ||
-      startsWith(github.event.comment.body, '/dump-db')
+      startsWith(github.event.comment.body, '/dump-db') ||
+      startsWith(github.event.comment.body, '/reset-env')
     runs-on: ubuntu-latest
     outputs:
       command: ${{ steps.parse.outputs.command }}
@@ -54,16 +56,26 @@ jobs:
         id: parse
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
           case "$command" in
-            /logs|/restart|/start|/stop|/status|/rollback|/dump-db) ;;
+            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env) ;;
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
-          # A flag token in second position means the default env (test).
-          [[ -n "$env_name" && "$env_name" != -* ]] || env_name="test"
+          # No explicit env means the requestor's personal environment
+          # (their roster alias — sandbox first; e.g. "/status test"
+          # targets the shared validation env explicitly). The alias is
+          # resolved from the roster on kingdoms main via the GitHub
+          # API, lowercased to match the env naming.
+          if [[ -z "$env_name" || "$env_name" == -* ]]; then
+            alias="$(gh api /repos/merlin-pinpin-org/kingdoms/contents/CONTRIBUTORS.md --jq .content | base64 -d | grep -F "| @${COMMENTER} |" | head -1 | awk -F"|" "{print \$3}" | tr -d " ")"
+            [[ -n "$alias" ]] || { echo "::error::requestor has no roster entry — cannot resolve the default env; pass an explicit env (e.g. /${command#/} test)" >&2; exit 1; }
+            env_name="${alias,,}"
+          fi
           # Each command maps to one roster capability (CONTRIBUTORS.md
           # authority matrix): the routing and the gate share this mapping.
           case "${command#/}" in
@@ -72,6 +84,7 @@ jobs:
             status)  capability=env-control ;;
             rollback) capability=rollback ;;
             dump-db)  capability=db-dump ;;
+            reset-env) capability=env-reset ;;
           esac
           {
             echo "command=${command#/}"
@@ -94,6 +107,7 @@ jobs:
               status: `**/${cmd} intercepted** — reporting the ${env} stack state back here (read-only: no deploy, no state change). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
               rollback: `**/${cmd} intercepted** — reverting the last pinned image on deploy/${env} (the push re-triggers the deployment of the previous known-good image). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`rollback\`) — verdict right away.`,
               "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
+              "reset-env": `**/${cmd} intercepted** — wiping the ${env} data volumes and reseeding from the workflow datasets (destructive: the env's data is lost). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-reset\`: self env only, ops anywhere) — verdict right away.`,
             }[cmd];
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -120,6 +134,8 @@ jobs:
     name: Dispatch to kingdoms-infra
     needs: [authorize, gate]
     runs-on: ubuntu-latest
+    outputs:
+      workflow: ${{ steps.route.outputs.workflow }}
     steps:
       - name: Mint the kingdoms-deployer App token
         id: app-token
@@ -131,6 +147,7 @@ jobs:
           repositories: kingdoms-infra
 
       - name: Route the command
+        id: dispatch
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -172,6 +189,16 @@ jobs:
                 -f command="$COMMAND" \
                 -f environment="$ENVIRONMENT"
               ;;
+            reset-env)
+              # Destructive: gated by the env-reset capability (self env
+              # only, ops anywhere) in the roster matrix; env-control's
+              # reset command does the wipe + reseed on the env's runner.
+              gh workflow run env-control.yml \
+                --repo merlin-pinpin-org/kingdoms-infra \
+                --ref "deploy/$ENVIRONMENT" \
+                -f command=reset \
+                -f environment="$ENVIRONMENT"
+              ;;
             rollback)
               gh api --method POST repos/merlin-pinpin-org/kingdoms-infra/dispatches \
                 -f event_type=rollback-state \
@@ -185,3 +212,121 @@ jobs:
                 -f environment="$ENVIRONMENT"
               ;;
           esac
+      - name: Record the dispatched workflow for the reporter
+        id: route
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+        run: |
+          case "$COMMAND" in
+            logs)          WF="env-logs.yml" ;;
+            restart|start|stop|status) WF="env-control.yml" ;;
+            dump-db)       WF="db-daily-dump.yml" ;;
+            *)             WF="" ;;
+          esac
+          echo "workflow=${WF}" >> "$GITHUB_OUTPUT"
+  report:
+    name: Report the result back on the PR
+    needs: [authorize, gate, execute]
+    if: needs.execute.outputs.workflow != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    outputs:
+      run_url: ${{ steps.wait.outputs.run_url }}
+      conclusion: ${{ steps.wait.outputs.conclusion }}
+    steps:
+      - name: Mint the kingdoms-deployer App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin-org
+          repositories: kingdoms-infra
+      - name: Wait for the environment workflow to finish
+        id: wait
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          WF: ${{ needs.execute.outputs.workflow }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+          SINCE: ${{ github.event.comment.created_at }}
+        run: |
+          since="${SINCE}"
+          deadline=$(( SECONDS + 600 ))
+          run_id=""
+          while (( SECONDS < deadline )); do
+            run_id="$(gh run list --repo merlin-pinpin-org/kingdoms-infra \
+              --workflow "$WF" --branch "deploy/$ENVIRONMENT" --limit 5 \
+              --json databaseId,status,conclusion,createdAt \
+              --jq "[.[] | select(.createdAt >= \"$since\")] | .[0] // empty" || true)"
+            [[ -n "$run_id" ]] && break
+            sleep 10
+          done
+          [[ -n "$run_id" ]] || { echo "conclusion=not_found" >> "$GITHUB_OUTPUT"; exit 0; }
+          rid="$(echo "$run_id" | python3 -c 'import json,sys; print(json.load(sys.stdin)["databaseId"])')"
+          gh run watch "$rid" --repo merlin-pinpin-org/kingdoms-infra --exit-status > /dev/null 2>&1 || true
+          conclusion="$(gh run view "$rid" --repo merlin-pinpin-org/kingdoms-infra --json conclusion --jq .conclusion)"
+          {
+            echo "run_url=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/$rid"
+            echo "run_id=$rid"
+            echo "conclusion=$conclusion"
+          } >> "$GITHUB_OUTPUT"
+      - name: Collect the result payload (logs excerpt or control dump)
+        id: payload
+        if: steps.wait.outputs.conclusion != '' && steps.wait.outputs.conclusion != 'not_found'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+          RUN_ID: ${{ steps.wait.outputs.run_id }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+        run: |
+          if [[ "$COMMAND" == "logs" ]]; then
+            artifact_name="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[0].name' 2>/dev/null || true)"
+            if [[ -n "$artifact_name" ]]; then
+              mkdir -p /tmp/envlogs && cd /tmp/envlogs
+              artifact_id="$(gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[0].id')"
+              gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/artifacts/$artifact_id/zip" > artifact.zip
+              unzip -o artifact.zip logs.txt >/dev/null
+              {
+                echo '```'
+                tail -n 40 logs.txt
+                echo '```'
+              } > excerpt.txt
+              {
+                echo "excerpt<<EOF"
+                cat excerpt.txt
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - name: Post the result on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+          ALIAS: ${{ needs.gate.outputs.alias }}
+          RUN_URL: ${{ steps.wait.outputs.run_url }}
+          CONCLUSION: ${{ steps.wait.outputs.conclusion }}
+          EXCERPT: ${{ steps.payload.outputs.excerpt }}
+          THREAD: ${{ github.event.issue.number }}
+        run: |
+          icon="✅"; [[ "$CONCLUSION" == "success" ]] || icon="❌"
+          if [[ "$CONCLUSION" == "not_found" ]]; then
+            {
+              echo "⚠️ /$COMMAND on $ENVIRONMENT — dispatched but the run could not be located."
+              echo "Check kingdoms-infra actions for workflow $RUN_URL."
+            } > /tmp/report.md
+          else
+            {
+              echo "$icon **/$COMMAND on $ENVIRONMENT** — $CONCLUSION."
+              echo "Full run: $RUN_URL"
+              if [[ "$COMMAND" == "logs" && -n "$EXCERPT" ]]; then
+                echo ""
+                echo "Last lines (full dump in the run's private artifact):"
+                printf '%s\n' "$EXCERPT"
+              fi
+            } > /tmp/report.md
+          fi
+          gh pr comment "$THREAD" --repo merlin-pinpin-org/kingdoms-services --body-file /tmp/report.md

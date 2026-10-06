@@ -34,6 +34,13 @@ mods, YAML configs.
   (`config/locales/`), command names/descriptions through
   `commands_i18n` (`locale_str` + `CatalogTranslator`); mods declare
   channels/roles via **`ModRegistry`** with **logical role keys**.
+- **No mod, no game, without a rostered owner (non-overridable):** a
+  session never creates `src/kingdoms/mods/<mod>/`, `config/mods/<mod>.yaml`,
+  `src/kingdoms/core/games/<game>/` or mod docs unless a `CONTRIBUTORS.md`
+  entry (kingdoms repo) claims it in its `owns` column — the roster entry
+  and its CODEOWNERS delegation come first. The contributors-sync workflow
+  flags orphan mods/games and CODEOWNERS drift automatically
+  (kingdoms repo, `check_ownership.py` under the protected `workflows/scripts/` path).
 - **UI SDK mandate:** never build `discord.ui` / `discord.Embed` objects
   directly in a feature — every view, embed or Components V2 layout
   is built through the SDK in `src/kingdoms/discord/ui`. The rules
@@ -84,3 +91,10 @@ mods, YAML configs.
   [Automate or learn](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/SKILLS/automate-or-learn.md)
   skill and CONVENTIONS.md (*Human GitHub scope*, *Everything is
   automation*).
+- **CLI-first mandate:** the `kingdoms` CLI
+  (`src/kingdoms/cli/`, [docs/CLI.md](docs/CLI.md)) is the front door
+  for environments and ops — doctor (local env checks), local stack,
+  remote SSH, runner setup. New environment/ops surface goes in the
+  CLI (a module per domain, `main(argv) -> int`), not in ad-hoc
+  commands; sessions use `uv run kingdoms ...` and teach it to
+  designers instead of improvising shell commands.

@@ -1,0 +1,185 @@
+# Ladder data transfer: import and export of the two
+# perimeters, dispatched manually (workflow_dispatch).
+#
+# Symmetric design (kingdoms-services#138): four operations, one for
+# each (direction x perimeter):
+#
+#   import  associations — load the latest users.csv (Discord<->AoE2 links)
+#   import  matches      — load the latest matches.csv (match history + elo replay)
+#   export  associations — dump the ladder's profile links to a timestamped users.csv
+#   export  matches      — dump the ladder's legacy matches to a timestamped matches.csv
+#   season        — import the real season catalog (maps, pools, ladder,
+#                   season) from the LATEST data/core/<timestamp>-season.yaml;
+#                   import-only, prod allowed (the catalog is configuration,
+#                   not data — it IS the prod init). Export: not applicable.
+#   test-season   — generate the synthetic dataset (scripts/generate_test_data.py,
+#                   deterministic core+mods test data) and import it as a full
+#                   season via season_import_cli; the ladder_id input is the
+#                   owner_ref (guild). Import-only, and NEVER on prod — the job
+#                   fails closed on prod + test-season before any data moves.
+#
+# The two perimeters are independent and idempotent: run either, both,
+# in any order, re-run safely.
+#
+# Data layout in the sources (never in the Docker image — #138):
+#
+#   data/core/<timestamp>-users.csv        — the association dumps
+#   data/mods/ladder/<timestamp>-matches.csv — the match-history dumps
+#
+# The timestamp prefix keeps the dumps sorted chronologically. Imports
+# always take the LATEST dump of their perimeter; exports always create
+# a new one — history is kept, nothing is overwritten.
+#
+# Execution model (same as db-daily-dump.yml): the job runs on the
+# target environment's own runner (label env-<name>), checks out the
+# env config from the deploy/<env> state branch, and runs the CLI
+# inside the env's kingdoms-core container — the only place where the
+# code and the Mongo network are both available. The CLIs read
+# MONGO_URI/MONGO_DB from the container environment.
+
+name: Data transfer
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment (a directory under envs/)"
+        required: true
+        type: choice
+        options: [test, merlin, drasah, prod]
+      operation:
+        description: "Direction"
+        required: true
+        type: choice
+        options: [import, export]
+      perimeter:
+        description: "Perimeter"
+        required: true
+        type: choice
+        options: [associations, matches, season, test-season]
+      ladder_id:
+        description: "Ladder id (owner_ref for test-season)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-transfer-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    name: ${{ inputs.operation }} ${{ inputs.perimeter }} (${{ inputs.environment }})
+    runs-on: ${{ fromJSON(format('["self-hosted", "kingdoms", "env-{0}"]', inputs.environment)) }}
+    steps:
+      - name: Check out the environment configuration
+        uses: actions/checkout@v4
+        with:
+          ref: deploy/${{ inputs.environment }}
+
+      - name: Check out kingdoms-services (CLIs and data dumps)
+        uses: actions/checkout@v4
+        with:
+          repository: merlin-pinpin-org/kingdoms-services
+          ref: main
+          path: kingdoms-services
+
+      - name: Fail closed on synthetic data in prod
+        if: inputs.environment == 'prod' && inputs.perimeter == 'test-season'
+        run: |
+          echo "::error::test-season (synthetic data) is never allowed in prod — use the associations/matches perimeters with real dumps"
+          exit 1
+      - name: Resolve the data file
+        run: |
+          if [[ "${{ inputs.perimeter }}" == associations ]]; then
+            data_dir="kingdoms-services/data/core"
+            prefix="users"
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            data_dir="kingdoms-services/data/core"
+            prefix="season"
+          elif [[ "${{ inputs.perimeter }}" == test-season ]]; then
+            data_dir="kingdoms-services/data/test"
+            prefix=""
+          else
+            data_dir="kingdoms-services/data/mods/ladder"
+            prefix="matches"
+          fi
+          if [[ "${{ inputs.perimeter }}" == test-season ]]; then
+            file="test-season"
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            file=""
+            for candidate in "$data_dir"/*-"${prefix}.yaml"; do
+              [[ "$candidate" =~ ^[0-9]+T[0-9]+Z- ]] || continue
+              [[ -z "$file" || "$candidate" > "$file" ]] && file="$candidate"
+            done
+            file="${file#"$data_dir"/}"
+            [[ -n "$file" ]] || { echo "ERROR: no ${prefix}.yaml dump in $data_dir"; exit 1; }
+          elif [[ "${{ inputs.operation }}" == import ]]; then
+            file=""
+            for candidate in "$data_dir"/*-"${prefix}.csv"; do
+              [[ "$candidate" =~ ^[0-9]+T[0-9]+Z- ]] || continue
+              [[ -z "$file" || "$candidate" > "$file" ]] && file="$candidate"
+            done
+            file="${file#"$data_dir"/}"
+            [[ -n "$file" ]] || { echo "ERROR: no ${prefix}.csv dump in $data_dir"; exit 1; }
+          else
+            file="$(date -u +%Y%m%dT%H%M%SZ)-${prefix}.csv"
+          fi
+          echo "data_dir=$data_dir" >> "$GITHUB_ENV"
+          echo "data_file=$file" >> "$GITHUB_ENV"
+
+      - name: Run the ${{ inputs.operation }} CLI in the env container
+        run: |
+          cd envs/${{ inputs.environment }}
+          if [[ "${{ inputs.perimeter }}" == test-season ]]; then
+            python kingdoms-services/scripts/generate_test_data.py /tmp/kingdoms-test-data
+            for f in test-season.yaml test-users.csv test-matches.csv; do
+              docker compose cp "/tmp/kingdoms-test-data/$f" "kingdoms-core:/tmp/$f"
+            done
+            docker compose exec -T kingdoms-core python -m \
+              kingdoms.mods.ladder.season_import_cli \
+              /tmp/test-season.yaml /tmp/test-users.csv /tmp/test-matches.csv \
+              "${{ inputs.ladder_id }}" 
+          elif [[ "${{ inputs.perimeter }}" == season ]]; then
+            docker compose cp "${{ env.data_dir }}/${{ env.data_file }}" kingdoms-core:/tmp/season.yaml
+            docker compose exec -T kingdoms-core python -m \
+              kingdoms.core.games.aoe2.seed_cli_yaml \
+              /tmp/season.yaml "${{ inputs.ladder_id }}"
+          elif [[ "${{ inputs.operation }}" == import ]]; then
+            docker compose cp "${{ env.data_dir }}/${{ env.data_file }}" kingdoms-core:/tmp/data.csv
+            if [[ "${{ inputs.perimeter }}" == associations ]]; then
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.profile_links_import_cli \
+                "${{ inputs.ladder_id }}" /tmp/data.csv
+            else
+              docker compose exec -T kingdoms-core python -m \
+                kingdoms.mods.ladder.legacy_import_cli \
+                "${{ inputs.ladder_id }}" /tmp/data.csv
+            fi
+          else
+            if [[ "${{ inputs.perimeter }}" == associations ]]; then
+              cli="kingdoms.mods.ladder.profile_links_export_cli"
+            else
+              cli="kingdoms.mods.ladder.legacy_export_cli"
+            fi
+            docker compose exec -T kingdoms-core python -m "$cli" \
+              "${{ inputs.ladder_id }}" /tmp/data.csv
+            docker compose cp "kingdoms-core:/tmp/data.csv" \
+              "${{ env.data_dir }}/${{ env.data_file }}"
+          fi
+
+      - name: Commit an exported dump back to the sources
+        if: inputs.operation == 'export' && inputs.perimeter != 'test-season'
+        run: |
+          cd kingdoms-services
+          git config user.name "kingdoms-bot"
+          git config user.email "bot@kingdoms.invalid"
+          git add "${{ env.data_dir }}"
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(data): export ${{ inputs.perimeter }} dump ${{ env.data_file }} from ${{ inputs.environment }}"
+          git push
