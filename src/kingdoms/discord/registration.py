@@ -128,10 +128,13 @@ def _profile_prompt_view() -> discord.ui.View:
     """Build the profile step view: one button opening the modal."""
 
     class OpenProfileModal(discord.ui.Button[discord.ui.View]):
+        """Button opening the AoE2 profile-id modal."""
+
         def __init__(self) -> None:
             super().__init__(label="Enter my profile id", style=discord.ButtonStyle.primary)
 
         async def callback(self, interaction: discord.Interaction) -> None:
+            """Open the profile-id modal on click."""
             await interaction.response.send_modal(ProfileIdModal())
 
     view = discord.ui.View(timeout=None)

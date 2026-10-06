@@ -1,11 +1,11 @@
 name: CLA Check
-
-# Lightweight CLA check: maintainers (repo collaborators/owner) are exempt.
-# External contributors must acknowledge the CLA by commenting `/cla` on the
-# PR (or by checking the CLA box in the PR template, which requires a
-# subsequent `/cla` comment for the automated check).
-# The `/cla` comment is the recorded acknowledgment.
-
+# Roster-driven CLA check (email process — see CLA.md and the roster):
+# a contributor signs the CLA and emails it to a maintainer; the
+# maintainer's roster PR (cla: accepted) is the recorded acceptance.
+# This check reads CONTRIBUTORS.md on kingdoms main and verifies the PR
+# author has an accepted CLA. The /cla comment flow is gone — the roster
+# is the only record. Job name must stay `cla` exactly: the main ruleset
+# matches the required check context by name.
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
@@ -18,39 +18,33 @@ jobs:
   cla:
     runs-on: ubuntu-latest
     steps:
-      - name: Check CLA acknowledgment
-        uses: actions/github-script@v7
+      - name: Check out the roster (kingdoms main — the CLA record)
+        uses: actions/checkout@v4
         with:
-          script: |
-            const exempt = context.payload.pull_request.author_association === "OWNER"
-              || context.payload.pull_request.author_association === "COLLABORATOR"
-              || context.payload.pull_request.author_association === "MEMBER";
+          repository: merlin-pinpin-org/kingdoms
+          ref: main
+          sparse-checkout: |
+            CONTRIBUTORS.md
+            .github/workflows/scripts/roster.py
 
-            if (exempt) {
-              core.info("Maintainer PR — CLA not required.");
-              return;
-            }
-
-            const author = context.payload.pull_request.user.login;
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              per_page: 100,
-            });
-
-            const accepted = comments.data.some(
-              (c) => c.user.login === author && /^\/cla\b/i.test(c.body.trim())
-            );
-
-            if (!accepted) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `Hi @${author}, thank you for the PR! Before it can be merged, please accept the [CLA](../${context.repo.repo}/blob/main/CLA.md) by commenting \`/cla\` on this pull request.`,
-              });
-              core.setFailed("CLA not accepted: the PR author must comment /cla.");
-            } else {
-              core.info(`CLA accepted by @${author}.`);
-            }
+      - name: Verify the PR author's CLA against the roster
+        run: |
+          set -euo pipefail
+          author="${{ github.event.pull_request.user.login }}"
+          python3 - "$author" <<'PY'
+          import sys
+          sys.path.insert(0, ".github/workflows/scripts")
+          from roster import parse_roster
+          author = sys.argv[1]
+          roster = parse_roster("CONTRIBUTORS.md")
+          person = roster.get(author)
+          if person and person.cla.lower().startswith("accepted"):
+              print(f"CLA accepted: {person.alias} ({person.cla}).")
+              sys.exit(0)
+          if person:
+              print(f"::error::{author} ({person.alias}) has no accepted CLA on record (roster says: {person.cla}).")
+              print("::error::Email the signed CLA (CLA.md / CLA.pdf in the kingdoms repo) to a maintainer — the maintainer's roster PR records the acceptance; there is no comment flow.")
+              sys.exit(1)
+          print(f"::error::{author} has no roster entry (CONTRIBUTORS.md). A maintainer onboarding PR (entry + cla: accepted) is required before this PR can merge.")
+          sys.exit(1)
+          PY

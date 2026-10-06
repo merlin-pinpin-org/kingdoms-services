@@ -19,6 +19,7 @@ def main() -> int:
     from kingdoms.core.models.db import close_async_client, get_async_database
 
     async def run() -> dict[str, int]:
+        """Seed the AoE2 collections and return the inserted counts."""
         database = get_async_database()
         try:
             return await seed_aoe2(database, load_seed_data())
