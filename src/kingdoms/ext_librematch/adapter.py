@@ -195,27 +195,31 @@ class LibrematchAdapter:
             match_kind="lobby",
         )
 
-    def _parse_slots(self, decoded: dict[str, object]) -> list[Slot]:
-        """Parse the decoded slotinfo blob into per-slot models.
+    def _parse_slots(self, entries: list[dict[str, object]]) -> list[Slot]:
+        """Parse the decoded slotinfo slot objects into per-slot models.
 
-        The decoded structure varies across game versions; both a list
-        of slot objects and a {"slots": [...]} wrapper are accepted.
+        Slot keys follow the Worlds Edge slotinfo format (profileInfo.id,
+        factionID, teamID); the friendlier slot_index/civ keys used by
+        earlier tests are still accepted.
         """
-        entries = decoded.get("slots", decoded)
         if not isinstance(entries, list):
             return []
         slots: list[Slot] = []
         for index, entry in enumerate(entries):
             if not isinstance(entry, dict):
                 continue
-            civ = entry.get("civ", entry.get("civilization", 0))
-            filled = bool(entry.get("filled", "profile_id" in entry or "playerId" in entry))
+            civ = entry.get("civ", entry.get("civilization", entry.get("factionID", 0)))
+            filled = bool(
+                entry.get("filled", "profile_id" in entry or "playerId" in entry or "profileInfo.id" in entry)
+            )
             slots.append(
                 Slot(
-                    slot_index=int(entry.get("slot_index", index)),
-                    profile_id=str(entry.get("profile_id", entry.get("playerId", ""))),
+                    slot_index=int(entry.get("slot_index", entry.get("stationID", index))),
+                    profile_id=str(
+                        entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))
+                    ),
                     faction_key=str(civ),
-                    team=int(entry.get("team", 0)),
+                    team=int(entry.get("team", entry.get("teamID", 0))),
                     filled=filled,
                     slot_kind=str(entry.get("slot_kind", "")) or _SLOT_KINDS[filled],
                 )
