@@ -74,10 +74,12 @@ async def probe_aoe2lobby(timeout_s: float, profile_id: str) -> None:
     try:
         async with websockets.connect(DEFAULT_WS_URL, open_timeout=timeout_s) as ws:
             print("connected — streaming up to 3 events (60s budget)")
-            for sub_msg in (
-                {"action": "subscribe", "type": "matches", "context": "lobby"},
-                {"action": "subscribe", "type": "players", "context": "lobby", "ids": [profile_id]},
-            ):
+            subs = [{"action": "subscribe", "type": "matches", "context": "lobby"}]
+            if profile_id:
+                subs.append(
+                    {"action": "subscribe", "type": "players", "context": "lobby", "ids": [profile_id]}
+                )
+            for sub_msg in subs:
                 try:
                     await ws.send(_json.dumps(sub_msg))
                     print(f"sent subscription: {sub_msg}")

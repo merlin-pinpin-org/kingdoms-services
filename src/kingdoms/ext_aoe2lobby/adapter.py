@@ -111,6 +111,37 @@ class Aoe2LobbyAdapter:
             },
         }
 
+    def _normalize_lobby_snapshot(self, matches: dict[str, Any]) -> dict[str, Any]:
+        """Map a lobby_match_all snapshot frame to one aggregate event.
+
+        Shape per the aoe2lobby API: one entry per open lobby keyed by
+        matchid, with slots (profileid, civilization, name, country) and
+        lobby settings (map, ranked, password, slots_taken/total).
+        """
+        return {
+            "match_ref": "",
+            "type": "lobby_snapshot",
+            "occurred_at": 0,
+            "profile_ids": [
+                str(slot.get("profileid"))
+                for match in matches.values()
+                if isinstance(match, dict)
+                for slot in self._match_slots(match)
+                if slot.get("profileid") not in (None, "")
+            ],
+            "metadata": {
+                "lobby_count": str(len(matches)),
+                "match_ids": ",".join(str(k) for k in matches),
+            },
+        }
+
+    def _match_slots(self, match: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract the occupied slot dicts of one lobby payload."""
+        slots = match.get("slots")
+        if not isinstance(slots, dict):
+            return []
+        return [s for s in slots.values() if isinstance(s, dict)]
+
     def _track_grace(self, event: dict[str, Any]) -> None:
         """Feed the adapter-side grace window (reference 5.2 known trap).
 
@@ -139,6 +170,8 @@ class Aoe2LobbyAdapter:
             return None
         if "player_status" in frame and isinstance(frame["player_status"], dict):
             return self._normalize_player_status(frame["player_status"])
+        if "lobby_match_all" in frame and isinstance(frame["lobby_match_all"], dict):
+            return self._normalize_lobby_snapshot(frame["lobby_match_all"])
         raw_type = str(frame.get("type", frame.get("event", "")))
         event_type = _EVENT_TYPES.get(raw_type)
         if event_type is None:

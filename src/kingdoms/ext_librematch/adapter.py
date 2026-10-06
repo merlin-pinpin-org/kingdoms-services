@@ -74,7 +74,10 @@ class LibrematchAdapter:
             )
             reply.raise_for_status()
             payload = reply.json()
-        items = payload if isinstance(payload, list) else payload.get("result", [])
+        if isinstance(payload, list):
+            items = payload
+        else:
+            items = payload.get("matches", payload.get("result", []))
         return [item for item in items if isinstance(item, dict)]
 
     async def match_details(self, match_ref: str) -> MatchDetails | None:

@@ -82,3 +82,45 @@ def test_track_grace_game_ended_forgets() -> None:
     adapter._track_grace({"match_ref": "m1", "type": "game_ended", "occurred_at": 1,
                           "profile_ids": [], "metadata": {}})
     assert "m1" not in adapter._grace._closed_at
+
+
+def test_normalize_lobby_snapshot() -> None:
+    """A lobby_match_all frame maps to one aggregate lobby_snapshot event."""
+    from kingdoms.ext_aoe2lobby.adapter import Aoe2LobbyAdapter
+
+    adapter = Aoe2LobbyAdapter()
+    frame = {
+        "lobby_match_all": {
+            "511184270": {
+                "matchid": 511184270,
+                "slots": {
+                    "s1": {"profileid": 3367233, "status": 3},
+                    "s2": {"profileid": None, "status": 0},
+                },
+            },
+            "511737107": {
+                "matchid": 511737107,
+                "slots": {"s1": {"profileid": 42, "status": 3}},
+            },
+        }
+    }
+    event = adapter._normalize(json.dumps(frame))
+    assert event is not None
+    assert event["type"] == "lobby_snapshot"
+    assert sorted(event["profile_ids"]) == ["3367233", "42"]
+    assert event["metadata"]["lobby_count"] == "2"
+
+
+def test_normalize_player_status_frame() -> None:
+    """A player_status frame maps to a normalized status event."""
+    import json as jsonlib
+
+    from kingdoms.ext_aoe2lobby.adapter import Aoe2LobbyAdapter
+
+    adapter = Aoe2LobbyAdapter()
+    frame = {"player_status": {"19501096": {"status": "lobby", "matchid": "412015195"}}}
+    event = adapter._normalize(jsonlib.dumps(frame))
+    assert event is not None
+    assert event["type"] == "player_status"
+    assert event["profile_ids"] == ["19501096"]
+    assert event["metadata"]["19501096"] == "lobby"
