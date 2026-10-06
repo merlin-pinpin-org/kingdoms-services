@@ -33,7 +33,7 @@ def main() -> None:
         )
 
     adapter = LibrematchAdapter(
-        base_url=os.environ.get("LIBREMATCH_API_URL", "https://community.ageofempires.com"),
+        base_url=os.environ.get("LIBREMATCH_API_URL", "https://aoe-api.worldsedgelink.com"),
         api_key=os.environ.get("LIBREMATCH_API_KEY", ""),
         rate_limiter=rate_limiter,
     )

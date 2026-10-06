@@ -25,7 +25,7 @@ from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://community.ageofempires.com"
+DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
 LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
