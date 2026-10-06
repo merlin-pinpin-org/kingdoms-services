@@ -113,6 +113,50 @@ def start_ladder_sweep(wiring: LadderWiring) -> asyncio.Task[None]:
     return asyncio.create_task(_loop())
 
 
+async def _join_precondition(user_id: str) -> bool | None:
+    """Read the 'linked game profile' precondition through the registration wiring.
+
+    Returns None when the registration stack is not wired (Mongo/Redis
+    absent): the caller answers with an explicit error, never a silent
+    allow-through.
+    """
+    from kingdoms.discord.registration import _wiring as _registration_wiring
+
+    _, registration = _registration_wiring()
+    if registration is None:
+        return None
+    return await registration.has_any_profile(user_id)
+
+
+async def _join_command(interaction: Any, service: Any, ladder_id: str) -> None:
+    """Run the /ladder join flow: profile precondition, then queue."""
+    from kingdoms.mods.ladder.surface import ACTION_JOIN_QUEUE, LadderSurface
+
+    user_id = str(interaction.user.id)
+    has_game_profile = await _join_precondition(user_id)
+    if has_game_profile is None:
+        reason = "Registration is not configured — profiles cannot be verified."
+    elif not has_game_profile:
+        reason = "No AoE2 profile linked — use /register first."
+    else:
+        reason = ""
+    if reason:
+        await interaction.response.send_message(reason, ephemeral=True)
+        return
+    surface = LadderSurface(service)
+    result = await surface.execute(
+        ACTION_JOIN_QUEUE,
+        ladder_id,
+        user_id,
+        now=_now_ms(),
+        has_game_profile=bool(has_game_profile),
+    )
+    if result.ok:
+        await interaction.response.send_message("You joined the queue.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"Could not join: {result.reason}", ephemeral=True)
+
+
 def register_ladder_commands(
     tree: Any,
     wiring: LadderWiring,
@@ -145,28 +189,7 @@ def register_ladder_commands(
     @group.command(name="join")
     async def join_command(interaction: discord.Interaction) -> None:
         """Join the ladder queue after the profile precondition."""
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
-        from kingdoms.mods.ladder.surface import ACTION_JOIN_QUEUE, LadderSurface
-
-        user_id = str(interaction.user.id)
-        database = get_async_database()
-        binding = await database[PROFILE_BINDINGS_COLLECTION].find_one({"user_id": user_id})
-        if binding is None:
-            await interaction.response.send_message("No AoE2 profile linked — use /register first.", ephemeral=True)
-            return
-        surface = LadderSurface(wiring.service)
-        result = await surface.execute(
-            ACTION_JOIN_QUEUE,
-            ladder_id,
-            user_id,
-            now=_now_ms(),
-            has_game_profile=True,
-        )
-        if result.ok:
-            await interaction.response.send_message("You joined the queue.", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"Could not join: {result.reason}", ephemeral=True)
+        await _join_command(interaction, wiring.service, ladder_id)
 
     @group.command(name="leave")
     async def leave_command(interaction: discord.Interaction) -> None:
