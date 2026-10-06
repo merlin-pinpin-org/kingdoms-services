@@ -266,9 +266,11 @@ jobs:
           rid="$(echo "$run_id" | python3 -c 'import json,sys; print(json.load(sys.stdin)["databaseId"])')"
           gh run watch "$rid" --repo merlin-pinpin-org/kingdoms-infra --exit-status > /dev/null 2>&1 || true
           conclusion="$(gh run view "$rid" --repo merlin-pinpin-org/kingdoms-infra --json conclusion --jq .conclusion)"
-          echo "run_url=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/$rid" >> "$GITHUB_OUTPUT"
-          echo "run_id=$rid" >> "$GITHUB_OUTPUT"
-          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+          {
+            echo "run_url=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/$rid"
+            echo "run_id=$rid"
+            echo "conclusion=$conclusion"
+          } >> "$GITHUB_OUTPUT"
       - name: Collect the result payload (logs excerpt or control dump)
         id: payload
         if: steps.wait.outputs.conclusion != '' && steps.wait.outputs.conclusion != 'not_found'
