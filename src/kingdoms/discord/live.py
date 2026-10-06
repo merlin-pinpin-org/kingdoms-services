@@ -11,9 +11,11 @@ simple per #147).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
-from typing import Any
+import time
+from typing import Any, Protocol
 
 import discord
 from discord import app_commands
@@ -133,9 +135,50 @@ def _locale(interaction: discord.Interaction) -> str:
 
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""
-    import time
-
     return int(time.time() * 1000)
+
+
+class LiveClientLike(Protocol):
+    """The svc-core live client seam (LiveClient)."""
+
+    async def watch(self, game_key: str) -> dict[str, Any]:
+        """Fetch the current dashboard snapshot for a game."""
+        ...
+
+
+class RegisteredMessageLike(Protocol):
+    """A resolved registered message (RegisteredMessageModel)."""
+
+    @property
+    def channel_id(self) -> str:
+        """The channel the message lives in."""
+        ...
+
+    @property
+    def message_id(self) -> str:
+        """The platform message id."""
+        ...
+
+
+class MessageRegistryServiceLike(Protocol):
+    """The message registry seam (MessageRegistryService)."""
+
+    async def resolve(self, platform: str, message_key: str, entity_id: str) -> RegisteredMessageLike | None:
+        """Resolve a registered message; None when never registered."""
+        ...
+
+    async def register(
+        self,
+        *,
+        platform: str,
+        message_key: str,
+        entity_id: str,
+        channel_id: str,
+        message_id: str,
+        guild_id: str | None = None,
+    ) -> None:
+        """Persist (or replace) a registered message."""
+        ...
 
 
 async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
@@ -144,3 +187,89 @@ async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextCha
         if channel.name == LIVE_CHANNEL_NAME:
             return channel
     return await guild.create_text_channel(LIVE_CHANNEL_NAME, reason="Kingdoms live test dashboard (#147)")
+
+
+async def ensure_live_dashboard(
+    bot: discord.Client,
+    guild_id: str,
+    client: LiveClientLike,
+    registry: MessageRegistryServiceLike,
+) -> bool:
+    """Ensure the guild's dashboard channel holds one up-to-date dashboard message.
+
+    The message is addressed by its logical key (``live-dashboard``)
+    through the message registry and edited in place on every refresh —
+    never re-sent, so the channel never spams. When the registered
+    message is gone (deleted, channel wiped), a new one is created and
+    registered. Best-effort: a failure never blocks the bot.
+    Returns True when a message was created, False when an existing
+    one was refreshed (or the step degraded quietly).
+    """
+    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
+    if guild is None:
+        return False
+    channel = await ensure_live_dashboard_channel(guild)
+    try:
+        snapshot = await client.watch(GAME_KEY)
+    except Exception:
+        logger.warning("live dashboard fetch failed (guild %s) — best-effort", guild_id, exc_info=True)
+        snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
+    body = render_dashboard(snapshot)
+    registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, guild_id)
+    if await _edit_registered(channel, registered, body):
+        return False
+    message = await channel.send(body)
+    await registry.register(
+        platform=PLATFORM,
+        message_key=LIVE_MESSAGE_KEY,
+        entity_id=guild_id,
+        channel_id=str(channel.id),
+        message_id=str(message.id),
+        guild_id=guild_id,
+    )
+    return True
+
+
+async def _edit_registered(
+    channel: discord.TextChannel,
+    registered: RegisteredMessageLike | None,
+    body: str,
+) -> bool:
+    """Edit the registered message in place; True when the edit landed."""
+    if registered is None or not str(registered.channel_id).isdigit() or not str(registered.message_id).isdigit():
+        return False
+    try:
+        message = channel.get_partial_message(int(registered.message_id))
+        await message.edit(content=body)
+        return True
+    except Exception:
+        logger.warning(
+            "live dashboard edit failed (message %s) — recreating",
+            getattr(registered, "message_id", "?"),
+            exc_info=True,
+        )
+        return False
+
+
+async def start_live_dashboard_refresh(
+    bot: discord.Client,
+    client: LiveClientLike,
+    registry: MessageRegistryServiceLike,
+) -> asyncio.Task[None]:
+    """Refresh every guild's dashboard message on an interval, forever."""
+
+    async def _loop() -> None:
+        while True:
+            for guild in list(bot.guilds):
+                try:
+                    await ensure_live_dashboard(bot, str(guild.id), client, registry)
+                except Exception:
+                    logger.warning("live dashboard refresh failed (guild %s) — best-effort", guild.id, exc_info=True)
+            await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
+
+    return asyncio.create_task(_loop())
+
+
+GAME_KEY = "aoe2"
+PLATFORM = "discord"
+DASHBOARD_REFRESH_INTERVAL_S = 15

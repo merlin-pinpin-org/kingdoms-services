@@ -151,6 +151,7 @@ class KingdomsBot(discord.Client):
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
         self._pin_task: asyncio.Task[None] | None = None
+        self._live_dashboard_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
@@ -200,6 +201,7 @@ class KingdomsBot(discord.Client):
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
+        self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
         self._synced = True
@@ -428,6 +430,8 @@ class KingdomsBot(discord.Client):
                 await self.logs_service.log_event(str(guild.id), event)
         if self._ladder_sweep_task is not None:
             self._ladder_sweep_task.cancel()
+        if self._live_dashboard_task is not None:
+            self._live_dashboard_task.cancel()
         await super().close()
 
 
@@ -515,6 +519,23 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
         bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
     return bot
+
+
+def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
+    """Run the live dashboard refresh loop when its stack is wired (#147)."""
+    from kingdoms.core.rpc.live import LiveClient
+    from kingdoms.discord.live import start_live_dashboard_refresh
+    from kingdoms.discord.messages_platform import build_message_registry
+
+    core_uri = os.environ.get("CORE_URI", "")
+    registry = build_message_registry()
+    if not core_uri or registry is None:
+        return None
+
+    async def _run() -> None:
+        await start_live_dashboard_refresh(bot, LiveClient(core_uri), registry)
+
+    return asyncio.create_task(_run())
 
 
 def _ladder_owner_ref(config: BotConfig) -> str:

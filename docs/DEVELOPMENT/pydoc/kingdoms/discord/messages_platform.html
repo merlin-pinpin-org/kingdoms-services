@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.messages_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.messages_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/messages_platform.py">SOURCE_ROOT/discord/messages_platform.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;platform&nbsp;adapters&nbsp;for&nbsp;the&nbsp;message&nbsp;registry&nbsp;(kingdoms-services#147).<br>
+&nbsp;<br>
+The&nbsp;live&nbsp;test&nbsp;dashboard's&nbsp;persistent&nbsp;message&nbsp;is&nbsp;addressed&nbsp;by&nbsp;its&nbsp;logical<br>
+key&nbsp;through&nbsp;the&nbsp;MessageRegistryService&nbsp;(#130):&nbsp;the&nbsp;registry&nbsp;is&nbsp;the&nbsp;only<br>
+place&nbsp;platform&nbsp;message&nbsp;IDs&nbsp;ever&nbsp;live.&nbsp;The&nbsp;adapters&nbsp;here&nbsp;are&nbsp;the&nbsp;narrow<br>
+Mongo&nbsp;(source)&nbsp;and&nbsp;StateService&nbsp;(cache)&nbsp;seams&nbsp;the&nbsp;service&nbsp;needs,&nbsp;built<br>
+the&nbsp;same&nbsp;way&nbsp;as&nbsp;the&nbsp;other&nbsp;platform&nbsp;adapters&nbsp;(logs_platform).</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.messages_platform.html#MongoMessagesDatabase">MongoMessagesDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.messages_platform.html#StateMessagesCache">StateMessagesCache</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoMessagesDatabase">class <strong>MongoMessagesDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoMessagesDatabase">MongoMessagesDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;registered&nbsp;platform&nbsp;messages.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoMessagesDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(get_async_database).</span></dd></dl>
+
+<dl><dt>async <a name="MongoMessagesDatabase-delete_message"><strong>delete_message</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;registered&nbsp;message&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="MongoMessagesDatabase-find_message"><strong>find_message</strong></a>(self, platform: 'str', message_key: 'str', entity_id: 'str') -&gt; 'RegisteredMessageModel | None'</dt><dd><span class="code">Find&nbsp;one&nbsp;registered&nbsp;message&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoMessagesDatabase-upsert_message"><strong>upsert_message</strong></a>(self, message: 'RegisteredMessageModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;registered&nbsp;message&nbsp;document.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StateMessagesCache">class <strong>StateMessagesCache</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StateMessagesCache">StateMessagesCache</a>(state:&nbsp;'StateService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+StateService-backed&nbsp;cache&nbsp;seam&nbsp;for&nbsp;the&nbsp;message&nbsp;registry.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StateMessagesCache-__init__"><strong>__init__</strong></a>(self, state: 'StateService') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;or&nbsp;in-memory&nbsp;store).</span></dd></dl>
+
+<dl><dt>async <a name="StateMessagesCache-delete_state"><strong>delete_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;cached&nbsp;resolution&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="StateMessagesCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;resolution;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
+
+<dl><dt>async <a name="StateMessagesCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;resolution&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_message_registry"><strong>build_message_registry</strong></a>() -&gt; 'Any'</dt><dd><span class="code">Build&nbsp;the&nbsp;registry&nbsp;from&nbsp;env;&nbsp;None&nbsp;when&nbsp;Mongo/Redis&nbsp;are&nbsp;not&nbsp;configured.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MESSAGES_COLLECTION</strong> = 'platform_messages'</td></tr></table>
+</body></html>
