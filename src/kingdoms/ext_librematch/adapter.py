@@ -26,23 +26,9 @@ from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
-LOBBIES_PATH = "/game/advertisement/findObservableAdvertisements"
+LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
-LOBBIES_QUERY_PARAMS = {
-    "appBinaryChecksum": "0",
-    "callNum": "0",
-    "count": "50",
-    "dataChecksum": "0",
-    "desc": "1",
-    "matchType_id": "0",
-    "modDLLChecksum": "0",
-    "modDLLFile": "INVALID",
-    "modName": "INVALID",
-    "modVersion": "INVALID",
-    "sortOrder": "1",
-    "start": "0",
-    "versionFlags": "56950784",
-}
+LOBBIES_QUERY_PARAMS = {"title": "age2"}
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
 
 _SLOT_KINDS = {True: "human", False: "open"}

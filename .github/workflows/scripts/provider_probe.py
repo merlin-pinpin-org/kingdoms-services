@@ -74,6 +74,11 @@ async def probe_aoe2lobby(timeout_s: float) -> None:
     try:
         async with websockets.connect(DEFAULT_WS_URL, open_timeout=timeout_s) as ws:
             print("connected — streaming up to 3 events (60s budget)")
+            try:
+                await ws.send(_json.dumps({"action": "subscribe", "feed": "lobbies"}))
+                print("sent subscription message: subscribe/lobbies")
+            except Exception as sub_err:
+                print(f"(send failed: {sub_err})")
             for _ in range(3):
                 raw = await asyncio.wait_for(ws.recv(), timeout=60)
                 print(f"\n--- raw event ({len(str(raw))} bytes) ---")
