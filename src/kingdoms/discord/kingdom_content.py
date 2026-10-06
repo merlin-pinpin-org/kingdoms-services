@@ -24,7 +24,7 @@ from typing import Any
 
 import discord
 
-from kingdoms.discord.kingdom_setup import EPOCH_CATEGORY, _slug
+from kingdoms.discord.kingdom_setup import _slug
 
 logger = logging.getLogger("kingdoms.kingdom_content")
 
@@ -134,19 +134,32 @@ def _find_channel(guild: discord.Guild, name: str) -> Any:
     return None
 
 
-def _epoch_channel(guild: discord.Guild) -> Any:
-    """Return the single channel of the Époque category, whatever its age name.
+async def _epoch_channel(guild: discord.Guild) -> Any:
+    """Return the epoch channel, whatever its current age name.
 
     The channel is renamed at each age switch (``Âge sombre``,
-    ``Âge féodal``…), so a name lookup would miss it after a rename —
-    the category is the stable anchor.
+    ``Âge féodal``…), so a lookup by any single name would miss it.
+    The stable anchor is the wired ChannelService's resolved category
+    (``kingdoms:epoch`` — database-backed); the declared display name
+    is the fallback for a freshly provisioned guild.
     """
-    wanted = _slug(EPOCH_CATEGORY)
-    for channel in guild.text_channels:
-        category = getattr(channel, "category", None)
-        if category is not None and _slug(getattr(category, "name", "")) == wanted:
-            return channel
-    return None
+    from kingdoms.discord.kingdom_persistent import _wiring
+    from kingdoms.discord.kingdom_setup import EPOCH_CHANNEL_KEY, MOD_NAME
+
+    wiring = _wiring()
+    if wiring.channel_service is not None:
+        try:
+            resolved_channel = await wiring.channel_service.get_channel_for_category(
+                str(guild.id), f"{MOD_NAME}:{EPOCH_CHANNEL_KEY}"
+            )
+        except Exception:
+            logger.warning("KINGDOM CONTENT: epoch channel lookup failed", exc_info=True)
+            resolved_channel = None
+        if resolved_channel is not None and resolved_channel.id.isdigit():
+            channel = guild.get_channel(int(resolved_channel.id))
+            if channel is not None:
+                return channel
+    return _find_channel(guild, EPOCH_FALLBACK_CHANNEL)
 
 
 async def _upsert_marked(channel: Any, content: str, marker: str) -> bool:
@@ -195,7 +208,7 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
     """Rename the Époque channel to the current age and pin its bonuses."""
     if kingdoms_service is None:
         return False
-    channel = _epoch_channel(guild)
+    channel = await _epoch_channel(guild)
     if channel is None:
         return False
     try:
@@ -278,7 +291,7 @@ async def refresh_channel_descriptions(guild: discord.Guild) -> dict[str, str]:
         (TAVERNE_CHANNEL, "taverne", TAVERNE_DESCRIPTION),
         (REGLES_FORUM, "règles", REGLES_DESCRIPTION),
     ):
-        pool = getattr(guild, "forums", []) if name == REGLES_FORUM else guild.text_channels
+        pool = [*guild.text_channels, *getattr(guild, "forums", [])]
         channel = next((c for c in pool if _slug(c.name) == _slug(name)), None)
         if channel is None:
             continue

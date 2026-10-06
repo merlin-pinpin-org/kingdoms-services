@@ -38,13 +38,15 @@ provisioning&nbsp;it.</span></p>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_setup_report_view"><strong>build_setup_report_view</strong></a>(created: 'list[str]', adopted: 'list[str]', locale: 'str' = 'en') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;bootstrap&nbsp;report&nbsp;layout&nbsp;(what&nbsp;was&nbsp;created&nbsp;vs&nbsp;adopted).</span></dd></dl>
- <dl><dt>async <a name="-provision_structure"><strong>provision_structure</strong></a>(guild: 'discord.Guild') -&gt; 'tuple[list[str], list[str]]'</dt><dd><span class="code">Provision&nbsp;the&nbsp;declared&nbsp;salons-first&nbsp;structure&nbsp;through&nbsp;the&nbsp;core.<br>
+ <dl><dt>async <a name="-provision_structure"><strong>provision_structure</strong></a>(guild: 'discord.Guild') -&gt; 'tuple[list[str], list[str]]'</dt><dd><span class="code">Provision&nbsp;the&nbsp;mod's&nbsp;declared&nbsp;channels&nbsp;through&nbsp;the&nbsp;core.<br>
 &nbsp;<br>
 The&nbsp;declaration&nbsp;(``config/mods/kingdoms.yaml``)&nbsp;is&nbsp;the&nbsp;single&nbsp;source<br>
-of&nbsp;truth:&nbsp;groups&nbsp;in&nbsp;declaration&nbsp;order,&nbsp;then&nbsp;each&nbsp;group's&nbsp;channels&nbsp;—<br>
-kinds,&nbsp;admin-only&nbsp;flags&nbsp;and&nbsp;positions&nbsp;are&nbsp;data.&nbsp;Existing&nbsp;channels&nbsp;are<br>
-adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe.&nbsp;Returns&nbsp;(created,<br>
-adopted)&nbsp;display&nbsp;paths.</span></dd></dl>
+of&nbsp;truth;&nbsp;the&nbsp;core&nbsp;provisions&nbsp;every&nbsp;declared&nbsp;category&nbsp;with&nbsp;the&nbsp;same<br>
+flow&nbsp;as&nbsp;any&nbsp;other&nbsp;channel&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;platform&nbsp;creation).<br>
+Existing&nbsp;channels&nbsp;are&nbsp;adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe.<br>
+Returns&nbsp;the&nbsp;provisioned&nbsp;display&nbsp;names&nbsp;as&nbsp;(created,&nbsp;adopted)&nbsp;—&nbsp;both<br>
+lists&nbsp;carry&nbsp;the&nbsp;resolved&nbsp;names,&nbsp;the&nbsp;core&nbsp;API&nbsp;does&nbsp;not&nbsp;distinguish<br>
+creation&nbsp;from&nbsp;adoption.</span></dd></dl>
  <dl><dt><a name="-register_kingdom_command"><strong>register_kingdom_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(admin&nbsp;only)&nbsp;on&nbsp;the&nbsp;tree.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

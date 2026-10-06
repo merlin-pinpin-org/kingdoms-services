@@ -1,9 +1,9 @@
 """Test helper: run the real core provisioning against a MockGuild.
 
-kingdoms-services#175 — the salons-first structure is declared in
-``config/mods/kingdoms.yaml`` and provisioned by the core ``ChannelService``
-through ``DiscordChannelsPlatform``. These helpers wire the real services
-(an in-memory database, cache and platform) so tests exercise the
+The kingdoms mod channels are declared in ``config/mods/kingdoms.yaml``
+and provisioned by the core ``ChannelService`` through
+``DiscordChannelsPlatform``. These helpers wire the real services (an
+in-memory database, cache and platform) so tests exercise the
 production provisioning path, never a parallel fake of it.
 """
 
@@ -14,7 +14,6 @@ from typing import Any
 
 from kingdoms.core.models.channel import ChannelModel
 from kingdoms.core.services.channel import ChannelService
-from kingdoms.core.services.mod_definition import ModDefinition
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.state import StateService
 from kingdoms.discord.channels_platform import DiscordChannelsPlatform
@@ -72,33 +71,17 @@ def provisioned_wiring(guild: MockGuild, bot_admins: tuple[str, ...] = ()) -> Ki
     return wiring
 
 
-def kingdoms_definition() -> ModDefinition:
+def kingdoms_definition() -> Any:
     """The kingdoms mod declaration from the repository's real config."""
     definitions = load_mod_definitions(REPO_CONFIG_DIR)
     return definitions["kingdoms"]
 
 
-def expected_group_names() -> dict[str, str]:
-    """Map group key -> display name, straight from the declaration."""
-    return {group.key: group.display_name for group in kingdoms_definition().channel_groups}
-
-
-def expected_category_slugs() -> set[str]:
-    """The declared groups (Discord categories), slug-normalized."""
-    from kingdoms.discord.kingdom_setup import _slug
-
-    return {_slug(name) for name in expected_group_names().values()}
-
-
 def expected_channel_slugs() -> set[str]:
-    """The declared channels as 'group-slug/channel-slug' paths."""
+    """The declared channel names, slug-normalized."""
     from kingdoms.discord.kingdom_setup import _slug
 
-    groups = expected_group_names()
-    return {
-        f"{_slug(groups[category.group])}/{_slug(category.display_name)}"
-        for category in kingdoms_definition().channel_categories
-    }
+    return {_slug(category.display_name) for category in kingdoms_definition().channel_categories}
 
 
 def all_guild_channels(guild: MockGuild) -> list[Any]:

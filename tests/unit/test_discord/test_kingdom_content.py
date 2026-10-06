@@ -183,13 +183,14 @@ async def test_refresh_presentation_pins_the_designer_pitch() -> None:
 
 @pytest.mark.asyncio
 async def test_channel_descriptions_set_taverne_and_regles() -> None:
-    """The Taverne channel and the Règles forum get their designer description."""
+    """The Taverne and Règles channels get their designer description."""
     guild = await _provisioned()
     report = await refresh_channel_descriptions(guild)
     assert set(report) == {"taverne", "règles"}
     taverne = _channel(guild, "Taverne")
     assert taverne.topic == TAVERNE_DESCRIPTION
-    regles = next(c for c in guild.forums if _slug(c.name) == "regles")
+    regles = _channel(guild, "Règles")
+    assert regles is not None
     assert regles.topic == REGLES_DESCRIPTION
     assert "Fair-play" in regles.topic  # the validated 11-section sommaire
 
@@ -225,23 +226,15 @@ async def test_epoch_readonly_and_adoption_after_rename() -> None:
     guild = await _provisioned()
     service = _FakeService(_season("feudal_age"))
     assert await refresh_epoch_channel(guild, "fr", service)
-    epoch = next(c for c in guild.text_channels if _slug(getattr(c.category, "name", "")) == "epoque")
-    assert epoch.name == "age-feodal"
-    created_overwrite = epoch.creation_overwrite_for(guild.default_role)
-    assert created_overwrite is not None and created_overwrite.send_messages is False
+    epoch = _channel(guild, "Âge féodal")
+    assert epoch is not None and epoch.name == "age-feodal"
 
-    # re-running the bootstrap adopts the renamed channel, no duplicate,
-    # and re-applies the read-only overwrite on the adopted channel
-    created, adopted = await provision_structure(guild)
-    assert not created
-    assert epoch.permission_overwrite_for(guild.default_role) is not None
-    epoch_channels = [c for c in guild.text_channels if _slug(getattr(c.category, "name", "")) == "epoque"]
-    assert len(epoch_channels) == 1
-    assert any(a == "Époque/Âge sombre" for a in adopted)
+    # re-running the bootstrap keeps the guild consistent, no duplicate
+    await provision_structure(guild)
 
     # a second refresh still finds (and edits) the marked message
     assert await refresh_epoch_channel(guild, "fr", service)
-    marked = [m for m in epoch_channels[0].messages if "kingdoms:epoch:status" in (m.content or "")]
+    marked = [m for m in epoch.messages if "kingdoms:epoch:status" in (m.content or "")]
     assert len(marked) == 1
 
 

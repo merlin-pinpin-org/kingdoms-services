@@ -12,14 +12,7 @@
     <p><span class="code">Discord&nbsp;wiring&nbsp;for&nbsp;the&nbsp;ChannelService&nbsp;platform&nbsp;seam&nbsp;(kingdoms-services#5).<br>
 &nbsp;<br>
 Implements&nbsp;the&nbsp;:class:`~kingdoms.core.services.channel.ChannelsPlatform`<br>
-and&nbsp;:class:`~kingdoms.core.services.channel.StructuredChannelsPlatform`<br>
-seams&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbsp;lives&nbsp;here.<br>
-Discord&nbsp;normalizes&nbsp;channel&nbsp;names&nbsp;to&nbsp;slugs&nbsp;("Âge&nbsp;sombre"&nbsp;-&gt;&nbsp;"age-sombre"),<br>
-so&nbsp;name&nbsp;matching&nbsp;here&nbsp;is&nbsp;slug-based;&nbsp;the&nbsp;core&nbsp;stays&nbsp;name-exact.<br>
-&nbsp;<br>
-All&nbsp;Discord&nbsp;channel/category&nbsp;creation&nbsp;of&nbsp;the&nbsp;platform&nbsp;lives&nbsp;in&nbsp;this&nbsp;seam<br>
-(kingdoms-services#175):&nbsp;feature&nbsp;code&nbsp;resolves&nbsp;through&nbsp;ChannelService&nbsp;and<br>
-never&nbsp;calls&nbsp;create_category/create_text_channel/create_forum&nbsp;itself.</span></p>
+seam&nbsp;with&nbsp;real&nbsp;discord.py&nbsp;calls&nbsp;only&nbsp;—&nbsp;no&nbsp;business&nbsp;logic&nbsp;lives&nbsp;here.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -28,8 +21,7 @@ never&nbsp;calls&nbsp;create_category/create_text_channel/create_forum&nbsp;itse
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td><td class="multicolumn"><a href="unicodedata.html">unicodedata</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -66,17 +58,7 @@ through&nbsp;the&nbsp;guild's&nbsp;role&nbsp;list&nbsp;—&nbsp;logical&nbsp;key
 
 <dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordChannelsPlatform-create_channel_of_kind"><strong>create_channel_of_kind</strong></a>(self, guild_id: 'str', name: 'str', kind: 'str', group_id: 'str | None', admin_only: 'bool', position: 'int') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;channel&nbsp;of&nbsp;the&nbsp;declared&nbsp;kind&nbsp;inside&nbsp;a&nbsp;group&nbsp;(category).</span></dd></dl>
-
-<dl><dt>async <a name="DiscordChannelsPlatform-create_group"><strong>create_group</strong></a>(self, guild_id: 'str', name: 'str', position: 'int', admin_only: 'bool') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;category,&nbsp;denying&nbsp;@everyone&nbsp;when&nbsp;admin-only.</span></dd></dl>
-
-<dl><dt>async <a name="DiscordChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;(slug-normalized)&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
-
-<dl><dt>async <a name="DiscordChannelsPlatform-find_channel_of_kind"><strong>find_channel_of_kind</strong></a>(self, guild_id: 'str', name: 'str', kind: 'str', group_id: 'str | None') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;channel&nbsp;of&nbsp;the&nbsp;declared&nbsp;kind&nbsp;by&nbsp;name,&nbsp;inside&nbsp;a&nbsp;group.</span></dd></dl>
-
-<dl><dt>async <a name="DiscordChannelsPlatform-find_group_by_name"><strong>find_group_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;category&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;(slug-normalized)&nbsp;name.</span></dd></dl>
-
-<dl><dt>async <a name="DiscordChannelsPlatform-single_channel_in_group"><strong>single_channel_in_group</strong></a>(self, guild_id: 'str', group_id: 'str', kind: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;group's&nbsp;single&nbsp;channel&nbsp;of&nbsp;a&nbsp;kind,&nbsp;whatever&nbsp;its&nbsp;name;&nbsp;None&nbsp;otherwise.</span></dd></dl>
+<dl><dt>async <a name="DiscordChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-get_channel_overwrites"><strong>get_channel_overwrites</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'dict[str, dict[str, bool]] | None'</dt><dd><span class="code">Actual&nbsp;permission&nbsp;overwrites:&nbsp;target&nbsp;id&nbsp;-&gt;&nbsp;{permission:&nbsp;bool}.</span></dd></dl>
 
@@ -89,13 +71,6 @@ Data descriptors defined here:<br>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
 </td></tr></table></td></tr></table><p>
-<table class="section">
-<tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
-    
-<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-slugify"><strong>slugify</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;channel/category&nbsp;name&nbsp;the&nbsp;way&nbsp;Discord&nbsp;does.</span></dd></dl>
-</td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>

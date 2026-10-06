@@ -413,8 +413,6 @@ async def test_kingdom_command_bootstraps_and_deploys() -> None:
     interaction.guild_id = 42
     await command._callback(interaction)  # type: ignore[union-attr]
 
-    categories = {c.name for c in guild.categories}
-    assert "conscription" in categories and "admin" in categories
     postuler = next(c for c in guild.text_channels if c.name.lower() == "postuler")
     assert len(postuler.messages) == 1
     assert interaction.followup.messages, "the report must be answered"

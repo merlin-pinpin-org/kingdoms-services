@@ -87,13 +87,15 @@ async def _enforce_epoch_overwrites(guild: discord.Guild, channel: discord.TextC
         logger.warning("KINGDOM SETUP: epoch overwrites failed", exc_info=True)
 
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
-    """Provision the declared salons-first structure through the core.
+    """Provision the mod's declared channels through the core.
 
     The declaration (``config/mods/kingdoms.yaml``) is the single source
-    of truth: groups in declaration order, then each group's channels —
-    kinds, admin-only flags and positions are data. Existing channels are
-    adopted (never duplicated); re-running is safe. Returns (created,
-    adopted) display paths.
+    of truth; the core provisions every declared category with the same
+    flow as any other channel (cache -> database -> platform creation).
+    Existing channels are adopted (never duplicated); re-running is safe.
+    Returns the provisioned display names as (created, adopted) — both
+    lists carry the resolved names, the core API does not distinguish
+    creation from adoption.
     """
     from kingdoms.discord.kingdom_persistent import _wiring
 
@@ -103,12 +105,13 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
         raise RuntimeError(
             "the ChannelService is not wired — the salons-first bootstrap needs the platform services"
         )
-    report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
-    epoch_id = report.channel_ids.get(EPOCH_CHANNEL_KEY)
-    epoch_channel = guild.get_channel(int(epoch_id)) if epoch_id and epoch_id.isdigit() else None
+    channels = await channel_service.setup_mod_channels(str(guild.id), MOD_NAME)
+    names = [str(channel.name) for channel in channels.values()]
+    epoch = channels.get(f"{MOD_NAME}:{EPOCH_CHANNEL_KEY}")
+    epoch_channel = guild.get_channel(int(epoch.id)) if epoch and epoch.id.isdigit() else None
     if isinstance(epoch_channel, discord.TextChannel):
         await _enforce_epoch_overwrites(guild, epoch_channel)
-    return list(report.created), list(report.adopted)
+    return names, []
 
 
 def build_setup_report_view(
