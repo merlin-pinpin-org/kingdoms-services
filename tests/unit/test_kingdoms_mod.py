@@ -71,7 +71,8 @@ class TestModDeclaration:
         }
         assert {r.key for r in kingdoms.roles} == {
             "kingdoms_king",
-            "kingdoms_lord",
+   
+         "kingdoms_lord",
             "kingdoms_admin",
         }
 
@@ -81,7 +82,7 @@ class TestSeasonConfig:
     without a code change (reference §27/§28, D9)."""
 
     def test_defaults_are_season_ii(self, season_config) -> None:
-        assert season_config.weeks == 4
+        assert season_config.weeks == 3  # D55
         assert season_config.kingdoms_count == 2
         assert season_config.lords_per_kingdom == 4
         assert season_config.territories_per_kingdom == 5
@@ -90,7 +91,7 @@ class TestSeasonConfig:
 
     def test_default_ages_follow_d18(self, season_config) -> None:
         levels = [age.gaia_ai_level for age in season_config.ages]
-        assert levels == [2, 3, 5, 5]
+        assert levels == [2, 3, 4, 5]  # D57 — crescendo
         assert [age.extra_marriages for age in season_config.ages] == [1, 1, 1, 1]
         assert [age.tech_points for age in season_config.ages] == [0, 1, 2, 2]
 
@@ -99,6 +100,24 @@ class TestSeasonConfig:
         assert tech.embuscade == 2
         assert tech.corruption == 4
         assert tech.mariage_arrange == 3
+
+    def test_s2_spec_defaults_d55_d66(self, season_config) -> None:
+        """Season II spec: protection window, marriage stock/locks,
+        parish tiers, corruption season limit (D55-D66)."""
+        assert season_config.protection.enabled is True
+        assert season_config.protection.start_cron == "30 23 * * SUN"
+        assert season_config.protection.end_cron == "0 10 * * MON"
+        assert season_config.protection.allow_declarations_during_window is True
+        assert season_config.marriages.base_stock == 1
+        assert season_config.marriages.classic_lock_hours == 24
+        assert season_config.marriages.arranged_lock_hours == 6
+        assert season_config.parish.church_cost == 2
+        assert season_config.parish.cathedral_cost == 3
+        assert season_config.parish.chapel_lock_hours == 24
+        assert season_config.parish.church_lock_hours == 12
+        assert season_config.parish.cathedral_lock_hours == 6
+        assert season_config.parish.shrine_hours == 72
+        assert season_config.technologies.limits["corruption"] == 2  # D58
 
     def test_admin_override_without_code(self, tmp_path) -> None:
         season_file = tmp_path / "kingdoms" / "season.yaml"
@@ -117,7 +136,8 @@ class TestSeasonConfig:
         season_file.parent.mkdir()
         season_file.write_text("kingdoms_count: -1\n")
         with pytest.raises(Exception, match="kingdoms_count"):
-            load_season_config(tmp_path)
+  
+          load_season_config(tmp_path)
 
 
 class TestSeasonModels:
@@ -181,7 +201,8 @@ class TestSeasonModels:
             _id="k-a",
             season_id="s1",
             tech_points=5,
-            purchases={},
+           
+ purchases={},
         )
         assert tech.spend("corruption", 4, limit=1) is True
         assert tech.tech_points == 1
