@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from kingdoms.core.services.mod_definition import (
+    ChannelAccessPolicy,
     ChannelCategoryDef,
     ModDefinition,
     RoleDef,
@@ -45,12 +46,19 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
         display = entry.get("display_name")
         if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
+        access_data = entry.get("access")
+        access = (
+            ChannelAccessPolicy.from_dict(access_data)
+            if isinstance(access_data, dict)
+            else ChannelAccessPolicy()
+        )
         categories.append(
             ChannelCategoryDef(
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),
                 per_instance=bool(entry.get("per_instance", False)),
+                access=access,
             )
         )
     return categories

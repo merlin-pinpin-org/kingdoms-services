@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.debug</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.debug</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/debug.py">SOURCE_ROOT/core/debug.py</a></td></tr></table>
+    <p><span class="code">Opt-in&nbsp;debug&nbsp;capture&nbsp;for&nbsp;provider&nbsp;fetches&nbsp;and&nbsp;mapping&nbsp;failures.<br>
+&nbsp;<br>
+Enabled&nbsp;only&nbsp;when&nbsp;``KINGDOMS_DEBUG``&nbsp;is&nbsp;set&nbsp;in&nbsp;the&nbsp;environment&nbsp;—&nbsp;never<br>
+active&nbsp;in&nbsp;production&nbsp;by&nbsp;default.&nbsp;When&nbsp;enabled,&nbsp;every&nbsp;capture&nbsp;is&nbsp;written<br>
+as&nbsp;one&nbsp;JSON&nbsp;line&nbsp;to&nbsp;``KINGDOMS_DEBUG_FILE``&nbsp;(default:&nbsp;stderr),&nbsp;so&nbsp;a&nbsp;run<br>
+can&nbsp;be&nbsp;replayed&nbsp;and&nbsp;diffed&nbsp;offline:<br>
+&nbsp;<br>
+-&nbsp;raw&nbsp;provider&nbsp;payloads&nbsp;(lobbies,&nbsp;match&nbsp;details,&nbsp;stats);<br>
+-&nbsp;enrichment&nbsp;decisions&nbsp;(why&nbsp;a&nbsp;match&nbsp;was&nbsp;skipped&nbsp;or&nbsp;fetched);<br>
+-&nbsp;extraction&nbsp;results&nbsp;(what&nbsp;our&nbsp;mapping&nbsp;kept&nbsp;from&nbsp;a&nbsp;payload);<br>
+-&nbsp;decode/mapping&nbsp;failures&nbsp;(blob&nbsp;errors,&nbsp;unexpected&nbsp;shapes).<br>
+&nbsp;<br>
+Disabled,&nbsp;every&nbsp;call&nbsp;is&nbsp;a&nbsp;no-op&nbsp;with&nbsp;negligible&nbsp;overhead&nbsp;—&nbsp;the&nbsp;seams<br>
+stay&nbsp;in&nbsp;the&nbsp;hot&nbsp;path&nbsp;unconditionally,&nbsp;the&nbsp;cost&nbsp;does&nbsp;not.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="datetime.html">datetime</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-capture"><strong>capture</strong></a>(kind: 'str', **fields: 'Any') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;JSON&nbsp;debug&nbsp;line&nbsp;when&nbsp;enabled;&nbsp;no-op&nbsp;otherwise.</span></dd></dl>
+ <dl><dt><a name="-debug_enabled"><strong>debug_enabled</strong></a>(environ: 'dict[str, str] | None' = None) -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;true&nbsp;when&nbsp;debug&nbsp;capture&nbsp;is&nbsp;explicitly&nbsp;enabled.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['capture', 'debug_enabled']</td></tr></table>
+</body></html>

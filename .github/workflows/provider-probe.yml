@@ -1,0 +1,88 @@
+# Provider probe: real calls to the third-party provider APIs, payload
+# printed for debugging ("the provider APIs seem down" -> facts).
+#
+# TWO TRIGGERS, both intentional:
+#
+#   1. workflow_dispatch (manual) — when a human decides it is needed
+#      ("the provider APIs seem down": get the real payload, debug);
+#   2. on provider code changes — any PR or push touching the provider
+#      adapters (ext_librematch, ext_aoe2lobby) or their decode layer
+#      runs the probe automatically: if the code change breaks the real
+#      calls, the run fails with the payload printed. That keeps
+#      provider code changes verified against the real services.
+#
+# The probe stays read-only (GET + WebSocket listen), one-shot, and
+# touches no database, no environment, no state — safe to auto-run.
+#
+# What runs: scripts/provider_probe.py — the REAL adapter code
+# (ext_librematch HTTP + ext_aoe2lobby WebSocket) against the REAL
+# services. It prints the raw payloads (lobby listings, decoded
+# slotinfo/options blobs, leaderboards, WebSocket events) so the debug
+# happens against the actual bytes, not against assumptions.
+#
+# Never on prod: nothing here talks to any kingdoms environment; it is
+# a network probe from a hosted runner to the providers only.
+name: Provider probe
+on:
+  workflow_dispatch:
+    inputs:
+      profile_id:
+        description: "AoE2 profile_id for the player_stats call"
+        required: false
+        default: "848567"
+      skip_ws:
+        description: "Skip the aoe2lobby WebSocket probe"
+        required: false
+        type: boolean
+        default: false
+      skip_http:
+        description: "Skip the librematch HTTP probe"
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - "src/kingdoms/ext_librematch/**"
+      - "src/kingdoms/ext_aoe2lobby/**"
+      - "src/kingdoms/core/games/aoe2/blobs.py"
+      - ".github/workflows/scripts/provider_probe.py"
+      - ".github/workflows/provider-probe.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/kingdoms/ext_librematch/**"
+      - "src/kingdoms/ext_aoe2lobby/**"
+      - "src/kingdoms/core/games/aoe2/blobs.py"
+      - ".github/workflows/scripts/provider_probe.py"
+      - ".github/workflows/provider-probe.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe the provider APIs (real calls, payload printed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the deps (httpx, websockets)
+        run: |
+          python -m pip install --quiet httpx websockets redis
+      - name: Run the probe (real provider calls, raw payloads printed)
+        env:
+          PROFILE_ID: ${{ inputs.profile_id }}
+          SKIP_WS: ${{ inputs.skip_ws }}
+          SKIP_HTTP: ${{ inputs.skip_http }}
+        run: |
+          args=(--profile-id "$PROFILE_ID")
+          [[ "$SKIP_WS" == true ]] && args+=(--skip-ws)
+          [[ "$SKIP_HTTP" == true ]] && args+=(--skip-http)
+          python .github/workflows/scripts/provider_probe.py "${args[@]}"

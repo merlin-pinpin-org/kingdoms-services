@@ -19,6 +19,7 @@ import logging
 import random
 from typing import Any, Protocol
 
+from kingdoms.mods.ladder.match_data import MatchDataService
 from kingdoms.mods.ladder.matchmaking import Pairing, QueueEntry, matchmaking_pass
 from kingdoms.mods.ladder.models import (
     LADDERS_COLLECTION,
@@ -189,6 +190,7 @@ class LadderService:
         events: LadderEvents | None = None,
         audit: LadderAudit | None = None,
         rng: random.Random | None = None,
+        match_data: MatchDataService | None = None,
     ) -> None:
         """Wire persistence, game-data (pools), gateway, events and audit seams."""
         self._db = database
@@ -197,6 +199,7 @@ class LadderService:
         self._events = events
         self._audit = audit
         self._rng = rng or random.Random()  # noqa: S311 - game map pick, not crypto
+        self._match_data = match_data
 
     # ── Ladders ──────────────────────────────────────────────────────────
 
@@ -446,9 +449,7 @@ class LadderService:
             )
             missing = {match.host.user_id, match.guest.user_id} - {p["user_id"] for p in participants}
             if missing:
-                await self._emit(
-                    "match.missing_participant", {"match_id": match_id, "missing": sorted(missing)}
-                )
+                await self._emit("match.missing_participant", {"match_id": match_id, "missing": sorted(missing)})
                 return match
             game = match.game.model_copy(
                 update={"participants": participants, "started_at": now, "map_name": event.get("map_name")}
@@ -557,12 +558,22 @@ class LadderService:
         winner = await self._require_player(match.ladder_id, winner_id)
         loser = await self._require_player(match.ladder_id, loser_id)
         w_delta, w_k, w_state = system.apply(
-            ladder.settings, winner.rating, winner.rating_state,
-            loser.rating, loser.rating_state, True, winner.matches_count,
+            ladder.settings,
+            winner.rating,
+            winner.rating_state,
+            loser.rating,
+            loser.rating_state,
+            True,
+            winner.matches_count,
         )
         l_delta, l_k, l_state = system.apply(
-            ladder.settings, loser.rating, loser.rating_state,
-            winner.rating, winner.rating_state, False, loser.matches_count,
+            ladder.settings,
+            loser.rating,
+            loser.rating_state,
+            winner.rating,
+            winner.rating_state,
+            False,
+            loser.matches_count,
         )
         now_ms = now
         w_after = winner.rating + w_delta
@@ -623,9 +634,42 @@ class LadderService:
                 "loser_user_id": loser_id,
             }
         )
+        match = await self._enrich_with_provider_data(match)
         await self._db.upsert_entry(MATCHES_COLLECTION, match.to_mongo())
         await self._emit("match.result_confirmed", {"match_id": match.id, "rating": rating_applied})
         return match
+
+    async def _enrich_with_provider_data(self, match: MatchModel) -> MatchModel:
+        """Pull map/civs/duration from the provider once per match (#205).
+
+        Degrades silently: no match-data service, no match_ref or a
+        provider outage leave the match document untouched — the
+        completion is never blocked by enrichment.
+        """
+        if self._match_data is None:
+            return match
+        match_ref = (match.game.match_ref or "") if match.game else ""
+        if not match_ref:
+            return match
+        try:
+            extracted = await self._match_data.enrich_completed_match(match_ref, match.to_mongo())
+        except Exception:
+            logger.warning("provider enrichment failed for %s", match_ref, exc_info=True)
+            return match
+        if not extracted:
+            return match
+        participants = tuple(
+            {"user_id": "", "faction_key": civ["faction_key"], "profile_id": civ["profile_id"]}
+            for civ in extracted.get("civs", [])
+        )
+        game = match.game.model_copy(
+            update={
+                "map_name": extracted.get("map") or match.game.map_name,
+                "duration": extracted.get("duration_s") or match.game.duration,
+                "participants": participants or match.game.participants,
+            }
+        )
+        return match.model_copy(update={"game": game})
 
     async def cancel_match(self, match_id: str, user_id: str, reason: str, now: int) -> MatchModel:
         """Cancel by participant (reason mandatory) — never after COMPLETED."""

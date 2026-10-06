@@ -1,0 +1,11 @@
+# Ladder mod declaration: seasonal 1v1 ladder (AoE2).
+# Loaded by ModRegistry at startup; /status lists this mod when enabled.
+id: ladder
+enabled: true
+settings: {}
+channels: []
+roles: []
+workflows: []
+commands:
+  - ladder
+dependencies: []

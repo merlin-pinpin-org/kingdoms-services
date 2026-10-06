@@ -161,13 +161,13 @@ class Glicko2RatingSystem:
         def f(x: float) -> float:
             """Evaluate the Glicko-2 volatility iteration function (finding its zero)."""
             ex = math.exp(x)
-            num = ex * (delta * delta - phi ** 4 - v * ex) ** 2
-            den = 2.0 * (phi ** 4 + v + ex) ** 2
+            num = ex * (delta * delta - phi**4 - v * ex) ** 2
+            den = 2.0 * (phi**4 + v + ex) ** 2
             return float(num / den - (x - a) / (self._TAU * self._TAU))
 
         xa = a
-        if delta * delta > phi ** 4 + v:
-            xb = math.log(delta * delta - phi ** 4 - v)
+        if delta * delta > phi**4 + v:
+            xb = math.log(delta * delta - phi**4 - v)
         else:
             xb = a
             ka = 0.1

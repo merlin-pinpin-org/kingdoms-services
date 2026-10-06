@@ -71,7 +71,7 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="IdentityCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
 
-<dl><dt>async <a name="IdentityCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+<dl><dt>async <a name="IdentityCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort);&nbsp;True&nbsp;when&nbsp;written.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

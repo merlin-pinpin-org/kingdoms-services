@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.seed_cli_yaml</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.seed_cli_yaml</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/seed_cli_yaml.py">SOURCE_ROOT/core/games/aoe2/seed_cli_yaml.py</a></td></tr></table>
+    <p><span class="code">Season&nbsp;catalog&nbsp;CLI:&nbsp;seed&nbsp;a&nbsp;season&nbsp;YAML&nbsp;into&nbsp;a&nbsp;database&nbsp;(#205).<br>
+&nbsp;<br>
+Usage:&nbsp;``python&nbsp;-m&nbsp;kingdoms.core.games.aoe2.seed_cli_yaml&nbsp;&lt;season_yaml&gt;&nbsp;[owner_ref]``<br>
+&nbsp;<br>
+Reads&nbsp;``MONGO_URI``/``MONGO_DB``&nbsp;from&nbsp;the&nbsp;environment.&nbsp;Unlike<br>
+``seed_cli``&nbsp;(which&nbsp;loads&nbsp;the&nbsp;config&nbsp;embedded&nbsp;in&nbsp;the&nbsp;image),&nbsp;this&nbsp;takes<br>
+an&nbsp;explicit&nbsp;YAML&nbsp;path&nbsp;—&nbsp;the&nbsp;data-transfer&nbsp;workflow's&nbsp;``season``<br>
+perimeter:&nbsp;import&nbsp;the&nbsp;real&nbsp;season&nbsp;catalog&nbsp;(maps,&nbsp;pools,&nbsp;ladder,<br>
+season)&nbsp;from&nbsp;a&nbsp;dump&nbsp;in&nbsp;the&nbsp;sources.&nbsp;Idempotent:&nbsp;same&nbsp;ids&nbsp;skip.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">Seed&nbsp;the&nbsp;season&nbsp;YAML;&nbsp;exit&nbsp;0&nbsp;on&nbsp;success.</span></dd></dl>
+</td></tr></table>
+</body></html>

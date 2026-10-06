@@ -18,21 +18,29 @@ from urllib.parse import urljoin
 
 import httpx
 
+from kingdoms.core.debug import capture
 from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
 from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats, Slot, StatsBlock, StatsEntry
+from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://community.ageofempires.com"
+DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
 LOBBIES_PATH = "/community/advertisement/findAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
+LOBBIES_QUERY_PARAMS = {"title": "age2"}
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
 
 _SLOT_KINDS = {True: "human", False: "open"}
 
 
 class LibrematchAdapter:
-    """HTTP client for the Worlds Edge Link Community API (lobbies)."""
+    """HTTP client for the Worlds Edge Link Community API (lobbies).
+
+    Every external call goes through the Redis-backed throttle
+    (``game:{game_key}:rate``, reference 2.4); over budget degrades to
+    an empty answer, never an error.
+    """
 
     def __init__(
         self,
@@ -40,19 +48,36 @@ class LibrematchAdapter:
         timeout_s: float = 10.0,
         transport: httpx.AsyncBaseTransport | None = None,
         api_key: str = "",
+        rate_limiter: ProviderRateLimiter | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout_s = timeout_s
         self._transport = transport
         self._api_key = api_key
+        self._rate_limiter = rate_limiter
+
+    async def _allowed(self) -> bool:
+        """Consume one throttle slot; no limiter configured means allowed."""
+        if self._rate_limiter is None:
+            return True
+        return await self._rate_limiter.check()
 
     async def fetch_lobbies(self) -> list[dict[str, Any]]:
         """Fetch the current public lobby listings (raw API payloads)."""
+        if not await self._allowed():
+            logger.warning("librematch call over rate budget; degrading to empty lobby list")
+            return []
         async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:
-            reply = await client.get(urljoin(self._base_url + "/", LOBBIES_PATH.lstrip("/")))
+            reply = await client.get(
+                urljoin(self._base_url + "/", LOBBIES_PATH.lstrip("/")),
+                params=LOBBIES_QUERY_PARAMS,
+            )
             reply.raise_for_status()
             payload = reply.json()
-        items = payload if isinstance(payload, list) else payload.get("result", [])
+        if isinstance(payload, list):
+            items = payload
+        else:
+            items = payload.get("matches", payload.get("result", []))
         return [item for item in items if isinstance(item, dict)]
 
     async def match_details(self, match_ref: str) -> MatchDetails | None:
@@ -91,6 +116,9 @@ class LibrematchAdapter:
         """
         if not self._api_key or not profile_id:
             return None
+        if not await self._allowed():
+            logger.warning("librematch call over rate budget; degrading stats to None")
+            return None
         blocks: list[StatsBlock] = []
         async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:
             for board_id, board_name in LEADERBOARD_KEYS.items():
@@ -112,9 +140,7 @@ class LibrematchAdapter:
             return None
         return PlayerStats(profile_id=profile_id, blocks=tuple(blocks))
 
-    def _parse_leaderboard_entry(
-        self, payload: dict[str, Any], profile_id: str
-    ) -> list[StatsEntry]:
+    def _parse_leaderboard_entry(self, payload: dict[str, Any], profile_id: str) -> list[StatsEntry]:
         """Extract one profile's stats entries from a leaderboard reply."""
         for item in payload.get("result", payload.get("leaderboard", [])):
             if not isinstance(item, dict):
@@ -146,15 +172,21 @@ class LibrematchAdapter:
                 continue
             try:
                 decoded = decode_blob(blob)
-            except BlobDecodeError:
+            except BlobDecodeError as exc:
                 logger.warning("undecodable %s blob for lobby %s", blob_field, lobby.get("match_id"))
+                capture(
+                    "blob.decode_failed",
+                    blob_field=blob_field,
+                    match_id=lobby.get("match_id"),
+                    error=str(exc),
+                    blob_head=blob[:120],
+                )
                 continue
             if target == "slots":
-                slots_raw = self._parse_slots(decoded)
-            else:
-                options_raw = tuple(
-                    (str(k), str(v)) for k, v in decoded.items() if not k.startswith("_")
-                )
+                if isinstance(decoded, list):
+                    slots_raw = self._parse_slots(decoded)
+            elif isinstance(decoded, dict):
+                options_raw = tuple((str(k), str(v)) for k, v in decoded.items() if not k.startswith("_"))
         return MatchDetails(
             match_ref=str(lobby.get("advertiserId", lobby.get("match_id", ""))),
             map_name=str(lobby.get("mapname", lobby.get("mapName", ""))),
@@ -164,27 +196,31 @@ class LibrematchAdapter:
             match_kind="lobby",
         )
 
-    def _parse_slots(self, decoded: dict[str, object]) -> list[Slot]:
-        """Parse the decoded slotinfo blob into per-slot models.
+    def _parse_slots(self, entries: list[dict[str, object]]) -> list[Slot]:
+        """Parse the decoded slotinfo slot objects into per-slot models.
 
-        The decoded structure varies across game versions; both a list
-        of slot objects and a {"slots": [...]} wrapper are accepted.
+        Slot keys follow the Worlds Edge slotinfo format (profileInfo.id,
+        factionID, teamID); the friendlier slot_index/civ keys used by
+        earlier tests are still accepted.
         """
-        entries = decoded.get("slots", decoded)
         if not isinstance(entries, list):
             return []
         slots: list[Slot] = []
         for index, entry in enumerate(entries):
             if not isinstance(entry, dict):
                 continue
-            civ = entry.get("civ", entry.get("civilization", 0))
-            filled = bool(entry.get("filled", "profile_id" in entry or "playerId" in entry))
+            civ = entry.get("civ", entry.get("civilization", entry.get("factionID", 0)))
+            filled = bool(
+                entry.get("filled", "profile_id" in entry or "playerId" in entry or "profileInfo.id" in entry)
+            )
             slots.append(
                 Slot(
-                    slot_index=int(entry.get("slot_index", index)),
-                    profile_id=str(entry.get("profile_id", entry.get("playerId", ""))),
+                    slot_index=int(str(entry.get("slot_index", entry.get("stationID", index)) or "0")),
+                    profile_id=str(
+                        entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))
+                    ),
                     faction_key=str(civ),
-                    team=int(entry.get("team", 0)),
+                    team=int(str(entry.get("team", entry.get("teamID", 0)) or "0")),
                     filled=filled,
                     slot_kind=str(entry.get("slot_kind", "")) or _SLOT_KINDS[filled],
                 )

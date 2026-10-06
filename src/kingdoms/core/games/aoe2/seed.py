@@ -44,9 +44,7 @@ class MongoAoE2Database:
 
     async def upsert_entry(self, collection: str, document: dict[str, Any]) -> None:
         """Insert or replace one document by ``_id``."""
-        await self._database[collection].replace_one(
-            {"_id": document["_id"]}, document, upsert=True
-        )
+        await self._database[collection].replace_one({"_id": document["_id"]}, document, upsert=True)
 
     async def find_entry(self, collection: str, entry_id: str) -> dict[str, Any] | None:
         """Return one document by ``_id``; None when absent."""
@@ -55,30 +53,24 @@ class MongoAoE2Database:
 
     async def find_by_name(self, collection: str, game_key: str, name: str) -> dict[str, Any] | None:
         """Return the non-archived entry for ``(game_key, name)``."""
-        doc = await self._database[collection].find_one(
-            {"game_key": game_key, "name": name, "archived_at": None}
-        )
+        doc = await self._database[collection].find_one({"game_key": game_key, "name": name, "archived_at": None})
         return doc if doc is None else dict(doc)
 
     async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
         """List the non-archived maps for a game."""
-        cursor = self._database[collection_name("maps")].find(
-            {"game_key": game_key, "archived_at": None}
-        )
+        cursor = self._database[collection_name("maps")].find({"game_key": game_key, "archived_at": None})
         return [doc async for doc in cursor]
 
     async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
         """List the non-archived civs for a game."""
-        cursor = self._database[collection_name("civs")].find(
-            {"game_key": game_key, "archived_at": None}
-        )
+        cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
         return [doc async for doc in cursor]
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
         """List the pool activation history of a ladder (ascending)."""
-        cursor = self._database[collection_name("map_pool_history")].find(
-            {"ladder_id": ladder_id}
-        ).sort("activated_at", 1)
+        cursor = (
+            self._database[collection_name("map_pool_history")].find({"ladder_id": ladder_id}).sort("activated_at", 1)
+        )
         return [doc async for doc in cursor]
 
     async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
@@ -102,38 +94,32 @@ class MongoAoE2Database:
 
     async def find_ladder_seasons(self, ladder_id: str) -> list[dict[str, Any]]:
         """List the seasons of a ladder (ascending by start)."""
-        cursor = self._database[collection_name("seasons")].find(
-            {"ladder_id": ladder_id}
-        ).sort("start_at", 1)
+        cursor = self._database[collection_name("seasons")].find({"ladder_id": ladder_id}).sort("start_at", 1)
         return [doc async for doc in cursor]
 
     async def find_active_season(self, ladder_id: str) -> dict[str, Any] | None:
         """Return the ladder's active season; None when none."""
-        doc = await self._database[collection_name("seasons")].find_one(
-            {"ladder_id": ladder_id, "state": "active"}
-        )
+        doc = await self._database[collection_name("seasons")].find_one({"ladder_id": ladder_id, "state": "active"})
         return doc if doc is None else dict(doc)
 
     # ── Ladder seam ──────────────────────────────────────────────────────
 
     async def find_ladder_by_owner(self, owner_ref: str, game_key: str) -> dict[str, Any] | None:
         """Return the ladder of one owner for a game; None when absent."""
-        doc = await self._database[collection_name("ladders")].find_one(
-            {"owner_ref": owner_ref, "game_key": game_key}
-        )
+        doc = await self._database[collection_name("ladders")].find_one({"owner_ref": owner_ref, "game_key": game_key})
         return doc if doc is None else dict(doc)
 
     async def find_player(self, ladder_id: str, user_id: str) -> dict[str, Any] | None:
         """Return one player document; None when absent."""
-        return await self.find_entry(
-            collection_name("players"), f"player:{ladder_id}:{user_id}"
-        )
+        return await self.find_entry(collection_name("players"), f"player:{ladder_id}:{user_id}")
 
     async def find_queued_players(self, ladder_id: str) -> list[dict[str, Any]]:
         """List the players currently queued on a ladder."""
-        cursor = self._database[collection_name("players")].find(
-            {"ladder_id": ladder_id, "queued_at": {"$ne": None}}
-        ).sort("queued_at", 1)
+        cursor = (
+            self._database[collection_name("players")]
+            .find({"ladder_id": ladder_id, "queued_at": {"$ne": None}})
+            .sort("queued_at", 1)
+        )
         return [doc async for doc in cursor]
 
     async def find_ladder_players(self, ladder_id: str) -> list[dict[str, Any]]:
@@ -144,9 +130,7 @@ class MongoAoE2Database:
     async def find_active_match(self, ladder_id: str, user_id: str) -> dict[str, Any] | None:
         """Return the user's live match on the ladder; None when free."""
         live = ["lobby_open", "lobby_closed", "game_live", "game_ended", "reported", "result_pending"]
-        cursor = self._database[collection_name("matches")].find(
-            {"ladder_id": ladder_id, "status": {"$in": live}}
-        )
+        cursor = self._database[collection_name("matches")].find({"ladder_id": ladder_id, "status": {"$in": live}})
         async for doc in cursor:
             for side in doc.get("sides", []):
                 if side.get("user_id") == user_id:
@@ -155,16 +139,16 @@ class MongoAoE2Database:
 
     async def find_ladder_matches(self, ladder_id: str, statuses: list[str]) -> list[dict[str, Any]]:
         """List the ladder's matches in any of the given statuses."""
-        cursor = self._database[collection_name("matches")].find(
-            {"ladder_id": ladder_id, "status": {"$in": statuses}}
-        )
+        cursor = self._database[collection_name("matches")].find({"ladder_id": ladder_id, "status": {"$in": statuses}})
         return [doc async for doc in cursor]
 
     async def find_rating_history(self, ladder_id: str, user_id: str) -> list[dict[str, Any]]:
         """List a player's rating-history lines (ascending)."""
-        cursor = self._database[collection_name("rating_history")].find(
-            {"ladder_id": ladder_id, "user_id": user_id}
-        ).sort("at", 1)
+        cursor = (
+            self._database[collection_name("rating_history")]
+            .find({"ladder_id": ladder_id, "user_id": user_id})
+            .sort("at", 1)
+        )
         return [doc async for doc in cursor]
 
 
@@ -234,16 +218,14 @@ async def seed_aoe2(
         ladder_id = f"ladder:{game_key}:{owner_ref}"
         existing = await ladder_service.get_ladder(ladder_id)
         if existing is None:
-            await ladder_service.create_ladder(
-                owner_ref, spec["name"], game_key, now=now_ms
-            )
+            await ladder_service.create_ladder(owner_ref, spec["name"], game_key, now=now_ms)
             result["ladders"] += 1
 
         pool_name = spec.get("map_pool")
         if pool_name:
             pool_id = f"map_pool:{game_key}:{pool_name}"
             ladder = await ladder_service.get_ladder(ladder_id)
-            if ladder is not None and ladder.active_map_pool_id != pool_id:
+            if ladder is not None and ladder.active_map_pool_id is None:
                 await ladder_service.set_active_pool(ladder_id, pool_id)
 
         season_spec = spec.get("season")

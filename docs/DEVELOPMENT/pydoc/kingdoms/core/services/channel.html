@@ -71,6 +71,11 @@ Generic:&nbsp;reads&nbsp;the&nbsp;mod's&nbsp;declaration&nbsp;via&nbsp;ModRegist
 each&nbsp;``mod:key``&nbsp;category&nbsp;with&nbsp;the&nbsp;same&nbsp;flow&nbsp;as&nbsp;any&nbsp;other&nbsp;category.</span></dd></dl>
 
 <hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>platform</strong></dt>
+<dd><span class="code">The&nbsp;platform&nbsp;seam&nbsp;(audit&nbsp;and&nbsp;sync&nbsp;reuse&nbsp;it,&nbsp;kingdoms-services#57).</span></dd>
+</dl>
+<hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
 <dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
@@ -102,7 +107,7 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="ChannelsCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, object] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;cached&nbsp;value;&nbsp;None&nbsp;on&nbsp;miss&nbsp;(store&nbsp;may&nbsp;be&nbsp;down).</span></dd></dl>
 
-<dl><dt>async <a name="ChannelsCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort).</span></dd></dl>
+<dl><dt>async <a name="ChannelsCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, object]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;one&nbsp;cached&nbsp;value&nbsp;with&nbsp;a&nbsp;TTL&nbsp;(best-effort);&nbsp;True&nbsp;when&nbsp;written.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -224,11 +229,15 @@ Narrow&nbsp;platform&nbsp;seam:&nbsp;channel&nbsp;lookup,&nbsp;creation,&nbsp;ex
 Methods defined here:<br>
 <dl><dt><a name="ChannelsPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
+<dl><dt>async <a name="ChannelsPlatform-apply_access_policy"><strong>apply_access_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', policy: 'dict[str, object]') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;a&nbsp;category's&nbsp;declared&nbsp;access&nbsp;policy&nbsp;as&nbsp;permission&nbsp;overwrites.</span></dd></dl>
+
 <dl><dt>async <a name="ChannelsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <dl><dt>async <a name="ChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="ChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;channel&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-get_channel_overwrites"><strong>get_channel_overwrites</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'dict[str, dict[str, bool]] | None'</dt><dd><span class="code">Actual&nbsp;permission&nbsp;overwrites:&nbsp;target&nbsp;id&nbsp;-&gt;&nbsp;{permission:&nbsp;bool}.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -250,7 +259,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'channel_exists', 'create_channel', 'find_channel_by_name'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_access_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'get_channel_overwrites'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

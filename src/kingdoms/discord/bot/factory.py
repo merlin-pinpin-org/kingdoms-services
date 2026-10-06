@@ -153,6 +153,7 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
+        self._ladder_sweep_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -259,6 +260,32 @@ class KingdomsBot(discord.Client):
                     registry=self.registry,
                 )
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
+            await self._audit_channel_drift(guild_id)
+
+    async def _audit_channel_drift(self, guild_id: str) -> None:
+        """Audit declared policies vs runtime overwrites; log the drift (#57).
+
+        Drift is reported only — repair happens through the on-demand
+        sync (kingdoms-services#58). Best-effort: a failed audit never
+        blocks startup.
+        """
+        if self.channel_service is None or self.registry is None:
+            return
+        try:
+            from kingdoms.core.models.db import get_async_database
+            from kingdoms.core.services.channel_audit import ChannelAuditService
+            from kingdoms.discord.logs_platform import MongoLogsDatabase
+
+            audit = ChannelAuditService(
+                database=MongoLogsDatabase(get_async_database()),
+                platform=self.channel_service.platform,
+                registry=self.registry,
+            )
+            report = await audit.audit_guild(guild_id)
+            if not report.clean:
+                logger.warning("CHANNEL AUDIT drift (guild %s): %d findings", guild_id, len(report.findings))
+        except Exception:
+            logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
     async def _maintain_pinned_menus(self) -> None:
         """Keep the pinned admin menu alive in every guild (self-healing).
@@ -399,6 +426,8 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
+        if self._ladder_sweep_task is not None:
+            self._ladder_sweep_task.cancel()
         await super().close()
 
 
@@ -406,8 +435,13 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
     registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
+    games_dir = Path(resolved.config_dir) / "games"
+    games = tuple(
+        sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())
+    ) if games_dir.is_dir() else ()
     status = StatusService(
         registry=registry,
+        games=games,
         bot_admins=parse_bot_admins(resolved.bot_admins),
         deploy_url=resolved.deploy_url,
         deploy_label=resolved.deploy_label,
@@ -470,7 +504,23 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
     )
+    from kingdoms.discord.ladder_commands import (
+        build_ladder_wiring,
+        register_ladder_commands,
+        start_ladder_sweep,
+    )
+
+    ladder_wiring = build_ladder_wiring()
+    if ladder_wiring is not None:
+        register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
+        bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
     return bot
+
+
+def _ladder_owner_ref(config: BotConfig) -> str:
+    """Owner reference of the default ladder (guild-scoped by sync config)."""
+    guild_id = (config.sync_guild_id or "").strip()
+    return guild_id if guild_id else "default"
 
 
 def _build_permission_service(

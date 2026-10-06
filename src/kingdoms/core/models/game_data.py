@@ -3,7 +3,7 @@
 Generic and game-agnostic (kingdoms-services#131): every entry is keyed by
 ``game_key`` with stable IDs, so rotating a pool or adding a civ never
 breaks in-progress seasons — matches snapshot what they need. Deletes are
-archival-only (``archived_at``), per the JeanJack V2.0 reference §2.
+archival-only (``archived_at``), per the legacy reference §2.
 """
 
 from __future__ import annotations

@@ -50,8 +50,10 @@ class RolesCache(Protocol):
         """Read a hot-state entry; None when missing or expired."""
         ...
 
-    async def set_state(self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None) -> None:
-        """Write a hot-state entry with a TTL in seconds."""
+    async def set_state(
+        self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None
+    ) -> bool:
+        """Write a hot-state entry with a TTL; True when the write landed."""
         ...
 
 

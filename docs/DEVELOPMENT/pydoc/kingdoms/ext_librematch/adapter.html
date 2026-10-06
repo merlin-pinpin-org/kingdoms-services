@@ -47,12 +47,16 @@ serves&nbsp;what&nbsp;it&nbsp;has&nbsp;and&nbsp;degrades&nbsp;—&nbsp;never&nbs
 <td class="section-title" colspan=3>&nbsp;<br><a name="LibrematchAdapter">class <strong>LibrematchAdapter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LibrematchAdapter">LibrematchAdapter</a>(base_url:&nbsp;'str'&nbsp;=&nbsp;'<a href="https://community.ageofempires.com">https://community.ageofempires.com</a>',&nbsp;timeout_s:&nbsp;'float'&nbsp;=&nbsp;10.0,&nbsp;transport:&nbsp;'httpx.AsyncBaseTransport&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;api_key:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LibrematchAdapter">LibrematchAdapter</a>(base_url:&nbsp;'str'&nbsp;=&nbsp;'<a href="https://aoe-api.worldsedgelink.com">https://aoe-api.worldsedgelink.com</a>',&nbsp;timeout_s:&nbsp;'float'&nbsp;=&nbsp;10.0,&nbsp;transport:&nbsp;'httpx.AsyncBaseTransport&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;api_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;rate_limiter:&nbsp;'ProviderRateLimiter&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-HTTP&nbsp;client&nbsp;for&nbsp;the&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;Community&nbsp;API&nbsp;(lobbies).<br>&nbsp;</span></td></tr>
+HTTP&nbsp;client&nbsp;for&nbsp;the&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;Community&nbsp;API&nbsp;(lobbies).<br>
+&nbsp;<br>
+Every&nbsp;external&nbsp;call&nbsp;goes&nbsp;through&nbsp;the&nbsp;Redis-backed&nbsp;throttle<br>
+(``game:{game_key}:rate``,&nbsp;reference&nbsp;2.4);&nbsp;over&nbsp;budget&nbsp;degrades&nbsp;to<br>
+an&nbsp;empty&nbsp;answer,&nbsp;never&nbsp;an&nbsp;error.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="LibrematchAdapter-__init__"><strong>__init__</strong></a>(self, base_url: 'str' = 'https://community.ageofempires.com', timeout_s: 'float' = 10.0, transport: 'httpx.AsyncBaseTransport | None' = None, api_key: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="LibrematchAdapter-__init__"><strong>__init__</strong></a>(self, base_url: 'str' = 'https://aoe-api.worldsedgelink.com', timeout_s: 'float' = 10.0, transport: 'httpx.AsyncBaseTransport | None' = None, api_key: 'str' = '', rate_limiter: 'ProviderRateLimiter | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="LibrematchAdapter-fetch_lobbies"><strong>fetch_lobbies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;current&nbsp;public&nbsp;lobby&nbsp;listings&nbsp;(raw&nbsp;API&nbsp;payloads).</span></dd></dl>
 
@@ -87,9 +91,10 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DEFAULT_BASE_URL</strong> = 'https://community.ageofempires.com'<br>
+<td class="singlecolumn"><strong>DEFAULT_BASE_URL</strong> = 'https://aoe-api.worldsedgelink.com'<br>
 <strong>LEADERBOARDS_PATH</strong> = '/api/leaderboard'<br>
 <strong>LEADERBOARD_KEYS</strong> = {'0': 'rm_1v1', '1': 'rm_team', '2': 'unranked', '3': 'dm_1v1', '4': 'dm_team'}<br>
 <strong>LOBBIES_PATH</strong> = '/community/advertisement/findAdvertisements'<br>
+<strong>LOBBIES_QUERY_PARAMS</strong> = {'title': 'age2'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.ext_librematch.adapter (WARNING)&gt;</td></tr></table>
 </body></html>
