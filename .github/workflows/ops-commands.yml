@@ -230,7 +230,7 @@ jobs:
           app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
           private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
           owner: merlin-pinpin-org
-          repositories: kingdoms-infra,kingdoms-services
+          repositories: kingdoms-infra
       - name: Wait for the environment workflow to finish
         id: wait
         env:
@@ -288,7 +288,7 @@ jobs:
           fi
       - name: Post the result on the PR
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
           COMMAND: ${{ needs.authorize.outputs.command }}
           ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
           ALIAS: ${{ needs.gate.outputs.alias }}
