@@ -104,7 +104,9 @@ def test_normalize_lobby_snapshot() -> None:
             },
         }
     }
-    event = adapter._normalize(json.dumps(frame))
+    import json as jsonlib
+
+    event = adapter._normalize(jsonlib.dumps(frame))
     assert event is not None
     assert event["type"] == "lobby_snapshot"
     assert sorted(event["profile_ids"]) == ["3367233", "42"]
