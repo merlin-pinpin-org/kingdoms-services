@@ -116,5 +116,3 @@ def decode_blob(blob: str) -> dict[str, object] | list[dict[str, object]]:
     if payload[:1].isdigit() and "," in payload[:8]:
         return decode_slotinfo(blob)
     return decode_options(blob)
-
-    return decoded
