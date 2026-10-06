@@ -147,7 +147,7 @@ jobs:
           repositories: kingdoms-infra
 
       - name: Route the command
-        id: route
+        id: dispatch
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -213,6 +213,7 @@ jobs:
               ;;
           esac
       - name: Record the dispatched workflow for the reporter
+        id: route
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMAND: ${{ needs.authorize.outputs.command }}
