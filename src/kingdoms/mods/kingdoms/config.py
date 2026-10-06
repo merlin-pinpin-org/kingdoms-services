@@ -66,7 +66,8 @@ class MapEntry(BaseModel):
     cadastre: dict[str, Any] = Field(default_factory=dict)
 
 
-class Epoch(BaseModel):
+clas
+s Epoch(BaseModel):
     """One age of the season (reference §15, decision D18)."""
 
     model_config = ConfigDict(strict=True)
@@ -107,6 +108,7 @@ class TechnologyCosts(BaseModel):
             "patrouille": 2,
             "sabotage": 2,
             "explorateur": 1,
+            "corruption": 2,  # D58 — max 2 per kingdom per season
         }
     )
     """Per-season purchase limits (D36); 0 or absent = unlimited.
@@ -126,7 +128,8 @@ class AttackSettings(BaseModel):
     gaia_attack_delay_hours: int = Field(default=3, ge=0)
     gaia_attack_max_per_kingdom: int = Field(default=1, ge=1)
     gaia_attack_max_total: int = Field(default=7, ge=1)
-    gaia_max_participants: int = Field(default=7, ge=1)
+    gaia_max_partic
+ipants: int = Field(default=7, ge=1)
     no_defense_outcome: str = Field(default="auto_victory")
     """D8: what happens when no defender answers in the delay.
 
@@ -182,16 +185,85 @@ class ShowMatchSettings(BaseModel):
     wins_needed: int = Field(default=2, ge=1)
 
 
+class ProtectionWindowSettings(BaseModel):
+    """Fenêtre de protection (D56).
+
+    From Sunday 23:30 (cycle bistable) to Monday 10:00 no aggression
+    and no Corruption may resolve. Attack/defense points reloaded at
+    the bistable may still be spent to **declare** during the window
+    (allow_declarations_during_window), but no combat happens before
+    the window closes. Cron expressions keep the window admin-tunable
+    without a code change.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    enabled: bool = True
+    start_cron: str = "30 23 * * SUN"
+    end_cron: str = "0 10 * * MON"
+    allow_declarations_during_window: bool = True
+
+
+class MarriageSettings(BaseModel):
+    """Mariage: stock, locks, exclusivity (D59/D60).
+
+    The kingdom holds a **marriage stock** (base + one unit per epoch,
+    D59); each classic marriage consumes one unit and locks its lord
+    out of attack and defense for classic_lock_hours of real time.
+    The arranged marriage (techs, D60) bypasses the stock and locks
+    only arranged_lock_hours. A civilization already married can never
+    be targeted by another marriage until it is freed at the next
+    Lord's Day.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    base_stock: int = Field(default=1, ge=0)
+    classic_lock_hours: int = Field(default=24, ge=0)
+    arranged_lock_hours: int = Field(default=6, ge=0)
+
+
+class ParishSettings(BaseModel):
+    """Paroisse: chapel → church → cathedral (D64).
+
+    The chapel is free at season start (classic lock, +1 marriage
+    stock each Lord's Day). The church (church_cost techs) shortens
+    the lock and makes each marriage yield +1 tech. The cathedral
+    (cathedral_cost techs) shortens the lock again and opens the
+    Shrine build: the designated map is **Sacred** for shrine_hours
+    of real time — immune to every technology and to conquest,
+    disputable only by a classic attack; the duel winner gains
+    shrine_duel_tech_reward tech. On validation the map becomes
+    unattackable and incorruptible until season end; on defender
+    defeat the cathedral is destroyed (cost lost), the map stays with
+    the defender and the parish falls back to the church.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    church_cost: int = Field(default=2, ge=0)
+    cathedral_cost: int = Field(default=3, ge=0)
+    chapel_lock_hours: int = Field(default=24, ge=0)
+    church_lock_hours: int = Field(default=12, ge=0)
+    cathedral_lock_hours: int = Field(default=6, ge=0)
+    chapel_marriage_stock_per_lords_day: int = Field(default=1, ge=0)
+    church_marriage_tech_reward: int = Field(default=1, ge=0)
+    shrine_hours: int = Field(default=72, ge=0)
+    shrine_duel_tech_reward: int = Field(default=1, ge=0)
+    shrine_relaunch_allowed: bool = True
+
+
 class KingdomsSeasonConfig(BaseModel):
     """Full season configuration.
 
-    Reference §27: configuration data, persisted across seasons and
+    Reference 
+§27: configuration data, persisted across seasons and
     modifiable by the admin.
     """
 
     model_config = ConfigDict(strict=True)
 
-    weeks: int = Field(default=4, ge=1)
+    weeks: int = Field(default=3, ge=1)  # D55 — Season II trial: 3 weeks = 3 cycles
     kingdoms_count: int = Field(default=2, ge=1)
     lords_per_kingdom: int = Field(default=4, ge=1)
     territories_per_kingdom: int = Field(default=5, ge=0)
@@ -207,6 +279,9 @@ class KingdomsSeasonConfig(BaseModel):
     technologies: TechnologyCosts = Field(default_factory=TechnologyCosts)
     attacks: AttackSettings = Field(default_factory=AttackSettings)
     events: EventSettings = Field(default_factory=EventSettings)
+    protection: ProtectionWindowSettings = Field(default_factory=ProtectionWindowSettings)  # D56
+    marriages: MarriageSettings = Field(default_factory=MarriageSettings)  # D59/D60
+    parish: ParishSettings = Field(default_factory=ParishSettings)  # D64
 
 
 def default_map_catalog() -> tuple[MapEntry, ...]:
@@ -229,7 +304,8 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
         _map("babel", "Babel"),
         _map("black-forest", "Black Forest", water=True),
         _map("cenotes", "Cenotes", water=True, open=True),
-        _map("continental", "Continental", water=True),
+        _m
+ap("continental", "Continental", water=True),
         _map("crater-lake", "Crater Lake", water=True, lakes=True),
         _map("fortress", "Fortress", start_wall=True),
         _map("ghost-lake", "Ghost Lake", lakes=True, open=True),
@@ -256,7 +332,7 @@ def default_season_config() -> KingdomsSeasonConfig:
         ages=(
             Epoch(key="dark_age", display_name="Âge sombre", gaia_ai_level=2, tech_points=0, extra_marriages=1),
             Epoch(key="feudal_age", display_name="Âge féodal", gaia_ai_level=3, tech_points=1, extra_marriages=1),
-            Epoch(key="castle_age", display_name="Âge des châteaux", gaia_ai_level=5, tech_points=2, extra_marriages=1),
+            Epoch(key="castle_age", display_name="Âge des châteaux", gaia_ai_level=4, tech_points=2, extra_marriages=1)  # D57 — crescendo 2→3→4→5,
             Epoch(key="imperial_age", display_name="Âge impérial", gaia_ai_level=5, tech_points=2, extra_marriages=1),
         ),
     )
@@ -269,7 +345,8 @@ def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
     playable with no local overrides). An invalid override raises: a
     broken config must fail loudly, never load half-validated.
     """
-    season_file = config_dir / "kingdoms" / SEASON_CONFIG_FILENAME
+    season_file = co
+nfig_dir / "kingdoms" / SEASON_CONFIG_FILENAME
     if not season_file.is_file():
         return default_season_config()
     with open(season_file, encoding="utf-8") as fh:
