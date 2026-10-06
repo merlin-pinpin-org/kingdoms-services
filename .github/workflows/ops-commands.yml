@@ -45,7 +45,8 @@ jobs:
       startsWith(github.event.comment.body, '/status') ||
       startsWith(github.event.comment.body, '/rollback') ||
       startsWith(github.event.comment.body, '/dump-db') ||
-      startsWith(github.event.comment.body, '/reset-env')
+      startsWith(github.event.comment.body, '/reset-env') ||
+      startsWith(github.event.comment.body, '/seed')
     runs-on: ubuntu-latest
     outputs:
       command: ${{ steps.parse.outputs.command }}
@@ -62,7 +63,7 @@ jobs:
           body="$COMMENT_BODY"
           command="$(echo "$body" | awk '{print $1}')"
           case "$command" in
-            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env) ;;
+            /logs|/restart|/start|/stop|/status|/rollback|/dump-db|/reset-env|/seed) ;;
             *) echo "::error::unsupported command: $command"; exit 1 ;;
           esac
           env_name="$(echo "$body" | awk '{print $2}')"
@@ -85,6 +86,7 @@ jobs:
             rollback) capability=rollback ;;
             dump-db)  capability=db-dump ;;
             reset-env) capability=env-reset ;;
+            seed)      capability=env-control ;;
           esac
           {
             echo "command=${command#/}"
@@ -108,6 +110,7 @@ jobs:
               rollback: `**/${cmd} intercepted** — reverting the last pinned image on deploy/${env} (the push re-triggers the deployment of the previous known-good image). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`rollback\`) — verdict right away.`,
               "dump-db": `**/${cmd} intercepted** — dumping the ${env} databases (mongodump + Redis snapshot), archived on the VPS and uploaded as a private artifact. Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`db-dump\`) — verdict right away.`,
               "reset-env": `**/${cmd} intercepted** — wiping the ${env} data volumes and reseeding from the workflow datasets (destructive: the env's data is lost). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-reset\`: self env only, ops anywhere) — verdict right away.`,
+              "seed": `**/${cmd} intercepted** — seeding the ${env} data from the requested source file (idempotent: re-running is safe). Checking the roster authority matrix for **@${context.payload.comment.user.login}** (capability \`env-control\`) — verdict right away.`,
             }[cmd];
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -198,6 +201,20 @@ jobs:
                 --ref "deploy/$ENVIRONMENT" \
                 -f command=reset \
                 -f environment="$ENVIRONMENT"
+              ;;
+            seed)
+              # /seed <env> <type> [file] [ladder_id] — idempotent data
+              # seeding through the env's kingdoms-core container
+              # (kingdoms-infra env-seed.yml). Same env-control capability
+              # as restart: seeding is additive, never destructive.
+              SEED_TYPE="$(echo "$COMMENT_BODY" | awk '{print $3}')"
+              SEED_FILE="$(echo "$COMMENT_BODY" | awk '{print $4}')"
+              [[ -n "$SEED_TYPE" ]] || { echo "::error::usage: /seed <env> <users|matches|season|test-season> [file] [ladder_id]" >&2; exit 1; }
+              ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT" -f type="$SEED_TYPE")
+              [[ -n "$SEED_FILE" ]] && ARGS+=(-f file="$SEED_FILE")
+              LADDER_ARG="$(echo "$COMMENT_BODY" | awk '{print $5}')"
+              [[ -n "$LADDER_ARG" ]] && ARGS+=(-f ladder_id="$LADDER_ARG")
+              gh workflow run env-seed.yml "${ARGS[@]}"
               ;;
             rollback)
               gh api --method POST repos/merlin-pinpin-org/kingdoms-infra/dispatches \
