@@ -1,11 +1,18 @@
 # Provider probe: real calls to the third-party provider APIs, payload
 # printed for debugging ("the provider APIs seem down" -> facts).
 #
-# DISABLED BY DESIGN — this workflow has no automatic trigger at all:
-#   - no push, no pull_request, no schedule, no issue_comment;
-#   - only workflow_dispatch, manually, when a human decides it is needed;
-#   - the probe is read-only (GET + WebSocket listen), one-shot, and
-#     touches no database, no environment, no state.
+# TWO TRIGGERS, both intentional:
+#
+#   1. workflow_dispatch (manual) — when a human decides it is needed
+#      ("the provider APIs seem down": get the real payload, debug);
+#   2. on provider code changes — any PR or push touching the provider
+#      adapters (ext_librematch, ext_aoe2lobby) or their decode layer
+#      runs the probe automatically: if the code change breaks the real
+#      calls, the run fails with the payload printed. That keeps
+#      provider code changes verified against the real services.
+#
+# The probe stays read-only (GET + WebSocket listen), one-shot, and
+# touches no database, no environment, no state — safe to auto-run.
 #
 # What runs: scripts/provider_probe.py — the REAL adapter code
 # (ext_librematch HTTP + ext_aoe2lobby WebSocket) against the REAL
@@ -33,6 +40,21 @@ on:
         required: false
         type: boolean
         default: false
+  pull_request:
+    paths:
+      - "src/kingdoms/ext_librematch/**"
+      - "src/kingdoms/ext_aoe2lobby/**"
+      - "src/kingdoms/core/games/aoe2/blobs.py"
+      - "scripts/provider_probe.py"
+      - ".github/workflows/provider-probe.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/kingdoms/ext_librematch/**"
+      - "src/kingdoms/ext_aoe2lobby/**"
+      - "src/kingdoms/core/games/aoe2/blobs.py"
+      - "scripts/provider_probe.py"
+      - ".github/workflows/provider-probe.yml"
 
 permissions:
   contents: read
