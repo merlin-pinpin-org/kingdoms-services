@@ -43,10 +43,12 @@ class Aoe2LobbyAdapter:
         ws_url: str = DEFAULT_WS_URL,
         reconnect_delay_s: float = 5.0,
         grace: LobbyClosedGrace | None = None,
+        subscribe_profile_ids: tuple[str, ...] = (),
     ) -> None:
         self._ws_url = ws_url
         self._reconnect_delay_s = reconnect_delay_s
         self._grace = grace or LobbyClosedGrace()
+        self._subscribe_profile_ids = tuple(subscribe_profile_ids)
 
     async def stream_events(self) -> AsyncIterator[dict[str, Any]]:
         """Yield normalized event dicts from the WebSocket, forever.
@@ -60,6 +62,7 @@ class Aoe2LobbyAdapter:
         while True:
             try:
                 async with websockets.connect(self._ws_url) as ws:
+                    await self._subscribe(ws)
                     async for raw in ws:
                         event = self._normalize(raw)
                         if event is not None:
@@ -68,6 +71,45 @@ class Aoe2LobbyAdapter:
             except websockets.WebSocketException:
                 logger.warning("aoe2lobby ws disconnected; retrying in %ss", self._reconnect_delay_s)
             await asyncio.sleep(self._reconnect_delay_s)
+
+    async def _subscribe(self, ws: Any) -> None:
+        """Send the documented subscription messages on connect.
+
+        Feeds per the aoe2lobby API (LibreMatch wiki, example-lobby-browser):
+        lobby matches (all open lobbies) plus, when profile ids are wired,
+        player status updates for the subscribed players.
+        """
+        await ws.send(json.dumps({"action": "subscribe", "type": "matches", "context": "lobby"}))
+        if self._subscribe_profile_ids:
+            await ws.send(
+                json.dumps(
+                    {
+                        "action": "subscribe",
+                        "type": "players",
+                        "context": "lobby",
+                        "ids": list(self._subscribe_profile_ids),
+                    }
+                )
+            )
+
+    def _normalize_player_status(self, statuses: dict[str, Any]) -> dict[str, Any]:
+        """Map a player_status frame to one event per reported player.
+
+        Shape per the aoe2lobby API doc: ``{profile_id: {status, matchid,
+        steam_lobbyid}}`` with status "lobby" or "playing"; mapped to the
+        normalized event shape the consumer already understands.
+        """
+        return {
+            "match_ref": "",
+            "type": "player_status",
+            "occurred_at": 0,
+            "profile_ids": [str(pid) for pid in statuses],
+            "metadata": {
+                str(pid): str(info.get("status", ""))
+                for pid, info in statuses.items()
+                if isinstance(info, dict)
+            },
+        }
 
     def _track_grace(self, event: dict[str, Any]) -> None:
         """Feed the adapter-side grace window (reference 5.2 known trap).
@@ -95,6 +137,8 @@ class Aoe2LobbyAdapter:
             return None
         if not isinstance(frame, dict):
             return None
+        if "player_status" in frame and isinstance(frame["player_status"], dict):
+            return self._normalize_player_status(frame["player_status"])
         raw_type = str(frame.get("type", frame.get("event", "")))
         event_type = _EVENT_TYPES.get(raw_type)
         if event_type is None:

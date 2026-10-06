@@ -49,12 +49,12 @@ implemented&nbsp;once&nbsp;in&nbsp;the&nbsp;server&nbsp;loop.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="Aoe2LobbyAdapter">class <strong>Aoe2LobbyAdapter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#Aoe2LobbyAdapter">Aoe2LobbyAdapter</a>(ws_url:&nbsp;'str'&nbsp;=&nbsp;'wss://data.aoe2lobby.com/ws/',&nbsp;reconnect_delay_s:&nbsp;'float'&nbsp;=&nbsp;5.0,&nbsp;grace:&nbsp;'LobbyClosedGrace&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Aoe2LobbyAdapter">Aoe2LobbyAdapter</a>(ws_url:&nbsp;'str'&nbsp;=&nbsp;'wss://data.aoe2lobby.com/ws/',&nbsp;reconnect_delay_s:&nbsp;'float'&nbsp;=&nbsp;5.0,&nbsp;grace:&nbsp;'LobbyClosedGrace&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;subscribe_profile_ids:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 WebSocket&nbsp;client&nbsp;streaming&nbsp;live&nbsp;lobby/game&nbsp;events.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="Aoe2LobbyAdapter-__init__"><strong>__init__</strong></a>(self, ws_url: 'str' = 'wss://data.aoe2lobby.com/ws/', reconnect_delay_s: 'float' = 5.0, grace: 'LobbyClosedGrace | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="Aoe2LobbyAdapter-__init__"><strong>__init__</strong></a>(self, ws_url: 'str' = 'wss://data.aoe2lobby.com/ws/', reconnect_delay_s: 'float' = 5.0, grace: 'LobbyClosedGrace | None' = None, subscribe_profile_ids: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="Aoe2LobbyAdapter-stream_events"><strong>stream_events</strong></a>(self) -&gt; 'AsyncIterator[dict[str, Any]]'</dt><dd><span class="code">Yield&nbsp;normalized&nbsp;event&nbsp;dicts&nbsp;from&nbsp;the&nbsp;WebSocket,&nbsp;forever.<br>
 &nbsp;<br>

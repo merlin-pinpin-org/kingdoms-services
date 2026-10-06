@@ -62,7 +62,7 @@ async def probe_librematch(profile_id: str, timeout_s: float) -> None:
     _print(f"player_stats({profile_id})", stats)
 
 
-async def probe_aoe2lobby(timeout_s: float) -> None:
+async def probe_aoe2lobby(timeout_s: float, profile_id: str) -> None:
     """WebSocket probe: stream the first live events, then close."""
     import json as _json
 
@@ -74,11 +74,15 @@ async def probe_aoe2lobby(timeout_s: float) -> None:
     try:
         async with websockets.connect(DEFAULT_WS_URL, open_timeout=timeout_s) as ws:
             print("connected — streaming up to 3 events (60s budget)")
-            try:
-                await ws.send(_json.dumps({"action": "subscribe", "feed": "lobbies"}))
-                print("sent subscription message: subscribe/lobbies")
-            except Exception as sub_err:
-                print(f"(send failed: {sub_err})")
+            for sub_msg in (
+                {"action": "subscribe", "type": "matches", "context": "lobby"},
+                {"action": "subscribe", "type": "players", "context": "lobby", "ids": [profile_id]},
+            ):
+                try:
+                    await ws.send(_json.dumps(sub_msg))
+                    print(f"sent subscription: {sub_msg}")
+                except Exception as sub_err:
+                    print(f"(send failed: {sub_err})")
             for _ in range(3):
                 raw = await asyncio.wait_for(ws.recv(), timeout=60)
                 print(f"\n--- raw event ({len(str(raw))} bytes) ---")
@@ -105,7 +109,7 @@ async def main_async(args: argparse.Namespace) -> int:
             print(f"!! librematch probe failed: {type(err).__name__}: {err}")
     if not args.skip_ws:
         try:
-            await probe_aoe2lobby(args.timeout)
+            await probe_aoe2lobby(args.timeout, args.profile_id)
             ok = ok or True
         except Exception as err:
             print(f"!! aoe2lobby probe failed: {type(err).__name__}: {err}")
