@@ -42,12 +42,14 @@ class LadderWiring:
         from kingdoms.core.games.aoe2.seed import MongoAoE2Database
         from kingdoms.core.services.game_data import GameDataService
         from kingdoms.core.services.provider_cache import ProviderDataCache
+        from kingdoms.core.services.season import SeasonService
         from kingdoms.mods.ladder.match_data import MatchDataService
         from kingdoms.mods.ladder.provider_bridge import LibrematchProviderBridge
         from kingdoms.mods.ladder.service import LadderService
 
         adapter = MongoAoE2Database(database)
         self.game_data: GameDataService = GameDataService(adapter)
+        self.season_service: SeasonService | None = SeasonService(adapter, self.game_data)
         self.provider_cache = ProviderDataCache(state)
         bridge = LibrematchProviderBridge(librematch)
         self.match_data = MatchDataService(
@@ -186,6 +188,16 @@ def register_ladder_commands(
             )
         await interaction.response.send_message(body, ephemeral=True)
 
+    @group.command(name="register")
+    async def register_command(interaction: discord.Interaction) -> None:
+        """Register on the ladder and get the season player role."""
+        await _register_command(interaction, wiring.service, ladder_id)
+
+    @group.command(name="unregister")
+    async def unregister_command(interaction: discord.Interaction) -> None:
+        """Unregister from the ladder (leaves the queue, drops the role)."""
+        await _unregister_command(interaction, wiring.service, ladder_id)
+
     @group.command(name="join")
     async def join_command(interaction: discord.Interaction) -> None:
         """Join the ladder queue after the profile precondition."""
@@ -220,6 +232,64 @@ def register_ladder_commands(
         await interaction.response.send_message(body, ephemeral=True)
 
     tree.add_command(group)
+
+
+async def _register_command(interaction: Any, service: Any, ladder_id: str) -> None:
+    """Run the /ladder register flow: register + sync the season role."""
+    user_id = str(interaction.user.id)
+    player = await service.register_player(ladder_id, user_id, interaction.user.display_name, now=_now_ms())
+    await _sync_player_role(interaction, member=True)
+    await interaction.response.send_message(
+        f"Inscrit sur le ladder (rating initial {player.rating}).",
+        ephemeral=True,
+    )
+
+
+async def _unregister_command(interaction: Any, service: Any, ladder_id: str) -> None:
+    """Run the /ladder unregister flow: leave + remove + drop the role."""
+    user_id = str(interaction.user.id)
+    player = await service.get_player(ladder_id, user_id)
+    if player is None:
+        await interaction.response.send_message("Tu n'es pas inscrit sur le ladder.", ephemeral=True)
+        return
+    try:
+        await service.leave_queue(ladder_id, user_id)
+    except Exception:
+        logger.debug("leave_queue before unregister was a no-op", exc_info=True)
+    await service.remove_player(ladder_id, user_id)
+    await _sync_player_role(interaction, member=False)
+    await interaction.response.send_message("Désinscrit du ladder.", ephemeral=True)
+
+
+async def _sync_player_role(interaction: Any, member: bool) -> None:
+    """Sync the season player role after a registration change (best-effort)."""
+    from kingdoms.discord.bot.factory import KingdomsBot
+
+    bot = interaction.client
+    if not isinstance(bot, KingdomsBot) or bot.season_roles_service is None:
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
+    season = await _active_season_label(bot)
+    await bot.season_roles_service.sync_player_role(guild_id, str(interaction.user.id), season, member=member)
+
+
+async def _active_season_label(bot: Any) -> str:
+    """Read the active season label of the wired ladder (best-effort, 's1')."""
+    try:
+        from kingdoms.core.services.season_roles import season_label
+
+        season_service = getattr(bot, "season_service", None)
+        if season_service is None:
+            return "s1"
+        ladder_id = getattr(bot, "_ladder_id", None)
+        if ladder_id is None:
+            return "s1"
+        season = await season_service.get_active_season(ladder_id)
+        if season is None:
+            return "s1"
+        return season_label({"label": season.label, "name": season.name, "season_id": season.id})
+    except Exception:
+        return "s1"
 
 
 def _now_ms() -> int:

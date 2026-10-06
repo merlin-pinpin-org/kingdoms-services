@@ -96,6 +96,10 @@ class LadderDatabase(Protocol):
         """List a player's rating-history lines (ascending)."""
         ...
 
+    async def delete_entry(self, collection: str, entry_id: str) -> bool:
+        """Delete one document by ``_id``; True when one was removed."""
+        ...
+
 
 class GameGateway(Protocol):
     """Capabilities the game adapter declares to the ladder core (§1.2)."""
@@ -256,6 +260,17 @@ class LadderService:
         )
         await self._db.upsert_entry(PLAYERS_COLLECTION, player.to_mongo())
         return player
+
+    async def remove_player(self, ladder_id: str, user_id: str) -> bool:
+        """Remove a registered player; True when one was removed.
+
+        The caller owns the preconditions (leaving the queue first); a
+        player with a live match cannot be removed (TransitionError).
+        """
+        match = await self._db.find_active_match(ladder_id, user_id)
+        if match is not None:
+            raise ActiveMatchError(f"user {user_id} has a live match on {ladder_id}")
+        return await self._db.delete_entry(PLAYERS_COLLECTION, f"player:{ladder_id}:{user_id}")
 
     async def get_player(self, ladder_id: str, user_id: str) -> PlayerModel | None:
         """Return one player; None when unknown."""

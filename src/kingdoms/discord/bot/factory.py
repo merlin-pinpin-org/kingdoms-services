@@ -157,6 +157,10 @@ class KingdomsBot(discord.Client):
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
         self.home_channel_service: Any | None = None
+        self.staff_service: Any | None = None
+        self.season_roles_service: Any | None = None
+        self.season_service: Any | None = None
+        self._ladder_id: str | None = None
         self.home_service: Any | None = None
         self.mod_home_builders: dict[str, Any] = {}
         self._registration_database: Any | None = None
@@ -512,6 +516,12 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
+    bot.staff_service = _build_staff_service(resolved, bot, admin_channel_service)
+    bot.season_roles_service = _build_season_roles_service(bot, mod_roles_service)
+    if bot.staff_service is not None:
+        from kingdoms.discord.staff import register_staff_surface
+
+        register_staff_surface(bot.tree, bot)
     if home_channel_service is not None:
         bot._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(bot))
     register_registration_command(
@@ -539,6 +549,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     ladder_wiring = build_ladder_wiring()
     if ladder_wiring is not None:
         register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
+        bot.season_service = ladder_wiring.season_service
+        bot._ladder_id = f"ladder:aoe2:{_ladder_owner_ref(resolved)}"
         bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
         from kingdoms.discord.admin_panel_ladder import register_ladder_admin_section
 
@@ -561,6 +573,63 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
         await start_live_dashboard_refresh(bot, LiveClient(core_uri), registry)
 
     return asyncio.create_task(_run())
+
+
+def _build_staff_database(config: BotConfig) -> Any | None:
+    """Wire the staff persistence (Mongo); None unwired."""
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.discord.staff_platform import MongoStaffDatabase
+
+        return MongoStaffDatabase(get_async_database())
+    except Exception:
+        return None
+
+
+def _build_staff_service(
+    config: BotConfig,
+    bot: KingdomsBot,
+    admin_channel_service: AdminChannelService | None,
+) -> Any | None:
+    """Wire the staff service: persistence + the admin-channel notice seam."""
+    database = _build_staff_database(config)
+    if database is None:
+        return None
+    from kingdoms.core.services.staff import StaffEvents, StaffService
+    from kingdoms.discord.staff import build_staff_notice
+
+    class _AdminNoticeEvents(StaffEvents):
+        """Deliver the staff notices to the guild's admin channel."""
+
+        async def notify_admins(self, message: str, payload: dict[str, Any]) -> None:
+            guild_id = str(payload.get("guild_id", ""))
+            if not guild_id or admin_channel_service is None:
+                return
+            user_id = str(payload.get("user_id", ""))
+            mod = str(payload.get("mod", ""))
+            if payload.get("kind") == "staff.applied" and user_id:
+                await admin_channel_service.deliver(
+                    guild_id,
+                    build_staff_notice(mod, user_id),
+                    tuple(bot.status_service.bot_admins),
+                )
+
+    return StaffService(database, _AdminNoticeEvents())
+
+
+def _build_season_roles_service(bot: KingdomsBot, mod_roles_service: ModRolesService | None) -> Any | None:
+    del bot
+    """Wire the season roles of the ladder mod (per-season player/staff)."""
+    if mod_roles_service is None:
+        return None
+    try:
+        from kingdoms.core.services.season_roles import SeasonRolesService
+
+        return SeasonRolesService(mod_roles_service, "ladder")
+    except Exception:
+        return None
 
 
 def _build_home_channel_service(

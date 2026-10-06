@@ -109,6 +109,11 @@ class MongoAoE2Database:
         doc = await self._database[collection_name("ladders")].find_one({"owner_ref": owner_ref, "game_key": game_key})
         return doc if doc is None else dict(doc)
 
+    async def delete_entry(self, collection: str, entry_id: str) -> bool:
+        """Delete one document by ``_id``; True when one was removed."""
+        result = await self._database[collection].delete_one({"_id": entry_id})
+        return bool(result.deleted_count > 0)
+
     async def find_player(self, ladder_id: str, user_id: str) -> dict[str, Any] | None:
         """Return one player document; None when absent."""
         return await self.find_entry(collection_name("players"), f"player:{ladder_id}:{user_id}")

@@ -301,3 +301,43 @@ class ModRolesService:
         await self._members.remove_role_from_member(
             guild_id, user_id, role_id, reason=f"kingdoms: remove mod role {mod}:{role_key}"
         )
+
+    async def adopt_or_create_role(self, guild_id: str, mod_name: str, role_def: RoleDef) -> str | None:
+        """Resolve one role to a platform id, adopting or creating it.
+
+        The runtime equivalent of ``_resolve_or_provision`` for keys a
+        season invents at runtime (not declared in the mod YAML): an
+        existing role with the display name is adopted, otherwise the
+        role is created — and the mapping is persisted either way.
+        """
+        try:
+            return await self._resolve_or_provision(guild_id, mod_name, role_def)
+        except Exception:
+            logger.warning("MOD-ROLE provisioning failed (%s:%s)", mod_name, role_def.key, exc_info=True)
+            return None
+
+    async def assign_platform_role(
+        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
+    ) -> None:
+        """Assign one platform role id to a member (best-effort)."""
+        try:
+            await self._members.add_role_to_member(
+                guild_id, user_id, role_id, reason=f"kingdoms: assign mod role {mod}:{role_key}"
+            )
+        except Exception:
+            logger.warning(
+                "MOD-ROLE assign failed (guild %s, user %s, role %s)", guild_id, user_id, role_id, exc_info=True
+            )
+
+    async def remove_platform_role(
+        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
+    ) -> None:
+        """Remove one platform role id from a member (best-effort)."""
+        try:
+            await self._members.remove_role_from_member(
+                guild_id, user_id, role_id, reason=f"kingdoms: remove mod role {mod}:{role_key}"
+            )
+        except Exception:
+            logger.warning(
+                "MOD-ROLE remove failed (guild %s, user %s, role %s)", guild_id, user_id, role_id, exc_info=True
+            )
