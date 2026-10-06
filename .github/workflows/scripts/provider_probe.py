@@ -34,6 +34,32 @@ def _print(title: str, payload: object) -> None:
         print(payload)
 
 
+def _dump_blob_bytes(blob: str, label: str) -> None:
+    """Debug-dump the raw blob bytes: base64 decode + decompress attempts.
+
+    Prints the first decompressed bytes whatever the container format,
+    so the payload's real shape (JSON, binary, msgpack...) shows up in
+    the probe log even when decode_blob rejects it.
+    """
+    import base64
+    import binascii
+    import zlib
+
+    try:
+        raw = base64.b64decode(blob)
+    except (binascii.Error, ValueError) as err:
+        print(f"   [{label}] base64 failed: {err}")
+        return
+    print(f"   [{label}] raw bytes ({len(raw)}): {raw[:24].hex()}")
+    for name, wbits in (("zlib", 15), ("deflate-raw", -15), ("gzip", 31)):
+        try:
+            out = zlib.decompress(raw, wbits)
+            print(f"   [{label}] {name} decompressed ({len(out)} bytes): {out[:400]!r}")
+            return
+        except zlib.error as err:
+            print(f"   [{label}] {name} failed: {err}")
+
+
 async def probe_librematch(profile_id: str, timeout_s: float) -> None:
     """HTTP probe: lobbies, one lobby's decoded match details, player stats."""
     from kingdoms.core.games.aoe2.blobs import BlobDecodeError, decode_blob
@@ -56,6 +82,7 @@ async def probe_librematch(profile_id: str, timeout_s: float) -> None:
                 _print(f"first lobby {blob_field} (decoded blob)", decoded)
             except (BlobDecodeError, ValueError) as err:
                 print(f"!! {blob_field} decode failed: {err}")
+                _dump_blob_bytes(str(blob), blob_field)
     details = await adapter.match_details("probe")
     _print("match_details('probe') -> mapped from lobby", details)
     stats = await adapter.player_stats(profile_id)
