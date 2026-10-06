@@ -85,4 +85,4 @@ jobs:
           args=(--profile-id "$PROFILE_ID")
           [[ "$SKIP_WS" == true ]] && args+=(--skip-ws)
           [[ "$SKIP_HTTP" == true ]] && args+=(--skip-http)
-          python scripts/provider_probe.py "${args[@]}"
+          python .github/workflows/scripts/provider_probe.py "${args[@]}"
