@@ -149,7 +149,7 @@ class Aoe2LobbyAdapter:
         lobby_closed; a game_started inside the window cancels it.
         """
         if event["type"] == "lobby_closed":
-            self._grace.on_lobby_closed(event["match_ref"])
+            self._grace.on_lobby_closed(event["match_ref"], now=float(event.get("occurred_at", 0)))
         elif event["type"] == "game_started":
             self._grace.on_game_started(event["match_ref"])
         elif event["type"] == "game_ended":
