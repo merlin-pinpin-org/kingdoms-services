@@ -60,31 +60,50 @@ async def ensure_pinned_admin_menu(
     if admin_channel_service is None:
         return False
     channel_id = await admin_channel_service.resolve_channel(guild_id, admin_ids)
-    if channel_id is None:
+    channel = _text_channel(bot, guild_id, str(channel_id)) if channel_id else None
+    if channel is None:
         return False
-    stale = await _stale_pinned_menus(bot, guild_id, channel_id)
-    if await _pinned_menu_exists(bot, guild_id, channel_id):
-        return False
+
+    from typing import cast
+
+    from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
     from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
 
-    locale = await _current_locale(logs_service, guild_id)
-    layout = await build_pin_main_menu(
-        logs_service,
-        guild_id,
-        catalog,
-        locale,
-        admin_channel_service,
+    async def _build(guild: str) -> object:
+        return await build_pin_main_menu(
+            logs_service,
+            guild,
+            catalog,
+            await _current_locale(logs_service, guild),
+            admin_channel_service,
+        )
+
+    delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
+    service = PinnedMenuService(delivery)
+    created = await service.ensure(
+        str(guild_id),
+        cast("PinnedMenuChannel", channel),
+        marker="admin:pin:",
+        build_layout=_build,
+        pin_reason="kingdoms: pinned admin menu (admin channel home)",
     )
-    message_id = await admin_channel_service.deliver(guild_id, layout, admin_ids)
-    if message_id is None:
-        logger.warning("PINNED ADMIN MENU delivery failed (guild %s) \u2014 best-effort", guild_id)
-        return False
-    pinned = await _pin_message(bot, guild_id, channel_id, message_id)
-    if pinned:
-        logger.info("PINNED ADMIN MENU created (guild %s, message %s)", guild_id, message_id)
-    for message in stale:
+    for message in await _stale_pinned_menus(bot, guild_id, str(channel_id)):
         await _unpin_message(message)
-    return pinned
+    return created
+
+
+class _AdminPinDelivery:
+    """Deliver a layout through the admin channel service; the message id."""
+
+    def __init__(self, service: AdminChannelService, admin_ids: tuple[str, ...], guild_id: str) -> None:
+        self._service = service
+        self._admin_ids = admin_ids
+        self._guild_id = guild_id
+
+    async def deliver(self, channel: object, layout: object) -> str:
+        del channel
+        message_id = await self._service.deliver(self._guild_id, layout, self._admin_ids)
+        return str(message_id or "")
 
 
 async def _current_locale(logs_service: LogService, guild_id: str) -> str:
@@ -114,33 +133,6 @@ async def _unpin_message(message: discord.Message) -> None:
         await message.unpin(reason="kingdoms: legacy pinned admin menu (replaced)")
     except Exception:
         logger.warning("PINNED ADMIN MENU unpin failed (message %s) \u2014 best-effort", getattr(message, "id", "?"))
-
-
-async def _pinned_menu_exists(bot: discord.Client, guild_id: str, channel_id: str) -> bool:
-    """Whether the channel pins already hold a **current** pinned menu."""
-    channel = _text_channel(bot, guild_id, channel_id)
-    if channel is None:
-        return False
-    try:
-        pins = await channel.pins()
-    except Exception:
-        logger.warning("PINNED ADMIN MENU pin lookup failed (guild %s) \u2014 best-effort", guild_id)
-        return False
-    for message in pins:
-        if _carries_pinned_menu(message):
-            return True
-    return False
-
-
-def _carries_pinned_menu(message: discord.Message) -> bool:
-    """Whether a pinned message carries a **current** pinned-menu component."""
-    for child in _walk(message):
-        custom_id = getattr(child, "custom_id", None)
-        if custom_id is None:
-            continue
-        if _starts_with_admin_marker(str(custom_id)):
-            return True
-    return False
 
 
 def _carries_legacy_menu(message: discord.Message) -> bool:
@@ -192,15 +184,3 @@ def _text_channel(bot: discord.Client, guild_id: str, channel_id: str) -> discor
     return channel if isinstance(channel, discord.TextChannel) else None
 
 
-async def _pin_message(bot: discord.Client, guild_id: str, channel_id: str, message_id: str) -> bool:
-    """Pin one message by id; False when the pin fails (best-effort)."""
-    channel = _text_channel(bot, guild_id, channel_id)
-    if channel is None:
-        return False
-    try:
-        message = await channel.fetch_message(int(message_id))
-        await message.pin(reason="kingdoms: pinned admin menu (admin channel home)")
-        return True
-    except Exception:
-        logger.warning("PINNED ADMIN MENU pin failed (guild %s, message %s) \u2014 best-effort", guild_id, message_id)
-        return False

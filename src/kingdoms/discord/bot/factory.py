@@ -21,6 +21,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import discord
 from discord import app_commands
@@ -154,6 +155,13 @@ class KingdomsBot(discord.Client):
         self._live_dashboard_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
+        self.registration_service: RegistrationService | None = None
+        self.home_channel_service: Any | None = None
+        self.home_service: Any | None = None
+        self.mod_home_builders: dict[str, Any] = {}
+        self._registration_database: Any | None = None
+        self._home_providers: dict[str, Any] = {}
+        self._home_pin_task: asyncio.Task[None] | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
@@ -165,11 +173,13 @@ class KingdomsBot(discord.Client):
         deploy (§3b state reconstruction contract).
         """
         from kingdoms.discord.admin_persistent import register_admin_panel_bot, register_admin_persistent_items
+        from kingdoms.discord.home import HomeButton
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
+        self.add_dynamic_items(HomeButton)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -492,6 +502,18 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved)
     bot.registration_engine = registration_engine
+    bot.registration_service = registration_service
+    home_channel_service = _build_home_channel_service(resolved, bot)
+    bot.home_channel_service = home_channel_service
+    from kingdoms.core.services.home import HomeService
+    from kingdoms.discord.home import register_home_command
+    bot.home_service = HomeService(registry)
+    bot.mod_home_builders = {}
+    bot._registration_database = _build_registration_database(resolved)
+    bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
+    register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
+    if home_channel_service is not None:
+        bot._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(bot))
     register_registration_command(
         bot.tree,
         registration_engine,
@@ -539,6 +561,75 @@ def _start_live_dashboard(bot: KingdomsBot) -> asyncio.Task[None] | None:
         await start_live_dashboard_refresh(bot, LiveClient(core_uri), registry)
 
     return asyncio.create_task(_run())
+
+
+def _build_home_channel_service(
+    config: BotConfig,
+    bot: KingdomsBot,
+) -> Any | None:
+    """Wire the 🏛-kingdoms-home managed channel (cache-aside like the admin channel).
+
+    Returns None when the stores are not configured: the home degrades
+    to the /home command only.
+    """
+    if not config.mongo_uri or not config.redis_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.managed_channel import ManagedChannelService
+        from kingdoms.core.services.state import StateService
+        from kingdoms.discord.home_platform import DiscordHomeChannelPlatform
+        from kingdoms.discord.logs_platform import MongoLogsDatabase
+
+        return ManagedChannelService(
+            platform=DiscordHomeChannelPlatform(bot),
+            database=MongoLogsDatabase(get_async_database()),
+            category="bot_home",
+            name="🏛-kingdoms-home",
+            state=StateService(redis_uri=config.redis_uri),
+        )
+    except Exception:
+        logger.exception("HOME CHANNEL SERVICE WIRING FAILED — /home stays command-only")
+        return None
+
+
+def _build_registration_database(config: BotConfig) -> Any | None:
+    """Return the registration database seam (roster view), None unwired."""
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.discord.registration_platform import MongoRegistrationDatabase
+
+        return MongoRegistrationDatabase(get_async_database())
+    except Exception:
+        return None
+
+
+def _build_home_provider(config: BotConfig) -> Any | None:
+    """Return the AoE2 live adapter for the games view, None unwired."""
+    if not config.redis_uri:
+        return None
+    try:
+        from kingdoms.ext_librematch.adapter import LibrematchAdapter
+
+        return LibrematchAdapter(api_key=os.environ.get("AOE2_API_KEY", ""))
+    except Exception:
+        return None
+
+
+async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
+    """Keep the pinned home menu alive in every guild (self-healing)."""
+    from kingdoms.discord.home import ensure_pinned_home_menu
+
+    await asyncio.sleep(30)
+    while True:
+        for guild in list(bot.guilds):
+            try:
+                await ensure_pinned_home_menu(bot, str(guild.id))
+            except Exception:
+                logger.warning("PINNED HOME MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
+        await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
 
 def _ladder_owner_ref(config: BotConfig) -> str:
