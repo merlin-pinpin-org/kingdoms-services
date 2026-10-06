@@ -19,7 +19,22 @@ speed,&nbsp;victory&nbsp;condition,&nbsp;...).<br>
 &nbsp;<br>
 This&nbsp;module&nbsp;is&nbsp;the&nbsp;archaic-but-necessary&nbsp;decoder.&nbsp;It&nbsp;is&nbsp;game-module<br>
 code,&nbsp;not&nbsp;core:&nbsp;only&nbsp;the&nbsp;decoded,&nbsp;structured&nbsp;result&nbsp;crosses&nbsp;into<br>
-``MatchDetails``.</span></p>
+``MatchDetails``.<br>
+&nbsp;<br>
+Format&nbsp;references&nbsp;(community&nbsp;reverse-engineering,&nbsp;none&nbsp;of&nbsp;it<br>
+documented&nbsp;by&nbsp;World's&nbsp;Edge):<br>
+&nbsp;<br>
+*&nbsp;librematch-collector&nbsp;—&nbsp;slotinfo/options&nbsp;parsers,&nbsp;option&nbsp;id&nbsp;maps:<br>
+&nbsp;&nbsp;<a href="https://github.com/librematch/librematch-collector">https://github.com/librematch/librematch-collector</a><br>
+&nbsp;&nbsp;(collector/src/parser/{slotinfo,options}.ts)<br>
+*&nbsp;aoe2-apis&nbsp;—&nbsp;live&nbsp;lobby&nbsp;payloads&nbsp;and&nbsp;the&nbsp;Worlds&nbsp;Edge&nbsp;Link&nbsp;community<br>
+&nbsp;&nbsp;API:&nbsp;<a href="https://github.com/ustacode/aoe2-apis">https://github.com/ustacode/aoe2-apis</a><br>
+&nbsp;&nbsp;(docs/02-live-lobbies.md:&nbsp;"even&nbsp;two&nbsp;times&nbsp;Base64&nbsp;encoded")<br>
+*&nbsp;AoE2Control&nbsp;GameOptions&nbsp;—&nbsp;in-game&nbsp;option&nbsp;enums&nbsp;(map&nbsp;size,&nbsp;ages,<br>
+&nbsp;&nbsp;victory,&nbsp;civilizations,&nbsp;map&nbsp;ids):<br>
+&nbsp;&nbsp;<a href="https://aoe2control.github.io/game-options/">https://aoe2control.github.io/game-options/</a><br>
+*&nbsp;aoc-mgz&nbsp;—&nbsp;the&nbsp;.mgz&nbsp;replay&nbsp;header&nbsp;lobby&nbsp;struct,&nbsp;the&nbsp;other&nbsp;source&nbsp;of<br>
+&nbsp;&nbsp;the&nbsp;same&nbsp;settings:&nbsp;<a href="https://github.com/happyleavesaoc/aoc-mgz">https://github.com/happyleavesaoc/aoc-mgz</a></span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -27,10 +42,11 @@ code,&nbsp;not&nbsp;core:&nbsp;only&nbsp;the&nbsp;decoded,&nbsp;structured&nbsp;
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
-</td><td class="multicolumn"><a href="binascii.html">binascii</a><br>
+<a href="binascii.html">binascii</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="struct.html">struct</a><br>
 </td><td class="multicolumn"><a href="zlib.html">zlib</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -112,10 +128,27 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-decode_blob"><strong>decode_blob</strong></a>(blob: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">Decode&nbsp;a&nbsp;base64+zlib&nbsp;blob&nbsp;into&nbsp;its&nbsp;JSON&nbsp;object.<br>
+<td class="singlecolumn"><dl><dt><a name="-decode_blob"><strong>decode_blob</strong></a>(blob: 'str') -&gt; 'dict[str, object] | list[dict[str, object]]'</dt><dd><span class="code">Decode&nbsp;one&nbsp;slotinfo&nbsp;or&nbsp;options&nbsp;blob,&nbsp;selecting&nbsp;the&nbsp;format.<br>
+&nbsp;<br>
+Slotinfo&nbsp;payloads&nbsp;start&nbsp;with&nbsp;``"&lt;N&gt;,"``;&nbsp;options&nbsp;payloads&nbsp;with&nbsp;a<br>
+base64&nbsp;header.&nbsp;Returns&nbsp;the&nbsp;slot&nbsp;list&nbsp;(slotinfo)&nbsp;or&nbsp;the&nbsp;option<br>
+pairs&nbsp;as&nbsp;a&nbsp;dict&nbsp;(options).</span></dd></dl>
+ <dl><dt><a name="-decode_options"><strong>decode_options</strong></a>(blob: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">Decode&nbsp;an&nbsp;options&nbsp;blob&nbsp;into&nbsp;its&nbsp;``key:value``&nbsp;option&nbsp;pairs.<br>
+&nbsp;<br>
+The&nbsp;decompressed&nbsp;payload&nbsp;is&nbsp;a&nbsp;base64&nbsp;string;&nbsp;the&nbsp;decoded&nbsp;bytes&nbsp;are<br>
+a&nbsp;binary&nbsp;stream&nbsp;of&nbsp;records:&nbsp;``uint32&nbsp;LE&nbsp;length``&nbsp;followed&nbsp;by&nbsp;ASCII<br>
+``"&lt;key&gt;:&lt;value&gt;"``.&nbsp;Option&nbsp;ids&nbsp;are&nbsp;variant-dependent&nbsp;(see<br>
+``options_map``).</span></dd></dl>
+ <dl><dt><a name="-decode_slotinfo"><strong>decode_slotinfo</strong></a>(blob: 'str') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">Decode&nbsp;a&nbsp;slotinfo&nbsp;blob&nbsp;into&nbsp;its&nbsp;list&nbsp;of&nbsp;slot&nbsp;objects.<br>
+&nbsp;<br>
+The&nbsp;decompressed&nbsp;payload&nbsp;is&nbsp;``"&lt;N&gt;,&lt;json&nbsp;array&gt;"``:&nbsp;a&nbsp;slot&nbsp;count,<br>
+a&nbsp;comma,&nbsp;then&nbsp;the&nbsp;JSON&nbsp;array&nbsp;of&nbsp;slot&nbsp;records&nbsp;(the&nbsp;format&nbsp;the<br>
+Worlds&nbsp;Edge&nbsp;API&nbsp;serializes&nbsp;for&nbsp;the&nbsp;in-game&nbsp;slots).&nbsp;Some&nbsp;slot<br>
+values&nbsp;(``metaData``)&nbsp;are&nbsp;themselves&nbsp;base64-encoded&nbsp;twice.</span></dd></dl>
+ <dl><dt><a name="-decompress_blob"><strong>decompress_blob</strong></a>(blob: 'str') -&gt; 'bytes'</dt><dd><span class="code">Decompress&nbsp;a&nbsp;base64+zlib&nbsp;blob&nbsp;into&nbsp;its&nbsp;raw&nbsp;bytes.<br>
 &nbsp;<br>
 Raises&nbsp;``<a href="#BlobDecodeError">BlobDecodeError</a>``&nbsp;when&nbsp;the&nbsp;payload&nbsp;is&nbsp;absent,&nbsp;not&nbsp;valid<br>
-base64,&nbsp;not&nbsp;zlib-compressed,&nbsp;or&nbsp;not&nbsp;a&nbsp;JSON&nbsp;object&nbsp;—&nbsp;the&nbsp;caller<br>
-degrades&nbsp;to&nbsp;serving&nbsp;the&nbsp;raw&nbsp;blob&nbsp;alongside&nbsp;the&nbsp;match.</span></dd></dl>
+base64,&nbsp;or&nbsp;not&nbsp;a&nbsp;zlib&nbsp;stream&nbsp;—&nbsp;the&nbsp;caller&nbsp;degrades&nbsp;to&nbsp;serving&nbsp;the<br>
+raw&nbsp;blob&nbsp;alongside&nbsp;the&nbsp;match.</span></dd></dl>
 </td></tr></table>
 </body></html>

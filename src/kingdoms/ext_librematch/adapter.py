@@ -183,8 +183,9 @@ class LibrematchAdapter:
                 )
                 continue
             if target == "slots":
-                slots_raw = self._parse_slots(decoded)
-            else:
+                if isinstance(decoded, list):
+                    slots_raw = self._parse_slots(decoded)
+            elif isinstance(decoded, dict):
                 options_raw = tuple((str(k), str(v)) for k, v in decoded.items() if not k.startswith("_"))
         return MatchDetails(
             match_ref=str(lobby.get("advertiserId", lobby.get("match_id", ""))),
@@ -214,12 +215,12 @@ class LibrematchAdapter:
             )
             slots.append(
                 Slot(
-                    slot_index=int(entry.get("slot_index", entry.get("stationID", index))),
+                    slot_index=int(str(entry.get("slot_index", entry.get("stationID", index)) or "0")),
                     profile_id=str(
                         entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))
                     ),
                     faction_key=str(civ),
-                    team=int(entry.get("team", entry.get("teamID", 0))),
+                    team=int(str(entry.get("team", entry.get("teamID", 0)) or "0")),
                     filled=filled,
                     slot_kind=str(entry.get("slot_kind", "")) or _SLOT_KINDS[filled],
                 )

@@ -77,7 +77,7 @@ def decode_slotinfo(blob: str) -> list[dict[str, object]]:
     return slots
 
 
-def decode_options(blob: str) -> dict[str, str]:
+def decode_options(blob: str) -> dict[str, object]:
     """Decode an options blob into its ``key:value`` option pairs.
 
     The decompressed payload is a base64 string; the decoded bytes are
@@ -90,7 +90,7 @@ def decode_options(blob: str) -> dict[str, str]:
         stream = base64.b64decode(inner)
     except (binascii.Error, ValueError) as exc:
         raise BlobDecodeError(f"invalid inner base64: {exc}") from exc
-    options: dict[str, str] = {}
+    options: dict[str, object] = {}
     offset = 1  # byte 0 is the entry count; records follow
     while offset + 4 <= len(stream):
         (record_len,) = struct.unpack_from("<I", stream, offset)
