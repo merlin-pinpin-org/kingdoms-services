@@ -27,6 +27,8 @@ jobs:
   build:
     name: Build and test the image
     runs-on: ubuntu-latest
+    outputs:
+      rich_tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +90,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve the rich image tag (pr-<id>-<timestamp>-<sha7>)
+        if: github.event_name == 'push'
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha7="${GITHUB_SHA::7}"
+          timestamp="$(date -u +%Y%m%d%H%M%S)"
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '[.[].number][0] // 0')"
+          # A PR head is identified by its PR number; a direct push with no
+          # associated PR falls back to the branch name.
+          if [[ "$pr" != "0" ]]; then
+            prefix="pr-$pr"
+          else
+            prefix="branch-${GITHUB_REF_NAME//\//-}"
+          fi
+          echo "tag=${prefix}-${timestamp}-${sha7}" >> "$GITHUB_OUTPUT"
       - name: Extract metadata (tags, labels)
         if: github.event_name == 'push'
         id: meta
@@ -106,7 +125,12 @@ jobs:
             # The raw tag name (vX.Y.Z): the state branches pin this exact
             # tag, and type=semver would strip the leading v (0.1.0).
             type=ref,event=tag
+            # Kept: the infra re-pin resolves the image by commit sha.
             type=sha,prefix=sha-
+            # Rich tag: pr-<id>-<timestamp>-<sha7> (or branch-<name>-... for a
+            # direct push) — one identifiable build per pushed image, the same
+            # shape as the /deploy-test builds.
+            type=raw,value=${{ steps.tag.outputs.tag }}
 
       - name: Push the image to GHCR
         if: github.event_name == 'push'
@@ -155,7 +179,7 @@ jobs:
               .replace("/main", "");
             const sha = context.sha;
             const short = sha.slice(0, 7);
-            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:sha-${short}`;
+            const image = `ghcr.io/merlin-pinpin-org/kingdoms-services:${{ needs.build.outputs.rich_tag }}`;
             await github.rest.repos.createDispatchEvent({
               owner: "merlin-pinpin-org",
               repo: "kingdoms-infra",
