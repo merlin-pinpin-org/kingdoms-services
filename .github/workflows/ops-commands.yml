@@ -251,8 +251,9 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           WF: ${{ needs.execute.outputs.workflow }}
           ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+          SINCE: ${{ github.event.comment.created_at }}
         run: |
-          since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          since="${SINCE}"
           deadline=$(( SECONDS + 600 ))
           run_id=""
           while (( SECONDS < deadline )); do
