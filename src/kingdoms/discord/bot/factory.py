@@ -157,6 +157,7 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.state_service: StateService | None = None
+        self.kingdoms_service: KingdomsService | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -471,6 +472,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
     kingdoms_service = _build_kingdoms_service(resolved)
+    bot.kingdoms_service = kingdoms_service
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
