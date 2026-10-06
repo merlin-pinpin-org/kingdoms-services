@@ -26,8 +26,23 @@ from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://aoe-api.worldsedgelink.com"
-LOBBIES_PATH = "/community/advertisement/findAdvertisements"
+LOBBIES_PATH = "/game/advertisement/findObservableAdvertisements"
 LEADERBOARDS_PATH = "/api/leaderboard"
+LOBBIES_QUERY_PARAMS = {
+    "appBinaryChecksum": "0",
+    "callNum": "0",
+    "count": "50",
+    "dataChecksum": "0",
+    "desc": "1",
+    "matchType_id": "0",
+    "modDLLChecksum": "0",
+    "modDLLFile": "INVALID",
+    "modName": "INVALID",
+    "modVersion": "INVALID",
+    "sortOrder": "1",
+    "start": "0",
+    "versionFlags": "56950784",
+}
 LEADERBOARD_KEYS = {"0": "rm_1v1", "1": "rm_team", "2": "unranked", "3": "dm_1v1", "4": "dm_team"}
 
 _SLOT_KINDS = {True: "human", False: "open"}
@@ -67,7 +82,10 @@ class LibrematchAdapter:
             logger.warning("librematch call over rate budget; degrading to empty lobby list")
             return []
         async with httpx.AsyncClient(timeout=self._timeout_s, transport=self._transport) as client:
-            reply = await client.get(urljoin(self._base_url + "/", LOBBIES_PATH.lstrip("/")))
+            reply = await client.get(
+                urljoin(self._base_url + "/", LOBBIES_PATH.lstrip("/")),
+                params=LOBBIES_QUERY_PARAMS,
+            )
             reply.raise_for_status()
             payload = reply.json()
         items = payload if isinstance(payload, list) else payload.get("result", [])
