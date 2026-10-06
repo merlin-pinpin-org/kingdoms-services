@@ -45,7 +45,7 @@ on:
       - "src/kingdoms/ext_librematch/**"
       - "src/kingdoms/ext_aoe2lobby/**"
       - "src/kingdoms/core/games/aoe2/blobs.py"
-      - "scripts/provider_probe.py"
+      - ".github/workflows/scripts/provider_probe.py"
       - ".github/workflows/provider-probe.yml"
   push:
     branches: [main]
@@ -53,7 +53,7 @@ on:
       - "src/kingdoms/ext_librematch/**"
       - "src/kingdoms/ext_aoe2lobby/**"
       - "src/kingdoms/core/games/aoe2/blobs.py"
-      - "scripts/provider_probe.py"
+      - ".github/workflows/scripts/provider_probe.py"
       - ".github/workflows/provider-probe.yml"
 
 permissions:
