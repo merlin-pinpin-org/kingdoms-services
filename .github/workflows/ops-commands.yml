@@ -134,6 +134,8 @@ jobs:
     name: Dispatch to kingdoms-infra
     needs: [authorize, gate]
     runs-on: ubuntu-latest
+    outputs:
+      workflow: ${{ steps.route.outputs.workflow }}
     steps:
       - name: Mint the kingdoms-deployer App token
         id: app-token
@@ -145,6 +147,7 @@ jobs:
           repositories: kingdoms-infra
 
       - name: Route the command
+        id: route
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -209,3 +212,112 @@ jobs:
                 -f environment="$ENVIRONMENT"
               ;;
           esac
+      - name: Record the dispatched workflow for the reporter
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+        run: |
+          case "$COMMAND" in
+            logs)          WF="env-logs.yml" ;;
+            restart|start|stop|status) WF="env-control.yml" ;;
+            dump-db)       WF="db-daily-dump.yml" ;;
+            *)             WF="" ;;
+          esac
+          echo "workflow=${WF}" >> "$GITHUB_OUTPUT"
+  report:
+    name: Report the result back on the PR
+    needs: [authorize, gate, execute]
+    if: needs.execute.outputs.workflow != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    outputs:
+      run_url: ${{ steps.wait.outputs.run_url }}
+      conclusion: ${{ steps.wait.outputs.conclusion }}
+    steps:
+      - name: Mint the kingdoms-deployer App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.KINGDOMS_DEPLOYER_APP_ID }}
+          private-key: ${{ secrets.KINGDOMS_DEPLOYER_APP_PRIVATE_KEY }}
+          owner: merlin-pinpin-org
+          repositories: kingdoms-infra,kingdoms-services
+      - name: Wait for the environment workflow to finish
+        id: wait
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          WF: ${{ needs.execute.outputs.workflow }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+        run: |
+          since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          deadline=$(( SECONDS + 600 ))
+          run_id=""
+          while (( SECONDS < deadline )); do
+            run_id="$(gh run list --repo merlin-pinpin-org/kingdoms-infra \
+              --workflow "$WF" --branch "deploy/$ENVIRONMENT" --limit 5 \
+              --json databaseId,status,conclusion,createdAt \
+              --jq "[.[] | select(.createdAt >= \"$since\")] | .[0] // empty" || true)"
+            [[ -n "$run_id" ]] && break
+            sleep 10
+          done
+          [[ -n "$run_id" ]] || { echo "conclusion=not_found" >> "$GITHUB_OUTPUT"; exit 0; }
+          rid="$(echo "$run_id" | python3 -c 'import json,sys; print(json.load(sys.stdin)["databaseId"])')"
+          gh run watch "$rid" --repo merlin-pinpin-org/kingdoms-infra --exit-status > /dev/null 2>&1 || true
+          conclusion="$(gh run view "$rid" --repo merlin-pinpin-org/kingdoms-infra --json conclusion --jq .conclusion)"
+          echo "run_url=https://github.com/merlin-pinpin-org/kingdoms-infra/actions/runs/$rid" >> "$GITHUB_OUTPUT"
+          echo "run_id=$rid" >> "$GITHUB_OUTPUT"
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+      - name: Collect the result payload (logs excerpt or control dump)
+        id: payload
+        if: steps.wait.outputs.conclusion != '' && steps.wait.outputs.conclusion != 'not_found'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+          RUN_ID: ${{ steps.wait.outputs.run_id }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+        run: |
+          if [[ "$COMMAND" == "logs" ]]; then
+            artifact_name="$(gh api repos/merlin-pinpin-org/kingdoms-infra/actions/runs/$RUN_ID/artifacts --jq '.artifacts[0].name' 2>/dev/null || true)"
+            if [[ -n "$artifact_name" ]]; then
+              mkdir -p /tmp/envlogs && cd /tmp/envlogs
+              gh api "repos/merlin-pinpin-org/kingdoms-infra/actions/artifacts/$(gh api repos/merlin-pinpin-org/kingdoms-infra/actions/runs/$RUN_ID/artifacts --jq '.artifacts[0].id')" -H 'Accept: application/vnd.github+json' > artifact.zip
+              unzip -o artifact.zip logs.txt >/dev/null
+              echo '```' > excerpt.txt
+              tail -n 40 logs.txt >> excerpt.txt
+              echo '```' >> excerpt.txt
+              echo "excerpt<<EOF" >> "$GITHUB_OUTPUT"
+              cat excerpt.txt >> "$GITHUB_OUTPUT"
+              echo "EOF" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - name: Post the result on the PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+          ENVIRONMENT: ${{ needs.authorize.outputs.environment }}
+          ALIAS: ${{ needs.gate.outputs.alias }}
+          RUN_URL: ${{ steps.wait.outputs.run_url }}
+          CONCLUSION: ${{ steps.wait.outputs.conclusion }}
+          EXCERPT: ${{ steps.payload.outputs.excerpt }}
+          THREAD: ${{ github.event.issue.number }}
+        run: |
+          icon="✅"; [[ "$CONCLUSION" == "success" ]] || icon="❌"
+          if [[ "$CONCLUSION" == "not_found" ]]; then
+            {
+              echo "⚠️ /$COMMAND on $ENVIRONMENT — dispatched but the run could not be located."
+              echo "Check kingdoms-infra actions for workflow $RUN_URL."
+            } > /tmp/report.md
+          else
+            {
+              echo "$icon **/$COMMAND on $ENVIRONMENT** — $CONCLUSION."
+              echo "Full run: $RUN_URL"
+              if [[ "$COMMAND" == "logs" && -n "$EXCERPT" ]]; then
+                echo ""
+                echo "Last lines (full dump in the run's private artifact):"
+                printf '%s\n' "$EXCERPT"
+              fi
+            } > /tmp/report.md
+          fi
+          gh pr comment "$THREAD" --repo merlin-pinpin-org/kingdoms-services --body-file /tmp/report.md
