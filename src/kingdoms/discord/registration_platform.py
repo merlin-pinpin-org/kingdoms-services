@@ -44,6 +44,13 @@ class MongoRegistrationDatabase:
         )
         return dict(doc) if doc is not None else None
 
+    async def delete_binding(self, game_key: str, user_id: str, profile_id: str) -> bool:
+        """Drop one profile binding; True when one existed."""
+        result = await self._database[PROFILE_BINDINGS_COLLECTION].delete_one(
+            {"_id": f"binding:{game_key}:{user_id}:{profile_id}"}
+        )
+        return bool(result.deleted_count > 0)
+
     async def list_bindings_for_game(self, game_key: str) -> list[dict[str, Any]]:
         """List every profile binding of a game (live dashboard reuse, #147)."""
         cursor = self._database[PROFILE_BINDINGS_COLLECTION].find({"game_key": game_key})

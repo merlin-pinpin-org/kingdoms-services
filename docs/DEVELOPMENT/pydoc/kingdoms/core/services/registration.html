@@ -316,6 +316,8 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#RegistrationSer
 Methods defined here:<br>
 <dl><dt><a name="RegistrationDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
+<dl><dt>async <a name="RegistrationDatabase-delete_binding"><strong>delete_binding</strong></a>(self, game_key: 'str', user_id: 'str', profile_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;profile&nbsp;binding;&nbsp;True&nbsp;when&nbsp;one&nbsp;existed.</span></dd></dl>
+
 <dl><dt>async <a name="RegistrationDatabase-find_binding_by_profile"><strong>find_binding_by_profile</strong></a>(self, game_key: 'str', profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;binding&nbsp;owning&nbsp;a&nbsp;profile;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
@@ -344,7 +346,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_binding_by_profile', 'find_entry', 'find_user_bindings', 'upsert_entry'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_binding', 'find_binding_by_profile', 'find_entry', 'find_user_bindings', 'upsert_entry'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -438,13 +440,21 @@ Bind&nbsp;platform&nbsp;users&nbsp;to&nbsp;validated&nbsp;game&nbsp;profiles&nbs
 Validation&nbsp;is&nbsp;delegated&nbsp;to&nbsp;the&nbsp;game&nbsp;seam;&nbsp;a&nbsp;profile&nbsp;already&nbsp;bound<br>
 to&nbsp;another&nbsp;user&nbsp;is&nbsp;refused.&nbsp;The&nbsp;binding&nbsp;is&nbsp;stored&nbsp;game-side.</span></dd></dl>
 
-<dl><dt>async <a name="RegistrationService-get_binding"><strong>get_binding</strong></a>(self, user_id: 'str', game_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;binding&nbsp;for&nbsp;a&nbsp;game;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
+<dl><dt>async <a name="RegistrationService-get_binding"><strong>get_binding</strong></a>(self, user_id: 'str', game_key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;first&nbsp;binding&nbsp;for&nbsp;a&nbsp;game;&nbsp;None&nbsp;when&nbsp;unbound.<br>
+&nbsp;<br>
+Multiple&nbsp;profiles&nbsp;per&nbsp;game&nbsp;are&nbsp;supported;&nbsp;callers&nbsp;that&nbsp;need&nbsp;them<br>
+all&nbsp;use&nbsp;``list_bindings_for_game``/``list_bindings``.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationService-has_any_profile"><strong>has_any_profile</strong></a>(self, user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ladder&nbsp;join&nbsp;precondition:&nbsp;at&nbsp;least&nbsp;one&nbsp;linked&nbsp;game&nbsp;profile.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationService-list_bindings"><strong>list_bindings</strong></a>(self, user_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;all&nbsp;of&nbsp;a&nbsp;user's&nbsp;game-profile&nbsp;bindings.</span></dd></dl>
 
 <dl><dt>async <a name="RegistrationService-request_enrollment"><strong>request_enrollment</strong></a>(self, user_id: 'str', guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;an&nbsp;enrollment&nbsp;request&nbsp;and&nbsp;notify&nbsp;admins&nbsp;(acceptance&nbsp;is&nbsp;admin-side).</span></dd></dl>
+
+<dl><dt>async <a name="RegistrationService-unlink_profile"><strong>unlink_profile</strong></a>(self, user_id: 'str', game_key: 'str', profile_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;one&nbsp;profile&nbsp;binding;&nbsp;True&nbsp;when&nbsp;one&nbsp;existed.<br>
+&nbsp;<br>
+Multi-profile&nbsp;by&nbsp;design:&nbsp;a&nbsp;user&nbsp;may&nbsp;hold&nbsp;several&nbsp;bindings&nbsp;per<br>
+game;&nbsp;unlinking&nbsp;one&nbsp;never&nbsp;touches&nbsp;the&nbsp;others.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

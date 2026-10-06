@@ -38,6 +38,10 @@ class RegistrationDatabase(Protocol):
         """Return the binding owning a profile; None when unbound."""
         ...
 
+    async def delete_binding(self, game_key: str, user_id: str, profile_id: str) -> bool:
+        """Drop one profile binding; True when one existed."""
+        ...
+
 
 class GameProfileSeam(Protocol):
     """Game-side validation seam (games/aoe2 adapter implements this)."""
@@ -104,7 +108,7 @@ class RegistrationService:
         if owner is not None and owner.get("user_id") != user_id:
             raise ProfileBoundError(f"profile {profile_id!r} is already bound to {owner.get('user_id')!r}")
         binding = {
-            "_id": f"binding:{game_key}:{user_id}",
+            "_id": f"binding:{game_key}:{user_id}:{profile_id}",
             "user_id": user_id,
             "game_key": game_key,
             "profile_id": profile_id,
@@ -116,12 +120,33 @@ class RegistrationService:
         return binding
 
     async def get_binding(self, user_id: str, game_key: str) -> dict[str, Any] | None:
-        """Return the user's binding for a game; None when unbound."""
-        return await self._db.find_entry(PROFILE_BINDINGS_COLLECTION, f"binding:{game_key}:{user_id}")
+        """Return the user's first binding for a game; None when unbound.
+
+        Multiple profiles per game are supported; callers that need them
+        all use ``list_bindings_for_game``/``list_bindings``.
+        """
+        bindings = await self._db.find_user_bindings(user_id)
+        for binding in bindings:
+            if binding.get("game_key") == game_key:
+                return binding
+        return None
 
     async def list_bindings(self, user_id: str) -> list[dict[str, Any]]:
         """List all of a user's game-profile bindings."""
         return await self._db.find_user_bindings(user_id)
+
+    async def unlink_profile(self, user_id: str, game_key: str, profile_id: str) -> bool:
+        """Remove one profile binding; True when one existed.
+
+        Multi-profile by design: a user may hold several bindings per
+        game; unlinking one never touches the others.
+        """
+        removed = await self._db.delete_binding(game_key, user_id, profile_id)
+        if removed:
+            await self._audit_record(
+                "profile.unbind", {"user_id": user_id, "game_key": game_key, "profile_id": profile_id}
+            )
+        return removed
 
     async def has_any_profile(self, user_id: str) -> bool:
         """Ladder join precondition: at least one linked game profile."""

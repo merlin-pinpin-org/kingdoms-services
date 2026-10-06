@@ -100,32 +100,39 @@ def register_live_commands(
         if interaction.user.id is None or profile_id.strip() == "":
             await interaction.response.send_message("A profile id is required.", ephemeral=True)
             return
+        profile = profile_id.strip()
         binding = {
-            "_id": f"binding:aoe2:{interaction.user.id}",
+            "_id": f"binding:aoe2:{interaction.user.id}:{profile}",
             "user_id": str(interaction.user.id),
             "game_key": "aoe2",
-            "profile_id": profile_id.strip(),
+            "profile_id": profile,
             "bound_at": int(_now_ms()),
         }
         db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
         await db.replace_one({"_id": binding["_id"]}, binding, upsert=True)
         await interaction.response.send_message(
-            f"Linked profile `{profile_id.strip()}` to <@{interaction.user.id}> — the dashboard will show it.",
+            f"Linked profile `{profile}` to <@{interaction.user.id}> — the dashboard will show it. "
+            "Link more profiles by running /game-link again.",
             ephemeral=True,
         )
 
     @tree.command(
         name=localized("commands.game_unlink_name", "game-unlink"),
-        description=localized("commands.game_unlink_description", "Unlink your AoE2 profile from your account"),
+        description=localized("commands.game_unlink_description", "Unlink one of your AoE2 profiles"),
     )
-    async def game_unlink_command(interaction: discord.Interaction) -> None:
-        """Remove the invoker's AoE2 profile link."""
+    @app_commands.describe(profile_id="The AoE2 profile id to unlink")
+    async def game_unlink_command(interaction: discord.Interaction, profile_id: str) -> None:
+        """Remove one of the invoker's AoE2 profile links."""
         from kingdoms.core.models.db import get_async_database
         from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
 
+        profile = profile_id.strip()
         db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
-        await db.delete_one({"_id": f"binding:aoe2:{interaction.user.id}"})
-        await interaction.response.send_message("Profile link removed.", ephemeral=True)
+        removed = await db.delete_one({"_id": f"binding:aoe2:{interaction.user.id}:{profile}"})
+        if removed and removed.deleted_count > 0:
+            await interaction.response.send_message(f"Profile `{profile}` unlinked.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"No link found for profile `{profile}`.", ephemeral=True)
 
 
 def _locale(interaction: discord.Interaction) -> str:

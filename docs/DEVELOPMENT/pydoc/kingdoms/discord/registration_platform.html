@@ -77,6 +77,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;RegistrationService&nbsp;
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="MongoRegistrationDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(``get_async_database``).</span></dd></dl>
 
+<dl><dt>async <a name="MongoRegistrationDatabase-delete_binding"><strong>delete_binding</strong></a>(self, game_key: 'str', user_id: 'str', profile_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;one&nbsp;profile&nbsp;binding;&nbsp;True&nbsp;when&nbsp;one&nbsp;existed.</span></dd></dl>
+
 <dl><dt>async <a name="MongoRegistrationDatabase-find_binding_by_profile"><strong>find_binding_by_profile</strong></a>(self, game_key: 'str', profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;binding&nbsp;owning&nbsp;a&nbsp;profile;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
 
 <dl><dt>async <a name="MongoRegistrationDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>

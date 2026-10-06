@@ -518,6 +518,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     if ladder_wiring is not None:
         register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
         bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
+        from kingdoms.discord.admin_panel_ladder import register_ladder_admin_section
+
+        register_ladder_admin_section()
     return bot
 
 

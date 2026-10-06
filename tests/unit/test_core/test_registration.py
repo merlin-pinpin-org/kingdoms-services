@@ -42,6 +42,11 @@ class FakeRegistrationDatabase:
                 return d
         return None
 
+    async def delete_binding(self, game_key: str, user_id: str, profile_id: str) -> bool:
+        return self._collection(PROFILE_BINDINGS_COLLECTION).pop(
+            f"binding:{game_key}:{user_id}:{profile_id}", None
+        ) is not None
+
 
 class FakeProfileSeam:
     """Game seam validating a fixed set of profile ids."""
@@ -78,7 +83,7 @@ async def test_bind_profile_stores_game_side() -> None:
     binding = await svc.bind_profile("user:1", "aoe2", "123456")
     assert binding["profile_id"] == "123456"
     assert binding["profile"]["display_name"] == "player-123456"
-    assert await db.find_entry(PROFILE_BINDINGS_COLLECTION, "binding:aoe2:user:1") is not None
+    assert await db.find_entry(PROFILE_BINDINGS_COLLECTION, "binding:aoe2:user:1:123456") is not None
 
 
 @pytest.mark.asyncio
@@ -209,3 +214,34 @@ async def test_workflow_with_engine_roundtrip() -> None:
     assert state.status == WorkflowStatus.COMPLETED
     assert await svc.has_any_profile("user:7") is True
     await engine.stop()
+
+
+@pytest.mark.asyncio
+async def test_multiple_profiles_per_game() -> None:
+    """A user may bind several profiles to the same game (#133 multi-profile)."""
+    svc, _db, _ = _env(valid={"123456", "654321", "111111"})
+    first = await svc.bind_profile("user:1", "aoe2", "123456")
+    second = await svc.bind_profile("user:1", "aoe2", "654321")
+    assert first["_id"] != second["_id"], "each profile gets its own binding"
+    bindings = await svc.list_bindings("user:1")
+    assert {b["profile_id"] for b in bindings} == {"123456", "654321"}
+
+
+@pytest.mark.asyncio
+async def test_unlink_one_profile_keeps_the_others() -> None:
+    """Unlinking one profile never touches the sibling bindings."""
+    svc, _, _ = _env(valid={"123456", "654321"})
+    await svc.bind_profile("user:1", "aoe2", "123456")
+    await svc.bind_profile("user:1", "aoe2", "654321")
+    removed = await svc.unlink_profile("user:1", "aoe2", "123456")
+    assert removed is True
+    bindings = await svc.list_bindings("user:1")
+    assert [b["profile_id"] for b in bindings] == ["654321"]
+    assert await svc.has_any_profile("user:1") is True
+
+
+@pytest.mark.asyncio
+async def test_unlink_unknown_profile_returns_false() -> None:
+    """Unlinking a profile that was never bound is a no-op (idempotent)."""
+    svc, _, _ = _env()
+    assert await svc.unlink_profile("user:1", "aoe2", "123456") is False

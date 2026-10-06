@@ -63,9 +63,9 @@ async def test_mongo_registration_database_bindings() -> None:
     adapter = MongoRegistrationDatabase(db)
     await adapter.upsert_entry(
         "profile_bindings",
-        {"_id": "binding:aoe2:10", "user_id": "10", "game_key": "aoe2", "profile_id": "A1"},
+        {"_id": "binding:aoe2:10:A1", "user_id": "10", "game_key": "aoe2", "profile_id": "A1"},
     )
-    assert await adapter.find_entry("profile_bindings", "binding:aoe2:10") is not None
+    assert await adapter.find_entry("profile_bindings", "binding:aoe2:10:A1") is not None
     assert await adapter.find_binding_by_profile("aoe2", "A1") is not None
     assert await adapter.find_binding_by_profile("aoe2", "ZZZ") is None
     bindings = await adapter.find_user_bindings("10")

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.admin_panel_ladder</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.admin_panel_ladder</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/admin_panel_ladder.py">SOURCE_ROOT/discord/admin_panel_ladder.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;ladder&nbsp;mod's&nbsp;admin&nbsp;section,&nbsp;registered&nbsp;into&nbsp;the&nbsp;/admin&nbsp;panel&nbsp;(#133).<br>
+&nbsp;<br>
+The&nbsp;section&nbsp;renders&nbsp;the&nbsp;ladder's&nbsp;admin&nbsp;surface&nbsp;in&nbsp;the&nbsp;panel's&nbsp;Mods<br>
+select:&nbsp;the&nbsp;current&nbsp;ladder&nbsp;(name,&nbsp;game,&nbsp;rating&nbsp;system,&nbsp;queue&nbsp;depth),<br>
+its&nbsp;settings&nbsp;snapshot,&nbsp;and&nbsp;the&nbsp;admin&nbsp;actions&nbsp;wired&nbsp;to&nbsp;the&nbsp;domain<br>
+services&nbsp;—&nbsp;settings&nbsp;update,&nbsp;rating&nbsp;adjustment,&nbsp;rating&nbsp;reset,&nbsp;match<br>
+cancellation&nbsp;(with&nbsp;compensation).&nbsp;Every&nbsp;action&nbsp;goes&nbsp;through<br>
+``LadderAdminService``/``AdminToolsService``&nbsp;(validated&nbsp;+&nbsp;audited,<br>
+§9.5/§9.6);&nbsp;the&nbsp;section&nbsp;only&nbsp;renders&nbsp;and&nbsp;collects&nbsp;input&nbsp;—&nbsp;the&nbsp;click<br>
+guards&nbsp;stay&nbsp;the&nbsp;panel's&nbsp;(admins&nbsp;only,&nbsp;at&nbsp;click&nbsp;time).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-ladder_admin_entry"><strong>ladder_admin_entry</strong></a>(interaction: 'discord.Interaction') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;ladder&nbsp;admin&nbsp;section's&nbsp;view&nbsp;(read-only&nbsp;snapshot&nbsp;first).</span></dd></dl>
+ <dl><dt><a name="-register_ladder_admin_section"><strong>register_ladder_admin_section</strong></a>() -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;ladder&nbsp;section&nbsp;into&nbsp;the&nbsp;/admin&nbsp;panel&nbsp;(idempotent).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MOD_KEY</strong> = 'ladder'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ladder.admin_panel (WARNING)&gt;</td></tr></table>
+</body></html>
