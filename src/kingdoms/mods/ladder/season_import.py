@@ -27,9 +27,9 @@ from typing import Any
 
 from kingdoms.core.games.aoe2.seed import MongoAoE2Database, seed_aoe2
 from kingdoms.core.services.game_data import GameDataService
+from kingdoms.core.services.identity_import import import_identity_links
 from kingdoms.core.services.season import SeasonService
 from kingdoms.mods.ladder.legacy_import import import_legacy, load_matches
-from kingdoms.mods.ladder.profile_links_import import import_profile_links
 from kingdoms.mods.ladder.service import LadderService
 
 SEASON_STATE_ACTIVE = "active"
@@ -117,13 +117,13 @@ async def import_season(
             rotations += 1
 
 
-    links_report = await import_profile_links(database, ladder_id, users_csv)
+    links_report = await import_identity_links(database, users_csv, game_key)
     legacy_report = await import_legacy(database, ladder_id, matches_csv)
 
     return SeasonImportReport(
         seed=seed_result,
         players=legacy_report.players,
-        linked_profiles=links_report.linked_profiles,
+        linked_profiles=links_report.bindings,
         matches=legacy_report.matches,
         rating_history_entries=legacy_report.rating_history_entries,
         rotations=rotations,
