@@ -71,8 +71,7 @@ class TestModDeclaration:
         }
         assert {r.key for r in kingdoms.roles} == {
             "kingdoms_king",
-   
-         "kingdoms_lord",
+            "kingdoms_lord",
             "kingdoms_admin",
         }
 
@@ -136,8 +135,7 @@ class TestSeasonConfig:
         season_file.parent.mkdir()
         season_file.write_text("kingdoms_count: -1\n")
         with pytest.raises(Exception, match="kingdoms_count"):
-  
-          load_season_config(tmp_path)
+            load_season_config(tmp_path)
 
 
 class TestSeasonModels:
@@ -201,8 +199,7 @@ class TestSeasonModels:
             _id="k-a",
             season_id="s1",
             tech_points=5,
-           
- purchases={},
+            purchases={},
         )
         assert tech.spend("corruption", 4, limit=1) is True
         assert tech.tech_points == 1

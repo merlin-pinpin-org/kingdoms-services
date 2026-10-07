@@ -66,8 +66,7 @@ class MapEntry(BaseModel):
     cadastre: dict[str, Any] = Field(default_factory=dict)
 
 
-clas
-s Epoch(BaseModel):
+class Epoch(BaseModel):
     """One age of the season (reference §15, decision D18)."""
 
     model_config = ConfigDict(strict=True)
@@ -128,8 +127,7 @@ class AttackSettings(BaseModel):
     gaia_attack_delay_hours: int = Field(default=3, ge=0)
     gaia_attack_max_per_kingdom: int = Field(default=1, ge=1)
     gaia_attack_max_total: int = Field(default=7, ge=1)
-    gaia_max_partic
-ipants: int = Field(default=7, ge=1)
+    gaia_max_participants: int = Field(default=7, ge=1)
     no_defense_outcome: str = Field(default="auto_victory")
     """D8: what happens when no defender answers in the delay.
 
@@ -256,8 +254,7 @@ class ParishSettings(BaseModel):
 class KingdomsSeasonConfig(BaseModel):
     """Full season configuration.
 
-    Reference 
-§27: configuration data, persisted across seasons and
+    Reference §27: configuration data, persisted across seasons and
     modifiable by the admin.
     """
 
@@ -304,8 +301,7 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
         _map("babel", "Babel"),
         _map("black-forest", "Black Forest", water=True),
         _map("cenotes", "Cenotes", water=True, open=True),
-        _m
-ap("continental", "Continental", water=True),
+        _map("continental", "Continental", water=True),
         _map("crater-lake", "Crater Lake", water=True, lakes=True),
         _map("fortress", "Fortress", start_wall=True),
         _map("ghost-lake", "Ghost Lake", lakes=True, open=True),
@@ -332,7 +328,8 @@ def default_season_config() -> KingdomsSeasonConfig:
         ages=(
             Epoch(key="dark_age", display_name="Âge sombre", gaia_ai_level=2, tech_points=0, extra_marriages=1),
             Epoch(key="feudal_age", display_name="Âge féodal", gaia_ai_level=3, tech_points=1, extra_marriages=1),
-            Epoch(key="castle_age", display_name="Âge des châteaux", gaia_ai_level=4, tech_points=2, extra_marriages=1)  # D57 — crescendo 2→3→4→5,
+            # D57 — gaia crescendo across the ages: 2→3→4→5
+            Epoch(key="castle_age", display_name="Âge des châteaux", gaia_ai_level=4, tech_points=2, extra_marriages=1),
             Epoch(key="imperial_age", display_name="Âge impérial", gaia_ai_level=5, tech_points=2, extra_marriages=1),
         ),
     )
@@ -345,8 +342,7 @@ def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
     playable with no local overrides). An invalid override raises: a
     broken config must fail loudly, never load half-validated.
     """
-    season_file = co
-nfig_dir / "kingdoms" / SEASON_CONFIG_FILENAME
+    season_file = config_dir / "kingdoms" / SEASON_CONFIG_FILENAME
     if not season_file.is_file():
         return default_season_config()
     with open(season_file, encoding="utf-8") as fh:
