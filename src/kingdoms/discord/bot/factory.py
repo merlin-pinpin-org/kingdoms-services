@@ -644,7 +644,7 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
 def _build_kingdoms_economy_service(
     config: BotConfig,
     kingdoms_service: KingdomsService,
-) -> "EconomyService | None":
+) -> EconomyService | None:
     """Wire the economy bundle behind the Marché panel.
 
     The EconomyService needs the territories and attacks services; all

@@ -718,6 +718,12 @@ class MockMessage(discord.Message):
 
     async def delete(self, *, delay: float | None = None) -> None:
         self.deleted = True  # type: ignore[attr-defined]
+        messages = getattr(self.channel, "messages", None)
+        if isinstance(messages, list):
+            try:
+                messages.remove(self)
+            except ValueError:
+                pass
 
     @property
     def edited(self) -> bool:

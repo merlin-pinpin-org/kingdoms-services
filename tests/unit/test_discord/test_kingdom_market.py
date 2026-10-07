@@ -12,7 +12,6 @@ from kingdoms.discord.kingdom_market import (
 )
 from kingdoms.discord.kingdom_persistent import KingdomsPanelWiring, register_kingdoms_panel_wiring
 from kingdoms.mods.kingdoms.config import default_season_config
-
 from tests.mocks.discord_mock import (
     MockInteraction,
     MockMember,
@@ -123,7 +122,7 @@ async def test_deploy_market_panel_replaces_the_stale_message() -> None:
     """A stale marked panel is deleted; exactly one panel remains."""
     channel = MockTextChannel(name="marché")
     channel.messages.append(
-        MockMessage(content=f"old\n-# {MARKET_PANEL_MARKER}", view=None)
+        MockMessage(content=f"old\n-# {MARKET_PANEL_MARKER}", view=None, channel=channel)
     )
     kingdoms = _kingdoms(kingdoms=[_FakeKingdom("Aquitaine", 5)])
     assert await deploy_market_panel(channel, kingdoms, "fr") is True

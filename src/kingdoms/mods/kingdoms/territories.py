@@ -136,7 +136,7 @@ class TerritoryService:
         converges to the same bonus-map count.
         """
         season = await self._require_season()
-        kingdom = await self._find_player_kingdom(kingdom_id)
+        await self._find_player_kingdom(kingdom_id)
         existing = await self.territories()
         counts = self._count_by_kingdom(existing)
         per_kingdom = self._config.territories_per_kingdom
@@ -166,6 +166,8 @@ class TerritoryService:
         the same number of bonus maps (non-empty cadastre effects); the
         rest is drawn neutrally, pure random.
         """
+        if not missing:
+            return []
         created: list[TerritoryModel] = []
         bonus_available = sum(1 for key in pool if self._map_cadastre(key))
         share = len(pool) // len(missing)
@@ -211,7 +213,7 @@ class TerritoryService:
         return kingdom
 
     async def _bonus_parity_target(self, existing: list[TerritoryModel]) -> int:
-        """The bonus-map count the completed player kingdoms converged to."""
+        """Return the bonus-map count the completed kingdoms converged to."""
         counts = [
             sum(
                 1
@@ -271,7 +273,7 @@ class TerritoryService:
         return counts
 
     def _map_cadastre(self, map_key: str) -> bool:
-        """True when the catalog entry carries cadastre effects (a bonus map)."""
+        """Report whether the entry carries cadastre effects (a bonus map)."""
         entry = next((entry for entry in self._config.maps if entry.key == map_key), None)
         return entry is not None and bool(entry.cadastre)
 

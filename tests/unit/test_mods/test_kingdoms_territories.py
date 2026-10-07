@@ -119,7 +119,7 @@ async def test_draw_after_launch_is_an_idempotent_noop() -> None:
 async def test_initial_draw_fails_atomically_when_catalog_too_small() -> None:
     """§7: a too-small catalog aborts the launch cleanly, nothing persists."""
     config = _tiny_config(["arabia", "arena"])
-    service, kingdoms, store = _services(config)
+    _service, kingdoms, store = _services(config)
     with pytest.raises(MapPoolExhaustedError) as excinfo:
         await kingdoms.launch(["Aquitaine", "Bourgogne"])
     assert excinfo.value.missing == 1  # 3 wanted, 2 in catalog
