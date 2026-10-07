@@ -1,6 +1,6 @@
-"""The /kingdoms-admin command group — unit tests on the registered tree.
+"""The /kingdom-admin command group — unit tests on the registered tree.
 
-The registration contract: one guild-only ``kingdoms-admin`` group,
+The registration contract: one guild-only ``kingdom-admin`` group,
 administrator-gated at Discord's click time, carrying the six T2 admin
 subcommands, and no cross-instance leakage.
 """
@@ -30,7 +30,7 @@ def _build_tree() -> tuple[discord.Client, app_commands.CommandTree[discord.Clie
 
 async def test_register_adds_the_admin_group() -> None:
     client, tree = _build_tree()
-    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms-admin")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdom-admin")
     assert isinstance(group, app_commands.Group)
     assert group.guild_only is True
     assert group.default_permissions is not None
@@ -40,7 +40,7 @@ async def test_register_adds_the_admin_group() -> None:
 
 async def test_the_six_admin_subcommands_are_registered() -> None:
     client, tree = _build_tree()
-    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms-admin")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdom-admin")
     assert isinstance(group, app_commands.Group)
     names = {cmd.name for cmd in group.commands}
     assert names == set(EXPECTED_SUBCOMMANDS)
