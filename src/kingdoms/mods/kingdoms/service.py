@@ -171,12 +171,10 @@ class KingdomsService:
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
         return season
 
-
     async def _draw_territories(
         self, kingdom_id: str | None = None, *, seed: int | None = None
     ) -> None:
-        """Draw the initial territories at launch, or top up one kingdom
-        created after the launch (free-founding mode) — bonus-parity rule."""
+        """Draw the initial territories, or top up one late kingdom."""
         from kingdoms.mods.kingdoms.territories import TerritoryService
 
         territories = TerritoryService(self._store, self._config, self)
