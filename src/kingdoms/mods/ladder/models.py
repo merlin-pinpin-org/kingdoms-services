@@ -74,6 +74,7 @@ class LadderSettingsModel(BaseModel):
     elo_max_loss: int = 40
     player_fav_count: int = 3
     player_ban_count: int = 2
+    pick_strategy: str = "weighted"
     random_ban_count: int = 2
     match_surface_cleanup_delay: int = 300
     auto_confirm_system_report: bool = True

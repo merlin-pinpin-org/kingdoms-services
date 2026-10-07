@@ -426,18 +426,25 @@ class LadderService:
         pool = await self._game_data.get_map_pool(pool_id)
         if pool is None:
             raise MapPoolError(f"active map pool {pool_id!r} not found")
-        candidates = [
-            mid
-            for mid in await self._game_data.resolve_pool_map_ids(pool)
-            if mid not in set(match.host.ban_map_ids) | set(match.guest.ban_map_ids)
-        ]
+        candidates = tuple(await self._game_data.resolve_pool_map_ids(pool))
         if not candidates:
-            raise MapPoolError("every pool map is banned for this match")
-        weights = []
-        for mid in candidates:
-            favs = (match.host.fav_map_ids + match.guest.fav_map_ids).count(mid)
-            weights.append(1 + favs)
-        map_id = self._rng.choices(candidates, weights=weights, k=1)[0]
+            raise MapPoolError(f"ladder {match.ladder_id!r} has an empty map pool")
+        from kingdoms.mods.ladder.pick_strategies import PickContext, resolve_pick_strategy
+
+        strategy = resolve_pick_strategy(ladder.settings.pick_strategy)
+        try:
+            map_id = strategy.pick(
+                PickContext(
+                    candidates=candidates,
+                    host_favs=match.host.fav_map_ids,
+                    host_bans=match.host.ban_map_ids,
+                    guest_favs=match.guest.fav_map_ids,
+                    guest_bans=match.guest.ban_map_ids,
+                    rng=self._rng,
+                )
+            )
+        except ValueError as error:
+            raise MapPoolError(str(error)) from error
         map_entry = await self._game_data.get_map(map_id)
         snapshot = {"name": map_entry.name if map_entry else "", "filename": map_entry.filename if map_entry else ""}
         for user_id in (match.host.user_id, match.guest.user_id):
