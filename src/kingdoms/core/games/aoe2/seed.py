@@ -66,6 +66,11 @@ class MongoAoE2Database:
         cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
         return [doc async for doc in cursor]
 
+    async def find_active_map_pools(self, game_key: str) -> list[dict[str, Any]]:
+        """List the non-archived map pools for a game."""
+        cursor = self._database[collection_name("map_pools")].find({"game_key": game_key, "archived_at": None})
+        return [doc async for doc in cursor]
+
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
         """List the pool activation history of a ladder (ascending)."""
         cursor = (

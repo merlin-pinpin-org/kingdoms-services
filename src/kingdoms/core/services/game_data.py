@@ -65,6 +65,10 @@ class GameDataDatabase(Protocol):
         """List the non-archived maps for a game."""
         ...
 
+    async def find_active_map_pools(self, game_key: str) -> list[dict[str, Any]]:
+        """List the non-archived map pools for a game."""
+        ...
+
     async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
         """List the non-archived civs for a game."""
         ...
@@ -135,6 +139,11 @@ class GameDataService:
         """List the non-archived maps of a game."""
         docs = await self._db.find_active_maps(game_key)
         return [MapModel.from_mongo(d) for d in docs]
+
+    async def list_map_pools(self, game_key: str) -> list[MapPoolModel]:
+        """List the non-archived map pools of a game."""
+        docs = await self._db.find_active_map_pools(game_key)
+        return [MapPoolModel.from_mongo(d) for d in docs]
 
     async def archive_map(self, entry_id: str) -> MapModel:
         """Archive a map (archival-only delete)."""

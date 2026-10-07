@@ -2,17 +2,21 @@
 
 The section renders the ladder's admin surface in the panel's Mods
 select: the current ladder (name, game, rating system, queue depth),
-its settings snapshot, and the admin actions wired to the domain
-services — settings update, rating adjustment, rating reset, match
-cancellation (with compensation). Every action goes through
-``LadderAdminService``/``AdminToolsService`` (validated + audited,
-§9.5/§9.6); the section only renders and collects input — the click
-guards stay the panel's (admins only, at click time).
+its settings, its seasons and its active map pool - plus the admin
+config actions (settings modal, season create/activate, pool switch).
+Every mutation goes through the domain services (validated + audited,
+reference 9.5/9.6); the section only renders and collects input - the
+click guards stay the panel's (admins only, at click time).
+
+Namespace discipline: every component here rides
+``admin:pin:mod:ladder:`` - one custom_id, one dispatch path, restart
+proof, no captured state. Every sub-view carries the back button.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import discord
@@ -23,6 +27,9 @@ from kingdoms.discord.ladder_commands import build_ladder_wiring
 logger = logging.getLogger("kingdoms.ladder.admin_panel")
 
 MOD_KEY = "ladder"
+_NS = "admin:pin:mod:ladder"
+GAME_KEY = "aoe2"
+LADDERS_COLLECTION = "ladders"
 
 
 def _now_ms() -> int:
@@ -32,58 +39,588 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+async def _resolve_ladder(interaction: discord.Interaction, wiring: Any) -> dict[str, Any] | None:
+    """Resolve the guild's ladder the same way the commands do."""
+    service = wiring.service
+    ladder_id = getattr(interaction.client, "_ladder_id", None)
+    if ladder_id:
+        found: dict[str, Any] | None = await service._db.find_entry(LADDERS_COLLECTION, ladder_id)
+        if found is not None:
+            return found
+    guild_ref = str(interaction.guild_id) if interaction.guild_id else "guild:default"
+    for owner in (f"guild:{interaction.guild_id}", guild_ref, "guild:default", "default"):
+        found2: dict[str, Any] | None = await service._db.find_ladder_by_owner(owner, GAME_KEY)
+        if found2 is not None:
+            return found2
+    return None
+
+
+async def _resolved_ladder_id(interaction: discord.Interaction, wiring: Any) -> str:
+    """Resolve the guild's ladder id (bot config first, owner fallback)."""
+    ladder = await _resolve_ladder(interaction, wiring)
+    return str(ladder["_id"]) if ladder else ""
+
+
+def _client_ladder_id(interaction: discord.Interaction) -> str:
+    """Return the bot's configured default ladder id (no await needed)."""
+    return str(getattr(interaction.client, "_ladder_id", "") or "")
+
+
+def _back_row() -> discord.ui.ActionRow[discord.ui.LayoutView]:
+    """Build the back row every sub-view carries (main menu return)."""
+    from kingdoms.discord.admin_panel_dynamic import PinBackButton
+
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(PinBackButton(label="Retour"))
+    return row
+
+
+def _selected_values(interaction: discord.Interaction) -> list[str]:
+    """Read a select interaction's chosen values (payload-shape proof)."""
+    data = interaction.data
+    raw = getattr(data, "values", None) if data is not None else None
+    if raw is None and isinstance(data, dict):
+        raw = data.get("values")
+    return list(raw) if isinstance(raw, (list, tuple)) else []
+
+
 async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
-    """Render the ladder admin section's view (read-only snapshot first)."""
+    """Render the ladder admin section's view (snapshot + config actions)."""
     wiring = build_ladder_wiring()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# 🏆 Ladder admin")]
+    blocks: list[Any] = [discord.ui.TextDisplay("# Ladder admin")]
     if wiring is None:
-        blocks.append(discord.ui.TextDisplay("Ladder wiring unavailable: Mongo/Redis not configured on this process."))
+        blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible : Mongo/Redis ne sont pas configurés."))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        view.add_item(_back_row())
         return view
 
-    service = wiring.service
-    guild_ref = str(interaction.guild_id) if interaction.guild_id else "guild:default"
-    ladder = None
-    for owner in (f"guild:{interaction.guild_id}", guild_ref, "guild:default", "default"):
-        found = await service._db.find_ladder_by_owner(owner, "aoe2")
-        if found is not None:
-            ladder = found
-            break
+    ladder = await _resolve_ladder(interaction, wiring)
     if ladder is None:
-        blocks.append(discord.ui.TextDisplay("No ladder exists for this guild yet — seed one first."))
+        blocks.append(discord.ui.TextDisplay("Aucun ladder pour ce guild - seed d'abord."))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        view.add_item(_back_row())
         return view
 
+    ladder_id = str(ladder["_id"])
     settings = ladder.get("settings", {})
-    players = await service._db.find_ladder_players(str(ladder["_id"]))
+    players = await wiring.service._db.find_ladder_players(ladder_id)
     in_queue = sum(1 for p in players if p.get("in_queue"))
+    seasons = await wiring.season_service.list_seasons(ladder_id) if wiring.season_service else []
+    active = await wiring.season_service.get_active_season(ladder_id) if wiring.season_service else None
+    pools = await wiring.game_data.list_map_pools(GAME_KEY)
+    active_pool = next((p for p in pools if p.id == ladder.get("active_map_pool_id")), None)
+
+    season_lines = []
+    for s in seasons[-5:]:
+        marker = "actif" if s.id == (active.id if active else "") else s.state
+        season_lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id}")
     blocks.extend(
         [
             discord.ui.Separator(),
-            discord.ui.TextDisplay(f"**{ladder.get('name', '?')}** — game `{ladder.get('game_key', 'aoe2')}`"),
             discord.ui.TextDisplay(
-                f"Rating system: `{settings.get('rating_system', 'elo')}` · "
-                f"Players: {len(players)} · In queue: {in_queue}"
+                f"**{ladder.get('name', '?')}** - jeu `{ladder.get('game_key', GAME_KEY)}`\n"
+                f"Rating : `{settings.get('rating_system', 'elo')}` - "
+                f"Joueurs : {len(players)} - En file : {in_queue}"
             ),
-            discord.ui.Separator(),
             discord.ui.TextDisplay(
-                "### Settings\n"
-                f"- base ELO: {settings.get('base_elo', '?')} · initial: {settings.get('elo_initial', '?')} · "
-                f"floor: {settings.get('elo_floor', '?')}\n"
-                f"- K standard/newbie: {settings.get('elo_k_standard', '?')}/{settings.get('elo_k_newbie', '?')}\n"
-                f"- rating threshold: {settings.get('base_elo_threshold', '?')} "
-                f"(max {settings.get('elo_threshold_max', '?')})"
-            ),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(
-                "_Actions run through the audited admin services_ "
-                "(`update_settings`, `adjust_rating`, `reset_ratings`, `cancel_match_with_compensation`) "
-                "— use the modals from the ladder commands."
+                f"**Pool actif** : {active_pool.name if active_pool else '-'}\n"
+                + ("\n".join(season_lines) if season_lines else "_Aucune saison_")
             ),
         ]
     )
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(LadderSettingsButton(ladder_id))
+    actions.add_item(LadderSeasonButton(ladder_id))
+    actions.add_item(LadderPoolButton(ladder_id))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    view.add_item(actions)
+    view.add_item(_back_row())
+    return view
+
+
+class LadderSettingsButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:settings",
+):
+    """Open the ladder settings modal (admins only, guarded at click time)."""
+
+    def __init__(self, ladder_id: str = "") -> None:
+        self.ladder_id = ladder_id
+        super().__init__(
+            discord.ui.Button(
+                label="Parametres",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:settings",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSettingsButton:
+        """Rebuild the item from the wire (state read at click time)."""
+        return cls(_client_ladder_id(interaction))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the click: resolve, read the ladder, open the modal."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        ladder_id = self.ladder_id or await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        ladder = await wiring.service.get_ladder(ladder_id)
+        if ladder is None:
+            await interaction.response.send_message("Ladder introuvable.", ephemeral=True)
+            return
+        s = ladder.settings
+        await interaction.response.send_modal(
+            LadderSettingsModal(
+                ladder_id,
+                name=ladder.name,
+                rating=s.rating_system,
+                base=s.elo_initial,
+                floor=s.elo_floor,
+                k_std=s.elo_k_standard,
+                k_new=s.elo_k_newbie,
+                threshold=s.base_elo_threshold,
+                ready=s.ready_timeout,
+            )
+        )
+
+
+class LadderSettingsModal(discord.ui.Modal):
+    """The ladder settings form: name, rating method and core knobs."""
+
+    def __init__(
+        self,
+        ladder_id: str,
+        name: str,
+        rating: str,
+        base: int,
+        floor: int,
+        k_std: int,
+        k_new: int,
+        threshold: int,
+        ready: int,
+    ) -> None:
+        self.ladder_id = ladder_id
+        super().__init__(title="Parametres du ladder", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom", default=name, max_length=100, required=True
+        )
+        self.rating: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Methode de ranking (elo / glicko2)", default=rating, max_length=16, required=True
+        )
+        self.base: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="ELO initial", default=str(base), max_length=8
+        )
+        self.floor: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="ELO floor", default=str(floor), max_length=8
+        )
+        self.k_std: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="K standard", default=str(k_std), max_length=8
+        )
+        self.k_new: discord.ui.TextInput[Any] = discord.ui.TextInput(label="K newbie", default=str(k_new), max_length=8)
+        self.threshold: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Seuil de matching (base)", default=str(threshold), max_length=8
+        )
+        self.ready: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Timeout ready (s)", default=str(ready), max_length=8
+        )
+        for item in (
+            self.name,
+            self.rating,
+            self.base,
+            self.floor,
+            self.k_std,
+            self.k_new,
+            self.threshold,
+            self.ready,
+        ):
+            self.add_item(item)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Handle the form submission: validate, persist, confirm."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        service = wiring.service
+        ladder = await service.get_ladder(self.ladder_id)
+        if ladder is None:
+            await interaction.response.send_message("Ladder introuvable.", ephemeral=True)
+            return
+        try:
+            updates: dict[str, Any] = {
+                "name": str(self.name.value).strip() or ladder.name,
+                "rating_system": str(self.rating.value).strip().lower() or ladder.settings.rating_system,
+                "elo_initial": int(self.base.value or ladder.settings.elo_initial),
+                "elo_floor": int(self.floor.value or ladder.settings.elo_floor),
+                "elo_k_standard": int(self.k_std.value or ladder.settings.elo_k_standard),
+                "elo_k_newbie": int(self.k_new.value or ladder.settings.elo_k_newbie),
+                "base_elo_threshold": int(self.threshold.value or ladder.settings.base_elo_threshold),
+                "ready_timeout": int(self.ready.value or ladder.settings.ready_timeout),
+            }
+        except ValueError:
+            await interaction.response.send_message(
+                "Valeurs invalides : les nombres doivent etre entiers.", ephemeral=True
+            )
+            return
+        merged = {**ladder.settings.model_dump(), **updates}
+        settings_model = type(ladder.settings)
+        updated = ladder.model_copy(update={"name": updates["name"], "settings": settings_model(**merged)})
+        await service._db.upsert_entry(LADDERS_COLLECTION, updated.to_mongo())
+        await service._audit_record("ladder.settings.update", {"ladder_id": self.ladder_id, "fields": sorted(updates)})
+        await interaction.response.send_message(
+            f"Parametres enregistres - `{updated.name}` (`{updated.settings.rating_system}`).",
+            ephemeral=True,
+        )
+
+
+class LadderSeasonButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:seasons",
+):
+    """Open the seasons sub-view (list + create/activate)."""
+
+    def __init__(self, ladder_id: str = "") -> None:
+        self.ladder_id = ladder_id
+        super().__init__(
+            discord.ui.Button(
+                label="Saisons",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:seasons",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonButton:
+        """Rebuild the item from the wire (state read at click time)."""
+        return cls(_client_ladder_id(interaction))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the click: resolve the ladder, show the seasons view."""
+        wiring = build_ladder_wiring()
+        ladder_id = self.ladder_id
+        if wiring is not None and not ladder_id:
+            ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        await interaction.response.edit_message(view=await seasons_view(ladder_id))
+
+
+class LadderSeasonCreateButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:seasons:create",
+):
+    """Open the season-creation modal."""
+
+    def __init__(self, ladder_id: str = "") -> None:
+        self.ladder_id = ladder_id
+        super().__init__(
+            discord.ui.Button(
+                label="Creer une saison",
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_NS}:seasons:create",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonCreateButton:
+        """Rebuild the item from the wire (state read at click time)."""
+        return cls(_client_ladder_id(interaction))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the click: resolve the ladder, open the modal."""
+        wiring = build_ladder_wiring()
+        ladder_id = self.ladder_id
+        if wiring is not None and not ladder_id:
+            ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        await interaction.response.send_modal(LadderSeasonModal(ladder_id))
+
+
+class LadderSeasonModal(discord.ui.Modal):
+    """The season-creation form: name, pool, window, rating reset."""
+
+    def __init__(self, ladder_id: str) -> None:
+        self.ladder_id = ladder_id
+        super().__init__(title="Creer une saison", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom (ex. s2)", max_length=32, required=True)
+        self.pool: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Map pool id", max_length=100, required=True)
+        self.days: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Duree (jours)", default="90", max_length=5)
+        self.reset: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Reset des ratings (oui/non)", default="non", max_length=5
+        )
+        self.add_item(self.name)
+        self.add_item(self.pool)
+        self.add_item(self.days)
+        self.add_item(self.reset)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Handle the form submission: validate, create, confirm."""
+        wiring = build_ladder_wiring()
+        if wiring is None or wiring.season_service is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        now = _now_ms()
+        try:
+            days = int(self.days.value or "90")
+        except ValueError:
+            await interaction.response.send_message("Duree invalide.", ephemeral=True)
+            return
+        reset = str(self.reset.value or "").strip().lower() in {"oui", "yes", "true", "1"}
+        try:
+            season = await wiring.season_service.create_season(
+                self.ladder_id,
+                str(self.name.value).strip(),
+                str(self.pool.value).strip(),
+                start_at=now,
+                end_at=now + days * 86_400_000,
+                reset_ratings=reset,
+            )
+        except Exception:
+            logger.exception("LADDER ADMIN: season creation failed")
+            await interaction.response.send_message("Creation echouee (voir les logs).", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            f"Saison **{season.name}** creee (`{season.id}`) - active-la depuis la liste.",
+            ephemeral=True,
+        )
+
+
+class LadderSeasonActivateSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:seasons:activate",
+):
+    """Activate a season of the ladder (transactional pool switch)."""
+
+    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:seasons:activate",
+                options=options or [discord.SelectOption(label="Aucune saison", value="none")],
+                placeholder="Activer une saison...",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonActivateSelect:
+        """Rebuild the select's options from the wire at click time."""
+        wiring = build_ladder_wiring()
+        options: list[discord.SelectOption] = []
+        if wiring is not None and wiring.season_service is not None:
+            ladder = await _resolve_ladder(interaction, wiring)
+            if ladder is not None:
+                seasons = await wiring.season_service.list_seasons(str(ladder["_id"]))
+                options = [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+        return cls(options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the selection: activate the chosen season."""
+        wiring = build_ladder_wiring()
+        if wiring is None or wiring.season_service is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        chosen = (_selected_values(interaction) or [""])[0]
+        if not chosen or chosen == "none":
+            await interaction.response.defer()
+            return
+        try:
+            season = await wiring.season_service.activate_season(chosen, _now_ms())
+        except Exception:
+            logger.exception("LADDER ADMIN: season activation failed")
+            await interaction.response.send_message("Activation echouee (voir les logs).", ephemeral=True)
+            return
+        await interaction.response.send_message(f"Saison **{season.name}** activee.", ephemeral=True)
+
+
+class LadderPoolButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pool",
+):
+    """Open the map-pool sub-view (list + switch)."""
+
+    def __init__(self, ladder_id: str = "") -> None:
+        self.ladder_id = ladder_id
+        super().__init__(
+            discord.ui.Button(
+                label="Map pool",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:pool",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPoolButton:
+        """Rebuild the item from the wire (state read at click time)."""
+        return cls(_client_ladder_id(interaction))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the click: show the map-pool view."""
+        wiring = build_ladder_wiring()
+        ladder_id = self.ladder_id
+        if wiring is not None and not ladder_id:
+            ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        await interaction.response.edit_message(view=await pools_view(ladder_id))
+
+
+class LadderPoolSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pool:set",
+):
+    """Switch the ladder's active map pool."""
+
+    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:pool:set",
+                options=options or [discord.SelectOption(label="Aucun pool", value="none")],
+                placeholder="Pool actif...",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPoolSelect:
+        """Rebuild the select's options from the wire at click time."""
+        wiring = build_ladder_wiring()
+        options: list[discord.SelectOption] = []
+        if wiring is not None:
+            pools = await wiring.game_data.list_map_pools(GAME_KEY)
+            options = [discord.SelectOption(label=p.name, value=p.id) for p in pools[:25]]
+        return cls(options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle the selection: switch the active pool."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        chosen = (_selected_values(interaction) or [""])[0]
+        if not chosen or chosen == "none":
+            await interaction.response.defer()
+            return
+        ladder = await _resolve_ladder(interaction, wiring)
+        if ladder is None:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        try:
+            await wiring.service.set_active_pool(str(ladder["_id"]), chosen)
+        except Exception:
+            logger.exception("LADDER ADMIN: pool switch failed")
+            await interaction.response.send_message("Switch echoue (voir les logs).", ephemeral=True)
+            return
+        pool = await wiring.game_data.get_map_pool(chosen)
+        await interaction.response.send_message(
+            f"Pool actif : **{pool.name if pool else chosen}**.",
+            ephemeral=True,
+        )
+
+
+async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
+    """Build the seasons sub-view: list, create, activate - back included."""
+    wiring = build_ladder_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay("# Saisons du ladder")]
+    if wiring is None or wiring.season_service is None:
+        blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        view.add_item(_back_row())
+        return view
+    seasons = await wiring.season_service.list_seasons(ladder_id)
+    active = await wiring.season_service.get_active_season(ladder_id)
+    if not seasons:
+        blocks.append(discord.ui.TextDisplay("_Aucune saison - cree la premiere._"))
+    else:
+        lines = []
+        for s in seasons[-10:]:
+            marker = "active" if s.id == (active.id if active else "") else s.state
+            lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id}")
+        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+    view.add_item(discord.ui.Container(*blocks))
+    select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    select_row.add_item(
+        LadderSeasonActivateSelect(
+            [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+        )
+    )
+    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    action_row.add_item(LadderSeasonCreateButton(ladder_id))
+    view.add_item(select_row)
+    view.add_item(action_row)
+    view.add_item(_back_row())
+    return view
+
+
+async def pools_view(ladder_id: str) -> discord.ui.LayoutView:
+    """Build the map-pool sub-view: switch the active pool - back included."""
+    wiring = build_ladder_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay("# Map pool du ladder")]
+    if wiring is None:
+        blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        view.add_item(_back_row())
+        return view
+    pools = await wiring.game_data.list_map_pools(GAME_KEY)
+    active_id = None
+    ladder = await wiring.service.get_ladder(ladder_id)
+    if ladder is not None:
+        active_id = ladder.active_map_pool_id
+    if not pools:
+        blocks.append(discord.ui.TextDisplay("_Aucun pool - seed les donnees de jeu._"))
+    else:
+        lines = [f"- {p.name} ({p.id})" + (" [actif]" if p.id == active_id else "") for p in pools[:15]]
+        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+    view.add_item(discord.ui.Container(*blocks))
+    select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    select_row.add_item(LadderPoolSelect([discord.SelectOption(label=p.name, value=p.id) for p in pools[:25]]))
+    view.add_item(select_row)
+    view.add_item(_back_row())
     return view
 
 
@@ -96,4 +633,16 @@ def register_ladder_admin_section() -> None:
             description="Ladder settings, ratings and matches",
             entry=ladder_admin_entry,
         )
+    )
+
+
+def register_ladder_admin_items(bot: discord.Client) -> None:
+    """Register the section's DynamicItems (called at every startup)."""
+    bot.add_dynamic_items(
+        LadderSettingsButton,
+        LadderSeasonButton,
+        LadderSeasonCreateButton,
+        LadderSeasonActivateSelect,
+        LadderPoolButton,
+        LadderPoolSelect,
     )

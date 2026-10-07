@@ -566,9 +566,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         bot.season_service = ladder_wiring.season_service
         bot._ladder_id = f"ladder:aoe2:{_ladder_owner_ref(resolved)}"
         bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
-        from kingdoms.discord.admin_panel_ladder import register_ladder_admin_section
+        from kingdoms.discord.admin_panel_ladder import register_ladder_admin_items, register_ladder_admin_section
 
         register_ladder_admin_section()
+        register_ladder_admin_items(bot)
     return bot
 
 
