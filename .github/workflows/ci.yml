@@ -60,7 +60,20 @@ jobs:
       - name: Run pytest
         run: |
           uv sync
-          uv run pytest
+          set +e
+          set -o pipefail
+          uv run pytest -q --tb=short 2>&1 | tee pytest.log
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            grep -E '^(FAILED|ERROR) ' pytest.log | head -n 15 | while IFS= read -r l; do
+              echo "::error title=pytest failure::$l"
+            done
+            awk '/= FAILURES =/{f=1} f{print}' pytest.log | grep -E '^(tests/|src/|E |>|assert|KeyError|AttributeError|TypeError|ValueError)' | head -n 30 | while IFS= read -r l; do
+              l="${l:0:220}"
+              echo "::error title=pytest detail::$l"
+            done
+            exit 1
+          fi
 
   cli-doctor:
     # kingdoms-services#188: the `kingdoms` CLI is the front door for
