@@ -758,17 +758,22 @@ async def build_settings_panel(
     buttons = (
         ("launch", "launch_button", discord.ButtonStyle.success),
         ("status", "status_button", discord.ButtonStyle.secondary),
-        ("deploy", "deploy_button", discord.ButtonStyle.primary),
-        ("sync", "sync_button", discord.ButtonStyle.secondary),
-        ("reset", "reset_salons_button", discord.ButtonStyle.danger),
         ("assign", "assign_button", discord.ButtonStyle.primary),
         ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
+        ("replace", "replace_button", discord.ButtonStyle.primary),
+        ("name", "name_button", discord.ButtonStyle.secondary),
+        ("deploy", "deploy_button", discord.ButtonStyle.primary),
+        ("sync", "sync_button", discord.ButtonStyle.secondary),
+        ("reset-data", "reset_data_button", discord.ButtonStyle.danger),
+        ("reset-full", "reset_full_button", discord.ButtonStyle.danger),
+        ("reset", "reset_salons_button", discord.ButtonStyle.danger),
     )
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    roster_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 5 else maintenance_row
+        target = season_row if index < 5 else roster_row if index < 7 else maintenance_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
@@ -778,6 +783,7 @@ async def build_settings_panel(
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
             season_row,
+            roster_row,
             maintenance_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),

@@ -490,7 +490,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
-    from kingdoms.discord.kingdoms_admin import register_kingdoms_admin_command
     from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
@@ -500,9 +499,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
+    # Panel-only admin surface (product decision): every season admin
+    # action lives on the persistent Parametres panel buttons (launch,
+    # assign, replace, name decision, status, resets) — the /kingdom-admin
+    # group stays unregistered so /kingdom is the only visible command.
     register_kingdoms_command(bot.tree, service=kingdoms_service)
-    if kingdoms_service is not None:
-        register_kingdoms_admin_command(bot.tree, kingdoms_service, status.bot_admins, roles_service)
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved)
     bot.registration_engine = registration_engine
@@ -615,8 +616,8 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
     """Wire the Mongo store + season config into KingdomsService.
 
     Returns None when Mongo is not configured (unit tests, local runs):
-    the /kingdoms screens degrade to their no-season placeholders and
-    the /kingdom-admin group stays unregistered.
+    the /kingdom screens degrade to their no-season placeholders and
+    the admin panel buttons answer "no service".
     """
     if not config.mongo_uri:
         return None
