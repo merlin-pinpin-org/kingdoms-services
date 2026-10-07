@@ -280,8 +280,93 @@ async def maps_admin_view(game_key: str) -> discord.ui.LayoutView:
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     select_row.add_item(GamesMapArchiveSelect(game_key))
     view.add_item(select_row)
+    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    action_row.add_item(GamesMapCreateButton(game_key))
+    view.add_item(action_row)
     view.add_item(GamesMapsBackButton(game_key))
     return view
+
+
+class GamesMapCreateButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:maps:create:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the map-creation modal; the map lands in the maps forum."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="+ Map", style=discord.ButtonStyle.success, custom_id=f"{_NS}:maps:create:{game_key}"[:100]
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesMapCreateButton:
+        """Rebuild the item from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard the click, then open the creation modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.send_modal(GamesMapCreateModal(self.game_key))
+
+
+class GamesMapCreateModal(discord.ui.Modal):
+    """The map-creation form: name, filename, description."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(title="Creer une map", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom de la map", max_length=64, required=True
+        )
+        self.filename: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Fichier (nom de fichier rms/txt)", max_length=128, required=False
+        )
+        self.description: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Description", max_length=256, required=False
+        )
+        self.add_item(self.name)
+        self.add_item(self.filename)
+        self.add_item(self.description)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Create the map through the service, confirm."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        name = str(self.name.value or "").strip()
+        if not name:
+            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
+            return
+        try:
+            entry = await service.create_map(
+                self.game_key,
+                name,
+                filename=str(self.filename.value or "").strip() or name,
+                description=str(self.description.value or "").strip(),
+            )
+        except Exception:
+            logger.exception("GAMES ADMIN: map creation failed")
+            await interaction.response.send_message(
+                "Creation echouee (nom deja pris ? voir les logs).", ephemeral=True
+            )
+            return
+        await interaction.response.send_message(
+            f"Map **{entry.name}** creee - elle apparaitra dans le forum maps.", ephemeral=True
+        )
 
 
 class GamesMapArchiveSelect(
@@ -874,6 +959,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapsBackButton,
         GamesPoolsBackButton,
         GamesMapArchiveSelect,
+        GamesMapCreateButton,
         GamesPoolCreateButton,
         GamesPoolEditSelect,
         GamesPoolRenameButton,

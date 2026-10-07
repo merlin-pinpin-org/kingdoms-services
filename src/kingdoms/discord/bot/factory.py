@@ -155,6 +155,7 @@ class KingdomsBot(discord.Client):
         self._live_dashboard_task: asyncio.Future[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
         self._pools_forum_task: asyncio.Task[None] | None = None
+        self._ladder_admin_pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
@@ -234,6 +235,15 @@ class KingdomsBot(discord.Client):
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
                 self._pools_forum_task = start_pools_forum_sync(self)
+            from kingdoms.discord.ladder_admin_channel import (
+                build_ladder_admin_channel_service,
+                maintain_pinned_ladder_admin_menus,
+            )
+            self.ladder_admin_channel_service = build_ladder_admin_channel_service(
+                self, self.config.mongo_uri, self.config.redis_uri
+            )
+            if self.ladder_admin_channel_service is not None:
+                self._ladder_admin_pin_task = asyncio.create_task(maintain_pinned_ladder_admin_menus(self))
             if ladder_channels_wiring_ready():
                 self._ladder_channels_task = start_ladder_channels_sync(self)
         self._live_dashboard_task = _start_live_dashboard(self)
@@ -471,6 +481,8 @@ class KingdomsBot(discord.Client):
             self._maps_forum_task.cancel()
         if self._pools_forum_task is not None:
             self._pools_forum_task.cancel()
+        if self._ladder_admin_pin_task is not None:
+            self._ladder_admin_pin_task.cancel()
         if self._ladder_channels_task is not None:
             self._ladder_channels_task.cancel()
         await super().close()
