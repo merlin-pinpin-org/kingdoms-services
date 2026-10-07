@@ -191,6 +191,13 @@ class ModAdminChannelPlatform:
             ),
             reason=f"kingdoms: {self._spec.mod} admin channel bot access",
         )
+        from kingdoms.discord.pinned_views import get_pinned_read_only
+
+        read_only = True
+        try:
+            read_only = await get_pinned_read_only(guild_id, f"mod:{self._spec.mod}:admin")
+        except Exception:
+            read_only = True
         await channel.set_permissions(
             guild.default_role,
             overwrite=discord.PermissionOverwrite(view_channel=False),
@@ -203,7 +210,7 @@ class ModAdminChannelPlatform:
             await channel.set_permissions(
                 role,
                 overwrite=discord.PermissionOverwrite(
-                    view_channel=True, read_message_history=True, send_messages=True
+                    view_channel=True, read_message_history=True, send_messages=not read_only
                 ),
                 reason=f"kingdoms: {self._spec.mod} admin channel staff access",
             )

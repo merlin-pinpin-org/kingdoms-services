@@ -203,18 +203,10 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
         await _report(wiring, interaction, exc)
         await _fail(interaction, "Language change failed")
         return
-    from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+    from kingdoms.discord.pinned_views import refresh_registered_pins
 
-    locale = await _locale_of(wiring, guild_id)
-    await interaction.edit_original_response(
-        view=await build_pin_main_menu(
-            logs_service,
-            guild_id,
-            wiring.catalog,
-            locale,
-            wiring.admin_channel_service,
-        )
-    )
+    await refresh_registered_pins(guild_id)
+    await _fail(interaction, "Language updated")
     await _resync_guild_commands(interaction, guild_id)
 
 
@@ -390,22 +382,75 @@ async def _handle_back(interaction: discord.Interaction) -> None:
     )
 
 
+async def _handle_read_only(interaction: discord.Interaction) -> None:
+    """Persist the read-only intent, re-apply it, refresh the pins."""
+    wiring = await _require_wiring(interaction)
+    if wiring is None:
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+    if not guild_id:
+        await _degrade(interaction, "Admin panel unavailable")
+        return
+    values = await _chosen_values(interaction)
+    if not values or values[0] == "none":
+        await interaction.response.defer()
+        return
+    read_only = not values[0].endswith(":open")
+    category = values[0].removesuffix(":open").removesuffix(":locked")
+    await interaction.response.defer()
+    if not await _guard(interaction, wiring):
+        return
+    from kingdoms.discord.pinned_views import refresh_registered_pins, set_pinned_read_only
+
+    logs = wiring.logs_service
+    db = getattr(logs, "_db", None) if logs is not None else None
+    await set_pinned_read_only(guild_id, category, read_only, db=db)
+    await refresh_registered_pins(guild_id)
+
+
+async def _handle_roles(interaction: discord.Interaction) -> None:
+    """Show the roles view ephemerally (core roles + mod-declared roles)."""
+    wiring = await _require_wiring(interaction)
+    if wiring is None:
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+    if not guild_id:
+        await _degrade(interaction, "Admin panel unavailable")
+        return
+    if not await _guard(interaction, wiring):
+        return
+    from kingdoms.discord.admin_roles import build_roles_view
+
+    view = await build_roles_view(interaction, wiring)
+    try:
+        await interaction.response.send_message(view=view, ephemeral=True)
+    except Exception:
+        logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
+
+
+
 def register_admin_persistent_items(bot: discord.Client) -> None:
     """Register the pinned panel DynamicItems (called at every startup)."""
     from kingdoms.discord.admin_panel_dynamic import (
         PinBackButton,
         PinChannelMenu,
         PinLocaleSelect,
+        PinReadOnlySelect,
+        PinRolesButton,
         PinRouteSelect,
         PinVisibilitySelect,
+        set_panel_client,
     )
     from kingdoms.discord.admin_panel_mods import PinModRouteSelect
 
+    set_panel_client(bot)
     bot.add_dynamic_items(
         PinLocaleSelect,
         PinChannelMenu,
         PinVisibilitySelect,
         PinRouteSelect,
         PinBackButton,
+        PinReadOnlySelect,
+        PinRolesButton,
         PinModRouteSelect,
     )

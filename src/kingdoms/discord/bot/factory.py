@@ -225,6 +225,14 @@ class KingdomsBot(discord.Client):
         )
         self.tree.on_error = self.on_tree_error  # type: ignore[method-assign]
         await self.tree.set_translator(CatalogTranslator(self.messages))
+        from kingdoms.discord.pinned_views import set_settings_db_resolver
+
+        set_settings_db_resolver(
+            lambda: getattr(self.logs_service, "_db", None) if self.logs_service is not None else None
+        )
+        from kingdoms.discord.pin_refreshers import register_pin_refreshers
+
+        register_pin_refreshers(self)
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())

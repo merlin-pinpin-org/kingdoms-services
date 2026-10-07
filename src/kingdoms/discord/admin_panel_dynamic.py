@@ -60,10 +60,13 @@ __all__ = [
     "PIN_BACK_BUTTON_ID",
     "PIN_CHANNEL_MENU_ID",
     "PIN_LOCALE_SELECT_ID",
+    "PIN_ROLES_BUTTON_ID",
     "PIN_VISIBILITY_SELECT_ID",
     "PinBackButton",
     "PinChannelMenu",
     "PinLocaleSelect",
+    "PinReadOnlySelect",
+    "PinRolesButton",
     "PinRouteSelect",
     "PinVisibilitySelect",
     "build_pin_channel_menu",
@@ -75,11 +78,20 @@ PIN_LOCALE_SELECT_ID = "admin:pin:select:locale"
 PIN_CHANNEL_MENU_ID = "admin:pin:select:channel"
 PIN_VISIBILITY_SELECT_ID = "admin:pin:select:visibility"
 PIN_BACK_BUTTON_ID = "admin:pin:button:back"
+PIN_ROLES_BUTTON_ID = "admin:pin:button:roles"
+PIN_READ_ONLY_SELECT_ID = "admin:pin:select:read-only"
 
 
 def pin_route_id(category: str) -> str:
     """Return the routing select id of one managed-channel category."""
     return f"admin:pin:route:{category}"[:100]
+
+
+def _roles_row(label: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
+    """Wrap the roles button in its own ActionRow (Discord layout rule)."""
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(PinRolesButton(label))
+    return row
 
 
 def _select_row(item: discord.ui.DynamicItem[Any]) -> discord.ui.ActionRow[discord.ui.LayoutView]:
@@ -301,6 +313,113 @@ class PinBackButton(
         await _handle_back(interaction)
 
 
+class PinReadOnlySelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=r"admin:pin:select:read-only",
+):
+    """The pinned read-only toggle for one channel (default: read-only).
+
+    The managed options cover the core pinned channels plus every
+    mod-registered admin surface (the mod hook), addressed by their
+    stored channel category.
+    """
+
+    def __init__(self, options: list[discord.SelectOption], placeholder: str = "") -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=PIN_READ_ONLY_SELECT_ID,
+                options=options or [discord.SelectOption(label="-", value="none")],
+                placeholder=placeholder or None,
+            )
+        )
+
+    @classmethod
+    def read_only_options(cls) -> list[discord.SelectOption]:
+        """Build the option list: core pinned channels + mod hooks."""
+        options = [
+            discord.SelectOption(label="🗝 Kingdoms home", value="home"),
+            discord.SelectOption(label="🛡 Bot admins", value="admin"),
+        ]
+        seen: set[str] = set()
+        for spec in spec_registry_resolver().values():
+            key = f"mod:{spec.mod}:admin"
+            if key in seen:
+                continue
+            seen.add(key)
+            options.append(discord.SelectOption(label=f"🛡 {spec.mod} admin", value=key))
+        return options[:25]
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PinReadOnlySelect:
+        """Rebuild the select from the wire (generic options)."""
+        del interaction, item, match
+        return cls(cls.read_only_options())
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Apply the read-only intent through the persistent handler."""
+        from kingdoms.discord.admin_persistent import _handle_read_only
+
+        await _handle_read_only(interaction)
+
+
+_CLIENT_REF: list[discord.Client] = []
+
+
+def set_panel_client(client: discord.Client) -> None:
+    """Hold the running client (the mod-spec registry lives on it)."""
+    _CLIENT_REF.clear()
+    _CLIENT_REF.append(client)
+
+
+def spec_registry_resolver() -> dict[str, Any]:
+    """Resolve the registered mod specs from the running client."""
+    from kingdoms.discord.mod_admin_channels import spec_registry
+
+    if not _CLIENT_REF:
+        return {}
+    return spec_registry(_CLIENT_REF[0])
+
+
+class PinRolesButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"admin:pin:button:roles",
+):
+    """The pinned roles section opener (core roles + mod-declared roles)."""
+
+    def __init__(self, label: str = "Rôles") -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                style=discord.ButtonStyle.primary,
+                custom_id=PIN_ROLES_BUTTON_ID,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PinRolesButton:
+        """Rebuild the button from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show the roles view through the persistent handler."""
+        from kingdoms.discord.admin_persistent import _handle_roles
+
+        await _handle_roles(interaction)
+
+
 async def build_pin_main_menu(
     logs_service: LogService,
     guild_id: str,
@@ -333,6 +452,12 @@ async def build_pin_main_menu(
                 placeholder=_t(catalog, locale, "channels_placeholder"),
             )
         ),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay("## \U0001f512 Lecture seule (salons \u00e9pingl\u00e9s)"),
+        _select_row(PinReadOnlySelect(PinReadOnlySelect.read_only_options())),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay("## \U0001f9e9 R\u00f4les"),
+        _roles_row(_t(catalog, locale, "roles_button")),
     ]
     from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
 

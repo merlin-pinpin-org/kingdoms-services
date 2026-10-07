@@ -116,6 +116,7 @@ async def sync_ladder_channels(guild: Any, bot: Any) -> None:
     channels = await _season_channels(guild, bot, scope, season_name, suffix)
     if channels is None:
         return
+    await _apply_season_read_only(guild, channels, scope)
     await _ensure_pinned_home(guild, scope, channels)
     await _ensure_pinned_season_admin(guild, scope, channels)
     surface = _ladder_surface(wiring)
@@ -190,6 +191,20 @@ async def _season_channels(guild: Any, bot: Any, scope: str, season_name: str, s
         history=ids[salon_specs[3][0]],
         season_admin=ids[salon_specs[4][0]],
     )
+
+
+async def _apply_season_read_only(guild: Any, channels: _SeasonChannels, scope: str) -> None:
+    """Keep the season salons read-only (pinned surfaces; ids, never names)."""
+    from kingdoms.discord.pinned_views import apply_read_only_policy
+
+    for channel_id, category in (
+        (channels.home, f"ladder:home:{scope}"),
+        (channels.dashboard, f"ladder:dashboard:{scope}"),
+        (channels.leaderboard, f"ladder:leaderboard:{scope}"),
+        (channels.history, f"ladder:history:{scope}"),
+        (channels.season_admin, f"ladder:season-admin:{scope}"),
+    ):
+        await apply_read_only_policy(guild, _channel_by_id(guild, channel_id), category, str(guild.id))
 
 
 async def _channels_db() -> Any | None:

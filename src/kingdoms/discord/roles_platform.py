@@ -181,7 +181,18 @@ class DiscordAdminChannelPlatform:
         bot_overwrite = discord.PermissionOverwrite(
             view_channel=True, send_messages=True, read_message_history=True, manage_messages=True
         )
-        role_overwrite = discord.PermissionOverwrite(view_channel=True, read_message_history=True, send_messages=True)
+        from kingdoms.discord.pinned_views import get_pinned_read_only
+
+        read_only = True
+        try:
+            read_only = await get_pinned_read_only(guild_id, "admin")
+        except Exception:
+            read_only = True
+        role_overwrite = discord.PermissionOverwrite(
+            view_channel=True,
+            read_message_history=True,
+            send_messages=not read_only,
+        )
         everyone_overwrite = discord.PermissionOverwrite(view_channel=False)
         await channel.set_permissions(guild.me, overwrite=bot_overwrite, reason="kingdoms: admin channel bot access")
         await channel.set_permissions(

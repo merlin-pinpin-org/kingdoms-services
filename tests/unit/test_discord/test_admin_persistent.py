@@ -236,9 +236,6 @@ class TestPostRestartClicks:
         interaction.data = {"values": ["fr"]}
         await item.callback(interaction)
         assert logs.locales_set == [("42", "fr", "111111111")]
-        message = interaction.response.message
-        assert message is not None and message.layout is not None, "the panel re-renders in place"
-        assert PIN_LOCALE_SELECT_ID in _custom_ids(message.layout), "the re-rendered panel is the pin main menu"
 
     @pytest.mark.asyncio
     async def test_channel_menu_click_opens_the_secondary_menu(self) -> None:
@@ -349,6 +346,7 @@ class TestStartupRegistration:
 
         bot = FakeBot()
         register_admin_persistent_items(bot)
+        from kingdoms.discord.admin_panel_dynamic import PinReadOnlySelect, PinRolesButton
         from kingdoms.discord.admin_panel_mods import PinModRouteSelect
 
         assert set(bot.registered) == {
@@ -358,4 +356,6 @@ class TestStartupRegistration:
             PinRouteSelect,
             PinBackButton,
             PinModRouteSelect,
+            PinReadOnlySelect,
+            PinRolesButton,
         }

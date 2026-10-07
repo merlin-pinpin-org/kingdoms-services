@@ -54,7 +54,12 @@ class DiscordHomeChannelPlatform:
         return guild.get_channel(int(channel_id)) is not None
 
     async def apply_policy(self, guild_id: str, channel_id: str) -> None:
-        """Apply no restriction: the home is public."""
+        """Apply the pinned read-only default: public to read, closed to write."""
+        from kingdoms.discord.pinned_views import apply_read_only_policy
+
+        guild = await self._guild(guild_id)
+        channel = guild.get_channel(int(channel_id)) if guild and channel_id.isdigit() else None
+        await apply_read_only_policy(guild, channel, "home", guild_id)
 
     async def send_layout(self, guild_id: str, channel_id: str, layout: Any) -> str:
         """Send a layout (a discord.py view) to the channel; the message id."""

@@ -32,6 +32,31 @@ logger = logging.getLogger("kingdoms.ladder.admin_panel")
 MOD_KEY = "ladder"
 _NS = "admin:pin:modladder"
 GAME_KEY = "aoe2"
+
+
+def _catalog(interaction: discord.Interaction) -> Any:
+    """Resolve the message catalog through the running client."""
+    return getattr(getattr(interaction, "client", None), "messages", None)
+
+
+async def _locale(interaction: discord.Interaction) -> str:
+    """Read the guild's locale (en fallback)."""
+    logs = getattr(getattr(interaction, "client", None), "logs_service", None)
+    if logs is None:
+        return "en"
+    try:
+        guild_id = str(getattr(interaction, "guild_id", "") or "")
+        return await logs.get_locale(guild_id)
+    except Exception:
+        return "en"
+
+
+def _t(catalog: Any, locale: str, key: str, **kwargs: Any) -> str:
+    """Render a ladder admin catalog key with an English fallback."""
+    if catalog is None:
+        return key
+    return catalog.render(f"ladder.{key}", locale, **kwargs)
+
 LADDERS_COLLECTION = "ladders"
 
 
@@ -943,7 +968,11 @@ async def ladder_mod_admin_view(interaction: discord.Interaction) -> discord.ui.
     """
     wiring = build_ladder_wiring()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# \U0001f6e1 Ladder admin \u2014 saisons")]
+    blocks: list[Any] = [
+        discord.ui.TextDisplay(
+            f"# \U0001f6e1 {_t(_catalog(interaction), await _locale(interaction), 'admin_title_seasons')}"
+        )
+    ]
     if wiring is None or wiring.season_service is None:
         blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible : Mongo/Redis ne sont pas configur\u00e9s."))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -957,18 +986,25 @@ async def ladder_mod_admin_view(interaction: discord.Interaction) -> discord.ui.
     seasons = await wiring.season_service.list_seasons(ladder_id)
     active = await wiring.season_service.get_active_season(ladder_id)
     enrollments_open = bool(ladder.get("enrollments_open", True))
-    lines = [f"**Saison active** : {active.name if active else '_aucune_'}"]
+    catalog = _catalog(interaction)
+    locale = await _locale(interaction)
+    active_label = _t(catalog, locale, "season_active")
+    none_label = _t(catalog, locale, "season_none")
+    lines = [f"**{active_label}** : {active.name if active else '_' + none_label + '_'}"]
     recent = seasons[-5:]
     if recent:
-        lines.append("".join(
-            f"\n- {s.name} ({'active' if s.id == (active.id if active else '') else s.state})"
-            for s in recent
-        ))
+        active_id = active.id if active else ""
+        parts = []
+        for s in recent:
+            state_key = "season_state.active" if s.id == active_id else f"season_state.{s.state}"
+            parts.append(f"\n- {s.name} ({_t(catalog, locale, state_key)})")
+        lines.append("".join(parts))
     else:
-        lines.append("\n_Aucune saison \u2014 cr\u00e9e la premi\u00e8re._")
+        lines.append("\n_" + _t(catalog, locale, "season_empty") + "_")
     lines.append(
-        f"\nInscriptions : **{'ouvertes' if enrollments_open else 'fermees'}** \u2014 "
-        "les saisons sont cr\u00e9\u00e9es, activ\u00e9es et arr\u00eat\u00e9es ici."
+        f"\nInscriptions : **{_t(catalog, locale, 'enrollments_open' if enrollments_open else 'enrollments_closed')}**"
+        + " \u2014 "
+        + _t(catalog, locale, "season_list_hint")
     )
     blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
