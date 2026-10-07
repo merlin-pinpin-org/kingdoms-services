@@ -235,7 +235,7 @@ def start_ladder_channels_sync(bot: Any) -> asyncio.Task[None]:
     """Sync the ladder salons periodically, forever, quietly (self-healing)."""
 
     async def _loop() -> None:
-        await asyncio.sleep(60)
+        await asyncio.sleep(5)
         while True:
             try:
                 for guild in list(bot.guilds):

@@ -117,7 +117,7 @@ def start_pools_forum_sync(bot: Any) -> asyncio.Task[None]:
     """Sync every guild's pool forums periodically, forever, quietly."""
 
     async def _loop() -> None:
-        await asyncio.sleep(90)
+        await asyncio.sleep(15)
         while True:
             for guild in list(bot.guilds):
                 try:

@@ -107,7 +107,7 @@ def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
     """Sync every game's maps forum periodically, forever, quietly."""
 
     async def _loop() -> None:
-        await asyncio.sleep(60)
+        await asyncio.sleep(10)
         while True:
             for guild in list(bot.guilds):
                 try:

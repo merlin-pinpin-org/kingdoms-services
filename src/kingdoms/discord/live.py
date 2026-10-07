@@ -222,10 +222,11 @@ async def ensure_live_dashboard(
         logger.warning("live dashboard fetch failed (guild %s) — best-effort", guild_id, exc_info=True)
         snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
     body = render_dashboard(snapshot)
+    embed = _dashboard_embed(snapshot, body, bot)
     registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, guild_id)
-    if await _edit_registered(channel, registered, body):
+    if await _edit_registered(channel, registered, embed):
         return False
-    message = await channel.send(body)
+    message = await channel.send(embed=embed)
     await registry.register(
         platform=PLATFORM,
         message_key=LIVE_MESSAGE_KEY,
@@ -237,17 +238,36 @@ async def ensure_live_dashboard(
     return True
 
 
+def _dashboard_embed(
+    snapshot: dict[str, Any],
+    body: str,
+    bot: discord.Client | None = None,
+) -> discord.Embed:
+    """Build the dashboard embed: title, icon, and the players' states."""
+    user = getattr(bot, "user", None) if bot is not None else None
+    icon = getattr(user, "display_avatar", None) if user else None
+    icon_url = getattr(icon, "url", None) if icon else None
+    embed = discord.Embed(
+        title="🎮 Live dashboard",
+        description=body,
+        colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
+    )
+    if icon_url:
+        embed.set_thumbnail(url=icon_url)
+    return embed
+
+
 async def _edit_registered(
     channel: discord.TextChannel,
     registered: RegisteredMessageLike | None,
-    body: str,
+    embed: discord.Embed,
 ) -> bool:
     """Edit the registered message in place; True when the edit landed."""
     if registered is None or not str(registered.channel_id).isdigit() or not str(registered.message_id).isdigit():
         return False
     try:
         message = channel.get_partial_message(int(registered.message_id))
-        await message.edit(content=body)
+        await message.edit(content=None, embed=embed)
         return True
     except Exception:
         logger.warning(
@@ -263,20 +283,70 @@ async def start_live_dashboard_refresh(
     client: LiveClientLike,
     registry: MessageRegistryServiceLike,
 ) -> asyncio.Task[None]:
-    """Refresh every guild's dashboard message on an interval, forever."""
+    """Refresh every guild's dashboard on change: a stream watcher plus a self-healing interval.
 
-    async def _loop() -> None:
-        while True:
-            for guild in list(bot.guilds):
-                try:
-                    await ensure_live_dashboard(bot, str(guild.id), client, registry)
-                except Exception:
-                    logger.warning("live dashboard refresh failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
-
-    return asyncio.create_task(_loop())
+    The stream consumes WatchDashboard frames — the server emits one per
+    player-state change — and every frame lands on the dashboard within
+    seconds. The interval pass remains as the safety net (recreating a
+    deleted message, healing a broken stream).
+    """
+    async def _run() -> None:
+        watcher = asyncio.create_task(_watch_stream(bot, client, registry))
+        try:
+            while True:
+                for guild in list(bot.guilds):
+                    try:
+                        await ensure_live_dashboard(bot, str(guild.id), client, registry)
+                    except Exception:
+                        logger.warning(
+                            "live dashboard refresh failed (guild %s) — best-effort", guild.id, exc_info=True
+                        )
+                await asyncio.sleep(DASHBOARD_REFRESH_INTERVAL_S)
+        finally:
+            watcher.cancel()
+    return asyncio.create_task(_run())
 
 
 GAME_KEY = "aoe2"
 PLATFORM = "discord"
 DASHBOARD_REFRESH_INTERVAL_S = 15
+
+
+async def _watch_stream(
+    bot: discord.Client,
+    client: LiveClientLike,
+    registry: MessageRegistryServiceLike,
+) -> None:
+    """Consume the WatchDashboard stream; every changed frame refreshes the dashboards."""
+    from kingdoms.core.rpc.live import LiveClient
+
+    if not isinstance(client, LiveClient):
+        return
+    while True:
+        try:
+            async for snapshot in client.stream_snapshots(GAME_KEY):
+                await _push_snapshot(bot, client, registry, snapshot)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("live dashboard stream broke — reconnecting", exc_info=True)
+            await asyncio.sleep(5)
+
+
+async def _push_snapshot(
+    bot: discord.Client,
+    client: LiveClientLike,
+    registry: MessageRegistryServiceLike,
+    snapshot: dict[str, Any],
+) -> None:
+    """Edit every guild's dashboard message with the changed snapshot."""
+    body = render_dashboard(snapshot)
+    embed = _dashboard_embed(snapshot, body, bot)
+    for guild in list(bot.guilds):
+        channel = await ensure_live_dashboard_channel(guild)
+        registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, str(guild.id))
+        try:
+            if not await _edit_registered(channel, registered, embed):
+                await ensure_live_dashboard(bot, str(guild.id), client, registry)
+        except Exception:
+            logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)

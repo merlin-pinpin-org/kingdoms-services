@@ -103,3 +103,26 @@ class LiveClient:
                     "degraded": frame.degraded,
                 }
         return {"players": [], "generated_at": 0, "degraded": True}
+
+    async def stream_snapshots(self, game_key: str):
+        """Yield dashboard snapshots continuously: one per player-state change."""
+        from kingdoms.core.rpc.client import build_channel
+
+        async with build_channel(self._core_uri) as channel:
+            stub = live_pb2_grpc.LiveStub(channel)
+            call = stub.WatchDashboard(live_pb2.WatchDashboardRequest(game_key=game_key))
+            async for frame in call:
+                yield {
+                    "players": [
+                        {
+                            "user_id": p.user_id,
+                            "profile_id": p.profile_id,
+                            "state": p.state,
+                            "match_ref": p.match_ref,
+                            "since": p.since,
+                        }
+                        for p in frame.players
+                    ],
+                    "generated_at": frame.generated_at,
+                    "degraded": frame.degraded,
+                }

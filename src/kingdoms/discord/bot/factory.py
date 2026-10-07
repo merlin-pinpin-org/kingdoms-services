@@ -152,7 +152,7 @@ class KingdomsBot(discord.Client):
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
         self._pin_task: asyncio.Task[None] | None = None
-        self._live_dashboard_task: asyncio.Task[None] | None = None
+        self._live_dashboard_task: asyncio.Future[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
         self._pools_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
@@ -335,7 +335,7 @@ class KingdomsBot(discord.Client):
         """
         from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(5)
         while True:
             for guild in list(self.guilds):
                 if self.logs_service is None:
@@ -733,7 +733,7 @@ async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
     """Keep the pinned home menu alive in every guild (self-healing)."""
     from kingdoms.discord.home import ensure_pinned_home_menu
 
-    await asyncio.sleep(30)
+    await asyncio.sleep(5)
     while True:
         for guild in list(bot.guilds):
             try:

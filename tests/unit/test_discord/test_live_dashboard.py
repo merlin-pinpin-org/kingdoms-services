@@ -26,6 +26,7 @@ class _FakeMessage:
     id: int
     content: str = ""
     edits: list[str] = field(default_factory=list)
+    embeds: list[object] = field(default_factory=list)
 
 
 class _FakePartialMessage:
@@ -35,12 +36,15 @@ class _FakePartialMessage:
         self._store = store
         self._id = message_id
 
-    async def edit(self, content: str) -> None:
+    async def edit(self, content: str = "", embed: object = None) -> None:
         message = self._store.messages.get(self._id)
         if message is None:
             raise RuntimeError("message gone")
-        message.content = content
-        message.edits.append(content)
+        if content:
+            message.content = content
+        if embed is not None:
+            message.embeds.append(embed)
+        message.edits.append(content or getattr(embed, "description", ""))
 
 
 class _FakeChannel:
@@ -55,8 +59,10 @@ class _FakeChannel:
     def get_partial_message(self, message_id: int) -> _FakePartialMessage:
         return _FakePartialMessage(self, message_id)
 
-    async def send(self, content: str) -> _FakeMessage:
+    async def send(self, content: str = "", embed: object = None) -> _FakeMessage:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
+        if embed is not None:
+            message.embeds.append(embed)
         self.messages[message.id] = message
         self.sent.append(message)
         return message
@@ -168,7 +174,7 @@ async def test_refresh_edits_in_place_without_spam() -> None:
     assert created is False
     assert len(channel.sent) == 1, "the refresh never adds a message"
     assert channel.sent[0].edits, "the existing message is edited in place"
-    assert "in_lobby" in channel.sent[0].content
+    assert "in_lobby" in channel.sent[0].edits[-1]
 
 
 @pytest.mark.asyncio
@@ -202,4 +208,5 @@ async def test_provider_failure_degrades_to_offline_dashboard() -> None:
     created = await ensure_live_dashboard(bot, "42", _BrokenClient(), registry)  # type: ignore[arg-type]
 
     assert created is True
-    assert "Providers unreachable" in channel.sent[0].content, "the degraded note is shown"
+    body = channel.sent[0].edits[-1] if channel.sent[0].edits else channel.sent[0].embeds[0].description
+    assert "Providers unreachable" in body, "the degraded note is shown"
