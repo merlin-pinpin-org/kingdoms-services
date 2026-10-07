@@ -47,6 +47,7 @@ from kingdoms.discord.error_report import (
 )
 
 if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.economy import EconomyService
     from kingdoms.mods.kingdoms.service import KingdomsService
 
 logger = logging.getLogger("kingdoms.bot")
@@ -158,6 +159,7 @@ class KingdomsBot(discord.Client):
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.kingdoms_service: KingdomsService | None = None
+        self.kingdoms_economy_service: EconomyService | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
@@ -487,6 +489,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
     kingdoms_service = _build_kingdoms_service(resolved)
     bot.kingdoms_service = kingdoms_service
+    bot.kingdoms_economy_service = (
+        _build_kingdoms_economy_service(resolved, kingdoms_service) if kingdoms_service else None
+    )
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdoms import register_kingdoms_command
@@ -633,6 +638,33 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
         )
     except Exception:
         logger.exception("KINGDOMS SERVICE WIRING FAILED — season features disabled")
+        return None
+
+
+def _build_kingdoms_economy_service(
+    config: BotConfig,
+    kingdoms_service: KingdomsService,
+) -> "EconomyService | None":
+    """Wire the economy bundle behind the Marché panel.
+
+    The EconomyService needs the territories and attacks services; all
+    four share the Mongo store and the season configuration of the
+    KingdomsService. Returns None when the wiring fails: the Marché
+    buttons then answer "market closed".
+    """
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.mods.kingdoms.attacks import AttackService
+        from kingdoms.mods.kingdoms.economy import EconomyService
+        from kingdoms.mods.kingdoms.territories import TerritoryService
+
+        store = kingdoms_service._store  # same wiring seam as the service
+        territory_service = TerritoryService(store, kingdoms_service.config, kingdoms_service)
+        attacks_service = AttackService(store, kingdoms_service.config, kingdoms_service, territory_service)
+        return EconomyService(store, kingdoms_service.config, kingdoms_service, territory_service, attacks_service)
+    except Exception:
+        logger.exception("KINGDOMS ECONOMY WIRING FAILED — market purchases disabled")
         return None
 
 
