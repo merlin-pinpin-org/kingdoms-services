@@ -9,8 +9,11 @@ reference 9.5/9.6); the section only renders and collects input - the
 click guards stay the panel's (admins only, at click time).
 
 Namespace discipline: every component here rides
-``admin:pin:mod:ladder:`` - one custom_id, one dispatch path, restart
-proof, no captured state. Every sub-view carries the back button.
+``admin:pin:modladder:`` - deliberately NOT under
+``admin:pin:mod:`` whose prefix belongs to the sections routing
+select (a template match on that prefix would steal the dispatch);
+one custom_id, one dispatch path, restart proof, no captured state.
+Every sub-view carries the back button.
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from kingdoms.discord.ladder_commands import build_ladder_wiring
 logger = logging.getLogger("kingdoms.ladder.admin_panel")
 
 MOD_KEY = "ladder"
-_NS = "admin:pin:mod:ladder"
+_NS = "admin:pin:modladder"
 GAME_KEY = "aoe2"
 LADDERS_COLLECTION = "ladders"
 

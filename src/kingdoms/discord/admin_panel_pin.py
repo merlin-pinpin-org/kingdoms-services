@@ -55,7 +55,11 @@ async def ensure_pinned_admin_menu(
     self-healing. A pinned menu of the **legacy** id namespace
     (``admin:select:*``) is stale: it was sent with live closures
     (``by="system"``) whose double dispatch audited phantom changes \u2014
-    it is replaced and unpinned.
+    it is replaced and unpinned. A current-namespace pin is stale too
+    when it predates the current **menu revision**: when mod sections
+    are registered the menu must carry their route select
+    (``admin:pin:mod:mods``) \u2014 an older pin is rebuilt and unpinned,
+    so structural changes reach the pinned surface.
     """
     if admin_channel_service is None:
         return False
@@ -78,6 +82,11 @@ async def ensure_pinned_admin_menu(
             admin_channel_service,
         )
 
+    from kingdoms.discord.admin_panel_mods import mod_section_route_id, registered_admin_mod_sections
+
+    required_ids = (
+        (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
+    )
     delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
     service = PinnedMenuService(delivery)
     created = await service.ensure(
@@ -86,6 +95,7 @@ async def ensure_pinned_admin_menu(
         marker="admin:pin:",
         build_layout=_build,
         pin_reason="kingdoms: pinned admin menu (admin channel home)",
+        required_ids=required_ids,
     )
     for message in await _stale_pinned_menus(bot, guild_id, str(channel_id)):
         await _unpin_message(message)

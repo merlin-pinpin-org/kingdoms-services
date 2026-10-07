@@ -20,8 +20,11 @@ reference&nbsp;9.5/9.6);&nbsp;the&nbsp;section&nbsp;only&nbsp;renders&nbsp;and&n
 click&nbsp;guards&nbsp;stay&nbsp;the&nbsp;panel's&nbsp;(admins&nbsp;only,&nbsp;at&nbsp;click&nbsp;time).<br>
 &nbsp;<br>
 Namespace&nbsp;discipline:&nbsp;every&nbsp;component&nbsp;here&nbsp;rides<br>
-``admin:pin:mod:ladder:``&nbsp;-&nbsp;one&nbsp;custom_id,&nbsp;one&nbsp;dispatch&nbsp;path,&nbsp;restart<br>
-proof,&nbsp;no&nbsp;captured&nbsp;state.&nbsp;Every&nbsp;sub-view&nbsp;carries&nbsp;the&nbsp;back&nbsp;button.</span></p>
+``admin:pin:modladder:``&nbsp;-&nbsp;deliberately&nbsp;NOT&nbsp;under<br>
+``admin:pin:mod:``&nbsp;whose&nbsp;prefix&nbsp;belongs&nbsp;to&nbsp;the&nbsp;sections&nbsp;routing<br>
+select&nbsp;(a&nbsp;template&nbsp;match&nbsp;on&nbsp;that&nbsp;prefix&nbsp;would&nbsp;steal&nbsp;the&nbsp;dispatch);<br>
+one&nbsp;custom_id,&nbsp;one&nbsp;dispatch&nbsp;path,&nbsp;restart&nbsp;proof,&nbsp;no&nbsp;captured&nbsp;state.<br>
+Every&nbsp;sub-view&nbsp;carries&nbsp;the&nbsp;back&nbsp;button.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -88,7 +91,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:pool')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:pool')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -228,7 +231,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:pool:set')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:pool:set')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
 
@@ -368,7 +371,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:seasons:activate')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:seasons:activate')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
 
@@ -508,7 +511,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:seasons')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:seasons')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -648,7 +651,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:seasons:create')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:seasons:create')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -1028,7 +1031,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:ladder:settings')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modladder:settings')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 

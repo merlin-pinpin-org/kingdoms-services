@@ -249,3 +249,86 @@ def _component_ids(message: Any) -> list[str]:
             if isinstance(custom_id, str):
                 ids.append(custom_id)
     return ids
+
+
+@pytest.mark.asyncio
+async def test_ensure_rebuilds_a_pin_predating_the_mods_select() -> None:
+    """A current-namespace pin without the mod-sections select is stale:
+    when mod sections are registered the pinned panel must carry their
+    route select (``admin:pin:mod:mods``) \u2014 the old pin is rebuilt."""
+    from kingdoms.discord.admin_panel_mods import (
+        AdminModSection,
+        mod_section_route_id,
+        register_admin_mod_section,
+        unregister_admin_mod_section,
+    )
+
+    async def _entry(interaction: Any) -> discord.ui.LayoutView:
+        return discord.ui.LayoutView(timeout=None)
+
+    register_admin_mod_section(AdminModSection(mod="testmod", label="Test", entry=_entry))
+    try:
+        channel = _FakeChannel("555")
+        old_pin = _pin_carrying(
+            [type("C", (), {"custom_id": PIN_LOCALE_SELECT_ID, "children": []})()]
+        )
+        old_pin.id = 8001
+        channel.pins_list = [old_pin]
+        bot = _FakeBot(channel)
+        service = _FakeAdminChannelService(channel)
+        created = await ensure_pinned_admin_menu(
+            bot,  # type: ignore[arg-type]
+            "42",
+            _FakeLogsService(),  # type: ignore[arg-type]
+            None,
+            service,  # type: ignore[arg-type]
+            ("111111111",),
+            None,
+        )
+        assert created is True, "the pre-mods pin forces a rebuild"
+        assert old_pin.unpinned is True, "the pre-mods pin is unpinned"
+        ids = _component_ids(channel.pins_list[-1])
+        assert mod_section_route_id("mods") in ids, "the new pin carries the mods select"
+    finally:
+        unregister_admin_mod_section("testmod")
+
+
+@pytest.mark.asyncio
+async def test_ensure_keeps_a_pin_carrying_the_mods_select() -> None:
+    """A pin already carrying the mod-sections select is current: no-op."""
+    from kingdoms.discord.admin_panel_mods import (
+        AdminModSection,
+        mod_section_route_id,
+        register_admin_mod_section,
+        unregister_admin_mod_section,
+    )
+
+    async def _entry(interaction: Any) -> discord.ui.LayoutView:
+        return discord.ui.LayoutView(timeout=None)
+
+    register_admin_mod_section(AdminModSection(mod="testmod", label="Test", entry=_entry))
+    try:
+        channel = _FakeChannel("555")
+        current = _pin_carrying(
+            [
+                type("C", (), {"custom_id": PIN_LOCALE_SELECT_ID, "children": []})(),
+                type("C", (), {"custom_id": mod_section_route_id("mods"), "children": []})(),
+            ]
+        )
+        channel.pins_list = [current]
+        bot = _FakeBot(channel)
+        service = _FakeAdminChannelService(channel)
+        created = await ensure_pinned_admin_menu(
+            bot,  # type: ignore[arg-type]
+            "42",
+            _FakeLogsService(),  # type: ignore[arg-type]
+            None,
+            service,  # type: ignore[arg-type]
+            ("111111111",),
+            None,
+        )
+        assert created is False
+        assert channel.sent == [], "no rebuild"
+        assert current.unpinned is False
+    finally:
+        unregister_admin_mod_section("testmod")

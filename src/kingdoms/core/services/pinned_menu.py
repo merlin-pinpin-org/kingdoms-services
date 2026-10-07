@@ -79,15 +79,19 @@ class PinnedMenuService:
         marker: str,
         build_layout: LayoutBuilder,
         pin_reason: str,
+        required_ids: tuple[str, ...] = (),
     ) -> bool:
         """Ensure the channel holds exactly one current pinned menu.
 
         Returns True when a message was (re-)created, False when the
         existing pin was already current. A menu is *current* when one of
-        its components carries the marker namespace; stale menus of the
-        same namespace are unpinned after the rebuild.
+        its components carries the marker namespace **and every id in
+        ``required_ids`` is present** — the caller pins the menu revision
+        (e.g. the admin surface's mod-sections select) so a structural
+        change propagates: an older pin is rebuilt, then unpinned with
+        the other stale menus of the same namespace.
         """
-        if await self._current_menu_exists(channel, marker):
+        if await self._current_menu_exists(channel, marker, required_ids):
             return False
         layout = await build_layout(guild_id)
         message_id = await self._delivery.deliver(channel, layout)
@@ -98,11 +102,24 @@ class PinnedMenuService:
         await self._unpin_stale(channel, marker, keep_message_id=message_id)
         return pinned
 
-    async def _current_menu_exists(self, channel: PinnedMenuChannel, marker: str) -> bool:
+    async def _current_menu_exists(
+        self,
+        channel: PinnedMenuChannel,
+        marker: str,
+        required_ids: tuple[str, ...] = (),
+    ) -> bool:
         for message in await self._safe_pins(channel):
-            if self._carries_marker(message, marker):
+            if self._carries_marker(message, marker) and self._carries_required(message, required_ids):
                 return True
         return False
+
+    @staticmethod
+    def _carries_required(message: Any, required_ids: tuple[str, ...]) -> bool:
+        """Whether the message carries every id of the current revision."""
+        if not required_ids:
+            return True
+        ids = set(_walk_custom_ids(message))
+        return all(required in ids for required in required_ids)
 
     async def _unpin_stale(
         self,

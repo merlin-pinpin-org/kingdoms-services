@@ -74,7 +74,11 @@ class _FakeDelivery:
         return message.id
 
 
-async def _ensure(channel: _FakeChannel, marker: str = "home:pin:") -> bool:
+async def _ensure(
+    channel: _FakeChannel,
+    marker: str = "home:pin:",
+    required_ids: tuple[str, ...] = (),
+) -> bool:
     async def _build(guild_id: str) -> Any:
         return object()
 
@@ -84,6 +88,7 @@ async def _ensure(channel: _FakeChannel, marker: str = "home:pin:") -> bool:
         marker=marker,
         build_layout=_build,
         pin_reason="test",
+        required_ids=required_ids,
     )
 
 
@@ -123,3 +128,25 @@ async def test_ensure_leaves_foreign_pins_alone() -> None:
     channel.pins_list = [foreign]
     assert await _ensure(channel) is True
     assert foreign.unpinned is False
+
+
+@pytest.mark.asyncio
+async def test_required_id_missing_forces_rebuild() -> None:
+    """A pin lacking the current-revision id is stale: rebuilt and unpinned."""
+    channel = _FakeChannel()
+    existing = _FakeMessage("1", ["home:pin:menu"], channel=channel)
+    channel.pins_list = [existing]
+    assert await _ensure(channel, required_ids=("home:pin:menu:rev2",)) is True
+    assert existing.unpinned is True
+    assert channel.sent, "the menu was rebuilt"
+
+
+@pytest.mark.asyncio
+async def test_required_id_present_is_a_noop() -> None:
+    """A pin carrying every required id is current: no rebuild."""
+    channel = _FakeChannel()
+    existing = _FakeMessage("1", ["home:pin:menu", "home:pin:menu:rev2"], channel=channel)
+    channel.pins_list = [existing]
+    assert await _ensure(channel, required_ids=("home:pin:menu:rev2",)) is False
+    assert existing.unpinned is False
+    assert channel.sent == []
