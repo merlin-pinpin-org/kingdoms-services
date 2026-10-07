@@ -455,9 +455,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     resolved = config or BotConfig.from_env()
     registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
     games_dir = Path(resolved.config_dir) / "games"
-    games = tuple(
-        sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())
-    ) if games_dir.is_dir() else ()
+    games = tuple(sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())) if games_dir.is_dir() else ()
     status = StatusService(
         registry=registry,
         games=games,
@@ -511,13 +509,24 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     home_channel_service = _build_home_channel_service(resolved, bot)
     bot.home_channel_service = home_channel_service
     from kingdoms.discord.messages_platform import build_message_registry
+
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-    bot.home_service = HomeService(registry)
     from kingdoms.discord.ladder_home import build_ladder_home_view
 
     bot.mod_home_builders = {"ladder": build_ladder_home_view}
+
+    class _DiscordModHomeViews:
+        """Bridge the bot's mod home builders onto the HomeService seam."""
+
+        def __init__(self, builders: dict[str, Any]) -> None:
+            self._builders = builders
+
+        def mod_home_view(self, mod: str) -> Any | None:
+            return self._builders.get(mod)
+
+    bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)

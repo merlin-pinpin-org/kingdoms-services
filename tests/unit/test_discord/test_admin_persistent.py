@@ -349,10 +349,13 @@ class TestStartupRegistration:
 
         bot = FakeBot()
         register_admin_persistent_items(bot)
+        from kingdoms.discord.admin_panel_mods import PinModRouteSelect
+
         assert set(bot.registered) == {
             PinLocaleSelect,
             PinChannelMenu,
             PinVisibilitySelect,
             PinRouteSelect,
             PinBackButton,
+            PinModRouteSelect,
         }

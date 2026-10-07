@@ -251,7 +251,7 @@ async def _view_users(interaction: discord.Interaction) -> None:
 
 
 async def _view_admin(interaction: discord.Interaction) -> None:
-    """Point to the admin panel, guarded at click time."""
+    """Open the admin panel ephemerally, guarded at click time."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.guards import require_admin
 
@@ -262,10 +262,29 @@ async def _view_admin(interaction: discord.Interaction) -> None:
     allowed = await require_admin(interaction, admins, bot.roles_service)
     if not allowed:
         return
-    await interaction.response.send_message(
-        "Le panneau admin vit dans le channel 🛡-bot-admins — utilise /admin ici.",
-        ephemeral=True,
+    from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+
+    logs_service = getattr(bot, "logs_service", None)
+    admin_channel_service = getattr(bot, "admin_channel_service", None)
+    if logs_service is None:
+        await interaction.response.send_message(
+            "Le panneau admin n'est pas configuré sur ce process.",
+            ephemeral=True,
+        )
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+    try:
+        locale = await logs_service.get_locale(guild_id)
+    except Exception:
+        locale = "en"
+    view = await build_pin_main_menu(
+        logs_service,
+        guild_id,
+        getattr(bot, "messages", None),
+        locale,
+        admin_channel_service,
     )
+    await interaction.response.send_message(view=view, ephemeral=True)
 
 
 async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
