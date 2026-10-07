@@ -52,6 +52,12 @@ class Bundle(_AttackBundle):
         super().__init__(config or _config())
         self.diplomacy = DiplomacyService(self.store, self.config, self.kingdoms, self.territories)  # type: ignore[arg-type]
 
+    async def renounce_map(self, kingdom_id: str, map_key: str) -> None:
+        """Move any owned copy of the map away from the kingdom (isolation helper)."""
+        for territory in await self.territories.territories():
+            if territory.map_key == map_key and territory.owner_kingdom_id == kingdom_id:
+                await self.territories.transfer(territory.id, "gaia")
+
     async def draw_one(self, kingdom_id: str, map_key: str) -> None:
         """Give one territory to a kingdom (catalog-validated).
 
@@ -179,6 +185,7 @@ async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.renounce_map(aquitaine, "black-forest")
     await bundle.diplomacy.marry("king-a", "celtes")
     await bundle.diplomacy.record_defeat(aquitaine)
     reports = await bundle.diplomacy.recalculate()
