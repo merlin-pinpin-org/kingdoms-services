@@ -21,6 +21,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -45,6 +46,10 @@ from kingdoms.discord.error_report import (
     report_guild_error,
     report_interaction_error,
 )
+
+if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.economy import EconomyService
+    from kingdoms.mods.kingdoms.service import KingdomsService
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -154,6 +159,8 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
+        self.kingdoms_service: KingdomsService | None = None
+        self.kingdoms_economy_service: EconomyService | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
@@ -489,9 +496,13 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.channel_service = channel_service
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
+    kingdoms_service = _build_kingdoms_service(resolved)
+    bot.kingdoms_service = kingdoms_service
+    bot.kingdoms_economy_service = (
+        _build_kingdoms_economy_service(resolved, kingdoms_service) if kingdoms_service else None
+    )
 
     from kingdoms.discord.admin import register_admin_command
-    from kingdoms.discord.kingdoms import register_kingdoms_command
     from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
@@ -622,7 +633,6 @@ def _build_registration(
 def _build_shared_state(config: BotConfig) -> StateService | None:
     """One shared StateService for the whole bot (single Redis connection pool).
 
-
     Started in ``setup_hook`` and closed in ``close``; the services hold it
     as their cache-aside store. Returns None without Redis (unit tests,
     local runs) — the consumers already degrade to uncached paths.
@@ -631,6 +641,56 @@ def _build_shared_state(config: BotConfig) -> StateService | None:
         return None
     return StateService(redis_uri=config.redis_uri)
 
+
+def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
+    """Wire the Mongo store + season config into KingdomsService.
+
+    Returns None when Mongo is not configured (unit tests, local runs):
+    the /kingdom screens degrade to their no-season placeholders and
+    the admin panel buttons answer "no service".
+    """
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.mods.kingdoms.config import load_season_config
+        from kingdoms.mods.kingdoms.service import KingdomsService
+        from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
+
+        return KingdomsService(
+            store=MongoKingdomsStore(get_async_database()),
+            config=load_season_config(Path(config.config_dir)),
+        )
+    except Exception:
+        logger.exception("KINGDOMS SERVICE WIRING FAILED — season features disabled")
+        return None
+
+
+def _build_kingdoms_economy_service(
+    config: BotConfig,
+    kingdoms_service: KingdomsService,
+) -> EconomyService | None:
+    """Wire the economy bundle behind the Marché panel.
+
+    The EconomyService needs the territories and attacks services; all
+    four share the Mongo store and the season configuration of the
+    KingdomsService. Returns None when the wiring fails: the Marché
+    buttons then answer "market closed".
+    """
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.mods.kingdoms.attacks import AttackService
+        from kingdoms.mods.kingdoms.economy import EconomyService
+        from kingdoms.mods.kingdoms.territories import TerritoryService
+
+        store = kingdoms_service._store  # same wiring seam as the service
+        territory_service = TerritoryService(store, kingdoms_service.config, kingdoms_service)
+        attacks_service = AttackService(store, kingdoms_service.config, kingdoms_service, territory_service)
+        return EconomyService(store, kingdoms_service.config, kingdoms_service, territory_service, attacks_service)
+    except Exception:
+        logger.exception("KINGDOMS ECONOMY WIRING FAILED — market purchases disabled")
+        return None
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:
     """Wire the Discord platform seam + the shared Redis state into RolesService.
@@ -642,6 +702,23 @@ def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateServic
         return None
     try:
         from kingdoms.core.services.state import StateService
+        from kingdoms.discord.roles_platform import DiscordRolesPlatform
+
+        return RolesService(platform=DiscordRolesPlatform(bot), cache=state or StateService(redis_uri=config.redis_uri))
+    except Exception:
+        logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
+        return None
+
+
+def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:
+    """Wire the Discord platform seam + the shared Redis state into RolesService.
+
+    Returns None when Redis is not configured (unit tests, local runs):
+    the runtime guards degrade to BOT_ADMINS + guild administrators.
+    """
+    if not config.redis_uri:
+        return None
+    try:
         from kingdoms.discord.roles_platform import DiscordRolesPlatform
 
         return RolesService(platform=DiscordRolesPlatform(bot), cache=state or StateService(redis_uri=config.redis_uri))

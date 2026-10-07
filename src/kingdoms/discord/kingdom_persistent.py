@@ -43,6 +43,7 @@ class KingdomsPanelWiring:
     bot_admins: tuple[str, ...] = ()
     mod_roles_service: Any = None
     kingdoms_service: Any = None
+    economy_service: Any = None
     channel_service: Any = None
     registry: Any = None
 
@@ -75,6 +76,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             bot_admins=tuple(getattr(status, "bot_admins", ())),
             mod_roles_service=getattr(bot, "mod_roles_service", None),
             kingdoms_service=getattr(bot, "kingdoms_service", None),
+            economy_service=getattr(bot, "kingdoms_economy_service", None),
             channel_service=getattr(bot, "channel_service", None),
             registry=getattr(bot, "registry", None),
         )
@@ -84,12 +86,15 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
 
 def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     """Re-register every persistent Kingdoms component class on the bot."""
+    from kingdoms.discord.kingdom_market import KingdomMarketButton
+
     bot.add_dynamic_items(
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomProfileButton,
         KingdomRequestButton,
         KingdomAdminButton,
+        KingdomMarketButton,
     )
 
 
