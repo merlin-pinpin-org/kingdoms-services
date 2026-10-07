@@ -117,3 +117,23 @@ async def test_list_staff_returns_only_accepted_of_the_mod() -> None:
     assert await service.list_staff("42", "ladder") == ["a"]
     assert await service.list_staff("42", "groups") == ["c"]
     assert await service.list_staff("42", "ladder") == ["a"]
+
+
+@pytest.mark.asyncio
+async def test_apply_carries_the_motivation_message_to_the_notice() -> None:
+    """The applicant's message rides the document and the admin notice."""
+    db = _FakeDatabase()
+    service = StaffService(db, _RecordingPayloadEvents())
+    await service.apply("42", "ladder", "777", now=1_000, message="Dispo chaque soir !")
+    doc = await db.find_staff(StaffService.staff_id("42", "ladder", "777"))
+    assert doc is not None and doc["message"] == "Dispo chaque soir !"
+    assert _RecordingPayloadEvents.last and _RecordingPayloadEvents.last["message"] == "Dispo chaque soir !"
+
+
+class _RecordingPayloadEvents:
+    """Events stand-in recording the last notice payload."""
+
+    last: dict[str, Any] | None = None
+
+    async def notify_admins(self, message: str, payload: dict[str, Any]) -> None:
+        _RecordingPayloadEvents.last = payload

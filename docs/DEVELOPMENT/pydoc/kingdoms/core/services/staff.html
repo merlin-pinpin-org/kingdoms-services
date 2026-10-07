@@ -191,10 +191,12 @@ Own&nbsp;the&nbsp;staff&nbsp;lifecycle:&nbsp;apply,&nbsp;decide,&nbsp;list,&nbsp
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="StaffService-__init__"><strong>__init__</strong></a>(self, database: 'StaffDatabase', events: 'StaffEvents | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="StaffService-apply"><strong>apply</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str', now: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;a&nbsp;staff&nbsp;application&nbsp;(idempotent&nbsp;while&nbsp;pending).<br>
+<dl><dt>async <a name="StaffService-apply"><strong>apply</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str', now: 'int', message: 'str' = '') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;a&nbsp;staff&nbsp;application&nbsp;(idempotent&nbsp;while&nbsp;pending).<br>
 &nbsp;<br>
 An&nbsp;existing&nbsp;accepted&nbsp;staff&nbsp;re-applying&nbsp;is&nbsp;a&nbsp;no-op;&nbsp;a&nbsp;declined<br>
-application&nbsp;may&nbsp;re-apply&nbsp;(the&nbsp;document&nbsp;returns&nbsp;to&nbsp;pending).</span></dd></dl>
+application&nbsp;may&nbsp;re-apply&nbsp;(the&nbsp;document&nbsp;returns&nbsp;to&nbsp;pending).<br>
+``message``&nbsp;is&nbsp;the&nbsp;applicant's&nbsp;free-text&nbsp;motivation,&nbsp;carried&nbsp;to<br>
+the&nbsp;admin&nbsp;notice&nbsp;(never&nbsp;stored&nbsp;empty).</span></dd></dl>
 
 <dl><dt>async <a name="StaffService-decide"><strong>decide</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str', accept: 'bool', decided_by: 'str', now: 'int') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Accept&nbsp;or&nbsp;decline&nbsp;a&nbsp;pending&nbsp;application;&nbsp;the&nbsp;updated&nbsp;document.<br>
 &nbsp;<br>

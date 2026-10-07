@@ -67,11 +67,15 @@ class StaffService:
         """Build the staff document id: one per (guild, mod, user)."""
         return f"staff:{guild_id}:{mod}:{user_id}"
 
-    async def apply(self, guild_id: str, mod: str, user_id: str, now: int) -> dict[str, Any]:
+    async def apply(
+        self, guild_id: str, mod: str, user_id: str, now: int, message: str = ""
+    ) -> dict[str, Any]:
         """Record a staff application (idempotent while pending).
 
         An existing accepted staff re-applying is a no-op; a declined
         application may re-apply (the document returns to pending).
+        ``message`` is the applicant's free-text motivation, carried to
+        the admin notice (never stored empty).
         """
         staff_id = self.staff_id(guild_id, mod, user_id)
         existing = await self._db.find_staff(staff_id)
@@ -84,6 +88,7 @@ class StaffService:
             "user_id": user_id,
             "status": STATUS_PENDING,
             "applied_at": now,
+            "message": (message or "").strip()[:1000],
             "decided_at": None,
             "decided_by": None,
         }
@@ -91,7 +96,13 @@ class StaffService:
         if self._events is not None:
             await self._events.notify_admins(
                 f"<@{user_id}> applied for the {mod} staff.",
-                {"kind": "staff.applied", "guild_id": guild_id, "mod": mod, "user_id": user_id},
+                {
+                    "kind": "staff.applied",
+                    "guild_id": guild_id,
+                    "mod": mod,
+                    "user_id": user_id,
+                    "message": document["message"],
+                },
             )
         return document
 

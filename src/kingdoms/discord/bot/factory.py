@@ -513,9 +513,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-    from kingdoms.discord.ladder_home import build_ladder_home_view
+    from kingdoms.discord.ladder_home import build_ladder_home_view, register_ladder_home_items
 
     bot.mod_home_builders = {"ladder": build_ladder_home_view}
+    register_ladder_home_items(bot)
 
     class _DiscordModHomeViews:
         """Bridge the bot's mod home builders onto the HomeService seam."""
@@ -627,7 +628,7 @@ def _build_staff_service(
             if payload.get("kind") == "staff.applied" and user_id:
                 await admin_channel_service.deliver(
                     guild_id,
-                    build_staff_notice(mod, user_id),
+                    build_staff_notice(mod, user_id, str(payload.get("message", ""))),
                     tuple(bot.status_service.bot_admins),
                 )
 

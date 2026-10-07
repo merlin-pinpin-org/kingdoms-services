@@ -61,8 +61,33 @@ class StaffApplyButton(
         return cls(match.group("mod"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Record the application (ephemeral answer)."""
-        await _apply(interaction, self.mod)
+        """Open the application modal (confirmation + motivation)."""
+        await interaction.response.send_modal(StaffApplyModal(self.mod))
+
+
+class StaffApplyModal(discord.ui.Modal):
+    """The application form: confirmation + free-text motivation.
+
+    The applicant confirms their candidacy and writes the message the
+    admins will read on the notice — the platform never asks for a
+    command, every input is a view interaction.
+    """
+
+    def __init__(self, mod: str) -> None:
+        super().__init__(title=f"Candidature staff {mod}", timeout=None)
+        self.mod = mod
+        self.message: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Ton message de candidature",
+            placeholder="Pourquoi toi ? Dispo, experience, envies...",
+            style=discord.TextStyle.paragraph,
+            max_length=1000,
+            required=True,
+        )
+        self.add_item(self.message)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Record the application with its message, then confirm."""
+        await _apply(interaction, self.mod, message=str(self.message.value or "").strip())
 
 
 class StaffDecideButton(
@@ -120,7 +145,7 @@ async def _season_roles(bot: discord.Client) -> SeasonRolesService | None:
     return bot.season_roles_service
 
 
-async def _apply(interaction: discord.Interaction, mod: str) -> None:
+async def _apply(interaction: discord.Interaction, mod: str, message: str = "") -> None:
     """Record the application and answer ephemerally."""
     from kingdoms.discord.bot.factory import KingdomsBot
 
@@ -134,7 +159,7 @@ async def _apply(interaction: discord.Interaction, mod: str) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
     user_id = str(interaction.user.id)
-    await staff.apply(guild_id, mod, user_id, now=_now_ms())
+    await staff.apply(guild_id, mod, user_id, now=_now_ms(), message=message)
     await interaction.response.send_message(
         f"Candidature staff **{mod}** enregistrée — les admins sont notifiés.",
         ephemeral=True,
@@ -199,7 +224,10 @@ async def _decide(interaction: discord.Interaction, decision: str, mod: str, use
         season = await _active_season_label(bot, guild_id)
         await season_roles.sync_staff_role(guild_id, user_id, season, member=True)
     verb = "accepté" if accept else "refusé"
-    await interaction.response.send_message(f"<@{user_id}> est {verb} dans le staff {mod}.", ephemeral=True)
+    await interaction.response.edit_message(
+        view=build_staff_resolved_notice(mod, user_id, verb, str(interaction.user.id))
+    )
+    await interaction.followup.send(f"<@{user_id}> est {verb} dans le staff {mod}.", ephemeral=True)
 
 
 async def _active_season_label(bot: Any, guild_id: str) -> str:
@@ -215,7 +243,7 @@ async def _active_season_label(bot: Any, guild_id: str) -> str:
         season = await season_service.get_active_season(ladder_id)
         if season is None:
             return "s1"
-        return season_label({"label": season.label, "name": season.name, "season_id": season.id})
+        return season_label({"name": season.name, "season_id": season.id})
     except Exception:
         return "s1"
 
@@ -226,15 +254,34 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def build_staff_notice(mod: str, user_id: str) -> discord.ui.LayoutView:
+def build_staff_notice(mod: str, user_id: str, message: str = "") -> discord.ui.LayoutView:
     """Build the admin notice: the application + the decision buttons."""
     view = discord.ui.LayoutView(timeout=None)
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(StaffDecideButton("accept", mod, user_id))
     row.add_item(StaffDecideButton("decline", mod, user_id))
     view.add_item(discord.ui.Container(
-        discord.ui.TextDisplay(f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> a candidaté."),
+        discord.ui.TextDisplay(_notice_body(mod, user_id, message)),
         row,
+    ))
+    return view
+
+
+def _notice_body(mod: str, user_id: str, message: str) -> str:
+    """Format the notice body, quoting the applicant's message."""
+    body = f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> a candidaté."
+    if message:
+        body += f"\n\n> {message}"
+    return body
+
+
+def build_staff_resolved_notice(mod: str, user_id: str, verb: str, decided_by: str) -> discord.ui.LayoutView:
+    """Build the post-decision notice: no interactive buttons left."""
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(
+        discord.ui.TextDisplay(
+            f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> — **{verb}** par <@{decided_by}>."
+        ),
     ))
     return view
 
