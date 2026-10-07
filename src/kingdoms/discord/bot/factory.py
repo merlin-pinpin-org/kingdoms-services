@@ -179,13 +179,15 @@ class KingdomsBot(discord.Client):
         deploy (§3b state reconstruction contract).
         """
         from kingdoms.discord.admin_persistent import register_admin_panel_bot, register_admin_persistent_items
-        from kingdoms.discord.home import HomeButton
+        from kingdoms.discord.home import HomeButton, ProfileAddAccountButton, ProfileRemoveAccountButton
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
         self.add_dynamic_items(HomeButton)
+        self.add_dynamic_items(ProfileAddAccountButton)
+        self.add_dynamic_items(ProfileRemoveAccountButton)
         from kingdoms.discord.admin_panel_games import register_games_admin_items, register_games_admin_section
 
         register_games_admin_section()

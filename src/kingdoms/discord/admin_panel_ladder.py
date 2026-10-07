@@ -262,7 +262,7 @@ class LadderSettingsButton(
         return cls(_client_ladder_id(interaction))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle the click: resolve, read the ladder, open the modal."""
+        """Handle the click: resolve, read the ladder, open the identity modal."""
         wiring = build_ladder_wiring()
         if wiring is None:
             await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
@@ -277,35 +277,14 @@ class LadderSettingsButton(
             return
         s = ladder.settings
         await interaction.response.send_modal(
-            LadderSettingsModal(
-                ladder_id,
-                name=ladder.name,
-                rating=s.rating_system,
-                base=s.elo_initial,
-                floor=s.elo_floor,
-                k_std=s.elo_k_standard,
-                k_new=s.elo_k_newbie,
-                threshold=s.base_elo_threshold,
-                ready=s.ready_timeout,
-            )
+            LadderSettingsModal(ladder_id, name=ladder.name, rating=s.rating_system, ready=s.ready_timeout)
         )
 
 
 class LadderSettingsModal(discord.ui.Modal):
-    """The ladder settings form: name, rating method and core knobs."""
+    """The ladder identity form: name, rating method, ready timeout (<=5 fields)."""
 
-    def __init__(
-        self,
-        ladder_id: str,
-        name: str,
-        rating: str,
-        base: int,
-        floor: int,
-        k_std: int,
-        k_new: int,
-        threshold: int,
-        ready: int,
-    ) -> None:
+    def __init__(self, ladder_id: str, name: str, rating: str, ready: int) -> None:
         self.ladder_id = ladder_id
         super().__init__(title="Parametres du ladder", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
@@ -314,32 +293,10 @@ class LadderSettingsModal(discord.ui.Modal):
         self.rating: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Methode de ranking (elo / glicko2)", default=rating, max_length=16, required=True
         )
-        self.base: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="ELO initial", default=str(base), max_length=8
-        )
-        self.floor: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="ELO floor", default=str(floor), max_length=8
-        )
-        self.k_std: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="K standard", default=str(k_std), max_length=8
-        )
-        self.k_new: discord.ui.TextInput[Any] = discord.ui.TextInput(label="K newbie", default=str(k_new), max_length=8)
-        self.threshold: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Seuil de matching (base)", default=str(threshold), max_length=8
-        )
         self.ready: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Timeout ready (s)", default=str(ready), max_length=8
         )
-        for item in (
-            self.name,
-            self.rating,
-            self.base,
-            self.floor,
-            self.k_std,
-            self.k_new,
-            self.threshold,
-            self.ready,
-        ):
+        for item in (self.name, self.rating, self.ready):
             self.add_item(item)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -357,11 +314,6 @@ class LadderSettingsModal(discord.ui.Modal):
             updates: dict[str, Any] = {
                 "name": str(self.name.value).strip() or ladder.name,
                 "rating_system": str(self.rating.value).strip().lower() or ladder.settings.rating_system,
-                "elo_initial": int(self.base.value or ladder.settings.elo_initial),
-                "elo_floor": int(self.floor.value or ladder.settings.elo_floor),
-                "elo_k_standard": int(self.k_std.value or ladder.settings.elo_k_standard),
-                "elo_k_newbie": int(self.k_new.value or ladder.settings.elo_k_newbie),
-                "base_elo_threshold": int(self.threshold.value or ladder.settings.base_elo_threshold),
                 "ready_timeout": int(self.ready.value or ladder.settings.ready_timeout),
             }
         except ValueError:
@@ -584,28 +536,27 @@ class LadderSeasonModal(discord.ui.Modal):
             await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
             return
         now = _now_ms()
-        try:
-            days = int(self.days.value or "90")
-        except ValueError:
-            await interaction.response.send_message("Duree invalide.", ephemeral=True)
-            return
-        reset = str(self.reset.value or "").strip().lower() in {"oui", "yes", "true", "1"}
-        pool_value = str(self.pool.value or "").strip()
-        if not pool_value:
-            ladder = await wiring.service.get_ladder(self.ladder_id)
-            if ladder is not None and ladder.active_map_pool_id:
-                pool_value = str(ladder.active_map_pool_id)
-            else:
-                pools = await wiring.game_data.list_map_pools(GAME_KEY)
-                pool_value = pools[0].id if pools else ""
+        pool_value: str | None = None
+        ladder = await wiring.service.get_ladder(self.ladder_id)
+        if ladder is not None and ladder.active_map_pool_id:
+            pool_value = str(ladder.active_map_pool_id)
+        else:
+            pools = await wiring.game_data.list_map_pools(GAME_KEY)
+            pool_value = pools[0].id if pools else None
+        days = 90
+        if str(self.days.value or "").strip():
+            try:
+                days = int(str(self.days.value).strip())
+            except ValueError:
+                await interaction.response.send_message("Duree invalide.", ephemeral=True)
+                return
         try:
             season = await wiring.season_service.create_season(
                 self.ladder_id,
                 str(self.name.value).strip(),
-                pool_value or None,
+                pool_value,
                 start_at=now,
                 end_at=now + days * 86_400_000,
-                reset_ratings=reset,
             )
         except Exception:
             logger.exception("LADDER ADMIN: season creation failed")
@@ -624,11 +575,13 @@ class LadderSeasonActivateSelect(
     """Activate a season of the ladder (transactional pool switch)."""
 
     def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+        options = options or []
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:seasons:activate",
-                options=options or [discord.SelectOption(label="Aucune saison", value="none")],
+                options=options or [discord.SelectOption(label="Vide", value="none")],
                 placeholder="Activer une saison...",
+                disabled=not options,
             )
         )
 
@@ -787,15 +740,16 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
             lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id or 'aucun'}")
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
-    select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    select_row.add_item(
-        LadderSeasonActivateSelect(
-            [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+    if seasons:
+        select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        select_row.add_item(
+            LadderSeasonActivateSelect(
+                [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+            )
         )
-    )
+        view.add_item(select_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(LadderSeasonCreateButton(ladder_id))
-    view.add_item(select_row)
     view.add_item(action_row)
     view.add_item(_back_row())
     return view

@@ -139,6 +139,28 @@ class DiscordChannelsPlatform:
             )
         return str(forum.id)
 
+    async def adopt_legacy_forum(
+        self, guild_id: str, legacy_name: str, name: str, category_id: str | None = None
+    ) -> str | None:
+        """Rename a legacy forum to ``name`` when the target is absent.
+
+        Migration helper: the first maps-forum iteration provisioned a
+        forum named ``maps``; the generic one expects ``<game>-maps``.
+        Returns the renamed forum id, or None when nothing to migrate.
+        """
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        if discord.utils.get(guild.forums, name=name) is not None:
+            return None
+        legacy = discord.utils.get(guild.forums, name=legacy_name)
+        if legacy is None:
+            return None
+        if category_id is not None and str(legacy.category_id) != category_id:
+            return None
+        await legacy.edit(name=name, reason=f"kingdoms: migrate the {legacy_name} forum to {name}")
+        return str(legacy.id)
+
     async def forum_thread_exists(self, guild_id: str, thread_id: str) -> bool:
         """Whether a forum thread still exists on the platform."""
         guild = await self._guild(guild_id)

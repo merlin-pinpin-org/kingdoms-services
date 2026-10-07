@@ -29,6 +29,7 @@ for the process's lifetime.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 from typing import Any, cast
@@ -157,7 +158,7 @@ async def _view_status(interaction: discord.Interaction) -> None:
 
 
 async def _view_profile(interaction: discord.Interaction) -> None:
-    """Render the user's games, linked accounts and their info."""
+    """Render the user's games, linked accounts (name + elo) and actions."""
     registration = getattr(interaction.client, "registration_service", None)
     if registration is None:
         await interaction.response.send_message("Registration is not configured.", ephemeral=True)
@@ -165,42 +166,239 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     user_id = str(interaction.user.id)
     await interaction.response.defer(ephemeral=True)
     bindings = await registration.list_bindings(user_id)
+    blocks: list[Any] = []
     if not bindings:
-        await interaction.followup.send(
-            "Aucun compte de jeu lié — utilise /register pour lier ton profil AoE2.",
-            ephemeral=True,
-        )
-        return
-    embed = discord.Embed(title="👤 Ton profil", color=0x5865F2)
+        blocks.append(discord.ui.TextDisplay("Aucun compte de jeu lié — ajoute-en un ci-dessous."))
     by_game: dict[str, list[dict[str, Any]]] = {}
     for binding in bindings:
         by_game.setdefault(str(binding.get("game_key", "?")), []).append(binding)
+    players_by_id: dict[str, dict[str, Any]] = {}
+    from kingdoms.discord.ladder_commands import build_ladder_wiring
+
+    wiring = build_ladder_wiring()
+    if wiring is not None and wiring.season_roles is None and hasattr(wiring.service, "_db"):
+        try:
+            ladder_id = str(getattr(interaction.client, "_ladder_id", "") or "")
+            if ladder_id:
+                players = await wiring.service._db.find_ladder_players(ladder_id)
+                players_by_id = {str(p.get("user_id", "")): p for p in players}
+        except Exception:
+            players_by_id = {}
     for game, entries in sorted(by_game.items()):
-        lines = []
+        lines = [f"## {game}"]
         for entry in entries:
             profile = entry.get("profile") or {}
             name = profile.get("display_name") or profile.get("name") or "?"
             pid = entry.get("profile_id", "?")
-            lines.append(f"• {name} (`{pid}`)")
-        embed.add_field(name=game, value="\n".join(lines), inline=False)
-    await interaction.followup.send(embed=embed, ephemeral=True)
+            player = players_by_id.get(user_id)
+            elo = f" — {player.get('rating')} elo" if player else ""
+            lines.append(f"• {name} (`{pid}`){elo}")
+        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+    view = discord.ui.LayoutView(timeout=None)
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(ProfileAddAccountButton())
+    if bindings:
+        row.add_item(ProfileRemoveAccountButton([str(b.get("profile_id", "")) for b in bindings]))
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay("# 👤 Ton profil"), *blocks))
+    view.add_item(row)
+    await interaction.followup.send(view=view, ephemeral=True)
+
+
+class ProfileAddAccountButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"home:profile:add",
+):
+    """Open the add-account modal (profile id)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="Ajouter un compte", style=discord.ButtonStyle.success, custom_id="home:profile:add"
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ProfileAddAccountButton:
+        """Rebuild the item from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the add-account modal."""
+        await interaction.response.send_modal(ProfileAddAccountModal())
+
+
+class ProfileAddAccountModal(discord.ui.Modal):
+    """The add-account form: game key + profile id."""
+
+    def __init__(self) -> None:
+        super().__init__(title="Ajouter un compte", timeout=None)
+        self.game: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Jeu (aoe2)", default="aoe2", max_length=16, required=True
+        )
+        self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Profile id", max_length=64, required=True
+        )
+        self.add_item(self.game)
+        self.add_item(self.profile_id)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Bind the account, audit, confirm."""
+        registration = getattr(interaction.client, "registration_service", None)
+        if registration is None:
+            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            return
+        try:
+            await registration.bind_profile(
+                str(interaction.user.id), str(self.game.value).strip(), str(self.profile_id.value).strip()
+            )
+        except Exception:
+            logger.warning("PROFILE ADD failed", exc_info=True)
+            await interaction.response.send_message(
+                "Ajout echoue (profile inconnu du provider, ou deja lie).", ephemeral=True
+            )
+            return
+        await interaction.response.send_message("Compte lie.", ephemeral=True)
+
+
+class ProfileRemoveAccountButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"home:profile:remove",
+):
+    """Open the remove-account select (ephemeral state rides the wire)."""
+
+    def __init__(self, profile_ids: list[str] | None = None) -> None:
+        self.profile_ids = profile_ids or []
+        super().__init__(
+            discord.ui.Button(
+                label="Retirer un compte", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ProfileRemoveAccountButton:
+        """Rebuild the item; the profile list is rebuilt from the bindings."""
+        registration = getattr(interaction.client, "registration_service", None)
+        ids: list[str] = []
+        if registration is not None:
+            try:
+                bindings = await registration.list_bindings(str(interaction.user.id))
+                ids = [str(b.get("profile_id", "")) for b in bindings]
+            except Exception:
+                ids = []
+        return cls(ids)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Confirm with a select of the user's accounts."""
+        registration = getattr(interaction.client, "registration_service", None)
+        if registration is None:
+            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            return
+        bindings = await registration.list_bindings(str(interaction.user.id))
+        options = [
+            discord.SelectOption(
+                label=str((b.get("profile") or {}).get("display_name") or b.get("profile_id", "?")),
+                value=str(b.get("profile_id", "")),
+            )
+            for b in bindings[:25]
+        ]
+        if not options:
+            await interaction.response.send_message("Aucun compte a retirer.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "Quel compte retirer ?",
+            view=ProfileRemoveSelectView(options),
+            ephemeral=True,
+        )
+
+
+class ProfileRemoveSelectView(discord.ui.View):
+    """The remove-account select (ephemeral, short-lived)."""
+
+    def __init__(self, options: list[discord.SelectOption]) -> None:
+        super().__init__(timeout=None)
+        self.add_item(ProfileRemoveSelect(options))
+
+    async def on_error(self, interaction: discord.Interaction[discord.Client], error: Exception, item: Any) -> None:
+        """Log and answer quietly (the surface is ephemeral)."""
+        logger.warning("PROFILE REMOVE failed", exc_info=error)
+        with contextlib.suppress(Exception):
+            await interaction.response.send_message("Retrait echoue.", ephemeral=True)
+
+
+class ProfileRemoveSelect(discord.ui.Select[Any]):
+    """The account picker of the remove flow."""
+
+    def __init__(self, options: list[discord.SelectOption]) -> None:
+        super().__init__(
+            custom_id="home:profile:remove:select", options=options, placeholder="Compte a retirer..."
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Unlink the chosen account, confirm."""
+        registration = getattr(interaction.client, "registration_service", None)
+        if registration is None:
+            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            return
+        data = interaction.data
+        raw = getattr(data, "values", None) if data is not None else None
+        if raw is None and isinstance(data, dict):
+            raw = data.get("values")
+        chosen = str(next(iter(raw))) if isinstance(raw, (list, tuple)) and raw else ""
+        if not chosen:
+            await interaction.response.defer()
+            return
+        try:
+            await registration.unlink_profile(str(interaction.user.id), "aoe2", chosen)
+        except Exception:
+            logger.warning("PROFILE REMOVE failed", exc_info=True)
+            await interaction.response.send_message("Retrait echoue.", ephemeral=True)
+            return
+        await interaction.response.edit_message(content="Compte retire.", view=None)
 
 
 async def _view_games(interaction: discord.Interaction) -> None:
-    """Render the configured games and their provider status."""
+    """Render the known games, their catalog sizes and provider status."""
     from kingdoms.discord.bot.factory import KingdomsBot
+    from kingdoms.discord.maps_forum import maps_forum_wiring_ready
 
     bot = interaction.client
-    games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     embed = discord.Embed(title="🎮 Jeux", color=0x5865F2)
-    if not games:
-        embed.description = "Aucun jeu configuré."
-    else:
-        lines = []
+    lines: list[str] = []
+    if maps_forum_wiring_ready():
+        try:
+            from kingdoms.discord.admin_panel_games import _games_wiring
+
+            service = _games_wiring()
+            if service is not None:
+                for key in (await service.list_game_keys())[:25]:
+                    maps = await service.list_maps(key)
+                    pools = await service.list_map_pools(key)
+                    provider = await _provider_status(bot, key)
+                    active = sum(1 for m in maps if m.archived_at is None)
+                    lines.append(
+                        f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}"
+                    )
+        except Exception:
+            logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
+    if not lines:
+        games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
         for game in games:
             provider = await _provider_status(bot, game)
             lines.append(f"**{game}** — {provider}")
-        embed.description = "\n".join(lines)
+    embed.description = "\n".join(lines) if lines else "Aucun jeu configure."
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -220,6 +418,33 @@ async def _provider_status(bot: Any, game: str) -> str:
         return "⚠️ indisponible"
 
 
+async def _collect_roster_bindings(bot: Any) -> list[dict[str, Any]]:
+    """Collect the bindings across every known game (deduplicated)."""
+    roster = getattr(bot, "_registration_database", None)
+    if roster is None:
+        return []
+    bindings: list[dict[str, Any]] = []
+    try:
+        from kingdoms.discord.admin_panel_games import _games_wiring
+
+        service = _games_wiring()
+        if service is not None:
+            for key in (await service.list_game_keys())[:5]:
+                bindings.extend(await roster.list_bindings_for_game(key))
+    except Exception:
+        logger.warning("USERS VIEW catalog listing failed", exc_info=True)
+    if not bindings:
+        bindings = await roster.list_bindings_for_game("aoe2")
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for b in bindings:
+        bid = str(b.get("_id", ""))
+        if bid not in seen:
+            seen.add(bid)
+            unique.append(b)
+    return unique
+
+
 async def _view_users(interaction: discord.Interaction) -> None:
     """Render the guild's roster with linked profiles."""
     bot = interaction.client
@@ -232,18 +457,18 @@ async def _view_users(interaction: discord.Interaction) -> None:
     if roster is None:
         await interaction.followup.send("Roster indisponible (store non configuré).", ephemeral=True)
         return
-    bindings = await roster.list_bindings_for_game("aoe2")
-    if not bindings:
+    unique = await _collect_roster_bindings(bot)
+    if not unique:
         await interaction.followup.send("Aucun compte lié pour l'instant.", ephemeral=True)
         return
     lines = []
-    for binding in sorted(bindings, key=lambda b: str(b.get("user_id", "")))[:25]:
+    for binding in sorted(unique, key=lambda b: str(b.get("user_id", "")))[:25]:
         user_id = binding.get("user_id", "")
         profile = binding.get("profile") or {}
         name = profile.get("display_name") or "?"
         lines.append(f"<@{user_id}> — {name} (`{binding.get('profile_id', '?')}`)")
     embed = discord.Embed(
-        title=f"👥 Joueurs enregistrés ({len(bindings)})",
+        title=f"👥 Joueurs enregistrés ({len(unique)})",
         description="\n".join(lines),
         color=0x5865F2,
     )

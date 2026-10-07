@@ -63,7 +63,7 @@ class MongoAoE2Database:
 
     async def find_game_keys(self) -> list[str]:
         """List the distinct game keys present in the maps catalog."""
-        keys = self._database[collection_name("maps")].distinct("game_key")
+        keys = await self._database[collection_name("maps")].distinct("game_key")
         return [str(k) for k in keys if k]
 
     async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:

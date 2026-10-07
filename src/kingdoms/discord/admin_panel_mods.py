@@ -67,6 +67,7 @@ class AdminModSection:
     label: str
     entry: Callable[..., Coroutine[Any, Any, discord.ui.LayoutView]]
     description: str = ""
+    core: bool = False
 
     def __post_init__(self) -> None:
         """Fail loudly on a declaration that could never reach the wire."""
@@ -110,6 +111,16 @@ def registered_admin_mod_sections() -> tuple[AdminModSection, ...]:
     return tuple(_REGISTRY[key] for key in _ORDER if key in _REGISTRY)
 
 
+def registered_admin_core_sections() -> tuple[AdminModSection, ...]:
+    """Return the registered core sections (games), in registration order."""
+    return tuple(s for s in registered_admin_mod_sections() if s.core)
+
+
+def registered_admin_game_sections() -> tuple[AdminModSection, ...]:
+    """Return the registered mod sections (non-core), in registration order."""
+    return tuple(s for s in registered_admin_mod_sections() if not s.core)
+
+
 class PinModRouteSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=r"admin:pin:mod:(?P<mod>[a-z0-9_-]+)",
@@ -122,23 +133,27 @@ class PinModRouteSelect(
     panel rebuild.
     """
 
-    def __init__(self, options: list[discord.SelectOption], placeholder: str = "") -> None:
+    def __init__(self, options: list[discord.SelectOption], scope: str = "mods", placeholder: str = "") -> None:
+        self.scope = scope
         super().__init__(
             discord.ui.Select(
-                custom_id=mod_section_route_id("mods"),
+                custom_id=mod_section_route_id(scope),
                 options=options,
                 placeholder=placeholder or None,
             )
         )
 
     @classmethod
-    def create(cls, placeholder: str = "") -> PinModRouteSelect:
-        """Build the select from the current registry (empty registry -> hidden)."""
+    def create(cls, scope: str = "mods", placeholder: str = "") -> PinModRouteSelect:
+        """Build the scoped select from the current registry (empty -> hidden)."""
+        sections = (
+            registered_admin_core_sections() if scope == "games" else registered_admin_game_sections()
+        )
         options = [
             discord.SelectOption(label=section.label, value=section.mod, description=section.description or None)
-            for section in registered_admin_mod_sections()
+            for section in sections
         ]
-        return cls(options, placeholder)
+        return cls(options, scope, placeholder)
 
     @classmethod
     async def from_custom_id(

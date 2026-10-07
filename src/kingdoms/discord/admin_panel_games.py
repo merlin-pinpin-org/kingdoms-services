@@ -786,6 +786,7 @@ def register_games_admin_section() -> None:
             label="Games",
             description="Catalogues de jeux : maps, map pools",
             entry=games_admin_entry,
+            core=True,
         )
     )
 

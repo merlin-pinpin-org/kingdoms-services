@@ -311,7 +311,6 @@ async def build_pin_main_menu(
     """Build the pinned main menu: fully dynamic, no captured state."""
     from kingdoms.discord.admin_panel_mods import (
         PinModRouteSelect,
-        registered_admin_mod_sections,
     )
 
     status = await _managed_channel_status(logs_service, guild_id, admin_channel_service)
@@ -335,8 +334,20 @@ async def build_pin_main_menu(
             )
         ),
     ]
-    sections = registered_admin_mod_sections()
-    if sections:
+    from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
+
+    if registered_admin_core_sections():
+        container_blocks.append(discord.ui.Separator())
+        container_blocks.append(discord.ui.TextDisplay("## \ud83c\udfae Jeux"))
+        container_blocks.append(
+            _select_row(
+                PinModRouteSelect.create(
+                    scope="games",
+                    placeholder="Gerer les jeux...",
+                )
+            )
+        )
+    if registered_admin_game_sections():
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))
         container_blocks.append(

@@ -60,7 +60,9 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
     platform = DiscordChannelsPlatform(bot)
     service = service if service is not None else _build_service()
     category_id = await platform.ensure_category(guild_id, GAMES_CATEGORY_NAME)
-    forum_id = await platform.ensure_forum(guild_id, _forum_name(game_key), category_id)
+    forum_name = _forum_name(game_key)
+    await platform.adopt_legacy_forum(guild_id, "maps", forum_name, category_id)
+    forum_id = await platform.ensure_forum(guild_id, forum_name, category_id)
     created = 0
     maps = await service.list_maps(game_key)
     for entry in maps:
