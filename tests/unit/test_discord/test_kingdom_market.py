@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 from kingdoms.discord.kingdom_market import (
     MARKET_PANEL_MARKER,
     KingdomMarketButton,
