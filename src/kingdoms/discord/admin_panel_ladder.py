@@ -87,15 +87,23 @@ def _selected_values(interaction: discord.Interaction) -> list[str]:
     return list(raw) if isinstance(raw, (list, tuple)) else []
 
 
-async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
-    """Render the ladder admin section's view (snapshot + config actions)."""
+async def ladder_admin_entry(
+    interaction: discord.Interaction, pinned: bool = False
+) -> discord.ui.LayoutView:
+    """Render the ladder admin section's view (snapshot + config actions).
+
+    ``pinned`` renders the ladder-admin channel's entry: a pin lives in
+    its own channel, so it carries no back button — every sub-view keeps
+    its return to this entry.
+    """
     wiring = build_ladder_wiring()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay("# Ladder admin")]
     if wiring is None:
         blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible : Mongo/Redis ne sont pas configurés."))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-        view.add_item(_back_row())
+        if not pinned:
+            view.add_item(_back_row())
         return view
 
     ladder = await _resolve_ladder(interaction, wiring)
@@ -105,7 +113,8 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
         create_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         create_row.add_item(LadderCreateButton())
         view.add_item(create_row)
-        view.add_item(_back_row())
+        if not pinned:
+            view.add_item(_back_row())
         return view
 
     ladder_id = str(ladder["_id"])
@@ -137,6 +146,21 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
             ),
         ]
     )
+    enrolled = len(players)
+    pool_ok = active_pool is not None
+    season_ok = active is not None
+    start_ok = enrolled >= 2 and pool_ok
+    checklist = [
+        (" joueurs inscrits (2 minimum)", enrolled >= 2, f"{enrolled}/2"),
+        (" map pool actif", pool_ok, active_pool.name if pool_ok else "aucun"),
+        (" saison en cours (optionnel)", season_ok, active.name if season_ok else "sans saison"),
+    ]
+    checklist_lines = []
+    for label, ok, detail in checklist:
+        emoji = "\u2705" if ok else "\u26d4"
+        checklist_lines.append(f"{emoji} {label} : {detail}")
+    blocks.append(discord.ui.TextDisplay("\n".join(checklist_lines)))
+
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(LadderSettingsButton(ladder_id))
     actions.add_item(LadderSeasonButton(ladder_id))
@@ -147,14 +171,18 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
     cycle.add_item(
         LadderEnrollButton("open" if not ladder.get("enrollments_open", True) else "close")
     )
-    cycle.add_item(
-        LadderPauseButton("pause" if not ladder.get("queue_paused", False) else "resume")
-    )
+    paused = bool(ladder.get("queue_paused", False))
+    start_state = "pause" if not paused else "resume"
+    start_button = LadderPauseButton(start_state)
+    if start_state == "resume" and not start_ok:
+        start_button.item.disabled = True
+    cycle.add_item(start_button)
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     view.add_item(actions)
     view.add_item(pick_row)
     view.add_item(cycle)
-    view.add_item(_back_row())
+    if not pinned:
+        view.add_item(_back_row())
     return view
 
 
@@ -498,6 +526,17 @@ class LadderPauseButton(
         if pausing == current_paused:
             await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
             return
+        if not pausing and ladder is not None:
+            players = await wiring.service._db.find_ladder_players(ladder_id)
+            pools = await wiring.game_data.list_map_pools(ladder.get("game_key", GAME_KEY))
+            pool_ok = any(p.id == ladder.active_map_pool_id for p in pools)
+            if len(players) < 2 or not pool_ok:
+                await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+                await interaction.followup.send(
+                    "Demarrage bloque : il faut au moins 2 inscrits et un map pool actif.",
+                    ephemeral=True,
+                )
+                return
         await wiring.service.set_queue_paused(ladder_id, pausing)
         await wiring.service._audit_record(
             "ladder.queue", {"ladder_id": ladder_id, "paused": pausing}

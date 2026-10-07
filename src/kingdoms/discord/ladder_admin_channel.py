@@ -192,7 +192,7 @@ def _build_layout(bot: discord.Client, guild_id: str) -> discord.ui.LayoutView:
     """
     from kingdoms.discord.admin_panel_ladder import ladder_admin_entry
 
-    return ladder_admin_entry(_PinInteraction(guild_id, bot))
+    return ladder_admin_entry(_PinInteraction(guild_id, bot), pinned=True)
 
 
 class _PinInteraction:
