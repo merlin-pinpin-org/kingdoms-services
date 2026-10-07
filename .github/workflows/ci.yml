@@ -81,8 +81,7 @@ jobs:
     name: CLI doctor (kingdoms)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/ch
-eckout@v4
+      - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
@@ -134,8 +133,7 @@ eckout@v4
       - name: Boot the stack (bot excluded until kingdoms-services#12)
         run: |
           cp .env.example .env
-          docker compose up -d kingdoms-mongo kingdoms-re
-dis
+          docker compose up -d kingdoms-mongo kingdoms-redis
           timeout 60 bash -c "until docker compose exec -T kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
           timeout 60 bash -c "until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
           echo "COMPOSE STACK BOOTS OK"
@@ -169,8 +167,7 @@ dis
         env:
           CICD_DISCORD_TOKEN: ${{ secrets.CICD_DISCORD_TOKEN }}
         run: |
-          if [ -z "$CICD_DISCORD_TOKEN" ]; 
-then
+          if [ -z "$CICD_DISCORD_TOKEN" ]; then
             echo "::error::CICD_DISCORD_TOKEN is not configured — create the CI/CD bot and add the secret (kingdoms-services#34)"
             exit 1
           fi
@@ -210,8 +207,7 @@ then
           echo "DISCORD GATEWAY READY OK"
       - name: Soak the bot for 60s (no crash loop)
         run: |
-     
-     sleep 60
+          sleep 60
           if [ "$(docker inspect -f "{{.State.Status}}" kingdoms-bot-smoke)" != "running" ]; then
             echo "::error::Bot container crashed during the soak window"
             docker logs --tail 50 kingdoms-bot-smoke
@@ -260,8 +256,7 @@ then
 
       - name: Run the smoke test in the bot container
         env:
-   
-       MONGO_URI: mongodb://kingdoms-mongo:27017
+          MONGO_URI: mongodb://kingdoms-mongo:27017
           REDIS_URI: redis://kingdoms-redis:6379
         run: |
           docker run --rm --network kingdoms-ci \
