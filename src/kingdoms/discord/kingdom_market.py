@@ -153,7 +153,7 @@ class _MarketTargetModal(discord.ui.Modal):
             title=strings["target_title"].format(_tech_label(tech, locale))[:45],
             timeout=None,
         )
-        self.target = discord.ui.TextInput(
+        self.target: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
             label=strings[f"target_label_{kind}"][:45],
             placeholder=strings[f"target_placeholder_{kind}"][:100],
             required=True,
@@ -274,7 +274,7 @@ def _shop_row(techs: tuple[str, ...], locale: str, config: Any) -> discord.ui.Ac
 async def build_market_panel(kingdoms_service: Any, locale: str) -> discord.ui.LayoutView:
     """Build the persistent Marché panel for the current season state."""
     strings = _strings(locale)
-    container = discord.ui.Container(accent_colour=discord.Colour.gold())
+    container: discord.ui.Container[discord.ui.LayoutView] = discord.ui.Container(accent_colour=discord.Colour.gold())
     container.add_item(discord.ui.TextDisplay(f"# {strings['market_title']}"))
     wallets: list[str] = []
     if kingdoms_service is not None:
