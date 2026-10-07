@@ -65,6 +65,10 @@ class GameDataDatabase(Protocol):
         """List the non-archived maps for a game."""
         ...
 
+    async def find_game_keys(self) -> list[str]:
+        """List the distinct game keys present in the maps catalog."""
+        ...
+
     async def find_active_map_pools(self, game_key: str) -> list[dict[str, Any]]:
         """List the non-archived map pools for a game."""
         ...
@@ -134,6 +138,10 @@ class GameDataService:
         """Return one map; None when unknown."""
         doc = await self._db.find_entry(MAPS_COLLECTION, entry_id)
         return MapModel.from_mongo(doc) if doc else None
+
+    async def list_game_keys(self) -> list[str]:
+        """List the game keys known to the maps catalog (generic)."""
+        return await self._db.find_game_keys()
 
     async def list_maps(self, game_key: str) -> list[MapModel]:
         """List the non-archived maps of a game."""

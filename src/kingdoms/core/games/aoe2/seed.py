@@ -61,6 +61,11 @@ class MongoAoE2Database:
         cursor = self._database[collection_name("maps")].find({"game_key": game_key, "archived_at": None})
         return [doc async for doc in cursor]
 
+    async def find_game_keys(self) -> list[str]:
+        """List the distinct game keys present in the maps catalog."""
+        keys = self._database[collection_name("maps")].distinct("game_key")
+        return [str(k) for k in keys if k]
+
     async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
         """List the non-archived civs for a game."""
         cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
