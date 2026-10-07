@@ -141,6 +141,8 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
     actions.add_item(LadderSettingsButton(ladder_id))
     actions.add_item(LadderSeasonButton(ladder_id))
     actions.add_item(LadderPoolButton(ladder_id))
+    pick_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    pick_row.add_item(LadderPickStrategySelect())
     cycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     cycle.add_item(
         LadderEnrollButton("open" if not ladder.get("enrollments_open", True) else "close")
@@ -150,6 +152,7 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
     )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     view.add_item(actions)
+    view.add_item(pick_row)
     view.add_item(cycle)
     view.add_item(_back_row())
     return view
@@ -330,6 +333,68 @@ class LadderSettingsModal(discord.ui.Modal):
             f"Parametres enregistres - `{updated.name}` (`{updated.settings.rating_system}`).",
             ephemeral=True,
         )
+
+
+
+
+class LadderPickStrategySelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pick:set",
+):
+    """Switch the ladder's map-pick strategy (#223, admin-selectable)."""
+
+    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:pick:set",
+                options=options or [discord.SelectOption(label="weighted", value="weighted")],
+                placeholder="Mode de pick...",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPickStrategySelect:
+        """Rebuild the select's options from the registry at click time."""
+        from kingdoms.mods.ladder.pick_strategies import list_pick_strategies
+
+        options = [
+            discord.SelectOption(label=strategy.label, value=strategy.key)
+            for strategy in list_pick_strategies()[:25]
+        ]
+        return cls(options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Persist the chosen strategy into the ladder settings."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        ladder_id = str(getattr(interaction.client, "_ladder_id", "") or "")
+        ladder = await wiring.service.get_ladder(ladder_id)
+        if ladder is None:
+            await interaction.response.send_message("Ladder introuvable.", ephemeral=True)
+            return
+        from kingdoms.mods.ladder.pick_strategies import resolve_pick_strategy
+
+        key = str(self.item.values[0])
+        strategy = resolve_pick_strategy(key)
+        merged = {**ladder.settings.model_dump(), "pick_strategy": strategy.key}
+        settings_model = type(ladder.settings)
+        updated = ladder.model_copy(update={"settings": settings_model(**merged)})
+        await wiring.service._db.upsert_entry(LADDERS_COLLECTION, updated.to_mongo())
+        await wiring.service._audit_record(
+            "ladder.pick_strategy.update", {"ladder_id": ladder_id, "strategy": strategy.key}
+        )
+        await interaction.response.send_message(
+            f"Mode de pick : **{strategy.label}** (`{strategy.key}`).", ephemeral=True
+        )
+
 
 
 class LadderEnrollButton(
@@ -807,4 +872,5 @@ def register_ladder_admin_items(bot: discord.Client) -> None:
         LadderPoolSelect,
         LadderEnrollButton,
         LadderPauseButton,
+        LadderPickStrategySelect,
     )
