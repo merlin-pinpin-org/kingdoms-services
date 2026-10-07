@@ -297,6 +297,146 @@ class LadderUnregisterButton(
         await _run_membership(interaction, "unregister")
 
 
+
+
+class LadderPreferencesButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:prefs",
+):
+    """Show the player's map preferences (fav/ban selects, quota-aware)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="Mes préférences",
+                emoji="🗺️",
+                custom_id=f"{_NS}:prefs",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPreferencesButton:
+        """Rebuild the stateless item from the wire at click time."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Answer with the fav/ban selects over the active pool's maps."""
+        wiring, ladder_id = _wiring_and_ladder_id(interaction)
+        if wiring is None or not ladder_id:
+            await interaction.response.send_message("Le ladder n'est pas configuré ici.", ephemeral=True)
+            return
+        view = await build_preferences_view(interaction, wiring, ladder_id)
+        await interaction.response.send_message(view=view, ephemeral=True)
+
+
+class LadderPreferenceSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:prefs:(?P<kind>fav|ban)",
+):
+    """The fav/ban select (the kind rides the custom_id; quota enforced)."""
+
+    def __init__(self, kind: str, options: list[discord.SelectOption]) -> None:
+        self.kind = kind
+        max_values = max(1, len(options)) if options else 1
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:prefs:{kind}",
+                placeholder="Tes maps favorites..." if kind == "fav" else "Tes maps bannies...",
+                min_values=0,
+                max_values=max_values,
+                options=options or [discord.SelectOption(label="—", value="none")],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPreferenceSelect:
+        """Rebuild the item; the options come from the active pool."""
+        kind = str(match["kind"])
+        wiring, ladder_id = _wiring_and_ladder_id(interaction)
+        options = await _pool_options(wiring, ladder_id) if wiring and ladder_id else []
+        return cls(kind, options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Save the selection through the ladder service (quota-capped)."""
+        wiring, ladder_id = _wiring_and_ladder_id(interaction)
+        if wiring is None or not ladder_id:
+            await interaction.response.send_message("Le ladder n'est pas configuré ici.", ephemeral=True)
+            return
+        player = await wiring.service.get_player(ladder_id, str(interaction.user.id))
+        if player is None:
+            await interaction.response.send_message("Inscris-toi au ladder d'abord.", ephemeral=True)
+            return
+        selected = [str(v) for v in self.item.values if v != "none"]
+        favs = selected if self.kind == "fav" else list(player.fav_map_ids)
+        bans = selected if self.kind == "ban" else list(player.ban_map_ids)
+        try:
+            await wiring.service.set_preferences(ladder_id, str(interaction.user.id), tuple(favs), tuple(bans))
+        except Exception:
+            logger.warning("PREFERENCES SAVE failed", exc_info=True)
+            await interaction.response.send_message(
+                "Sauvegarde impossible (favs et bans doivent être disjoints).", ephemeral=True
+            )
+            return
+        await interaction.response.send_message("Préférences enregistrées.", ephemeral=True)
+
+
+async def _pool_options(wiring: Any, ladder_id: str) -> list[discord.SelectOption]:
+    """Build the pool's map options for the selects (empty list when no pool)."""
+    ladder = await wiring.service.get_ladder(ladder_id)
+    if ladder is None or ladder.active_map_pool_id is None:
+        return []
+    pool = await wiring.game_data.get_map_pool(ladder.active_map_pool_id)
+    if pool is None:
+        return []
+    options = []
+    for map_id in await wiring.game_data.resolve_pool_map_ids(pool):
+        entry = await wiring.game_data.get_map(map_id)
+        options.append(discord.SelectOption(label=entry.name if entry else map_id, value=map_id))
+    return options[:25]
+
+
+async def build_preferences_view(
+    interaction: discord.Interaction, wiring: Any, ladder_id: str
+) -> discord.ui.LayoutView:
+    """Build the preferences view: two selects + the quota banner."""
+    del interaction
+    caps = await wiring.service.preference_caps(ladder_id)
+    options = await _pool_options(wiring, ladder_id)
+    if not options:
+        return _notice_view("Aucun pool actif — les préférences attendent un map pool.")
+    return _notice_view(f"⭐ **{caps[0]}** favoris · ⛔ **{caps[1]}** bans autorisés.", options)
+
+
+def _notice_view(text: str, options: list[discord.SelectOption] | None = None) -> discord.ui.LayoutView:
+    """Build a small ephemeral notice view, selects attached when provided."""
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"## 🗺️ Mes préférences\n{text}")]
+    if options:
+        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        row.add_item(LadderPreferenceSelect("fav", options))
+        view.add_item(discord.ui.Container(*blocks))
+        row2: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        row2.add_item(LadderPreferenceSelect("ban", options))
+        view.add_item(row)
+        view.add_item(row2)
+    else:
+        view.add_item(discord.ui.Container(*blocks))
+    return view
+
+
 def build_ladder_menu_layout() -> discord.ui.LayoutView:
     """Build the ladder home layout (shared by the ephemeral view and the pin)."""
     from kingdoms.discord.staff import StaffApplyButton
@@ -309,6 +449,7 @@ def build_ladder_menu_layout() -> discord.ui.LayoutView:
     info_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     info_row.add_item(LadderQueueButton())
     info_row.add_item(LadderLeaderboardButton())
+    info_row.add_item(LadderPreferencesButton())
     staff_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     staff_row.add_item(StaffApplyButton("ladder", label="Nous rejoindre"))
     view.add_item(
@@ -338,6 +479,8 @@ def register_ladder_home_items(bot: discord.Client) -> None:
         LadderLeaveButton,
         LadderQueueButton,
         LadderLeaderboardButton,
+        LadderPreferencesButton,
+        LadderPreferenceSelect,
         LadderRegisterButton,
         LadderUnregisterButton,
     )

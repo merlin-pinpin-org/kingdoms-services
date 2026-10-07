@@ -246,12 +246,16 @@ class GameDataService:
         name: str | None = None,
         map_ids: tuple[str, ...] | None = None,
         description: str | None = None,
+        fav_quota: int | None = None,
+        ban_quota: int | None = None,
     ) -> MapPoolModel:
-        """Update a pool's name, maps and/or description (validated).
+        """Update a pool's name, maps, description and/or quotas (validated).
 
         All arguments are optional: only the provided ones change. New
         maps are validated against the catalog, the name against the
-        game's taken names (excluding itself).
+        game's taken names (excluding itself). Quotas cap the players'
+        fav/ban preferences on ladders running this pool (#222); ``None``
+        keeps the current value, use ``0`` to disable a kind explicitly.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
         if name is not None and name != pool.name:
@@ -262,13 +266,14 @@ class GameDataService:
             for map_id in map_ids:
                 if await self._db.find_entry(MAPS_COLLECTION, map_id) is None:
                     raise ValueError(f"unknown map {map_id!r}")
-        updates: dict[str, Any] = {}
-        if name is not None and name != pool.name:
-            updates["name"] = name
-        if description is not None:
-            updates["description"] = description
-        if map_ids is not None:
-            updates["map_ids"] = tuple(map_ids)
+        updates = self._pool_updates(
+            pool,
+            name=name,
+            map_ids=map_ids,
+            description=description,
+            fav_quota=fav_quota,
+            ban_quota=ban_quota,
+        )
         if not updates:
             return pool
         updated = pool.model_copy(update=updates)
@@ -278,6 +283,29 @@ class GameDataService:
             {"pool_id": entry_id, "changes": {k: list(v) if k == "map_ids" else v for k, v in updates.items()}},
         )
         return updated
+
+    @staticmethod
+    def _pool_updates(
+        pool: MapPoolModel,
+        name: str | None,
+        map_ids: tuple[str, ...] | None,
+        description: str | None,
+        fav_quota: int | None,
+        ban_quota: int | None,
+    ) -> dict[str, Any]:
+        """Build the pool's change set; only the provided fields change."""
+        updates: dict[str, Any] = {}
+        if name is not None and name != pool.name:
+            updates["name"] = name
+        if description is not None:
+            updates["description"] = description
+        if map_ids is not None:
+            updates["map_ids"] = tuple(map_ids)
+        if fav_quota is not None:
+            updates["fav_quota"] = int(fav_quota)
+        if ban_quota is not None:
+            updates["ban_quota"] = int(ban_quota)
+        return updates
 
     async def set_map_forum_message(self, entry_id: str, forum_message_id: str) -> MapModel:
         """Record the map's forum post id (the map-message link)."""

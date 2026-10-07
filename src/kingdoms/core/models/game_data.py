@@ -98,6 +98,8 @@ class MapPoolModel(BaseModel):
     description: str = ""
     map_ids: tuple[str, ...] = ()
     map_pack_ids: tuple[str, ...] = ()
+    fav_quota: int | None = None
+    ban_quota: int | None = None
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

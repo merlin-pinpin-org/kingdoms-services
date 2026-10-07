@@ -300,17 +300,46 @@ class LadderService:
     async def set_preferences(
         self, ladder_id: str, user_id: str, fav_map_ids: tuple[str, ...], ban_map_ids: tuple[str, ...]
     ) -> PlayerModel:
-        """Set fav/ban preferences (counts capped, favs and bans disjoint)."""
+        """Set fav/ban preferences (counts capped, favs and bans disjoint).
+
+        The caps come from the ladder's **active map pool** first (#222):
+        the pool's explicit ``fav_quota``/``ban_quota`` when set, else a
+        sane derivation from the pool size, else the ladder settings'
+        ``player_fav_count``/``player_ban_count`` (no pool active).
+        """
         ladder = await self._require_ladder(ladder_id)
         player = await self._require_player(ladder_id, user_id)
-        favs = tuple(dict.fromkeys(fav_map_ids))[: ladder.settings.player_fav_count]
-        bans = tuple(dict.fromkeys(ban_map_ids))[: ladder.settings.player_ban_count]
+        fav_cap, ban_cap = await self._preference_caps(ladder)
+        favs = tuple(dict.fromkeys(fav_map_ids))[:fav_cap]
+        bans = tuple(dict.fromkeys(ban_map_ids))[:ban_cap]
         overlap = set(favs) & set(bans)
         if overlap:
             raise LadderError(f"favs and bans must be disjoint (overlap: {sorted(overlap)})")
         player = player.model_copy(update={"fav_map_ids": favs, "ban_map_ids": bans})
         await self._db.upsert_entry(PLAYERS_COLLECTION, player.to_mongo())
         return player
+
+    async def preference_caps(self, ladder_id: str) -> tuple[int, int]:
+        """Return the (fav, ban) caps a player may set on this ladder now.
+
+        Public read for the player-facing surface: the quotas the selects
+        enforce are these, resolved exactly as ``set_preferences`` does.
+        """
+        ladder = await self._require_ladder(ladder_id)
+        return await self._preference_caps(ladder)
+
+    async def _preference_caps(self, ladder: LadderModel) -> tuple[int, int]:
+        """Resolve the caps: pool quotas → pool-size derivation → settings."""
+        pool_id = ladder.active_map_pool_id
+        if pool_id is not None:
+            pool = await self._game_data.get_map_pool(pool_id)
+            if pool is not None:
+                maps = await self._game_data.resolve_pool_map_ids(pool)
+                size = len(maps)
+                fav = pool.fav_quota if pool.fav_quota is not None else min(3, max(1, size // 3))
+                ban = pool.ban_quota if pool.ban_quota is not None else min(2, max(1, size // 4))
+                return fav, ban
+        return ladder.settings.player_fav_count, ladder.settings.player_ban_count
 
     # ── Queue ─────────────────────────────────────────────────────────────
 

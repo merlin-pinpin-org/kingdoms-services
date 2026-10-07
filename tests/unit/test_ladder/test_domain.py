@@ -391,8 +391,20 @@ async def test_preferences_disjoint_and_capped() -> None:
     assert m_arabia and m_arena
     with pytest.raises(LadderError, match="disjoint"):
         await svc.set_preferences(ladder_id, "u1", (m_arabia.id,), (m_arabia.id,))
+    # The active pool (2 maps) owns the caps: derived fav quota is 1 (#222).
+    caps = await svc.preference_caps(ladder_id)
+    assert caps == (1, 1)
     p = await svc.set_preferences(ladder_id, "u1", (m_arabia.id, m_arena.id, "x", "y", "z"), ())
-    assert len(p.fav_map_ids) == 3
+    assert len(p.fav_map_ids) == 1
+    # An explicit pool quota overrides the derivation.
+    pool = await game_data.get_map_pool(f"map_pool:{GAME}:P")
+    assert pool is not None
+    updated = await game_data.update_map_pool(pool.id, fav_quota=3, ban_quota=0)
+    assert updated.fav_quota == 3 and updated.ban_quota == 0
+    caps = await svc.preference_caps(ladder_id)
+    assert caps == (3, 0)
+    p = await svc.set_preferences(ladder_id, "u1", (m_arabia.id, m_arena.id), ())
+    assert len(p.fav_map_ids) == 2
 
 
 @pytest.mark.asyncio
