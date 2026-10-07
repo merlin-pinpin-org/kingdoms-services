@@ -20,6 +20,17 @@ mods, YAML configs.
 - `kingdoms-services` (this repo): core, Discord platform, mods, configs
 - `kingdoms-infra`: Docker, CI/CD, GitOps manifests, deployment scripts
 
+## GitHub identity
+
+- **The session acts with the authenticated maintainer's identity, never a
+  bot identity:** all GitHub operations (commits, merges, comments, ops
+  commands) run through the maintainer's credentials, so gates that read
+  `comment.user.login` (roster, capability matrix) resolve to the
+  maintainer's roster entry. The session therefore has exactly the rights
+  the roster grants that maintainer — no more, no less — and must never
+  assume a separate `xxx[bot]` identity or try to bypass the capability
+  matrix.
+
 ## Local rules
 
 - Python 3.12, type hints everywhere, `ruff` + `mypy` clean; daily workflow
