@@ -561,6 +561,7 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
         last_message_id: str | None = None
 
         async def deliver(self, channel: Any, layout: Any) -> str:
+            """Send the layout and remember the delivered message id."""
             message = await channel.send(view=layout)
             self.last_message_id = str(message.id)
             return self.last_message_id

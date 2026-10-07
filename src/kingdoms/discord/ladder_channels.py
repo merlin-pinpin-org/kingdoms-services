@@ -344,6 +344,7 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
 
     class _Delivery:
         async def deliver(self, channel: object, layout: object) -> str:
+            """Send the layout into the season salon and return its id."""
             message = await channel.send(view=layout)  # type: ignore[attr-defined]
             return str(message.id)
 

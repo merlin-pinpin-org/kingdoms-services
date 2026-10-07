@@ -111,6 +111,7 @@ class _AdminPinDelivery:
         self._guild_id = guild_id
 
     async def deliver(self, channel: object, layout: object) -> str:
+        """Send the layout, then pin the delivered admin message."""
         del channel
         message_id = await self._service.deliver(self._guild_id, layout, self._admin_ids)
         return str(message_id or "")

@@ -573,6 +573,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
             self._builders = builders
 
         def mod_home_view(self, mod: str) -> Any | None:
+            """Return the home-view builder registered by the given mod."""
             return self._builders.get(mod)
 
     bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
@@ -668,6 +669,7 @@ def _build_staff_service(
         """Deliver the staff notices to the guild's admin channel."""
 
         async def notify_admins(self, message: str, payload: dict[str, Any]) -> None:
+            """Forward an admin notification into the guild admin salon."""
             guild_id = str(payload.get("guild_id", ""))
             if not guild_id or admin_channel_service is None:
                 return

@@ -325,6 +325,7 @@ async def ensure_pinned_mod_admin_menu(bot: discord.Client, spec: ModAdminChanne
         last_message_id: str | None = None
 
         async def deliver(self, channel: Any, layout: Any) -> str:
+            """Send the layout and return the delivered message id."""
             message = await channel.send(view=layout)
             self.last_message_id = str(message.id)
             return self.last_message_id
@@ -387,6 +388,7 @@ async def ensure_pinned_season_admin_panel(
 
     class _Delivery:
         async def deliver(self, channel: object, layout: object) -> str:
+            """Send the layout and return the delivered message id."""
             message = await channel.send(view=layout)  # type: ignore[attr-defined]
             return str(message.id)
 
