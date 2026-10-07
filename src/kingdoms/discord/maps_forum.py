@@ -43,11 +43,9 @@ def _forum_name(game_key: str) -> str:
 
 def _build_service() -> Any:
     """Build the GameDataService over the shared Mongo adapter."""
-    from kingdoms.core.games.aoe2.seed import MongoAoE2Database
-    from kingdoms.core.models.db import get_async_database
-    from kingdoms.core.services.game_data import GameDataService
+    from kingdoms.discord.wiring import build_games_service
 
-    return GameDataService(MongoAoE2Database(get_async_database()))
+    return build_games_service()
 
 
 async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any = None) -> int:

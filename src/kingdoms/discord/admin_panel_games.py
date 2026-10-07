@@ -16,7 +16,6 @@ sub-view carries the back button.
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any
 
@@ -40,17 +39,9 @@ def _back_row() -> discord.ui.ActionRow[discord.ui.LayoutView]:
 
 def _games_wiring() -> Any | None:
     """Build the game-data wiring; None when Mongo is not configured."""
-    if not os.environ.get("MONGO_URI"):
-        return None
-    try:
-        from kingdoms.core.games.aoe2.seed import MongoAoE2Database
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.game_data import GameDataService
+    from kingdoms.discord.wiring import build_games_service
 
-        return GameDataService(MongoAoE2Database(get_async_database()))
-    except Exception:
-        logger.exception("GAMES ADMIN: wiring failed")
-        return None
+    return build_games_service()
 
 
 def _selected_values(interaction: discord.Interaction) -> list[str]:

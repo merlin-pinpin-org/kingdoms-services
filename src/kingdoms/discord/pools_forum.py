@@ -25,11 +25,9 @@ SYNC_INTERVAL_S = 3600
 
 
 def _build_service() -> Any:
-    from kingdoms.core.games.aoe2.seed import MongoAoE2Database
-    from kingdoms.core.models.db import get_async_database
-    from kingdoms.core.services.game_data import GameDataService
+    from kingdoms.discord.wiring import build_games_service
 
-    return GameDataService(MongoAoE2Database(get_async_database()))
+    return build_games_service()
 
 
 def _pool_forum_name(pool_name: str) -> str:
@@ -69,12 +67,14 @@ async def _sync_one_pool(
     pool: Any,
 ) -> int:
     """Ensure one pool's forum and its member posts (idempotent)."""
+    from kingdoms.discord.wiring import guild_category
+
     forum_name = _pool_forum_name(pool.name)
     forum = discord.utils.get(guild.forums, name=forum_name)
     if forum is None:
         forum = await guild.create_forum(
             forum_name,
-            category=discord.utils.get(guild.categories, name="Ladder"),
+            category=await guild_category(guild, "Ladder"),
             overwrites={
                 guild.default_role: discord.PermissionOverwrite(
                     view_channel=True, send_messages=False, create_public_threads=False

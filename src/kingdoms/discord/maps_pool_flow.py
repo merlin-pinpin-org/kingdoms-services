@@ -31,29 +31,16 @@ _REMOVE_NS = "games:pool:remove"
 
 def _games_wiring() -> Any | None:
     """Build the game-data wiring; None when Mongo is not configured."""
-    import os
+    from kingdoms.discord.wiring import build_games_service
 
-    if not os.environ.get("MONGO_URI"):
-        return None
-    try:
-        from kingdoms.core.games.aoe2.seed import MongoAoE2Database
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.game_data import GameDataService
-
-        return GameDataService(MongoAoE2Database(get_async_database()))
-    except Exception:
-        logger.warning("POOL FLOW: wiring failed", exc_info=True)
-        return None
+    return build_games_service()
 
 
 async def _guard_admin(interaction: discord.Interaction) -> bool:
     """Deny non-admins ephemerally; True when the clicker may proceed."""
-    from kingdoms.discord.guards import require_admin
+    from kingdoms.discord.wiring import guard_admin
 
-    bot = interaction.client
-    admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
-    roles = getattr(bot, "roles_service", None)
-    return await require_admin(interaction, admins, roles, denied_message="Réservé aux admins.")
+    return await guard_admin(interaction)
 
 
 class MapAddToPoolButton(
