@@ -51,7 +51,11 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;GameData,&nbsp;Season&nbs
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="MongoAoE2Database-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(``get_async_database``).</span></dd></dl>
 
+<dl><dt>async <a name="MongoAoE2Database-delete_entry"><strong>delete_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
 <dl><dt>async <a name="MongoAoE2Database-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 

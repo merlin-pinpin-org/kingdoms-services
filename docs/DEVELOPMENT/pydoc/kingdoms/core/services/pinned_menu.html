@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.pinned_menu</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.pinned_menu</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/pinned_menu.py">SOURCE_ROOT/core/services/pinned_menu.py</a></td></tr></table>
+    <p><span class="code">Core&nbsp;pinned-menu&nbsp;service:&nbsp;one&nbsp;self-healing&nbsp;pinned&nbsp;menu&nbsp;per&nbsp;channel&nbsp;surface.<br>
+&nbsp;<br>
+Several&nbsp;bot&nbsp;surfaces&nbsp;live&nbsp;as&nbsp;a&nbsp;**pinned&nbsp;menu**&nbsp;in&nbsp;a&nbsp;dedicated&nbsp;channel&nbsp;(the<br>
+admin&nbsp;home,&nbsp;the&nbsp;guild&nbsp;home):&nbsp;the&nbsp;message&nbsp;must&nbsp;survive&nbsp;deletion,&nbsp;unpinning<br>
+and&nbsp;channel&nbsp;re-provisioning&nbsp;without&nbsp;an&nbsp;operator&nbsp;typing&nbsp;anything.<br>
+&nbsp;<br>
+This&nbsp;service&nbsp;owns&nbsp;that&nbsp;lifecycle,&nbsp;once,&nbsp;for&nbsp;every&nbsp;surface:<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;menu&nbsp;is&nbsp;identified&nbsp;by&nbsp;a&nbsp;marker&nbsp;custom-id&nbsp;namespace&nbsp;(e.g.<br>
+&nbsp;&nbsp;``home:pin:``)&nbsp;carried&nbsp;by&nbsp;one&nbsp;of&nbsp;its&nbsp;components;<br>
+-&nbsp;``ensure``&nbsp;creates&nbsp;the&nbsp;menu,&nbsp;delivers&nbsp;it&nbsp;through&nbsp;a&nbsp;channel-delivery<br>
+&nbsp;&nbsp;seam&nbsp;and&nbsp;pins&nbsp;it&nbsp;—&nbsp;a&nbsp;current&nbsp;menu&nbsp;already&nbsp;in&nbsp;the&nbsp;pins&nbsp;is&nbsp;a&nbsp;no-op;<br>
+-&nbsp;stale&nbsp;menus&nbsp;of&nbsp;the&nbsp;same&nbsp;namespace&nbsp;(older&nbsp;surface&nbsp;revisions)&nbsp;are<br>
+&nbsp;&nbsp;unpinned&nbsp;after&nbsp;the&nbsp;rebuild;<br>
+-&nbsp;everything&nbsp;is&nbsp;best-effort:&nbsp;a&nbsp;failing&nbsp;pin&nbsp;logs,&nbsp;never&nbsp;raises&nbsp;—&nbsp;the<br>
+&nbsp;&nbsp;periodic&nbsp;re-check&nbsp;(the&nbsp;factory&nbsp;heartbeat)&nbsp;makes&nbsp;the&nbsp;surface<br>
+&nbsp;&nbsp;self-healing.<br>
+&nbsp;<br>
+The&nbsp;surface&nbsp;itself&nbsp;(what&nbsp;the&nbsp;menu&nbsp;shows,&nbsp;its&nbsp;buttons)&nbsp;is&nbsp;*not*&nbsp;this<br>
+service's&nbsp;business:&nbsp;the&nbsp;caller&nbsp;provides&nbsp;a&nbsp;layout&nbsp;builder,&nbsp;the&nbsp;seam<br>
+delivers&nbsp;it.&nbsp;The&nbsp;admin&nbsp;pin&nbsp;and&nbsp;the&nbsp;guild&nbsp;home&nbsp;are&nbsp;two&nbsp;builders&nbsp;over&nbsp;the<br>
+same&nbsp;lifecycle.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuService">PinnedMenuService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuChannel">PinnedMenuChannel</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuDelivery">PinnedMenuDelivery</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinnedMenuChannel">class <strong>PinnedMenuChannel</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuChannel">PinnedMenuChannel</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam:&nbsp;the&nbsp;channel&nbsp;that&nbsp;hosts&nbsp;the&nbsp;pinned&nbsp;menu.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuChannel">PinnedMenuChannel</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PinnedMenuChannel-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="PinnedMenuChannel-fetch_message"><strong>fetch_message</strong></a>(self, message_id: 'int') -&gt; 'Any'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;message&nbsp;by&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="PinnedMenuChannel-pin"><strong>pin</strong></a>(self, reason: 'str') -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;this&nbsp;message&nbsp;(called&nbsp;on&nbsp;the&nbsp;fetched&nbsp;message).</span></dd></dl>
+
+<dl><dt>async <a name="PinnedMenuChannel-pins"><strong>pins</strong></a>(self) -&gt; 'list[Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;channel's&nbsp;pinned&nbsp;messages.</span></dd></dl>
+
+<dl><dt>async <a name="PinnedMenuChannel-unpin"><strong>unpin</strong></a>(self, reason: 'str') -&gt; 'None'</dt><dd><span class="code">Unpin&nbsp;this&nbsp;message&nbsp;(called&nbsp;on&nbsp;a&nbsp;pinned&nbsp;message).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="PinnedMenuChannel-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">The&nbsp;channel&nbsp;id.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'fetch_message', 'id', 'pin', 'pins', 'unpin'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="PinnedMenuChannel-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PinnedMenuChannel-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinnedMenuDelivery">class <strong>PinnedMenuDelivery</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuDelivery">PinnedMenuDelivery</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam:&nbsp;deliver&nbsp;a&nbsp;layout&nbsp;into&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuDelivery">PinnedMenuDelivery</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PinnedMenuDelivery-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="PinnedMenuDelivery-deliver"><strong>deliver</strong></a>(self, channel: 'PinnedMenuChannel', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Send&nbsp;the&nbsp;layout;&nbsp;the&nbsp;created&nbsp;message&nbsp;id.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="PinnedMenuDelivery-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'deliver'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="PinnedMenuDelivery-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PinnedMenuDelivery-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinnedMenuService">class <strong>PinnedMenuService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuService">PinnedMenuService</a>(delivery:&nbsp;'<a href="#PinnedMenuDelivery">PinnedMenuDelivery</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Keep&nbsp;one&nbsp;pinned&nbsp;menu&nbsp;alive&nbsp;in&nbsp;one&nbsp;channel&nbsp;(idempotent,&nbsp;best-effort).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PinnedMenuService-__init__"><strong>__init__</strong></a>(self, delivery: 'PinnedMenuDelivery') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="PinnedMenuService-ensure"><strong>ensure</strong></a>(self, guild_id: 'str', channel: 'PinnedMenuChannel', marker: 'str', build_layout: 'LayoutBuilder', pin_reason: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;channel&nbsp;holds&nbsp;exactly&nbsp;one&nbsp;current&nbsp;pinned&nbsp;menu.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;when&nbsp;a&nbsp;message&nbsp;was&nbsp;(re-)created,&nbsp;False&nbsp;when&nbsp;the<br>
+existing&nbsp;pin&nbsp;was&nbsp;already&nbsp;current.&nbsp;A&nbsp;menu&nbsp;is&nbsp;*current*&nbsp;when&nbsp;one&nbsp;of<br>
+its&nbsp;components&nbsp;carries&nbsp;the&nbsp;marker&nbsp;namespace;&nbsp;stale&nbsp;menus&nbsp;of&nbsp;the<br>
+same&nbsp;namespace&nbsp;are&nbsp;unpinned&nbsp;after&nbsp;the&nbsp;rebuild.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>LayoutBuilder</strong> = collections.abc.Callable[[str], collections.abc.Awaitable[typing.Any]]<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.pinned_menu (WARNING)&gt;</td></tr></table>
+</body></html>

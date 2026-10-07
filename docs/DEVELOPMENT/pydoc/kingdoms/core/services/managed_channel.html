@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.managed_channel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.managed_channel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/managed_channel.py">SOURCE_ROOT/core/services/managed_channel.py</a></td></tr></table>
+    <p><span class="code">Core&nbsp;managed-channel&nbsp;service:&nbsp;one&nbsp;named,&nbsp;self-healing&nbsp;channel&nbsp;per&nbsp;surface.<br>
+&nbsp;<br>
+Several&nbsp;bot&nbsp;surfaces&nbsp;need&nbsp;a&nbsp;**dedicated&nbsp;channel**&nbsp;provisioned&nbsp;the&nbsp;same<br>
+way&nbsp;(the&nbsp;admin&nbsp;home&nbsp;🛡-bot-admins,&nbsp;the&nbsp;guild&nbsp;home&nbsp;🏛-kingdoms-home):&nbsp;a<br>
+channel&nbsp;found&nbsp;by&nbsp;name,&nbsp;adopted&nbsp;when&nbsp;it&nbsp;already&nbsp;exists,&nbsp;created&nbsp;when&nbsp;it<br>
+does&nbsp;not,&nbsp;persisted&nbsp;(Mongo)&nbsp;and&nbsp;cached&nbsp;(Redis),&nbsp;with&nbsp;every&nbsp;resolution<br>
+re-applying&nbsp;the&nbsp;surface's&nbsp;visibility&nbsp;policy.<br>
+&nbsp;<br>
+This&nbsp;service&nbsp;owns&nbsp;that&nbsp;provisioning,&nbsp;once,&nbsp;for&nbsp;every&nbsp;surface&nbsp;—<br>
+AdminChannelService&nbsp;and&nbsp;the&nbsp;home&nbsp;channel&nbsp;are&nbsp;two&nbsp;configured&nbsp;instances<br>
+of&nbsp;the&nbsp;same&nbsp;lifecycle&nbsp;(cache-aside:&nbsp;Redis&nbsp;→&nbsp;Mongo&nbsp;→&nbsp;adoption&nbsp;→<br>
+creation).&nbsp;The&nbsp;*policy*&nbsp;(who&nbsp;may&nbsp;see&nbsp;the&nbsp;channel)&nbsp;is&nbsp;a&nbsp;platform-seam<br>
+callback:&nbsp;the&nbsp;admin&nbsp;channel&nbsp;restricts&nbsp;to&nbsp;the&nbsp;bot-admins&nbsp;role,&nbsp;the&nbsp;home<br>
+channel&nbsp;is&nbsp;open&nbsp;to&nbsp;everyone.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.managed_channel.html#ManagedChannelService">ManagedChannelService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.managed_channel.html#ManagedChannelCache">ManagedChannelCache</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.managed_channel.html#ManagedChannelDatabase">ManagedChannelDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.managed_channel.html#ManagedChannelPlatform">ManagedChannelPlatform</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ManagedChannelCache">class <strong>ManagedChannelCache</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ManagedChannelCache">ManagedChannelCache</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;cache&nbsp;seam&nbsp;(the&nbsp;StateService&nbsp;get_state/set_state&nbsp;pair).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.managed_channel.html#ManagedChannelCache">ManagedChannelCache</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ManagedChannelCache-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ManagedChannelCache-get_state"><strong>get_state</strong></a>(self, scope: 'str', key: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;a&nbsp;hot-state&nbsp;entry;&nbsp;None&nbsp;when&nbsp;missing&nbsp;or&nbsp;expired.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelCache-set_state"><strong>set_state</strong></a>(self, scope: 'str', key: 'str', value: 'dict[str, Any]', ttl: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Write&nbsp;a&nbsp;hot-state&nbsp;entry&nbsp;with&nbsp;a&nbsp;TTL;&nbsp;True&nbsp;when&nbsp;the&nbsp;write&nbsp;landed.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ManagedChannelCache-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'get_state', 'set_state'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ManagedChannelCache-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ManagedChannelCache-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ManagedChannelDatabase">class <strong>ManagedChannelDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ManagedChannelDatabase">ManagedChannelDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;persistence&nbsp;seam&nbsp;(the&nbsp;shared&nbsp;channels&nbsp;collection).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.managed_channel.html#ManagedChannelDatabase">ManagedChannelDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ManagedChannelDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ManagedChannelDatabase-delete_channel"><strong>delete_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;a&nbsp;stale&nbsp;channel&nbsp;document;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelDatabase-find_channel"><strong>find_channel</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'ChannelModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;channel&nbsp;document&nbsp;for&nbsp;a&nbsp;guild&nbsp;category.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelDatabase-upsert_channel"><strong>upsert_channel</strong></a>(self, channel: 'ChannelModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;channel&nbsp;document&nbsp;(idempotent&nbsp;provisioning).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ManagedChannelDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_channel', 'find_channel', 'upsert_channel'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ManagedChannelDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ManagedChannelDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ManagedChannelPlatform">class <strong>ManagedChannelPlatform</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ManagedChannelPlatform">ManagedChannelPlatform</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;platform&nbsp;seam:&nbsp;find,&nbsp;create,&nbsp;check,&nbsp;policy&nbsp;one&nbsp;channel.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.managed_channel.html#ManagedChannelPlatform">ManagedChannelPlatform</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ManagedChannelPlatform-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ManagedChannelPlatform-apply_policy"><strong>apply_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;surface's&nbsp;visibility&nbsp;policy&nbsp;to&nbsp;the&nbsp;channel.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;UI&nbsp;SDK&nbsp;layout&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ManagedChannelPlatform-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'send_layout'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ManagedChannelPlatform-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ManagedChannelPlatform-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ManagedChannelService">class <strong>ManagedChannelService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ManagedChannelService">ManagedChannelService</a>(platform:&nbsp;'<a href="#ManagedChannelPlatform">ManagedChannelPlatform</a>',&nbsp;database:&nbsp;'<a href="#ManagedChannelDatabase">ManagedChannelDatabase</a>',&nbsp;category:&nbsp;'str',&nbsp;name:&nbsp;'str',&nbsp;state:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;cache_ttl:&nbsp;'int'&nbsp;=&nbsp;300)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Provision&nbsp;and&nbsp;resolve&nbsp;one&nbsp;named&nbsp;managed&nbsp;channel&nbsp;(cache-aside).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ManagedChannelService-__init__"><strong>__init__</strong></a>(self, platform: 'ManagedChannelPlatform', database: 'ManagedChannelDatabase', category: 'str', name: 'str', state: 'Any' = None, cache_ttl: 'int' = 300) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelService-deliver"><strong>deliver</strong></a>(self, guild_id: 'str', layout: 'Any') -&gt; 'str | None'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;layout&nbsp;to&nbsp;the&nbsp;managed&nbsp;channel&nbsp;(best-effort).</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;Mongo&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation.<br>
+&nbsp;<br>
+Every&nbsp;resolution&nbsp;re-applies&nbsp;the&nbsp;surface's&nbsp;visibility&nbsp;policy&nbsp;—&nbsp;a<br>
+manual&nbsp;override&nbsp;never&nbsp;survives&nbsp;a&nbsp;resolution.</span></dd></dl>
+
+<dl><dt>async <a name="ManagedChannelService-set_channel"><strong>set_channel</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;the&nbsp;managed&nbsp;channel&nbsp;to&nbsp;an&nbsp;existing&nbsp;guild&nbsp;channel.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MANAGED_CHANNELS_COLLECTION</strong> = 'channels'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.managed_channel (WARNING)&gt;</td></tr></table>
+</body></html>

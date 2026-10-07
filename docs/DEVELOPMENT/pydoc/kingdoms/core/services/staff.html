@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.staff</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.staff</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/staff.py">SOURCE_ROOT/core/services/staff.py</a></td></tr></table>
+    <p><span class="code">Core&nbsp;staff&nbsp;service:&nbsp;per-mod&nbsp;staff&nbsp;applications&nbsp;and&nbsp;membership.<br>
+&nbsp;<br>
+Every&nbsp;mod&nbsp;wants&nbsp;a&nbsp;**staff**:&nbsp;members&nbsp;who&nbsp;can&nbsp;act&nbsp;as&nbsp;an&nbsp;admin&nbsp;inside<br>
+the&nbsp;mod's&nbsp;scope.&nbsp;The&nbsp;flow&nbsp;is&nbsp;the&nbsp;same&nbsp;for&nbsp;every&nbsp;mod,&nbsp;so&nbsp;the&nbsp;core&nbsp;owns<br>
+it&nbsp;once:<br>
+&nbsp;<br>
+1.&nbsp;a&nbsp;member&nbsp;**applies**&nbsp;—&nbsp;through&nbsp;the&nbsp;platform's&nbsp;surface&nbsp;(a&nbsp;context<br>
+&nbsp;&nbsp;&nbsp;menu,&nbsp;a&nbsp;home&nbsp;button)&nbsp;—&nbsp;the&nbsp;application&nbsp;is&nbsp;persisted&nbsp;with&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;pending&nbsp;state;<br>
+2.&nbsp;the&nbsp;bot&nbsp;**notifies**&nbsp;its&nbsp;admin&nbsp;channel&nbsp;(the&nbsp;platform&nbsp;seam&nbsp;delivers<br>
+&nbsp;&nbsp;&nbsp;the&nbsp;notice);<br>
+3.&nbsp;an&nbsp;admin&nbsp;**accepts**&nbsp;or&nbsp;**declines**&nbsp;—&nbsp;the&nbsp;application&nbsp;moves&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;accepted/declined&nbsp;and&nbsp;the&nbsp;caller&nbsp;syncs&nbsp;the&nbsp;mod's&nbsp;staff&nbsp;role<br>
+&nbsp;&nbsp;&nbsp;(SeasonRolesService&nbsp;on&nbsp;the&nbsp;platform&nbsp;wiring).<br>
+&nbsp;<br>
+The&nbsp;staff&nbsp;list&nbsp;is&nbsp;per&nbsp;(guild,&nbsp;mod):&nbsp;the&nbsp;platform&nbsp;resolves&nbsp;"who&nbsp;is<br>
+staff"&nbsp;through&nbsp;``list_staff``&nbsp;—&nbsp;a&nbsp;guard&nbsp;seam&nbsp;for&nbsp;mod&nbsp;actions.<br>
+&nbsp;<br>
+Reference:&nbsp;§0/§6&nbsp;(the&nbsp;core&nbsp;never&nbsp;imports&nbsp;platform&nbsp;code),&nbsp;ADR-0020.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.staff.html#StaffService">StaffService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.staff.html#StaffDatabase">StaffDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.staff.html#StaffEvents">StaffEvents</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StaffDatabase">class <strong>StaffDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StaffDatabase">StaffDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;persistence&nbsp;seam&nbsp;for&nbsp;staff&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.staff.html#StaffDatabase">StaffDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="StaffDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="StaffDatabase-find_mod_staff"><strong>find_mod_staff</strong></a>(self, guild_id: 'str', mod: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Every&nbsp;staff&nbsp;document&nbsp;of&nbsp;one&nbsp;(guild,&nbsp;mod).</span></dd></dl>
+
+<dl><dt>async <a name="StaffDatabase-find_staff"><strong>find_staff</strong></a>(self, staff_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;staff&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="StaffDatabase-upsert_staff"><strong>upsert_staff</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;staff&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="StaffDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_mod_staff', 'find_staff', 'upsert_staff'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="StaffDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="StaffDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StaffEvents">class <strong>StaffEvents</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StaffEvents">StaffEvents</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam&nbsp;to&nbsp;notify&nbsp;the&nbsp;admins&nbsp;(application&nbsp;/&nbsp;decision).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.staff.html#StaffEvents">StaffEvents</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="StaffEvents-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="StaffEvents-notify_admins"><strong>notify_admins</strong></a>(self, message: 'str', payload: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Deliver&nbsp;an&nbsp;admin&nbsp;notice&nbsp;through&nbsp;the&nbsp;platform&nbsp;(best-effort).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="StaffEvents-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'notify_admins'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="StaffEvents-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="StaffEvents-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StaffService">class <strong>StaffService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StaffService">StaffService</a>(database:&nbsp;'<a href="#StaffDatabase">StaffDatabase</a>',&nbsp;events:&nbsp;'<a href="#StaffEvents">StaffEvents</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Own&nbsp;the&nbsp;staff&nbsp;lifecycle:&nbsp;apply,&nbsp;decide,&nbsp;list,&nbsp;remove.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StaffService-__init__"><strong>__init__</strong></a>(self, database: 'StaffDatabase', events: 'StaffEvents | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="StaffService-apply"><strong>apply</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str', now: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;a&nbsp;staff&nbsp;application&nbsp;(idempotent&nbsp;while&nbsp;pending).<br>
+&nbsp;<br>
+An&nbsp;existing&nbsp;accepted&nbsp;staff&nbsp;re-applying&nbsp;is&nbsp;a&nbsp;no-op;&nbsp;a&nbsp;declined<br>
+application&nbsp;may&nbsp;re-apply&nbsp;(the&nbsp;document&nbsp;returns&nbsp;to&nbsp;pending).</span></dd></dl>
+
+<dl><dt>async <a name="StaffService-decide"><strong>decide</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str', accept: 'bool', decided_by: 'str', now: 'int') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Accept&nbsp;or&nbsp;decline&nbsp;a&nbsp;pending&nbsp;application;&nbsp;the&nbsp;updated&nbsp;document.<br>
+&nbsp;<br>
+Returns&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;no&nbsp;pending&nbsp;application&nbsp;for&nbsp;that<br>
+member&nbsp;—&nbsp;an&nbsp;accepted&nbsp;staff&nbsp;stays&nbsp;(use&nbsp;remove),&nbsp;a&nbsp;decline&nbsp;does<br>
+not&nbsp;block&nbsp;a&nbsp;later&nbsp;re-apply&nbsp;recorded&nbsp;again&nbsp;as&nbsp;pending.</span></dd></dl>
+
+<dl><dt>async <a name="StaffService-is_staff"><strong>is_staff</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;one&nbsp;member&nbsp;is&nbsp;accepted&nbsp;staff&nbsp;of&nbsp;the&nbsp;mod.</span></dd></dl>
+
+<dl><dt>async <a name="StaffService-list_staff"><strong>list_staff</strong></a>(self, guild_id: 'str', mod: 'str') -&gt; 'list[str]'</dt><dd><span class="code">Every&nbsp;accepted&nbsp;staff&nbsp;member&nbsp;of&nbsp;one&nbsp;(guild,&nbsp;mod).</span></dd></dl>
+
+<dl><dt>async <a name="StaffService-remove"><strong>remove</strong></a>(self, guild_id: 'str', mod: 'str', user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;one&nbsp;staff&nbsp;member&nbsp;(admin&nbsp;action);&nbsp;True&nbsp;when&nbsp;removed.</span></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="StaffService-staff_id"><strong>staff_id</strong></a>(guild_id: 'str', mod: 'str', user_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;staff&nbsp;document&nbsp;id:&nbsp;one&nbsp;per&nbsp;(guild,&nbsp;mod,&nbsp;user).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>STAFF_COLLECTION</strong> = 'staff'<br>
+<strong>STATUS_ACCEPTED</strong> = 'accepted'<br>
+<strong>STATUS_DECLINED</strong> = 'declined'<br>
+<strong>STATUS_PENDING</strong> = 'pending'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.staff (WARNING)&gt;</td></tr></table>
+</body></html>

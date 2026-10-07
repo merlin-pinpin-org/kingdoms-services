@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.staff_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.staff_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/staff_platform.py">SOURCE_ROOT/discord/staff_platform.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;wiring&nbsp;for&nbsp;the&nbsp;staff&nbsp;persistence&nbsp;(Mongo,&nbsp;no&nbsp;business&nbsp;logic).<br>
+&nbsp;<br>
+Implements&nbsp;the&nbsp;:class:`StaffDatabase`&nbsp;seam&nbsp;the&nbsp;core<br>
+:class:`StaffService`&nbsp;depends&nbsp;on,&nbsp;with&nbsp;real&nbsp;infrastructure&nbsp;only.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.staff_platform.html#MongoStaffDatabase">MongoStaffDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoStaffDatabase">class <strong>MongoStaffDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoStaffDatabase">MongoStaffDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;staff&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoStaffDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(get_async_database).</span></dd></dl>
+
+<dl><dt>async <a name="MongoStaffDatabase-find_mod_staff"><strong>find_mod_staff</strong></a>(self, guild_id: 'str', mod: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Every&nbsp;staff&nbsp;document&nbsp;of&nbsp;one&nbsp;(guild,&nbsp;mod).</span></dd></dl>
+
+<dl><dt>async <a name="MongoStaffDatabase-find_staff"><strong>find_staff</strong></a>(self, staff_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;staff&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoStaffDatabase-upsert_staff"><strong>upsert_staff</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;staff&nbsp;document.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>STAFF_COLLECTION</strong> = 'staff'</td></tr></table>
+</body></html>

@@ -47,12 +47,12 @@ started&nbsp;by&nbsp;the&nbsp;bot's&nbsp;setup,&nbsp;not&nbsp;from&nbsp;this&nbs
 <td class="section-title" colspan=3>&nbsp;<br><a name="LadderWiring">class <strong>LadderWiring</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderWiring">LadderWiring</a>(database:&nbsp;'AsyncDatabase[dict[str,&nbsp;Any]]',&nbsp;state:&nbsp;'StateService',&nbsp;librematch:&nbsp;'LibrematchAdapter')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LadderWiring">LadderWiring</a>(database:&nbsp;'AsyncDatabase[dict[str,&nbsp;Any]]',&nbsp;state:&nbsp;'StateService',&nbsp;librematch:&nbsp;'LibrematchAdapter',&nbsp;bot:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;season_roles:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;ladder&nbsp;stack&nbsp;wired&nbsp;for&nbsp;one&nbsp;bot&nbsp;process.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="LadderWiring-__init__"><strong>__init__</strong></a>(self, database: 'AsyncDatabase[dict[str, Any]]', state: 'StateService', librematch: 'LibrematchAdapter') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="LadderWiring-__init__"><strong>__init__</strong></a>(self, database: 'AsyncDatabase[dict[str, Any]]', state: 'StateService', librematch: 'LibrematchAdapter', bot: 'Any' = None, season_roles: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="LadderWiring-enrich_completed"><strong>enrich_completed</strong></a>(self, match_ref: 'str', match_doc: 'dict[str, Any]') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Enrich&nbsp;a&nbsp;completed&nbsp;match&nbsp;through&nbsp;the&nbsp;cold&nbsp;provider&nbsp;seam.</span></dd></dl>
 
@@ -72,7 +72,7 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_ladder_wiring"><strong>build_ladder_wiring</strong></a>() -&gt; 'LadderWiring | None'</dt><dd><span class="code">Build&nbsp;the&nbsp;wiring&nbsp;from&nbsp;env;&nbsp;None&nbsp;when&nbsp;Mongo/Redis&nbsp;are&nbsp;not&nbsp;configured.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_ladder_wiring"><strong>build_ladder_wiring</strong></a>(bot: 'Any' = None, season_roles: 'Any' = None) -&gt; 'LadderWiring | None'</dt><dd><span class="code">Build&nbsp;the&nbsp;wiring&nbsp;from&nbsp;env;&nbsp;None&nbsp;when&nbsp;Mongo/Redis&nbsp;are&nbsp;not&nbsp;configured.</span></dd></dl>
  <dl><dt><a name="-register_ladder_commands"><strong>register_ladder_commands</strong></a>(tree: 'Any', wiring: 'LadderWiring', owner_ref: 'str') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/ladder&nbsp;command&nbsp;group&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-start_ladder_sweep"><strong>start_ladder_sweep</strong></a>(wiring: 'LadderWiring') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Run&nbsp;the&nbsp;provider&nbsp;freshness&nbsp;sweep&nbsp;every&nbsp;hour,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
 </td></tr></table><p>

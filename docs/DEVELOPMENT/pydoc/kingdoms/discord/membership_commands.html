@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.membership_commands</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.membership_commands</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/membership_commands.py">SOURCE_ROOT/discord/membership_commands.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;generic&nbsp;membership&nbsp;commands:&nbsp;register/unregister&nbsp;for&nbsp;every&nbsp;mod.<br>
+&nbsp;<br>
+One&nbsp;command&nbsp;factory&nbsp;serves&nbsp;every&nbsp;mod's&nbsp;membership&nbsp;(the&nbsp;ladder&nbsp;and&nbsp;any<br>
+seasonal&nbsp;or&nbsp;non-seasonal&nbsp;mod):&nbsp;the&nbsp;mod&nbsp;provides&nbsp;its&nbsp;wired<br>
+``MembershipService``&nbsp;and&nbsp;its&nbsp;command&nbsp;group,&nbsp;the&nbsp;factory&nbsp;adds&nbsp;the<br>
+``register``/``unregister``&nbsp;subcommands&nbsp;with&nbsp;the&nbsp;same&nbsp;answers<br>
+everywhere&nbsp;—&nbsp;no&nbsp;per-mod&nbsp;copy&nbsp;of&nbsp;the&nbsp;wiring.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register_membership_commands"><strong>register_membership_commands</strong></a>(group: 'app_commands.Group', membership: 'Any') -&gt; 'None'</dt><dd><span class="code">Add&nbsp;the&nbsp;register/unregister&nbsp;subcommands&nbsp;to&nbsp;one&nbsp;mod's&nbsp;group.<br>
+&nbsp;<br>
+``membership``&nbsp;is&nbsp;the&nbsp;mod's&nbsp;wired&nbsp;core&nbsp;MembershipService;&nbsp;the<br>
+group&nbsp;is&nbsp;an&nbsp;``app_commands.Group``&nbsp;owned&nbsp;by&nbsp;the&nbsp;mod's&nbsp;surface.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.membership (WARNING)&gt;</td></tr></table>
+</body></html>

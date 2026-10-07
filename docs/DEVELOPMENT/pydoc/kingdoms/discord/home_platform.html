@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.home_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.home_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/home_platform.py">SOURCE_ROOT/discord/home_platform.py</a></td></tr></table>
+    <p><span class="code">discord.py&nbsp;platform&nbsp;seam&nbsp;for&nbsp;the&nbsp;🏛-kingdoms-home&nbsp;managed&nbsp;channel.<br>
+&nbsp;<br>
+The&nbsp;home&nbsp;channel&nbsp;is&nbsp;the&nbsp;guild's&nbsp;front&nbsp;door:&nbsp;public&nbsp;by&nbsp;design&nbsp;(the<br>
+pinned&nbsp;menu's&nbsp;buttons&nbsp;answer&nbsp;ephemerally,&nbsp;guarded&nbsp;at&nbsp;click&nbsp;time),&nbsp;so<br>
+unlike&nbsp;the&nbsp;admin&nbsp;channel&nbsp;its&nbsp;policy&nbsp;applies&nbsp;no&nbsp;visibility&nbsp;restriction&nbsp;—<br>
+a&nbsp;read&nbsp;of&nbsp;the&nbsp;home&nbsp;grants&nbsp;nothing.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.home_platform.html#DiscordHomeChannelPlatform">DiscordHomeChannelPlatform</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DiscordHomeChannelPlatform">class <strong>DiscordHomeChannelPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DiscordHomeChannelPlatform">DiscordHomeChannelPlatform</a>(bot:&nbsp;'discord.Client')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;managed-channel&nbsp;seam&nbsp;(public&nbsp;policy).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DiscordHomeChannelPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordHomeChannelPlatform-apply_policy"><strong>apply_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;no&nbsp;restriction:&nbsp;the&nbsp;home&nbsp;is&nbsp;public.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordHomeChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordHomeChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordHomeChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordHomeChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Send&nbsp;a&nbsp;layout&nbsp;(a&nbsp;discord.py&nbsp;view)&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.home.platform (WARNING)&gt;</td></tr></table>
+</body></html>

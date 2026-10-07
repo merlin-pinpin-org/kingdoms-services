@@ -133,7 +133,16 @@ platform&nbsp;role&nbsp;without&nbsp;touching&nbsp;mod&nbsp;code.<br>&nbsp;</spa
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ModRolesService-__init__"><strong>__init__</strong></a>(self, database: 'RolesDatabase', platform: 'RolesPlatform', registry: 'ModRegistry', members: 'ModRolesPlatform', cache: 'RolesCache | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``cache``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).</span></dd></dl>
 
+<dl><dt>async <a name="ModRolesService-adopt_or_create_role"><strong>adopt_or_create_role</strong></a>(self, guild_id: 'str', mod_name: 'str', role_def: 'RoleDef') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;role&nbsp;to&nbsp;a&nbsp;platform&nbsp;id,&nbsp;adopting&nbsp;or&nbsp;creating&nbsp;it.<br>
+&nbsp;<br>
+The&nbsp;runtime&nbsp;equivalent&nbsp;of&nbsp;``_resolve_or_provision``&nbsp;for&nbsp;keys&nbsp;a<br>
+season&nbsp;invents&nbsp;at&nbsp;runtime&nbsp;(not&nbsp;declared&nbsp;in&nbsp;the&nbsp;mod&nbsp;YAML):&nbsp;an<br>
+existing&nbsp;role&nbsp;with&nbsp;the&nbsp;display&nbsp;name&nbsp;is&nbsp;adopted,&nbsp;otherwise&nbsp;the<br>
+role&nbsp;is&nbsp;created&nbsp;—&nbsp;and&nbsp;the&nbsp;mapping&nbsp;is&nbsp;persisted&nbsp;either&nbsp;way.</span></dd></dl>
+
 <dl><dt>async <a name="ModRolesService-assign_mod_role"><strong>assign_mod_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;the&nbsp;platform&nbsp;role&nbsp;mapped&nbsp;to&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;to&nbsp;a&nbsp;member.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-assign_platform_role"><strong>assign_platform_role</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Assign&nbsp;one&nbsp;platform&nbsp;role&nbsp;id&nbsp;to&nbsp;a&nbsp;member&nbsp;(best-effort).</span></dd></dl>
 
 <dl><dt>async <a name="ModRolesService-bind_role"><strong>bind_role</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;or&nbsp;update&nbsp;the&nbsp;mapping&nbsp;between&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;and&nbsp;a&nbsp;platform&nbsp;role.<br>
 &nbsp;<br>
@@ -141,6 +150,8 @@ Admins&nbsp;rebind&nbsp;a&nbsp;logical&nbsp;role&nbsp;to&nbsp;an&nbsp;existing&n
 server&nbsp;role&nbsp;created&nbsp;before&nbsp;the&nbsp;bot)&nbsp;without&nbsp;touching&nbsp;mod&nbsp;code.</span></dd></dl>
 
 <dl><dt>async <a name="ModRolesService-remove_mod_role"><strong>remove_mod_role</strong></a>(self, guild_id: 'str', user_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;the&nbsp;platform&nbsp;role&nbsp;mapped&nbsp;to&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;from&nbsp;a&nbsp;member.</span></dd></dl>
+
+<dl><dt>async <a name="ModRolesService-remove_platform_role"><strong>remove_platform_role</strong></a>(self, guild_id: 'str', user_id: 'str', role_id: 'str', mod: 'str', role_key: 'str') -&gt; 'None'</dt><dd><span class="code">Remove&nbsp;one&nbsp;platform&nbsp;role&nbsp;id&nbsp;from&nbsp;a&nbsp;member&nbsp;(best-effort).</span></dd></dl>
 
 <dl><dt>async <a name="ModRolesService-resolve_role_id"><strong>resolve_role_id</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;logical&nbsp;role&nbsp;key&nbsp;to&nbsp;a&nbsp;platform&nbsp;role&nbsp;id.<br>
 &nbsp;<br>

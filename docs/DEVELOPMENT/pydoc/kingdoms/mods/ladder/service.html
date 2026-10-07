@@ -280,6 +280,8 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#LadderService">
 Methods defined here:<br>
 <dl><dt><a name="LadderDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
+<dl><dt>async <a name="LadderDatabase-delete_entry"><strong>delete_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
 <dl><dt>async <a name="LadderDatabase-find_active_match"><strong>find_active_match</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;live&nbsp;match&nbsp;on&nbsp;the&nbsp;ladder;&nbsp;None&nbsp;when&nbsp;free.</span></dd></dl>
 
 <dl><dt>async <a name="LadderDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
@@ -318,7 +320,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_match', 'find_entry', 'find_ladder_by_owner', 'find_ladder_matches', 'find_ladder_players', 'find_player', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_entry', 'find_active_match', 'find_entry', 'find_ladder_by_owner', 'find_ladder_matches', 'find_ladder_players', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -498,6 +500,11 @@ Ladder&nbsp;domain&nbsp;core:&nbsp;registration,&nbsp;queue,&nbsp;matches,&nbsp;
 <dl><dt>async <a name="LadderService-mark_ready"><strong>mark_ready</strong></a>(self, match_id: 'str', user_id: 'str', now: 'int') -&gt; 'MatchModel'</dt><dd><span class="code">Confirm&nbsp;ready;&nbsp;when&nbsp;both&nbsp;sides&nbsp;are&nbsp;ready,&nbsp;pick&nbsp;the&nbsp;map&nbsp;→&nbsp;STARTED.</span></dd></dl>
 
 <dl><dt>async <a name="LadderService-register_player"><strong>register_player</strong></a>(self, ladder_id: 'str', user_id: 'str', display_name: 'str', now: 'int' = 0) -&gt; 'PlayerModel'</dt><dd><span class="code">Register&nbsp;a&nbsp;player&nbsp;on&nbsp;the&nbsp;ladder&nbsp;(idempotent&nbsp;per&nbsp;user).</span></dd></dl>
+
+<dl><dt>async <a name="LadderService-remove_player"><strong>remove_player</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;a&nbsp;registered&nbsp;player;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.<br>
+&nbsp;<br>
+The&nbsp;caller&nbsp;owns&nbsp;the&nbsp;preconditions&nbsp;(leaving&nbsp;the&nbsp;queue&nbsp;first);&nbsp;a<br>
+player&nbsp;with&nbsp;a&nbsp;live&nbsp;match&nbsp;cannot&nbsp;be&nbsp;removed&nbsp;(<a href="#TransitionError">TransitionError</a>).</span></dd></dl>
 
 <dl><dt>async <a name="LadderService-report_result"><strong>report_result</strong></a>(self, match_id: 'str', user_id: 'str', winner_user_id: 'str', now: 'int') -&gt; 'MatchModel'</dt><dd><span class="code">Report&nbsp;manually:&nbsp;contradictory&nbsp;reports&nbsp;cancel;&nbsp;both&nbsp;same&nbsp;→&nbsp;REPORTED.</span></dd></dl>
 
