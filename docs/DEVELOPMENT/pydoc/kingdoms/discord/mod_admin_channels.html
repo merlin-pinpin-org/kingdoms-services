@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.mod_admin_channels</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.mod_admin_channels</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/mod_admin_channels.py">SOURCE_ROOT/discord/mod_admin_channels.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;generic&nbsp;mod-admin&nbsp;channel&nbsp;mechanism:&nbsp;one&nbsp;admin&nbsp;panel&nbsp;per&nbsp;mod.<br>
+&nbsp;<br>
+A&nbsp;mod's&nbsp;**type&nbsp;is&nbsp;mandatory**&nbsp;in&nbsp;its&nbsp;declaration&nbsp;(``seasonal:<br>
+true|false``)&nbsp;and&nbsp;branches&nbsp;the&nbsp;admin&nbsp;surface&nbsp;—&nbsp;the&nbsp;two&nbsp;flavours&nbsp;of<br>
+the&nbsp;Mod&nbsp;interface:&nbsp;a&nbsp;**permanent&nbsp;mod**&nbsp;pins&nbsp;its&nbsp;config&nbsp;panel&nbsp;in&nbsp;a<br>
+channel&nbsp;inside&nbsp;its&nbsp;guild-level&nbsp;category;&nbsp;a&nbsp;**seasonal&nbsp;mod**&nbsp;pins&nbsp;its<br>
+lifecycle&nbsp;panel&nbsp;in&nbsp;a&nbsp;cross-season&nbsp;root&nbsp;channel&nbsp;plus&nbsp;one&nbsp;admin&nbsp;salon<br>
+per&nbsp;season.&nbsp;A&nbsp;seasonal&nbsp;mod&nbsp;wants&nbsp;two&nbsp;admin&nbsp;surfaces,&nbsp;and&nbsp;both&nbsp;are&nbsp;generic&nbsp;—&nbsp;every<br>
+mod&nbsp;can&nbsp;register&nbsp;them&nbsp;without&nbsp;writing&nbsp;channel&nbsp;plumbing:<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;**root&nbsp;admin&nbsp;channel**&nbsp;(e.g.&nbsp;``🛡-ladder-admin``):&nbsp;cross-season,&nbsp;at<br>
+&nbsp;&nbsp;the&nbsp;guild's&nbsp;root,&nbsp;visible&nbsp;to&nbsp;the&nbsp;mod's&nbsp;staff&nbsp;roles&nbsp;+&nbsp;bot-admins.&nbsp;It<br>
+&nbsp;&nbsp;hosts&nbsp;the&nbsp;pinned&nbsp;**mod&nbsp;lifecycle&nbsp;panel**&nbsp;—&nbsp;for&nbsp;a&nbsp;seasonal&nbsp;mod&nbsp;this&nbsp;is<br>
+&nbsp;&nbsp;the&nbsp;panel&nbsp;that&nbsp;creates&nbsp;seasons,&nbsp;activates&nbsp;one&nbsp;(it&nbsp;defines&nbsp;the&nbsp;active<br>
+&nbsp;&nbsp;season),&nbsp;ends&nbsp;it&nbsp;and&nbsp;toggles&nbsp;the&nbsp;enrollments;<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;**season&nbsp;admin&nbsp;channel**&nbsp;(e.g.&nbsp;``🛡-season-admin``):&nbsp;inside&nbsp;the<br>
+&nbsp;&nbsp;season's&nbsp;own&nbsp;category&nbsp;(provisioned&nbsp;by&nbsp;the&nbsp;mod's&nbsp;channels&nbsp;sync),&nbsp;it<br>
+&nbsp;&nbsp;hosts&nbsp;the&nbsp;pinned&nbsp;**per-season&nbsp;config&nbsp;panel**&nbsp;—&nbsp;the&nbsp;settings&nbsp;that&nbsp;live<br>
+&nbsp;&nbsp;and&nbsp;die&nbsp;with&nbsp;the&nbsp;season.<br>
+&nbsp;<br>
+A&nbsp;mod&nbsp;registers&nbsp;a&nbsp;single&nbsp;:class:`<a href="#ModAdminChannelSpec">ModAdminChannelSpec</a>`&nbsp;(channel&nbsp;names,<br>
+staff-role&nbsp;prefixes,&nbsp;and&nbsp;the&nbsp;two&nbsp;layout&nbsp;builders);&nbsp;the&nbsp;machinery&nbsp;below<br>
+provisions&nbsp;the&nbsp;channels&nbsp;(managed-channel,&nbsp;cache-aside),&nbsp;applies&nbsp;the<br>
+visibility&nbsp;policy&nbsp;and&nbsp;keeps&nbsp;the&nbsp;pinned&nbsp;panels&nbsp;alive&nbsp;(message&nbsp;registry,<br>
+no&nbsp;rebuild&nbsp;while&nbsp;the&nbsp;message&nbsp;lives&nbsp;—&nbsp;the&nbsp;pinned-menu&nbsp;contract).<br>
+Resolution&nbsp;is&nbsp;**id-based**&nbsp;everywhere:&nbsp;names&nbsp;only&nbsp;label&nbsp;the&nbsp;creation.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.mod_admin_channels.html#ModAdminChannelPlatform">ModAdminChannelPlatform</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.mod_admin_channels.html#ModAdminChannelSpec">ModAdminChannelSpec</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.mod_admin_channels.html#ModAdminPinInteraction">ModAdminPinInteraction</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.mod_admin_channels.html#SeasonAdminPanelRef">SeasonAdminPanelRef</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModAdminChannelPlatform">class <strong>ModAdminChannelPlatform</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModAdminChannelPlatform">ModAdminChannelPlatform</a>(bot:&nbsp;'discord.Client',&nbsp;spec:&nbsp;'<a href="#ModAdminChannelSpec">ModAdminChannelSpec</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+discord.py&nbsp;seam:&nbsp;find,&nbsp;create,&nbsp;check,&nbsp;restrict&nbsp;a&nbsp;mod's&nbsp;admin&nbsp;channel.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModAdminChannelPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client', spec: 'ModAdminChannelSpec') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ModAdminChannelPlatform-apply_policy"><strong>apply_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Visibility:&nbsp;the&nbsp;mod's&nbsp;staff&nbsp;roles&nbsp;+&nbsp;extra&nbsp;roles,&nbsp;nothing&nbsp;else.</span></dd></dl>
+
+<dl><dt>async <a name="ModAdminChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;stored&nbsp;channel&nbsp;id&nbsp;still&nbsp;lives&nbsp;in&nbsp;the&nbsp;guild.</span></dd></dl>
+
+<dl><dt>async <a name="ModAdminChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;mod's&nbsp;admin&nbsp;channel&nbsp;—&nbsp;inside&nbsp;the&nbsp;guild&nbsp;category&nbsp;for&nbsp;a&nbsp;permanent&nbsp;mod.</span></dd></dl>
+
+<dl><dt>async <a name="ModAdminChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;text&nbsp;channel&nbsp;by&nbsp;name&nbsp;(first&nbsp;adoption&nbsp;only).</span></dd></dl>
+
+<dl><dt>async <a name="ModAdminChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Send&nbsp;one&nbsp;layout&nbsp;into&nbsp;the&nbsp;channel;&nbsp;the&nbsp;created&nbsp;message&nbsp;id.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModAdminChannelSpec">class <strong>ModAdminChannelSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModAdminChannelSpec">ModAdminChannelSpec</a>(mod:&nbsp;'str',&nbsp;channel_name:&nbsp;'str',&nbsp;seasonal:&nbsp;'bool',&nbsp;staff_role_prefixes:&nbsp;'tuple[str,&nbsp;...]',&nbsp;guild_category_name:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;extra_roles:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;('bot-admins',),&nbsp;build_root_layout:&nbsp;'RootLayoutBuilder&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;build_season_layout:&nbsp;'SeasonLayoutBuilder&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;season_channel_name:&nbsp;'str'&nbsp;=&nbsp;'🛡-season-admin',&nbsp;root_message_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;root_marker:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;root_category:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;mod's&nbsp;admin&nbsp;surfaces:&nbsp;the&nbsp;channel&nbsp;names&nbsp;+&nbsp;the&nbsp;layout&nbsp;builders.<br>
+&nbsp;<br>
+``<a href="#ModAdminChannelSpec-build_root_layout">build_root_layout</a>(bot,&nbsp;guild_id)``&nbsp;renders&nbsp;the&nbsp;cross-season<br>
+lifecycle&nbsp;panel;&nbsp;``<a href="#ModAdminChannelSpec-build_season_layout">build_season_layout</a>(bot,&nbsp;guild_id,&nbsp;scope)``<br>
+renders&nbsp;the&nbsp;per-season&nbsp;config&nbsp;panel&nbsp;(``scope``&nbsp;is&nbsp;the&nbsp;season's<br>
+logical&nbsp;scope,&nbsp;e.g.&nbsp;``s1``)&nbsp;—&nbsp;None&nbsp;when&nbsp;the&nbsp;mod&nbsp;is&nbsp;not&nbsp;seasonal.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModAdminChannelSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__init__"><strong>__init__</strong></a>(self, mod: 'str', channel_name: 'str', seasonal: 'bool', staff_role_prefixes: 'tuple[str, ...]', guild_category_name: 'str' = '', extra_roles: 'tuple[str, ...]' = ('bot-admins',), build_root_layout: 'RootLayoutBuilder | None' = None, build_season_layout: 'SeasonLayoutBuilder | None' = None, season_channel_name: 'str' = '🛡-season-admin', root_message_key: 'str' = '', root_marker: 'str' = '', root_category: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Fill&nbsp;the&nbsp;derived&nbsp;keys&nbsp;(message&nbsp;key,&nbsp;marker,&nbsp;category)&nbsp;when&nbsp;unset.</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ModAdminChannelSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>category_label</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;admin&nbsp;channel's&nbsp;channels-registry&nbsp;category&nbsp;key.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'build_root_layout': 'RootLayoutBuilder | None', 'build_season_layout': 'SeasonLayoutBuilder | None', 'channel_name': 'str', 'extra_roles': 'tuple[str, ...]', 'guild_category_name': 'str', 'mod': 'str', 'root_category': 'str', 'root_marker': 'str', 'root_message_key': 'str', 'season_channel_name': 'str', ...}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'build_root_layout': Field(name='build_root_layout',type='RootLayoutB...appingproxy({}),kw_only=False,_field_type=_FIELD), 'build_season_layout': Field(name='build_season_layout',type='SeasonLay...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channel_name': Field(name='channel_name',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'extra_roles': Field(name='extra_roles',type='tuple[str, ...]',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'guild_category_name': Field(name='guild_category_name',type='str',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod': Field(name='mod',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'root_category': Field(name='root_category',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD), 'root_marker': Field(name='root_marker',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'root_message_key': Field(name='root_message_key',type='str',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'season_channel_name': Field(name='season_channel_name',type='str',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), ...}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('mod', 'channel_name', 'seasonal', 'staff_role_prefixes', 'guild_category_name', 'extra_roles', 'build_root_layout', 'build_season_layout', 'season_channel_name', 'root_message_key', 'root_marker', 'root_category')</dl>
+
+<dl><dt><strong>build_root_layout</strong> = None</dl>
+
+<dl><dt><strong>build_season_layout</strong> = None</dl>
+
+<dl><dt><strong>extra_roles</strong> = ('bot-admins',)</dl>
+
+<dl><dt><strong>guild_category_name</strong> = ''</dl>
+
+<dl><dt><strong>root_category</strong> = ''</dl>
+
+<dl><dt><strong>root_marker</strong> = ''</dl>
+
+<dl><dt><strong>root_message_key</strong> = ''</dl>
+
+<dl><dt><strong>season_channel_name</strong> = '🛡-season-admin'</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ModAdminPinInteraction">class <strong>ModAdminPinInteraction</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModAdminPinInteraction">ModAdminPinInteraction</a>(guild_id:&nbsp;'str',&nbsp;bot:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Interaction&nbsp;shim:&nbsp;guild&nbsp;+&nbsp;client&nbsp;is&nbsp;all&nbsp;the&nbsp;entry&nbsp;views&nbsp;read.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ModAdminPinInteraction-__init__"><strong>__init__</strong></a>(self, guild_id: 'str', bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SeasonAdminPanelRef">class <strong>SeasonAdminPanelRef</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonAdminPanelRef">SeasonAdminPanelRef</a>(channel_id:&nbsp;'str',&nbsp;scope:&nbsp;'str',&nbsp;extra:&nbsp;'dict[str,&nbsp;str]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;resolved&nbsp;season&nbsp;admin&nbsp;channel&nbsp;reference&nbsp;(id-based,&nbsp;never&nbsp;names).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="SeasonAdminPanelRef-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="SeasonAdminPanelRef-__init__"><strong>__init__</strong></a>(self, channel_id: 'str', scope: 'str', extra: 'dict[str, str]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="SeasonAdminPanelRef-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'channel_id': 'str', 'extra': 'dict[str, str]', 'scope': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'channel_id': Field(name='channel_id',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'extra': Field(name='extra',type='dict[str, str]',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('channel_id', 'scope', 'extra')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_mod_admin_channel_service"><strong>build_mod_admin_channel_service</strong></a>(bot: 'discord.Client', spec: 'ModAdminChannelSpec', mongo_uri: 'str', redis_uri: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Wire&nbsp;one&nbsp;mod's&nbsp;root&nbsp;admin&nbsp;channel;&nbsp;None&nbsp;when&nbsp;stores&nbsp;are&nbsp;absent.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_pinned_mod_admin_menu"><strong>ensure_pinned_mod_admin_menu</strong></a>(bot: 'discord.Client', spec: 'ModAdminChannelSpec', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;mod's&nbsp;root&nbsp;admin&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;lifecycle&nbsp;panel.<br>
+&nbsp;<br>
+A&nbsp;live&nbsp;registered&nbsp;menu&nbsp;is&nbsp;merely&nbsp;re-pinned;&nbsp;only&nbsp;a&nbsp;gone&nbsp;message<br>
+triggers&nbsp;a&nbsp;rebuild&nbsp;whose&nbsp;id&nbsp;replaces&nbsp;the&nbsp;registration.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_pinned_season_admin_panel"><strong>ensure_pinned_season_admin_panel</strong></a>(spec: 'ModAdminChannelSpec', guild: 'Any', scope: 'str', channel: 'Any') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;pinned&nbsp;per-season&nbsp;config&nbsp;panel&nbsp;alive&nbsp;in&nbsp;the&nbsp;season's&nbsp;salon.<br>
+&nbsp;<br>
+The&nbsp;season&nbsp;admin&nbsp;channel&nbsp;is&nbsp;provisioned&nbsp;by&nbsp;the&nbsp;mod's&nbsp;channels&nbsp;sync<br>
+(it&nbsp;lives&nbsp;inside&nbsp;the&nbsp;season's&nbsp;category);&nbsp;this&nbsp;helper&nbsp;only&nbsp;keeps&nbsp;the<br>
+pinned&nbsp;panel&nbsp;alive&nbsp;in&nbsp;it,&nbsp;under&nbsp;a&nbsp;scope-addressed&nbsp;registry&nbsp;key.</span></dd></dl>
+ <dl><dt>async <a name="-maintain_pinned_mod_admin_menus"><strong>maintain_pinned_mod_admin_menus</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;every&nbsp;registered&nbsp;mod's&nbsp;root&nbsp;admin&nbsp;menu&nbsp;alive&nbsp;(self-healing).</span></dd></dl>
+ <dl><dt><a name="-register_mod_admin_channel"><strong>register_mod_admin_channel</strong></a>(bot: 'discord.Client', spec: 'ModAdminChannelSpec') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;mod's&nbsp;admin&nbsp;surfaces;&nbsp;the&nbsp;last&nbsp;registration&nbsp;wins.</span></dd></dl>
+ <dl><dt><a name="-spec_registry"><strong>spec_registry</strong></a>(bot: 'discord.Client') -&gt; 'dict[str, ModAdminChannelSpec]'</dt><dd><span class="code">Return&nbsp;the&nbsp;bot's&nbsp;mod&nbsp;spec&nbsp;registry,&nbsp;created&nbsp;on&nbsp;demand.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>RootLayoutBuilder</strong> = collections.abc.Callable[[discord.client.Client,...ctions.abc.Awaitable[discord.ui.view.LayoutView]]<br>
+<strong>SeasonLayoutBuilder</strong> = collections.abc.Callable[[discord.client.Client,...ctions.abc.Awaitable[discord.ui.view.LayoutView]]<br>
+<strong>logger</strong> = &lt;Logger kingdoms.mod_admin_channels (WARNING)&gt;</td></tr></table>
+</body></html>

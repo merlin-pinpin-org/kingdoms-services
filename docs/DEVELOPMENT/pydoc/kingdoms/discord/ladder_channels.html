@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.ladder_channels</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.ladder_channels</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/ladder_channels.py">SOURCE_ROOT/discord/ladder_channels.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;ladder's&nbsp;channel&nbsp;surface:&nbsp;a&nbsp;Ladder&nbsp;category,&nbsp;four&nbsp;self-healing&nbsp;salons.<br>
+&nbsp;<br>
+The&nbsp;ladder&nbsp;mod&nbsp;owns&nbsp;four&nbsp;public&nbsp;salons&nbsp;under&nbsp;one&nbsp;``Ladder``&nbsp;category<br>
+(#221),&nbsp;provisioned&nbsp;and&nbsp;healed&nbsp;like&nbsp;every&nbsp;managed&nbsp;surface:<br>
+&nbsp;<br>
+-&nbsp;``🏰-ladder-home``&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;—&nbsp;the&nbsp;pinned&nbsp;ladder&nbsp;menu&nbsp;(the&nbsp;button-only&nbsp;home);<br>
+-&nbsp;``📊-ladder-dashboard``&nbsp;&nbsp;—&nbsp;the&nbsp;live&nbsp;queue&nbsp;(who&nbsp;waits,&nbsp;since&nbsp;when);<br>
+-&nbsp;``🏆-ladder-leaderboard``—&nbsp;the&nbsp;ranking&nbsp;(top&nbsp;players,&nbsp;ratings,&nbsp;W/L);<br>
+-&nbsp;``📜-ladder-history``&nbsp;&nbsp;&nbsp;—&nbsp;the&nbsp;played&nbsp;matches&nbsp;(recent&nbsp;completed&nbsp;games).<br>
+&nbsp;<br>
+Nothing&nbsp;here&nbsp;is&nbsp;a&nbsp;command:&nbsp;the&nbsp;home&nbsp;is&nbsp;the&nbsp;pinned&nbsp;menu,&nbsp;the&nbsp;three&nbsp;data<br>
+salons&nbsp;are&nbsp;bot-written&nbsp;and&nbsp;member-read.&nbsp;The&nbsp;home&nbsp;menu&nbsp;is&nbsp;the&nbsp;same&nbsp;button-<br>
+only&nbsp;layout&nbsp;the&nbsp;ephemeral&nbsp;home&nbsp;answers&nbsp;with&nbsp;(the&nbsp;DynamicItems&nbsp;serve&nbsp;both<br>
+surfaces&nbsp;—&nbsp;one&nbsp;custom_id,&nbsp;one&nbsp;dispatch&nbsp;path,&nbsp;restart-proof),&nbsp;kept&nbsp;alive<br>
+by&nbsp;the&nbsp;same&nbsp;PinnedMenuService&nbsp;as&nbsp;the&nbsp;admin&nbsp;pin.&nbsp;Each&nbsp;data&nbsp;salon&nbsp;holds<br>
+**one**&nbsp;message,&nbsp;addressed&nbsp;by&nbsp;logical&nbsp;key&nbsp;through&nbsp;the&nbsp;message&nbsp;registry<br>
+(the&nbsp;#130&nbsp;contract:&nbsp;platform&nbsp;message&nbsp;ids&nbsp;live&nbsp;only&nbsp;there):&nbsp;the&nbsp;sync<br>
+edits&nbsp;it&nbsp;in&nbsp;place,&nbsp;recreates&nbsp;it&nbsp;when&nbsp;deleted&nbsp;—&nbsp;the&nbsp;salon&nbsp;is&nbsp;never<br>
+spammed,&nbsp;only&nbsp;ever&nbsp;current.&nbsp;The&nbsp;ladder&nbsp;home&nbsp;salon&nbsp;hosts&nbsp;the&nbsp;pinned&nbsp;menu&nbsp;(same<br>
+button-only&nbsp;layout&nbsp;the&nbsp;ephemeral&nbsp;home&nbsp;answers&nbsp;with;&nbsp;the&nbsp;DynamicItems<br>
+serve&nbsp;both&nbsp;surfaces&nbsp;—&nbsp;one&nbsp;custom_id,&nbsp;one&nbsp;dispatch&nbsp;path).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+<a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-ladder_channels_wiring_ready"><strong>ladder_channels_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;ladder&nbsp;salons&nbsp;can&nbsp;be&nbsp;provisioned&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt><a name="-season_category_name"><strong>season_category_name</strong></a>(season_name: 'str') -&gt; 'str'</dt><dd><span class="code">Format&nbsp;the&nbsp;season's&nbsp;channel&nbsp;category:&nbsp;'Ladder&nbsp;-&nbsp;Saison&nbsp;1'.</span></dd></dl>
+ <dl><dt><a name="-start_ladder_channels_sync"><strong>start_ladder_channels_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;the&nbsp;ladder&nbsp;salons&nbsp;periodically,&nbsp;forever,&nbsp;quietly&nbsp;(self-healing).</span></dd></dl>
+ <dl><dt>async <a name="-sync_ladder_channels"><strong>sync_ladder_channels</strong></a>(guild: 'Any', bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;season's&nbsp;category,&nbsp;the&nbsp;four&nbsp;salons&nbsp;and&nbsp;their&nbsp;content.<br>
+&nbsp;<br>
+The&nbsp;salons&nbsp;are&nbsp;**season-scoped**:&nbsp;each&nbsp;season&nbsp;gets&nbsp;its&nbsp;own&nbsp;category<br>
+``Ladder&nbsp;-&nbsp;&lt;season&nbsp;name&gt;``&nbsp;with&nbsp;the&nbsp;four&nbsp;salons,&nbsp;and&nbsp;its&nbsp;salon&nbsp;messages<br>
+are&nbsp;keyed&nbsp;per&nbsp;season&nbsp;in&nbsp;the&nbsp;message&nbsp;registry&nbsp;—&nbsp;creating&nbsp;a&nbsp;season<br>
+provisions&nbsp;a&nbsp;fresh&nbsp;surface;&nbsp;the&nbsp;previous&nbsp;season's&nbsp;channels&nbsp;stay&nbsp;as<br>
+history.&nbsp;Without&nbsp;an&nbsp;active&nbsp;season&nbsp;the&nbsp;surface&nbsp;stays&nbsp;silent:&nbsp;the<br>
+channels&nbsp;belong&nbsp;to&nbsp;the&nbsp;season.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DASHBOARD_CHANNEL_NAME</strong> = '📊-ladder-dashboard'<br>
+<strong>HISTORY_CHANNEL_NAME</strong> = '📜-ladder-history'<br>
+<strong>HOME_CHANNEL_NAME</strong> = '🏰-ladder-home'<br>
+<strong>LADDER_CATEGORY_PREFIX</strong> = 'Ladder - '<br>
+<strong>LADDER_PIN_MARKER</strong> = 'ladder:home:'<br>
+<strong>LEADERBOARD_CHANNEL_NAME</strong> = '🏆-ladder-leaderboard'<br>
+<strong>SEASON_ADMIN_CHANNEL_NAME</strong> = '🛡-season-admin'<br>
+<strong>SYNC_INTERVAL_S</strong> = 300<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ladder.channels (WARNING)&gt;</td></tr></table>
+</body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.admin_roles</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.admin_roles</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/admin_roles.py">SOURCE_ROOT/discord/admin_roles.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;admin&nbsp;panel's&nbsp;roles&nbsp;view:&nbsp;core&nbsp;roles&nbsp;+&nbsp;mod-declared&nbsp;roles,&nbsp;as&nbsp;info.<br>
+&nbsp;<br>
+The&nbsp;guild's&nbsp;role&nbsp;surface&nbsp;has&nbsp;two&nbsp;layers,&nbsp;both&nbsp;shown&nbsp;here&nbsp;(displayed<br>
+even&nbsp;when&nbsp;no&nbsp;action&nbsp;is&nbsp;available&nbsp;—&nbsp;the&nbsp;info&nbsp;is&nbsp;the&nbsp;point):<br>
+&nbsp;<br>
+-&nbsp;the&nbsp;**core&nbsp;roles**&nbsp;the&nbsp;platform&nbsp;provisions&nbsp;(bot-admins);<br>
+-&nbsp;every&nbsp;enabled&nbsp;mod's&nbsp;declared&nbsp;roles&nbsp;(its&nbsp;YAML&nbsp;``roles:``),&nbsp;with&nbsp;their<br>
+&nbsp;&nbsp;resolved&nbsp;platform&nbsp;role&nbsp;(mention)&nbsp;when&nbsp;provisioned.<br>
+&nbsp;<br>
+The&nbsp;view&nbsp;reads&nbsp;the&nbsp;running&nbsp;bot's&nbsp;role&nbsp;services;&nbsp;mods&nbsp;surface&nbsp;through<br>
+the&nbsp;shared&nbsp;ModRegistry&nbsp;—&nbsp;no&nbsp;per-mod&nbsp;wiring.&nbsp;Rebinding&nbsp;a&nbsp;logical&nbsp;role<br>
+key&nbsp;to&nbsp;an&nbsp;existing&nbsp;platform&nbsp;role&nbsp;stays&nbsp;in&nbsp;the&nbsp;roles&nbsp;service&nbsp;(the&nbsp;admin<br>
+panel&nbsp;only&nbsp;displays&nbsp;the&nbsp;state&nbsp;here;&nbsp;the&nbsp;rebind&nbsp;flow&nbsp;is&nbsp;a&nbsp;follow-up).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-build_roles_view"><strong>build_roles_view</strong></a>(interaction: 'discord.Interaction', wiring: 'Any') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;roles&nbsp;view:&nbsp;core&nbsp;+&nbsp;mod&nbsp;roles,&nbsp;mention&nbsp;+&nbsp;state&nbsp;each.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.admin_roles (WARNING)&gt;</td></tr></table>
+</body></html>

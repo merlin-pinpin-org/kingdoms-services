@@ -48,6 +48,12 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;channels&nbsp;platform&nbsp
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="DiscordChannelsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;and&nbsp;channel&nbsp;lookups.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordChannelsPlatform-adopt_legacy_forum"><strong>adopt_legacy_forum</strong></a>(self, guild_id: 'str', legacy_name: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str | None'</dt><dd><span class="code">Rename&nbsp;a&nbsp;legacy&nbsp;forum&nbsp;to&nbsp;``name``&nbsp;when&nbsp;the&nbsp;target&nbsp;is&nbsp;absent.<br>
+&nbsp;<br>
+Migration&nbsp;helper:&nbsp;the&nbsp;first&nbsp;maps-forum&nbsp;iteration&nbsp;provisioned&nbsp;a<br>
+forum&nbsp;named&nbsp;``maps``;&nbsp;the&nbsp;generic&nbsp;one&nbsp;expects&nbsp;``&lt;game&gt;-maps``.<br>
+Returns&nbsp;the&nbsp;renamed&nbsp;forum&nbsp;id,&nbsp;or&nbsp;None&nbsp;when&nbsp;nothing&nbsp;to&nbsp;migrate.</span></dd></dl>
+
 <dl><dt>async <a name="DiscordChannelsPlatform-apply_access_policy"><strong>apply_access_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;a&nbsp;category's&nbsp;declared&nbsp;access&nbsp;policy&nbsp;as&nbsp;overwrites&nbsp;(#57).<br>
 &nbsp;<br>
 The&nbsp;bot&nbsp;overwrite&nbsp;is&nbsp;set&nbsp;first&nbsp;so&nbsp;the&nbsp;bot&nbsp;can&nbsp;never&nbsp;lock&nbsp;itself<br>
@@ -58,7 +64,24 @@ through&nbsp;the&nbsp;guild's&nbsp;role&nbsp;list&nbsp;—&nbsp;logical&nbsp;key
 
 <dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordChannelsPlatform-create_map_post"><strong>create_map_post</strong></a>(self, guild_id: 'str', forum_id: 'str', name: 'str', content: 'str', tags: 'list[str] | None' = None, view: 'discord.ui.View | None' = None) -&gt; 'str'</dt><dd><span class="code">Create&nbsp;one&nbsp;forum&nbsp;post&nbsp;(thread),&nbsp;optionally&nbsp;with&nbsp;a&nbsp;view;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-ensure_category"><strong>ensure_category</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Find&nbsp;or&nbsp;create&nbsp;a&nbsp;category&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id&nbsp;(idempotent).</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-ensure_channel"><strong>ensure_channel</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Find&nbsp;or&nbsp;create&nbsp;a&nbsp;text&nbsp;channel&nbsp;(under&nbsp;a&nbsp;category);&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-ensure_forum"><strong>ensure_forum</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Find&nbsp;or&nbsp;create&nbsp;a&nbsp;read-only&nbsp;forum&nbsp;under&nbsp;a&nbsp;category;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-ensure_forum_post_view"><strong>ensure_forum_post_view</strong></a>(self, guild_id: 'str', thread_id: 'str', view: 'discord.ui.View', marker_custom_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Attach&nbsp;``view``&nbsp;to&nbsp;a&nbsp;forum&nbsp;post's&nbsp;starter&nbsp;message&nbsp;when&nbsp;absent.<br>
+&nbsp;<br>
+Migration&nbsp;path&nbsp;for&nbsp;posts&nbsp;created&nbsp;before&nbsp;their&nbsp;flow&nbsp;existed:&nbsp;when<br>
+the&nbsp;starter&nbsp;message&nbsp;carries&nbsp;no&nbsp;component&nbsp;matching&nbsp;``marker_custom_id``<br>
+(prefix&nbsp;match),&nbsp;edit&nbsp;it&nbsp;to&nbsp;attach&nbsp;the&nbsp;view.&nbsp;True&nbsp;when&nbsp;the&nbsp;post&nbsp;now<br>
+carries&nbsp;it&nbsp;(already&nbsp;present&nbsp;or&nbsp;just&nbsp;attached).</span></dd></dl>
+
 <dl><dt>async <a name="DiscordChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-forum_thread_exists"><strong>forum_thread_exists</strong></a>(self, guild_id: 'str', thread_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;forum&nbsp;thread&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-get_channel_overwrites"><strong>get_channel_overwrites</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'dict[str, dict[str, bool]] | None'</dt><dd><span class="code">Actual&nbsp;permission&nbsp;overwrites:&nbsp;target&nbsp;id&nbsp;-&gt;&nbsp;{permission:&nbsp;bool}.</span></dd></dl>
 

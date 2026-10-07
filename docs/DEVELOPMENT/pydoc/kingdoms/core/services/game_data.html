@@ -268,13 +268,18 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="GameDataDatabase-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataDatabase-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataDatabase-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
+guilds&nbsp;but&nbsp;shared);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataDatabase-find_game_keys"><strong>find_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;distinct&nbsp;game&nbsp;keys&nbsp;present&nbsp;in&nbsp;the&nbsp;maps&nbsp;catalog.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
 
@@ -302,7 +307,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_civs', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', 'find_ladder_activations', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_civs', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', 'find_game_keys', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -363,7 +368,11 @@ ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history)
 
 <dl><dt>async <a name="GameDataService-create_map_pack"><strong>create_map_pack</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]', description: 'str' = '') -&gt; 'MapPackModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;named&nbsp;bundle&nbsp;of&nbsp;maps.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-create_map_pool"><strong>create_map_pool</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]' = (), map_pack_ids: 'tuple[str, ...]' = (), description: 'str' = '') -&gt; 'MapPoolModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;pool&nbsp;referencing&nbsp;maps&nbsp;and/or&nbsp;packs;&nbsp;at&nbsp;least&nbsp;one&nbsp;map&nbsp;resolved.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-create_map_pool"><strong>create_map_pool</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]' = (), map_pack_ids: 'tuple[str, ...]' = (), description: 'str' = '', owner_guild_id: 'str | None' = None, is_public: 'bool' = False) -&gt; 'MapPoolModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;pool&nbsp;referencing&nbsp;maps&nbsp;and/or&nbsp;packs;&nbsp;at&nbsp;least&nbsp;one&nbsp;map&nbsp;resolved.<br>
+&nbsp;<br>
+The&nbsp;pool&nbsp;belongs&nbsp;to&nbsp;a&nbsp;guild&nbsp;(``owner_guild_id``)&nbsp;or&nbsp;is&nbsp;global<br>
+(None);&nbsp;a&nbsp;public&nbsp;pool&nbsp;is&nbsp;shared&nbsp;with&nbsp;every&nbsp;guild&nbsp;while&nbsp;keeping<br>
+its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_rule"><strong>create_rule</strong></a>(self, game_key: 'str', name: 'str', rule_key: 'str' = '', params: 'dict[str, str] | None' = None, description: 'str' = '') -&gt; 'RuleModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;game&nbsp;rule/format&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
 
@@ -381,7 +390,12 @@ ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history)
 
 <dl><dt>async <a name="GameDataService-list_civs"><strong>list_civs</strong></a>(self, game_key: 'str') -&gt; 'list[CivModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-list_map_pools"><strong>list_map_pools</strong></a>(self, game_key: 'str') -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-list_game_keys"><strong>list_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;game&nbsp;keys&nbsp;known&nbsp;to&nbsp;the&nbsp;maps&nbsp;catalog&nbsp;(generic).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-list_map_pools"><strong>list_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapPoolModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;of&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
+guilds&nbsp;but&nbsp;shared&nbsp;with&nbsp;everyone);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-list_maps"><strong>list_maps</strong></a>(self, game_key: 'str') -&gt; 'list[MapModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
 
@@ -392,6 +406,21 @@ ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history)
 Sections&nbsp;``maps``,&nbsp;``civs``,&nbsp;``rules``:&nbsp;each&nbsp;a&nbsp;list&nbsp;of&nbsp;entries&nbsp;with<br>
 a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&nbsp;present&nbsp;(same&nbsp;id)<br>
 are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-set_map_forum_message"><strong>set_map_forum_message</strong></a>(self, entry_id: 'str', forum_message_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;map's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;map-message&nbsp;link).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-set_map_pool_public"><strong>set_map_pool_public</strong></a>(self, entry_id: 'str', is_public: 'bool', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Share&nbsp;a&nbsp;pool&nbsp;with&nbsp;every&nbsp;guild&nbsp;(or&nbsp;make&nbsp;it&nbsp;private&nbsp;again).<br>
+&nbsp;<br>
+The&nbsp;pool&nbsp;keeps&nbsp;its&nbsp;owner;&nbsp;making&nbsp;it&nbsp;public&nbsp;shares&nbsp;it&nbsp;with&nbsp;every<br>
+guild's&nbsp;pool&nbsp;pickers&nbsp;and&nbsp;forums&nbsp;(#04fcb94c).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-update_map_pool"><strong>update_map_pool</strong></a>(self, entry_id: 'str', name: 'str | None' = None, map_ids: 'tuple[str, ...] | None' = None, description: 'str | None' = None, fav_quota: 'int | None' = None, ban_quota: 'int | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Update&nbsp;a&nbsp;pool's&nbsp;name,&nbsp;maps,&nbsp;description&nbsp;and/or&nbsp;quotas&nbsp;(validated).<br>
+&nbsp;<br>
+All&nbsp;arguments&nbsp;are&nbsp;optional:&nbsp;only&nbsp;the&nbsp;provided&nbsp;ones&nbsp;change.&nbsp;New<br>
+maps&nbsp;are&nbsp;validated&nbsp;against&nbsp;the&nbsp;catalog,&nbsp;the&nbsp;name&nbsp;against&nbsp;the<br>
+game's&nbsp;taken&nbsp;names&nbsp;(excluding&nbsp;itself).&nbsp;Quotas&nbsp;cap&nbsp;the&nbsp;players'<br>
+fav/ban&nbsp;preferences&nbsp;on&nbsp;ladders&nbsp;running&nbsp;this&nbsp;pool&nbsp;(#222);&nbsp;``None``<br>
+keeps&nbsp;the&nbsp;current&nbsp;value,&nbsp;use&nbsp;``0``&nbsp;to&nbsp;disable&nbsp;a&nbsp;kind&nbsp;explicitly.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

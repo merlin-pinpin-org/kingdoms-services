@@ -237,7 +237,13 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-ensure_live_dashboard"><strong>ensure_live_dashboard</strong></a>(bot: 'discord.Client', guild_id: 'str', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;dashboard&nbsp;channel&nbsp;holds&nbsp;one&nbsp;up-to-date&nbsp;dashboard&nbsp;message.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-collect_profile_stats"><strong>collect_profile_stats</strong></a>(profile_ids: 'list[str]', game_key: 'str' = 'aoe2') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;per-profile&nbsp;enrichment:&nbsp;name,&nbsp;provider&nbsp;stats,&nbsp;last&nbsp;match.<br>
+&nbsp;<br>
+Names&nbsp;come&nbsp;from&nbsp;the&nbsp;profile&nbsp;bindings;&nbsp;ratings/W-L&nbsp;come&nbsp;from&nbsp;the<br>
+provider&nbsp;stats&nbsp;cache&nbsp;(Redis&nbsp;TTL&nbsp;+&nbsp;Mongo,&nbsp;kingdoms.core.profile_stats);<br>
+the&nbsp;last-match&nbsp;time&nbsp;is&nbsp;the&nbsp;latest&nbsp;completed&nbsp;match&nbsp;the&nbsp;profile&nbsp;played.<br>
+All&nbsp;layers&nbsp;degrade&nbsp;—&nbsp;a&nbsp;missing&nbsp;value&nbsp;renders&nbsp;as&nbsp;absent,&nbsp;never&nbsp;errors.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_live_dashboard"><strong>ensure_live_dashboard</strong></a>(bot: 'discord.Client', guild_id: 'str', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;dashboard&nbsp;channel&nbsp;holds&nbsp;one&nbsp;up-to-date&nbsp;dashboard&nbsp;message.<br>
 &nbsp;<br>
 The&nbsp;message&nbsp;is&nbsp;addressed&nbsp;by&nbsp;its&nbsp;logical&nbsp;key&nbsp;(``live-dashboard``)<br>
 through&nbsp;the&nbsp;message&nbsp;registry&nbsp;and&nbsp;edited&nbsp;in&nbsp;place&nbsp;on&nbsp;every&nbsp;refresh&nbsp;—<br>
@@ -246,14 +252,30 @@ message&nbsp;is&nbsp;gone&nbsp;(deleted,&nbsp;channel&nbsp;wiped),&nbsp;a&nbsp;n
 registered.&nbsp;Best-effort:&nbsp;a&nbsp;failure&nbsp;never&nbsp;blocks&nbsp;the&nbsp;bot.<br>
 Returns&nbsp;True&nbsp;when&nbsp;a&nbsp;message&nbsp;was&nbsp;created,&nbsp;False&nbsp;when&nbsp;an&nbsp;existing<br>
 one&nbsp;was&nbsp;refreshed&nbsp;(or&nbsp;the&nbsp;step&nbsp;degraded&nbsp;quietly).</span></dd></dl>
- <dl><dt>async <a name="-ensure_live_dashboard_channel"><strong>ensure_live_dashboard_channel</strong></a>(guild: 'discord.Guild') -&gt; 'discord.TextChannel'</dt><dd><span class="code">Resolve&nbsp;or&nbsp;create&nbsp;the&nbsp;guild's&nbsp;live-dashboard&nbsp;channel&nbsp;(idempotent).</span></dd></dl>
+ <dl><dt>async <a name="-ensure_live_dashboard_channel"><strong>ensure_live_dashboard_channel</strong></a>(guild: 'discord.Guild') -&gt; 'discord.TextChannel'</dt><dd><span class="code">Resolve,&nbsp;migrate&nbsp;or&nbsp;create&nbsp;the&nbsp;guild's&nbsp;live-dashboard&nbsp;channel&nbsp;(idempotent).<br>
+&nbsp;<br>
+A&nbsp;legacy&nbsp;``live-dashboard``&nbsp;channel&nbsp;(pre-icon)&nbsp;is&nbsp;renamed&nbsp;in&nbsp;place&nbsp;—<br>
+the&nbsp;message&nbsp;registry&nbsp;keeps&nbsp;pointing&nbsp;at&nbsp;the&nbsp;same&nbsp;channel&nbsp;id,&nbsp;so&nbsp;the<br>
+registered&nbsp;dashboard&nbsp;message&nbsp;survives&nbsp;the&nbsp;rename.</span></dd></dl>
+ <dl><dt><a name="-group_by_account"><strong>group_by_account</strong></a>(players: 'list[dict[str, Any]]', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Fold&nbsp;the&nbsp;flat&nbsp;per-profile&nbsp;list&nbsp;into&nbsp;per-Discord-account&nbsp;records.</span></dd></dl>
  <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/live,&nbsp;/game-link&nbsp;and&nbsp;/game-unlink&nbsp;commands.<br>
 &nbsp;<br>
 The&nbsp;commands&nbsp;read&nbsp;svc-core's&nbsp;Live&nbsp;service&nbsp;through&nbsp;``LiveClient``<br>
 when&nbsp;``CORE_URI``&nbsp;is&nbsp;set;&nbsp;without&nbsp;it&nbsp;(local&nbsp;runs,&nbsp;providers&nbsp;down),<br>
 the&nbsp;dashboard&nbsp;degrades&nbsp;to&nbsp;a&nbsp;note&nbsp;—&nbsp;the&nbsp;command&nbsp;still&nbsp;answers.</span></dd></dl>
- <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.</span></dd></dl>
- <dl><dt>async <a name="-start_live_dashboard_refresh"><strong>start_live_dashboard_refresh</strong></a>(bot: 'discord.Client', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;guild's&nbsp;dashboard&nbsp;message&nbsp;on&nbsp;an&nbsp;interval,&nbsp;forever.</span></dd></dl>
+ <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
+&nbsp;<br>
+Players&nbsp;are&nbsp;grouped&nbsp;by&nbsp;Discord&nbsp;account&nbsp;(one&nbsp;line&nbsp;per&nbsp;account,&nbsp;one<br>
+sub-line&nbsp;per&nbsp;bound&nbsp;game&nbsp;profile).&nbsp;An&nbsp;account&nbsp;is&nbsp;active&nbsp;when&nbsp;any&nbsp;of<br>
+its&nbsp;profiles&nbsp;is;&nbsp;active&nbsp;accounts&nbsp;come&nbsp;first,&nbsp;then&nbsp;a&nbsp;separator,&nbsp;then<br>
+offline&nbsp;accounts&nbsp;—&nbsp;each&nbsp;side&nbsp;sorted&nbsp;by&nbsp;last-match&nbsp;time&nbsp;(most<br>
+recent&nbsp;first).</span></dd></dl>
+ <dl><dt>async <a name="-start_live_dashboard_refresh"><strong>start_live_dashboard_refresh</strong></a>(bot: 'discord.Client', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;guild's&nbsp;dashboard&nbsp;on&nbsp;change:&nbsp;a&nbsp;stream&nbsp;watcher&nbsp;plus&nbsp;a&nbsp;self-healing&nbsp;interval.<br>
+&nbsp;<br>
+The&nbsp;stream&nbsp;consumes&nbsp;WatchDashboard&nbsp;frames&nbsp;—&nbsp;the&nbsp;server&nbsp;emits&nbsp;one&nbsp;per<br>
+player-state&nbsp;change&nbsp;—&nbsp;and&nbsp;every&nbsp;frame&nbsp;lands&nbsp;on&nbsp;the&nbsp;dashboard&nbsp;within<br>
+seconds.&nbsp;The&nbsp;interval&nbsp;pass&nbsp;remains&nbsp;as&nbsp;the&nbsp;safety&nbsp;net&nbsp;(recreating&nbsp;a<br>
+deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -262,7 +284,8 @@ the&nbsp;dashboard&nbsp;degrades&nbsp;to&nbsp;a&nbsp;note&nbsp;—&nbsp;the&nbsp
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>DASHBOARD_REFRESH_INTERVAL_S</strong> = 15<br>
 <strong>GAME_KEY</strong> = 'aoe2'<br>
-<strong>LIVE_CHANNEL_NAME</strong> = 'live-dashboard'<br>
+<strong>LIVE_CHANNEL_NAME</strong> = '📡-live-dashboard'<br>
+<strong>LIVE_LEGACY_CHANNEL_NAME</strong> = 'live-dashboard'<br>
 <strong>LIVE_MESSAGE_KEY</strong> = 'live-dashboard'<br>
 <strong>PLATFORM</strong> = 'discord'<br>
 <strong>logger</strong> = &lt;Logger kingdoms.live (WARNING)&gt;</td></tr></table>

@@ -56,6 +56,8 @@ Typed&nbsp;client&nbsp;for&nbsp;the&nbsp;kingdoms.v1.Live&nbsp;service&nbsp;(bot
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="LiveClient-__init__"><strong>__init__</strong></a>(self, core_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;the&nbsp;core&nbsp;address;&nbsp;channels&nbsp;are&nbsp;per-call&nbsp;(ADR-0020).</span></dd></dl>
 
+<dl><dt>async <a name="LiveClient-stream_snapshots"><strong>stream_snapshots</strong></a>(self, game_key: 'str')</dt><dd><span class="code">Yield&nbsp;dashboard&nbsp;snapshots&nbsp;continuously:&nbsp;one&nbsp;per&nbsp;player-state&nbsp;change.</span></dd></dl>
+
 <dl><dt>async <a name="LiveClient-watch"><strong>watch</strong></a>(self, game_key: 'str', timeout_s: 'float' = 5.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;latest&nbsp;dashboard&nbsp;snapshot&nbsp;(first&nbsp;stream&nbsp;frame).</span></dd></dl>
 
 <hr>

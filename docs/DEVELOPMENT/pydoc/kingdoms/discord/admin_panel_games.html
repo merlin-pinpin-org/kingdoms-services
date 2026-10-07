@@ -1,0 +1,2772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.admin_panel_games</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.admin_panel_games</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/admin_panel_games.py">SOURCE_ROOT/discord/admin_panel_games.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;games&nbsp;admin&nbsp;section:&nbsp;maps&nbsp;and&nbsp;map&nbsp;pools,&nbsp;per&nbsp;game&nbsp;(core,&nbsp;#133).<br>
+&nbsp;<br>
+Registered&nbsp;into&nbsp;the&nbsp;/admin&nbsp;panel's&nbsp;Mods&nbsp;select&nbsp;under&nbsp;the&nbsp;``games``&nbsp;key:<br>
+the&nbsp;section&nbsp;manages&nbsp;the&nbsp;game&nbsp;catalogs&nbsp;—&nbsp;the&nbsp;maps&nbsp;(archive&nbsp;=&nbsp;disable,<br>
+the&nbsp;maps&nbsp;forum&nbsp;sync&nbsp;picks&nbsp;it&nbsp;up)&nbsp;and&nbsp;the&nbsp;map&nbsp;pools&nbsp;(create,&nbsp;rename,<br>
+edit&nbsp;the&nbsp;map&nbsp;list,&nbsp;archive).&nbsp;Everything&nbsp;goes&nbsp;through<br>
+``GameDataService``&nbsp;(validated&nbsp;+&nbsp;audited);&nbsp;the&nbsp;section&nbsp;only&nbsp;renders<br>
+and&nbsp;collects&nbsp;input.<br>
+&nbsp;<br>
+Namespace&nbsp;discipline:&nbsp;every&nbsp;component&nbsp;rides&nbsp;``admin:pin:modgames:``<br>
+-&nbsp;deliberately&nbsp;NOT&nbsp;under&nbsp;``admin:pin:mod:``&nbsp;(the&nbsp;routing&nbsp;select's<br>
+prefix);&nbsp;one&nbsp;custom_id,&nbsp;one&nbsp;dispatch&nbsp;path,&nbsp;restart&nbsp;proof.&nbsp;Every<br>
+sub-view&nbsp;carries&nbsp;the&nbsp;back&nbsp;button.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesBackButton">GamesBackButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesGameSelect">GamesGameSelect</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesMapArchiveSelect">GamesMapArchiveSelect</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesMapCreateButton">GamesMapCreateButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesMapsBackButton">GamesMapsBackButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesMapsButton">GamesMapsButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolArchiveButton">GamesPoolArchiveButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolCreateButton">GamesPoolCreateButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolEditSelect">GamesPoolEditSelect</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolMapPageSelect">GamesPoolMapPageSelect</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolMapToggle">GamesPoolMapToggle</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolRenameButton">GamesPoolRenameButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolsBackButton">GamesPoolsBackButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolsButton">GamesPoolsButton</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesMapCreateModal">GamesMapCreateModal</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolCreateModal">GamesPoolCreateModal</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_panel_games.html#GamesPoolRenameModal">GamesPoolRenameModal</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesBackButton">class <strong>GamesBackButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesBackButton">GamesBackButton</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Return&nbsp;to&nbsp;the&nbsp;games&nbsp;entry&nbsp;view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesBackButton">GamesBackButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesBackButton-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesBackButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesBackButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;the&nbsp;games&nbsp;entry&nbsp;(the&nbsp;game&nbsp;picker).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesBackButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesBackButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:back')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesBackButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesBackButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesBackButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesBackButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesBackButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesBackButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesBackButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesBackButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesBackButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesGameSelect">class <strong>GamesGameSelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesGameSelect">GamesGameSelect</a>(options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Pick&nbsp;a&nbsp;game&nbsp;to&nbsp;manage;&nbsp;opens&nbsp;the&nbsp;game's&nbsp;sub-menu&nbsp;(maps/pools).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesGameSelect">GamesGameSelect</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesGameSelect-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesGameSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesGameSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;chosen&nbsp;game's&nbsp;sub-menu.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesGameSelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesGameSelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select's&nbsp;options&nbsp;at&nbsp;click&nbsp;time.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:game:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesGameSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesGameSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesGameSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesGameSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesGameSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesGameSelect-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesGameSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesGameSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesGameSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapArchiveSelect">class <strong>GamesMapArchiveSelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapArchiveSelect">GamesMapArchiveSelect</a>(game_key:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Toggle&nbsp;a&nbsp;map's&nbsp;archived&nbsp;state&nbsp;(disable/enable)&nbsp;from&nbsp;the&nbsp;select.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesMapArchiveSelect">GamesMapArchiveSelect</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesMapArchiveSelect-__init__"><strong>__init__</strong></a>(self, game_key: 'str', options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapArchiveSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapArchiveSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Toggle&nbsp;the&nbsp;map's&nbsp;archived&nbsp;state,&nbsp;audit,&nbsp;re-render.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesMapArchiveSelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesMapArchiveSelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select's&nbsp;options&nbsp;at&nbsp;click&nbsp;time.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:maps:archive:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesMapArchiveSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesMapArchiveSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapArchiveSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapArchiveSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesMapArchiveSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesMapArchiveSelect-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesMapArchiveSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesMapArchiveSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesMapArchiveSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapCreateButton">class <strong>GamesMapCreateButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateButton">GamesMapCreateButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Open&nbsp;the&nbsp;map-creation&nbsp;modal;&nbsp;the&nbsp;map&nbsp;lands&nbsp;in&nbsp;the&nbsp;maps&nbsp;forum.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesMapCreateButton">GamesMapCreateButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesMapCreateButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapCreateButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapCreateButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;the&nbsp;click,&nbsp;then&nbsp;open&nbsp;the&nbsp;creation&nbsp;modal.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesMapCreateButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesMapCreateButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:maps:create:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesMapCreateButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapCreateButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapCreateButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesMapCreateButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesMapCreateButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesMapCreateButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapCreateModal">class <strong>GamesMapCreateModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateModal">GamesMapCreateModal</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;map-creation&nbsp;form:&nbsp;name,&nbsp;filename,&nbsp;description.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesMapCreateModal">GamesMapCreateModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesMapCreateModal-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapCreateModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;map&nbsp;through&nbsp;the&nbsp;service,&nbsp;confirm.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesMapCreateModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapCreateModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;:meth:`on_submit`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="GamesMapCreateModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesMapCreateModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesMapCreateModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="GamesMapCreateModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapCreateModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapCreateModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapCreateModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="GamesMapCreateModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesMapCreateModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapsBackButton">class <strong>GamesMapsBackButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapsBackButton">GamesMapsBackButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Return&nbsp;from&nbsp;the&nbsp;maps&nbsp;sub-view&nbsp;to&nbsp;the&nbsp;game's&nbsp;sub-menu.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesMapsBackButton">GamesMapsBackButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesMapsBackButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapsBackButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapsBackButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;the&nbsp;game's&nbsp;sub-menu.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesMapsBackButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesMapsBackButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:mapsback:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesMapsBackButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesMapsBackButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapsBackButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapsBackButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesMapsBackButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesMapsBackButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesMapsBackButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesMapsBackButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesMapsBackButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapsButton">class <strong>GamesMapsButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapsButton">GamesMapsButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Open&nbsp;the&nbsp;game's&nbsp;maps&nbsp;sub-view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesMapsButton">GamesMapsButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesMapsButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapsButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesMapsButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Render&nbsp;the&nbsp;maps&nbsp;sub-view.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesMapsButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesMapsButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:maps:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesMapsButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesMapsButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapsButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesMapsButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesMapsButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesMapsButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesMapsButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesMapsButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesMapsButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolArchiveButton">class <strong>GamesPoolArchiveButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolArchiveButton">GamesPoolArchiveButton</a>(pool_id:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Archive&nbsp;(delete)&nbsp;the&nbsp;pool,&nbsp;unless&nbsp;it&nbsp;is&nbsp;the&nbsp;active&nbsp;pool&nbsp;of&nbsp;a&nbsp;ladder.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolArchiveButton">GamesPoolArchiveButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolArchiveButton-__init__"><strong>__init__</strong></a>(self, pool_id: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolArchiveButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolArchiveButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Archive&nbsp;the&nbsp;pool,&nbsp;then&nbsp;return&nbsp;to&nbsp;the&nbsp;pools&nbsp;list.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolArchiveButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolArchiveButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(pool&nbsp;id&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:archive:(?P&lt;pool_id&gt;[^:]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolArchiveButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolArchiveButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolArchiveButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolArchiveButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolArchiveButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolArchiveButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolArchiveButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolArchiveButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolArchiveButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolCreateButton">class <strong>GamesPoolCreateButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolCreateButton">GamesPoolCreateButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Open&nbsp;the&nbsp;pool-creation&nbsp;modal&nbsp;(name).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolCreateButton">GamesPoolCreateButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolCreateButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolCreateButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolCreateButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;creation&nbsp;modal.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolCreateButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolCreateButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:create:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolCreateButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolCreateButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolCreateButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolCreateButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolCreateButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolCreateButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolCreateModal">class <strong>GamesPoolCreateModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolCreateModal">GamesPoolCreateModal</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;pool-creation&nbsp;form:&nbsp;name,&nbsp;then&nbsp;maps&nbsp;are&nbsp;added&nbsp;via&nbsp;the&nbsp;edit&nbsp;view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolCreateModal">GamesPoolCreateModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolCreateModal-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolCreateModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;pool&nbsp;(with&nbsp;the&nbsp;optional&nbsp;first&nbsp;map),&nbsp;confirm.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesPoolCreateModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolCreateModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;:meth:`on_submit`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesPoolCreateModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesPoolCreateModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="GamesPoolCreateModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolCreateModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolCreateModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolCreateModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesPoolCreateModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolEditSelect">class <strong>GamesPoolEditSelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolEditSelect">GamesPoolEditSelect</a>(game_key:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Pick&nbsp;a&nbsp;pool&nbsp;to&nbsp;edit;&nbsp;opens&nbsp;the&nbsp;pool's&nbsp;editor&nbsp;view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolEditSelect">GamesPoolEditSelect</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolEditSelect-__init__"><strong>__init__</strong></a>(self, game_key: 'str', options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolEditSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolEditSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;chosen&nbsp;pool's&nbsp;editor&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolEditSelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolEditSelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select's&nbsp;options&nbsp;at&nbsp;click&nbsp;time.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:edit:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolEditSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolEditSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolEditSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolEditSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolEditSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolEditSelect-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolEditSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolEditSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolEditSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolMapPageSelect">class <strong>GamesPoolMapPageSelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolMapPageSelect">GamesPoolMapPageSelect</a>(pool_id:&nbsp;'str',&nbsp;page_count:&nbsp;'int',&nbsp;page:&nbsp;'int'&nbsp;=&nbsp;0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Turn&nbsp;to&nbsp;another&nbsp;page&nbsp;of&nbsp;the&nbsp;pool's&nbsp;map&nbsp;picker&nbsp;(25&nbsp;maps&nbsp;per&nbsp;page).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolMapPageSelect">GamesPoolMapPageSelect</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolMapPageSelect-__init__"><strong>__init__</strong></a>(self, pool_id: 'str', page_count: 'int', page: 'int' = 0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolMapPageSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolMapPageSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;the&nbsp;editor&nbsp;on&nbsp;the&nbsp;chosen&nbsp;page.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolMapPageSelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolMapPageSelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;pager&nbsp;from&nbsp;the&nbsp;wire;&nbsp;the&nbsp;page&nbsp;rides&nbsp;the&nbsp;id.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:page:(?P&lt;page&gt;[0-9]+):(?P&lt;pool_id&gt;.+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolMapPageSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapPageSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolMapPageSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolMapPageSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolMapPageSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapPageSelect-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolMapPageSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapPageSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolMapPageSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolMapToggle">class <strong>GamesPoolMapToggle</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolMapToggle">GamesPoolMapToggle</a>(pool_id:&nbsp;'str',&nbsp;page:&nbsp;'int'&nbsp;=&nbsp;0,&nbsp;options:&nbsp;'list[discord.SelectOption]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Add&nbsp;or&nbsp;remove&nbsp;a&nbsp;map&nbsp;from&nbsp;the&nbsp;pool&nbsp;(one&nbsp;select,&nbsp;toggle&nbsp;semantics,&nbsp;paged).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolMapToggle">GamesPoolMapToggle</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolMapToggle-__init__"><strong>__init__</strong></a>(self, pool_id: 'str', page: 'int' = 0, options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolMapToggle-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolMapToggle-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Toggle&nbsp;the&nbsp;chosen&nbsp;map&nbsp;in&nbsp;the&nbsp;pool,&nbsp;re-render&nbsp;the&nbsp;editor.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolMapToggle-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolMapToggle'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select's&nbsp;options&nbsp;at&nbsp;click&nbsp;time;&nbsp;page&nbsp;and&nbsp;pool&nbsp;from&nbsp;state.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:maps:(?P&lt;page&gt;[0-9]+):(?P&lt;pool_id&gt;.+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolMapToggle-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapToggle-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolMapToggle-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolMapToggle-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolMapToggle-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapToggle-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolMapToggle-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolMapToggle-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolMapToggle-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolRenameButton">class <strong>GamesPoolRenameButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolRenameButton">GamesPoolRenameButton</a>(pool_id:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Open&nbsp;the&nbsp;rename&nbsp;modal;&nbsp;the&nbsp;pool&nbsp;id&nbsp;rides&nbsp;the&nbsp;custom_id.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolRenameButton">GamesPoolRenameButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolRenameButton-__init__"><strong>__init__</strong></a>(self, pool_id: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolRenameButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolRenameButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;rename&nbsp;modal.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolRenameButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolRenameButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(pool&nbsp;id&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:rename:(?P&lt;pool_id&gt;.+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolRenameButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolRenameButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolRenameButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolRenameButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolRenameButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolRenameButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolRenameModal">class <strong>GamesPoolRenameModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolRenameModal">GamesPoolRenameModal</a>(pool_id:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;pool&nbsp;rename&nbsp;form.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolRenameModal">GamesPoolRenameModal</a></dd>
+<dd><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a></dd>
+<dd><a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolRenameModal-__init__"><strong>__init__</strong></a>(self, pool_id: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolRenameModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Rename&nbsp;the&nbsp;pool,&nbsp;audit,&nbsp;re-render&nbsp;the&nbsp;editor.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__modal_children_items__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesPoolRenameModal-add_item"><strong>add_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Adds&nbsp;an&nbsp;item&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;add&nbsp;to&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+Raises<br>
+--------<br>
+TypeError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;:class:`Item`&nbsp;was&nbsp;not&nbsp;passed.<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;children&nbsp;has&nbsp;been&nbsp;exceeded,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;row&nbsp;the&nbsp;item&nbsp;is&nbsp;trying&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;is&nbsp;full&nbsp;or&nbsp;the&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;tried&nbsp;to&nbsp;add&nbsp;is&nbsp;not&nbsp;allowed&nbsp;in&nbsp;this&nbsp;View.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolRenameModal-on_error"><strong>on_error</strong></a>(self, interaction: 'Interaction[ClientT]', error: 'Exception', /) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;:meth:`on_submit`<br>
+fails&nbsp;with&nbsp;an&nbsp;error.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;logs&nbsp;to&nbsp;the&nbsp;library&nbsp;logger.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;led&nbsp;to&nbsp;the&nbsp;failure.<br>
+error:&nbsp;:class:`Exception`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;exception&nbsp;that&nbsp;was&nbsp;raised.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-to_components"><strong>to_components</strong></a>(self) -&gt; 'List[Dict[str, Any]]'</dt></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><a name="GamesPoolRenameModal-__init_subclass__"><strong>__init_subclass__</strong></a>(*, title: 'str' = ...) -&gt; 'None'</dt><dd><span class="code">This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>:<br>
+<dl><dt><strong>__discord_ui_modal__</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesPoolRenameModal-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-clear_items"><strong>clear_items</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;all&nbsp;items&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-find_item"><strong>find_item</strong></a>(self, id: 'int', /) -&gt; 'Optional[Item[Self]]'</dt><dd><span class="code">Gets&nbsp;an&nbsp;item&nbsp;with&nbsp;:attr:`Item.id`&nbsp;set&nbsp;as&nbsp;``id``,&nbsp;or&nbsp;``None``&nbsp;if<br>
+not&nbsp;found.<br>
+&nbsp;<br>
+..&nbsp;warning::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;**not&nbsp;the&nbsp;same**&nbsp;as&nbsp;``custom_id``.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+id:&nbsp;:class:`int`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;component.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Optional[:class:`Item`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;found,&nbsp;or&nbsp;``None``.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-has_components_v2"><strong>has_components_v2</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt>async <a name="GamesPoolRenameModal-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;the&nbsp;view<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;view&nbsp;should&nbsp;process&nbsp;item&nbsp;callbacks&nbsp;for&nbsp;the&nbsp;interaction.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`on_error`&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;view&nbsp;children's&nbsp;callbacks&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-is_dispatching"><strong>is_dispatching</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;been&nbsp;added&nbsp;for&nbsp;dispatching&nbsp;purposes.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-is_finished"><strong>is_finished</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">:class:`bool`:&nbsp;Whether&nbsp;the&nbsp;view&nbsp;is&nbsp;set&nbsp;up&nbsp;as&nbsp;persistent.<br>
+&nbsp;<br>
+A&nbsp;persistent&nbsp;view&nbsp;has&nbsp;all&nbsp;their&nbsp;components&nbsp;with&nbsp;a&nbsp;set&nbsp;``custom_id``&nbsp;and<br>
+a&nbsp;:attr:`timeout`&nbsp;set&nbsp;to&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolRenameModal-on_timeout"><strong>on_timeout</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;view's&nbsp;timeout&nbsp;elapses&nbsp;without&nbsp;being&nbsp;explicitly&nbsp;stopped.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-remove_item"><strong>remove_item</strong></a>(self, item: 'Item[Any]') -&gt; 'Self'</dt><dd><span class="code">Removes&nbsp;an&nbsp;item&nbsp;from&nbsp;the&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;returns&nbsp;the&nbsp;class&nbsp;instance&nbsp;to&nbsp;allow&nbsp;for&nbsp;fluent-style<br>
+chaining.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+item:&nbsp;:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;item&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;view.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Stops&nbsp;listening&nbsp;to&nbsp;interaction&nbsp;events&nbsp;from&nbsp;this&nbsp;view.<br>
+&nbsp;<br>
+This&nbsp;operation&nbsp;cannot&nbsp;be&nbsp;undone.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolRenameModal-wait"><strong>wait</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+Waits&nbsp;until&nbsp;the&nbsp;view&nbsp;has&nbsp;finished&nbsp;interacting.<br>
+&nbsp;<br>
+A&nbsp;view&nbsp;is&nbsp;considered&nbsp;finished&nbsp;when&nbsp;:meth:`stop`&nbsp;is&nbsp;called<br>
+or&nbsp;it&nbsp;times&nbsp;out.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``True``,&nbsp;then&nbsp;the&nbsp;view&nbsp;timed&nbsp;out.&nbsp;If&nbsp;``False``&nbsp;then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;view&nbsp;finished&nbsp;normally.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolRenameModal-walk_children"><strong>walk_children</strong></a>(self) -&gt; 'Generator[Item[Any], None, None]'</dt><dd><span class="code">An&nbsp;iterator&nbsp;that&nbsp;recursively&nbsp;walks&nbsp;through&nbsp;all&nbsp;the&nbsp;children&nbsp;of&nbsp;this&nbsp;view<br>
+and&nbsp;its&nbsp;children,&nbsp;if&nbsp;applicable.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6<br>
+&nbsp;<br>
+Yields<br>
+------<br>
+:class:`Item`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;item&nbsp;in&nbsp;the&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><a name="GamesPoolRenameModal-from_message"><strong>from_message</strong></a>(message: 'Message', /, *, timeout: 'Optional[float]' = 180.0) -&gt; 'Union[View, LayoutView]'</dt><dd><span class="code">Converts&nbsp;a&nbsp;message's&nbsp;components&nbsp;into&nbsp;a&nbsp;:class:`View`<br>
+or&nbsp;:class:`LayoutView`.<br>
+&nbsp;<br>
+The&nbsp;:attr:`.Message.components`&nbsp;of&nbsp;a&nbsp;message&nbsp;are&nbsp;read-only<br>
+and&nbsp;separate&nbsp;types&nbsp;from&nbsp;those&nbsp;in&nbsp;the&nbsp;``discord.ui``&nbsp;namespace.<br>
+In&nbsp;order&nbsp;to&nbsp;modify&nbsp;and&nbsp;edit&nbsp;message&nbsp;components&nbsp;they&nbsp;must&nbsp;be<br>
+converted&nbsp;into&nbsp;a&nbsp;:class:`View`&nbsp;or&nbsp;:class:`LayoutView`&nbsp;first.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;message&nbsp;has&nbsp;any&nbsp;v2&nbsp;components,&nbsp;then&nbsp;you&nbsp;must&nbsp;use<br>
+:class:`LayoutView`&nbsp;in&nbsp;order&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;converted&nbsp;into<br>
+their&nbsp;respective&nbsp;items.&nbsp;:class:`View`&nbsp;does&nbsp;not&nbsp;support&nbsp;v2&nbsp;components.<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+message:&nbsp;:class:`discord.Message`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;message&nbsp;with&nbsp;components&nbsp;to&nbsp;convert&nbsp;into&nbsp;a&nbsp;view.<br>
+timeout:&nbsp;Optional[:class:`float`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;timeout&nbsp;of&nbsp;the&nbsp;converted&nbsp;view.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+Union[:class:`View`,&nbsp;:class:`LayoutView`]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;converted&nbsp;view.&nbsp;This&nbsp;will&nbsp;always&nbsp;return&nbsp;one&nbsp;of&nbsp;:class:`View`&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;:class:`LayoutView`,&nbsp;and&nbsp;not&nbsp;one&nbsp;of&nbsp;its&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>children</strong></dt>
+<dd><span class="code">List[:class:`Item`]:&nbsp;The&nbsp;list&nbsp;of&nbsp;children&nbsp;attached&nbsp;to&nbsp;this&nbsp;view.</span></dd>
+</dl>
+<dl><dt><strong>total_children_count</strong></dt>
+<dd><span class="code">:class:`int`:&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;children&nbsp;in&nbsp;this&nbsp;view,&nbsp;including&nbsp;those&nbsp;from&nbsp;nested&nbsp;items.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>timeout</strong></dt>
+<dd><span class="code">Optional[:class:`float`]:&nbsp;The&nbsp;timeout&nbsp;in&nbsp;seconds&nbsp;from&nbsp;last&nbsp;interaction&nbsp;with&nbsp;the&nbsp;UI&nbsp;before&nbsp;no&nbsp;longer&nbsp;accepting&nbsp;input.<br>
+If&nbsp;``None``&nbsp;then&nbsp;there&nbsp;is&nbsp;no&nbsp;timeout.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>:<br>
+<dl><dt><strong>__discord_ui_view__</strong> = False</dl>
+
+<dl><dt><strong>__view_children_items__</strong> = {}</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolsBackButton">class <strong>GamesPoolsBackButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolsBackButton">GamesPoolsBackButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Return&nbsp;from&nbsp;the&nbsp;pools&nbsp;sub-view&nbsp;to&nbsp;the&nbsp;game's&nbsp;sub-menu.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolsBackButton">GamesPoolsBackButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolsBackButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolsBackButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolsBackButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Re-render&nbsp;the&nbsp;game's&nbsp;sub-menu.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolsBackButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolsBackButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:poolsback:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolsBackButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsBackButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolsBackButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolsBackButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolsBackButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsBackButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolsBackButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsBackButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolsBackButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GamesPoolsButton">class <strong>GamesPoolsButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesPoolsButton">GamesPoolsButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Open&nbsp;the&nbsp;game's&nbsp;map&nbsp;pools&nbsp;sub-view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_panel_games.html#GamesPoolsButton">GamesPoolsButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GamesPoolsButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolsButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GamesPoolsButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Render&nbsp;the&nbsp;pools&nbsp;sub-view.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GamesPoolsButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GamesPoolsButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;item&nbsp;from&nbsp;the&nbsp;wire&nbsp;(game&nbsp;key&nbsp;from&nbsp;the&nbsp;custom_id).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:pools:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GamesPoolsButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolsButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GamesPoolsButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GamesPoolsButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GamesPoolsButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GamesPoolsButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GamesPoolsButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-game_menu_view"><strong>game_menu_view</strong></a>(game_key: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">One&nbsp;game's&nbsp;sub-menu:&nbsp;snapshot&nbsp;+&nbsp;the&nbsp;maps/pools&nbsp;actions.</span></dd></dl>
+ <dl><dt>async <a name="-games_admin_entry"><strong>games_admin_entry</strong></a>(interaction: 'discord.Interaction') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;games&nbsp;admin&nbsp;section:&nbsp;game&nbsp;picker&nbsp;+&nbsp;per-game&nbsp;actions.</span></dd></dl>
+ <dl><dt>async <a name="-maps_admin_view"><strong>maps_admin_view</strong></a>(game_key: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;game's&nbsp;maps&nbsp;sub-view:&nbsp;the&nbsp;catalog&nbsp;with&nbsp;archive&nbsp;toggles.</span></dd></dl>
+ <dl><dt>async <a name="-pool_editor_view"><strong>pool_editor_view</strong></a>(pool_id: 'str', game_key: 'str', page: 'int' = 0) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">One&nbsp;pool's&nbsp;editor:&nbsp;rename,&nbsp;add/remove&nbsp;maps&nbsp;(paged,&nbsp;25&nbsp;per&nbsp;select),&nbsp;archive.</span></dd></dl>
+ <dl><dt>async <a name="-pools_admin_view"><strong>pools_admin_view</strong></a>(game_key: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;game's&nbsp;map&nbsp;pools&nbsp;sub-view:&nbsp;list&nbsp;+&nbsp;CRUD&nbsp;actions.</span></dd></dl>
+ <dl><dt><a name="-register_games_admin_items"><strong>register_games_admin_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;section's&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
+ <dl><dt><a name="-register_games_admin_section"><strong>register_games_admin_section</strong></a>() -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;games&nbsp;section&nbsp;into&nbsp;the&nbsp;/admin&nbsp;panel&nbsp;(idempotent).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>MOD_KEY</strong> = 'games'<br>
+<strong>PAGE_SIZE</strong> = 25<br>
+<strong>logger</strong> = &lt;Logger kingdoms.games.admin_panel (WARNING)&gt;</td></tr></table>
+</body></html>

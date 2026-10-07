@@ -499,7 +499,15 @@ Ladder&nbsp;domain&nbsp;core:&nbsp;registration,&nbsp;queue,&nbsp;matches,&nbsp;
 
 <dl><dt>async <a name="LadderService-mark_ready"><strong>mark_ready</strong></a>(self, match_id: 'str', user_id: 'str', now: 'int') -&gt; 'MatchModel'</dt><dd><span class="code">Confirm&nbsp;ready;&nbsp;when&nbsp;both&nbsp;sides&nbsp;are&nbsp;ready,&nbsp;pick&nbsp;the&nbsp;map&nbsp;→&nbsp;STARTED.</span></dd></dl>
 
-<dl><dt>async <a name="LadderService-register_player"><strong>register_player</strong></a>(self, ladder_id: 'str', user_id: 'str', display_name: 'str', now: 'int' = 0) -&gt; 'PlayerModel'</dt><dd><span class="code">Register&nbsp;a&nbsp;player&nbsp;on&nbsp;the&nbsp;ladder&nbsp;(idempotent&nbsp;per&nbsp;user).</span></dd></dl>
+<dl><dt>async <a name="LadderService-preference_caps"><strong>preference_caps</strong></a>(self, ladder_id: 'str') -&gt; 'tuple[int, int]'</dt><dd><span class="code">Return&nbsp;the&nbsp;(fav,&nbsp;ban)&nbsp;caps&nbsp;a&nbsp;player&nbsp;may&nbsp;set&nbsp;on&nbsp;this&nbsp;ladder&nbsp;now.<br>
+&nbsp;<br>
+Public&nbsp;read&nbsp;for&nbsp;the&nbsp;player-facing&nbsp;surface:&nbsp;the&nbsp;quotas&nbsp;the&nbsp;selects<br>
+enforce&nbsp;are&nbsp;these,&nbsp;resolved&nbsp;exactly&nbsp;as&nbsp;``set_preferences``&nbsp;does.</span></dd></dl>
+
+<dl><dt>async <a name="LadderService-register_player"><strong>register_player</strong></a>(self, ladder_id: 'str', user_id: 'str', display_name: 'str', now: 'int' = 0) -&gt; 'PlayerModel'</dt><dd><span class="code">Register&nbsp;a&nbsp;player&nbsp;on&nbsp;the&nbsp;ladder&nbsp;(idempotent&nbsp;per&nbsp;user).<br>
+&nbsp;<br>
+Refused&nbsp;while&nbsp;the&nbsp;ladder's&nbsp;enrollments&nbsp;are&nbsp;closed&nbsp;(the&nbsp;admin<br>
+opens&nbsp;them&nbsp;per&nbsp;season:&nbsp;the&nbsp;"démarrer&nbsp;les&nbsp;inscriptions"&nbsp;step).</span></dd></dl>
 
 <dl><dt>async <a name="LadderService-remove_player"><strong>remove_player</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;a&nbsp;registered&nbsp;player;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.<br>
 &nbsp;<br>
@@ -515,7 +523,16 @@ queue&nbsp;immediately;&nbsp;both&nbsp;sides&nbsp;get&nbsp;a&nbsp;ready&nbsp;dea
 
 <dl><dt>async <a name="LadderService-set_active_pool"><strong>set_active_pool</strong></a>(self, ladder_id: 'str', map_pool_id: 'str') -&gt; 'LadderModel'</dt><dd><span class="code">Switch&nbsp;the&nbsp;ladder's&nbsp;active&nbsp;pool&nbsp;(transactional&nbsp;switch,&nbsp;ref&nbsp;§4).</span></dd></dl>
 
-<dl><dt>async <a name="LadderService-set_preferences"><strong>set_preferences</strong></a>(self, ladder_id: 'str', user_id: 'str', fav_map_ids: 'tuple[str, ...]', ban_map_ids: 'tuple[str, ...]') -&gt; 'PlayerModel'</dt><dd><span class="code">Set&nbsp;fav/ban&nbsp;preferences&nbsp;(counts&nbsp;capped,&nbsp;favs&nbsp;and&nbsp;bans&nbsp;disjoint).</span></dd></dl>
+<dl><dt>async <a name="LadderService-set_enrollments_open"><strong>set_enrollments_open</strong></a>(self, ladder_id: 'str', open_: 'bool') -&gt; 'LadderModel'</dt><dd><span class="code">Open&nbsp;or&nbsp;close&nbsp;the&nbsp;enrollments&nbsp;(the&nbsp;admin's&nbsp;season&nbsp;gate).</span></dd></dl>
+
+<dl><dt>async <a name="LadderService-set_preferences"><strong>set_preferences</strong></a>(self, ladder_id: 'str', user_id: 'str', fav_map_ids: 'tuple[str, ...]', ban_map_ids: 'tuple[str, ...]') -&gt; 'PlayerModel'</dt><dd><span class="code">Set&nbsp;fav/ban&nbsp;preferences&nbsp;(counts&nbsp;capped,&nbsp;favs&nbsp;and&nbsp;bans&nbsp;disjoint).<br>
+&nbsp;<br>
+The&nbsp;caps&nbsp;come&nbsp;from&nbsp;the&nbsp;ladder's&nbsp;**active&nbsp;map&nbsp;pool**&nbsp;first&nbsp;(#222):<br>
+the&nbsp;pool's&nbsp;explicit&nbsp;``fav_quota``/``ban_quota``&nbsp;when&nbsp;set,&nbsp;else&nbsp;a<br>
+sane&nbsp;derivation&nbsp;from&nbsp;the&nbsp;pool&nbsp;size,&nbsp;else&nbsp;the&nbsp;ladder&nbsp;settings'<br>
+``player_fav_count``/``player_ban_count``&nbsp;(no&nbsp;pool&nbsp;active).</span></dd></dl>
+
+<dl><dt>async <a name="LadderService-set_queue_paused"><strong>set_queue_paused</strong></a>(self, ladder_id: 'str', paused: 'bool') -&gt; 'LadderModel'</dt><dd><span class="code">Pause&nbsp;or&nbsp;resume&nbsp;the&nbsp;queue&nbsp;(an&nbsp;interrupted&nbsp;ladder&nbsp;keeps&nbsp;its&nbsp;data).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

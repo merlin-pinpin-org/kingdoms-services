@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.maps_forum</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.maps_forum</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/maps_forum.py">SOURCE_ROOT/discord/maps_forum.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;games&nbsp;forums:&nbsp;one&nbsp;read-only&nbsp;map&nbsp;post&nbsp;per&nbsp;active&nbsp;map,&nbsp;per&nbsp;game&nbsp;(core).<br>
+&nbsp;<br>
+Every&nbsp;game&nbsp;known&nbsp;to&nbsp;the&nbsp;catalog&nbsp;gets,&nbsp;in&nbsp;the&nbsp;``games``&nbsp;category,&nbsp;a<br>
+``&lt;game&gt;-maps``&nbsp;forum&nbsp;(e.g.&nbsp;``aoe2-maps``).&nbsp;Every&nbsp;non-archived&nbsp;map<br>
+must&nbsp;have&nbsp;exactly&nbsp;one&nbsp;post&nbsp;in&nbsp;its&nbsp;game's&nbsp;forum&nbsp;—&nbsp;the&nbsp;post&nbsp;is&nbsp;the<br>
+map's&nbsp;public&nbsp;surface&nbsp;and&nbsp;the&nbsp;pool&nbsp;builder's&nbsp;picker&nbsp;source.&nbsp;The&nbsp;map<br>
+document&nbsp;stores&nbsp;the&nbsp;post's&nbsp;``forum_message_id``&nbsp;(the&nbsp;map-message<br>
+link);&nbsp;the&nbsp;sync&nbsp;is&nbsp;idempotent&nbsp;and&nbsp;runs&nbsp;periodically&nbsp;(self-healing):<br>
+a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,&nbsp;a&nbsp;new&nbsp;map&nbsp;gets&nbsp;its&nbsp;post,&nbsp;a&nbsp;new&nbsp;game<br>
+gets&nbsp;its&nbsp;forum.&nbsp;Nothing&nbsp;is&nbsp;hardcoded&nbsp;per&nbsp;game:&nbsp;the&nbsp;loop&nbsp;lists&nbsp;the<br>
+game&nbsp;keys&nbsp;from&nbsp;the&nbsp;catalog,&nbsp;so&nbsp;seeding&nbsp;cs2&nbsp;maps&nbsp;creates&nbsp;and<br>
+maintains&nbsp;the&nbsp;cs2&nbsp;forum&nbsp;without&nbsp;any&nbsp;code&nbsp;change.<br>
+&nbsp;<br>
+Nothing&nbsp;here&nbsp;is&nbsp;ladder-specific:&nbsp;the&nbsp;wiring&nbsp;is&nbsp;generic,&nbsp;and&nbsp;the<br>
+admin&nbsp;surface&nbsp;lives&nbsp;in&nbsp;the&nbsp;games&nbsp;admin&nbsp;section.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt><a name="-start_maps_forum_sync"><strong>start_maps_forum_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;every&nbsp;game's&nbsp;maps&nbsp;forum&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
+ <dl><dt>async <a name="-sync_maps_forum"><strong>sync_maps_forum</strong></a>(guild_id: 'str', game_key: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;game's&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;active&nbsp;map&nbsp;(idempotent).<br>
+&nbsp;<br>
+Existing&nbsp;posts&nbsp;are&nbsp;kept&nbsp;(matched&nbsp;by&nbsp;the&nbsp;stored&nbsp;``forum_message_id``),<br>
+missing&nbsp;posts&nbsp;are&nbsp;created,&nbsp;dead&nbsp;links&nbsp;are&nbsp;recreated.&nbsp;Returns&nbsp;the<br>
+number&nbsp;of&nbsp;posts&nbsp;created.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FORUM_SUFFIX</strong> = '-maps'<br>
+<strong>GAMES_CATEGORY_NAME</strong> = 'games'<br>
+<strong>SYNC_INTERVAL_S</strong> = 3600<br>
+<strong>logger</strong> = &lt;Logger kingdoms.games.maps_forum (WARNING)&gt;</td></tr></table>
+</body></html>

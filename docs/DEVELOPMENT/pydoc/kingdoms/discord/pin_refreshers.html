@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.pin_refreshers</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.pin_refreshers</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/pin_refreshers.py">SOURCE_ROOT/discord/pin_refreshers.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;pinned&nbsp;surfaces'&nbsp;refreshers:&nbsp;pins&nbsp;re-render&nbsp;when&nbsp;their&nbsp;inputs&nbsp;change.<br>
+&nbsp;<br>
+A&nbsp;pinned&nbsp;view&nbsp;must&nbsp;update&nbsp;itself&nbsp;when&nbsp;what&nbsp;it&nbsp;shows&nbsp;changes&nbsp;—&nbsp;a<br>
+parameter&nbsp;(or&nbsp;sub-parameter),&nbsp;the&nbsp;guild&nbsp;locale,&nbsp;the&nbsp;enrollments&nbsp;state.<br>
+Each&nbsp;surface&nbsp;registers&nbsp;its&nbsp;refresher&nbsp;here&nbsp;(the&nbsp;factory&nbsp;wires&nbsp;them&nbsp;at<br>
+setup);&nbsp;the&nbsp;admin&nbsp;handlers&nbsp;call&nbsp;:func:`refresh_registered_pins`&nbsp;after<br>
+every&nbsp;mutation,&nbsp;and&nbsp;every&nbsp;refresher&nbsp;edits&nbsp;the&nbsp;pin&nbsp;**in&nbsp;place**&nbsp;(a&nbsp;pin<br>
+never&nbsp;moves,&nbsp;never&nbsp;duplicates).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="kingdoms.discord.pinned_views.html">kingdoms.discord.pinned_views</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register_pin_refreshers"><strong>register_pin_refreshers</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;every&nbsp;pinned&nbsp;surface's&nbsp;refresher&nbsp;(the&nbsp;factory&nbsp;hookup).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.pin_refreshers (WARNING)&gt;</td></tr></table>
+</body></html>

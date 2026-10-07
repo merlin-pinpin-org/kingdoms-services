@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.wiring</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.wiring</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/wiring.py">SOURCE_ROOT/discord/wiring.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;wiring&nbsp;seams:&nbsp;one&nbsp;builder&nbsp;per&nbsp;cross-cutting&nbsp;dependency.<br>
+&nbsp;<br>
+Every&nbsp;Discord&nbsp;surface&nbsp;(games&nbsp;admin,&nbsp;maps&nbsp;forum,&nbsp;pools&nbsp;forum,&nbsp;pool<br>
+flow)&nbsp;rebuilds&nbsp;the&nbsp;same&nbsp;wirings&nbsp;—&nbsp;the&nbsp;GameDataService&nbsp;over&nbsp;the&nbsp;shared<br>
+Mongo&nbsp;adapter,&nbsp;the&nbsp;admin&nbsp;guard,&nbsp;the&nbsp;guild-category&nbsp;resolution.&nbsp;Those<br>
+live&nbsp;here&nbsp;once&nbsp;so&nbsp;the&nbsp;surfaces&nbsp;stay&nbsp;thin&nbsp;(the&nbsp;core/mods&nbsp;rule:&nbsp;the&nbsp;mod<br>
+code&nbsp;minimal,&nbsp;the&nbsp;shared&nbsp;machinery&nbsp;in&nbsp;core).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_games_service"><strong>build_games_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;GameDataService;&nbsp;None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent.</span></dd></dl>
+ <dl><dt><a name="-games_wiring_ready"><strong>games_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;game-data&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt>async <a name="-guard_admin"><strong>guard_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.</span></dd></dl>
+ <dl><dt>async <a name="-guild_category"><strong>guild_category</strong></a>(guild: 'discord.Guild', name: 'str', *, create_reason: 'str' = '') -&gt; 'Any | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild&nbsp;category&nbsp;by&nbsp;name,&nbsp;creating&nbsp;it&nbsp;when&nbsp;missing.<br>
+&nbsp;<br>
+The&nbsp;first&nbsp;creation&nbsp;labels&nbsp;the&nbsp;category;&nbsp;afterwards&nbsp;the&nbsp;surfaces<br>
+keep&nbsp;passing&nbsp;the&nbsp;same&nbsp;id&nbsp;—&nbsp;for&nbsp;id-based&nbsp;persistence&nbsp;they&nbsp;store&nbsp;the<br>
+resolved&nbsp;id&nbsp;(never&nbsp;the&nbsp;name)&nbsp;in&nbsp;the&nbsp;channels&nbsp;registry.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.wiring (WARNING)&gt;</td></tr></table>
+</body></html>

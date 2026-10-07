@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.profile_stats</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.profile_stats</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/profile_stats.py">SOURCE_ROOT/core/services/profile_stats.py</a></td></tr></table>
+    <p><span class="code">Provider-backed&nbsp;profile&nbsp;stats&nbsp;with&nbsp;a&nbsp;Redis-TTL&nbsp;+&nbsp;Mongo&nbsp;cache&nbsp;(kingdoms&nbsp;#147).<br>
+&nbsp;<br>
+The&nbsp;dashboard&nbsp;needs&nbsp;each&nbsp;bound&nbsp;profile's&nbsp;name&nbsp;and&nbsp;stats&nbsp;(rating,&nbsp;W/L).<br>
+The&nbsp;source&nbsp;of&nbsp;truth&nbsp;is&nbsp;the&nbsp;provider&nbsp;(ext-librematch&nbsp;leaderboards);&nbsp;calling<br>
+it&nbsp;per&nbsp;render&nbsp;is&nbsp;both&nbsp;slow&nbsp;and&nbsp;rate-limited,&nbsp;so&nbsp;the&nbsp;values&nbsp;are&nbsp;cached:<br>
+&nbsp;<br>
+-&nbsp;Redis&nbsp;first&nbsp;(``stats:&lt;game_key&gt;:&lt;profile_id&gt;``,&nbsp;TTL,&nbsp;the&nbsp;hot&nbsp;path);<br>
+-&nbsp;then&nbsp;Mongo&nbsp;(``profile_stats``&nbsp;collection,&nbsp;the&nbsp;persistent&nbsp;copy&nbsp;a&nbsp;Redis<br>
+&nbsp;&nbsp;flush&nbsp;survives);<br>
+-&nbsp;then&nbsp;the&nbsp;provider&nbsp;(a&nbsp;fetch&nbsp;refreshes&nbsp;both&nbsp;layers).<br>
+&nbsp;<br>
+Every&nbsp;layer&nbsp;degrades:&nbsp;no&nbsp;provider&nbsp;→&nbsp;the&nbsp;stale&nbsp;Mongo&nbsp;copy;&nbsp;no&nbsp;Mongo&nbsp;→<br>
+the&nbsp;last&nbsp;Redis&nbsp;value&nbsp;until&nbsp;it&nbsp;expires;&nbsp;nothing&nbsp;→&nbsp;no&nbsp;stats&nbsp;line.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.profile_stats.html#ProfileStatsService">ProfileStatsService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.profile_stats.html#StatsProvider">StatsProvider</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileStatsService">class <strong>ProfileStatsService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProfileStatsService">ProfileStatsService</a>(provider:&nbsp;'<a href="#StatsProvider">StatsProvider</a>',&nbsp;database:&nbsp;'Any',&nbsp;redis:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;game_key:&nbsp;'str'&nbsp;=&nbsp;'aoe2',&nbsp;ttl_s:&nbsp;'int'&nbsp;=&nbsp;600)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Two-layer&nbsp;cached&nbsp;provider&nbsp;stats,&nbsp;shared&nbsp;by&nbsp;the&nbsp;Discord&nbsp;surfaces.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProfileStatsService-__init__"><strong>__init__</strong></a>(self, provider: 'StatsProvider', database: 'Any', redis: 'Any' = None, game_key: 'str' = 'aoe2', ttl_s: 'int' = 600) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ProfileStatsService-get"><strong>get</strong></a>(self, profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;profile's&nbsp;cached&nbsp;stats,&nbsp;refreshing&nbsp;them&nbsp;when&nbsp;stale.<br>
+&nbsp;<br>
+The&nbsp;answer&nbsp;is&nbsp;a&nbsp;plain&nbsp;dict&nbsp;(``blocks``:&nbsp;list&nbsp;of&nbsp;named&nbsp;entries)&nbsp;so<br>
+the&nbsp;Discord&nbsp;layer&nbsp;never&nbsp;imports&nbsp;provider&nbsp;models.</span></dd></dl>
+
+<dl><dt>async <a name="ProfileStatsService-get_many"><strong>get_many</strong></a>(self, profile_ids: 'list[str]') -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Resolve&nbsp;many&nbsp;profiles&nbsp;at&nbsp;once;&nbsp;missing&nbsp;ones&nbsp;stay&nbsp;absent.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StatsProvider">class <strong>StatsProvider</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StatsProvider">StatsProvider</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;seam&nbsp;(GameProviderClient.get_player_stats).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.profile_stats.html#StatsProvider">StatsProvider</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="StatsProvider-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="StatsProvider-get_player_stats"><strong>get_player_stats</strong></a>(self, profile_id: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;stats&nbsp;blocks;&nbsp;None&nbsp;when&nbsp;the&nbsp;provider&nbsp;has&nbsp;none.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="StatsProvider-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'get_player_stats'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="StatsProvider-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="StatsProvider-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-stats_entry"><strong>stats_entry</strong></a>(stats: 'dict[str, Any] | None', block_name: 'str', key: 'str') -&gt; 'str'</dt><dd><span class="code">Read&nbsp;one&nbsp;stats&nbsp;value&nbsp;out&nbsp;of&nbsp;a&nbsp;cached&nbsp;profile&nbsp;stats&nbsp;dict.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_TTL_S</strong> = 600<br>
+<strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>PROFILE_STATS_COLLECTION</strong> = 'profile_stats'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.profile_stats (WARNING)&gt;</td></tr></table>
+</body></html>

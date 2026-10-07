@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.pools_forum</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.pools_forum</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/pools_forum.py">SOURCE_ROOT/discord/pools_forum.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;map-pools&nbsp;forums:&nbsp;one&nbsp;forum&nbsp;per&nbsp;pool,&nbsp;one&nbsp;post&nbsp;per&nbsp;member&nbsp;map&nbsp;(#04fcb94c).<br>
+&nbsp;<br>
+Every&nbsp;visible&nbsp;pool&nbsp;(owned&nbsp;by&nbsp;this&nbsp;guild&nbsp;or&nbsp;public)&nbsp;gets&nbsp;its&nbsp;own&nbsp;forum<br>
+named&nbsp;``map-pools/&lt;pool&gt;``&nbsp;inside&nbsp;the&nbsp;Ladder&nbsp;category:&nbsp;one&nbsp;post&nbsp;per<br>
+member&nbsp;map&nbsp;carrying&nbsp;a&nbsp;**Remove**&nbsp;button&nbsp;(admin-guarded&nbsp;at&nbsp;click<br>
+time).&nbsp;Posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;thread&nbsp;name&nbsp;(the&nbsp;map's),&nbsp;so&nbsp;the&nbsp;sync&nbsp;is<br>
+idempotent&nbsp;and&nbsp;self-healing&nbsp;—&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,&nbsp;a&nbsp;removed<br>
+map's&nbsp;post&nbsp;is&nbsp;deleted,&nbsp;a&nbsp;deleted&nbsp;forum&nbsp;is&nbsp;recreated.&nbsp;Nothing&nbsp;here&nbsp;is<br>
+ladder-specific:&nbsp;the&nbsp;pools&nbsp;and&nbsp;their&nbsp;visibility&nbsp;live&nbsp;in&nbsp;the&nbsp;core&nbsp;game<br>
+catalog,&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-start_pools_forum_sync"><strong>start_pools_forum_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;every&nbsp;guild's&nbsp;pool&nbsp;forums&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
+ <dl><dt>async <a name="-sync_pools_forum"><strong>sync_pools_forum</strong></a>(guild_id: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;visible&nbsp;pool's&nbsp;forum&nbsp;and&nbsp;posts&nbsp;(idempotent).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>POOLS_FORUM_NAME_PREFIX</strong> = 'map-pools-'<br>
+<strong>SYNC_INTERVAL_S</strong> = 3600<br>
+<strong>logger</strong> = &lt;Logger kingdoms.games.pools_forum (WARNING)&gt;</td></tr></table>
+</body></html>

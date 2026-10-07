@@ -65,7 +65,7 @@ through&nbsp;its&nbsp;own&nbsp;registered&nbsp;section.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="AdminModSection">class <strong>AdminModSection</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminModSection">AdminModSection</a>(mod:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;entry:&nbsp;'Callable[...,&nbsp;Coroutine[Any,&nbsp;Any,&nbsp;discord.ui.LayoutView]]',&nbsp;description:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminModSection">AdminModSection</a>(mod:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;entry:&nbsp;'Callable[...,&nbsp;Coroutine[Any,&nbsp;Any,&nbsp;discord.ui.LayoutView]]',&nbsp;description:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;core:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;mod's&nbsp;admin&nbsp;section&nbsp;declaration.<br>
 &nbsp;<br>
@@ -85,7 +85,7 @@ One&nbsp;mod's&nbsp;admin&nbsp;section&nbsp;declaration.<br>
 
 <dl><dt><a name="AdminModSection-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="AdminModSection-__init__"><strong>__init__</strong></a>(self, mod: 'str', label: 'str', entry: 'Callable[..., Coroutine[Any, Any, discord.ui.LayoutView]]', description: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="AdminModSection-__init__"><strong>__init__</strong></a>(self, mod: 'str', label: 'str', entry: 'Callable[..., Coroutine[Any, Any, discord.ui.LayoutView]]', description: 'str' = '', core: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="AdminModSection-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Fail&nbsp;loudly&nbsp;on&nbsp;a&nbsp;declaration&nbsp;that&nbsp;could&nbsp;never&nbsp;reach&nbsp;the&nbsp;wire.</span></dd></dl>
 
@@ -103,13 +103,15 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'description': 'str', 'entry': 'Callable[..., Coroutine[Any, Any, discord.ui.LayoutView]]', 'label': 'str', 'mod': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'core': 'bool', 'description': 'str', 'entry': 'Callable[..., Coroutine[Any, Any, discord.ui.LayoutView]]', 'label': 'str', 'mod': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'description': Field(name='description',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'entry': Field(name='entry',type='Callable[..., Coroutine...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label': Field(name='label',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod': Field(name='mod',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'core': Field(name='core',type='bool',default=False,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'description': Field(name='description',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'entry': Field(name='entry',type='Callable[..., Coroutine...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label': Field(name='label',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mod': Field(name='mod',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('mod', 'label', 'entry', 'description')</dl>
+<dl><dt><strong>__match_args__</strong> = ('mod', 'label', 'entry', 'description', 'core')</dl>
+
+<dl><dt><strong>core</strong> = False</dl>
 
 <dl><dt><strong>description</strong> = ''</dl>
 

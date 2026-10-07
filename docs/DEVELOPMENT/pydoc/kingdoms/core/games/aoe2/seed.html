@@ -55,7 +55,10 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;GameData,&nbsp;Season&nbs
 
 <dl><dt>async <a name="MongoAoE2Database-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="MongoAoE2Database-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="MongoAoE2Database-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
+guilds&nbsp;but&nbsp;shared);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
@@ -66,6 +69,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;GameData,&nbsp;Season&nbs
 <dl><dt>async <a name="MongoAoE2Database-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoAoE2Database-find_game_keys"><strong>find_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;distinct&nbsp;game&nbsp;keys&nbsp;present&nbsp;in&nbsp;the&nbsp;maps&nbsp;catalog.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
 

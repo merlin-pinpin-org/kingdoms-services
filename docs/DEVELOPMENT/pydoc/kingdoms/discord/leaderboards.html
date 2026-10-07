@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.leaderboards</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.leaderboards</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/leaderboards.py">SOURCE_ROOT/discord/leaderboards.py</a></td></tr></table>
+    <p><span class="code">Leaderboard&nbsp;selection:&nbsp;which&nbsp;provider&nbsp;boards&nbsp;a&nbsp;guild&nbsp;displays&nbsp;(#147).<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;serves&nbsp;every&nbsp;board&nbsp;it&nbsp;knows&nbsp;(ext-librematch:&nbsp;rm_1v1,<br>
+rm_team,&nbsp;unranked,&nbsp;dm_1v1,&nbsp;dm_team);&nbsp;a&nbsp;guild&nbsp;picks&nbsp;1&nbsp;to&nbsp;4&nbsp;of&nbsp;them.<br>
+The&nbsp;choice&nbsp;lives&nbsp;in&nbsp;the&nbsp;guild&nbsp;settings&nbsp;(``leaderboards``),&nbsp;defaulting<br>
+to&nbsp;RM&nbsp;1v1&nbsp;+&nbsp;TG&nbsp;RM.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-board_label"><strong>board_label</strong></a>(board_key: 'str') -&gt; 'str'</dt><dd><span class="code">Human&nbsp;label&nbsp;for&nbsp;a&nbsp;board&nbsp;key.</span></dd></dl>
+ <dl><dt>async <a name="-get_guild_boards"><strong>get_guild_boards</strong></a>(guild_id: 'str', db: 'Any') -&gt; 'list[str]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;chosen&nbsp;boards&nbsp;(ordered,&nbsp;validated,&nbsp;1-4).</span></dd></dl>
+ <dl><dt>async <a name="-set_guild_boards"><strong>set_guild_boards</strong></a>(guild_id: 'str', boards: 'list[str]', db: 'Any') -&gt; 'list[str]'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;boards;&nbsp;returns&nbsp;the&nbsp;stored&nbsp;(validated)&nbsp;list.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>AVAILABLE_BOARDS</strong> = (('rm_1v1', 'RM 1v1'), ('rm_team', 'TG RM'), ('unranked', 'Unranked'), ('dm_1v1', 'DM 1v1'), ('dm_team', 'TG DM'))<br>
+<strong>DEFAULT_BOARDS</strong> = ('rm_1v1', 'rm_team')<br>
+<strong>MAX_BOARDS</strong> = 4<br>
+<strong>__annotations__</strong> = {'AVAILABLE_BOARDS': 'tuple[tuple[str, str], ...]', 'DEFAULT_BOARDS': 'tuple[str, ...]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.leaderboards (WARNING)&gt;</td></tr></table>
+</body></html>

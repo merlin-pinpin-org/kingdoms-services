@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.pinned_views</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.pinned_views</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/pinned_views.py">SOURCE_ROOT/discord/pinned_views.py</a></td></tr></table>
+    <p><span class="code">Pinned-view&nbsp;helpers:&nbsp;pin-aware&nbsp;answers,&nbsp;refreshes&nbsp;and&nbsp;the&nbsp;read-only&nbsp;state.<br>
+&nbsp;<br>
+Three&nbsp;cross-cutting&nbsp;rules&nbsp;live&nbsp;here,&nbsp;once,&nbsp;for&nbsp;every&nbsp;pinned&nbsp;surface<br>
+(core&nbsp;pins&nbsp;and&nbsp;mod&nbsp;pins&nbsp;alike):<br>
+&nbsp;<br>
+1.&nbsp;**A&nbsp;pin&nbsp;never&nbsp;moves.**&nbsp;A&nbsp;click&nbsp;on&nbsp;a&nbsp;pinned&nbsp;view&nbsp;must&nbsp;not&nbsp;edit&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;pinned&nbsp;message:&nbsp;actions&nbsp;answer&nbsp;**ephemerally**&nbsp;(or&nbsp;edit-in-place<br>
+&nbsp;&nbsp;&nbsp;only&nbsp;the&nbsp;registered&nbsp;pin's&nbsp;*content*&nbsp;through&nbsp;the&nbsp;refresh&nbsp;path).&nbsp;The<br>
+&nbsp;&nbsp;&nbsp;entry-point&nbsp;is&nbsp;:func:`answer_ephemeral`&nbsp;—&nbsp;a&nbsp;pin-aware&nbsp;wrapper&nbsp;over<br>
+&nbsp;&nbsp;&nbsp;``send_message(ephemeral=True)``.<br>
+&nbsp;<br>
+2.&nbsp;**Pins&nbsp;refresh&nbsp;automatically.**&nbsp;After&nbsp;a&nbsp;parameter&nbsp;(or&nbsp;sub-parameter)<br>
+&nbsp;&nbsp;&nbsp;or&nbsp;the&nbsp;guild&nbsp;locale&nbsp;changes,&nbsp;the&nbsp;pinned&nbsp;views&nbsp;must&nbsp;re-render.&nbsp;Each<br>
+&nbsp;&nbsp;&nbsp;surface&nbsp;registers&nbsp;a&nbsp;refresh&nbsp;callback<br>
+&nbsp;&nbsp;&nbsp;(:func:`register_pin_refresher`/:func:`refresh_registered_pins`);<br>
+&nbsp;&nbsp;&nbsp;the&nbsp;persistent&nbsp;admin&nbsp;handlers&nbsp;call&nbsp;it&nbsp;after&nbsp;every&nbsp;mutation.<br>
+&nbsp;<br>
+3.&nbsp;**Pinned&nbsp;channels&nbsp;are&nbsp;read-only&nbsp;by&nbsp;default.**&nbsp;The&nbsp;guild&nbsp;setting<br>
+&nbsp;&nbsp;&nbsp;``pinned_read_only``&nbsp;(per&nbsp;managed&nbsp;channel&nbsp;category,&nbsp;plus&nbsp;mod-scoped<br>
+&nbsp;&nbsp;&nbsp;entries)&nbsp;stores&nbsp;the&nbsp;intent;&nbsp;the&nbsp;channel&nbsp;platforms&nbsp;apply&nbsp;the&nbsp;Discord<br>
+&nbsp;&nbsp;&nbsp;permission&nbsp;overwrite&nbsp;on&nbsp;every&nbsp;policy&nbsp;pass&nbsp;—&nbsp;the&nbsp;bot&nbsp;keeps&nbsp;writing<br>
+&nbsp;&nbsp;&nbsp;through&nbsp;its&nbsp;own&nbsp;member&nbsp;overwrite&nbsp;(a&nbsp;pin&nbsp;is&nbsp;updated&nbsp;by&nbsp;the&nbsp;bot,&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;members&nbsp;read&nbsp;it).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-answer_ephemeral"><strong>answer_ephemeral</strong></a>(interaction: 'discord.Interaction', message: 'str') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;click&nbsp;ephemerally&nbsp;—&nbsp;a&nbsp;pinned&nbsp;view&nbsp;never&nbsp;moves.</span></dd></dl>
+ <dl><dt>async <a name="-answer_ephemeral_view"><strong>answer_ephemeral_view</strong></a>(interaction: 'discord.Interaction', view: 'discord.ui.LayoutView') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;click&nbsp;with&nbsp;an&nbsp;ephemeral&nbsp;view&nbsp;—&nbsp;a&nbsp;pinned&nbsp;view&nbsp;never&nbsp;moves.</span></dd></dl>
+ <dl><dt>async <a name="-apply_read_only_policy"><strong>apply_read_only_policy</strong></a>(guild: 'Any', channel: 'Any', category: 'str', guild_id: 'str', settings_db: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;read-only&nbsp;intent&nbsp;to&nbsp;one&nbsp;channel&nbsp;(id-based,&nbsp;best-effort).<br>
+&nbsp;<br>
+Every&nbsp;member-facing&nbsp;overwrite&nbsp;keeps&nbsp;its&nbsp;visibility;&nbsp;only&nbsp;the&nbsp;write<br>
+bit&nbsp;follows&nbsp;the&nbsp;stored&nbsp;intent.&nbsp;The&nbsp;bot&nbsp;member&nbsp;always&nbsp;keeps&nbsp;writing<br>
+(the&nbsp;pin&nbsp;must&nbsp;stay&nbsp;refreshable).&nbsp;``settings_db``&nbsp;defaults&nbsp;to&nbsp;the<br>
+running&nbsp;bot's&nbsp;logs&nbsp;seam&nbsp;—&nbsp;channel&nbsp;platforms&nbsp;call&nbsp;this&nbsp;on&nbsp;every<br>
+policy&nbsp;pass,&nbsp;so&nbsp;a&nbsp;setting&nbsp;change&nbsp;propagates&nbsp;at&nbsp;the&nbsp;next&nbsp;resolution<br>
+(or&nbsp;immediately&nbsp;through&nbsp;the&nbsp;panel's&nbsp;refresher).</span></dd></dl>
+ <dl><dt>async <a name="-get_pinned_read_only"><strong>get_pinned_read_only</strong></a>(interaction_or_guild_id: 'object', category: 'str') -&gt; 'bool'</dt><dd><span class="code">Read&nbsp;the&nbsp;read-only&nbsp;intent&nbsp;for&nbsp;a&nbsp;pinned&nbsp;channel&nbsp;category.<br>
+&nbsp;<br>
+Default:&nbsp;read-only&nbsp;—&nbsp;the&nbsp;parameter&nbsp;reads&nbsp;``pinned_read_only``&nbsp;in<br>
+the&nbsp;guild&nbsp;settings&nbsp;and&nbsp;falls&nbsp;back&nbsp;to&nbsp;``True``&nbsp;(every&nbsp;pinned&nbsp;channel<br>
+starts&nbsp;read-only;&nbsp;the&nbsp;admin&nbsp;opens&nbsp;it&nbsp;from&nbsp;the&nbsp;panel).</span></dd></dl>
+ <dl><dt><a name="-read_only_overwrite"><strong>read_only_overwrite</strong></a>(read_only: 'bool', base: 'discord.PermissionOverwrite') -&gt; 'discord.PermissionOverwrite'</dt><dd><span class="code">Return&nbsp;the&nbsp;overwrite&nbsp;with&nbsp;``send_messages``&nbsp;closed&nbsp;for&nbsp;@everyone.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_or_edit"><strong>refresh_or_edit</strong></a>(interaction: 'discord.Interaction', rebuild: 'Callable[[], Awaitable[discord.ui.LayoutView]]', refresher_key: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;click&nbsp;without&nbsp;ever&nbsp;moving&nbsp;a&nbsp;pinned&nbsp;view.<br>
+&nbsp;<br>
+On&nbsp;a&nbsp;pinned&nbsp;message&nbsp;the&nbsp;pin&nbsp;is&nbsp;re-rendered&nbsp;**in&nbsp;place**&nbsp;(the&nbsp;same<br>
+message,&nbsp;the&nbsp;new&nbsp;state&nbsp;—&nbsp;it&nbsp;never&nbsp;moves&nbsp;nor&nbsp;duplicates);&nbsp;on&nbsp;a&nbsp;live<br>
+sub-view&nbsp;message&nbsp;the&nbsp;view&nbsp;is&nbsp;edited&nbsp;as&nbsp;before&nbsp;—&nbsp;sub-menus&nbsp;keep<br>
+their&nbsp;navigation.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_pin_by_marker"><strong>refresh_pin_by_marker</strong></a>(bot: 'Any', guild: 'Any', marker: 'str', builder: 'Callable[[str], Awaitable[discord.ui.LayoutView]]') -&gt; 'bool'</dt><dd><span class="code">Re-render&nbsp;one&nbsp;pinned&nbsp;message&nbsp;in&nbsp;place&nbsp;(found&nbsp;by&nbsp;marker,&nbsp;id-based).<br>
+&nbsp;<br>
+The&nbsp;pin&nbsp;never&nbsp;moves:&nbsp;its&nbsp;layout&nbsp;is&nbsp;edited&nbsp;where&nbsp;it&nbsp;lives.&nbsp;Returns<br>
+True&nbsp;when&nbsp;a&nbsp;pin&nbsp;was&nbsp;refreshed.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_registered_pins"><strong>refresh_registered_pins</strong></a>(guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Run&nbsp;every&nbsp;registered&nbsp;pin&nbsp;refresher&nbsp;for&nbsp;a&nbsp;guild&nbsp;(best-effort).</span></dd></dl>
+ <dl><dt><a name="-register_pin_refresher"><strong>register_pin_refresher</strong></a>(key: 'str', refresher: 'PinRefresher') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;one&nbsp;surface's&nbsp;pin&nbsp;refresher&nbsp;(idempotent,&nbsp;last&nbsp;wins).</span></dd></dl>
+ <dl><dt>async <a name="-set_pinned_read_only"><strong>set_pinned_read_only</strong></a>(guild_id: 'str', category: 'str', read_only: 'bool', db: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;read-only&nbsp;intent&nbsp;for&nbsp;a&nbsp;pinned&nbsp;channel&nbsp;category.</span></dd></dl>
+ <dl><dt><a name="-set_settings_db_resolver"><strong>set_settings_db_resolver</strong></a>(resolver: 'Callable[[], Any | None]') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;running&nbsp;bot's&nbsp;guild-settings&nbsp;seam&nbsp;(factory&nbsp;hookup).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PinRefresher</strong> = collections.abc.Callable[[str], collections.abc.Awaitable[None]]<br>
+<strong>__annotations__</strong> = {'_REFRESHERS': 'dict[str, PinRefresher]', '_SETTINGS_DB_RESOLVER': 'Callable[[], Any | None] | None'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.pinned_views (WARNING)&gt;</td></tr></table>
+</body></html>
