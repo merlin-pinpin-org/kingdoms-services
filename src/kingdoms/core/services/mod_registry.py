@@ -52,11 +52,15 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
             if isinstance(access_data, dict)
             else ChannelAccessPolicy()
         )
+        group = entry.get("group")
+        if group is not None and (not isinstance(group, str) or not group.strip()):
+            raise ValueError(f"{source}: 'group' must be a non-empty string when present")
         categories.append(
             ChannelCategoryDef(
                 key=key,
                 display_name=display,
                 description=str(entry.get("description", "")),
+                group=str(group).strip() if isinstance(group, str) else "",
                 per_instance=bool(entry.get("per_instance", False)),
                 access=access,
             )

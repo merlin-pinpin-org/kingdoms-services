@@ -51,12 +51,20 @@ class ChannelsPlatform(Protocol):
         """Find an existing channel by its exact name; None when absent."""
         ...
 
-    async def create_channel(self, guild_id: str, name: str) -> str:
-        """Create a text channel; return its id."""
+    async def create_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Create a text channel (inside a category when given); return its id."""
         ...
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""
+        ...
+
+    async def find_category_by_name(self, guild_id: str, name: str) -> str | None:
+        """Find a Discord category by its exact name; None when absent."""
+        ...
+
+    async def create_category(self, guild_id: str, name: str) -> str:
+        """Create a Discord category channel; return its id."""
         ...
 
     async def apply_access_policy(
@@ -126,16 +134,22 @@ class ChannelService:
 
         return ChannelCategory(category).name
 
-    async def get_channel_for_category(self, guild_id: str, category: str) -> IChannel:
+    async def get_channel_for_category(
+        self, guild_id: str, category: str, category_id: str | None = None
+    ) -> IChannel:
         """Resolve a channel for a category (cache -> database -> creation).
 
         The platform seam guarantees existence of the returned channel id;
-        this method returns the core-side channel view built from it.
+        this method returns the core-side channel view built from it. The
+        optional ``category_id`` is the Discord category the channel is
+        created inside when it does not exist yet (declaration groups).
         """
-        channel_id = await self._resolve_channel_id(guild_id, category)
+        channel_id = await self._resolve_channel_id(guild_id, category, category_id)
         return _ResolvedChannel(id=channel_id, name=self._category_name(category))
 
-    async def _resolve_channel_id(self, guild_id: str, category: str) -> str:
+    async def _resolve_channel_id(
+        self, guild_id: str, category: str, category_id: str | None = None
+    ) -> str:
         """Cache-aside resolution of one guild category to a channel id."""
         cache_key = f"{guild_id}:{category}"
         cached = await self._cache.get_state(CHANNELS_COLLECTION, cache_key)
@@ -158,7 +172,7 @@ class ChannelService:
             await self._persist(guild_id, category, adopted, name)
             return adopted
 
-        created = await self._platform.create_channel(guild_id, name)
+        created = await self._platform.create_channel(guild_id, name, category_id)
         await self._persist(guild_id, category, created, name)
         return created
 
@@ -193,12 +207,19 @@ class ChannelService:
 
         Generic: reads the mod's declaration via ModRegistry and resolves
         each ``mod:key`` category with the same flow as any other category.
+        Declared groups (Discord categories) are resolved first, in
+        declaration order, so the channels are created inside them.
         """
         definition = self._registry.require(mod_name)
+        group_ids: dict[str, str] = {}
+        for group in definition.channel_groups():
+            group_ids[group] = await self._resolve_group_id(guild_id, group)
         channels: dict[str, IChannel] = {}
         for category_def in definition.channel_categories:
             category = f"{mod_name}:{category_def.key}"
-            channels[category] = await self.get_channel_for_category(guild_id, category)
+            channels[category] = await self.get_channel_for_category(
+                guild_id, category, group_ids.get(category_def.group)
+            )
             try:
                 await self._platform.apply_access_policy(
                     guild_id, channels[category].id, category_def.access.to_dict()
@@ -211,6 +232,18 @@ class ChannelService:
                     exc_info=True,
                 )
         return channels
+
+    async def _resolve_group_id(self, guild_id: str, group: str) -> str:
+        """Resolve one declared group to a Discord category id.
+
+        Cache-aside with the same adopt-or-create flow as the channels:
+        an existing category with the same name is adopted, a missing
+        one is created. Re-running is safe (never duplicated).
+        """
+        existing = await self._platform.find_category_by_name(guild_id, group)
+        if existing is not None:
+            return existing
+        return await self._platform.create_category(guild_id, group)
 
 
 class _ResolvedChannel:
