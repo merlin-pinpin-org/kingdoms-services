@@ -6,7 +6,6 @@ import pytest
 
 from kingdoms.discord.kingdom_setup import _slug
 from kingdoms.discord.kingdom_structure import (
-    GAIA_CATEGORY,
     KINGDOM_CHANNELS,
     ensure_kingdom_structure,
     kingdom_category_name,
@@ -60,7 +59,8 @@ async def test_creates_the_kingdom_category_with_its_eight_channels() -> None:
     assert _slug(kingdom_category_name("Aquitaine")) in _category_names(guild)
     assert len(resolved) == len(KINGDOM_CHANNELS) == 8
     category = next(c for c in guild.categories if c.name == _slug("Royaume Aquitaine"))
-    # the salon names carry the D70 emoji display names (slugged by Discord)
+    # the salon names carry the D70 emoji display names (slugge
+d by Discord)
     assert [channel.name for channel in category.channels] == [
         _slug(channel_def.display_name) for channel_def in KINGDOM_CHANNELS
     ]
@@ -104,7 +104,8 @@ async def test_departed_lords_do_not_get_visibility() -> None:
     assert ids[1] not in member_ids
 
 
-@pytest.mark.parametrize("kingdom_name", ["", "  "])
+@pytest.mark.parametrize("kingdom_name", ["", "  "
+])
 async def test_blank_names_are_refused(kingdom_name: str) -> None:
     guild, _ids = _guild_with_members()
     service = _FakeKingdomsService([])

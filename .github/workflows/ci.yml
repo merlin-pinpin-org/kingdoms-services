@@ -60,7 +60,19 @@ jobs:
       - name: Run pytest
         run: |
           uv sync
-          uv run pytest
+          set +e
+          uv run pytest -q --tb=short 2>&1 | tee pytest.log
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            grep -E '^(FAILED|ERROR) ' pytest.log | head -n 15 | while IFS= read -r l; do
+              echo "::error title=pytest failure::$l"
+            done
+            awk '/= FAILURES =/{f=1} f{print}' pytest.log | grep -E '^(tests/|src/|E |>|assert|KeyError|AttributeError|TypeError|ValueError)' | head -n 30 | while IFS= read -r l; do
+              l="${l:0:220}"
+              echo "::error title=pytest detail::$l"
+            done
+            exit 1
+          fi
 
   cli-doctor:
     # kingdoms-services#188: the `kingdoms` CLI is the front door for
@@ -69,7 +81,8 @@ jobs:
     name: CLI doctor (kingdoms)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/ch
+eckout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
@@ -121,7 +134,8 @@ jobs:
       - name: Boot the stack (bot excluded until kingdoms-services#12)
         run: |
           cp .env.example .env
-          docker compose up -d kingdoms-mongo kingdoms-redis
+          docker compose up -d kingdoms-mongo kingdoms-re
+dis
           timeout 60 bash -c "until docker compose exec -T kingdoms-mongo mongosh --quiet --eval 'db.adminCommand(\"ping\")' | grep -q ok; do sleep 2; done"
           timeout 60 bash -c "until docker compose exec -T kingdoms-redis redis-cli ping | grep -q PONG; do sleep 2; done"
           echo "COMPOSE STACK BOOTS OK"
@@ -155,7 +169,8 @@ jobs:
         env:
           CICD_DISCORD_TOKEN: ${{ secrets.CICD_DISCORD_TOKEN }}
         run: |
-          if [ -z "$CICD_DISCORD_TOKEN" ]; then
+          if [ -z "$CICD_DISCORD_TOKEN" ]; 
+then
             echo "::error::CICD_DISCORD_TOKEN is not configured — create the CI/CD bot and add the secret (kingdoms-services#34)"
             exit 1
           fi
@@ -195,7 +210,8 @@ jobs:
           echo "DISCORD GATEWAY READY OK"
       - name: Soak the bot for 60s (no crash loop)
         run: |
-          sleep 60
+     
+     sleep 60
           if [ "$(docker inspect -f "{{.State.Status}}" kingdoms-bot-smoke)" != "running" ]; then
             echo "::error::Bot container crashed during the soak window"
             docker logs --tail 50 kingdoms-bot-smoke
@@ -244,7 +260,8 @@ jobs:
 
       - name: Run the smoke test in the bot container
         env:
-          MONGO_URI: mongodb://kingdoms-mongo:27017
+   
+       MONGO_URI: mongodb://kingdoms-mongo:27017
           REDIS_URI: redis://kingdoms-redis:6379
         run: |
           docker run --rm --network kingdoms-ci \
