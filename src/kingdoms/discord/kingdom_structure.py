@@ -48,7 +48,12 @@ KINGDOM_CHANNELS: tuple[KingdomChannelDef, ...] = (
     KingdomChannelDef(key="eglise", display_name="⛪ Église"),
     KingdomChannelDef(key="pigeon", display_name="🕊️ Pigeon-Voyageur"),
 )
-"""The eight channels of a kingdom category (D70 — order is the salon order)."""
+"""The eight channels of a kingdom category (D70 — order is the salon order).
+
+The ``key`` is the stable identifier the coming tranches use to target a
+salon (the state views of tranches ②-④ write by key, never by display
+name); the ``display_name`` is what the players see on Discord.
+"""
 
 
 def kingdom_category_name(kingdom_name: str) -> str:
