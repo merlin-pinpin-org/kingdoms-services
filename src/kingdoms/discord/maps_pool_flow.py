@@ -217,12 +217,12 @@ class PoolRemoveMapButton(
 ):
     """The pool post's remove action: drop this map from the pool (admins)."""
 
-    def __init__(self, map_id: str, pool_id: str) -> None:
+    def __init__(self, map_id: str, pool_id: str, label: str | None = None) -> None:
         self.map_id = map_id
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Retirer du pool",
+                label=label or "Retirer du pool",
                 emoji="🗑️",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_REMOVE_NS}:{map_id}:{pool_id}"[:100],
