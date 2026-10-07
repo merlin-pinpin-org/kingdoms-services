@@ -50,6 +50,7 @@ from kingdoms.discord.error_report import (
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.economy import EconomyService
     from kingdoms.mods.kingdoms.service import KingdomsService
+    from kingdoms.mods.kingdoms.territories import TerritoryService
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -161,6 +162,7 @@ class KingdomsBot(discord.Client):
         self.registration_engine: WorkflowEngine | None = None
         self.kingdoms_service: KingdomsService | None = None
         self.kingdoms_economy_service: EconomyService | None = None
+        self.kingdoms_territory_service: TerritoryService | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
@@ -498,9 +500,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
     kingdoms_service = _build_kingdoms_service(resolved)
     bot.kingdoms_service = kingdoms_service
-    bot.kingdoms_economy_service = (
-        _build_kingdoms_economy_service(resolved, kingdoms_service) if kingdoms_service else None
+    economy_service, territory_service = (
+        _build_kingdoms_economy_bundle(resolved, kingdoms_service) if kingdoms_service else (None, None)
     )
+    bot.kingdoms_economy_service = economy_service
+    bot.kingdoms_territory_service = territory_service
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.live import register_live_commands
@@ -666,19 +670,21 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
         return None
 
 
-def _build_kingdoms_economy_service(
+def _build_kingdoms_economy_bundle(
     config: BotConfig,
     kingdoms_service: KingdomsService,
-) -> EconomyService | None:
-    """Wire the economy bundle behind the Marché panel.
+) -> tuple[EconomyService | None, TerritoryService | None]:
+    """Wire the economy bundle behind the Marché panel and the state views.
 
     The EconomyService needs the territories and attacks services; all
     four share the Mongo store and the season configuration of the
-    KingdomsService. Returns None when the wiring fails: the Marché
-    buttons then answer "market closed".
+    KingdomsService. The TerritoryService is returned on its own as
+    well: the per-kingdom state views (tranche ②) read the territory
+    list through it. Returns (None, None) when the wiring fails: the
+    Marché buttons then answer "market closed".
     """
     if not config.mongo_uri:
-        return None
+        return None, None
     try:
         from kingdoms.mods.kingdoms.attacks import AttackService
         from kingdoms.mods.kingdoms.economy import EconomyService
@@ -687,10 +693,13 @@ def _build_kingdoms_economy_service(
         store = kingdoms_service._store  # same wiring seam as the service
         territory_service = TerritoryService(store, kingdoms_service.config, kingdoms_service)
         attacks_service = AttackService(store, kingdoms_service.config, kingdoms_service, territory_service)
-        return EconomyService(store, kingdoms_service.config, kingdoms_service, territory_service, attacks_service)
+        economy_service = EconomyService(
+            store, kingdoms_service.config, kingdoms_service, territory_service, attacks_service
+        )
+        return economy_service, territory_service
     except Exception:
         logger.exception("KINGDOMS ECONOMY WIRING FAILED — market purchases disabled")
-        return None
+        return None, None
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:
     """Wire the Discord platform seam + the shared Redis state into RolesService.
