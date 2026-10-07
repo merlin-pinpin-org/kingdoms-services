@@ -192,7 +192,7 @@ async def test_eject_without_replacement_fails_atomically() -> None:
     config = _tiny_config(["arabia", "arena", "oasis"])
     service, kingdoms, store = _services(config)
     await kingdoms.launch(["Aquitaine", "Bourgogne"])
-    created = await service.draw_initial(seed=0)
+    created = await service.territories()  # the launch already drew
     before = dict(store.territories)
     with pytest.raises(MapPoolExhaustedError):
         await service.eject(created[0].map_key)
@@ -220,7 +220,7 @@ async def test_season_launch_resets_out_maps() -> None:
     """A new season resets the out-map state wholesale (§8, D38)."""
     service, kingdoms, _ = _services()
     await kingdoms.launch(["Aquitaine"])
-    created = await service.draw_initial(seed=2)
+    created = await service.territories()  # the launch already drew
     await service.eject(created[0].map_key, seed=13)
     assert await kingdoms.current_season() is not None
     await kingdoms.launch(["Aquitaine"])
