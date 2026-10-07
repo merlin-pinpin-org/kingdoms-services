@@ -235,9 +235,15 @@ async def _upsert_marked(
     return True
 
 
+_STATE_SALON_KEYS: dict[str, str] = {key: key for key in STATE_CHANNEL_KEYS}
+_STATE_SALON_KEYS["royaume"] = "le-royaume"
+"""Map a state view key to its tranche-① salon key (the fiche lives in le-royaume)."""
+
+
 def _channel_def(key: str) -> Any:
-    """Return the tranche-① channel definition of one salon key."""
-    return next(defn for defn in KINGDOM_CHANNELS if defn.key == key)
+    """Return the tranche-① channel definition of one state salon key."""
+    salon_key = _STATE_SALON_KEYS.get(key, key)
+    return next(defn for defn in KINGDOM_CHANNELS if defn.key == salon_key)
 
 
 async def _kingdom_channel(guild: discord.Guild, kingdom_name: str, key: str) -> Any:
