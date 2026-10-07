@@ -52,7 +52,7 @@ class _FakeChannel:
 
     def __init__(self, id: int) -> None:
         self.id = id
-        self.name = "live-dashboard"
+        self.name = "📡-live-dashboard"
         self.messages: dict[int, _FakeMessage] = {}
         self.sent: list[_FakeMessage] = []
 

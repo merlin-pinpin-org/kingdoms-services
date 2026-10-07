@@ -25,7 +25,8 @@ from kingdoms.discord.commands_i18n import localized
 
 logger = logging.getLogger("kingdoms.live")
 
-LIVE_CHANNEL_NAME = "live-dashboard"
+LIVE_CHANNEL_NAME = "📡-live-dashboard"
+LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
 LIVE_MESSAGE_KEY = "live-dashboard"
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
@@ -189,9 +190,20 @@ class MessageRegistryServiceLike(Protocol):
 
 
 async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
-    """Resolve or create the guild's live-dashboard channel (idempotent)."""
+    """Resolve, migrate or create the guild's live-dashboard channel (idempotent).
+
+    A legacy ``live-dashboard`` channel (pre-icon) is renamed in place —
+    the message registry keeps pointing at the same channel id, so the
+    registered dashboard message survives the rename.
+    """
     for channel in guild.text_channels:
         if channel.name == LIVE_CHANNEL_NAME:
+            return channel
+    for channel in guild.text_channels:
+        if channel.name == LIVE_LEGACY_CHANNEL_NAME:
+            await channel.edit(
+                name=LIVE_CHANNEL_NAME, reason="Kingdoms: live dashboard channel icon (#147)"
+            )
             return channel
     return await guild.create_text_channel(LIVE_CHANNEL_NAME, reason="Kingdoms live test dashboard (#147)")
 
