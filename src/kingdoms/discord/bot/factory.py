@@ -162,6 +162,7 @@ class KingdomsBot(discord.Client):
         self.season_service: Any | None = None
         self._ladder_id: str | None = None
         self.home_service: Any | None = None
+        self.message_registry: Any | None = None
         self.mod_home_builders: dict[str, Any] = {}
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
@@ -509,6 +510,8 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.registration_service = registration_service
     home_channel_service = _build_home_channel_service(resolved, bot)
     bot.home_channel_service = home_channel_service
+    from kingdoms.discord.messages_platform import build_message_registry
+    bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
     bot.home_service = HomeService(registry)

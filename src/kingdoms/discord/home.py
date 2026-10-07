@@ -17,7 +17,16 @@ exactly one dispatch path, restart-proof.
 The standard views render the platform's own data (the /status layout,
 the core profile bindings, the provider status); a mod view routes to
 the mod's home view builder when the mod provides one.
+
+The pinned message is **never rebuilt while it lives**: its id is
+registered in the message registry (``home-menu`` key, per guild) and
+the periodic check only verifies the registered message still exists
+(re-pinning it if it was unpinned) - the menu is recreated solely when
+the registered message is gone (deleted, channel wiped). Without a
+registry (local runs), an in-memory store provides the same lifecycle
+for the process's lifetime.
 """
+
 from __future__ import annotations
 
 import logging
@@ -37,7 +46,8 @@ logger = logging.getLogger("kingdoms.home")
 HOME_CHANNEL_NAME = "🏛-kingdoms-home"
 HOME_CHANNEL_CATEGORY = "bot_home"
 HOME_MARKER = "home:pin:"
-HOME_MENU_MARKER_ID = "home:pin:menu"
+HOME_MESSAGE_KEY = "home-menu"
+HOME_MESSAGE_PLATFORM = "discord"
 
 
 class HomeButton(discord.ui.DynamicItem[discord.ui.Button[Any]], template=r"home:open:(?P<view>[a-z0-9:_-]+)"):
@@ -86,21 +96,22 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
         if i and i % 5 == 0:
             rows.append(row)
             row = discord.ui.ActionRow()
-        row.add_item(discord.ui.Button(
-            custom_id=f"home:open:{button.view}",
-            label=button.label,
-            emoji=discord.PartialEmoji.from_str(button.emoji) if button.emoji else None,
-            style=discord.ButtonStyle.secondary,
-        ))
+        row.add_item(
+            discord.ui.Button(
+                custom_id=f"home:open:{button.view}",
+                label=button.label,
+                emoji=discord.PartialEmoji.from_str(button.emoji) if button.emoji else None,
+                style=discord.ButtonStyle.secondary,
+            )
+        )
     rows.append(row)
     view = discord.ui.LayoutView(timeout=None)
-    view.add_item(discord.ui.Container(
-        discord.ui.TextDisplay(
-            "## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."
-        ),
-        *rows,
-        discord.ui.TextDisplay(f"-#{HOME_MENU_MARKER_ID}"),
-    ))
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."),
+            *rows,
+        )
+    )
     return view
 
 
@@ -268,7 +279,14 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
 
 
 async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
-    """Ensure the guild's home channel holds exactly one current pinned menu."""
+    """Ensure the guild's home channel holds its pinned menu, never rebuilt while it lives.
+
+    The message id is resolved through the message registry (Mongo-backed,
+    restart-proof) or the bot's in-memory fallback store: as long as the
+    registered message exists it is merely re-pinned; only a gone message
+    (deleted or channel wiped) triggers a rebuild, whose id replaces the
+    registration.
+    """
     home_channel = getattr(bot, "home_channel_service", None)
     home = getattr(bot, "home_service", None)
     if home_channel is None or home is None:
@@ -278,22 +296,90 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
         return False
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() and guild else None
-    if not isinstance(channel, discord.TextChannel):
+    if channel is None or not hasattr(channel, "fetch_message") or not hasattr(channel, "send"):
+        return False
+
+    if await _registered_menu_lives(bot, guild_id, channel):
         return False
 
     class _ChannelDelivery:
+        last_message_id: str | None = None
+
         async def deliver(self, channel: Any, layout: Any) -> str:
             message = await channel.send(view=layout)
-            return str(message.id)
+            self.last_message_id = str(message.id)
+            return self.last_message_id
 
-    service = PinnedMenuService(_ChannelDelivery())
-    return await service.ensure(
+    delivery = _ChannelDelivery()
+    service = PinnedMenuService(delivery)
+    created = await service.ensure(
         guild_id,
         cast("PinnedMenuChannel", channel),
         marker=HOME_MARKER,
         build_layout=lambda guild: _build_layout(home),
         pin_reason="kingdoms: pinned home menu (guild front door)",
     )
+    if not created:
+        return False
+    if delivery.last_message_id is not None:
+        await _register_menu_message(bot, guild_id, str(channel_id), delivery.last_message_id)
+    return True
+
+
+async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:
+    """Whether the registered menu message still exists; re-pin it if unpinned."""
+    message_id = await _resolve_menu_message_id(bot, guild_id)
+    if message_id is None:
+        return False
+    try:
+        message = await channel.fetch_message(int(message_id))
+    except Exception:
+        return False
+    try:
+        await message.pin(reason="kingdoms: pinned home menu (guild front door)")
+    except Exception:
+        logger.warning("PINNED HOME MENU re-pin failed (guild %s) - best-effort", guild_id)
+    return True
+
+
+async def _resolve_menu_message_id(bot: discord.Client, guild_id: str) -> str | None:
+    """Resolve the registered menu id (registry first, memory fallback)."""
+    registry = getattr(bot, "message_registry", None)
+    if registry is not None:
+        try:
+            registered = await registry.resolve(HOME_MESSAGE_PLATFORM, HOME_MESSAGE_KEY, guild_id)
+            if registered is not None:
+                return str(registered.message_id)
+        except Exception:
+            logger.warning("PINNED HOME MENU registry resolve failed - best-effort")
+    store = getattr(bot, "_home_menu_message_ids", None)
+    if isinstance(store, dict):
+        value = store.get(guild_id)
+        return str(value) if value is not None else None
+    return None
+
+
+async def _register_menu_message(bot: discord.Client, guild_id: str, channel_id: str, message_id: str) -> None:
+    """Persist the new menu id: memory fallback + registry (durable)."""
+    store = getattr(bot, "_home_menu_message_ids", None)
+    if not isinstance(store, dict):
+        store = {}
+        bot._home_menu_message_ids = store  # type: ignore[attr-defined]
+    store[guild_id] = message_id
+    registry = getattr(bot, "message_registry", None)
+    if registry is None:
+        return
+    try:
+        await registry.register(
+            platform=HOME_MESSAGE_PLATFORM,
+            message_key=HOME_MESSAGE_KEY,
+            entity_id=guild_id,
+            channel_id=channel_id,
+            message_id=message_id,
+            guild_id=guild_id,
+        )
+    except Exception:
+        logger.warning("PINNED HOME MENU registry register failed - best-effort")
 
 
 async def _build_layout(home: HomeService) -> discord.ui.LayoutView:
