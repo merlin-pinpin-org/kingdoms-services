@@ -89,7 +89,7 @@ class SeasonService:
         self,
         ladder_id: str,
         name: str,
-        map_pool_id: str,
+        map_pool_id: str | None,
         start_at: int,
         end_at: int | None = None,
         reset_ratings: bool = False,
@@ -139,10 +139,12 @@ class SeasonService:
         current = await self._db.find_active_season(season.ladder_id)
         if current is not None and current["_id"] != season_id:
             raise SeasonActiveError(f"ladder {season.ladder_id!r} already has an active season {current['_id']!r}")
-        await self._game_data.activate_map_pool(season.ladder_id, season.map_pool_id)
+        if season.map_pool_id:
+            await self._game_data.activate_map_pool(season.ladder_id, season.map_pool_id)
         season = season.model_copy(update={"state": SEASON_STATE_ACTIVE, "activated_at": now})
         await self._db.upsert_season(season.to_mongo())
-        await self._emit("pool.switched", {"ladder_id": season.ladder_id, "map_pool_id": season.map_pool_id})
+        if season.map_pool_id:
+            await self._emit("pool.switched", {"ladder_id": season.ladder_id, "map_pool_id": season.map_pool_id})
         if season.reset_ratings:
             await self._emit("ratings.reset", {"ladder_id": season.ladder_id, "season_id": season.id})
         await self._audit_record("season.activate", {"season_id": season.id, "ladder_id": season.ladder_id})

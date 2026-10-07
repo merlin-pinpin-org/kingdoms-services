@@ -225,6 +225,20 @@ class LadderService:
         await self._db.upsert_entry(LADDERS_COLLECTION, ladder.to_mongo())
         return ladder
 
+    async def set_enrollments_open(self, ladder_id: str, open_: bool) -> LadderModel:
+        """Open or close the enrollments (the admin's season gate)."""
+        ladder = await self._require_ladder(ladder_id)
+        ladder = ladder.model_copy(update={"enrollments_open": open_})
+        await self._db.upsert_entry(LADDERS_COLLECTION, ladder.to_mongo())
+        return ladder
+
+    async def set_queue_paused(self, ladder_id: str, paused: bool) -> LadderModel:
+        """Pause or resume the queue (an interrupted ladder keeps its data)."""
+        ladder = await self._require_ladder(ladder_id)
+        ladder = ladder.model_copy(update={"queue_paused": paused})
+        await self._db.upsert_entry(LADDERS_COLLECTION, ladder.to_mongo())
+        return ladder
+
     async def set_active_pool(self, ladder_id: str, map_pool_id: str) -> LadderModel:
         """Switch the ladder's active pool (transactional switch, ref §4)."""
         ladder = await self._require_ladder(ladder_id)
@@ -242,11 +256,17 @@ class LadderService:
     # ── Players ──────────────────────────────────────────────────────────
 
     async def register_player(self, ladder_id: str, user_id: str, display_name: str, now: int = 0) -> PlayerModel:
-        """Register a player on the ladder (idempotent per user)."""
+        """Register a player on the ladder (idempotent per user).
+
+        Refused while the ladder's enrollments are closed (the admin
+        opens them per season: the "démarrer les inscriptions" step).
+        """
         existing = await self._db.find_player(ladder_id, user_id)
         if existing is not None:
             return PlayerModel.from_mongo(existing)
         ladder = await self._require_ladder(ladder_id)
+        if not ladder.enrollments_open:
+            raise NotRegisteredError(f"ladder {ladder_id!r} enrollments are closed")
         system = RATING_SYSTEMS[ladder.settings.rating_system]
         player = PlayerModel(
             _id=f"player:{ladder_id}:{user_id}",
@@ -299,6 +319,9 @@ class LadderService:
         player = await self._require_player(ladder_id, user_id)
         if not has_game_profile:
             raise QueueStateError(f"user {user_id!r} has no resolvable game profile")
+        ladder = await self._require_ladder(ladder_id)
+        if ladder.queue_paused:
+            raise QueueStateError(f"ladder {ladder_id!r} queue is paused")
         if await self._db.find_active_match(ladder_id, user_id) is not None:
             raise ActiveMatchError(f"user {user_id!r} already has a live match")
         if player.queued_at is not None:

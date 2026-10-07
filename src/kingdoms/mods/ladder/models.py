@@ -92,6 +92,8 @@ class LadderModel(BaseModel):
     active_map_pool_id: str | None = None
     started_at: int | None = None
     ended_at: int | None = None
+    enrollments_open: bool = True
+    queue_paused: bool = False
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document (``_id`` is the document key)."""

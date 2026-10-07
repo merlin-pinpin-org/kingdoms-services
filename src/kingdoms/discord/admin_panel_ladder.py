@@ -100,8 +100,11 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
 
     ladder = await _resolve_ladder(interaction, wiring)
     if ladder is None:
-        blocks.append(discord.ui.TextDisplay("Aucun ladder pour ce guild - seed d'abord."))
+        blocks.append(discord.ui.TextDisplay("Aucun ladder pour ce guild - cree-le ici."))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        create_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        create_row.add_item(LadderCreateButton())
+        view.add_item(create_row)
         view.add_item(_back_row())
         return view
 
@@ -117,14 +120,16 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
     season_lines = []
     for s in seasons[-5:]:
         marker = "actif" if s.id == (active.id if active else "") else s.state
-        season_lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id}")
+        season_lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id or 'aucun'}")
     blocks.extend(
         [
             discord.ui.Separator(),
             discord.ui.TextDisplay(
                 f"**{ladder.get('name', '?')}** - jeu `{ladder.get('game_key', GAME_KEY)}`\n"
                 f"Rating : `{settings.get('rating_system', 'elo')}` - "
-                f"Joueurs : {len(players)} - En file : {in_queue}"
+                f"Joueurs : {len(players)} - En file : {in_queue}\n"
+                f"Inscriptions : **{'ouvertes' if ladder.get('enrollments_open', True) else 'fermees'}** - "
+                f"File : **{'en pause' if ladder.get('queue_paused', False) else 'active'}**"
             ),
             discord.ui.TextDisplay(
                 f"**Pool actif** : {active_pool.name if active_pool else '-'}\n"
@@ -136,10 +141,97 @@ async def ladder_admin_entry(interaction: discord.Interaction) -> discord.ui.Lay
     actions.add_item(LadderSettingsButton(ladder_id))
     actions.add_item(LadderSeasonButton(ladder_id))
     actions.add_item(LadderPoolButton(ladder_id))
+    cycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    cycle.add_item(
+        LadderEnrollButton("open" if not ladder.get("enrollments_open", True) else "close")
+    )
+    cycle.add_item(
+        LadderPauseButton("pause" if not ladder.get("queue_paused", False) else "resume")
+    )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     view.add_item(actions)
+    view.add_item(cycle)
     view.add_item(_back_row())
     return view
+
+
+class LadderCreateButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:create",
+):
+    """Create the guild's ladder from the panel (no seed needed)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="Creer le ladder",
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_NS}:create",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderCreateButton:
+        """Rebuild the item from the wire (state read at click time)."""
+        del item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ladder-creation modal."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        existing = await _resolve_ladder(interaction, wiring)
+        if existing is not None:
+            await interaction.response.send_message("Un ladder existe deja pour ce guild.", ephemeral=True)
+            return
+        await interaction.response.send_modal(LadderCreateModal())
+
+
+class LadderCreateModal(discord.ui.Modal):
+    """The ladder-creation form: name (owner ref from the bot config)."""
+
+    def __init__(self) -> None:
+        super().__init__(title="Creer le ladder", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom du ladder", max_length=100, required=True
+        )
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Create the ladder, then re-render the section's entry view."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        owner_ref = str(getattr(interaction.client, "_ladder_id", "") or "")
+        if owner_ref.startswith("ladder:aoe2:"):
+            owner_ref = owner_ref[len("ladder:aoe2:"):]
+        if not owner_ref:
+            guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+            owner_ref = f"guild:{guild_id}" if guild_id else "default"
+        try:
+            ladder = await wiring.service.create_ladder(
+                owner_ref, str(self.name.value).strip() or "Ladder", GAME_KEY, now=_now_ms()
+            )
+        except Exception:
+            logger.exception("LADDER ADMIN: ladder creation failed")
+            await interaction.response.send_message("Creation echouee (deja existant ?).", ephemeral=True)
+            return
+        await wiring.service._audit_record(
+            "ladder.create", {"ladder_id": ladder.id, "name": ladder.name}
+        )
+        await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+        await interaction.followup.send(
+            f"Ladder **{ladder.name}** cree (`{ladder.id}`).", ephemeral=True
+        )
 
 
 class LadderSettingsButton(
@@ -288,6 +380,106 @@ class LadderSettingsModal(discord.ui.Modal):
         )
 
 
+class LadderEnrollButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:enroll:(?P<state>open|close)",
+):
+    """Open or close the enrollments (toggle, state rides the custom_id)."""
+
+    def __init__(self, state: str) -> None:
+        opening = state == "open"
+        super().__init__(
+            discord.ui.Button(
+                label="Ouvrir les inscriptions" if opening else "Fermer les inscriptions",
+                style=discord.ButtonStyle.success if opening else discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:enroll:{state}",
+            )
+        )
+        self.state = state
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderEnrollButton:
+        """Rebuild the item from the wire at click time."""
+        del item
+        return cls(match.group("state"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Toggle the enrollments, audit, re-render the entry view."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        await wiring.service.set_enrollments_open(ladder_id, self.state == "open")
+        await wiring.service._audit_record(
+            "ladder.enrollments", {"ladder_id": ladder_id, "open": self.state == "open"}
+        )
+        await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+        await interaction.followup.send(
+            "Inscriptions **ouvertes**." if self.state == "open" else "Inscriptions **fermees**.",
+            ephemeral=True,
+        )
+
+
+class LadderPauseButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pause:(?P<state>pause|resume)",
+):
+    """Pause or resume the ladder queue (interrupt / start the ladder)."""
+
+    def __init__(self, state: str) -> None:
+        pausing = state == "pause"
+        super().__init__(
+            discord.ui.Button(
+                label="Interrompre le ladder" if pausing else "Demarrer le ladder",
+                style=discord.ButtonStyle.danger if pausing else discord.ButtonStyle.success,
+                custom_id=f"{_NS}:pause:{state}",
+            )
+        )
+        self.state = state
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderPauseButton:
+        """Rebuild the item from the wire at click time."""
+        del item
+        return cls(match.group("state"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Toggle the queue pause, audit, re-render the entry view."""
+        wiring = build_ladder_wiring()
+        if wiring is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        await wiring.service.set_queue_paused(ladder_id, self.state == "pause")
+        await wiring.service._audit_record(
+            "ladder.queue", {"ladder_id": ladder_id, "paused": self.state == "pause"}
+        )
+        await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+        await interaction.followup.send(
+            "Ladder **interrompu** (file en pause)." if self.state == "pause" else "Ladder **demarre**.",
+            ephemeral=True,
+        )
+
+
 class LadderSeasonButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:seasons",
@@ -373,7 +565,9 @@ class LadderSeasonModal(discord.ui.Modal):
         self.ladder_id = ladder_id
         super().__init__(title="Creer une saison", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom (ex. s2)", max_length=32, required=True)
-        self.pool: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Map pool id", max_length=100, required=True)
+        self.pool: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Map pool id (optionnel - vide = pool actif)", max_length=100, required=False
+        )
         self.days: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Duree (jours)", default="90", max_length=5)
         self.reset: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Reset des ratings (oui/non)", default="non", max_length=5
@@ -396,11 +590,19 @@ class LadderSeasonModal(discord.ui.Modal):
             await interaction.response.send_message("Duree invalide.", ephemeral=True)
             return
         reset = str(self.reset.value or "").strip().lower() in {"oui", "yes", "true", "1"}
+        pool_value = str(self.pool.value or "").strip()
+        if not pool_value:
+            ladder = await wiring.service.get_ladder(self.ladder_id)
+            if ladder is not None and ladder.active_map_pool_id:
+                pool_value = str(ladder.active_map_pool_id)
+            else:
+                pools = await wiring.game_data.list_map_pools(GAME_KEY)
+                pool_value = pools[0].id if pools else ""
         try:
             season = await wiring.season_service.create_season(
                 self.ladder_id,
                 str(self.name.value).strip(),
-                str(self.pool.value).strip(),
+                pool_value or None,
                 start_at=now,
                 end_at=now + days * 86_400_000,
                 reset_ratings=reset,
@@ -582,7 +784,7 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
         lines = []
         for s in seasons[-10:]:
             marker = "active" if s.id == (active.id if active else "") else s.state
-            lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id}")
+            lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id or 'aucun'}")
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -642,10 +844,13 @@ def register_ladder_admin_section() -> None:
 def register_ladder_admin_items(bot: discord.Client) -> None:
     """Register the section's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(
+        LadderCreateButton,
         LadderSettingsButton,
         LadderSeasonButton,
         LadderSeasonCreateButton,
         LadderSeasonActivateSelect,
         LadderPoolButton,
         LadderPoolSelect,
+        LadderEnrollButton,
+        LadderPauseButton,
     )

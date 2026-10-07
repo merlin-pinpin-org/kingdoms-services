@@ -25,7 +25,7 @@ class SeasonModel(BaseModel):
     id: str = Field(alias="_id")
     ladder_id: str
     name: str
-    map_pool_id: str
+    map_pool_id: str | None = None
     start_at: int
     end_at: int | None = None
     reset_ratings: bool = False
