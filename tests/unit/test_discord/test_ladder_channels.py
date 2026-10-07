@@ -107,11 +107,12 @@ class FakeRegistry:
 class FakeGuild:
     def __init__(self, channels: dict[str, FakeChannel]) -> None:
         self.id = 42
+        self._channels = channels
         self.channels = list(channels.values())
 
     def get_channel(self, channel_id: int) -> FakeChannel | None:
         for channel in self.channels:
-            if channel.name == channel_id:
+            if str(channel.id) == str(channel_id):
                 return channel
         return None
 
@@ -138,6 +139,23 @@ class FakeSurface:
         return self.leaderboard_rows
 
 
+
+
+class FakeSeasonChannels:
+    """_SeasonChannels stand-in: salon ids resolved through the guild."""
+
+    def __init__(self, guild: FakeGuild) -> None:
+        first = next(iter(guild._channels.values()), None)
+        channel_id = str(first.id) if first is not None else ""
+        self.category_id = "1"
+        self.home = channel_id
+        self.dashboard = channel_id
+        self.leaderboard = channel_id
+        self.history = channel_id
+
+
+
+
 class FakeDB:
     def __init__(self, docs: list[dict[str, Any]] | None = None) -> None:
         self.docs = docs or []
@@ -155,7 +173,7 @@ async def test_dashboard_renders_queue(monkeypatch: pytest.MonkeyPatch) -> None:
     surface = FakeSurface()
     surface.queue_rows = [FakeRow("Alice", 1500, 3, 1, wait_seconds=120)]
 
-    await ladder_channels._sync_dashboard(guild, surface, "l1", "s1", "s1")
+    await ladder_channels._sync_dashboard(guild, FakeSeasonChannels(guild), surface, "l1", "s1")
     assert len(channel.sent) == 1
     text = _view_text(channel.sent[0])
     assert "Alice" in text
@@ -173,7 +191,7 @@ async def test_leaderboard_renders_rankings(monkeypatch: pytest.MonkeyPatch) -> 
     surface.leaderboard_rows[0].rank = 1
     surface.leaderboard_rows[1].rank = 2
 
-    await ladder_channels._sync_leaderboard(guild, surface, "l1", "s1", "s1")
+    await ladder_channels._sync_leaderboard(guild, FakeSeasonChannels(guild), surface, "l1", "s1")
     text = _view_text(channel.sent[0])
     assert "#1" in text and "Alice" in text
     assert "#2" in text and "Bob" in text
@@ -190,7 +208,7 @@ async def test_history_renders_matches(monkeypatch: pytest.MonkeyPatch) -> None:
     wiring.service = type("S", (), {})()
     wiring.service._db = FakeDB([{"winner_user_id": "alice", "loser_user_id": "bob"}])
 
-    await ladder_channels._sync_history(guild, wiring, "l1", "s1", "s1")
+    await ladder_channels._sync_history(guild, FakeSeasonChannels(guild), wiring, "l1", "s1")
     text = _view_text(channel.sent[0])
     assert "alice" in text
     assert "bob" in text
@@ -204,10 +222,10 @@ async def test_salons_self_heal_deleted_message(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(ladder_channels, "_ladder_registry", lambda: registry)
     surface = FakeSurface()
 
-    await ladder_channels._sync_dashboard(guild, surface, "l1", "s1", "s1")
+    await ladder_channels._sync_dashboard(guild, FakeSeasonChannels(guild), surface, "l1", "s1")
     assert len(channel.sent) == 1
     first = channel.sent[0]
 
-    await ladder_channels._sync_dashboard(guild, surface, "l1", "s1", "s1")
+    await ladder_channels._sync_dashboard(guild, FakeSeasonChannels(guild), surface, "l1", "s1")
     assert channel.sent[0] is first
     assert first.edited == 1

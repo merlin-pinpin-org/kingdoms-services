@@ -55,9 +55,9 @@ def ladder_channels_wiring_ready() -> bool:
     return bool(os.environ.get("MONGO_URI"))
 
 
-def _channel_by_name(guild: Any, name: str) -> Any | None:
+def _channel_by_id(guild: Any, channel_id: str) -> Any | None:
     for channel in guild.channels:
-        if channel.name == name:
+        if str(channel.id) == str(channel_id):
             return channel
     return None
 
@@ -104,32 +104,160 @@ async def sync_ladder_channels(guild: Any, bot: Any) -> None:
     history. Without an active season the surface stays silent: the
     channels belong to the season.
     """
-    from kingdoms.discord.channels_platform import DiscordChannelsPlatform
-
     wiring = _ladder_wiring()
     ladder_id = str(getattr(bot, "_ladder_id", "") or "")
     season = await _active_season(wiring, ladder_id)
     if season is None:
         return
+    season_name = _season_display_name(season)
+    suffix = _season_slug(season_name)
+    scope = _season_scope(season)
+    channels = await _season_channels(guild, bot, scope, season_name, suffix)
+    if channels is None:
+        return
+    await _ensure_pinned_home(guild, scope, channels)
+    surface = _ladder_surface(wiring)
+    await _sync_dashboard(guild, channels, surface, ladder_id, scope)
+    await _sync_leaderboard(guild, channels, surface, ladder_id, scope)
+    await _sync_history(guild, channels, wiring, ladder_id, scope)
+
+
+
+
+class _SeasonChannels:
+    """One season's salon ids, resolved by stored id — never by name."""
+
+    def __init__(self, category_id: str, home: str, dashboard: str, leaderboard: str, history: str) -> None:
+        self.category_id = category_id
+        self.home = home
+        self.dashboard = dashboard
+        self.leaderboard = leaderboard
+        self.history = history
+
+
+async def _season_channels(guild: Any, bot: Any, scope: str, season_name: str, suffix: str) -> _SeasonChannels | None:
+    """Provision and resolve the season's category and salons (id-based).
+
+    Each salon (and the season category) is persisted in the channels
+    registry under a logical key; the stored ids win, the names only
+    label the first creation — a renamed channel stays found, a deleted
+    one is re-provisioned under its logical key.
+    """
+    from kingdoms.discord.channels_platform import DiscordChannelsPlatform
+
     platform = DiscordChannelsPlatform(bot)
     guild_id = str(guild.id)
-    season_name = _season_display_name(season)
-    category_id = await platform.ensure_category(guild_id, season_category_name(season_name))
-    # The salons carry the season's short name: a new season provisions a
-    # fresh set under its own category, the previous season's channels stay
-    # as history (ensure_channel would otherwise adopt the old season's
-    # salon by name and hoist it under the new category).
-    suffix = _season_slug(season_name)
-    for name in (HOME_CHANNEL_NAME, DASHBOARD_CHANNEL_NAME, LEADERBOARD_CHANNEL_NAME, HISTORY_CHANNEL_NAME):
-        await platform.ensure_channel(guild_id, f"{name}-{suffix}", category_id)
-    if wiring is None or not ladder_id:
-        return
-    scope = _season_scope(season)
-    await _ensure_pinned_home(guild, scope, suffix)
-    surface = _ladder_surface(wiring)
-    await _sync_dashboard(guild, surface, ladder_id, scope, suffix)
-    await _sync_leaderboard(guild, surface, ladder_id, scope, suffix)
-    await _sync_history(guild, wiring, ladder_id, scope, suffix)
+    category_key = f"ladder-category:{scope}"
+    salon_specs = (
+        (f"ladder-home:{scope}", f"{HOME_CHANNEL_NAME}-{suffix}"),
+        (f"ladder-dashboard:{scope}", f"{DASHBOARD_CHANNEL_NAME}-{suffix}"),
+        (f"ladder-leaderboard:{scope}", f"{LEADERBOARD_CHANNEL_NAME}-{suffix}"),
+        (f"ladder-history:{scope}", f"{HISTORY_CHANNEL_NAME}-{suffix}"),
+    )
+    db = await _channels_db()
+    if db is None:
+        return None
+
+    category_id = await _resolve_or_create_category(
+        guild, platform, db, guild_id, category_key, season_category_name(season_name)
+    )
+    if category_id is None:
+        return None
+    ids: dict[str, str] = {}
+    for key, name in salon_specs:
+        channel_id = await _resolve_or_create_channel(guild, platform, db, guild_id, key, name, category_id)
+        if channel_id is not None:
+            ids[key] = channel_id
+    if len(ids) != len(salon_specs):
+        return None
+    return _SeasonChannels(
+        category_id=category_id,
+        home=ids[salon_specs[0][0]],
+        dashboard=ids[salon_specs[1][0]],
+        leaderboard=ids[salon_specs[2][0]],
+        history=ids[salon_specs[3][0]],
+    )
+
+
+async def _channels_db() -> Any | None:
+    """Build the channels persistence seam; None when Mongo is absent."""
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.discord.logs_platform import MongoLogsDatabase
+
+        return MongoLogsDatabase(get_async_database())
+    except Exception:
+        logger.warning("ladder channels: channels db build failed", exc_info=True)
+        return None
+
+
+async def _resolve_or_create_category(
+    guild: Any, platform: Any, db: Any, guild_id: str, key: str, name: str
+) -> str | None:
+    """Resolve the category by stored id; adopt by name once; else create."""
+    from kingdoms.core.models.channel import ChannelModel
+
+    stored = await db.find_channel(guild_id, key)
+    if stored is not None and _category_exists(guild, stored.channel_id):
+        return stored.channel_id
+    if stored is not None:
+        await db.delete_channel(guild_id, key)
+    existing = _category_by_name(guild, name)
+    category_id = existing if existing is not None else await platform.ensure_category(guild_id, name)
+    await db.upsert_channel(
+        ChannelModel(
+            _id=f"{guild_id}:{key}",
+            guild_id=guild_id,
+            platform="discord",
+            category=key,
+            channel_id=category_id,
+            name=name,
+        )
+    )
+    return category_id
+
+
+async def _resolve_or_create_channel(
+    guild: Any, platform: Any, db: Any, guild_id: str, key: str, name: str, category_id: str
+) -> str | None:
+    """Resolve a salon by stored id; adopt by name once; else create."""
+    from kingdoms.core.models.channel import ChannelModel
+
+    stored = await db.find_channel(guild_id, key)
+    if stored is not None and _channel_exists(guild, stored.channel_id):
+        return stored.channel_id
+    if stored is not None:
+        await db.delete_channel(guild_id, key)
+    channel_id = await platform.ensure_channel(guild_id, name, category_id)
+    await db.upsert_channel(
+        ChannelModel(
+            _id=f"{guild_id}:{key}",
+            guild_id=guild_id,
+            platform="discord",
+            category=key,
+            channel_id=channel_id,
+            name=name,
+        )
+    )
+    return channel_id
+
+
+def _category_exists(guild: Any, category_id: str) -> bool:
+    return any(str(c.id) == str(category_id) for c in getattr(guild, "categories", ()))
+
+
+def _category_by_name(guild: Any, name: str) -> str | None:
+    for c in getattr(guild, "categories", ()):
+        if c.name == name:
+            return str(c.id)
+    return None
+
+
+def _channel_exists(guild: Any, channel_id: str) -> bool:
+    for c in getattr(guild, "channels", ()):
+        if str(c.id) == str(channel_id):
+            return True
+    return False
 
 
 def _ladder_wiring() -> Any | None:
@@ -175,14 +303,14 @@ async def _ladder_flags(guild_id: str) -> tuple[bool, bool]:
     return bool(ladder.enrollments_open), bool(ladder.queue_paused)
 
 
-async def _ensure_pinned_home(guild: Any, scope: str, suffix: str) -> None:
+async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels) -> None:
     """Keep the pinned ladder menu alive in the home salon (self-healing)."""
     from typing import cast
 
     from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
     from kingdoms.discord.ladder_home import build_ladder_menu_layout
 
-    channel = _channel_by_name(guild, f"{HOME_CHANNEL_NAME}-{suffix}")
+    channel = _channel_by_id(guild, channels.home)
     if channel is None:
         return
 
@@ -205,20 +333,20 @@ async def _ensure_pinned_home(guild: Any, scope: str, suffix: str) -> None:
     )
 
 
-async def _salon_message(guild: Any, channel_name: str, key: str, view: Any, scope: str) -> None:
+async def _salon_message(guild: Any, channel: Any, key: str, view: Any, scope: str) -> None:
     """Edit-in-place one salon's message (registry-addressed); recreate when gone."""
-    channel = _channel_by_name(guild, channel_name)
     registry = _ladder_registry()
     if channel is None or registry is None:
         return
-    registered = await registry.resolve(_REGISTRY_PLATFORM, key, f"{guild.id}:{scope}")
+    entity = f"{guild.id}:{scope}"
+    registered = await registry.resolve(_REGISTRY_PLATFORM, key, entity)
     if registered is not None:
         try:
             message = await channel.fetch_message(int(registered.message_id))
             await message.edit(view=view)
             return
         except Exception:
-            await registry.forget(_REGISTRY_PLATFORM, key, f"{guild.id}:{scope}")
+            await registry.forget(_REGISTRY_PLATFORM, key, entity)
     message = await channel.send(view=view)
     await registry.register(
         platform=_REGISTRY_PLATFORM,
@@ -230,7 +358,7 @@ async def _salon_message(guild: Any, channel_name: str, key: str, view: Any, sco
     )
 
 
-async def _sync_dashboard(guild: Any, surface: Any, ladder_id: str, scope: str, suffix: str) -> None:
+async def _sync_dashboard(guild: Any, channels: _SeasonChannels, surface: Any, ladder_id: str, scope: str) -> None:
     """Render the queue salon: the live queue plus the join/leave actions."""
     from kingdoms.discord.ladder_home import LadderJoinButton, LadderLeaveButton
 
@@ -254,11 +382,11 @@ async def _sync_dashboard(guild: Any, surface: Any, ladder_id: str, scope: str, 
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📊 File d'attente\n" + "\n".join(lines))))
     view.add_item(actions)
     await _salon_message(
-        guild, f"{DASHBOARD_CHANNEL_NAME}-{suffix}", _SALON_KEYS[DASHBOARD_CHANNEL_NAME], view, scope
+        guild, _channel_by_id(guild, channels.dashboard), _SALON_KEYS[DASHBOARD_CHANNEL_NAME], view, scope
     )
 
 
-async def _sync_leaderboard(guild: Any, surface: Any, ladder_id: str, scope: str, suffix: str) -> None:
+async def _sync_leaderboard(guild: Any, channels: _SeasonChannels, surface: Any, ladder_id: str, scope: str) -> None:
     rows = await surface.leaderboard_view(ladder_id, page_size=15)
     if rows:
         lines = [f"**#{r.rank}** {r.display_name} — {r.rating} elo ({r.wins}V/{r.losses}D)" for r in rows]
@@ -267,11 +395,11 @@ async def _sync_leaderboard(guild: Any, surface: Any, ladder_id: str, scope: str
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 🏆 Classement\n" + "\n".join(lines))))
     await _salon_message(
-        guild, f"{LEADERBOARD_CHANNEL_NAME}-{suffix}", _SALON_KEYS[LEADERBOARD_CHANNEL_NAME], view, scope
+        guild, _channel_by_id(guild, channels.leaderboard), _SALON_KEYS[LEADERBOARD_CHANNEL_NAME], view, scope
     )
 
 
-async def _sync_history(guild: Any, wiring: Any, ladder_id: str, scope: str, suffix: str) -> None:
+async def _sync_history(guild: Any, channels: _SeasonChannels, wiring: Any, ladder_id: str, scope: str) -> None:
     from kingdoms.mods.ladder.models import MATCH_STATUS_COMPLETED
 
     docs = await wiring.service._db.find_ladder_matches(ladder_id, [MATCH_STATUS_COMPLETED])
@@ -281,7 +409,7 @@ async def _sync_history(guild: Any, wiring: Any, ladder_id: str, scope: str, suf
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📜 Derniers matchs\n" + "\n".join(lines))))
     await _salon_message(
-        guild, f"{HISTORY_CHANNEL_NAME}-{suffix}", _SALON_KEYS[HISTORY_CHANNEL_NAME], view, scope
+        guild, _channel_by_id(guild, channels.history), _SALON_KEYS[HISTORY_CHANNEL_NAME], view, scope
     )
 
 
