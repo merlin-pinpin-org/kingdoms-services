@@ -260,6 +260,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="RolesDatabase-find_role_mapping"><strong>find_role_mapping</strong></a>(self, guild_id: 'str', mod: 'str', role_key: 'str') -&gt; 'RoleMappingModel | None'</dt><dd><span class="code">Find&nbsp;the&nbsp;persisted&nbsp;mapping&nbsp;for&nbsp;a&nbsp;guild&nbsp;mod&nbsp;role&nbsp;key.</span></dd></dl>
 
+<dl><dt>async <a name="RolesDatabase-list_role_mappings"><strong>list_role_mappings</strong></a>(self, guild_id: 'str', mod: 'str') -&gt; 'list[RoleMappingModel]'</dt><dd><span class="code">List&nbsp;every&nbsp;persisted&nbsp;mapping&nbsp;of&nbsp;one&nbsp;guild&nbsp;mod&nbsp;(incl.&nbsp;per-season).</span></dd></dl>
+
 <dl><dt>async <a name="RolesDatabase-upsert_role_mapping"><strong>upsert_role_mapping</strong></a>(self, mapping: 'RoleMappingModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;role&nbsp;mapping&nbsp;document.</span></dd></dl>
 
 <hr>
@@ -282,7 +284,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_role_mapping', 'find_role_mapping', 'upsert_role_mapping'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_role_mapping', 'find_role_mapping', 'list_role_mappings', 'upsert_role_mapping'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

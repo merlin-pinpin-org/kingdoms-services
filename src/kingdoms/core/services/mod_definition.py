@@ -71,6 +71,8 @@ class RoleDef:
     display_name: str
     color: int = 0x99AAB5
     hoisted: bool = False
+    description: str = ""
+    per_season: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -13,14 +13,18 @@
 &nbsp;<br>
 Every&nbsp;game&nbsp;known&nbsp;to&nbsp;the&nbsp;catalog&nbsp;gets,&nbsp;in&nbsp;the&nbsp;``games``&nbsp;category,&nbsp;a<br>
 ``&lt;game&gt;-map-pools``&nbsp;forum&nbsp;(e.g.&nbsp;``aoe2-map-pools``).&nbsp;Every&nbsp;visible<br>
-pool&nbsp;(owned&nbsp;by&nbsp;this&nbsp;guild&nbsp;or&nbsp;public)&nbsp;gets&nbsp;exactly&nbsp;one&nbsp;post&nbsp;carrying<br>
-one&nbsp;**Remove**&nbsp;button&nbsp;per&nbsp;member&nbsp;map&nbsp;(admin-guarded&nbsp;at&nbsp;click&nbsp;time).<br>
-Posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;thread&nbsp;name&nbsp;(the&nbsp;pool's),&nbsp;so&nbsp;the&nbsp;sync&nbsp;is<br>
-idempotent&nbsp;and&nbsp;self-healing&nbsp;—&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,&nbsp;a<br>
-disbanded&nbsp;pool's&nbsp;post&nbsp;is&nbsp;deleted,&nbsp;a&nbsp;deleted&nbsp;forum&nbsp;is&nbsp;recreated.<br>
-Legacy&nbsp;per-pool&nbsp;forums&nbsp;(``map-pools-&lt;slug&gt;``,&nbsp;one&nbsp;forum&nbsp;per&nbsp;pool)<br>
-are&nbsp;deleted&nbsp;on&nbsp;sight.&nbsp;Nothing&nbsp;here&nbsp;is&nbsp;ladder-specific:&nbsp;pools&nbsp;are&nbsp;a<br>
-core&nbsp;game-catalog&nbsp;concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
+pool&nbsp;(owned&nbsp;by&nbsp;this&nbsp;guild&nbsp;or&nbsp;public)&nbsp;gets&nbsp;exactly&nbsp;one&nbsp;post&nbsp;built&nbsp;as&nbsp;a<br>
+component&nbsp;layout:&nbsp;a&nbsp;header&nbsp;(name&nbsp;+&nbsp;description),&nbsp;one&nbsp;**section&nbsp;per<br>
+member&nbsp;map**&nbsp;(map&nbsp;name&nbsp;linked&nbsp;to&nbsp;its&nbsp;``&lt;game&gt;-maps``&nbsp;forum&nbsp;post,&nbsp;the<br>
+map's&nbsp;image&nbsp;when&nbsp;it&nbsp;has&nbsp;one,&nbsp;and&nbsp;a&nbsp;**Remove**&nbsp;accessory&nbsp;button,<br>
+admin-guarded&nbsp;at&nbsp;click&nbsp;time),&nbsp;and&nbsp;an&nbsp;**Add&nbsp;map**&nbsp;button&nbsp;that&nbsp;opens<br>
+the&nbsp;pool&nbsp;picker.&nbsp;Every&nbsp;member&nbsp;map&nbsp;gets&nbsp;its&nbsp;section&nbsp;even&nbsp;without&nbsp;an<br>
+image.&nbsp;The&nbsp;sync&nbsp;is&nbsp;idempotent&nbsp;and&nbsp;self-healing&nbsp;—&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is<br>
+recreated,&nbsp;a&nbsp;disbanded&nbsp;pool's&nbsp;post&nbsp;is&nbsp;deleted,&nbsp;a&nbsp;deleted&nbsp;forum&nbsp;is<br>
+recreated,&nbsp;and&nbsp;every&nbsp;refresh&nbsp;re-attaches&nbsp;the&nbsp;current&nbsp;components.<br>
+Legacy&nbsp;per-pool&nbsp;forums&nbsp;(``map-pools-&lt;slug&gt;``)&nbsp;are&nbsp;deleted&nbsp;on&nbsp;sight.<br>
+Nothing&nbsp;here&nbsp;is&nbsp;ladder-specific:&nbsp;pools&nbsp;are&nbsp;a&nbsp;core&nbsp;game-catalog<br>
+concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -46,6 +50,7 @@ core&nbsp;game-catalog&nbsp;concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirro
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>GAMES_CATEGORY_NAME</strong> = 'games'<br>
 <strong>LEGACY_PREFIX</strong> = 'map-pools-'<br>
+<strong>MAX_SECTIONS</strong> = 40<br>
 <strong>POOLS_FORUM_SUFFIX</strong> = '-map-pools'<br>
 <strong>SYNC_INTERVAL_S</strong> = 3600<br>
 <strong>logger</strong> = &lt;Logger kingdoms.games.pools_forum (WARNING)&gt;</td></tr></table>

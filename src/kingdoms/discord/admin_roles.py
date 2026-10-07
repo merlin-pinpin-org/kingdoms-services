@@ -51,7 +51,11 @@ async def build_roles_view(interaction: discord.Interaction, wiring: Any) -> dis
                         mention = f"<@&{role_id}>" if role_id else "_non provisionné_"
                     except Exception:
                         mention = "_?_"
-                mod_lines.append(f"- **{name}:{role_def.key}** — {role_def.display_name} — {mention}")
+                suffix = " (un par saison, provisionné à la création de la saison)" if role_def.per_season else ""
+                mod_lines.append(f"- **{name}:{role_def.key}** — {role_def.display_name} — {mention}{suffix}")
+            if mod_roles is not None and guild_id:
+                season_lines = await _provisioned_mod_roles(mod_roles, guild_id, name, definition)
+                mod_lines.extend(season_lines)
     if mod_lines:
         lines.extend(mod_lines)
     else:
@@ -60,6 +64,22 @@ async def build_roles_view(interaction: discord.Interaction, wiring: Any) -> dis
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("\n".join(lines))))
     return view
+
+
+async def _provisioned_mod_roles(mod_roles: Any, guild_id: str, name: str, definition: Any) -> list[str]:
+    """List the mod's runtime-provisioned roles (per-season keys included)."""
+    declared = {r.key for r in definition.roles}
+    out: list[str] = []
+    try:
+        mappings = await mod_roles.list_role_mappings(guild_id, name)
+    except Exception:
+        return out
+    for mapping in sorted(mappings, key=lambda m: m.role_key):
+        if mapping.role_key in declared:
+            continue
+        mention = f"<@&{mapping.role_id}>" if mapping.role_id else "_cassé_"
+        out.append(f"  - {name}:{mapping.role_key} — provisionné — {mention}")
+    return out
 
 
 def _bot_admins_role(guild: Any) -> Any | None:

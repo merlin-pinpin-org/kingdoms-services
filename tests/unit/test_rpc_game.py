@@ -80,11 +80,8 @@ def test_provider_declarations_are_zero_safe() -> None:
     for caps in (LIBREMATCH_CAPS, AOE2LOBBY_CAPS):
         assert caps.game_key == "aoe2"
         assert caps.provider_id.startswith("ext-")
-        # Nothing declared true until the live adapter is wired (spike).
-        if caps is LIBREMATCH_CAPS:
-            assert caps.realtime is False  # official API is poll-only
-        else:
-            assert caps.realtime is True  # aoe2lobby.com WebSocket
+        # Both providers now serve live lobby events (WS or poll).
+        assert caps.realtime is True
 
 
 def _match_details(match_ref: str) -> MatchDetails:

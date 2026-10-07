@@ -2,14 +2,18 @@
 
 Every game known to the catalog gets, in the ``games`` category, a
 ``<game>-map-pools`` forum (e.g. ``aoe2-map-pools``). Every visible
-pool (owned by this guild or public) gets exactly one post carrying
-one **Remove** button per member map (admin-guarded at click time).
-Posts are matched by thread name (the pool's), so the sync is
-idempotent and self-healing — a deleted post is recreated, a
-disbanded pool's post is deleted, a deleted forum is recreated.
-Legacy per-pool forums (``map-pools-<slug>``, one forum per pool)
-are deleted on sight. Nothing here is ladder-specific: pools are a
-core game-catalog concept; this surface just mirrors them.
+pool (owned by this guild or public) gets exactly one post built as a
+component layout: a header (name + description), one **section per
+member map** (map name linked to its ``<game>-maps`` forum post, the
+map's image when it has one, and a **Remove** accessory button,
+admin-guarded at click time), and an **Add map** button that opens
+the pool picker. Every member map gets its section even without an
+image. The sync is idempotent and self-healing — a deleted post is
+recreated, a disbanded pool's post is deleted, a deleted forum is
+recreated, and every refresh re-attaches the current components.
+Legacy per-pool forums (``map-pools-<slug>``) are deleted on sight.
+Nothing here is ladder-specific: pools are a core game-catalog
+concept; this surface just mirrors them.
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ GAMES_CATEGORY_NAME = "games"
 POOLS_FORUM_SUFFIX = "-map-pools"
 LEGACY_PREFIX = "map-pools-"
 SYNC_INTERVAL_S = 3600
+MAX_SECTIONS = 40
 
 
 def _build_service() -> Any:
@@ -38,13 +43,60 @@ def _pools_forum_name(game_key: str) -> str:
     return f"{game_key}{POOLS_FORUM_SUFFIX}"
 
 
-def _pool_post_view(pool: Any, map_names: dict[str, str]) -> Any:
-    from kingdoms.discord.maps_pool_flow import PoolRemoveMapButton
+def _pool_post_layout(pool: Any, maps: list[dict[str, Any]]) -> discord.ui.LayoutView:
+    """Build the pool post's component layout: one section per map."""
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolRemoveMapButton
 
-    view = discord.ui.View(timeout=None)
-    for map_id, map_name in map_names.items():
-        view.add_item(PoolRemoveMapButton(map_id, pool.id, label=map_name))
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(f"## {pool.name}\n{pool.description or ''}")))
+    for m in maps[:MAX_SECTIONS]:
+        if m.get("forum_message_id"):
+            text = f"### {m['name']}\n- [fiche de la map](https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']})"
+        else:
+            text = f"### {m['name']}"
+        children: list[discord.ui.Item[Any] | str] = [discord.ui.TextDisplay(text)]
+        if m.get("resource_url"):
+            children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(m["resource_url"])))
+        view.add_item(
+            discord.ui.Section(
+                *children,
+                accessory=PoolRemoveMapButton(m["id"], pool.id, label=f"Retirer {m['name']}"),
+            )
+        )
+    view.add_item(discord.ui.Separator())
+    view.add_item(
+        discord.ui.Section(
+            discord.ui.TextDisplay("Ajouter une map à ce pool :"),
+            accessory=PoolAddMapButton(pool.id),
+        )
+    )
     return view
+
+
+def _pool_post_content(pool: Any, maps: list[dict[str, Any]]) -> str:
+    """Fallback plain-content body when components are unavailable."""
+    lines = [f"**{pool.name}**", pool.description or "", "", "Maps :"]
+    lines += [f"- **{m['name']}**" for m in maps] or ["_Aucune map._"]
+    return "\n".join(lines)
+
+
+async def _pool_maps(service: Any, pool: Any, guild_id: str) -> list[dict[str, Any]]:
+    """Resolve the pool's member maps (kept even when incomplete)."""
+    maps: list[dict[str, Any]] = []
+    for map_id in pool.map_ids:
+        entry = await service.get_map(map_id)
+        if entry is None or entry.archived_at is not None:
+            continue
+        maps.append(
+            {
+                "id": entry.id,
+                "name": entry.name,
+                "resource_url": entry.resource_url,
+                "forum_message_id": entry.forum_message_id if entry.forum_message_id else None,
+                "guild_id": guild_id,
+            }
+        )
+    return maps
 
 
 async def sync_pools_forum(guild_id: str, bot: Any, service: Any = None) -> int:
@@ -105,11 +157,12 @@ async def _sync_game_pools(
     existing = {t.name: t for t in forum.threads}
     actions = 0
     for name, pool in wanted.items():
+        maps = await _pool_maps(service, pool, guild_id)
         if name not in existing:
-            await _create_pool_post(platform, guild_id, forum, service, pool)
+            await _create_pool_post(platform, guild_id, forum, pool, maps)
             actions += 1
         else:
-            await _refresh_pool_post(platform, guild_id, existing[name], service, pool)
+            await _refresh_pool_post(guild, guild_id, existing[name], pool, maps)
     for name, thread in existing.items():
         if name not in wanted:
             await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
@@ -117,37 +170,25 @@ async def _sync_game_pools(
     return actions
 
 
-async def _pool_content(service: Any, pool: Any) -> tuple[str, dict[str, str]]:
-    map_names: dict[str, str] = {}
-    lines: list[str] = []
-    for map_id in pool.map_ids:
-        entry = await service.get_map(map_id)
-        if entry is None or entry.archived_at is not None:
-            continue
-        map_names[map_id] = entry.name
-        lines.append(f"- **{entry.name}**")
-    content = f"**{pool.name}**\n{pool.description or '_Aucune description._'}\n\nMaps :\n"
-    content += "\n".join(lines) if lines else "_Aucune map._"
-    return content, map_names
-
-
-async def _create_pool_post(platform: Any, guild_id: str, forum: Any, service: Any, pool: Any) -> None:
-    content, map_names = await _pool_content(service, pool)
+async def _create_pool_post(
+    platform: Any, guild_id: str, forum: Any, pool: Any, maps: list[dict[str, Any]]
+) -> None:
     await platform.create_map_post(
-        guild_id, str(forum.id), pool.name, content, view=_pool_post_view(pool, map_names)
+        guild_id,
+        str(forum.id),
+        pool.name,
+        _pool_post_content(pool, maps),
+        view=_pool_post_layout(pool, maps),
     )
 
 
-async def _refresh_pool_post(platform: Any, guild_id: str, thread: Any, service: Any, pool: Any) -> None:
-    """Keep an existing pool post's content and buttons in sync (best-effort)."""
-    from kingdoms.discord.maps_pool_flow import _REMOVE_NS
-
-    content, map_names = await _pool_content(service, pool)
+async def _refresh_pool_post(
+    guild: discord.Guild, guild_id: str, thread: Any, pool: Any, maps: list[dict[str, Any]]
+) -> None:
+    """Keep an existing pool post's content and components in sync."""
     try:
-        await thread.edit(content=content)
-        await platform.ensure_forum_post_view(
-            guild_id, str(thread.id), _pool_post_view(pool, map_names), _REMOVE_NS
-        )
+        starter = await thread.fetch_message(thread.id)
+        await starter.edit(content=_pool_post_content(pool, maps), view=_pool_post_layout(pool, maps))
     except Exception:
         logger.debug("pools forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 

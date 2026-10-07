@@ -132,6 +132,10 @@ class RolesDatabase(Protocol):
         """Find the persisted mapping for a guild mod role key."""
         ...
 
+    async def list_role_mappings(self, guild_id: str, mod: str) -> list[RoleMappingModel]:
+        """List every persisted mapping of one guild mod (incl. per-season)."""
+        ...
+
     async def upsert_role_mapping(self, mapping: RoleMappingModel) -> None:
         """Insert or replace the role mapping document."""
         ...

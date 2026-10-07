@@ -229,6 +229,11 @@ class MongoRolesDatabase:
         document = await self._mappings.find_one({"_id": f"{guild_id}:{mod}:{role_key}"})
         return RoleMappingModel.from_mongo(document) if document else None
 
+    async def list_role_mappings(self, guild_id: str, mod: str) -> list[RoleMappingModel]:
+        """List every persisted mapping of one guild mod (incl. per-season)."""
+        cursor = self._mappings.find({"_id": {"$regex": f"^{guild_id}:{mod}:"}})
+        return [RoleMappingModel.from_mongo(doc) async for doc in cursor]
+
     async def upsert_role_mapping(self, mapping: RoleMappingModel) -> None:
         """Insert or replace the role mapping document (idempotent)."""
         await self._mappings.replace_one({"_id": mapping.id}, mapping.to_mongo(), upsert=True)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kingdoms import __version__
 from kingdoms.core.rpc.status import CoreStatus, build_status_server
@@ -73,6 +73,26 @@ async def _consume_provider_events(aggregator: LiveAggregator) -> None:
     await asyncio.gather(*tasks)
 
 
+async def _watch_provider_health(aggregator: LiveAggregator, client: Any) -> None:
+    """Ping one provider periodically; a reply clears the degraded flag.
+
+    Streams may legitimately be silent for long stretches (a poll-only
+    provider with no open lobbies yields nothing for minutes), so stream
+    silence is not a health signal — an explicit capabilities ping is.
+    A provider that stops answering re-flags the aggregator degraded.
+    """
+    import asyncio
+
+    interval_s = float(os.environ.get("PROVIDER_HEALTH_INTERVAL_S", "30"))
+    while True:
+        try:
+            await client.get_capabilities()
+            aggregator.mark_healthy()
+        except Exception:
+            aggregator.mark_degraded()
+        await asyncio.sleep(interval_s)
+
+
 async def _consume_one(
     aggregator: LiveAggregator, provider_id: str, uri: str, game_key: str
 ) -> None:
@@ -82,14 +102,20 @@ async def _consume_one(
     from kingdoms.core.rpc.game_client import GameProviderClient
 
     client = GameProviderClient(uri, provider_id, game_key)
-    while True:
-        try:
-            async for event in client.stream_match_events(since=0):
-                await aggregator.apply_event(event)
-        except Exception:
-            aggregator.mark_degraded()
-            logger.warning("provider %s stream lost; retrying in 5s", provider_id)
-            await asyncio.sleep(5)
+    import asyncio as _asyncio
+
+    health = _asyncio.ensure_future(_watch_provider_health(aggregator, client))
+    try:
+        while True:
+            try:
+                async for event in client.stream_match_events(since=0):
+                    await aggregator.apply_event(event)
+            except Exception:
+                logger.warning("provider %s stream lost; retrying in 5s", provider_id)
+                await asyncio.sleep(5)
+            await asyncio.sleep(1)
+    finally:
+        health.cancel()
 
 
 class _CoreBindingsDatabase:

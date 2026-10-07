@@ -109,6 +109,10 @@ class LiveAggregator:
         """Flag the aggregated state as provider-less (all offline)."""
         self._degraded = True
 
+    def mark_healthy(self) -> None:
+        """Clear the degraded flag once a provider stream is live."""
+        self._degraded = False
+
 
 def _now_ms() -> int:
     """Epoch milliseconds, the repo's timestamp convention."""

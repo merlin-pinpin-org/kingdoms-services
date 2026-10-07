@@ -82,6 +82,8 @@ def _parse_roles(declared: object, source: Path) -> list[RoleDef]:
                 display_name=display,
                 color=int(entry.get("color", 0x99AAB5)),
                 hoisted=bool(entry.get("hoisted", False)),
+                description=str(entry.get("description", "")),
+                per_season=bool(entry.get("per_season", False)),
             )
         )
     return roles

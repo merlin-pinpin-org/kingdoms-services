@@ -223,7 +223,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="RoleDef">class <strong>RoleDef</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RoleDef">RoleDef</a>(key:&nbsp;'str',&nbsp;display_name:&nbsp;'str',&nbsp;color:&nbsp;'int'&nbsp;=&nbsp;10070709,&nbsp;hoisted:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoleDef">RoleDef</a>(key:&nbsp;'str',&nbsp;display_name:&nbsp;'str',&nbsp;color:&nbsp;'int'&nbsp;=&nbsp;10070709,&nbsp;hoisted:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;description:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;per_season:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;role&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod,&nbsp;referenced&nbsp;by&nbsp;logical&nbsp;role&nbsp;key.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -239,7 +239,7 @@ A&nbsp;role&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod,&nbsp;referenced&nbsp;by&nbsp;
 
 <dl><dt><a name="RoleDef-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="RoleDef-__init__"><strong>__init__</strong></a>(self, key: 'str', display_name: 'str', color: 'int' = 10070709, hoisted: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="RoleDef-__init__"><strong>__init__</strong></a>(self, key: 'str', display_name: 'str', color: 'int' = 10070709, hoisted: 'bool' = False, description: 'str' = '', per_season: 'bool' = False) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="RoleDef-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -251,21 +251,25 @@ A&nbsp;role&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod,&nbsp;referenced&nbsp;by&nbsp;
 Data descriptors defined here:<br>
 <dl><dt><strong>color</strong></dt>
 </dl>
+<dl><dt><strong>description</strong></dt>
+</dl>
 <dl><dt><strong>display_name</strong></dt>
 </dl>
 <dl><dt><strong>hoisted</strong></dt>
 </dl>
 <dl><dt><strong>key</strong></dt>
 </dl>
+<dl><dt><strong>per_season</strong></dt>
+</dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'color': 'int', 'display_name': 'str', 'hoisted': 'bool', 'key': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'color': 'int', 'description': 'str', 'display_name': 'str', 'hoisted': 'bool', 'key': 'str', 'per_season': 'bool'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'color': Field(name='color',type='int',default=10070709,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'display_name': Field(name='display_name',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'hoisted': Field(name='hoisted',type='bool',default=False,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'color': Field(name='color',type='int',default=10070709,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'description': Field(name='description',type='str',default='',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'display_name': Field(name='display_name',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'hoisted': Field(name='hoisted',type='bool',default=False,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'per_season': Field(name='per_season',type='bool',default=Fals...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('key', 'display_name', 'color', 'hoisted')</dl>
+<dl><dt><strong>__match_args__</strong> = ('key', 'display_name', 'color', 'hoisted', 'description', 'per_season')</dl>
 
 </td></tr></table></td></tr></table>
 </body></html>

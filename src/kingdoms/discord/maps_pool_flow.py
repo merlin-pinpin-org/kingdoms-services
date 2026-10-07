@@ -265,8 +265,121 @@ class PoolRemoveMapButton(
         )
 
 
+_ADD_TO_POOL_NS = "games:pool:addmap"
+
+
+class PoolAddMapButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_ADD_TO_POOL_NS}:(?P<pool_id>.+)",
+):
+    """The pool post's add action: open the map picker for this pool (admins)."""
+
+    def __init__(self, pool_id: str, label: str = "Ajouter une map") -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                emoji="\u2795",
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_ADD_TO_POOL_NS}:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PoolAddMapButton:
+        """Rebuild from the wire; the pool id rides the custom_id."""
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Answer with the ephemeral paginated map picker (admin-gated)."""
+        if not await _guard_admin(interaction):
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        maps = [m for m in await service.list_maps(pool.game_key) if m.id not in pool.map_ids]
+        view = PoolMapPickerView(pool, maps, page=0)
+        await interaction.response.send_message(
+            f"Ajouter une map à **{pool.name}** — page 1/{view.pages}",
+            view=view,
+            ephemeral=True,
+        )
+
+
+class PoolMapPickerView(discord.ui.View):
+    """Ephemeral paginated picker: pick one map to add to the pool."""
+
+    PAGE_SIZE = 24
+
+    def __init__(self, pool: Any, maps: list[Any], page: int = 0) -> None:
+        super().__init__(timeout=180)
+        self.pool = pool
+        self.maps = maps
+        self.pages = max(1, (len(maps) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
+        self.page = max(0, min(page, self.pages - 1))
+        chunk = maps[self.page * self.PAGE_SIZE : (self.page + 1) * self.PAGE_SIZE]
+        select = discord.ui.Select(
+            placeholder=f"{pool.name} — choisir une map",
+            options=[discord.SelectOption(label=m.name, value=m.id) for m in chunk]
+            or [discord.SelectOption(label="Aucune map disponible", value="none")],
+        )
+        select.callback = self._on_pick
+        self.add_item(select)
+        if self.page > 0:
+            prev = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
+            prev.callback = self._nav(self.page - 1)
+            self.add_item(prev)
+        if self.page < self.pages - 1:
+            nxt = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
+            nxt.callback = self._nav(self.page + 1)
+            self.add_item(nxt)
+
+    def _nav(self, page: int) -> Any:
+        async def _go(interaction: discord.Interaction) -> None:
+            await interaction.response.edit_message(
+                content=f"Ajouter une map à **{self.pool.name}** — page {page + 1}/{self.pages}",
+                view=PoolMapPickerView(self.pool, self.maps, page=page),
+            )
+
+        return _go
+
+    async def _on_pick(self, interaction: discord.Interaction) -> None:
+        children = [c for c in self.children if isinstance(c, discord.ui.Select)]
+        map_id = (children[0].values or [""])[0] if children else ""
+        service = _games_wiring()
+        if service is None or map_id in ("", "none"):
+            await interaction.response.edit_message(content="Sélection invalide.")
+            return
+        pool = await service.get_map_pool(self.pool.id)
+        entry = await service.get_map(map_id)
+        if pool is None or entry is None:
+            await interaction.response.edit_message(content="Map ou pool introuvable.")
+            return
+        try:
+            await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
+        except Exception:
+            logger.warning("POOL FLOW: add to pool failed", exc_info=True)
+            await interaction.response.edit_message(content="Ajout impossible (voir les logs).")
+            return
+        await interaction.response.edit_message(
+            content=f"**{entry.name}** ajoutée à **{pool.name}** — la fiche du pool se met à jour à la prochaine sync."
+        )
+
+
 def register_pool_flow_items(bot: discord.Client) -> None:
     """Register the flow's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(MapAddToPoolButton)
     bot.add_dynamic_items(MapPoolPickerSelect)
     bot.add_dynamic_items(PoolRemoveMapButton)
+    bot.add_dynamic_items(PoolAddMapButton)

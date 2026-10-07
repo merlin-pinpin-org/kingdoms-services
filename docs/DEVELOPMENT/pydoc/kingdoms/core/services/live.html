@@ -129,6 +129,8 @@ real&nbsp;grace&nbsp;period&nbsp;(#134/#146).</span></dd></dl>
 
 <dl><dt><a name="LiveAggregator-mark_degraded"><strong>mark_degraded</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Flag&nbsp;the&nbsp;aggregated&nbsp;state&nbsp;as&nbsp;provider-less&nbsp;(all&nbsp;offline).</span></dd></dl>
 
+<dl><dt><a name="LiveAggregator-mark_healthy"><strong>mark_healthy</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Clear&nbsp;the&nbsp;degraded&nbsp;flag&nbsp;once&nbsp;a&nbsp;provider&nbsp;stream&nbsp;is&nbsp;live.</span></dd></dl>
+
 <dl><dt>async <a name="LiveAggregator-snapshot"><strong>snapshot</strong></a>(self, game_key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Build&nbsp;the&nbsp;current&nbsp;dashboard&nbsp;snapshot&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
 <hr>

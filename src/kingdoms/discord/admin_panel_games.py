@@ -523,7 +523,7 @@ class GamesPoolCreateModal(discord.ui.Modal):
             await interaction.response.send_message("Creation echouee (voir les logs).", ephemeral=True)
             return
         await interaction.response.send_message(
-            f"Pool **{pool.name}** cree - ajoute ses maps via la liste.", ephemeral=True
+            f"Pool **{pool.name}** créé - ajoute ses maps via la liste.", ephemeral=True
         )
 
 

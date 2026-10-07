@@ -335,11 +335,13 @@ class PinReadOnlySelect(
         )
 
     @classmethod
-    def read_only_options(cls) -> list[discord.SelectOption]:
-        """Build the option list: core pinned channels + mod hooks."""
-        options = [
-            discord.SelectOption(label="🗝 Kingdoms home", value="home"),
-            discord.SelectOption(label="🛡 Bot admins", value="admin"),
+    async def read_only_options(cls, guild_id: str = "") -> list[discord.SelectOption]:
+        """Build the options: per channel, lock or unlock, with the current state."""
+        from kingdoms.discord.pinned_views import get_pinned_read_only
+
+        channels: list[tuple[str, str]] = [
+            ("home", "Salon Kingdoms (accueil)"),
+            ("admin", "Salon admins du bot"),
         ]
         seen: set[str] = set()
         for spec in spec_registry_resolver().values():
@@ -347,7 +349,20 @@ class PinReadOnlySelect(
             if key in seen:
                 continue
             seen.add(key)
-            options.append(discord.SelectOption(label=f"🛡 {spec.mod} admin", value=key))
+            channels.append((key, f"Salon admin {spec.mod}"))
+        options: list[discord.SelectOption] = []
+        for key, label in channels[:12]:
+            locked = True
+            if guild_id:
+                try:
+                    locked = await get_pinned_read_only(guild_id, key)
+                except Exception:
+                    locked = True
+            state = "\U0001f512 lecture seule" if locked else "\u270f\ufe0f messages ouverts"
+            options.append(discord.SelectOption(label=f"Verrouiller {label}", value=key,
+                description=f"actuel : {state}"))
+            options.append(discord.SelectOption(label=f"Ouvrir {label}", value=f"{key}:open",
+                description=f"actuel : {state}"))
         return options[:25]
 
     @classmethod
@@ -358,9 +373,9 @@ class PinReadOnlySelect(
         match: re.Match[str],
         /,
     ) -> PinReadOnlySelect:
-        """Rebuild the select from the wire (generic options)."""
-        del interaction, item, match
-        return cls(cls.read_only_options())
+        """Rebuild the select from the wire (state-aware options)."""
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        return cls(await cls.read_only_options(guild_id))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Apply the read-only intent through the persistent handler."""
@@ -503,8 +518,12 @@ async def build_pin_main_menu(
             )
         ),
         discord.ui.Separator(),
-        discord.ui.TextDisplay("## \U0001f512 Lecture seule (salons \u00e9pingl\u00e9s)"),
-        _select_row(PinReadOnlySelect(PinReadOnlySelect.read_only_options())),
+        discord.ui.TextDisplay(
+            "## \U0001f512 Lecture seule\n"
+            "Les salons \u00e9pingl\u00e9s sont en lecture seule par d\u00e9faut : personne ne peut y \u00e9crire, "
+            "seules les vues du bot s'y affichent. Choisis un salon pour le verrouiller ou l'ouvrir aux messages."
+        ),
+        _select_row(PinReadOnlySelect(await PinReadOnlySelect.read_only_options(guild_id))),
         discord.ui.Separator(),
         discord.ui.TextDisplay("## \U0001f9e9 R\u00f4les"),
         _roles_row(_t(catalog, locale, "roles_button")),

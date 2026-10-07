@@ -162,7 +162,7 @@ async def ladder_admin_entry(
                 f"**{ladder.get('name', '?')}** - jeu `{ladder.get('game_key', GAME_KEY)}`\n"
                 f"Rating : `{settings.get('rating_system', 'elo')}` - "
                 f"Joueurs : {len(players)} - En file : {in_queue}\n"
-                f"Inscriptions : **{'ouvertes' if ladder.get('enrollments_open', True) else 'fermees'}** - "
+                f"Inscriptions : **{'ouvertes' if ladder.get('enrollments_open', True) else 'fermées'}** - "
                 f"File : **{'en pause' if ladder.get('queue_paused', False) else 'active'}**"
             ),
             discord.ui.TextDisplay(
@@ -286,7 +286,7 @@ class LadderCreateModal(discord.ui.Modal):
         )
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
         await interaction.followup.send(
-            f"Ladder **{ladder.name}** cree (`{ladder.id}`).", ephemeral=True
+            f"Ladder **{ladder.name}** créé (`{ladder.id}`).", ephemeral=True
         )
 
 
@@ -300,7 +300,7 @@ class LadderSettingsButton(
         self.ladder_id = ladder_id
         super().__init__(
             discord.ui.Button(
-                label="Parametres",
+                label="Paramètres",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:settings",
             )
@@ -342,7 +342,7 @@ class LadderSettingsModal(discord.ui.Modal):
 
     def __init__(self, ladder_id: str, name: str, rating: str, ready: int) -> None:
         self.ladder_id = ladder_id
-        super().__init__(title="Parametres du ladder", timeout=None)
+        super().__init__(title="Paramètres du ladder", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Nom", default=name, max_length=100, required=True
         )
@@ -383,7 +383,7 @@ class LadderSettingsModal(discord.ui.Modal):
         await service._db.upsert_entry(LADDERS_COLLECTION, updated.to_mongo())
         await service._audit_record("ladder.settings.update", {"ladder_id": self.ladder_id, "fields": sorted(updates)})
         await interaction.response.send_message(
-            f"Parametres enregistres - `{updated.name}` (`{updated.settings.rating_system}`).",
+            f"Paramètres enregistrés — `{updated.name}` (`{updated.settings.rating_system}`).",
             ephemeral=True,
         )
 
@@ -652,7 +652,7 @@ class LadderSeasonCreateButton(
         self.ladder_id = ladder_id
         super().__init__(
             discord.ui.Button(
-                label="Creer une saison",
+                label="Créer une saison",
                 style=discord.ButtonStyle.success,
                 custom_id=f"{_NS}:seasons:create",
             )
@@ -678,66 +678,9 @@ class LadderSeasonCreateButton(
         if not ladder_id:
             await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
             return
-        await interaction.response.send_modal(LadderSeasonModal(ladder_id))
+        from kingdoms.discord.season_wizard import start_season_wizard
 
-
-class LadderSeasonModal(discord.ui.Modal):
-    """The season-creation form: name + optional duration (the pool is chosen in a select)."""
-
-    def __init__(self, ladder_id: str) -> None:
-        self.ladder_id = ladder_id
-        super().__init__(title="Créer une saison", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nom (ex. s2)", max_length=32, required=True
-        )
-        self.days: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Durée en jours (optionnel)", placeholder="90", max_length=5, required=False
-        )
-        self.add_item(self.name)
-        self.add_item(self.days)
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Handle the form: validate, create, confirm — pool picked separately."""
-        wiring = build_ladder_wiring()
-        if wiring is None or wiring.season_service is None:
-            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
-            return
-        name = str(self.name.value).strip()
-        if not name:
-            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
-            return
-        days: int | None = None
-        if str(self.days.value or "").strip():
-            try:
-                days = int(str(self.days.value).strip())
-            except ValueError:
-                await interaction.response.send_message("Durée invalide (un nombre de jours).", ephemeral=True)
-                return
-        now = _now_ms()
-        ladder = await wiring.service.get_ladder(self.ladder_id)
-        pool_value: str | None = None
-        if ladder is not None and ladder.active_map_pool_id:
-            pool_value = str(ladder.active_map_pool_id)
-        else:
-            pools = await wiring.game_data.list_map_pools(GAME_KEY)
-            pool_value = pools[0].id if pools else None
-        try:
-            season = await wiring.season_service.create_season(
-                self.ladder_id,
-                name,
-                pool_value,
-                start_at=now,
-                end_at=now + days * 86_400_000 if days else None,
-            )
-        except Exception:
-            logger.exception("LADDER ADMIN: season creation failed")
-            await interaction.response.send_message("Création échouée (nom déjà pris ?).", ephemeral=True)
-            return
-        await _provision_season_surface(interaction, season)
-        await interaction.response.send_message(
-            f"Saison **{season.name}** créée — active-la depuis la liste.",
-            ephemeral=True,
-        )
+        await start_season_wizard(interaction, ladder_id)
 
 
 class LadderSeasonActivateSelect(
@@ -905,7 +848,7 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
     seasons = await wiring.season_service.list_seasons(ladder_id)
     active = await wiring.season_service.get_active_season(ladder_id)
     if not seasons:
-        blocks.append(discord.ui.TextDisplay("_Aucune saison - cree la premiere._"))
+        blocks.append(discord.ui.TextDisplay("_Aucune saison - crée-la (bouton « Créer une saison »)._"))
     else:
         lines = []
         for s in seasons[-10:]:

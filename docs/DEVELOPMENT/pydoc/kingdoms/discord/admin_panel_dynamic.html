@@ -523,9 +523,9 @@ Methods defined here:<br>
 
 <hr>
 Class methods defined here:<br>
-<dl><dt>async <a name="PinReadOnlySelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'PinReadOnlySelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select&nbsp;from&nbsp;the&nbsp;wire&nbsp;(generic&nbsp;options).</span></dd></dl>
+<dl><dt>async <a name="PinReadOnlySelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'PinReadOnlySelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select&nbsp;from&nbsp;the&nbsp;wire&nbsp;(state-aware&nbsp;options).</span></dd></dl>
 
-<dl><dt><a name="PinReadOnlySelect-read_only_options"><strong>read_only_options</strong></a>() -&gt; 'list[discord.SelectOption]'</dt><dd><span class="code">Build&nbsp;the&nbsp;option&nbsp;list:&nbsp;core&nbsp;pinned&nbsp;channels&nbsp;+&nbsp;mod&nbsp;hooks.</span></dd></dl>
+<dl><dt>async <a name="PinReadOnlySelect-read_only_options"><strong>read_only_options</strong></a>(guild_id: 'str' = '') -&gt; 'list[discord.SelectOption]'</dt><dd><span class="code">Build&nbsp;the&nbsp;options:&nbsp;per&nbsp;channel,&nbsp;lock&nbsp;or&nbsp;unlock,&nbsp;with&nbsp;the&nbsp;current&nbsp;state.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>

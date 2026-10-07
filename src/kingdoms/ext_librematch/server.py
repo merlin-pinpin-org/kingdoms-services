@@ -9,6 +9,7 @@ import os
 def main() -> None:
     """Run the ext-librematch gRPC provider server."""
     import asyncio
+    from collections.abc import AsyncIterator
 
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -16,7 +17,7 @@ def main() -> None:
     )
     import redis.asyncio as redis
 
-    from kingdoms.core.models.game import GameMap, MatchDetails, PlayerStats
+    from kingdoms.core.models.game import GameMap, MatchDetails, MatchEvent, PlayerStats
     from kingdoms.core.rpc.rate_limit import ProviderRateLimiter
     from kingdoms.core_process.ext_server import serve_game_provider
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
@@ -50,12 +51,26 @@ def main() -> None:
         """Fetch a profile's leaderboard blocks (None: degraded, no key)."""
         return await adapter.player_stats(profile_id)
 
+    async def match_events() -> AsyncIterator[MatchEvent]:
+        """Yield polled lobby diffs as core MatchEvent models."""
+        async for frame in adapter.stream_events(
+            poll_interval_s=float(os.environ.get("LIBREMATCH_POLL_INTERVAL_S", "15")),
+        ):
+            yield MatchEvent(
+                match_ref=frame["match_ref"],
+                type=frame["type"],
+                occurred_at=frame["occurred_at"],
+                profile_ids=tuple(frame["profile_ids"]),
+                metadata=tuple(frame["metadata"]),
+            )
+
     asyncio.run(
         serve_game_provider(
             DECLARED_CAPABILITIES,
             PROVIDER_ID,
             match_details=match_details,
             list_maps=list_maps,
+            match_events=match_events,
             player_stats=player_stats,
         )
     )
