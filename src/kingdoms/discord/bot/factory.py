@@ -616,6 +616,7 @@ def _build_registration(
 def _build_shared_state(config: BotConfig) -> StateService | None:
     """One shared StateService for the whole bot (single Redis connection pool).
 
+
     Started in ``setup_hook`` and closed in ``close``; the services hold it
     as their cache-aside store. Returns None without Redis (unit tests,
     local runs) — the consumers already degrade to uncached paths.

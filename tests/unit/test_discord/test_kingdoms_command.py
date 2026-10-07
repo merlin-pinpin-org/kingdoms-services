@@ -33,7 +33,7 @@ def _build_tree() -> tuple[discord.Client, app_commands.CommandTree[discord.Clie
 
 async def test_register_adds_the_kingdoms_group() -> None:
     client, tree = _build_tree()
-    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdom")
     assert isinstance(group, app_commands.Group)
     assert group.guild_only is True
     await client.close()
@@ -41,7 +41,7 @@ async def test_register_adds_the_kingdoms_group() -> None:
 
 async def test_all_the_subcommands_are_registered() -> None:
     client, tree = _build_tree()
-    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdom")
     assert isinstance(group, app_commands.Group)
     names = {cmd.name for cmd in group.commands}
     assert names == set(EXPECTED_SUBCOMMANDS)
@@ -50,7 +50,7 @@ async def test_all_the_subcommands_are_registered() -> None:
 
 async def test_profile_and_diplomacy_freeze_the_kingdom_option() -> None:
     client, tree = _build_tree()
-    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdoms")
+    group = next(cmd for cmd in tree.get_commands() if cmd.name == "kingdom")
     assert isinstance(group, app_commands.Group)
     for name in ("kingdom", "diplomacy"):
         command = next(cmd for cmd in group.commands if cmd.name == name)

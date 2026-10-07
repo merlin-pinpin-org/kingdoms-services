@@ -77,16 +77,16 @@ def test_create_bot_parses_bot_admins(config_dir: str) -> None:
 
 def test_create_bot_registers_kingdoms_commands(config_dir: str) -> None:
     """The graft regression (4e8992e) dropped the kingdoms wiring; it is
-    a contract: /kingdoms registers even without Mongo (placeholders),
+    a contract: /kingdom registers even without Mongo (placeholders),
     and the service attribute is always present for the click-time
     resolver of the persistent panels (kingdom_persistent)."""
     bot = create_bot(BotConfig(config_dir=config_dir))
     names = {command.name for command in bot.tree.get_commands()}
-    assert "kingdoms" in names
+    assert "kingdom" in names
     # No Mongo configured in unit tests: the service degrades to None,
-    # and /kingdoms-admin stays unregistered (its commands need a store).
+    # and /kingdom-admin stays unregistered (its commands need a store).
     assert bot.kingdoms_service is None
-    assert "kingdoms-admin" not in names
+    assert "kingdom-admin" not in names
 
 
 def test_build_kingdoms_service_none_without_mongo() -> None:
