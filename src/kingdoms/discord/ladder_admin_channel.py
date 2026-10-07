@@ -54,6 +54,7 @@ async def _build_season_layout(bot: discord.Client, guild_id: str, scope: str) -
 LADDER_ADMIN_CHANNEL_SPEC = ModAdminChannelSpec(
     mod="ladder",
     channel_name=LADDER_ADMIN_CHANNEL_NAME,
+    seasonal=True,
     staff_role_prefixes=(LADDER_STAFF_ROLE_PREFIX,),
     build_root_layout=_build_root_layout,
     build_season_layout=_build_season_layout,

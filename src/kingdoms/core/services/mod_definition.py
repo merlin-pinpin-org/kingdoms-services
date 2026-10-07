@@ -79,11 +79,26 @@ class ModDefinition:
 
     name: str
     enabled: bool = True
+    seasonal: bool | None = None
     channel_categories: tuple[ChannelCategoryDef, ...] = field(default_factory=tuple)
     roles: tuple[RoleDef, ...] = field(default_factory=tuple)
     workflows: tuple[str, ...] = field(default_factory=tuple)
     commands: tuple[str, ...] = field(default_factory=tuple)
     dependencies: tuple[str, ...] = field(default_factory=tuple)
+
+    def require_seasonal(self) -> bool:
+        """Return the declared mod type; fail loudly when undeclared.
+
+        The mod type (seasonal or permanent) is **mandatory** at
+        declaration time: the admin-surface machinery branches on it
+        (a lifecycle panel + per-season salon for a seasonal mod, a
+        guild-level config panel for a permanent one).
+        """
+        if self.seasonal is None:
+            raise ValueError(
+                f"Mod '{self.name}' must declare 'seasonal: true|false' in config/mods/" + self.name + ".yaml"
+            )
+        return self.seasonal
 
     def channel_category(self, key: str) -> ChannelCategoryDef:
         """Return the declared channel category for a key, fail loudly."""

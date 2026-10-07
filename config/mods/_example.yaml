@@ -2,6 +2,9 @@
 # Schema (validated by kingdoms.core.services.mod_registry at startup):
 #   id            required, simple slug, must match the mod package name
 #   enabled       bool (default true); disabled mods are never loaded
+#   seasonal      bool, MANDATORY; the mod type (seasonal or permanent)
+#                 branches the admin surface (lifecycle panel + season
+#                 salons vs one guild-level config channel)
 #   settings      free-form, mod-specific
 #   channels      list of {key, display_name, description, per_instance}
 #   roles         list of {key, display_name, color, hoisted}
@@ -11,6 +14,7 @@
 # Channels are addressed at runtime as "mod:key" (e.g. "example:announce").
 id: example
 enabled: false
+seasonal: false
 settings: {}
 channels:
   - key: announce

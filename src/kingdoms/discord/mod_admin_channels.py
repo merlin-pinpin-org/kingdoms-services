@@ -1,6 +1,11 @@
 """The generic mod-admin channel mechanism: one admin panel per mod.
 
-A seasonal mod wants two admin surfaces, and both are generic — every
+A mod's **type is mandatory** in its declaration (``seasonal:
+true|false``) and branches the admin surface — the two flavours of
+the Mod interface: a **permanent mod** pins its config panel in a
+channel inside its guild-level category; a **seasonal mod** pins its
+lifecycle panel in a cross-season root channel plus one admin salon
+per season. A seasonal mod wants two admin surfaces, and both are generic — every
 mod can register them without writing channel plumbing:
 
 - a **root admin channel** (e.g. ``🛡-ladder-admin``): cross-season, at
@@ -51,7 +56,9 @@ class ModAdminChannelSpec:
 
     mod: str
     channel_name: str
+    seasonal: bool
     staff_role_prefixes: tuple[str, ...]
+    guild_category_name: str = ""
     extra_roles: tuple[str, ...] = ("bot-admins",)
     build_root_layout: RootLayoutBuilder | None = None
     build_season_layout: SeasonLayoutBuilder | None = None
@@ -72,9 +79,11 @@ class ModAdminChannelSpec:
                 object.__setattr__(self, name, value)
 
     @property
-    def seasonal(self) -> bool:
-        """Whether the mod registers a season admin panel."""
-        return self.build_season_layout is not None
+    def category_label(self) -> str:
+        """Return the admin channel's channels-registry category key."""
+        if self.seasonal:
+            return self.root_category
+        return f"mod_{self.mod}_guild_category"
 
 
 def spec_registry(bot: discord.Client) -> dict[str, ModAdminChannelSpec]:
@@ -114,6 +123,24 @@ class ModAdminChannelPlatform:
     def __init__(self, bot: discord.Client, spec: ModAdminChannelSpec) -> None:
         self._bot = bot
         self._spec = spec
+        self._category_id: str | None = None
+
+    async def _guild_category_id(self, guild: discord.Guild) -> str | None:
+        """Resolve the mod's guild-level category id (cached, id-based)."""
+        if not self._spec.guild_category_name:
+            return None
+        if self._category_id is not None and any(
+            str(c.id) == self._category_id for c in getattr(guild, "categories", ())
+        ):
+            return self._category_id
+        category = discord.utils.get(guild.categories, name=self._spec.guild_category_name)
+        if category is None:
+            category = await guild.create_category(
+                self._spec.guild_category_name,
+                reason=f"kingdoms: {self._spec.mod} guild category",
+            )
+        self._category_id = str(category.id)
+        return self._category_id
 
     async def _guild(self, guild_id: str) -> discord.Guild | None:
         guild = self._bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
@@ -133,11 +160,13 @@ class ModAdminChannelPlatform:
         return str(channel.id) if channel is not None else None
 
     async def create_channel(self, guild_id: str, name: str, reason: str) -> str:
-        """Create the mod's admin text channel; its id."""
+        """Create the mod's admin channel — inside the guild category for a permanent mod."""
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
-        channel = await guild.create_text_channel(name, reason=reason)
+        category_id = await self._guild_category_id(guild)
+        parent = discord.utils.get(guild.categories, id=int(category_id)) if category_id else None
+        channel = await guild.create_text_channel(name, category=parent, reason=reason)
         return str(channel.id)
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
@@ -204,7 +233,7 @@ def build_mod_admin_channel_service(
         return ManagedChannelService(
             platform=ModAdminChannelPlatform(bot, spec),
             database=MongoLogsDatabase(get_async_database()),
-            category=spec.root_category,
+            category=spec.category_label,
             name=spec.channel_name,
             state=StateService(redis_uri=redis_uri),
         )

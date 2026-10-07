@@ -2,6 +2,7 @@
 # Loaded by ModRegistry at startup; /status lists this mod when enabled.
 id: ladder
 enabled: true
+seasonal: true
 settings: {}
 channels: []
 roles: []

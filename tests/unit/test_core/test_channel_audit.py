@@ -256,6 +256,7 @@ async def test_yaml_access_policy_parsing(tmp_path: Any) -> None:
     (mods_dir / "policymod.yaml").write_text(
         """
 id: policymod
+seasonal: false
 channels:
   - key: private
     display_name: Private

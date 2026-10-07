@@ -59,6 +59,7 @@ def test_load_mod_definitions_validates_schema(tmp_path: Path) -> None:
     (mods_dir / "good.yaml").write_text(
         "id: good\n"
         "enabled: true\n"
+        "seasonal: false\n"
         "channels:\n"
         "  - key: announce\n"
         "    display_name: Annonces\n"
@@ -75,15 +76,25 @@ def test_load_mod_definitions_validates_schema(tmp_path: Path) -> None:
 def test_load_mod_definitions_fails_loudly_on_invalid(tmp_path: Path) -> None:
     mods_dir = tmp_path / "mods"
     mods_dir.mkdir()
-    (mods_dir / "bad.yaml").write_text("id: bad\nchannels:\n  - key: no_display\n", encoding="utf-8")
+    (mods_dir / "bad.yaml").write_text(
+        "id: bad\nseasonal: false\nchannels:\n  - key: no_display\n", encoding="utf-8"
+    )
     with pytest.raises(ValueError, match=r"key.*and.*display_name"):
+        load_mod_definitions(tmp_path)
+
+
+def test_load_mod_definitions_requires_the_mod_type(tmp_path: Path) -> None:
+    mods_dir = tmp_path / "mods"
+    mods_dir.mkdir()
+    (mods_dir / "untyped.yaml").write_text("id: untyped\nenabled: true\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="mandatory"):
         load_mod_definitions(tmp_path)
 
 
 def test_load_mod_definitions_rejects_mod_scoped_slugs(tmp_path: Path) -> None:
     mods_dir = tmp_path / "mods"
     mods_dir.mkdir()
-    (mods_dir / "weird.yaml").write_text("id: bad:slug\n", encoding="utf-8")
+    (mods_dir / "weird.yaml").write_text("id: bad:slug\nseasonal: false\n", encoding="utf-8")
     with pytest.raises(ValueError, match="simple slug"):
         load_mod_definitions(tmp_path)
 
