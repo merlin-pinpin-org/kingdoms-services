@@ -96,8 +96,19 @@ class TerritoryService:
         kingdoms = await self._kingdoms.kingdoms()
         player_kingdoms = [kingdom for kingdom in kingdoms if not kingdom.is_gaia]
         gaia = next((kingdom for kingdom in kingdoms if kingdom.is_gaia), None)
-        wanted = len(player_kingdoms) * self._config.territories_per_kingdom
-        wanted += self._config.gaia_territories if gaia is not None else 0
+        # Idempotent: a kingdom only draws its missing share, so an
+        # explicit draw after the launch draw is a no-op.
+        existing = await self.territories()
+        counts = self._count_by_kingdom(existing)
+        per_kingdom = self._config.territories_per_kingdom
+        incomplete = [
+            kingdom for kingdom in player_kingdoms if counts.get(kingdom.id, 0) < per_kingdom
+        ]
+        gaia_missing = (
+            max(0, self._config.gaia_territories - counts.get(gaia.id, 0)) if gaia is not None else 0
+        )
+        wanted = sum(per_kingdom - counts.get(kingdom.id, 0) for kingdom in incomplete)
+        wanted += gaia_missing
         catalog = [entry.key for entry in self._config.maps]
         already = await self.drawn_map_keys()
         pool = [key for key in catalog if key not in already]
@@ -108,20 +119,106 @@ class TerritoryService:
             )
         rng = random.Random(seed)  # noqa: S311 - game draw, not crypto
         rng.shuffle(pool)
-        cursor = 0
         created: list[TerritoryModel] = []
-        for kingdom in player_kingdoms:
-            for _ in range(self._config.territories_per_kingdom):
-                created.append(self._new_territory(season, pool[cursor], kingdom.id))
-                cursor += 1
+        # Balance rule (product decision): every player kingdom receives
+        # the same number of bonus maps (non-empty cadastre effects); the
+        # rest is drawn neutrally, one single pool, pure random.
+        if incomplete:
+            bonus_each = min(len(pool) // len(incomplete), per_kingdom) if pool else 0
+            for kingdom in incomplete:
+                missing = per_kingdom - counts.get(kingdom.id, 0)
+                created.extend(
+                    self._draw_for_kingdom(season, rng, pool, kingdom.id, missing, bonus_each)
+                )
         if gaia is not None:
-            for _ in range(self._config.gaia_territories):
-                created.append(self._new_territory(season, pool[cursor], gaia.id))
-                cursor += 1
+            for _ in range(gaia_missing):
+                created.append(self._new_territory(season, pool.pop(), gaia.id))
+        if not created:
+            return []
         for territory in created:
             await self._store.upsert_territory(territory.to_mongo())
-        logger.info("kingdoms: initial draw — %s territories over %s kingdoms", cursor, len(player_kingdoms) + 1)
+        logger.info("kingdoms: initial draw — %s territories over %s kingdoms", len(created), len(player_kingdoms) + 1)
         return created
+
+    def _draw_for_kingdom(
+        self,
+        season: SeasonState,
+        rng: random.Random,
+        pool: list[str],
+        kingdom_id: str,
+        per_kingdom: int,
+        bonus_target: int,
+    ) -> list[TerritoryModel]:
+        """Draw one kingdom's territories: bonus maps first (parity),
+        then the neutral remainder — all popped from the shared pool."""
+        bonus_keys = [key for key in pool if self._map_cadastre(key)]
+        neutral_keys = [key for key in pool if key not in bonus_keys]
+        drawn: list[str] = []
+        for _ in range(min(bonus_target, len(bonus_keys))):
+            drawn.append(bonus_keys.pop(rng.randrange(len(bonus_keys))))
+        rest = per_kingdom - len(drawn)
+        for _ in range(min(rest, len(neutral_keys))):
+            drawn.append(neutral_keys.pop(rng.randrange(len(neutral_keys))))
+        while len(drawn) < per_kingdom and bonus_keys:  # pool skewed to bonus
+            drawn.append(bonus_keys.pop(rng.randrange(len(bonus_keys))))
+        for key in drawn:
+            pool.remove(key)
+        return [self._new_territory(season, key, kingdom_id) for key in drawn]
+
+    async def top_up_kingdom(self, kingdom_id: str, *, seed: int | None = None) -> list[TerritoryModel]:
+        """Draw the missing territories of one kingdom created after the
+        launch (free-founding mode) — same bonus-parity rule, so every
+        kingdom converges to the same bonus-map count.
+        """
+        season = await self._require_season()
+        already = await self.drawn_map_keys()
+        pool = [entry.key for entry in self._config.maps if entry.key not in already]
+        kingdom = next(
+            (kingdom for kingdom in await self._kingdoms.kingdoms() if kingdom.id == kingdom_id),
+            None,
+        )
+        if kingdom is None or kingdom.is_gaia:
+            raise TerritoryNotFoundError(f"no player kingdom {kingdom_id}")
+        all_territories = await self.territories()
+        kingdom_territories = [
+            territory for territory in all_territories if territory.owner_kingdom_id == kingdom_id
+        ]
+        if len(kingdom_territories) >= self._config.territories_per_kingdom:
+            return []  # already complete — idempotent
+        per_kingdom = self._config.territories_per_kingdom - len(kingdom_territories)
+        player_kingdoms = [k for k in await self._kingdoms.kingdoms() if not k.is_gaia]
+        # Parity target: the bonus count of the completed player kingdoms.
+        counts = [
+            sum(
+                1
+                for territory in all_territories
+                if territory.owner_kingdom_id == k.id and self._map_cadastre(territory.map_key)
+            )
+            for k in player_kingdoms
+            if any(territory.owner_kingdom_id == k.id for territory in all_territories)
+        ]
+        bonus_target = min(counts) if counts else 0
+        rng = random.Random(seed)  # noqa: S311 - game draw, not crypto
+        rng.shuffle(pool)
+        created = self._draw_for_kingdom(season, rng, pool, kingdom_id, per_kingdom, bonus_target)
+        for territory in created:
+            await self._store.upsert_territory(territory.to_mongo())
+        logger.info("kingdoms: top-up draw — %s territories for kingdom %s", len(created), kingdom_id)
+        return created
+
+    @staticmethod
+    def _count_by_kingdom(territories: list[TerritoryModel]) -> dict[str, int]:
+        """Territory count per kingdom id."""
+        counts: dict[str, int] = {}
+        for territory in territories:
+            owner = territory.owner_kingdom_id
+            counts[owner] = counts.get(owner, 0) + 1
+        return counts
+
+    def _map_cadastre(self, map_key: str) -> bool:
+        """True when the catalog entry carries cadastre effects (a bonus map)."""
+        entry = next((entry for entry in self._config.maps if entry.key == map_key), None)
+        return entry is not None and bool(entry.cadastre)
 
     async def draw_map_for(self, owner_kingdom_id: str, map_key: str) -> TerritoryModel:
         """Draw one specific allowed map as a territory (T5/T7 helper).
