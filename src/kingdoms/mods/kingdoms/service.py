@@ -139,10 +139,7 @@ class KingdomsService:
         found their own. Gaïa is always seeded (D32).
         """
         names = [name.strip() for name in imposed_names or [] if name.strip()]
-        for name in names:
-            self._check_name(name)
-        if len(names) > self._config.kingdoms_count:
-            raise KingdomLimitError("more imposed kingdoms than the configured maximum")
+        self._validate_imposed_names(names)
         await self._store.wipe_season_data()
         now = datetime.now(tz=UTC)
         season = SeasonState(
@@ -170,6 +167,13 @@ class KingdomsService:
             raise
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
         return season
+
+    def _validate_imposed_names(self, names: list[str]) -> None:
+        """Check the admin-provided kingdom names (D21) and the limit."""
+        for name in names:
+            self._check_name(name)
+        if len(names) > self._config.kingdoms_count:
+            raise KingdomLimitError("more imposed kingdoms than the configured maximum")
 
     async def _draw_territories(
         self, kingdom_id: str | None = None, *, seed: int | None = None
