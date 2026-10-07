@@ -25,6 +25,7 @@ from kingdoms.discord.commands_i18n import localized
 
 logger = logging.getLogger("kingdoms.live")
 
+GAME_KEY = "aoe2"
 LIVE_CHANNEL_NAME = "📡-live-dashboard"
 LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
 LIVE_MESSAGE_KEY = "live-dashboard"
@@ -32,19 +33,100 @@ LIVE_MESSAGE_KEY = "live-dashboard"
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 
 
-def render_dashboard(snapshot: dict[str, Any], locale: str = "en") -> str:
-    """Render the dashboard snapshot as a plain-text message body."""
+def render_dashboard(
+    snapshot: dict[str, Any],
+    locale: str = "en",
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """Render the dashboard snapshot as a plain-text message body.
+
+    Players are grouped by Discord account (one line per account, one
+    sub-line per bound game profile). An account is active when any of
+    its profiles is; active accounts come first, then a separator, then
+    offline accounts — each side sorted by last-match time (most
+    recent first).
+    """
     lines: list[str] = []
     if snapshot.get("degraded"):
         lines.append("⚠️ Providers unreachable — states may be stale, all shown offline.")
     players = snapshot.get("players", [])
     if not players:
         lines.append("No linked players yet — link a profile with /game-link.")
+        return "\n".join(lines)
+    accounts = group_by_account(players, stats)
+    ordered = sorted(accounts.values(), key=_account_sort_key)
+    offline_seen = False
+    for account in ordered:
+        if not offline_seen and not account["active"]:
+            lines.append("— offline —")
+            offline_seen = True
+        lines.append(_render_account(account))
+    return "\n".join(lines)
+
+
+def group_by_account(
+    players: list[dict[str, Any]],
+    stats: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Fold the flat per-profile list into per-Discord-account records."""
+    stats = stats or {}
+    accounts: dict[str, dict[str, Any]] = {}
     for p in players:
-        icon = _STATE_ICONS.get(p["state"], "⚫")
-        since = f" (since <t:{p['since'] // 1000}:R>)" if p.get("since") else ""
-        ref = f" — match `{p['match_ref']}`" if p.get("match_ref") else ""
-        lines.append(f"{icon} <@{p['user_id']}> — {p['state']}{ref}{since}")
+        user_id = str(p.get("user_id", ""))
+        profile_id = str(p.get("profile_id", ""))
+        account = accounts.setdefault(
+            user_id,
+            {"user_id": user_id, "profiles": [], "active": False, "last_match_ms": 0},
+        )
+        profile_stats = stats.get(profile_id, {})
+        state = str(p.get("state", "offline"))
+        account["profiles"].append(
+            {
+                "profile_id": profile_id,
+                "state": state,
+                "match_ref": str(p.get("match_ref", "")),
+                "since": p.get("since", 0),
+                "display_name": str(profile_stats.get("display_name", "")) or profile_id,
+                "rating": str(profile_stats.get("rating", "")),
+                "wins": str(profile_stats.get("wins", "")),
+                "losses": str(profile_stats.get("losses", "")),
+                "last_match_ms": profile_stats.get("last_match_ms", 0),
+            }
+        )
+        if state in ("in_lobby", "in_game"):
+            account["active"] = True
+        account["last_match_ms"] = max(
+            account["last_match_ms"], profile_stats.get("last_match_ms", 0)
+        )
+    return accounts
+
+
+def _account_sort_key(account: dict[str, Any]) -> tuple[int, int]:
+    """Active accounts first, then most recent last match."""
+    return (0 if account["active"] else 1, -account["last_match_ms"])
+
+
+def _render_account(account: dict[str, Any]) -> str:
+    """One account line plus one sub-line per profile (name, status, stats)."""
+    icon = "🟢" if account["active"] else "⚫"
+    header = f"{icon} <@{account['user_id']}>"
+    if account["last_match_ms"]:
+        header += f" — last match <t:{account['last_match_ms'] // 1000}:R>"
+    lines = [header]
+    for profile in account["profiles"]:
+        sub = "  ↳ "
+        sub += f"**{profile['display_name']}**"
+        state_icon = _STATE_ICONS.get(profile["state"], "⚫")
+        sub += f" {state_icon} {profile['state']}"
+        if profile["rating"]:
+            sub += f" — {profile['rating']} elo"
+        if profile["wins"] or profile["losses"]:
+            sub += f" ({profile['wins']}W/{profile['losses']}L)"
+        if profile["match_ref"]:
+            sub += f" — match `{profile['match_ref']}`"
+        if profile["since"] and profile["state"] != "offline":
+            sub += f" (since <t:{profile['since'] // 1000}:R>)"
+        lines.append(sub)
     return "\n".join(lines)
 
 
@@ -83,7 +165,8 @@ def register_live_commands(
         except Exception:
             logger.warning("live snapshot fetch failed", exc_info=True)
             snapshot = {"players": [], "generated_at": 0, "degraded": True}
-        body = render_dashboard(snapshot, _locale(interaction))
+        stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
+        body = render_dashboard(snapshot, _locale(interaction), stats=stats)
         await interaction.followup.send(body, ephemeral=True)
 
     @tree.command(
@@ -188,6 +271,65 @@ class MessageRegistryServiceLike(Protocol):
         """Persist (or replace) a registered message."""
         ...
 
+
+
+async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY) -> dict[str, dict[str, Any]]:
+    """Resolve per-profile enrichment: name, provider stats, last match.
+
+    Names come from the profile bindings; ratings/W-L come from the
+    provider stats cache (Redis TTL + Mongo, kingdoms.core.profile_stats);
+    the last-match time is the latest completed match the profile played.
+    All layers degrade — a missing value renders as absent, never errors.
+    """
+    import os
+
+    from kingdoms.core.models.db import get_async_database
+    from kingdoms.core.services.profile_stats import ProfileStatsService, stats_entry
+
+    if not profile_ids:
+        return {}
+    database = get_async_database()
+    enriched: dict[str, dict[str, Any]] = {}
+    bindings = database["profile_bindings"]
+    matches = database["matches"]
+    provider_uri = os.environ.get("EXT_LIBREMATCH_URI", "")
+    provider = None
+    if provider_uri:
+        from kingdoms.core.rpc.game_client import GameProviderClient
+
+        provider = GameProviderClient(provider_uri, "ext-librematch", game_key)
+    redis_client = None
+    redis_uri = os.environ.get("REDIS_URI", "")
+    if redis_uri:
+        from redis.asyncio import Redis
+
+        redis_client = Redis.from_url(redis_uri, decode_responses=True)
+    service = ProfileStatsService(provider, database, redis_client, game_key=game_key)
+    provider_stats = await service.get_many(profile_ids) if provider is not None else {}
+    for profile_id in profile_ids:
+        binding = await bindings.find_one({"game_key": game_key, "profile_id": profile_id})
+        display_name = ""
+        if binding is not None:
+            display_name = str((binding.get("profile") or {}).get("display_name", "")) or str(
+                binding.get("display_name", "")
+            )
+        last_match_ms = 0
+        async for doc in matches.find(
+            {"status": "completed"},
+            {"completed_at": 1},
+        ):
+            completed = doc.get("completed_at")
+            if completed and completed > last_match_ms:
+                last_match_ms = completed
+        stats = provider_stats.get(profile_id)
+        enriched[profile_id] = {
+            "display_name": display_name,
+            "rating": stats_entry(stats, "rm_1v1", "rating"),
+            "wins": stats_entry(stats, "rm_1v1", "wins"),
+            "losses": stats_entry(stats, "rm_1v1", "losses"),
+            "last_match_ms": last_match_ms,
+        }
+    return enriched
 
 async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
     """Resolve, migrate or create the guild's live-dashboard channel (idempotent).
@@ -319,7 +461,6 @@ async def start_live_dashboard_refresh(
     return asyncio.create_task(_run())
 
 
-GAME_KEY = "aoe2"
 PLATFORM = "discord"
 DASHBOARD_REFRESH_INTERVAL_S = 15
 
@@ -352,7 +493,8 @@ async def _push_snapshot(
     snapshot: dict[str, Any],
 ) -> None:
     """Edit every guild's dashboard message with the changed snapshot."""
-    body = render_dashboard(snapshot)
+    stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
+    body = render_dashboard(snapshot, stats=stats)
     embed = _dashboard_embed(snapshot, body, bot)
     for guild in list(bot.guilds):
         channel = await ensure_live_dashboard_channel(guild)
