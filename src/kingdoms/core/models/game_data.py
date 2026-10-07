@@ -36,9 +36,15 @@ class CatalogEntryModel(BaseModel):
 
 
 class MapModel(CatalogEntryModel):
-    """A map entry: ``filename`` is the opaque in-game reference (required)."""
+    """A map entry: ``filename`` is the opaque in-game reference (required).
+
+    ``forum_message_id`` holds the id of the map's post in the guild's
+    maps forum (the message is the map's public surface); ``None`` means
+    the post has not been provisioned yet.
+    """
 
     filename: str = ""
+    forum_message_id: str | None = None
 
 
 class CivModel(CatalogEntryModel):

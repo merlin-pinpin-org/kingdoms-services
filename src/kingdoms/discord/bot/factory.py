@@ -153,6 +153,7 @@ class KingdomsBot(discord.Client):
         self._provision_task: asyncio.Task[None] | None = None
         self._pin_task: asyncio.Task[None] | None = None
         self._live_dashboard_task: asyncio.Task[None] | None = None
+        self._maps_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
@@ -185,6 +186,10 @@ class KingdomsBot(discord.Client):
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
         self.add_dynamic_items(HomeButton)
+        from kingdoms.discord.admin_panel_games import register_games_admin_items, register_games_admin_section
+
+        register_games_admin_section()
+        register_games_admin_items(self)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -216,6 +221,10 @@ class KingdomsBot(discord.Client):
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
+            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
+
+            if maps_forum_wiring_ready():
+                self._maps_forum_task = start_maps_forum_sync(self)
         self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
@@ -447,6 +456,8 @@ class KingdomsBot(discord.Client):
             self._ladder_sweep_task.cancel()
         if self._live_dashboard_task is not None:
             self._live_dashboard_task.cancel()
+        if self._maps_forum_task is not None:
+            self._maps_forum_task.cancel()
         await super().close()
 
 

@@ -102,6 +102,70 @@ class DiscordChannelsPlatform:
                 reason="kingdoms: access policy role overwrite",
             )
 
+    async def ensure_category(self, guild_id: str, name: str) -> str:
+        """Find or create a category channel; return its id (idempotent)."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        category = discord.utils.get(guild.categories, name=name)
+        if category is None:
+            category = await guild.create_category(name, reason=f"kingdoms: provision the {name} category")
+        return str(category.id)
+
+    async def ensure_forum(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Find or create a read-only forum under a category; return its id."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        forum = discord.utils.get(guild.forums, name=name)
+        if forum is None:
+            parent = discord.utils.get(guild.categories, id=int(category_id)) if category_id else None
+            forum = await guild.create_forum(
+                name,
+                category=parent,
+                overwrites={
+                    guild.default_role: discord.PermissionOverwrite(
+                        view_channel=True, send_messages=False, create_public_threads=False
+                    ),
+                    guild.me: discord.PermissionOverwrite(
+                        view_channel=True,
+                        send_messages=True,
+                        create_public_threads=True,
+                        manage_threads=True,
+                        read_message_history=True,
+                    ),
+                },
+                reason=f"kingdoms: provision the {name} maps forum",
+            )
+        return str(forum.id)
+
+    async def forum_thread_exists(self, guild_id: str, thread_id: str) -> bool:
+        """Whether a forum thread still exists on the platform."""
+        guild = await self._guild(guild_id)
+        if guild is None or not thread_id.isdigit():
+            return False
+        return guild.get_channel_or_thread(int(thread_id)) is not None
+
+    async def create_map_post(
+        self, guild_id: str, forum_id: str, name: str, content: str, tags: list[str] | None = None
+    ) -> str:
+        """Create one forum post (thread); return its id."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        forum = guild.get_channel(int(forum_id))
+        if not isinstance(forum, discord.ForumChannel):
+            raise RuntimeError(f"forum {forum_id} not reachable")
+        available = {t.name for t in forum.available_tags}
+        applied = [discord.ForumTag(name=t) for t in (tags or []) if t in available] or discord.utils.MISSING
+        thread, _ = await forum.create_thread(
+            name=name,
+            content=content,
+            applied_tags=applied,
+            reason=f"kingdoms: map post {name}",
+        )
+        return str(thread.id)
+
     async def get_channel_overwrites(
         self, guild_id: str, channel_id: str
     ) -> dict[str, dict[str, bool]] | None:

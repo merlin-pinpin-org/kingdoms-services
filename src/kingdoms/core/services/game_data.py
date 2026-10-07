@@ -232,6 +232,52 @@ class GameDataService:
         doc = await self._db.find_entry(MAP_POOLS_COLLECTION, entry_id)
         return MapPoolModel.from_mongo(doc) if doc else None
 
+    async def update_map_pool(
+        self,
+        entry_id: str,
+        name: str | None = None,
+        map_ids: tuple[str, ...] | None = None,
+        description: str | None = None,
+    ) -> MapPoolModel:
+        """Update a pool's name, maps and/or description (validated).
+
+        All arguments are optional: only the provided ones change. New
+        maps are validated against the catalog, the name against the
+        game's taken names (excluding itself).
+        """
+        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        if name is not None and name != pool.name:
+            taken = await self._db.find_by_name(MAP_POOLS_COLLECTION, pool.game_key, name)
+            if taken is not None and taken["_id"] != entry_id:
+                raise NameTakenError(f"map pool {name!r} already exists for game {pool.game_key!r}")
+        if map_ids is not None:
+            for map_id in map_ids:
+                if await self._db.find_entry(MAPS_COLLECTION, map_id) is None:
+                    raise ValueError(f"unknown map {map_id!r}")
+        updates: dict[str, Any] = {}
+        if name is not None and name != pool.name:
+            updates["name"] = name
+        if description is not None:
+            updates["description"] = description
+        if map_ids is not None:
+            updates["map_ids"] = tuple(map_ids)
+        if not updates:
+            return pool
+        updated = pool.model_copy(update=updates)
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        await self._audit_record(
+            "map_pool.update",
+            {"pool_id": entry_id, "changes": {k: list(v) if k == "map_ids" else v for k, v in updates.items()}},
+        )
+        return updated
+
+    async def set_map_forum_message(self, entry_id: str, forum_message_id: str) -> MapModel:
+        """Record the map's forum post id (the map-message link)."""
+        entry = await self._require(MAPS_COLLECTION, entry_id, MapModel.from_mongo)
+        updated = entry.model_copy(update={"forum_message_id": forum_message_id})
+        await self._db.upsert_entry(MAPS_COLLECTION, updated.to_mongo())
+        return updated
+
     async def duplicate_map_pool(self, entry_id: str, new_name: str) -> MapPoolModel:
         """Duplicate a pool under a new name (a new stable id)."""
         source = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
