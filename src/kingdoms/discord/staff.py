@@ -141,6 +141,35 @@ async def _apply(interaction: discord.Interaction, mod: str) -> None:
     )
 
 
+async def _nominate(interaction: discord.Interaction, member: discord.User) -> None:
+    """Appoint one member to the staff (admin-only, context menu)."""
+    from kingdoms.discord.bot.factory import KingdomsBot
+    from kingdoms.discord.guards import require_admin
+
+    bot = interaction.client
+    if not isinstance(bot, KingdomsBot) or bot.staff_service is None:
+        await interaction.response.send_message("Le staff n'est pas configuré ici.", ephemeral=True)
+        return
+    staff = bot.staff_service
+    admins = tuple(bot.status_service.bot_admins)
+    allowed = await require_admin(interaction, admins, bot.roles_service)
+    if not allowed:
+        return
+    guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
+    user_id = str(member.id)
+    await staff.apply(guild_id, STAFF_DEFAULT_MOD, user_id, now=_now_ms())
+    await staff.decide(
+        guild_id, STAFF_DEFAULT_MOD, user_id, accept=True, decided_by=str(interaction.user.id), now=_now_ms()
+    )
+    season_roles = bot.season_roles_service
+    if season_roles is not None:
+        season = await _active_season_label(bot, guild_id)
+        await season_roles.sync_staff_role(guild_id, user_id, season, member=True)
+    await interaction.response.send_message(
+        f"<@{user_id}> est nommé staff {STAFF_DEFAULT_MOD}.", ephemeral=True
+    )
+
+
 async def _decide(interaction: discord.Interaction, decision: str, mod: str, user_id: str) -> None:
     """Apply an admin decision on one application (guard at click time)."""
     from kingdoms.discord.bot.factory import KingdomsBot
@@ -216,18 +245,12 @@ def register_staff_surface(
 ) -> None:
     """Register the staff context menu and the persistent buttons on the bot."""
 
-    @app_commands.context_menu(name="Kingdoms: Staff")
-    async def staff_apply_menu(interaction: discord.Interaction, member: discord.User) -> None:
-        """Right-click on a member: apply (self) or the notice (others)."""
-        if str(member.id) == str(interaction.user.id):
-            await _apply(interaction, STAFF_DEFAULT_MOD)
-        else:
-            await interaction.response.send_message(
-                "Candidature réservée à soi-même — le membre doit candidater lui-même.",
-                ephemeral=True,
-            )
+    @app_commands.context_menu(name="Nommer staff")
+    async def staff_nominate_menu(interaction: discord.Interaction, member: discord.User) -> None:
+        """Right-click on a member: an admin appoints them to the staff."""
+        await _nominate(interaction, member)
 
-    tree.add_command(staff_apply_menu)
+    tree.add_command(staff_nominate_menu)
 
     from kingdoms.discord.bot.factory import KingdomsBot
 

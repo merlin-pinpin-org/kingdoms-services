@@ -512,7 +512,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
     bot.home_service = HomeService(registry)
-    bot.mod_home_builders = {}
+    from kingdoms.discord.ladder_home import build_ladder_home_view
+
+    bot.mod_home_builders = {"ladder": build_ladder_home_view}
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
@@ -546,7 +548,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         start_ladder_sweep,
     )
 
-    ladder_wiring = build_ladder_wiring()
+    ladder_wiring = build_ladder_wiring(bot=bot, season_roles=bot.season_roles_service)
     if ladder_wiring is not None:
         register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
         bot.season_service = ladder_wiring.season_service
