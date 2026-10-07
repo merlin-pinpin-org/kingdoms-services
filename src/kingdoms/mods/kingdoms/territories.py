@@ -149,8 +149,10 @@ class TerritoryService:
         per_kingdom: int,
         bonus_target: int,
     ) -> list[TerritoryModel]:
-        """Draw one kingdom's territories: bonus maps first (parity),
-        then the neutral remainder — all popped from the shared pool."""
+        """Draw one kingdom's territories from the shared pool.
+
+        Bonus maps first (parity), then the neutral remainder.
+        """
         bonus_keys = [key for key in pool if self._map_cadastre(key)]
         neutral_keys = [key for key in pool if key not in bonus_keys]
         drawn: list[str] = []
@@ -166,9 +168,10 @@ class TerritoryService:
         return [self._new_territory(season, key, kingdom_id) for key in drawn]
 
     async def top_up_kingdom(self, kingdom_id: str, *, seed: int | None = None) -> list[TerritoryModel]:
-        """Draw the missing territories of one kingdom created after the
-        launch (free-founding mode) — same bonus-parity rule, so every
-        kingdom converges to the same bonus-map count.
+        """Draw the missing territories of one post-launch kingdom.
+
+        Free-founding mode, same bonus-parity rule, so every kingdom
+        converges to the same bonus-map count.
         """
         season = await self._require_season()
         already = await self.drawn_map_keys()
