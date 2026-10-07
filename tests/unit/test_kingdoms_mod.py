@@ -50,6 +50,7 @@ class TestModDeclaration:
             "attack_delays",
             "bug",
             "cadastre",
+            "carte",
             "diplomacy",
             "epoch",
             "exploration",

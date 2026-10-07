@@ -38,13 +38,48 @@ class DiscordChannelsPlatform:
         channel = discord.utils.get(guild.text_channels, name=name)
         return str(channel.id) if channel is not None else None
 
-    async def create_channel(self, guild_id: str, name: str) -> str:
-        """Create a text channel; return its id."""
+    async def create_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Create a text channel (inside a category when given); return its id."""
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
-        channel = await guild.create_text_channel(name, reason=f"kingdoms: provision the {name} channel")
+        category: discord.CategoryChannel | None = None
+        if category_id is not None and category_id.isdigit():
+            found = guild.get_channel(int(category_id))
+            category = found if isinstance(found, discord.CategoryChannel) else None
+        suffix = f" (in {category.name})" if category is not None else ""
+        channel = await guild.create_text_channel(
+            name,
+            reason=f"kingdoms: provision the {name} channel{suffix}",
+            category=category,
+        )
         return str(channel.id)
+
+    async def find_category_by_name(self, guild_id: str, name: str) -> str | None:
+        """Find a Discord category by its name (slug-compared); None when absent.
+
+        Discord stores category names slugged (lowercase, no accents,
+        dashes) — see ``kingdom_setup._slug`` — so the lookup compares
+        the normalized forms, never the raw display name.
+        """
+        from kingdoms.discord.kingdom_setup import _slug
+
+        guild = await self._guild(guild_id)
+        if guild is None:
+            return None
+        wanted = _slug(name)
+        for category in guild.categories:
+            if _slug(category.name) == wanted:
+                return str(category.id)
+        return None
+
+    async def create_category(self, guild_id: str, name: str) -> str:
+        """Create a Discord category channel; return its id."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        category = await guild.create_category(name, reason=f"kingdoms: provision the {name} category")
+        return str(category.id)
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         """Whether the channel still exists on the platform."""

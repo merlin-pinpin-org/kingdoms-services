@@ -56,7 +56,15 @@ through&nbsp;the&nbsp;guild's&nbsp;role&nbsp;list&nbsp;—&nbsp;logical&nbsp;key
 
 <dl><dt>async <a name="DiscordChannelsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+<dl><dt>async <a name="DiscordChannelsPlatform-create_category"><strong>create_category</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;Discord&nbsp;category&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel&nbsp;(inside&nbsp;a&nbsp;category&nbsp;when&nbsp;given);&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-find_category_by_name"><strong>find_category_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;Discord&nbsp;category&nbsp;by&nbsp;its&nbsp;name&nbsp;(slug-compared);&nbsp;None&nbsp;when&nbsp;absent.<br>
+&nbsp;<br>
+Discord&nbsp;stores&nbsp;category&nbsp;names&nbsp;slugged&nbsp;(lowercase,&nbsp;no&nbsp;accents,<br>
+dashes)&nbsp;—&nbsp;see&nbsp;``kingdom_setup._slug``&nbsp;—&nbsp;so&nbsp;the&nbsp;lookup&nbsp;compares<br>
+the&nbsp;normalized&nbsp;forms,&nbsp;never&nbsp;the&nbsp;raw&nbsp;display&nbsp;name.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
