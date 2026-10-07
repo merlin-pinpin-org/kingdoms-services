@@ -507,6 +507,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.kingdoms_territory_service = territory_service
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.kingdom_panels import register_kingdom_panels_command
     from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
@@ -516,11 +517,20 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
-    # Panel-only admin surface (product decision): every season admin
-    # action lives on the persistent Parametres panel buttons (launch,
-    # assign, replace, name decision, status, resets) — the /kingdom-admin
-    # group stays unregistered so /kingdom is the only visible command.
-    # kingdoms wiring lands with the later slices of this branch
+    # The only kingdoms slash command is the /kingdom bootstrap
+    # (structure + pinned panels, admin only — kingdoms#138, kingdoms#175):
+    # without it a fresh environment has salons but no content, and the
+    # Parametres panel (which carries the deploy/sync buttons) is never
+    # pinned. The player screens group (kingdoms.py) and the /kingdom-admin
+    # group stay unregistered — every season admin action lives on the
+    # persistent Parametres panel buttons.
+    register_kingdom_panels_command(
+        bot.tree,
+        logs_service=bot.logs_service,
+        bot_admins=status.bot_admins,
+        mod_roles_service=bot.mod_roles_service,
+        kingdoms_service=kingdoms_service,
+    )
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine

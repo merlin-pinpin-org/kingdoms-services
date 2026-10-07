@@ -77,9 +77,9 @@ def test_create_bot_parses_bot_admins(config_dir: str) -> None:
 
 def test_create_bot_registers_kingdoms_commands(config_dir: str) -> None:
     """The graft regression (4e8992e) dropped the kingdoms wiring; it is
-    a contract: /kingdom registers even without Mongo (placeholders),
-    and the service attribute is always present for the click-time
-    resolver of the persistent panels (kingdom_persistent)."""
+    a contract: /kingdom (the salons+panels bootstrap) registers even
+    without Mongo, and the service attribute is always present for the
+    click-time resolver of the persistent panels (kingdom_persistent)."""
     bot = create_bot(BotConfig(config_dir=config_dir))
     names = {command.name for command in bot.tree.get_commands()}
     assert "kingdom" in names
