@@ -44,6 +44,7 @@ class KingdomsPanelWiring:
     mod_roles_service: Any = None
     kingdoms_service: Any = None
     economy_service: Any = None
+    territory_service: Any = None
     channel_service: Any = None
     registry: Any = None
 
@@ -77,6 +78,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             mod_roles_service=getattr(bot, "mod_roles_service", None),
             kingdoms_service=getattr(bot, "kingdoms_service", None),
             economy_service=getattr(bot, "kingdoms_economy_service", None),
+            territory_service=getattr(bot, "kingdoms_territory_service", None),
             channel_service=getattr(bot, "channel_service", None),
             registry=getattr(bot, "registry", None),
         )
@@ -87,7 +89,15 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
 def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     """Re-register every persistent Kingdoms component class on the bot."""
     from kingdoms.discord.kingdom_market import KingdomMarketButton
+    from kingdoms.discord.kingdom_state_views import (
+        KingdomAlliancesInfoButton,
+        KingdomEgliseActionButton,
+        KingdomEgliseReglesButton,
+        KingdomTerritoryDetailButton,
+        register_kingdoms_state_pager,
+    )
 
+    register_kingdoms_state_pager()
     bot.add_dynamic_items(
         KingdomApplyButton,
         KingdomCandidatureButton,
@@ -95,6 +105,10 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomRequestButton,
         KingdomAdminButton,
         KingdomMarketButton,
+        KingdomTerritoryDetailButton,
+        KingdomAlliancesInfoButton,
+        KingdomEgliseActionButton,
+        KingdomEgliseReglesButton,
     )
 
 
@@ -514,6 +528,21 @@ async def _provision_kingdom_structure_safe(
         await ensure_kingdom_structure(guild, kingdoms_service, str(kingdom.id), kingdom.name)
     except Exception:
         logger.warning("KINGDOM STRUCTURE provisioning failed — best-effort", exc_info=True)
+        return
+    try:
+        from kingdoms.discord.kingdom_state_views import refresh_kingdom_state_views
+
+        wiring = _wiring()
+        await refresh_kingdom_state_views(
+            guild,
+            "fr",
+            kingdoms_service,
+            wiring.economy_service,
+            wiring.territory_service,
+            kingdom,
+        )
+    except Exception:
+        logger.warning("KINGDOM STATE views refresh failed — best-effort", exc_info=True)
 
 
 class KingdomDecideNameModal(discord.ui.Modal):
@@ -980,6 +1009,26 @@ async def _announce_enrollment_safe(
         await refresh_lords_roster(guild, locale, wiring.kingdoms_service)
     except Exception:
         logger.info("KINGDOMS: enrollment announcement skipped", exc_info=True)
+        return
+    try:
+        from kingdoms.discord.kingdom_state_views import refresh_kingdom_state_views
+
+        wiring = _wiring()
+        kingdom = None
+        if kingdom_name and wiring.kingdoms_service is not None:
+            kingdoms = await wiring.kingdoms_service.kingdoms()
+            kingdom = next((k for k in kingdoms if k.name == kingdom_name and not k.is_gaia), None)
+        if kingdom is not None:
+            await refresh_kingdom_state_views(
+                guild,
+                locale,
+                wiring.kingdoms_service,
+                wiring.economy_service,
+                wiring.territory_service,
+                kingdom,
+            )
+    except Exception:
+        logger.info("KINGDOM STATE: enrollment view refresh skipped", exc_info=True)
 
 
 async def _send_welcome(
