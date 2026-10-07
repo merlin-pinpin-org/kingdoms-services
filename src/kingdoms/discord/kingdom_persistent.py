@@ -498,6 +498,24 @@ class KingdomAddKingdomModal(discord.ui.Modal):
         await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
 
 
+async def _provision_kingdom_structure_safe(
+    guild: discord.Guild, kingdoms_service: Any, kingdom: Any
+) -> None:
+    """Best-effort provisioning of the kingdom category (D70, tranche ①).
+
+    The name decision (D21) is already persisted at this point: a
+    structure failure must never fail the admin's interaction, it is
+    logged and the next bootstrap converges (the provisioning is
+    idempotent).
+    """
+    try:
+        from kingdoms.discord.kingdom_structure import ensure_kingdom_structure
+
+        await ensure_kingdom_structure(guild, kingdoms_service, str(kingdom.id), kingdom.name)
+    except Exception:
+        logger.warning("KINGDOM STRUCTURE provisioning failed — best-effort", exc_info=True)
+
+
 class KingdomDecideNameModal(discord.ui.Modal):
     """The admin form to approve or refuse a proposed kingdom name (D21)."""
 
@@ -537,6 +555,8 @@ class KingdomDecideNameModal(discord.ui.Modal):
             return
         message = strings["name_approved"] if approved else strings["name_refused"]
         await interaction.followup.send(message.format(kingdom=kingdom.name), ephemeral=True)
+        if approved and interaction.guild is not None:
+            await _provision_kingdom_structure_safe(interaction.guild, wiring.kingdoms_service, kingdom)
         if interaction.guild is not None:
             await _refresh_season_status_safe(interaction.guild, self.locale)
 

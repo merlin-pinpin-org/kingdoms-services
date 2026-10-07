@@ -59,6 +59,7 @@ class ChannelCategoryDef:
     key: str
     display_name: str
     description: str = ""
+    group: str = ""
     per_instance: bool = False
     access: ChannelAccessPolicy = ChannelAccessPolicy()
 
@@ -93,6 +94,18 @@ class ModDefinition:
         raise KeyError(
             f"Mod '{self.name}' does not declare channel category '{key}'. Add it to config/mods/" + self.name + ".yaml"
         )
+
+    def channel_groups(self) -> tuple[str, ...]:
+        """Return the declared groups in declaration order (no duplicates).
+
+        The declaration order is the Discord category order (kingdoms#138,
+        D70): the groups are provisioned top to bottom as they appear.
+        """
+        groups: list[str] = []
+        for cat in self.channel_categories:
+            if cat.group and cat.group not in groups:
+                groups.append(cat.group)
+        return tuple(groups)
 
     def role(self, key: str) -> RoleDef:
         """Return the declared role for a key, fail loudly."""

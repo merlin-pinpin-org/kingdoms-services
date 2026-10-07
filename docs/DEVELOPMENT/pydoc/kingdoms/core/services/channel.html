@@ -60,15 +60,19 @@ Manage&nbsp;channels&nbsp;by&nbsp;category;&nbsp;never&nbsp;by&nbsp;name&nbsp;or
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ChannelService-__init__"><strong>__init__</strong></a>(self, database: 'ChannelsDatabase', platform: 'ChannelsPlatform', cache: 'ChannelsCache', registry: 'ModRegistry') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``cache``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).</span></dd></dl>
 
-<dl><dt>async <a name="ChannelService-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str') -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;creation).<br>
+<dl><dt>async <a name="ChannelService-get_channel_for_category"><strong>get_channel_for_category</strong></a>(self, guild_id: 'str', category: 'str', category_id: 'str | None' = None) -&gt; 'IChannel'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;channel&nbsp;for&nbsp;a&nbsp;category&nbsp;(cache&nbsp;-&gt;&nbsp;database&nbsp;-&gt;&nbsp;creation).<br>
 &nbsp;<br>
 The&nbsp;platform&nbsp;seam&nbsp;guarantees&nbsp;existence&nbsp;of&nbsp;the&nbsp;returned&nbsp;channel&nbsp;id;<br>
-this&nbsp;method&nbsp;returns&nbsp;the&nbsp;core-side&nbsp;channel&nbsp;view&nbsp;built&nbsp;from&nbsp;it.</span></dd></dl>
+this&nbsp;method&nbsp;returns&nbsp;the&nbsp;core-side&nbsp;channel&nbsp;view&nbsp;built&nbsp;from&nbsp;it.&nbsp;The<br>
+optional&nbsp;``category_id``&nbsp;is&nbsp;the&nbsp;Discord&nbsp;category&nbsp;the&nbsp;channel&nbsp;is<br>
+created&nbsp;inside&nbsp;when&nbsp;it&nbsp;does&nbsp;not&nbsp;exist&nbsp;yet&nbsp;(declaration&nbsp;groups).</span></dd></dl>
 
 <dl><dt>async <a name="ChannelService-setup_mod_channels"><strong>setup_mod_channels</strong></a>(self, guild_id: 'str', mod_name: 'str') -&gt; 'dict[str, IChannel]'</dt><dd><span class="code">Provision&nbsp;every&nbsp;channel&nbsp;category&nbsp;declared&nbsp;by&nbsp;a&nbsp;mod.<br>
 &nbsp;<br>
 Generic:&nbsp;reads&nbsp;the&nbsp;mod's&nbsp;declaration&nbsp;via&nbsp;ModRegistry&nbsp;and&nbsp;resolves<br>
-each&nbsp;``mod:key``&nbsp;category&nbsp;with&nbsp;the&nbsp;same&nbsp;flow&nbsp;as&nbsp;any&nbsp;other&nbsp;category.</span></dd></dl>
+each&nbsp;``mod:key``&nbsp;category&nbsp;with&nbsp;the&nbsp;same&nbsp;flow&nbsp;as&nbsp;any&nbsp;other&nbsp;category.<br>
+Declared&nbsp;groups&nbsp;(Discord&nbsp;categories)&nbsp;are&nbsp;resolved&nbsp;first,&nbsp;in<br>
+declaration&nbsp;order,&nbsp;so&nbsp;the&nbsp;channels&nbsp;are&nbsp;created&nbsp;inside&nbsp;them.</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
@@ -233,7 +237,11 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="ChannelsPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
-<dl><dt>async <a name="ChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+<dl><dt>async <a name="ChannelsPlatform-create_category"><strong>create_category</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;Discord&nbsp;category&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel&nbsp;(inside&nbsp;a&nbsp;category&nbsp;when&nbsp;given);&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="ChannelsPlatform-find_category_by_name"><strong>find_category_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;Discord&nbsp;category&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="ChannelsPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;channel&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
@@ -259,7 +267,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_access_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'get_channel_overwrites'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_access_policy', 'channel_exists', 'create_category', 'create_channel', 'find_category_by_name', 'find_channel_by_name', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>

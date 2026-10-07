@@ -60,7 +60,7 @@ class FakeChannelsPlatform:
     async def find_channel_by_name(self, guild_id: str, name: str) -> str | None:
         return None
 
-    async def create_channel(self, guild_id: str, name: str) -> str:
+    async def create_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
         channel_id = f"ch{self.next_id}"
         self.next_id += 1
         self.live.add(channel_id)
@@ -69,6 +69,16 @@ class FakeChannelsPlatform:
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         return channel_id in self.live
+
+    async def find_category_by_name(self, guild_id: str, name: str) -> str | None:
+        return None
+
+    async def create_category(self, guild_id: str, name: str) -> str:
+        channel_id = f"cat{self.next_id}"
+        self.next_id += 1
+        self.live.add(channel_id)
+        self.overwrites[channel_id] = {}
+        return channel_id
 
     async def apply_access_policy(
         self, guild_id: str, channel_id: str, policy: dict[str, object]
