@@ -83,9 +83,10 @@ def test_create_bot_registers_kingdoms_commands(config_dir: str) -> None:
     bot = create_bot(BotConfig(config_dir=config_dir))
     names = {command.name for command in bot.tree.get_commands()}
     assert "kingdom" in names
-    # No Mongo configured in unit tests: the service degrades to None,
-    # and /kingdom-admin stays unregistered (its commands need a store).
+    # No Mongo configured in unit tests: the service degrades to None.
     assert bot.kingdoms_service is None
+    # Panel-only admin surface: the /kingdom-admin group is never
+    # registered — the season admin lives on the Parametres panel buttons.
     assert "kingdom-admin" not in names
 
 

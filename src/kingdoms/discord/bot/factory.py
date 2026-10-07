@@ -491,6 +491,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.kingdoms import register_kingdoms_command
     from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
@@ -500,6 +501,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
+    # Panel-only admin surface (product decision): every season admin
+    # action lives on the persistent Parametres panel buttons (launch,
+    # assign, replace, name decision, status, resets) — the /kingdom-admin
+    # group stays unregistered so /kingdom is the only visible command.
+    # kingdoms wiring lands with the later slices of this branch
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
