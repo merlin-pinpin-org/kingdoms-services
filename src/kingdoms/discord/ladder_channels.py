@@ -29,6 +29,8 @@ import os
 import time
 from typing import Any
 
+import discord
+
 logger = logging.getLogger("kingdoms.ladder.channels")
 
 LADDER_CATEGORY_NAME = "Ladder"
@@ -136,7 +138,7 @@ async def _ensure_pinned_home(guild: Any) -> None:
     )
 
 
-async def _salon_message(guild: Any, channel_name: str, content: str) -> None:
+async def _salon_message(guild: Any, channel_name: str, view: Any) -> None:
     """Edit-in-place one salon's message (registry-addressed); recreate when gone."""
     channel = _channel_by_name(guild, channel_name)
     registry = _ladder_registry()
@@ -147,33 +149,37 @@ async def _salon_message(guild: Any, channel_name: str, content: str) -> None:
     if registered is not None:
         try:
             message = await channel.fetch_message(int(registered.message_id))
-            await message.edit(content=content)
+            await message.edit(view=view)
             return
         except Exception:
             await registry.forget(_REGISTRY_PLATFORM, key, str(guild.id))
-    message = await channel.send(content)
-    from kingdoms.core.models.registered_message import RegisteredMessageModel
-
+    message = await channel.send(view=view)
     await registry.register(
-        RegisteredMessageModel(
-            _id=f"{_REGISTRY_PLATFORM}:{key}:{guild.id}",
-            platform=_REGISTRY_PLATFORM,
-            message_key=key,
-            entity_id=str(guild.id),
-            channel_id=str(channel.id),
-            message_id=str(message.id),
-            guild_id=str(guild.id),
-        )
+        platform=_REGISTRY_PLATFORM,
+        message_key=key,
+        entity_id=str(guild.id),
+        channel_id=str(channel.id),
+        message_id=str(message.id),
+        guild_id=str(guild.id),
     )
 
 
 async def _sync_dashboard(guild: Any, surface: Any, ladder_id: str) -> None:
+    """Render the queue salon: the live queue plus the join/leave actions."""
+    from kingdoms.discord.ladder_home import LadderJoinButton, LadderLeaveButton
+
     rows = await surface.queue_view(ladder_id, now=int(time.time() * 1000))
     if rows:
         lines = [f"**{r.display_name}** — {r.rating} elo (attente {r.wait_seconds // 60} min)" for r in rows]
     else:
         lines = ["_Personne en queue — le premier à rejoindre ouvre le bal._"]
-    await _salon_message(guild, DASHBOARD_CHANNEL_NAME, "## 📊 File d'attente\n" + "\n".join(lines))
+    view = discord.ui.LayoutView(timeout=None)
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(LadderJoinButton())
+    actions.add_item(LadderLeaveButton())
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📊 File d'attente\n" + "\n".join(lines))))
+    view.add_item(actions)
+    await _salon_message(guild, DASHBOARD_CHANNEL_NAME, view)
 
 
 async def _sync_leaderboard(guild: Any, surface: Any, ladder_id: str) -> None:
@@ -182,7 +188,9 @@ async def _sync_leaderboard(guild: Any, surface: Any, ladder_id: str) -> None:
         lines = [f"**#{r.rank}** {r.display_name} — {r.rating} elo ({r.wins}V/{r.losses}D)" for r in rows]
     else:
         lines = ["_Aucun joueur classé pour l'instant._"]
-    await _salon_message(guild, LEADERBOARD_CHANNEL_NAME, "## 🏆 Classement\n" + "\n".join(lines))
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 🏆 Classement\n" + "\n".join(lines))))
+    await _salon_message(guild, LEADERBOARD_CHANNEL_NAME, view)
 
 
 async def _sync_history(guild: Any, wiring: Any, ladder_id: str) -> None:
@@ -192,7 +200,9 @@ async def _sync_history(guild: Any, wiring: Any, ladder_id: str) -> None:
     lines = [
         f"**{d.get('winner_user_id') or '?'}** bat {d.get('loser_user_id') or '?'}" for d in docs[:10]
     ] or ["_Aucun match joué pour l'instant._"]
-    await _salon_message(guild, HISTORY_CHANNEL_NAME, "## 📜 Derniers matchs\n" + "\n".join(lines))
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📜 Derniers matchs\n" + "\n".join(lines))))
+    await _salon_message(guild, HISTORY_CHANNEL_NAME, view)
 
 
 def start_ladder_channels_sync(bot: Any) -> asyncio.Task[None]:

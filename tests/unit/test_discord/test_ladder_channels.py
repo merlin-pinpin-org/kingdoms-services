@@ -15,13 +15,31 @@ from kingdoms.discord.ladder_channels import (
 
 
 class FakeMessage:
-    def __init__(self, content: str = "") -> None:
-        self.content = content
+    def __init__(self, view: Any = None) -> None:
+        self.view = view
         self.edited = 0
 
-    async def edit(self, content: str) -> None:
-        self.content = content
+    async def edit(self, view: Any = None) -> None:
+        self.view = view
         self.edited += 1
+
+
+
+def _view_text(message: Any) -> str:
+    """Flatten the message view's TextDisplay contents for assertions."""
+    texts: list[str] = []
+
+    def _walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        children = getattr(component, "children", None)
+        if children:
+            for child in children:
+                _walk(child)
+
+    _walk(message.view)
+    return chr(10).join(texts)
 
 
 class FakeChannel:
@@ -30,8 +48,8 @@ class FakeChannel:
         self.id = hash(name) & 0xFFFF
         self.sent: list[FakeMessage] = []
 
-    async def send(self, content: str) -> FakeMessage:
-        message = FakeMessage(content)
+    async def send(self, view: Any = None) -> FakeMessage:
+        message = FakeMessage(view)
         message.id = hash((self.name, len(self.sent))) & 0xFFFF
         self.sent.append(message)
         return message
@@ -66,8 +84,21 @@ class FakeRegistry:
     async def resolve(self, platform: str, key: str, entity_id: str) -> Any:
         return self.messages.get(key)
 
-    async def register(self, message: Any) -> None:
-        self.messages[message.message_key] = message
+    async def register(
+        self,
+        *,
+        platform: str,
+        message_key: str,
+        entity_id: str,
+        channel_id: str,
+        message_id: str,
+        guild_id: str | None = None,
+    ) -> None:
+        self.messages[message_key] = type(
+            "Registered",
+            (),
+            {"message_id": message_id, "channel_id": channel_id},
+        )()
 
     async def forget(self, platform: str, key: str, entity_id: str) -> bool:
         return self.messages.pop(key, None) is not None
@@ -126,8 +157,9 @@ async def test_dashboard_renders_queue(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await ladder_channels._sync_dashboard(guild, surface, "l1")
     assert len(channel.sent) == 1
-    assert "Alice" in channel.sent[0].content
-    assert "1500" in channel.sent[0].content
+    text = _view_text(channel.sent[0])
+    assert "Alice" in text
+    assert "1500" in text
 
 
 @pytest.mark.asyncio
@@ -142,9 +174,9 @@ async def test_leaderboard_renders_rankings(monkeypatch: pytest.MonkeyPatch) -> 
     surface.leaderboard_rows[1].rank = 2
 
     await ladder_channels._sync_leaderboard(guild, surface, "l1")
-    content = channel.sent[0].content
-    assert "#1" in content and "Alice" in content
-    assert "#2" in content and "Bob" in content
+    text = _view_text(channel.sent[0])
+    assert "#1" in text and "Alice" in text
+    assert "#2" in text and "Bob" in text
 
 
 @pytest.mark.asyncio
@@ -159,8 +191,9 @@ async def test_history_renders_matches(monkeypatch: pytest.MonkeyPatch) -> None:
     wiring.service._db = FakeDB([{"winner_user_id": "alice", "loser_user_id": "bob"}])
 
     await ladder_channels._sync_history(guild, wiring, "l1")
-    assert "alice" in channel.sent[0].content
-    assert "bob" in channel.sent[0].content
+    text = _view_text(channel.sent[0])
+    assert "alice" in text
+    assert "bob" in text
 
 
 @pytest.mark.asyncio

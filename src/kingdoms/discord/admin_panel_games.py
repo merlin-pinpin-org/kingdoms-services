@@ -493,8 +493,8 @@ class GamesPoolEditSelect(
         await interaction.response.edit_message(view=await pool_editor_view(chosen, self.game_key))
 
 
-async def pool_editor_view(pool_id: str, game_key: str) -> discord.ui.LayoutView:
-    """One pool's editor: rename, add/remove maps, archive."""
+async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discord.ui.LayoutView:
+    """One pool's editor: rename, add/remove maps (paged, 25 per select), archive."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay("# Editer le pool")]
@@ -509,7 +509,7 @@ async def pool_editor_view(pool_id: str, game_key: str) -> discord.ui.LayoutView
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
         return view
-    maps = await service.list_maps(pool.game_key)
+    maps = [m for m in await service.list_maps(pool.game_key) if m.archived_at is None]
     names = {m.id: m.name for m in maps}
     lines = [f"**{pool.name}** - {len(pool.map_ids)} maps"]
     for map_id in pool.map_ids:
@@ -518,9 +518,18 @@ async def pool_editor_view(pool_id: str, game_key: str) -> discord.ui.LayoutView
         lines.append("_Aucune map._")
     blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
+    # Discord caps a select at 25 options: with 50+ maps the picker pages
+    # through the catalog; the page rides the toggle's custom_id so the
+    # re-render after a toggle stays on the same page.
+    page_count = max(1, -(-len(maps) // PAGE_SIZE))
+    page = max(0, min(page, page_count - 1))
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    select_row.add_item(GamesPoolMapToggle(pool_id))
+    select_row.add_item(GamesPoolMapToggle(pool_id, page, _page_options(pool, maps, page)))
     view.add_item(select_row)
+    if page_count > 1:
+        page_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        page_row.add_item(GamesPoolMapPageSelect(pool_id, page_count, page))
+        view.add_item(page_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesPoolRenameButton(pool_id))
     action_row.add_item(GamesPoolArchiveButton(pool_id))
@@ -640,17 +649,85 @@ class GamesPoolArchiveButton(
         await interaction.followup.send("Pool supprime (archive).", ephemeral=True)
 
 
-class GamesPoolMapToggle(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:pools:maps:(?P<pool_id>.+)",
-):
-    """Add or remove a map from the pool (one select, toggle semantics)."""
+PAGE_SIZE = 25  # Discord's hard cap on select options
 
-    def __init__(self, pool_id: str, options: list[discord.SelectOption] | None = None) -> None:
+
+def _page_options(pool: Any, maps: list[Any], page: int) -> list[discord.SelectOption]:
+    """Build the page's toggle options (25 max, membership shown)."""
+    start = page * PAGE_SIZE
+    return [
+        discord.SelectOption(
+            label=f"{m.name}{' [dans le pool]' if pool and m.id in pool.map_ids else ''}",
+            value=m.id,
+        )
+        for m in maps[start : start + PAGE_SIZE]
+    ]
+
+
+class GamesPoolMapPageSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pools:page:(?P<page>[0-9]+):(?P<pool_id>.+)",
+):
+    """Turn to another page of the pool's map picker (25 maps per page)."""
+
+    def __init__(self, pool_id: str, page_count: int, page: int = 0) -> None:
         self.pool_id = pool_id
+        self.page_count = page_count
         super().__init__(
             discord.ui.Select(
-                custom_id=f"{_NS}:pools:maps:{pool_id}"[:100],
+                custom_id=f"{_NS}:pools:page:{page}:{pool_id}"[:100],
+                options=[
+                    discord.SelectOption(label=f"Maps {i * 25 + 1}-{min((i + 1) * 25, page_count * 25)}", value=str(i))
+                    for i in range(page_count)
+                ],
+                placeholder="Page du selecteur de maps...",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolMapPageSelect:
+        """Rebuild the pager from the wire; the page rides the id."""
+        service = _games_wiring()
+        pool_id = match.group("pool_id")
+        page_count = 1
+        if service is not None and pool_id:
+            pool = await service.get_map_pool(pool_id)
+            if pool is not None:
+                maps = [m for m in await service.list_maps(pool.game_key) if m.archived_at is None]
+                page_count = max(1, -(-len(maps) // 25))
+        return cls(pool_id, page_count)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Re-render the editor on the chosen page."""
+        service = _games_wiring()
+        pool = await service.get_map_pool(self.pool_id) if service is not None else None
+        if pool is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        page = int((self.item.values or ["0"])[0])
+        await interaction.response.edit_message(
+            view=await pool_editor_view(self.pool_id, pool.game_key, page)
+        )
+
+
+class GamesPoolMapToggle(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pools:maps:(?P<page>[0-9]+):(?P<pool_id>.+)",
+):
+    """Add or remove a map from the pool (one select, toggle semantics, paged)."""
+
+    def __init__(self, pool_id: str, page: int = 0, options: list[discord.SelectOption] | None = None) -> None:
+        self.pool_id = pool_id
+        self.page = page
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:pools:maps:{page}:{pool_id}"[:100],
                 options=options or [discord.SelectOption(label="Aucune map", value="none")],
                 placeholder="Ajouter / retirer une map...",
             )
@@ -664,22 +741,16 @@ class GamesPoolMapToggle(
         match: re.Match[str],
         /,
     ) -> GamesPoolMapToggle:
-        """Rebuild the select's options at click time; pool id from state."""
+        """Rebuild the select's options at click time; page and pool from state."""
         service = _games_wiring()
         pool_id = match.group("pool_id")
+        page = int(match.group("page"))
         options: list[discord.SelectOption] = []
         if service is not None and pool_id:
             pool = await service.get_map_pool(pool_id)
-            maps = await service.list_maps(pool.game_key if pool else GAME_KEY)
-            options = [
-                discord.SelectOption(
-                    label=f"{m.name}{' [dans le pool]' if pool and m.id in pool.map_ids else ''}",
-                    value=m.id,
-                )
-                for m in maps[:25]
-                if m.archived_at is None
-            ]
-        return cls(pool_id, options)
+            maps = [m for m in await service.list_maps(pool.game_key if pool else GAME_KEY) if m.archived_at is None]
+            options = _page_options(pool, maps, page)
+        return cls(pool_id, page, options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Toggle the chosen map in the pool, re-render the editor."""
@@ -708,7 +779,9 @@ class GamesPoolMapToggle(
             logger.exception("GAMES ADMIN: pool map toggle failed")
             await interaction.response.send_message("Modification echouee (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(view=await pool_editor_view(self.pool_id, pool.game_key))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(self.pool_id, pool.game_key, self.page)
+        )
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
 
 

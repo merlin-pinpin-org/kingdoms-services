@@ -437,15 +437,27 @@ def _notice_view(text: str, options: list[discord.SelectOption] | None = None) -
     return view
 
 
-def build_ladder_menu_layout() -> discord.ui.LayoutView:
-    """Build the ladder home layout (shared by the ephemeral view and the pin)."""
+def build_ladder_menu_layout(
+    user_id: str | None = None, in_queue: bool | None = None
+) -> discord.ui.LayoutView:
+    """Build the ladder home layout (shared by the ephemeral view and the pin).
+
+    The pinned salon menu is public and stateless: it shows both queue
+    actions. The ephemeral answer is personal: it resolves the clicker's
+    queue state and shows **one** of join/leave (#a1fb4f49) — never both.
+    """
     from kingdoms.discord.staff import StaffApplyButton
 
     view = discord.ui.LayoutView(timeout=None)
     main_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     main_row.add_item(LadderRegisterButton())
-    main_row.add_item(LadderJoinButton())
-    main_row.add_item(LadderLeaveButton())
+    if in_queue is None:
+        main_row.add_item(LadderJoinButton())
+        main_row.add_item(LadderLeaveButton())
+    elif in_queue:
+        main_row.add_item(LadderLeaveButton())
+    else:
+        main_row.add_item(LadderJoinButton())
     info_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     info_row.add_item(LadderQueueButton())
     info_row.add_item(LadderLeaderboardButton())
@@ -469,7 +481,23 @@ def build_ladder_menu_layout() -> discord.ui.LayoutView:
 
 async def build_ladder_home_view(interaction: discord.Interaction) -> None:
     """Answer the home's mod:ladder click with the button-only ladder home."""
-    await interaction.response.send_message(view=build_ladder_menu_layout(), ephemeral=True)
+    in_queue = await _clicker_in_queue(interaction)
+    await interaction.response.send_message(
+        view=build_ladder_menu_layout(user_id=str(interaction.user.id), in_queue=in_queue),
+        ephemeral=True,
+    )
+
+
+async def _clicker_in_queue(interaction: discord.Interaction) -> bool | None:
+    """Resolve whether the clicker sits in the queue (None: unresolvable)."""
+    wiring, ladder_id = _wiring_and_ladder_id(interaction)
+    if wiring is None or not ladder_id:
+        return None
+    try:
+        player = await wiring.service.get_player(ladder_id, str(interaction.user.id))
+    except Exception:
+        return None
+    return bool(player and player.queued_at is not None)
 
 
 def register_ladder_home_items(bot: discord.Client) -> None:
