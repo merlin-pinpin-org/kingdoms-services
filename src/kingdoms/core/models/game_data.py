@@ -78,8 +78,8 @@ class MapPackModel(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> MapPackModel:
-        """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        """Build from a MongoDB document (tuples re-coerced from lists)."""
+        return cls.model_validate({**data, "map_ids": tuple(data.get("map_ids") or ())})
 
 
 class MapPoolModel(BaseModel):
@@ -110,8 +110,14 @@ class MapPoolModel(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> MapPoolModel:
-        """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        """Build from a MongoDB document (tuples re-coerced from lists)."""
+        return cls.model_validate(
+            {
+                **data,
+                "map_ids": tuple(data.get("map_ids") or ()),
+                "map_pack_ids": tuple(data.get("map_pack_ids") or ()),
+            }
+        )
 
 
 class MapPoolActivationModel(BaseModel):

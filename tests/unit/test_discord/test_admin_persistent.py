@@ -346,7 +346,11 @@ class TestStartupRegistration:
 
         bot = FakeBot()
         register_admin_persistent_items(bot)
-        from kingdoms.discord.admin_panel_dynamic import PinReadOnlySelect, PinRolesButton
+        from kingdoms.discord.admin_panel_dynamic import (
+            PinLeaderboardsSelect,
+            PinReadOnlySelect,
+            PinRolesButton,
+        )
         from kingdoms.discord.admin_panel_mods import PinModRouteSelect
 
         assert set(bot.registered) == {
@@ -356,6 +360,7 @@ class TestStartupRegistration:
             PinRouteSelect,
             PinBackButton,
             PinModRouteSelect,
+            PinLeaderboardsSelect,
             PinReadOnlySelect,
             PinRolesButton,
         }

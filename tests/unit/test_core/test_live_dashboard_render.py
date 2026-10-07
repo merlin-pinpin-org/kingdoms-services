@@ -16,6 +16,14 @@ def _player(user: str, profile: str, state: str, match: str = "", since: int = 0
     return {"user_id": user, "profile_id": profile, "state": state, "match_ref": match, "since": since}
 
 
+
+def _stats(name: str, rating: str, wins: str, losses: str, ms: int) -> dict[str, Any]:
+    return {
+        "display_name": name,
+        "boards": [{"key": "rm_1v1", "label": "RM 1v1", "rating": rating, "wins": wins, "losses": losses}],
+        "last_match_ms": ms,
+    }
+
 def test_accounts_grouped_by_discord_user() -> None:
     accounts = group_by_account(
         [
@@ -40,16 +48,16 @@ def test_render_orders_online_first_then_last_match() -> None:
             ]
         ),
         stats={
-            "A": {"display_name": "Alice", "rating": "1500", "wins": "3", "losses": "1", "last_match_ms": 9_000},
-            "B": {"display_name": "Bob", "rating": "1600", "wins": "9", "losses": "2", "last_match_ms": 7_000},
-            "C": {"display_name": "Cara", "rating": "", "wins": "", "losses": "", "last_match_ms": 0},
+            "A": _stats("Alice", "1500", "3", "1", 9_000),
+            "B": _stats("Bob", "1600", "9", "2", 7_000),
+            "C": _stats("Cara", "", "", "", 0),
         },
     )
     assert body.index("🟢 <@20>") < body.index("— offline —")
     assert "— offline —" in body
     assert body.index("— offline —") < body.index("⚫ <@10>")
     assert body.index("⚫ <@10>") < body.index("⚫ <@30>")
-    assert "**Bob**" in body and "1600 elo" in body and "(9W/2L)" in body
+    assert "**Bob**" in body and "RM 1v1: 1600 elo" in body and "(9W/2L)" in body
     assert "**Alice**" in body and "match `m1`" not in body
 
 
@@ -62,8 +70,8 @@ def test_render_profile_sub_lines_carry_name_state_stats() -> None:
             ]
         ),
         stats={
-            "A": {"display_name": "Alice", "rating": "1500", "wins": "3", "losses": "1", "last_match_ms": 4_000},
-            "B": {"display_name": "Bob", "rating": "1200", "wins": "1", "losses": "5", "last_match_ms": 2_000},
+            "A": _stats("Alice", "1500", "3", "1", 4_000),
+            "B": _stats("Bob", "1200", "1", "5", 2_000),
         },
     )
     assert "🟢 <@10>" in body

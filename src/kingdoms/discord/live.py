@@ -87,9 +87,7 @@ def group_by_account(
                 "match_ref": str(p.get("match_ref", "")),
                 "since": p.get("since", 0),
                 "display_name": str(profile_stats.get("display_name", "")) or profile_id,
-                "rating": str(profile_stats.get("rating", "")),
-                "wins": str(profile_stats.get("wins", "")),
-                "losses": str(profile_stats.get("losses", "")),
+                "boards": profile_stats.get("boards", []),
                 "last_match_ms": profile_stats.get("last_match_ms", 0),
             }
         )
@@ -118,10 +116,11 @@ def _render_account(account: dict[str, Any]) -> str:
         sub += f"**{profile['display_name']}**"
         state_icon = _STATE_ICONS.get(profile["state"], "⚫")
         sub += f" {state_icon} {profile['state']}"
-        if profile["rating"]:
-            sub += f" — {profile['rating']} elo"
-        if profile["wins"] or profile["losses"]:
-            sub += f" ({profile['wins']}W/{profile['losses']}L)"
+        for board in profile.get("boards", []):
+            sub += (
+                f"\n    · {board['label']}: {board['rating']} elo"
+                f" ({board['wins']}W/{board['losses']}L)"
+            )
         if profile["match_ref"]:
             sub += f" — match `{profile['match_ref']}`"
         if profile["since"] and profile["state"] != "offline":
