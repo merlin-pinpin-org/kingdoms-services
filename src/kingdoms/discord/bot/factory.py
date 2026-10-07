@@ -616,7 +616,7 @@ def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
 
     Returns None when Mongo is not configured (unit tests, local runs):
     the /kingdoms screens degrade to their no-season placeholders and
-    the /kingdoms-admin group stays unregistered.
+    the /kingdom-admin group stays unregistered.
     """
     if not config.mongo_uri:
         return None
