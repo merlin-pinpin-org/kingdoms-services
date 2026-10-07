@@ -19,6 +19,7 @@ from kingdoms.discord.admin import (
     build_main_menu,
     register_admin_command,
 )
+from kingdoms.discord.admin_panel_dynamic import PIN_CHANNEL_MENU_ID, PIN_LOCALE_SELECT_ID
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
 
 
@@ -67,8 +68,10 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
-    assert LOCALE_SELECT_ID in customs, "the guild language select is on the main menu"
-    assert CHANNEL_MENU_ID in customs, "the managed-channel picker is on the main menu"
+    assert PIN_LOCALE_SELECT_ID in customs, "the guild language select is on the main menu"
+    assert PIN_CHANNEL_MENU_ID in customs, (
+        "the managed-channel picker is on the main menu"
+    )
     assert logs.resolved_guilds == ["42"]
     await client.close()
 
@@ -345,3 +348,35 @@ class _RoutingFailureLogsService(_FakeAdminLogsService):
 
     async def set_channel(self, guild_id: str, channel_id: str, by: str) -> None:
         raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
+
+
+@pytest.mark.asyncio
+async def test_admin_command_shows_the_mods_select_when_sections_exist() -> None:
+    """With a registered mod section, /admin answers the pin surface
+    carrying the mods route select (admin:pin:mod:mods)."""
+    from kingdoms.discord.admin_panel_mods import (
+        AdminModSection,
+        mod_section_route_id,
+        register_admin_mod_section,
+        unregister_admin_mod_section,
+    )
+
+    async def _entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
+        return discord.ui.LayoutView(timeout=None)
+
+    register_admin_mod_section(AdminModSection(mod="testmod", label="Test", entry=_entry))
+    client = discord.Client(intents=discord.Intents.none())
+    try:
+        tree = discord.app_commands.CommandTree(client)
+        logs = _FakeAdminLogsService(channel_id="555")
+        register_admin_command(tree, bot_admins=("111111111",), logs_service=logs)
+        command = next(c for c in tree.get_commands() if c.name == "admin")
+        interaction = MockInteraction(user=MockUser(id=111111111), guild=MockGuild(id=42))
+        interaction.guild_id = 42
+        await command._callback(interaction)  # type: ignore[union-attr]
+        assert interaction.followup.messages, "the panel arrives through the followup"
+        customs = _custom_ids(interaction.followup.messages[-1].layout)
+        assert mod_section_route_id("mods") in customs, "the mods select is on the panel"
+    finally:
+        unregister_admin_mod_section("testmod")
+        await client.close()

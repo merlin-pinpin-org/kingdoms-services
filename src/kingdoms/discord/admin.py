@@ -583,15 +583,15 @@ def register_admin_command(
 
         await interaction.response.defer(ephemeral=True)
         try:
-            panel = await build_main_menu(
+            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+
+            locale = await logs_service.get_locale(guild_id)
+            panel = await build_pin_main_menu(
                 logs_service,
                 guild_id,
-                str(user_id),
-                admins,
-                roles_service,
                 catalog,
+                locale,
                 admin_channel_service,
-                error_reporter,
             )
         except Exception as exc:
             logger.exception("ADMIN PANEL: logs management failed for guild %s", guild_id)
