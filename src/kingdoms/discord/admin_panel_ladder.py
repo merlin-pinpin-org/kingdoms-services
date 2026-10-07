@@ -149,11 +149,11 @@ async def ladder_admin_entry(
     enrolled = len(players)
     pool_ok = active_pool is not None
     season_ok = active is not None
-    start_ok = enrolled >= 2 and pool_ok
+    start_ok = enrolled >= 2 and pool_ok and season_ok
     checklist = [
         (" joueurs inscrits (2 minimum)", enrolled >= 2, f"{enrolled}/2"),
         (" map pool actif", pool_ok, active_pool.name if pool_ok else "aucun"),
-        (" saison en cours (optionnel)", season_ok, active.name if season_ok else "sans saison"),
+        (" saison en cours", season_ok, active.name if season_ok else "aucune"),
     ]
     checklist_lines = []
     for label, ok, detail in checklist:
@@ -530,10 +530,14 @@ class LadderPauseButton(
             players = await wiring.service._db.find_ladder_players(ladder_id)
             pools = await wiring.game_data.list_map_pools(ladder.get("game_key", GAME_KEY))
             pool_ok = any(p.id == ladder.active_map_pool_id for p in pools)
-            if len(players) < 2 or not pool_ok:
+            active_season = (
+                await wiring.season_service.get_active_season(ladder_id) if wiring.season_service else None
+            )
+            if len(players) < 2 or not pool_ok or active_season is None:
                 await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
                 await interaction.followup.send(
-                    "Demarrage bloque : il faut au moins 2 inscrits et un map pool actif.",
+                    "Demarrage bloque : il faut au moins 2 inscrits, un map pool actif "
+                    "et une saison en cours.",
                     ephemeral=True,
                 )
                 return
