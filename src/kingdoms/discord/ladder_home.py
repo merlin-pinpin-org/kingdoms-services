@@ -529,6 +529,7 @@ def build_ladder_menu_layout(
     in_queue: bool | None = None,
     enrollments_open: bool = True,
     queue_paused: bool = False,
+    season_details: str = "",
 ) -> discord.ui.LayoutView:
     """Build the ladder home layout (shared by the ephemeral view and the pin).
 
@@ -572,6 +573,8 @@ def build_ladder_menu_layout(
         "## 🏺 Ladder\n"
         "Ladder saisonnier 1v1 (AoE2) — tout se fait ici, sans commande."
     )
+    if season_details:
+        banner += "\n\n" + season_details
     if status_bits:
         banner += "\n" + " · ".join(status_bits)
     view.add_item(
@@ -605,7 +608,7 @@ def build_info_view() -> discord.ui.LayoutView:
         )
     )
     staff_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    staff_row.add_item(StaffApplyButton("ladder", label="Nous rejoindre"))
+    staff_row.add_item(StaffApplyButton("ladder", label="Rejoindre le staff"))
     view.add_item(staff_row)
     nav_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     nav_row.add_item(LadderHomeBackButton())
