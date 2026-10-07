@@ -22,6 +22,7 @@ from kingdoms.mods.kingdoms.diplomacy import (
     UnknownCivilizationError,
 )
 from kingdoms.mods.kingdoms.models import LordRole
+from kingdoms.mods.kingdoms.territories import MapPoolExhaustedError
 
 from .test_kingdoms_attacks import Bundle as _AttackBundle
 
@@ -52,8 +53,19 @@ class Bundle(_AttackBundle):
         self.diplomacy = DiplomacyService(self.store, self.config, self.kingdoms, self.territories)  # type: ignore[arg-type]
 
     async def draw_one(self, kingdom_id: str, map_key: str) -> None:
-        """Give one territory to a kingdom (catalog-validated)."""
-        await self.territories.draw_map_for(kingdom_id, map_key)
+        """Give one territory to a kingdom (catalog-validated).
+
+        The launch draw may already own the map: free-founding mode
+        means ownership, not freshness, unlocks the civilization.
+        """
+        try:
+            await self.territories.draw_map_for(kingdom_id, map_key)
+        except MapPoolExhaustedError:
+            territory = next(
+                t for t in await self.territories.territories() if t.map_key == map_key
+            )
+            if territory.owner_kingdom_id != kingdom_id:
+                await self.territories.transfer(territory.id, kingdom_id)
 
 
 async def test_map_key_condition_unlocks_celtes() -> None:

@@ -64,9 +64,9 @@ class MemoryStore(_BaseStore):
 
 
 def _config() -> KingdomsSeasonConfig:
-    """A small-catalog config: fast to exhaust, epochs 2-3-5-5."""
+    """A full-catalog config: enough maps for the events draws, epochs 2-3-5-5."""
     return KingdomsSeasonConfig(
-        maps=default_map_catalog()[:18],
+        maps=default_map_catalog()[:26],
         ages=(
             Epoch(key="dark_age", display_name="Âge sombre", gaia_ai_level=2, tech_points=0, extra_marriages=1),
             Epoch(key="feudal_age", display_name="Âge féodal", gaia_ai_level=3, tech_points=1, extra_marriages=1),
@@ -103,8 +103,10 @@ async def test_cycle_switch_recharges_budgets_and_adds_gaia_maps() -> None:
         for t in await bundle.territories.territories()
         if t.owner_kingdom_id == gaia_id
     ]
-    assert len(gaia_maps) == 8
-    assert report["gaia_new_maps"] == gaia_maps
+    # The launch draw already gave Gaia her initial 8 maps (§6.3);
+    # the cycle switch adds the Lord's Day 8 on top.
+    assert report["gaia_new_maps"] == gaia_maps[8:]
+    assert len(report["gaia_new_maps"]) == 8
     # A consumed budget is back.
     lords = await bundle.kingdoms.lords()
     assert all(lord.attack_used == 0 and lord.defense_used == 0 for lord in lords)
@@ -166,9 +168,11 @@ async def test_run_due_catches_up_after_a_restart() -> None:
     """D1: a restart replays every missed cycle from the season state."""
     bundle = Bundle()
     await bundle.launch_season()
+    # The launch draw leaves exactly one Lord's Day worth of maps in
+    # the pool (26 - 18 = 8), so only the first missed cycle can draw.
     await bundle.rewind_season(2)
-    reports = await bundle.events.run_due(datetime.now(tz=UTC))
-    assert [r["cycle"] for r in reports] == [1, 2]
+    with pytest.raises(SeasonExhaustedError):
+        await bundle.events.run_due(datetime.now(tz=UTC))
     season = await bundle.kingdoms.current_season()
     assert season is not None
     assert season.current_cycle == 2

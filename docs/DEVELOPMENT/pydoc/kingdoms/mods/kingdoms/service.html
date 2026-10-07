@@ -669,7 +669,7 @@ kingdom,&nbsp;or&nbsp;waits&nbsp;in&nbsp;the&nbsp;queue&nbsp;when&nbsp;no&nbsp;k
 
 <dl><dt>async <a name="KingdomsService-kingdoms"><strong>kingdoms</strong></a>(self) -&gt; 'list[KingdomModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdoms&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
-<dl><dt>async <a name="KingdomsService-launch"><strong>launch</strong></a>(self, imposed_names: 'list[str] | None' = None) -&gt; 'SeasonState'</dt><dd><span class="code">Launch&nbsp;a&nbsp;new&nbsp;season:&nbsp;wholesale&nbsp;reset,&nbsp;then&nbsp;the&nbsp;fresh&nbsp;state&nbsp;(D38).<br>
+<dl><dt>async <a name="KingdomsService-launch"><strong>launch</strong></a>(self, imposed_names: 'list[str] | None' = None, *, seed: 'int | None' = None) -&gt; 'SeasonState'</dt><dd><span class="code">Launch&nbsp;a&nbsp;new&nbsp;season:&nbsp;wholesale&nbsp;reset,&nbsp;then&nbsp;the&nbsp;fresh&nbsp;state&nbsp;(D38).<br>
 &nbsp;<br>
 ``imposed_names``&nbsp;switches&nbsp;to&nbsp;the&nbsp;imposed-kingdoms&nbsp;mode&nbsp;(D21):<br>
 the&nbsp;admin-defined&nbsp;kingdoms&nbsp;exist&nbsp;up&nbsp;front&nbsp;and&nbsp;players&nbsp;may&nbsp;not<br>

@@ -55,6 +55,7 @@ class TestModDeclaration:
             "exploration",
             "geopolitics",
             "lords",
+            "market",
             "patrol",
             "presentation",
             "question",

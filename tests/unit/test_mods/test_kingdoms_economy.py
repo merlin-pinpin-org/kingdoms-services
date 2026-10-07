@@ -41,6 +41,15 @@ class Bundle(_AttackBundle):
         """Credit the kingdom wallet (epoch/exploration stand-in)."""
         await self.economy.grant_tech_points(kingdom_id, points)
 
+    async def free_map(self, *forbidden: str) -> str:
+        """A catalog map that the launch draw did not take."""
+        drawn = await self.territories.drawn_map_keys()
+        return next(
+            entry.key
+            for entry in self.config.maps
+            if entry.key not in drawn and entry.key not in forbidden
+        )
+
 
 async def test_wallet_grant_and_spend() -> None:
     """D9: the wallet credits and debits, and refuses overdrafts."""
@@ -61,14 +70,15 @@ async def test_explorateur_buys_an_immediate_territory_once() -> None:
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.fund(aquitaine, 5)
-    territory = await bundle.economy.buy_explorateur(aquitaine, "arabia")
-    assert territory.map_key == "arabia"
+    chosen = await bundle.free_map()
+    territory = await bundle.economy.buy_explorateur(aquitaine, chosen)
+    assert territory.map_key == chosen
     assert territory.owner_kingdom_id == aquitaine
     assert await bundle.economy.wallet(aquitaine) == 3
     # Consumable: a second purchase the same season is refused.
     await bundle.fund(aquitaine, 5)
     with pytest.raises(EconomyLimitReachedError):
-        await bundle.economy.buy_explorateur(aquitaine, "islands")
+        await bundle.economy.buy_explorateur(aquitaine, chosen)
 
 
 async def test_explorateur_refuses_out_and_unknown_maps() -> None:
@@ -79,12 +89,13 @@ async def test_explorateur_refuses_out_and_unknown_maps() -> None:
     await bundle.fund(aquitaine, 5)
     with pytest.raises(TerritoryNotFoundError):
         await bundle.economy.buy_explorateur(aquitaine, "not-a-map")
-    await bundle.economy.buy_explorateur(aquitaine, "arabia")
+    chosen = await bundle.free_map()
+    await bundle.economy.buy_explorateur(aquitaine, chosen)
     # Another kingdom confirms the map is now out for everyone (S8).
     bourgogne = await bundle.kingdom_id("Bourgogne")
     await bundle.fund(bourgogne, 5)
     with pytest.raises(MapPoolExhaustedError):
-        await bundle.economy.buy_explorateur(bourgogne, "arabia")
+        await bundle.economy.buy_explorateur(bourgogne, chosen)
 
 
 async def test_corruption_steals_protects_and_compensates() -> None:

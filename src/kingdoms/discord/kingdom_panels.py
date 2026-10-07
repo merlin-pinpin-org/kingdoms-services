@@ -895,6 +895,37 @@ async def _deploy_apply_panel(
     )
 
 
+async def _deploy_channel_panel(
+    channel: discord.TextChannel,
+    report: dict[str, str],
+    *,
+    candidatures: discord.TextChannel | None,
+    locale: str,
+    guild_id: str,
+    logs_service: LogService | None,
+    bot_admins: tuple[str, ...],
+    mod_roles_service: ModRolesService | None,
+    kingdoms_service: Any = None,
+) -> None:
+    """Deploy the panel matching one salon, when there is one."""
+    from kingdoms.discord.kingdom_setup import _slug
+
+    slug = _slug(channel.name)
+    if slug == "postuler":
+        await _deploy_apply_panel(
+            channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
+        )
+        report["postuler"] = "deployed"
+    elif slug == "parametres":
+        await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
+        report["paramètres"] = "deployed"
+    elif slug == "marche":
+        from kingdoms.discord.kingdom_market import deploy_market_panel
+
+        await deploy_market_panel(channel, kingdoms_service, locale)
+        report["marché"] = "deployed"
+
+
 async def deploy_panels(
     guild: discord.Guild,
     logs_service: LogService | None,
@@ -920,19 +951,17 @@ async def deploy_panels(
 
     candidatures = next((c for c in guild.text_channels if _slug(c.name) == "candidatures"), None)
     for channel in guild.text_channels:
-        if _slug(channel.name) == "postuler":
-            await _deploy_apply_panel(
-                channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
-            )
-            report["postuler"] = "deployed"
-        if _slug(channel.name) == "parametres":
-            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
-            report["paramètres"] = "deployed"
-        if _slug(channel.name) == "marche":
-            from kingdoms.discord.kingdom_market import deploy_market_panel
-
-            await deploy_market_panel(channel, kingdoms_service, locale)
-            report["marché"] = "deployed"
+        await _deploy_channel_panel(
+            channel,
+            report,
+            candidatures=candidatures,
+            locale=locale,
+            guild_id=guild_id,
+            logs_service=logs_service,
+            bot_admins=bot_admins,
+            mod_roles_service=mod_roles_service,
+            kingdoms_service=kingdoms_service,
+        )
     context = _ApplicationContext(
         locale=locale,
         bot_admins=bot_admins,
