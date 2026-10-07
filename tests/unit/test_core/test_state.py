@@ -182,3 +182,74 @@ async def test_scoped_events_are_isolated(service: StateService) -> None:
     await service.subscribe("workflow", any_event_callback(received))
     await service.publish("ladder", "step.done", {"step": "ask_name"})
     assert received == []
+
+
+class _FakeRedisClient:
+    """An in-memory redis client double (str values, no network)."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+        self.expires: list[tuple[str, int]] = []
+
+    async def get(self, key: str) -> str | None:
+        return self.values.get(key)
+
+    async def set(
+        self, key: str, value: str, ex: int | None = None, nx: bool = False
+    ) -> object:
+        del ex
+        if nx and key in self.values:
+            return None
+        self.values[key] = value
+        return b"OK"
+
+    async def delete(self, key: str) -> int:
+        return 1 if self.values.pop(key, None) is not None else 0
+
+    async def incr(self, key: str) -> int:
+        count = int(self.values.get(key, "0")) + 1
+        self.values[key] = str(count)
+        return count
+
+    async def expire(self, key: str, window: int, nx: bool = False) -> bool:
+        del nx
+        self.expires.append((key, window))
+        return True
+
+    async def publish(self, channel: str, message: str) -> int:
+        del channel, message
+        return 0
+
+
+class _LazyStore(RedisStateStore):
+    """A RedisStateStore whose lazy connection lands a fake client."""
+
+    def __init__(self) -> None:
+        super().__init__(redis_uri="redis://lazy-fake")
+        self.connected = 0
+
+    async def _ensure_started(self) -> object:
+        if self._client is None:
+            self._client = _FakeRedisClient()  # type: ignore[assignment]
+            self.connected += 1
+        return self._client
+
+
+async def test_redis_store_connects_lazily_on_first_use() -> None:
+    store = _LazyStore()
+    assert await store.set("kingdoms:x", "1") is True
+    assert store.connected == 1  # the very first write connected the client
+    assert await store.get("kingdoms:x") == "1"
+    assert store.connected == 1  # the following reads reuse the connection
+    assert await store.delete("kingdoms:x") is True
+    assert await store.get("kingdoms:x") is None
+
+
+async def test_redis_store_increment_and_rate_limit_lazy() -> None:
+    store = _LazyStore()
+    assert await store.increment("kingdoms:rl", window=60) == 1
+    assert await store.increment("kingdoms:rl", window=60) == 2
+    assert store.connected == 1
+    assert store._client is not None  # type: ignore[union-attr]
+    client = store._client  # type: ignore[union-attr]
+    assert all(entry == ("kingdoms:rl", 60) for entry in client.expires)  # type: ignore[attr-defined]
