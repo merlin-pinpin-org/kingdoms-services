@@ -169,6 +169,7 @@ class KingdomsBot(discord.Client):
         self._home_providers: dict[str, Any] = {}
         self._home_pin_task: asyncio.Task[None] | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
+        self._ladder_channels_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -223,10 +224,13 @@ class KingdomsBot(discord.Client):
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
+            from kingdoms.discord.ladder_channels import ladder_channels_wiring_ready, start_ladder_channels_sync
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
 
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
+            if ladder_channels_wiring_ready():
+                self._ladder_channels_task = start_ladder_channels_sync(self)
         self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
@@ -460,6 +464,8 @@ class KingdomsBot(discord.Client):
             self._live_dashboard_task.cancel()
         if self._maps_forum_task is not None:
             self._maps_forum_task.cancel()
+        if self._ladder_channels_task is not None:
+            self._ladder_channels_task.cancel()
         await super().close()
 
 

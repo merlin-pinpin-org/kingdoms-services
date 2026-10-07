@@ -102,6 +102,19 @@ class DiscordChannelsPlatform:
                 reason="kingdoms: access policy role overwrite",
             )
 
+    async def ensure_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
+        """Find or create a text channel (under a category); return its id."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        channel = discord.utils.get(guild.text_channels, name=name)
+        if channel is None:
+            parent = discord.utils.get(guild.categories, id=int(category_id)) if category_id else None
+            channel = await guild.create_text_channel(
+                name, category=parent, reason=f"kingdoms: provision the {name} channel"
+            )
+        return str(channel.id)
+
     async def ensure_category(self, guild_id: str, name: str) -> str:
         """Find or create a category channel; return its id (idempotent)."""
         guild = await self._guild(guild_id)

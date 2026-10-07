@@ -20,8 +20,6 @@ from typing import Any
 
 import discord
 
-from kingdoms.discord.staff import StaffApplyButton
-
 logger = logging.getLogger("kingdoms.ladder.home")
 
 _NS = "ladder:home"
@@ -299,8 +297,10 @@ class LadderUnregisterButton(
         await _run_membership(interaction, "unregister")
 
 
-async def build_ladder_home_view(interaction: discord.Interaction) -> None:
-    """Answer the home's mod:ladder click with the button-only ladder home."""
+def build_ladder_menu_layout() -> discord.ui.LayoutView:
+    """Build the ladder home layout (shared by the ephemeral view and the pin)."""
+    from kingdoms.discord.staff import StaffApplyButton
+
     view = discord.ui.LayoutView(timeout=None)
     main_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     main_row.add_item(LadderRegisterButton())
@@ -323,7 +323,12 @@ async def build_ladder_home_view(interaction: discord.Interaction) -> None:
             staff_row,
         )
     )
-    await interaction.response.send_message(view=view, ephemeral=True)
+    return view
+
+
+async def build_ladder_home_view(interaction: discord.Interaction) -> None:
+    """Answer the home's mod:ladder click with the button-only ladder home."""
+    await interaction.response.send_message(view=build_ladder_menu_layout(), ephemeral=True)
 
 
 def register_ladder_home_items(bot: discord.Client) -> None:
