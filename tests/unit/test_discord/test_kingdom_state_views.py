@@ -257,10 +257,20 @@ async def test_missing_structure_is_a_noop_report() -> None:
     assert report == {}
 
 
+def _custom_ids(view: Any) -> list[str]:
+    """The custom ids of a view's children (dynamic items wrap the button)."""
+    ids: list[str] = []
+    for child in view.children:
+        ids.append(
+            getattr(child, "custom_id", None) or getattr(getattr(child, "item", None), "custom_id", "")
+        )
+    return ids
+
+
 def test_territoire_view_carries_detail_and_pager_buttons() -> None:
     territories = [_FakeTerritory(f"t-{i}", f"map-{i}", "k-1") for i in range(7)]
     view = _territoire_view(territories, 0)
-    custom_ids = [item.custom_id for item in view.children]
+    custom_ids = _custom_ids(view)
     assert sum(1 for cid in custom_ids if cid.startswith("kingdoms:terr:detail:")) == 5
     assert "kingdoms_terr:page:1" in custom_ids
     assert not any(cid == "kingdoms_terr:page:0" for cid in custom_ids)

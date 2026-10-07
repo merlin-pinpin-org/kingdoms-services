@@ -37,8 +37,8 @@ import discord
 
 from kingdoms.discord.kingdom_setup import _find_category, _slug
 from kingdoms.discord.kingdom_structure import (
-    KINGDOM_CHANNELS,
     KINGDOM_CATEGORY_PREFIX,
+    KINGDOM_CHANNELS,
     _find_channel_in,
     kingdom_category_name,
 )
@@ -318,7 +318,7 @@ def _royaume_content(
         f"- 🛡️ {strings['royaume_patrouille']} : {strings['patrouille_coming']}",
         f"- 🤖 {strings['royaume_gaia']} : {ai_level}/5",
         f"- 🧪 {strings['royaume_techs']} : {getattr(technology, 'tech_points', 0)} 🔬"
-        f" ({sum(purchases.values())} ➕)",
+        f" ({sum(purchases.values())} +)",
         f"- 🏰 {strings['royaume_guard']} : {protected}/{len(territories)}",
         STATE_MARKERS["royaume"],
     ]
@@ -623,6 +623,59 @@ def register_kingdoms_state_pager() -> None:
     register_page_renderer(TERRITORY_PAGER_MOD, _territory_page_renderer)
 
 
+async def _season_snapshot(kingdoms_service: Any, kingdom: Any) -> dict[str, Any] | None:
+    """Read the season inputs of one kingdom's views; None when unavailable."""
+    try:
+        config = kingdoms_service.config
+        season = await kingdoms_service.current_season()
+        lords = await kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOM STATE: season read failed", exc_info=True)
+        return None
+    age_key = season.current_age_key if season is not None else ""
+    age = next((entry for entry in getattr(config, "ages", ()) if entry.key == age_key), None)
+    return {
+        "config": config,
+        "members": [lord for lord in lords if lord.kingdom_id == kingdom.id],
+        "ai_level": getattr(age, "gaia_ai_level", 0),
+    }
+
+
+def _salon_payload(
+    key: str,
+    strings: dict[str, str],
+    locale: str,
+    kingdom: Any,
+    snapshot: dict[str, Any],
+    territories: list[Any],
+    technology: Any | None,
+    now: datetime,
+) -> tuple[str, discord.ui.View | None]:
+    """Build the (content, view) payload of one state salon."""
+    members: list[Any] = snapshot["members"]
+    if key == "royaume":
+        content = _royaume_content(
+            strings, kingdom, members, territories, technology, snapshot["ai_level"], now
+        )
+        return content, None
+    if key == "seigneurs":
+        attacks = getattr(snapshot["config"], "attacks", None)
+        budgets = (getattr(attacks, "attacks_per_week", 1), getattr(attacks, "defenses_per_week", 1))
+        return _seigneurs_content(strings, kingdom, members, budgets), None
+    if key == "territoire":
+        return (
+            _territoire_content(strings, kingdom, territories, 0, now),
+            _territoire_view(territories, 0),
+        )
+    if key == "alliances":
+        view = discord.ui.View(timeout=None)
+        view.add_item(KingdomAlliancesInfoButton(strings["alliances_info_button"]))
+        return _alliances_content(strings, kingdom), view
+    if key == "eglise":
+        return _eglise_content(strings, kingdom, members), _eglise_view(locale)
+    return _patrouille_content(strings, kingdom, snapshot["config"]), None
+
+
 async def refresh_kingdom_state_views(
     guild: discord.Guild,
     locale: str,
@@ -639,66 +692,23 @@ async def refresh_kingdom_state_views(
     """
     if kingdoms_service is None or kingdom is None or getattr(kingdom, "is_gaia", False):
         return {}
-    report: dict[str, bool] = {}
-    strings = _strings(locale)
-    try:
-        config = kingdoms_service.config
-        season = await kingdoms_service.current_season()
-        lords = await kingdoms_service.lords()
-    except Exception:
-        logger.warning("KINGDOM STATE: season read failed", exc_info=True)
+    snapshot = await _season_snapshot(kingdoms_service, kingdom)
+    if snapshot is None:
         return {}
-    members = [lord for lord in lords if lord.kingdom_id == kingdom.id]
-    age_key = season.current_age_key if season is not None else ""
-    age = next((entry for entry in getattr(config, "ages", ()) if entry.key == age_key), None)
-    ai_level = getattr(age, "gaia_ai_level", 0)
-    attacks = getattr(config, "attacks", None)
-    budgets = (getattr(attacks, "attacks_per_week", 1), getattr(attacks, "defenses_per_week", 1))
+    strings = _strings(locale)
+    territories = await _territories_of(territory_service, str(kingdom.id))
+    technology = await _technology_state(economy_service, str(kingdom.id))
     now = datetime.now(UTC)
-    territories: list[Any] = []
-    try:
-        territories = await _territories_of(territory_service, str(kingdom.id))
-    except Exception:
-        logger.warning("KINGDOM STATE: territory listing failed", exc_info=True)
-    technology = None
-    try:
-        technology = await _technology_state(economy_service, str(kingdom.id))
-    except Exception:
-        logger.warning("KINGDOM STATE: technology listing failed", exc_info=True)
-    pages: dict[str, Any] = {
-        "royaume": None,
-        "seigneurs": None,
-        "territoire": None,
-        "alliances": None,
-        "eglise": None,
-        "patrouille": None,
-    }
+    report: dict[str, bool] = {}
     for key in STATE_CHANNEL_KEYS:
         try:
             channel = await _kingdom_channel(guild, kingdom.name, key)
-        except Exception:
-            logger.warning("KINGDOM STATE: salon lookup failed (%s)", key, exc_info=True)
-            continue
-        if channel is None:
-            continue
-        try:
-            if key == "royaume":
-                content = _royaume_content(strings, kingdom, members, territories, technology, ai_level, now)
-            elif key == "seigneurs":
-                content = _seigneurs_content(strings, kingdom, members, budgets)
-            elif key == "territoire":
-                content = _territoire_content(strings, kingdom, territories, 0, now)
-                pages[key] = _territoire_view(territories, 0)
-            elif key == "alliances":
-                content = _alliances_content(strings, kingdom)
-                pages[key] = discord.ui.View(timeout=None)
-                pages[key].add_item(KingdomAlliancesInfoButton(strings["alliances_info_button"]))
-            elif key == "eglise":
-                content = _eglise_content(strings, kingdom, members)
-                pages[key] = _eglise_view(locale)
-            else:
-                content = _patrouille_content(strings, kingdom, config)
-            report[key] = await _upsert_marked(channel, content, STATE_MARKERS[key], pages[key])
+            if channel is None:
+                continue
+            content, view = _salon_payload(
+                key, strings, locale, kingdom, snapshot, territories, technology, now
+            )
+            report[key] = await _upsert_marked(channel, content, STATE_MARKERS[key], view)
         except Exception:
             logger.warning("KINGDOM STATE: view refresh failed (%s)", key, exc_info=True)
     return report
