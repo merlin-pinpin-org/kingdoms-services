@@ -154,6 +154,7 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self._live_dashboard_task: asyncio.Task[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
+        self._pools_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
@@ -193,6 +194,8 @@ class KingdomsBot(discord.Client):
 
         register_games_admin_section()
         register_games_admin_items(self)
+        from kingdoms.discord.maps_pool_flow import register_pool_flow_items
+        register_pool_flow_items(self)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -226,9 +229,11 @@ class KingdomsBot(discord.Client):
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
             from kingdoms.discord.ladder_channels import ladder_channels_wiring_ready, start_ladder_channels_sync
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
+            from kingdoms.discord.pools_forum import start_pools_forum_sync
 
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
+                self._pools_forum_task = start_pools_forum_sync(self)
             if ladder_channels_wiring_ready():
                 self._ladder_channels_task = start_ladder_channels_sync(self)
         self._live_dashboard_task = _start_live_dashboard(self)
@@ -464,6 +469,8 @@ class KingdomsBot(discord.Client):
             self._live_dashboard_task.cancel()
         if self._maps_forum_task is not None:
             self._maps_forum_task.cancel()
+        if self._pools_forum_task is not None:
+            self._pools_forum_task.cancel()
         if self._ladder_channels_task is not None:
             self._ladder_channels_task.cancel()
         await super().close()

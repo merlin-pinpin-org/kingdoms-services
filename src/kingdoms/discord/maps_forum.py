@@ -22,6 +22,8 @@ import logging
 import os
 from typing import Any
 
+import discord
+
 logger = logging.getLogger("kingdoms.games.maps_forum")
 
 GAMES_CATEGORY_NAME = "games"
@@ -69,14 +71,36 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.archived_at is not None:
             continue
         if entry.forum_message_id and await platform.forum_thread_exists(guild_id, entry.forum_message_id):
+            await _ensure_add_button(platform, guild_id, entry.forum_message_id, entry.id)
             continue
         content = f"**{entry.name}**\n{entry.description or '_Aucune description._'}"
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
-        thread_id = await platform.create_map_post(guild_id, forum_id, entry.name, content)
+        thread_id = await platform.create_map_post(
+            guild_id, forum_id, entry.name, content, view=_map_post_view(entry.id)
+        )
         await service.set_map_forum_message(entry.id, thread_id)
         created += 1
     return created
+
+
+def _map_post_view(map_id: str) -> Any:
+    """Build the map post's view: the pool-flow entry point (admins)."""
+    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton
+
+    view = discord.ui.View(timeout=None)
+    view.add_item(MapAddToPoolButton(map_id))
+    return view
+
+
+async def _ensure_add_button(platform: Any, guild_id: str, thread_id: str, map_id: str) -> None:
+    """Attach the add-to-pool button to pre-flow posts (best-effort)."""
+    from kingdoms.discord.maps_pool_flow import _ADD_NS
+
+    try:
+        await platform.ensure_forum_post_view(guild_id, thread_id, _map_post_view(map_id), _ADD_NS)
+    except Exception:
+        logger.debug("maps forum: add-button migration skipped (thread %s)", thread_id, exc_info=True)
 
 
 def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:

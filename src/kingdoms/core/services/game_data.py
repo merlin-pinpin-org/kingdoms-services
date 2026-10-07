@@ -69,8 +69,14 @@ class GameDataDatabase(Protocol):
         """List the distinct game keys present in the maps catalog."""
         ...
 
-    async def find_active_map_pools(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived map pools for a game."""
+    async def find_active_map_pools(
+        self, game_key: str, guild_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List the non-archived map pools for a game, scoped for one guild.
+
+        Scoped: the guild's own pools plus the public ones (owned by other
+        guilds but shared); unscoped: every pool of the game.
+        """
         ...
 
     async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
@@ -148,9 +154,13 @@ class GameDataService:
         docs = await self._db.find_active_maps(game_key)
         return [MapModel.from_mongo(d) for d in docs]
 
-    async def list_map_pools(self, game_key: str) -> list[MapPoolModel]:
-        """List the non-archived map pools of a game."""
-        docs = await self._db.find_active_map_pools(game_key)
+    async def list_map_pools(self, game_key: str, guild_id: str | None = None) -> list[MapPoolModel]:
+        """List the non-archived map pools of a game, scoped for one guild.
+
+        Scoped: the guild's own pools plus the public ones (owned by other
+        guilds but shared with everyone); unscoped: every pool of the game.
+        """
+        docs = await self._db.find_active_map_pools(game_key, guild_id=guild_id)
         return [MapPoolModel.from_mongo(d) for d in docs]
 
     async def archive_map(self, entry_id: str) -> MapModel:
@@ -209,8 +219,15 @@ class GameDataService:
         map_ids: tuple[str, ...] = (),
         map_pack_ids: tuple[str, ...] = (),
         description: str = "",
+        owner_guild_id: str | None = None,
+        is_public: bool = False,
     ) -> MapPoolModel:
-        """Create a pool referencing maps and/or packs; at least one map resolved."""
+        """Create a pool referencing maps and/or packs; at least one map resolved.
+
+        The pool belongs to a guild (``owner_guild_id``) or is global
+        (None); a public pool is shared with every guild while keeping
+        its owner (#04fcb94c).
+        """
         if await self._db.find_by_name(MAP_POOLS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map pool {name!r} already exists for game {game_key!r}")
         for map_id in map_ids:
@@ -228,6 +245,8 @@ class GameDataService:
             description=description,
             map_ids=tuple(map_ids),
             map_pack_ids=tuple(map_pack_ids),
+            owner_guild_id=owner_guild_id,
+            is_public=is_public,
         )
         await self._db.upsert_entry(MAP_POOLS_COLLECTION, pool.to_mongo())
         await self._audit_record(
@@ -378,6 +397,23 @@ class GameDataService:
         await self._db.upsert_entry(MAP_POOLS_COLLECTION, entry.to_mongo())
         await self._audit_record("map_pool.archive", {"entry_id": entry_id})
         return entry
+
+    async def set_map_pool_public(
+        self, entry_id: str, is_public: bool, owner_guild_id: str | None = None
+    ) -> MapPoolModel:
+        """Share a pool with every guild (or make it private again).
+
+        The pool keeps its owner; making it public shares it with every
+        guild's pool pickers and forums (#04fcb94c).
+        """
+        entry = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        updates: dict[str, Any] = {"is_public": is_public}
+        if owner_guild_id is not None:
+            updates["owner_guild_id"] = owner_guild_id
+        updated = entry.model_copy(update=updates)
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        await self._audit_record("map_pool.visibility", {"entry_id": entry_id, "is_public": is_public})
+        return updated
 
     async def assert_pool_archivable(self, entry_id: str) -> None:
         """Guard: refuse archiving a pool still active on a ladder.

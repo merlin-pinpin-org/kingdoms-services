@@ -182,9 +182,15 @@ class DiscordChannelsPlatform:
         return guild.get_channel_or_thread(int(thread_id)) is not None
 
     async def create_map_post(
-        self, guild_id: str, forum_id: str, name: str, content: str, tags: list[str] | None = None
+        self,
+        guild_id: str,
+        forum_id: str,
+        name: str,
+        content: str,
+        tags: list[str] | None = None,
+        view: discord.ui.View | None = None,
     ) -> str:
-        """Create one forum post (thread); return its id."""
+        """Create one forum post (thread), optionally with a view; return its id."""
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
@@ -193,13 +199,40 @@ class DiscordChannelsPlatform:
             raise RuntimeError(f"forum {forum_id} not reachable")
         available = {t.name for t in forum.available_tags}
         applied = [discord.ForumTag(name=t) for t in (tags or []) if t in available] or discord.utils.MISSING
+        kwargs: dict[str, Any] = {"applied_tags": applied}
+        if view is not None:
+            kwargs["view"] = view
         thread, _ = await forum.create_thread(
             name=name,
             content=content,
-            applied_tags=applied,
             reason=f"kingdoms: map post {name}",
+            **kwargs,
         )
         return str(thread.id)
+
+    async def ensure_forum_post_view(
+        self, guild_id: str, thread_id: str, view: discord.ui.View, marker_custom_id: str
+    ) -> bool:
+        """Attach ``view`` to a forum post's starter message when absent.
+
+        Migration path for posts created before their flow existed: when
+        the starter message carries no component matching ``marker_custom_id``
+        (prefix match), edit it to attach the view. True when the post now
+        carries it (already present or just attached).
+        """
+        guild = await self._guild(guild_id)
+        if guild is None or not thread_id.isdigit():
+            return False
+        thread = guild.get_channel_or_thread(int(thread_id))
+        if not isinstance(thread, discord.Thread):
+            return False
+        message = await thread.fetch_message(thread.id)
+        for component in message.components:
+            for child in getattr(component, "children", ()):
+                if getattr(child, "custom_id", "").startswith(marker_custom_id):
+                    return True
+        await message.edit(view=view)
+        return True
 
     async def get_channel_overwrites(
         self, guild_id: str, channel_id: str

@@ -52,10 +52,18 @@ async def _run_membership(interaction: discord.Interaction, action: str) -> None
     membership = build_ladder_membership(wiring.service, ladder_id, wiring.season_service, wiring.season_roles)
     guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
     user_id = str(interaction.user.id)
-    if action == "register":
-        result = await membership.register(guild_id, user_id, interaction.user.display_name)
-    else:
-        result = await membership.unregister(guild_id, user_id)
+    try:
+        if action == "register":
+            result = await membership.register(guild_id, user_id, interaction.user.display_name)
+        else:
+            result = await membership.unregister(guild_id, user_id)
+    except Exception:
+        logger.warning("MEMBERSHIP %s failed (button)", action, exc_info=True)
+        await interaction.response.send_message(
+            "Action impossible — les inscriptions sont peut-être fermées.",
+            ephemeral=True,
+        )
+        return
     await interaction.response.send_message(result.summary, ephemeral=True)
 
 
@@ -232,6 +240,85 @@ class LadderLeaderboardButton(
                 for row in rows[:10]
             )
         await interaction.response.send_message(body, ephemeral=True)
+
+
+class LadderInfoButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:info",
+):
+    """Open the mod's info page (project, repo, maintainers, join us)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="À propos",
+                emoji="\N{INFORMATION SOURCE}\N{VARIATION SELECTOR-16}",
+                custom_id=f"{_NS}:info",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderInfoButton:
+        """Rebuild the stateless item from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Answer with the project's info page (join-us entry point)."""
+        await interaction.response.send_message(view=build_info_view(), ephemeral=True)
+
+
+class LadderHomeBackButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"home:open:home",
+):
+    """The back-to-home button every mod view carries."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="⬅️ Home",
+                custom_id="home:open:home",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderHomeBackButton:
+        """Rebuild the stateless item from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Re-open the core home menu (ephemeral)."""
+        from kingdoms.discord.home import open_home_menu
+
+        await open_home_menu(interaction)
+
+
+async def _ladder_state(interaction: discord.Interaction) -> tuple[bool, bool] | None:
+    """Resolve (enrollments_open, queue_paused); None when unresolvable."""
+    wiring, ladder_id = _wiring_and_ladder_id(interaction)
+    if wiring is None or not ladder_id:
+        return None
+    try:
+        ladder = await wiring.service.get_ladder(ladder_id)
+    except Exception:
+        return None
+    if ladder is None:
+        return None
+    return bool(ladder.enrollments_open), bool(ladder.queue_paused)
 
 
 class LadderRegisterButton(
@@ -438,52 +525,106 @@ def _notice_view(text: str, options: list[discord.SelectOption] | None = None) -
 
 
 def build_ladder_menu_layout(
-    user_id: str | None = None, in_queue: bool | None = None
+    user_id: str | None = None,
+    in_queue: bool | None = None,
+    enrollments_open: bool = True,
+    queue_paused: bool = False,
 ) -> discord.ui.LayoutView:
     """Build the ladder home layout (shared by the ephemeral view and the pin).
 
     The pinned salon menu is public and stateless: it shows both queue
     actions. The ephemeral answer is personal: it resolves the clicker's
     queue state and shows **one** of join/leave (#a1fb4f49) — never both.
+    Closed enrollments disable the register and join actions; a paused
+    queue disables join/leave — the disabled state is visible, not silent.
     """
-    from kingdoms.discord.staff import StaffApplyButton
-
     view = discord.ui.LayoutView(timeout=None)
+    join = LadderJoinButton()
+    join.item.disabled = queue_paused
+    register = LadderRegisterButton()
+    register.item.disabled = not enrollments_open
     main_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    main_row.add_item(LadderRegisterButton())
+    main_row.add_item(register)
     if in_queue is None:
-        main_row.add_item(LadderJoinButton())
-        main_row.add_item(LadderLeaveButton())
+        leave = LadderLeaveButton()
+        leave.item.disabled = queue_paused
+        main_row.add_item(join)
+        main_row.add_item(leave)
     elif in_queue:
-        main_row.add_item(LadderLeaveButton())
+        leave = LadderLeaveButton()
+        leave.item.disabled = queue_paused
+        main_row.add_item(leave)
     else:
-        main_row.add_item(LadderJoinButton())
+        main_row.add_item(join)
     info_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     info_row.add_item(LadderQueueButton())
     info_row.add_item(LadderLeaderboardButton())
     info_row.add_item(LadderPreferencesButton())
-    staff_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    staff_row.add_item(StaffApplyButton("ladder", label="Nous rejoindre"))
+    info_row.add_item(LadderInfoButton())
+    nav_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    nav_row.add_item(LadderHomeBackButton())
+    status_bits = []
+    if not enrollments_open:
+        status_bits.append("⚠️ Inscriptions fermées")
+    if queue_paused:
+        status_bits.append("⏸️ File en pause")
+    banner = (
+        "## 🏺 Ladder\n"
+        "Ladder saisonnier 1v1 (AoE2) — tout se fait ici, sans commande."
+    )
+    if status_bits:
+        banner += "\n" + " · ".join(status_bits)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(
-                "## 🗺️ Ladder\n"
-                "Ladder saisonnier 1v1 (AoE2) — tout se fait ici, sans commande."
-            ),
+            discord.ui.TextDisplay(banner),
             main_row,
             info_row,
             discord.ui.Separator(),
-            staff_row,
+            nav_row,
         )
     )
+    return view
+
+
+def build_info_view() -> discord.ui.LayoutView:
+    """Render the project's info page: what Kingdoms is, where it lives, who runs it."""
+    from kingdoms.discord.staff import StaffApplyButton
+
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(
+                "## 🏓 Kingdoms\n"
+                "Une plateforme communautaire de ladders et d'événements "
+                "autour de vos jeux préférés (AoE2 aujourd'hui).\n\n"
+                "- **Repo** : [kingdoms-services](https://github.com/merlin-pinpin-org/kingdoms-services)\n"
+                "- **Infra** : [kingdoms-infra](https://github.com/merlin-pinpin-org/kingdoms-infra)\n"
+                "- **Maintainers** : l'équipe Kingdoms\n\n"
+                "Envie de contribuer — staff, idées, tests ? Clique ci-dessous."
+            ),
+        )
+    )
+    staff_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    staff_row.add_item(StaffApplyButton("ladder", label="Nous rejoindre"))
+    view.add_item(staff_row)
+    nav_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    nav_row.add_item(LadderHomeBackButton())
+    view.add_item(nav_row)
     return view
 
 
 async def build_ladder_home_view(interaction: discord.Interaction) -> None:
     """Answer the home's mod:ladder click with the button-only ladder home."""
     in_queue = await _clicker_in_queue(interaction)
+    state = await _ladder_state(interaction)
+    enrollments_open, queue_paused = state if state else (True, False)
     await interaction.response.send_message(
-        view=build_ladder_menu_layout(user_id=str(interaction.user.id), in_queue=in_queue),
+        view=build_ladder_menu_layout(
+            user_id=str(interaction.user.id),
+            in_queue=in_queue,
+            enrollments_open=enrollments_open,
+            queue_paused=queue_paused,
+        ),
         ephemeral=True,
     )
 
@@ -503,6 +644,8 @@ async def _clicker_in_queue(interaction: discord.Interaction) -> bool | None:
 def register_ladder_home_items(bot: discord.Client) -> None:
     """Register the ladder home's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(
+        LadderInfoButton,
+        LadderHomeBackButton,
         LadderJoinButton,
         LadderLeaveButton,
         LadderQueueButton,

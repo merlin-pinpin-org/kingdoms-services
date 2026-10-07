@@ -71,9 +71,16 @@ class MongoAoE2Database:
         cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
         return [doc async for doc in cursor]
 
-    async def find_active_map_pools(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived map pools for a game."""
-        cursor = self._database[collection_name("map_pools")].find({"game_key": game_key, "archived_at": None})
+    async def find_active_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List the non-archived map pools for a game, scoped for one guild.
+
+        Scoped: the guild's own pools plus the public ones (owned by other
+        guilds but shared); unscoped: every pool of the game.
+        """
+        query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}, {"is_public": True}]
+        cursor = self._database[collection_name("map_pools")].find(query)
         return [doc async for doc in cursor]
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:

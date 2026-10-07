@@ -116,9 +116,20 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
     return view
 
 
+async def open_home_menu(interaction: discord.Interaction) -> None:
+    """Answer with the home menu itself (the back target of mod views)."""
+    home = getattr(interaction.client, "home_service", None)
+    if home is None:
+        await interaction.response.send_message("Menu indisponible.", ephemeral=True)
+        return
+    await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
+
+
 async def open_home_view(interaction: discord.Interaction, view_key: str) -> None:
     """Answer a home click with the matching ephemeral view."""
-    if view_key == "status":
+    if view_key == "home":
+        await open_home_menu(interaction)
+    elif view_key == "status":
         await _view_status(interaction)
     elif view_key == "profile":
         await _view_profile(interaction)

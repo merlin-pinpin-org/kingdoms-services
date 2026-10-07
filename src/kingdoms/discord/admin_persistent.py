@@ -215,6 +215,21 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
             wiring.admin_channel_service,
         )
     )
+    await _resync_guild_commands(interaction, guild_id)
+
+
+async def _resync_guild_commands(interaction: discord.Interaction, guild_id: str) -> None:
+    """Re-sync this guild's slash commands so their names follow the new language."""
+    import discord
+
+    tree = getattr(interaction.client, "tree", None)
+    if tree is None:
+        return
+    try:
+        await tree.sync(guild=discord.Object(id=int(guild_id)))
+        logger.info("COMMAND RESYNC after locale change (guild %s)", guild_id)
+    except Exception:
+        logger.warning("COMMAND RESYNC failed (guild %s) — best-effort", guild_id, exc_info=True)
 
 
 async def _handle_channel(interaction: discord.Interaction) -> None:

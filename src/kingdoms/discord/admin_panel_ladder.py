@@ -436,13 +436,19 @@ class LadderEnrollButton(
         if not ladder_id:
             await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
             return
-        await wiring.service.set_enrollments_open(ladder_id, self.state == "open")
+        ladder = await wiring.service.get_ladder(ladder_id)
+        current_open = bool(ladder.enrollments_open) if ladder is not None else True
+        opening = self.state == "open"
+        if opening == current_open:
+            await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+            return
+        await wiring.service.set_enrollments_open(ladder_id, opening)
         await wiring.service._audit_record(
-            "ladder.enrollments", {"ladder_id": ladder_id, "open": self.state == "open"}
+            "ladder.enrollments", {"ladder_id": ladder_id, "open": opening}
         )
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
         await interaction.followup.send(
-            "Inscriptions **ouvertes**." if self.state == "open" else "Inscriptions **fermees**.",
+            "Inscriptions **ouvertes**." if opening else "Inscriptions **fermées**.",
             ephemeral=True,
         )
 
@@ -486,13 +492,19 @@ class LadderPauseButton(
         if not ladder_id:
             await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
             return
-        await wiring.service.set_queue_paused(ladder_id, self.state == "pause")
+        ladder = await wiring.service.get_ladder(ladder_id)
+        current_paused = bool(ladder.queue_paused) if ladder is not None else False
+        pausing = self.state == "pause"
+        if pausing == current_paused:
+            await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
+            return
+        await wiring.service.set_queue_paused(ladder_id, pausing)
         await wiring.service._audit_record(
-            "ladder.queue", {"ladder_id": ladder_id, "paused": self.state == "pause"}
+            "ladder.queue", {"ladder_id": ladder_id, "paused": pausing}
         )
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
         await interaction.followup.send(
-            "Ladder **interrompu** (file en pause)." if self.state == "pause" else "Ladder **demarre**.",
+            "Ladder **interrompu** (file en pause)." if pausing else "Ladder **démarré**.",
             ephemeral=True,
         )
 
@@ -576,59 +588,59 @@ class LadderSeasonCreateButton(
 
 
 class LadderSeasonModal(discord.ui.Modal):
-    """The season-creation form: name, pool, window, rating reset."""
+    """The season-creation form: name + optional duration (the pool is chosen in a select)."""
 
     def __init__(self, ladder_id: str) -> None:
         self.ladder_id = ladder_id
-        super().__init__(title="Creer une saison", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom (ex. s2)", max_length=32, required=True)
-        self.pool: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Map pool id (optionnel - vide = pool actif)", max_length=100, required=False
+        super().__init__(title="Créer une saison", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom (ex. s2)", max_length=32, required=True
         )
-        self.days: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Duree (jours)", default="90", max_length=5)
-        self.reset: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Reset des ratings (oui/non)", default="non", max_length=5
+        self.days: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Durée en jours (optionnel)", placeholder="90", max_length=5, required=False
         )
         self.add_item(self.name)
-        self.add_item(self.pool)
         self.add_item(self.days)
-        self.add_item(self.reset)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Handle the form submission: validate, create, confirm."""
+        """Handle the form: validate, create, confirm — pool picked separately."""
         wiring = build_ladder_wiring()
         if wiring is None or wiring.season_service is None:
             await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
             return
+        name = str(self.name.value).strip()
+        if not name:
+            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
+            return
+        days: int | None = None
+        if str(self.days.value or "").strip():
+            try:
+                days = int(str(self.days.value).strip())
+            except ValueError:
+                await interaction.response.send_message("Durée invalide (un nombre de jours).", ephemeral=True)
+                return
         now = _now_ms()
-        pool_value: str | None = None
         ladder = await wiring.service.get_ladder(self.ladder_id)
+        pool_value: str | None = None
         if ladder is not None and ladder.active_map_pool_id:
             pool_value = str(ladder.active_map_pool_id)
         else:
             pools = await wiring.game_data.list_map_pools(GAME_KEY)
             pool_value = pools[0].id if pools else None
-        days = 90
-        if str(self.days.value or "").strip():
-            try:
-                days = int(str(self.days.value).strip())
-            except ValueError:
-                await interaction.response.send_message("Duree invalide.", ephemeral=True)
-                return
         try:
             season = await wiring.season_service.create_season(
                 self.ladder_id,
-                str(self.name.value).strip(),
+                name,
                 pool_value,
                 start_at=now,
-                end_at=now + days * 86_400_000,
+                end_at=now + days * 86_400_000 if days else None,
             )
         except Exception:
             logger.exception("LADDER ADMIN: season creation failed")
-            await interaction.response.send_message("Creation echouee (voir les logs).", ephemeral=True)
+            await interaction.response.send_message("Création échouée (nom déjà pris ?).", ephemeral=True)
             return
         await interaction.response.send_message(
-            f"Saison **{season.name}** creee (`{season.id}`) - active-la depuis la liste.",
+            f"Saison **{season.name}** créée — active-la depuis la liste.",
             ephemeral=True,
         )
 

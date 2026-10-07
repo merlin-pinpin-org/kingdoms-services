@@ -100,6 +100,8 @@ class MapPoolModel(BaseModel):
     map_pack_ids: tuple[str, ...] = ()
     fav_quota: int | None = None
     ban_quota: int | None = None
+    owner_guild_id: str | None = None
+    is_public: bool = False
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

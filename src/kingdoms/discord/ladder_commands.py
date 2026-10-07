@@ -139,11 +139,17 @@ async def _join_command(interaction: Any, service: Any, ladder_id: str) -> None:
     from kingdoms.mods.ladder.surface import ACTION_JOIN_QUEUE, LadderSurface
 
     user_id = str(interaction.user.id)
+    locale = await _locale(interaction)
     has_game_profile = await _join_precondition(user_id)
     if has_game_profile is None:
-        reason = "Registration is not configured — profiles cannot be verified."
+        reason = _t(
+            interaction,
+            locale,
+            "ladder.join_unconfigured",
+            "Registration is not configured — profiles cannot be verified.",
+        )
     elif not has_game_profile:
-        reason = "No AoE2 profile linked — use /register first."
+        reason = _t(interaction, locale, "ladder.join_no_profile", "No AoE2 profile linked — use /register first.")
     else:
         reason = ""
     if reason:
@@ -158,9 +164,14 @@ async def _join_command(interaction: Any, service: Any, ladder_id: str) -> None:
         has_game_profile=bool(has_game_profile),
     )
     if result.ok:
-        await interaction.response.send_message("You joined the queue.", ephemeral=True)
+        await interaction.response.send_message(
+            _t(interaction, locale, "ladder.joined_queue", "You joined the queue."), ephemeral=True
+        )
     else:
-        await interaction.response.send_message(f"Could not join: {result.reason}", ephemeral=True)
+        await interaction.response.send_message(
+            _t(interaction, locale, "ladder.join_failed", "Could not join: {reason}").format(reason=result.reason),
+            ephemeral=True,
+        )
 
 
 def register_ladder_commands(
@@ -172,8 +183,13 @@ def register_ladder_commands(
     import discord
     from discord import app_commands
 
+    from kingdoms.discord.commands_i18n import localized
+
     ladder_id = f"ladder:{GAME_KEY}:{owner_ref}"
-    group = app_commands.Group(name="ladder", description="Ladder: queue, matches, standings")
+    group = app_commands.Group(
+        name=localized("commands.ladder_name", "ladder"),
+        description=localized("commands.ladder_description", "Ladder: queue, matches, standings"),
+    )
 
     @group.command(name="queue")
     async def queue_command(interaction: discord.Interaction) -> None:
@@ -182,8 +198,9 @@ def register_ladder_commands(
 
         surface = LadderSurface(wiring.service)
         rows = await surface.queue_view(ladder_id, now=_now_ms())
+        locale = await _locale(interaction)
         if not rows:
-            body = "Queue is empty."
+            body = _t(interaction, locale, "ladder.queue_empty", "The queue is empty.")
         else:
             body = "\n".join(
                 f"{i + 1}. <@{row.user_id}> — {row.rating} (waiting {row.wait_seconds // 60}m, "
@@ -209,10 +226,18 @@ def register_ladder_commands(
         user_id = str(interaction.user.id)
         surface = LadderSurface(wiring.service)
         result = await surface.execute(ACTION_LEAVE_QUEUE, ladder_id, user_id, now=_now_ms())
+        locale = await _locale(interaction)
         if result.ok:
-            await interaction.response.send_message("You left the queue.", ephemeral=True)
+            await interaction.response.send_message(
+                _t(interaction, locale, "ladder.left_queue", "You left the queue."), ephemeral=True
+            )
         else:
-            await interaction.response.send_message(f"Could not leave: {result.reason}", ephemeral=True)
+            await interaction.response.send_message(
+                _t(interaction, locale, "ladder.leave_failed", "Could not leave: {reason}").format(
+                    reason=result.reason
+                ),
+                ephemeral=True,
+            )
 
     @group.command(name="leaderboard")
     async def leaderboard_command(interaction: discord.Interaction) -> None:
@@ -221,8 +246,9 @@ def register_ladder_commands(
 
         surface = LadderSurface(wiring.service)
         rows = await surface.leaderboard_view(ladder_id)
+        locale = await _locale(interaction)
         if not rows:
-            body = "No players yet."
+            body = _t(interaction, locale, "ladder.leaderboard_empty", "No players yet.")
         else:
             body = "\n".join(
                 f"{row.rank}. <@{row.user_id}> — {row.rating} ({row.wins}W/{row.losses}L)" for row in rows[:10]
@@ -251,3 +277,20 @@ __all__ = [
     "register_ladder_commands",
     "start_ladder_sweep",
 ]
+
+async def _locale(interaction: Any) -> str:
+    """Resolve the answering locale: the guild's, or the user's in DM."""
+    logs = getattr(interaction.client, "logs_service", None)
+    if logs is None:
+        return "en"
+    if interaction.guild_id is not None:
+        return await logs.get_locale(str(interaction.guild_id))
+    return await logs.get_user_locale(str(interaction.user.id))
+
+
+def _t(interaction: Any, locale: str, key: str, fallback: str) -> str:
+    """Render a catalog key with an inline fallback (never raises)."""
+    catalog = getattr(interaction.client, "messages", None)
+    if catalog is None:
+        return fallback
+    return catalog.render(key, locale) or fallback

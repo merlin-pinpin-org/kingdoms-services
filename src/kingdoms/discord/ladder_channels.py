@@ -109,6 +109,23 @@ def _ladder_registry() -> Any | None:
         return None
 
 
+async def _ladder_flags(guild_id: str) -> tuple[bool, bool]:
+    """Resolve (enrollments_open, queue_paused) for the guild's ladder; open+active when unresolvable."""
+    wiring = _ladder_wiring()
+    if wiring is None:
+        return True, False
+    ladder_id = str(getattr(wiring.bot, "_ladder_id", "") or "")
+    if not ladder_id:
+        return True, False
+    try:
+        ladder = await wiring.service.get_ladder(ladder_id)
+    except Exception:
+        return True, False
+    if ladder is None:
+        return True, False
+    return bool(ladder.enrollments_open), bool(ladder.queue_paused)
+
+
 async def _ensure_pinned_home(guild: Any) -> None:
     """Keep the pinned ladder menu alive in the home salon (self-healing)."""
     from typing import cast
@@ -126,7 +143,8 @@ async def _ensure_pinned_home(guild: Any) -> None:
             return str(message.id)
 
     async def _build(guild_id: str) -> object:
-        return build_ladder_menu_layout()
+        enrollments_open, queue_paused = await _ladder_flags(guild_id)
+        return build_ladder_menu_layout(enrollments_open=enrollments_open, queue_paused=queue_paused)
 
     service = PinnedMenuService(cast("Any", _Delivery()))
     await service.ensure(
@@ -175,8 +193,16 @@ async def _sync_dashboard(guild: Any, surface: Any, ladder_id: str) -> None:
         lines = ["_Personne en queue — le premier à rejoindre ouvre le bal._"]
     view = discord.ui.LayoutView(timeout=None)
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    actions.add_item(LadderJoinButton())
-    actions.add_item(LadderLeaveButton())
+    join = LadderJoinButton()
+    leave = LadderLeaveButton()
+    wiring = _ladder_wiring()
+    if wiring is not None:
+        ladder = await wiring.service.get_ladder(ladder_id)
+        if ladder is not None:
+            join.item.disabled = bool(ladder.queue_paused) or not bool(ladder.enrollments_open)
+            leave.item.disabled = bool(ladder.queue_paused)
+    actions.add_item(join)
+    actions.add_item(leave)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📊 File d'attente\n" + "\n".join(lines))))
     view.add_item(actions)
     await _salon_message(guild, DASHBOARD_CHANNEL_NAME, view)
