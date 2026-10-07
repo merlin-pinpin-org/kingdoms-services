@@ -55,7 +55,7 @@ class FakeChannelsPlatform:
     async def find_channel_by_name(self, guild_id: str, name: str) -> str | None:
         return self.adoptable.get(name)
 
-    async def create_channel(self, guild_id: str, name: str) -> str:
+    async def create_channel(self, guild_id: str, name: str, category_id: str | None = None) -> str:
         channel_id = f"ch{self.next_id}"
         self.next_id += 1
         self.live.add(channel_id)
@@ -65,6 +65,17 @@ class FakeChannelsPlatform:
 
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         return channel_id in self.live
+
+    async def find_category_by_name(self, guild_id: str, name: str) -> str | None:
+        return self.adoptable.get(name)
+
+    async def create_category(self, guild_id: str, name: str) -> str:
+        channel_id = f"cat{self.next_id}"
+        self.next_id += 1
+        self.live.add(channel_id)
+        self.created.append(f"[category] {name}")
+        self.names[channel_id] = name
+        return channel_id
 
 
 def make_service() -> tuple[ChannelService, FakeChannelsDatabase, FakeChannelsPlatform, InMemoryStateStore, FakeClock]:
@@ -141,6 +152,47 @@ class TestModCategories:
         channels = await service.setup_mod_channels(GUILD, "example")
         assert list(channels) == ["example:announce"]
         assert channels["example:announce"].name == "Annonces"
+        assert platform.created == ["Annonces"]
+
+    async def test_setup_mod_channels_provisions_groups_in_declaration_order(self) -> None:
+        service, _db, platform, _store, _clock = make_service()
+        service._registry.register(
+            ModDefinition(
+                name="grouped",
+                channel_categories=(
+                    ChannelCategoryDef(key="tavern", display_name="Taverne", group="Général"),
+                    ChannelCategoryDef(key="geopolitics", display_name="Géopolitique", group="Kingdoms"),
+                    ChannelCategoryDef(key="rules", display_name="Règles", group="Général"),
+                ),
+            )
+        )
+        channels = await service.setup_mod_channels(GUILD, "grouped")
+        assert list(channels) == ["grouped:tavern", "grouped:geopolitics", "grouped:rules"]
+        # the groups are resolved first, in declaration order, once each
+        assert platform.created == [
+            "[category] Général",
+            "[category] Kingdoms",
+            "Taverne",
+            "Géopolitique",
+            "Règles",
+        ]
+
+    async def test_setup_mod_channels_adopts_an_existing_group(self) -> None:
+        service, _db, platform, _store, _clock = make_service()
+        platform.adoptable["Général"] = "cat-existing"
+        service._registry.register(
+            ModDefinition(
+                name="adopt",
+                channel_categories=(ChannelCategoryDef(key="tavern", display_name="Taverne", group="Général"),),
+            )
+        )
+        await service.setup_mod_channels(GUILD, "adopt")
+        assert "[category] Général" not in platform.created
+
+    async def test_ungrouped_channels_are_created_without_a_category(self) -> None:
+        service, _db, platform, _store, _clock = make_service()
+        channels = await service.setup_mod_channels(GUILD, "example")
+        assert channels["example:announce"].id.startswith("ch")
         assert platform.created == ["Annonces"]
 
 
