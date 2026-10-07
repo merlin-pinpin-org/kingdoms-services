@@ -38,6 +38,7 @@ HOME_CHANNEL_NAME = "🏰-ladder-home"
 DASHBOARD_CHANNEL_NAME = "📊-ladder-dashboard"
 LEADERBOARD_CHANNEL_NAME = "🏆-ladder-leaderboard"
 HISTORY_CHANNEL_NAME = "📜-ladder-history"
+SEASON_ADMIN_CHANNEL_NAME = "\U0001f6e1-season-admin"
 
 LADDER_PIN_MARKER = "ladder:home:"
 
@@ -116,6 +117,7 @@ async def sync_ladder_channels(guild: Any, bot: Any) -> None:
     if channels is None:
         return
     await _ensure_pinned_home(guild, scope, channels)
+    await _ensure_pinned_season_admin(guild, scope, channels)
     surface = _ladder_surface(wiring)
     await _sync_dashboard(guild, channels, surface, ladder_id, scope)
     await _sync_leaderboard(guild, channels, surface, ladder_id, scope)
@@ -127,12 +129,21 @@ async def sync_ladder_channels(guild: Any, bot: Any) -> None:
 class _SeasonChannels:
     """One season's salon ids, resolved by stored id — never by name."""
 
-    def __init__(self, category_id: str, home: str, dashboard: str, leaderboard: str, history: str) -> None:
+    def __init__(
+        self,
+        category_id: str,
+        home: str,
+        dashboard: str,
+        leaderboard: str,
+        history: str,
+        season_admin: str,
+    ) -> None:
         self.category_id = category_id
         self.home = home
         self.dashboard = dashboard
         self.leaderboard = leaderboard
         self.history = history
+        self.season_admin = season_admin
 
 
 async def _season_channels(guild: Any, bot: Any, scope: str, season_name: str, suffix: str) -> _SeasonChannels | None:
@@ -153,6 +164,7 @@ async def _season_channels(guild: Any, bot: Any, scope: str, season_name: str, s
         (f"ladder-dashboard:{scope}", f"{DASHBOARD_CHANNEL_NAME}-{suffix}"),
         (f"ladder-leaderboard:{scope}", f"{LEADERBOARD_CHANNEL_NAME}-{suffix}"),
         (f"ladder-history:{scope}", f"{HISTORY_CHANNEL_NAME}-{suffix}"),
+        (f"ladder-season-admin:{scope}", f"{SEASON_ADMIN_CHANNEL_NAME}-{suffix}"),
     )
     db = await _channels_db()
     if db is None:
@@ -176,6 +188,7 @@ async def _season_channels(guild: Any, bot: Any, scope: str, season_name: str, s
         dashboard=ids[salon_specs[1][0]],
         leaderboard=ids[salon_specs[2][0]],
         history=ids[salon_specs[3][0]],
+        season_admin=ids[salon_specs[4][0]],
     )
 
 
@@ -331,6 +344,16 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
         build_layout=_build,
         pin_reason="kingdoms: pinned ladder menu (ladder home salon)",
     )
+
+async def _ensure_pinned_season_admin(guild: Any, scope: str, channels: _SeasonChannels) -> None:
+    """Keep the pinned per-season config panel alive in the season admin salon."""
+    from kingdoms.discord.ladder_admin_channel import LADDER_ADMIN_CHANNEL_SPEC
+    from kingdoms.discord.mod_admin_channels import ensure_pinned_season_admin_panel
+
+    channel = _channel_by_id(guild, channels.season_admin)
+    if channel is None:
+        return
+    await ensure_pinned_season_admin_panel(LADDER_ADMIN_CHANNEL_SPEC, guild, scope, channel)
 
 
 async def _salon_message(guild: Any, channel: Any, key: str, view: Any, scope: str) -> None:

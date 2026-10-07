@@ -591,6 +591,32 @@ class LadderSeasonButton(
         await interaction.response.edit_message(view=await seasons_view(ladder_id))
 
 
+async def _provision_season_surface(interaction: discord.Interaction, season: Any) -> None:
+    """Provision a season's roles and salons immediately (best-effort)."""
+    import logging as _logging
+
+    from kingdoms.core.services.season_roles import PLAYER_ROLE_KEY, STAFF_ROLE_KEY
+
+    logger = _logging.getLogger("kingdoms.ladder.admin_panel")
+    guild = getattr(interaction, "guild", None)
+    guild_id = str(getattr(interaction, "guild_id", "") or "")
+    if guild is None or not guild_id:
+        return
+    season_roles = getattr(interaction.client, "season_roles_service", None)
+    if season_roles is not None:
+        for kind in (PLAYER_ROLE_KEY, STAFF_ROLE_KEY):
+            try:
+                await season_roles.ensure_role(guild_id, kind, season.name)
+            except Exception:
+                logger.warning("season role provisioning failed (%s)", kind, exc_info=True)
+    try:
+        from kingdoms.discord.ladder_channels import sync_ladder_channels
+
+        await sync_ladder_channels(guild, interaction.client)
+    except Exception:
+        logger.warning("season channel provisioning failed", exc_info=True)
+
+
 class LadderSeasonCreateButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:seasons:create",
@@ -682,6 +708,7 @@ class LadderSeasonModal(discord.ui.Modal):
             logger.exception("LADDER ADMIN: season creation failed")
             await interaction.response.send_message("Création échouée (nom déjà pris ?).", ephemeral=True)
             return
+        await _provision_season_surface(interaction, season)
         await interaction.response.send_message(
             f"Saison **{season.name}** créée — active-la depuis la liste.",
             ephemeral=True,
@@ -739,6 +766,7 @@ class LadderSeasonActivateSelect(
             logger.exception("LADDER ADMIN: season activation failed")
             await interaction.response.send_message("Activation echouee (voir les logs).", ephemeral=True)
             return
+        await _provision_season_surface(interaction, season)
         await interaction.response.send_message(f"Saison **{season.name}** activee.", ephemeral=True)
 
 
@@ -903,6 +931,113 @@ async def pools_view(ladder_id: str) -> discord.ui.LayoutView:
     return view
 
 
+
+
+async def ladder_mod_admin_view(interaction: discord.Interaction) -> discord.ui.LayoutView:
+    """Render the mod-level admin view: the seasons' lifecycle (cross-season).
+
+    The root \U0001f6e1-ladder-admin channel hosts this pinned panel: it
+    creates seasons, activates one (the active season is defined here),
+    ends it, and toggles the enrollments. The per-season configuration
+    lives in the season's own admin salon; this panel owns the cycle.
+    """
+    wiring = build_ladder_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay("# \U0001f6e1 Ladder admin \u2014 saisons")]
+    if wiring is None or wiring.season_service is None:
+        blocks.append(discord.ui.TextDisplay("Ladder wiring indisponible : Mongo/Redis ne sont pas configur\u00e9s."))
+        view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        return view
+    ladder = await _resolve_ladder(interaction, wiring)
+    if ladder is None:
+        blocks.append(discord.ui.TextDisplay("Aucun ladder \u2014 le noyau le cr\u00e9era au premier usage."))
+        view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        return view
+    ladder_id = str(ladder["_id"])
+    seasons = await wiring.season_service.list_seasons(ladder_id)
+    active = await wiring.season_service.get_active_season(ladder_id)
+    enrollments_open = bool(ladder.get("enrollments_open", True))
+    lines = [f"**Saison active** : {active.name if active else '_aucune_'}"]
+    recent = seasons[-5:]
+    if recent:
+        lines.append("".join(
+            f"\n- {s.name} ({'active' if s.id == (active.id if active else '') else s.state})"
+            for s in recent
+        ))
+    else:
+        lines.append("\n_Aucune saison \u2014 cr\u00e9e la premi\u00e8re._")
+    lines.append(
+        f"\nInscriptions : **{'ouvertes' if enrollments_open else 'fermees'}** \u2014 "
+        "les saisons sont cr\u00e9\u00e9es, activ\u00e9es et arr\u00eat\u00e9es ici."
+    )
+    blocks.append(discord.ui.TextDisplay("\n".join(lines)))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    lifecycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    lifecycle.add_item(LadderSeasonCreateButton(ladder_id))
+    if seasons:
+        lifecycle.add_item(LadderSeasonEndButton())
+    view.add_item(lifecycle)
+    if seasons:
+        select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        select_row.add_item(
+            LadderSeasonActivateSelect(
+                [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+            )
+        )
+        view.add_item(select_row)
+    cycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    cycle.add_item(LadderEnrollButton("open" if not enrollments_open else "close"))
+    view.add_item(cycle)
+    return view
+
+
+class LadderSeasonEndButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:seasons:end",
+):
+    """End the active season (the season admin salon follows at the next sync)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="Arreter la saison",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:seasons:end",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonEndButton:
+        """Rebuild the item from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """End the active season, audit, re-render the lifecycle view."""
+        wiring = build_ladder_wiring()
+        if wiring is None or wiring.season_service is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        ladder_id = await _resolved_ladder_id(interaction, wiring)
+        if not ladder_id:
+            await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
+            return
+        active = await wiring.season_service.get_active_season(ladder_id)
+        if active is None:
+            await interaction.response.send_message("Aucune saison active.", ephemeral=True)
+            return
+        ended = await wiring.season_service.end_season(active.id, _now_ms())
+        await wiring.service._audit_record("season.end", {"season_id": ended.id, "ladder_id": ladder_id})
+        await interaction.response.edit_message(view=await ladder_mod_admin_view(interaction))
+        await interaction.followup.send(f"Saison **{ended.name}** arretee.", ephemeral=True)
+
+
 def register_ladder_admin_section() -> None:
     """Register the ladder section into the /admin panel (idempotent)."""
     register_admin_mod_section(
@@ -919,6 +1054,7 @@ def register_ladder_admin_items(bot: discord.Client) -> None:
     """Register the section's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(
         LadderCreateButton,
+        LadderSeasonEndButton,
         LadderSettingsButton,
         LadderSeasonButton,
         LadderSeasonCreateButton,

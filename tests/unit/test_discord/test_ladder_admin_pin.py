@@ -14,7 +14,7 @@ import pytest
 from kingdoms.discord.ladder_admin_channel import ensure_pinned_ladder_admin_menu
 
 
-async def _async_layout(bot: Any, guild: str) -> object:
+async def _async_layout(bot: Any, spec: Any, guild: str) -> object:
     return object()
 
 
@@ -99,7 +99,7 @@ async def test_first_ensure_creates_and_registers_the_menu(monkeypatch: pytest.M
     registry = _FakeRegistry()
     bot = _FakeBot(channel, registry)
     monkeypatch.setattr(
-        "kingdoms.discord.ladder_admin_channel._build_layout",
+        "kingdoms.discord.mod_admin_channels._build_root_layout",
         _async_layout,
     )
     created = await ensure_pinned_ladder_admin_menu(bot, "42")
@@ -116,7 +116,7 @@ async def test_second_ensure_does_not_recreate_while_the_message_lives(
     registry = _FakeRegistry()
     bot = _FakeBot(channel, registry)
     monkeypatch.setattr(
-        "kingdoms.discord.ladder_admin_channel._build_layout",
+        "kingdoms.discord.mod_admin_channels._build_root_layout",
         _async_layout,
     )
     await ensure_pinned_ladder_admin_menu(bot, "42")
@@ -136,7 +136,7 @@ async def test_ensure_rebuilds_when_the_registered_message_is_gone(
     registry = _FakeRegistry()
     bot = _FakeBot(channel, registry)
     monkeypatch.setattr(
-        "kingdoms.discord.ladder_admin_channel._build_layout",
+        "kingdoms.discord.mod_admin_channels._build_root_layout",
         _async_layout,
     )
     await ensure_pinned_ladder_admin_menu(bot, "42")

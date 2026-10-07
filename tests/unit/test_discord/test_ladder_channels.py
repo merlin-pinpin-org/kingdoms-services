@@ -152,6 +152,7 @@ class FakeSeasonChannels:
         self.dashboard = channel_id
         self.leaderboard = channel_id
         self.history = channel_id
+        self.season_admin = channel_id
 
 
 

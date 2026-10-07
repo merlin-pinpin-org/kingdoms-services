@@ -238,7 +238,9 @@ class KingdomsBot(discord.Client):
             from kingdoms.discord.ladder_admin_channel import (
                 build_ladder_admin_channel_service,
                 maintain_pinned_ladder_admin_menus,
+                register_ladder_mod_admin_channel,
             )
+            register_ladder_mod_admin_channel(self)
             self.ladder_admin_channel_service = build_ladder_admin_channel_service(
                 self, self.config.mongo_uri, self.config.redis_uri
             )
