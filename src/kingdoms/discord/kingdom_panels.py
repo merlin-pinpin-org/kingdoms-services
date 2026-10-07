@@ -758,17 +758,22 @@ async def build_settings_panel(
     buttons = (
         ("launch", "launch_button", discord.ButtonStyle.success),
         ("status", "status_button", discord.ButtonStyle.secondary),
-        ("deploy", "deploy_button", discord.ButtonStyle.primary),
-        ("sync", "sync_button", discord.ButtonStyle.secondary),
-        ("reset", "reset_salons_button", discord.ButtonStyle.danger),
         ("assign", "assign_button", discord.ButtonStyle.primary),
         ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
+        ("replace", "replace_button", discord.ButtonStyle.primary),
+        ("name", "name_button", discord.ButtonStyle.secondary),
+        ("deploy", "deploy_button", discord.ButtonStyle.primary),
+        ("sync", "sync_button", discord.ButtonStyle.secondary),
+        ("reset-data", "reset_data_button", discord.ButtonStyle.danger),
+        ("reset-full", "reset_full_button", discord.ButtonStyle.danger),
+        ("reset", "reset_salons_button", discord.ButtonStyle.danger),
     )
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    roster_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 5 else maintenance_row
+        target = season_row if index < 5 else roster_row if index < 7 else maintenance_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
@@ -778,6 +783,7 @@ async def build_settings_panel(
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
             season_row,
+            roster_row,
             maintenance_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
@@ -889,6 +895,37 @@ async def _deploy_apply_panel(
     )
 
 
+async def _deploy_channel_panel(
+    channel: discord.TextChannel,
+    report: dict[str, str],
+    *,
+    candidatures: discord.TextChannel | None,
+    locale: str,
+    guild_id: str,
+    logs_service: LogService | None,
+    bot_admins: tuple[str, ...],
+    mod_roles_service: ModRolesService | None,
+    kingdoms_service: Any = None,
+) -> None:
+    """Deploy the panel matching one salon, when there is one."""
+    from kingdoms.discord.kingdom_setup import _slug
+
+    slug = _slug(channel.name)
+    if slug == "postuler":
+        await _deploy_apply_panel(
+            channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
+        )
+        report["postuler"] = "deployed"
+    elif slug == "parametres":
+        await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
+        report["paramètres"] = "deployed"
+    elif slug == "marche":
+        from kingdoms.discord.kingdom_market import deploy_market_panel
+
+        await deploy_market_panel(channel, kingdoms_service, locale)
+        report["marché"] = "deployed"
+
+
 async def deploy_panels(
     guild: discord.Guild,
     logs_service: LogService | None,
@@ -914,14 +951,17 @@ async def deploy_panels(
 
     candidatures = next((c for c in guild.text_channels if _slug(c.name) == "candidatures"), None)
     for channel in guild.text_channels:
-        if _slug(channel.name) == "postuler":
-            await _deploy_apply_panel(
-                channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
-            )
-            report["postuler"] = "deployed"
-        if _slug(channel.name) == "parametres":
-            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
-            report["paramètres"] = "deployed"
+        await _deploy_channel_panel(
+            channel,
+            report,
+            candidatures=candidatures,
+            locale=locale,
+            guild_id=guild_id,
+            logs_service=logs_service,
+            bot_admins=bot_admins,
+            mod_roles_service=mod_roles_service,
+            kingdoms_service=kingdoms_service,
+        )
     context = _ApplicationContext(
         locale=locale,
         bot_admins=bot_admins,

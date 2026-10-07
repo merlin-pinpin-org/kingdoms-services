@@ -1,4 +1,4 @@
-"""The /kingdoms-admin command group: the T2 season management surface.
+"""The /kingdom-admin command group: the T2 season management surface.
 
 Admin-only (bot operators, guild administrators, the bot-admins role —
 the same click-time guard as /admin): launch a season, reset it,
@@ -70,7 +70,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "— players enroll and you assign them."
         ),
         "reset_done": "🧹 Season data reset — no season is running now.",
-        "status_none": "No season is running. Launch one with `/kingdoms-admin launch`.",
+        "status_none": "No season is running. Launch one with `/kingdom-admin launch`.",
         "status_line": (
             "🚀 Season **{season}** — cycle {cycle}/{weeks} — {kingdoms} kingdoms, "
             "{queue} player(s) waiting."
@@ -125,7 +125,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "— les joueurs s'inscrivent et vous les affectez."
         ),
         "reset_done": "🧹 Données de saison réinitialisées — aucune saison en cours.",
-        "status_none": "Aucune saison en cours. Lancez-en une avec `/kingdoms-admin lancer`.",
+        "status_none": "Aucune saison en cours. Lancez-en une avec `/kingdom-admin lancer`.",
         "status_line": (
             "🚀 Saison **{season}** — cycle {cycle}/{weeks} — {kingdoms} royaumes, "
             "{queue} joueur(s) en attente."
@@ -196,9 +196,9 @@ def register_kingdoms_admin_command(
     bot_admins: tuple[str, ...],
     roles_service: object | None = None,
 ) -> None:
-    """Register the /kingdoms-admin command group on the command tree."""
+    """Register the /kingdom-admin command group on the command tree."""
     group = app_commands.Group(
-        name=localized("commands.kingdoms_admin_name", "kingdoms-admin"),
+        name=localized("commands.kingdoms_admin_name", "kingdom-admin"),
         description=localized(
             "commands.kingdoms_admin_description",
             STRINGS[DEFAULT_LOCALE]["group_description"],

@@ -66,6 +66,9 @@ channels:
   - key: diplomacy
     display_name: Diplomatie
     description: Alliances and civilizations
+  - key: market
+    display_name: Marché
+    description: The technology boutique panel (King only)
   - key: cadastre
     display_name: Cadastre
     description: Territories and their cadastre effects

@@ -1,4 +1,4 @@
-"""The /kingdoms command group: the game designer's Lot B screens.
+"""The /kingdom command group: the game designer's Lot B screens.
 
 Every subcommand defers first (the 3-second rule), then answers on the
 followup with a Components V2 layout built through the UI SDK — never
@@ -11,7 +11,7 @@ Strings follow the designer-authored pattern (FR/EN dict) for
 the runtime screens; the command names and descriptions are
 localizable through the shared catalog (``commands.kingdoms_*`` keys
 in ``config/locales/<locale>.yaml``), so a French client sees
-/kingdoms cadastre, royaume, delais, diplomatie, gazette.
+/kingdom cadastre, royaume, delais, diplomatie, gazette.
 """
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "left_season": "You left the season. An admin may assign a replacement.",
         "no_kingdom": (
             "No kingdom to display: name an existing kingdom, or enroll first "
-            "(`/kingdoms join`)."
+            "(`/kingdom join`)."
         ),
     },
     "fr": {
@@ -131,14 +131,14 @@ STRINGS: dict[str, dict[str, str]] = {
         "left_season": "Vous avez quitté la saison. Un admin peut désigner un remplaçant.",
         "no_kingdom": (
             "Aucun royaume à afficher : nommez un royaume existant, ou inscrivez-vous "
-            "d'abord (`/kingdoms inscrire`)."
+            "d'abord (`/kingdom inscrire`)."
         ),
     },
 }
 
 ERROR_STRINGS: dict[str, dict[str, str]] = {
     "en": {
-        "no_season": "No season is running — an admin launches it with `/kingdoms-admin launch`.",
+        "no_season": "No season is running — an admin launches it with `/kingdom-admin launch`.",
         "already_enrolled": "You are already enrolled in the current season.",
         "name_invalid": "This kingdom name breaks the configured rules (length or characters).",
         "kingdom_limit": "The season already counts its maximum of kingdoms.",
@@ -151,7 +151,7 @@ ERROR_STRINGS: dict[str, dict[str, str]] = {
         "unexpected": "An unexpected error occurred. Try again.",
     },
     "fr": {
-        "no_season": "Aucune saison n'est en cours — un admin la lance avec `/kingdoms-admin lancer`.",
+        "no_season": "Aucune saison n'est en cours — un admin la lance avec `/kingdom-admin lancer`.",
         "already_enrolled": "Vous êtes déjà inscrit dans la saison en cours.",
         "name_invalid": "Ce nom de royaume ne respecte pas les règles configurées (longueur ou caractères).",
         "kingdom_limit": "La saison compte déjà son nombre maximum de royaumes.",
@@ -208,9 +208,9 @@ def register_kingdoms_command(
     tree: app_commands.CommandTree[discord.Client],
     service: KingdomsService | None = None,
 ) -> None:
-    """Register the /kingdoms command group on the command tree."""
+    """Register the /kingdom command group on the command tree."""
     group = app_commands.Group(
-        name=localized("commands.kingdoms_name", "kingdoms"),
+        name=localized("commands.kingdoms_name", "kingdom"),
         description=localized(
             "commands.kingdoms_description",
             STRINGS[DEFAULT_LOCALE]["group_description"],

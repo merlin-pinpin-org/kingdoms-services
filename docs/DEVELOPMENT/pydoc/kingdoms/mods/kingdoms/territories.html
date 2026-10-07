@@ -258,6 +258,11 @@ stays&nbsp;in&nbsp;place&nbsp;and&nbsp;the&nbsp;admin&nbsp;is&nbsp;warned&nbsp;(
 
 <dl><dt>async <a name="TerritoryService-territory_count_by_kingdom"><strong>territory_count_by_kingdom</strong></a>(self) -&gt; 'dict[str, int]'</dt><dd><span class="code">Return&nbsp;owned-territory&nbsp;counts&nbsp;per&nbsp;kingdom&nbsp;id&nbsp;(Conquest&nbsp;basis,&nbsp;T8).</span></dd></dl>
 
+<dl><dt>async <a name="TerritoryService-top_up_kingdom"><strong>top_up_kingdom</strong></a>(self, kingdom_id: 'str', *, seed: 'int | None' = None) -&gt; 'list[TerritoryModel]'</dt><dd><span class="code">Draw&nbsp;the&nbsp;missing&nbsp;territories&nbsp;of&nbsp;one&nbsp;post-launch&nbsp;kingdom.<br>
+&nbsp;<br>
+Free-founding&nbsp;mode,&nbsp;same&nbsp;bonus-parity&nbsp;rule,&nbsp;so&nbsp;every&nbsp;kingdom<br>
+converges&nbsp;to&nbsp;the&nbsp;same&nbsp;bonus-map&nbsp;count.</span></dd></dl>
+
 <dl><dt>async <a name="TerritoryService-transfer"><strong>transfer</strong></a>(self, territory_id: 'str', new_owner_kingdom_id: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Idempotent&nbsp;ownership&nbsp;transfer&nbsp;(§9,&nbsp;primitive&nbsp;for&nbsp;T4/T5/T7).<br>
 &nbsp;<br>
 Transferring&nbsp;to&nbsp;the&nbsp;current&nbsp;owner&nbsp;is&nbsp;a&nbsp;no-op;&nbsp;the&nbsp;target&nbsp;kingdom<br>

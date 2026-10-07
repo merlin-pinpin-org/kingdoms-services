@@ -129,7 +129,9 @@ class KingdomsService:
         self._store = store
         self._config = config
 
-    async def launch(self, imposed_names: list[str] | None = None) -> SeasonState:
+    async def launch(
+        self, imposed_names: list[str] | None = None, *, seed: int | None = None
+    ) -> SeasonState:
         """Launch a new season: wholesale reset, then the fresh state (D38).
 
         ``imposed_names`` switches to the imposed-kingdoms mode (D21):
@@ -137,10 +139,7 @@ class KingdomsService:
         found their own. Gaïa is always seeded (D32).
         """
         names = [name.strip() for name in imposed_names or [] if name.strip()]
-        for name in names:
-            self._check_name(name)
-        if len(names) > self._config.kingdoms_count:
-            raise KingdomLimitError("more imposed kingdoms than the configured maximum")
+        self._validate_imposed_names(names)
         await self._store.wipe_season_data()
         now = datetime.now(tz=UTC)
         season = SeasonState(
@@ -157,8 +156,36 @@ class KingdomsService:
             kingdoms.append(self._new_kingdom(f"k-{index + 1}", KingdomType.PLAYER, season.id, name=name))
         for kingdom in kingdoms:
             await self._store.upsert_kingdom(kingdom.to_mongo())
+        # The launch draws the initial territories (product decision):
+        # every player kingdom gets the same number of bonus maps, the
+        # rest is a pure random draw from the single shared pool. A draw
+        # failure (too-small catalog) aborts the launch atomically.
+        try:
+            await self._draw_territories(seed=seed)
+        except KingdomsModError:
+            await self._store.wipe_season_data()
+            raise
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
         return season
+
+    def _validate_imposed_names(self, names: list[str]) -> None:
+        """Check the admin-provided kingdom names (D21) and the limit."""
+        for name in names:
+            self._check_name(name)
+        if len(names) > self._config.kingdoms_count:
+            raise KingdomLimitError("more imposed kingdoms than the configured maximum")
+
+    async def _draw_territories(
+        self, kingdom_id: str | None = None, *, seed: int | None = None
+    ) -> None:
+        """Draw the initial territories, or top up one late kingdom."""
+        from kingdoms.mods.kingdoms.territories import TerritoryService
+
+        territories = TerritoryService(self._store, self._config, self)
+        if kingdom_id is None:
+            await territories.draw_initial(seed=seed)
+        else:
+            await territories.top_up_kingdom(kingdom_id, seed=seed)
 
     async def reset(self) -> None:
         """Reset the season data without launching anything (reference §3.3)."""
@@ -249,6 +276,7 @@ class KingdomsService:
             name_approved=True,
         )
         await self._store.upsert_kingdom(kingdom.to_mongo())
+        await self._draw_territories(kingdom.id)
         logger.info("kingdoms: kingdom %s added manually by an admin", kingdom.name)
         return kingdom
 
@@ -338,6 +366,7 @@ class KingdomsService:
             name_approved=False,
         )
         await self._store.upsert_kingdom(kingdom.to_mongo())
+        await self._draw_territories(kingdom.id)
         lord = LordModel(
             _id=player_id,
             season_id=season.id,

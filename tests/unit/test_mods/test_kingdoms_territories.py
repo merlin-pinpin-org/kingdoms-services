@@ -97,45 +97,51 @@ async def test_draw_requires_a_running_season() -> None:
 
 
 async def test_initial_draw_distributes_n_plus_m_unique_maps() -> None:
-    """2 player kingdoms x 5 + 8 Gaia = 18 distinct maps (§6.3)."""
+    """The launch draws 2 player kingdoms x 5 + 8 Gaia = 18 distinct maps (§6.3)."""
     service, kingdoms, _ = _services()
-    await kingdoms.launch(["Aquitaine", "Bourgogne"])
-    created = await service.draw_initial(seed=42)
-    assert len(created) == 18
-    keys = [territory.map_key for territory in created]
-    assert len(set(keys)) == 18
+    await kingdoms.launch(["Aquitaine", "Bourgogne"], seed=42)
     all_created = await service.territories()
+    assert len(all_created) == 18
+    keys = [territory.map_key for territory in all_created]
+    assert len(set(keys)) == 18
     owners = {territory.owner_kingdom_id for territory in all_created}
     assert len(owners) == 3  # two player kingdoms + Gaïa
 
 
+async def test_draw_after_launch_is_an_idempotent_noop() -> None:
+    """The launch draws; an explicit draw call completes nothing new."""
+    service, kingdoms, _ = _services()
+    await kingdoms.launch(["Aquitaine", "Bourgogne"], seed=42)
+    assert await service.draw_initial(seed=42) == []
+    assert len(await service.territories()) == 18
+
+
 async def test_initial_draw_fails_atomically_when_catalog_too_small() -> None:
-    """§7: a too-small list fails cleanly, nothing is persisted."""
+    """§7: a too-small catalog aborts the launch cleanly, nothing persists."""
     config = _tiny_config(["arabia", "arena"])
-    service, kingdoms, store = _services(config)
-    await kingdoms.launch(["Aquitaine", "Bourgogne"])
+    _service, kingdoms, store = _services(config)
     with pytest.raises(MapPoolExhaustedError) as excinfo:
-        await service.draw_initial()
+        await kingdoms.launch(["Aquitaine", "Bourgogne"])
     assert excinfo.value.missing == 1  # 3 wanted, 2 in catalog
     assert not store.territories
+    assert not store.seasons
+    assert not store.kingdoms
 
 
 async def test_draw_is_deterministic_with_a_seed() -> None:
     service, kingdoms, _ = _services()
-    await kingdoms.launch(["Aquitaine", "Bourgogne"])
-    first = await service.draw_initial(seed=7)
-    keys_first = [territory.map_key for territory in first]
+    await kingdoms.launch(["Aquitaine", "Bourgogne"], seed=7)
+    keys_first = sorted(territory.map_key for territory in await service.territories())
     service2, kingdoms2, _ = _services()
-    await kingdoms2.launch(["Aquitaine", "Bourgogne"])
-    second = await service2.draw_initial(seed=7)
-    assert keys_first == [territory.map_key for territory in second]
+    await kingdoms2.launch(["Aquitaine", "Bourgogne"], seed=7)
+    keys_second = sorted(territory.map_key for territory in await service2.territories())
+    assert keys_first == keys_second
 
 
 async def test_drawn_map_is_out_for_the_season() -> None:
     """§8: a drawn map never comes back during the season."""
     service, kingdoms, _ = _services()
-    await kingdoms.launch(["Aquitaine"])
-    await service.draw_initial(seed=1)
+    await kingdoms.launch(["Aquitaine"], seed=1)
     drawn = await service.drawn_map_keys()
     assert drawn
     catalog_keys = {entry.key for entry in default_map_catalog()}
@@ -144,9 +150,8 @@ async def test_drawn_map_is_out_for_the_season() -> None:
 
 async def test_transfer_is_idempotent_and_validated() -> None:
     service, kingdoms, _ = _services()
-    await kingdoms.launch(["Aquitaine", "Bourgogne"])
-    created = await service.draw_initial(seed=3)
-    territory = created[0]
+    await kingdoms.launch(["Aquitaine", "Bourgogne"], seed=3)
+    territory = (await service.territories())[0]
     new_owner = next(k.id for k in await kingdoms.kingdoms() if k.id != territory.owner_kingdom_id)
     moved = await service.transfer(territory.id, new_owner)
     assert moved.owner_kingdom_id == new_owner
@@ -160,9 +165,8 @@ async def test_transfer_is_idempotent_and_validated() -> None:
 async def test_eject_replaces_and_keeps_the_map_out() -> None:
     """§9: ejection replaces for the same owner; the ejected map stays out."""
     service, kingdoms, _ = _services()
-    await kingdoms.launch(["Aquitaine"])
-    created = await service.draw_initial(seed=5)
-    territory = created[0]
+    await kingdoms.launch(["Aquitaine"], seed=5)
+    territory = (await service.territories())[0]
     replacement = await service.eject(territory.map_key, seed=11)
     assert replacement.id == territory.id
     assert replacement.owner_kingdom_id == territory.owner_kingdom_id
@@ -188,7 +192,7 @@ async def test_eject_without_replacement_fails_atomically() -> None:
     config = _tiny_config(["arabia", "arena", "oasis"])
     service, kingdoms, store = _services(config)
     await kingdoms.launch(["Aquitaine", "Bourgogne"])
-    created = await service.draw_initial(seed=0)
+    created = await service.territories()  # the launch already drew
     before = dict(store.territories)
     with pytest.raises(MapPoolExhaustedError):
         await service.eject(created[0].map_key)
@@ -216,7 +220,7 @@ async def test_season_launch_resets_out_maps() -> None:
     """A new season resets the out-map state wholesale (§8, D38)."""
     service, kingdoms, _ = _services()
     await kingdoms.launch(["Aquitaine"])
-    created = await service.draw_initial(seed=2)
+    created = await service.territories()  # the launch already drew
     await service.eject(created[0].map_key, seed=13)
     assert await kingdoms.current_season() is not None
     await kingdoms.launch(["Aquitaine"])

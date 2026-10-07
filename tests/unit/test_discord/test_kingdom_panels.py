@@ -367,7 +367,10 @@ async def test_settings_panel_renders_the_season_actions() -> None:
     from kingdoms.discord.kingdom_persistent import KingdomAdminButton
 
     buttons = [child for child in _flatten(view) if isinstance(child, KingdomAdminButton)]
-    assert len(buttons) == 8
+    # 12 admin actions on the Parametres panel: launch, status, assign,
+    # add-kingdom, remove, replace, name, deploy, sync, reset-data,
+    # reset-full, reset (salons only).
+    assert len(buttons) == 12
 
 
 @pytest.mark.asyncio

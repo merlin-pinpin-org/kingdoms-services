@@ -43,6 +43,7 @@ class KingdomsPanelWiring:
     bot_admins: tuple[str, ...] = ()
     mod_roles_service: Any = None
     kingdoms_service: Any = None
+    economy_service: Any = None
     channel_service: Any = None
     registry: Any = None
 
@@ -75,6 +76,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             bot_admins=tuple(getattr(status, "bot_admins", ())),
             mod_roles_service=getattr(bot, "mod_roles_service", None),
             kingdoms_service=getattr(bot, "kingdoms_service", None),
+            economy_service=getattr(bot, "kingdoms_economy_service", None),
             channel_service=getattr(bot, "channel_service", None),
             registry=getattr(bot, "registry", None),
         )
@@ -84,12 +86,15 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
 
 def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     """Re-register every persistent Kingdoms component class on the bot."""
+    from kingdoms.discord.kingdom_market import KingdomMarketButton
+
     bot.add_dynamic_items(
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomProfileButton,
         KingdomRequestButton,
         KingdomAdminButton,
+        KingdomMarketButton,
     )
 
 
@@ -493,6 +498,106 @@ class KingdomAddKingdomModal(discord.ui.Modal):
         await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
 
 
+class KingdomDecideNameModal(discord.ui.Modal):
+    """The admin form to approve or refuse a proposed kingdom name (D21)."""
+
+    kingdom: discord.ui.TextInput[KingdomDecideNameModal] = discord.ui.TextInput(
+        label="Kingdom name (as proposed)",
+        placeholder="Aquitaine",
+        max_length=45,
+        required=True,
+    )
+    decision: discord.ui.TextInput[KingdomDecideNameModal] = discord.ui.TextInput(
+        label="approve / refuse",
+        placeholder="approve",
+        max_length=10,
+        required=True,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _profile_strings(self.locale)
+        self.kingdom.label = strings["name_kingdom_field"][:45]
+        self.decision.label = strings["name_decision_field"][:45]
+        super().__init__(title=strings["name_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        strings = _profile_strings(self.locale)
+        kingdom_name = (self.kingdom.value or "").strip()
+        approved = (self.decision.value or "").strip().lower().startswith(("approve", "approuver", "oui", "yes"))
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["name_failed"].format("no service"), ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.decide_name(kingdom_name, approved)
+        except Exception as exc:
+            await interaction.followup.send(strings["name_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        message = strings["name_approved"] if approved else strings["name_refused"]
+        await interaction.followup.send(message.format(kingdom=kingdom.name), ephemeral=True)
+        if interaction.guild is not None:
+            await _refresh_season_status_safe(interaction.guild, self.locale)
+
+
+class KingdomReplaceModal(discord.ui.Modal):
+    """The admin form to replace a departed lord with a queued player (D23/D25)."""
+
+    outgoing: discord.ui.TextInput[KingdomReplaceModal] = discord.ui.TextInput(
+        label="Outgoing player (mention or id)",
+        placeholder="@player",
+        max_length=32,
+        required=True,
+    )
+    incoming: discord.ui.TextInput[KingdomReplaceModal] = discord.ui.TextInput(
+        label="Incoming player (queue, mention or id)",
+        placeholder="@player",
+        max_length=32,
+        required=True,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _profile_strings(self.locale)
+        self.outgoing.label = strings["replace_outgoing_field"][:45]
+        self.incoming.label = strings["replace_incoming_field"][:45]
+        super().__init__(title=strings["replace_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        strings = _profile_strings(self.locale)
+
+        def _player_id(raw: str) -> str | None:
+            match = re.search(r"<@!?(\d+)>", raw) or re.search(r"^(\d{6,25})$", raw)
+            return match.group(1) if match else None
+
+        outgoing_id = _player_id((self.outgoing.value or "").strip())
+        incoming_id = _player_id((self.incoming.value or "").strip())
+        if outgoing_id is None or incoming_id is None:
+            await interaction.response.send_message(strings["remove_player_not_found"], ephemeral=True)
+            return
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["replace_failed"].format("no service"), ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            lord = await wiring.kingdoms_service.replace(outgoing_id, incoming_id)
+            kingdoms = await wiring.kingdoms_service.kingdoms()
+            kingdom_name = next((k.name for k in kingdoms if k.id == lord.kingdom_id), lord.kingdom_id)
+        except Exception as exc:
+            await interaction.followup.send(strings["replace_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        await interaction.followup.send(
+            strings["replaced"].format(
+                incoming=f"<@{incoming_id}>", outgoing=f"<@{outgoing_id}>", kingdom=kingdom_name
+            ),
+            ephemeral=True,
+        )
+        if interaction.guild is not None:
+            await _refresh_season_status_safe(interaction.guild, self.locale)
+
+
 class KingdomLaunchModal(discord.ui.Modal):
     """The admin form to launch a season (imposed kingdoms optional)."""
 
@@ -533,7 +638,9 @@ class KingdomAdminButton(
     template=(
         r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
-        r"|status|assign|add-kingdom|launch)"
+        r"|status|assign|add-kingdom|launch|name|replace"
+        r"|reset-data|reset-data-confirm|reset-data-cancel"
+        r"|reset-full|reset-full-confirm|reset-full-cancel)"
     ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
@@ -574,6 +681,14 @@ class KingdomAdminButton(
             "status": strings["status_button"],
             "assign": strings["assign_button"],
             "add-kingdom": strings["add_kingdom_button"],
+            "name": strings["name_button"],
+            "replace": strings["replace_button"],
+            "reset-data": strings["reset_data_button"],
+            "reset-data-confirm": strings["reset_data_confirm_button"],
+            "reset-data-cancel": strings["reset_data_cancel_button"],
+            "reset-full": strings["reset_full_button"],
+            "reset-full-confirm": strings["reset_full_confirm_button"],
+            "reset-full-cancel": strings["reset_full_cancel_button"],
         }
         styles = {
             "launch": discord.ButtonStyle.success,
@@ -590,6 +705,14 @@ class KingdomAdminButton(
             "status": discord.ButtonStyle.secondary,
             "assign": discord.ButtonStyle.primary,
             "add-kingdom": discord.ButtonStyle.primary,
+            "name": discord.ButtonStyle.secondary,
+            "replace": discord.ButtonStyle.primary,
+            "reset-data": discord.ButtonStyle.danger,
+            "reset-data-confirm": discord.ButtonStyle.success,
+            "reset-data-cancel": discord.ButtonStyle.secondary,
+            "reset-full": discord.ButtonStyle.danger,
+            "reset-full-confirm": discord.ButtonStyle.success,
+            "reset-full-cancel": discord.ButtonStyle.secondary,
         }
         return cls(action, labels[action][:80], styles[action])
 
@@ -605,6 +728,12 @@ class KingdomAdminButton(
         async def open_add_kingdom(_: discord.Interaction, locale: str) -> None:
             await interaction.response.send_modal(KingdomAddKingdomModal(locale))
 
+        async def open_name(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomDecideNameModal(locale))
+
+        async def open_replace(_: discord.Interaction, locale: str) -> None:
+            await interaction.response.send_modal(KingdomReplaceModal(locale))
+
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _profile_strings(locale)
         wiring = _wiring()
@@ -619,6 +748,18 @@ class KingdomAdminButton(
             "remove": open_remove,
             "assign": open_assign,
             "add-kingdom": open_add_kingdom,
+            "name": open_name,
+            "replace": open_replace,
+            "reset-data": lambda _i, _l: _ask_action_confirmation(interaction, strings, "reset-data"),
+            "reset-data-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["reset_cancelled"], view=None
+            ),
+            "reset-data-confirm": lambda _i, _l: _run_reset_data(interaction, strings),
+            "reset-full": lambda _i, _l: _ask_action_confirmation(interaction, strings, "reset-full"),
+            "reset-full-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["reset_cancelled"], view=None
+            ),
+            "reset-full-confirm": lambda _i, _l: _run_reset_full(interaction, strings),
             "reset": lambda _i, _l: _ask_action_confirmation(interaction, strings, "reset"),
             "reset-cancel": lambda _i, _l: interaction.response.edit_message(
                 content=strings["reset_cancelled"], view=None
@@ -647,13 +788,14 @@ class KingdomAdminButton(
 async def _ask_action_confirmation(interaction: discord.Interaction, strings: dict[str, str], action: str) -> None:
     """Ask the admin to confirm a destructive/heavy panel action."""
     view = discord.ui.View(timeout=120)
+    key = action.replace("-", "_")
     for verdict, label_key, style in (
-        (f"{action}-confirm", f"{action}_confirm_button", discord.ButtonStyle.success),
-        (f"{action}-cancel", f"{action}_cancel_button", discord.ButtonStyle.secondary),
+        (f"{action}-confirm", f"{key}_confirm_button", discord.ButtonStyle.success),
+        (f"{action}-cancel", f"{key}_cancel_button", discord.ButtonStyle.secondary),
     ):
         view.add_item(KingdomAdminButton(verdict, strings[label_key][:80], style))
     await interaction.response.send_message(
-        f"**{strings[f'{action}_confirm_title']}**\n{strings[f'{action}_confirm_hint']}",
+        f"**{strings[f'{key}_confirm_title']}**\n{strings[f'{key}_confirm_hint']}",
         view=view,
         ephemeral=True,
     )
@@ -844,6 +986,48 @@ async def _send_welcome(
         channel = await ensure_profile_channel(guild, member)
         if channel is not None:
             await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
+
+
+async def _run_reset_data(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Wipe the season data (seasons, kingdoms, lords); the salons are kept."""
+    wiring = _wiring()
+    await interaction.response.defer(ephemeral=True)
+    if wiring.kingdoms_service is None:
+        await interaction.followup.send(strings["assign_failed"].format("no service"), ephemeral=True)
+        return
+    try:
+        await wiring.kingdoms_service.reset()
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: season data reset failed")
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+        return
+    await interaction.followup.send(strings["reset_data_done"], ephemeral=True)
+
+
+async def _run_reset_full(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Full wipe: season data first, then every kingdoms channel and category."""
+    wiring = _wiring()
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        if wiring.kingdoms_service is not None:
+            await wiring.kingdoms_service.reset()
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: season data reset failed (full)")
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+        return
+    try:
+        structure_names = _declared_structure_slugs(getattr(wiring, "registry", None))
+        deleted = await _delete_matching_channels(guild, structure_names)
+        deleted += await _delete_matching_categories(guild, structure_names)
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: salons reset failed for guild %s", guild.id)
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+        return
+    await interaction.followup.send(strings["reset_full_done"].format(deleted), ephemeral=True)
 
 
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) -> None:
