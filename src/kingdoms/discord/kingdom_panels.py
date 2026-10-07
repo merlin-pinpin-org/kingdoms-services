@@ -928,6 +928,11 @@ async def deploy_panels(
         if _slug(channel.name) == "parametres":
             await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
             report["paramètres"] = "deployed"
+        if _slug(channel.name) == "marche":
+            from kingdoms.discord.kingdom_market import deploy_market_panel
+
+            await deploy_market_panel(channel, kingdoms_service, locale)
+            report["marché"] = "deployed"
     context = _ApplicationContext(
         locale=locale,
         bot_admins=bot_admins,
