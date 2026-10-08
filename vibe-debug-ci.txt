@@ -10,7 +10,7 @@ Success: no issues found in 171 source files
 ........................................................................ [ 35%]
 ........................................................................ [ 42%]
 ........................................................................ [ 49%]
-.......F................................................................ [ 57%]
+........................................................................ [ 57%]
 ........................................................................ [ 64%]
 ........................................................................ [ 71%]
 ........................................................................ [ 78%]
@@ -18,41 +18,6 @@ Success: no issues found in 171 source files
 ........................................................................ [ 92%]
 ........................................................................ [ 99%]
 .                                                                        [100%]
-=================================== FAILURES ===================================
-___________________ test_recruitment_flips_through_the_modal ___________________
-
-    async def test_recruitment_flips_through_the_modal() -> None:
-        """A recruitment flip runs through the reason modal into the journal."""
-        store = await _launched_store()
-        client = _client(store)
-        interaction = _interaction(client)
-        view = await panel.section_entry(interaction)
-        select = next(
-            item
-            for item in _walk(view)
-            if getattr(item, "custom_id", None) == "admin:pin:mod:kingdoms:recruitment"
-        )
-        assert isinstance(select, panel.KingdomsAdminRecruitmentSelect)
-        object.__setattr__(select.item, "_values", ["Aquitaine"])
-        await select.callback(interaction)
-        modal = interaction.response.modal
-        assert isinstance(modal, panel.AdminReasonModal)
-        _fill(modal, reason="ferme le recrutement")
-        await modal.on_submit(interaction)
-        kingdoms = await client.kingdoms_service.kingdoms()
-        aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
-        assert aquitaine.recruitment_open is False  # the launch default True flipped
-        [action] = list(store.admin_actions.values())
-        assert action["action_type"] == "set_recruitment"
->       assert action["reason"] == "ouvre le recrutement"
-E       AssertionError: assert 'ferme le recrutement' == 'ouvre le recrutement'
-E         
-E         - ouvre le recrutement
-E         ? ^^^
-E         + ferme le recrutement
-E         ? ^^ +
-
-tests/unit/test_discord/test_kingdoms_admin_panel.py:130: AssertionError
 =============================== warnings summary ===============================
 tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
 tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
@@ -114,11 +79,4 @@ tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_recruitment_flips_through_the_modal - AssertionError: assert 'ferme le recrutement' == 'ouvre le recrutement'
-  
-  - ouvre le recrutement
-  ? ^^^
-  + ferme le recrutement
-  ? ^^ +
-1 failed, 1008 passed, 27 warnings in 6.54s
+1009 passed, 27 warnings in 6.87s
