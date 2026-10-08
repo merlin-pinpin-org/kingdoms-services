@@ -24,7 +24,19 @@ import discord
 logger = logging.getLogger("kingdoms.ladder.season_wizard")
 
 _WIZARD_NS = "ladder:wizard"
-_GAME_KEY = "aoe2"
+
+
+async def _ladder_game_key(state: WizardState) -> str:
+    """Resolve the ladder's game key; empty when unavailable."""
+    wiring = _wiring()
+    if wiring is None or wiring.service is None:
+        return ""
+    try:
+        ladder = await wiring.service.get_ladder(state.ladder_id)
+    except Exception:
+        logger.exception("SEASON WIZARD: ladder lookup failed")
+        return ""
+    return getattr(ladder, "game_key", "") or ""
 
 
 @dataclass
@@ -77,15 +89,21 @@ class SeasonNameModal(discord.ui.Modal):
 async def _step_pool(interaction: discord.Interaction, state: WizardState) -> None:
     """Step 2: pick the season's map pool (from the guild's visible pools)."""
     wiring = _wiring()
+    game_key = await _ladder_game_key(state)
     pools: list[Any] = []
-    if wiring is not None:
+    if wiring is not None and game_key:
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        pools = await wiring.game_data.list_map_pools(_GAME_KEY, guild_id=guild_id or None)
+        pools = await wiring.game_data.list_map_pools(game_key, guild_id=guild_id or None)
     options = [discord.SelectOption(label=p.name, value=p.id) for p in pools[:24]]
+    if options:
+        select_options = options
+    else:
+        empty_label = f"Aucun pool — à créer dans games/{game_key or '?'}-map-pools"
+        select_options = [discord.SelectOption(label=empty_label, value="none")]
     view = discord.ui.View(timeout=600)
     select: discord.ui.Select[Any] = discord.ui.Select(
         placeholder="Map pool de la saison...",
-        options=options or [discord.SelectOption(label="Aucun pool — à créer dans games/aoe2-map-pools", value="none")],
+        options=select_options,
     )
 
     async def _pick(inner: discord.Interaction) -> None:
@@ -97,7 +115,8 @@ async def _step_pool(interaction: discord.Interaction, state: WizardState) -> No
 
     select.callback = _pick  # type: ignore[method-assign, assignment]
     view.add_item(select)
-    content = f"Saison **{state.name}** — 2/6 : le map pool\nLes pools se gèrent dans `games/aoe2-map-pools` (forum)."
+    pools_forum = f"games/{game_key or '?'}-map-pools"
+    content = f"Saison **{state.name}** — 2/6 : le map pool\nLes pools se gèrent dans `{pools_forum}` (forum)."
     if interaction.response.is_done():
         await interaction.followup.send(content=content, view=view, ephemeral=True)
     else:
