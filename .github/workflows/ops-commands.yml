@@ -216,7 +216,13 @@ jobs:
               ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT" -f type="$SEED_TYPE")
               [[ -n "$SEED_FILE" ]] && ARGS+=(-f file="$SEED_FILE")
               LAST_ARG="$(echo "$COMMENT_BODY" | awk '{print $5}')"
-              [[ -n "$LAST_ARG" ]] && ARGS+=(-f "$([[ "$SEED_TYPE" == "matches" ]] && echo guild_id || echo ladder_id)"="$LAST_ARG")
+              if [[ -n "$LAST_ARG" ]]; then
+                if [[ "$SEED_TYPE" == "matches" ]]; then
+                  ARGS+=(-f "guild_id=$LAST_ARG")
+                else
+                  ARGS+=(-f "ladder_id=$LAST_ARG")
+                fi
+              fi
               gh workflow run env-seed.yml "${ARGS[@]}"
               ;;
             rollback)
