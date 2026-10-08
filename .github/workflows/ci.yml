@@ -60,7 +60,11 @@ jobs:
       - name: Run pytest
         run: |
           uv sync
-          uv run pytest
+          set +e
+          uv run pytest -rA --tb=short 2>&1 | tee pytest.out
+          rc=${PIPESTATUS[0]}
+          grep -E "^(FAILED|ERROR) " pytest.out | while read -r line; do echo "::error::${line}"; done
+          exit $rc
 
   cli-doctor:
     # kingdoms-services#188: the `kingdoms` CLI is the front door for
