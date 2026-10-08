@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from kingdoms.core.games.aoe2.seed import seed_aoe2
-from kingdoms.mods.ladder.seeder import seed_ladders
 
 
 class FakeDatabase:
@@ -66,42 +65,30 @@ def _data() -> dict[str, Any]:
         "maps": [{"name": "Arabia", "filename": "arabia", "description": "Classic"}],
         "civs": [{"name": "Franks", "faction_key": "franks"}],
         "map_pools": [{"name": "Season 1", "description": "First pool", "maps": ["Arabia"]}],
-        "ladders": [
-            {
-                "owner_ref": "guild:default",
-                "name": "AoE2 Community Ladder",
-                "map_pool": "Season 1",
-                "season": {"name": "Season 1", "start_in_days": 0, "duration_days": 90, "reset_ratings": False},
-            }
-        ],
     }
 
 
-async def test_seed_creates_catalog_pool_ladder_season() -> None:
+async def test_seed_creates_catalog_and_pools() -> None:
     db = FakeDatabase()
-    result = await seed_aoe2(db, _data(), now=1_000_000, ladder_seeder=seed_ladders)
+    result = await seed_aoe2(db, _data(), now=1_000_000)
     assert result["maps"] == 1
     assert result["civs"] == 1
     assert result["map_pools"] == 1
-    assert result["ladders"] == 1
-    assert result["seasons"] == 1
+    assert result["ladders"] == 0
+    assert result["seasons"] == 0
     assert "map:aoe2:Arabia" in db.collections["maps"]
     assert "map_pool:aoe2:Season 1" in db.collections["map_pools"]
-    assert "ladder:aoe2:guild:default" in db.collections["ladders"]
-    assert "season:ladder:aoe2:guild:default:Season 1" in db.collections["seasons"]
-    ladder = db.collections["ladders"]["ladder:aoe2:guild:default"]
-    assert ladder["active_map_pool_id"] == "map_pool:aoe2:Season 1"
 
 
 async def test_seed_is_idempotent() -> None:
     db = FakeDatabase()
-    first = await seed_aoe2(db, _data(), now=1_000_000, ladder_seeder=seed_ladders)
-    second = await seed_aoe2(db, _data(), now=2_000_000, ladder_seeder=seed_ladders)
+    first = await seed_aoe2(db, _data(), now=1_000_000)
+    second = await seed_aoe2(db, _data(), now=2_000_000)
     assert first["maps"] == 1 and second["maps"] == 0
     assert first["map_pools"] == 1 and second["map_pools"] == 0
-    assert first["ladders"] == 1 and second["ladders"] == 0
-    assert first["seasons"] == 1 and second["seasons"] == 0
-    assert len(db.collections["map_pool_history"]) == 1
+    assert first["ladders"] == 0 and second["ladders"] == 0
+    assert first["seasons"] == 0 and second["seasons"] == 0
+    assert not db.collections.get("map_pool_history")
 
 
 async def test_seed_yaml_file_is_valid() -> None:
