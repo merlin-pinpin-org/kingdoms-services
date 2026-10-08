@@ -45,7 +45,8 @@ def register(bot: Any, config: Any) -> None:
         return
     register_ladder_commands(bot.tree, wiring, owner_ref=_guild_id(config))
     bot.season_service = wiring.season_service
-    bot._ladder_id = ladder_id("aoe2", _guild_id(config))
+    config_guild = _guild_id(config)
+    bot._ladder_id = ladder_id("aoe2", config_guild) if config_guild else ""
     bot._ladder_sweep_task = start_ladder_sweep(wiring)
 
     from .admin_panel import register_ladder_admin_items, register_ladder_admin_section

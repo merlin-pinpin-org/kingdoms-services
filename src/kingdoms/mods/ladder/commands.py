@@ -178,6 +178,48 @@ async def _join_command(interaction: Any, service: Any, ladder_id: str) -> None:
         )
 
 
+def _interaction_ladder_id(interaction: Any, owner_ref: str) -> str:
+    """Resolve the ladder id at interaction time.
+
+    The guild comes from the interaction itself; the config's sync guild
+    is only a fallback. Registering commands no longer requires a
+    configured guild - the previous build raised on an empty guild and
+    the whole mod stayed inactive (register hook failed).
+    """
+    guild_id = str(getattr(interaction, "guild_id", "") or "").strip() or owner_ref.strip()
+    if not guild_id:
+        return ""
+    return ladder_id_for(GAME_KEY, guild_id)
+
+
+class _LazyMembership:
+    """Resolve the guild-scoped membership at interaction time.
+
+    The ladder id is guild-scoped; building the membership at register
+    time required a configured guild and crashed the whole mod when it
+    was absent. The guild is now taken from each interaction.
+    """
+
+    def __init__(self, wiring: LadderWiring, owner_ref: str) -> None:
+        self._wiring = wiring
+        self._owner_ref = owner_ref
+        self._resolved: dict[str, Any] = {}
+
+    def _for(self, guild_id: str) -> Any:
+        key = guild_id.strip() or self._owner_ref.strip() or "unresolved"
+        if key not in self._resolved:
+            self._resolved[key] = _ladder_membership(
+                self._wiring, ladder_id_for(GAME_KEY, key) if key != "unresolved" else ""
+            )
+        return self._resolved[key]
+
+    async def register(self, guild_id: str, user_id: str, display_name: str) -> Any:
+        return await self._for(guild_id).register(guild_id, user_id, display_name)
+
+    async def unregister(self, guild_id: str, user_id: str) -> Any:
+        return await self._for(guild_id).unregister(guild_id, user_id)
+
+
 def register_ladder_commands(
     tree: Any,
     wiring: LadderWiring,
@@ -189,7 +231,6 @@ def register_ladder_commands(
 
     from kingdoms.discord.commands_i18n import localized
 
-    ladder_id = ladder_id_for(GAME_KEY, owner_ref)
     group = app_commands.Group(
         name=localized("commands.ladder_name", "ladder"),
         description=localized("commands.ladder_description", "Ladder: queue, matches, standings"),
@@ -200,6 +241,7 @@ def register_ladder_commands(
         """Answer /ladder queue with the current ladder queue."""
         from kingdoms.mods.ladder.surface import LadderSurface
 
+        ladder_id = _interaction_ladder_id(interaction, owner_ref)
         surface = LadderSurface(wiring.service)
         rows = await surface.queue_view(ladder_id, now=_now_ms())
         locale = await _locale(interaction)
@@ -215,18 +257,19 @@ def register_ladder_commands(
 
     from kingdoms.discord.membership_commands import register_membership_commands
 
-    register_membership_commands(group, _ladder_membership(wiring, ladder_id))
+    register_membership_commands(group, _LazyMembership(wiring, owner_ref))
 
     @group.command(name="join")
     async def join_command(interaction: discord.Interaction) -> None:
         """Join the ladder queue after the profile precondition."""
-        await _join_command(interaction, wiring.service, ladder_id)
+        await _join_command(interaction, wiring.service, _interaction_ladder_id(interaction, owner_ref))
 
     @group.command(name="leave")
     async def leave_command(interaction: discord.Interaction) -> None:
         """Leave the ladder queue."""
         from kingdoms.mods.ladder.surface import ACTION_LEAVE_QUEUE, LadderSurface
 
+        ladder_id = _interaction_ladder_id(interaction, owner_ref)
         user_id = str(interaction.user.id)
         surface = LadderSurface(wiring.service)
         result = await surface.execute(ACTION_LEAVE_QUEUE, ladder_id, user_id, now=_now_ms())
@@ -248,6 +291,7 @@ def register_ladder_commands(
         """Answer /ladder leaderboard with the standings."""
         from kingdoms.mods.ladder.surface import LadderSurface
 
+        ladder_id = _interaction_ladder_id(interaction, owner_ref)
         surface = LadderSurface(wiring.service)
         rows = await surface.leaderboard_view(ladder_id)
         locale = await _locale(interaction)
