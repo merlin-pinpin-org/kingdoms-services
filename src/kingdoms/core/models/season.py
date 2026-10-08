@@ -24,6 +24,7 @@ class SeasonModel(BaseModel):
 
     id: str = Field(alias="_id")
     ladder_id: str
+    index: int
     name: str
     map_pool_id: str | None = None
     start_at: int

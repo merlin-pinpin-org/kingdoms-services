@@ -39,7 +39,7 @@ class IdentityImportReport:
 
     users: int
     bindings: int
-    conflicts: int
+    rebounds: int
 
 
 def load_identity_users(path: Path) -> list[IdentityUser]:
@@ -69,9 +69,12 @@ async def import_identity_links(
     """Import the association CSV into the core profile bindings (idempotent).
 
     Each (Discord id, profile id) pair becomes one binding document, the
-    same shape ``RegistrationService.bind_profile`` writes. A profile
-    already bound to another user is skipped and counted as a conflict;
-    an existing identical binding is left untouched (idempotence).
+    same shape ``RegistrationService.bind_profile`` writes. Users are
+    common to every guild and identities are global: one game profile is
+    bound to at most one Discord account at a time, and **the last
+    import wins** — a profile found on another account is rebound to
+    the importing one (the stale binding is deleted). An existing
+    identical binding is left untouched (idempotence).
     """
     users = load_identity_users(users_path)
     bound_at = now_ms if now_ms is not None else int(time.time() * 1000)
@@ -84,7 +87,7 @@ async def import_identity_links(
 
     collection = database[PROFILE_BINDINGS_COLLECTION]
     bindings = 0
-    conflicts = 0
+    rebounds = 0
     for (discord_id, profile_id), display_name in links.items():
         entry_id = f"binding:{game_key}:{discord_id}:{profile_id}"
         existing = await collection.find_one({"_id": entry_id})
@@ -93,11 +96,8 @@ async def import_identity_links(
                 {"game_key": game_key, "profile_id": profile_id}
             )
             if owner is not None and owner.get("user_id") != discord_id:
-                conflicts += 1
-                continue
-        elif existing.get("user_id") != discord_id:
-            conflicts += 1
-            continue
+                await collection.delete_one({"_id": owner["_id"]})
+                rebounds += 1
         if existing is not None and existing.get("bound_at") == bound_at:
             continue
         binding = {
@@ -114,5 +114,5 @@ async def import_identity_links(
     return IdentityImportReport(
         users=len({user.discord_id for user in users}),
         bindings=bindings,
-        conflicts=conflicts,
+        rebounds=rebounds,
     )

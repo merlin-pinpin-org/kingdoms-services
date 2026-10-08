@@ -15,6 +15,7 @@ from typing import Any
 import yaml
 
 from kingdoms.core.services.game_data import GameDataService
+from kingdoms.core.services.game_keys import validate_game_key
 
 SEED_PATH = Path("config/games/aoe2/seed.yaml")
 DAY_MS = 86_400_000
@@ -206,7 +207,7 @@ async def seed_aoe2(
     ``ladders``/``seasons`` sections of the same YAML document.
     """
     now_ms = now if now is not None else int(time.time() * 1000)
-    game_key = data["game_key"]
+    game_key = validate_game_key(str(data["game_key"]))
     adapter = MongoAoE2Database(database)
     game_data = GameDataService(adapter, audit=NullAudit())
     result: dict[str, Any] = {"game_key": game_key, "maps": 0, "civs": 0, "map_pools": 0, "ladders": 0, "seasons": 0}

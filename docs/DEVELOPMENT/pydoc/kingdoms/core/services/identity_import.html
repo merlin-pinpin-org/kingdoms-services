@@ -50,7 +50,7 @@ timestamp&nbsp;is&nbsp;the&nbsp;import&nbsp;date,&nbsp;not&nbsp;the&nbsp;legacy&
 <td class="section-title" colspan=3>&nbsp;<br><a name="IdentityImportReport">class <strong>IdentityImportReport</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#IdentityImportReport">IdentityImportReport</a>(users:&nbsp;'int',&nbsp;bindings:&nbsp;'int',&nbsp;conflicts:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#IdentityImportReport">IdentityImportReport</a>(users:&nbsp;'int',&nbsp;bindings:&nbsp;'int',&nbsp;rebounds:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Counts&nbsp;of&nbsp;the&nbsp;idempotent&nbsp;identity&nbsp;import,&nbsp;printed&nbsp;by&nbsp;the&nbsp;CLI.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -66,7 +66,7 @@ Counts&nbsp;of&nbsp;the&nbsp;idempotent&nbsp;identity&nbsp;import,&nbsp;printed&
 
 <dl><dt><a name="IdentityImportReport-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="IdentityImportReport-__init__"><strong>__init__</strong></a>(self, users: 'int', bindings: 'int', conflicts: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="IdentityImportReport-__init__"><strong>__init__</strong></a>(self, users: 'int', bindings: 'int', rebounds: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="IdentityImportReport-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -78,19 +78,19 @@ Counts&nbsp;of&nbsp;the&nbsp;idempotent&nbsp;identity&nbsp;import,&nbsp;printed&
 Data descriptors defined here:<br>
 <dl><dt><strong>bindings</strong></dt>
 </dl>
-<dl><dt><strong>conflicts</strong></dt>
+<dl><dt><strong>rebounds</strong></dt>
 </dl>
 <dl><dt><strong>users</strong></dt>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'bindings': 'int', 'conflicts': 'int', 'users': 'int'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'bindings': 'int', 'rebounds': 'int', 'users': 'int'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'bindings': Field(name='bindings',type='int',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'conflicts': Field(name='conflicts',type='int',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'users': Field(name='users',type='int',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'bindings': Field(name='bindings',type='int',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'rebounds': Field(name='rebounds',type='int',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'users': Field(name='users',type='int',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('users', 'bindings', 'conflicts')</dl>
+<dl><dt><strong>__match_args__</strong> = ('users', 'bindings', 'rebounds')</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -149,9 +149,12 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><dl><dt>async <a name="-import_identity_links"><strong>import_identity_links</strong></a>(database: 'Any', users_path: 'Path', game_key: 'str' = 'aoe2', now_ms: 'int | None' = None) -&gt; 'IdentityImportReport'</dt><dd><span class="code">Import&nbsp;the&nbsp;association&nbsp;CSV&nbsp;into&nbsp;the&nbsp;core&nbsp;profile&nbsp;bindings&nbsp;(idempotent).<br>
 &nbsp;<br>
 Each&nbsp;(Discord&nbsp;id,&nbsp;profile&nbsp;id)&nbsp;pair&nbsp;becomes&nbsp;one&nbsp;binding&nbsp;document,&nbsp;the<br>
-same&nbsp;shape&nbsp;``RegistrationService.bind_profile``&nbsp;writes.&nbsp;A&nbsp;profile<br>
-already&nbsp;bound&nbsp;to&nbsp;another&nbsp;user&nbsp;is&nbsp;skipped&nbsp;and&nbsp;counted&nbsp;as&nbsp;a&nbsp;conflict;<br>
-an&nbsp;existing&nbsp;identical&nbsp;binding&nbsp;is&nbsp;left&nbsp;untouched&nbsp;(idempotence).</span></dd></dl>
+same&nbsp;shape&nbsp;``RegistrationService.bind_profile``&nbsp;writes.&nbsp;Users&nbsp;are<br>
+common&nbsp;to&nbsp;every&nbsp;guild&nbsp;and&nbsp;identities&nbsp;are&nbsp;global:&nbsp;one&nbsp;game&nbsp;profile&nbsp;is<br>
+bound&nbsp;to&nbsp;at&nbsp;most&nbsp;one&nbsp;Discord&nbsp;account&nbsp;at&nbsp;a&nbsp;time,&nbsp;and&nbsp;**the&nbsp;last<br>
+import&nbsp;wins**&nbsp;—&nbsp;a&nbsp;profile&nbsp;found&nbsp;on&nbsp;another&nbsp;account&nbsp;is&nbsp;rebound&nbsp;to<br>
+the&nbsp;importing&nbsp;one&nbsp;(the&nbsp;stale&nbsp;binding&nbsp;is&nbsp;deleted).&nbsp;An&nbsp;existing<br>
+identical&nbsp;binding&nbsp;is&nbsp;left&nbsp;untouched&nbsp;(idempotence).</span></dd></dl>
  <dl><dt><a name="-load_identity_users"><strong>load_identity_users</strong></a>(path: 'Path') -&gt; 'list[IdentityUser]'</dt><dd><span class="code">Load&nbsp;the&nbsp;association&nbsp;CSV,&nbsp;skipping&nbsp;rows&nbsp;without&nbsp;a&nbsp;Discord&nbsp;id.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

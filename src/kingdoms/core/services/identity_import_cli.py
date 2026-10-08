@@ -35,7 +35,7 @@ def main() -> int:
             await close_async_client()
         print(
             f"identity import: {report.users} users, "
-            f"{report.bindings} profile bindings, {report.conflicts} conflicts"
+            f"{report.bindings} profile bindings, {report.rebounds} rebounds"
         )
 
     asyncio.run(run())

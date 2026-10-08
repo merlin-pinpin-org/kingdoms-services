@@ -380,7 +380,11 @@ Delegates&nbsp;the&nbsp;pool&nbsp;history&nbsp;to&nbsp;``GameDataService.activat
 state,&nbsp;emits&nbsp;``pool.switched``&nbsp;(players)&nbsp;and&nbsp;—&nbsp;for&nbsp;reset&nbsp;seasons&nbsp;—<br>
 ``ratings.reset``&nbsp;intents,&nbsp;and&nbsp;audits&nbsp;the&nbsp;activation.</span></dd></dl>
 
-<dl><dt>async <a name="SeasonService-create_season"><strong>create_season</strong></a>(self, ladder_id: 'str', name: 'str', map_pool_id: 'str | None', start_at: 'int', end_at: 'int | None' = None, reset_ratings: 'bool' = False) -&gt; 'SeasonModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;scheduled&nbsp;season;&nbsp;one&nbsp;active&nbsp;season&nbsp;per&nbsp;ladder&nbsp;at&nbsp;a&nbsp;time.</span></dd></dl>
+<dl><dt>async <a name="SeasonService-create_season"><strong>create_season</strong></a>(self, ladder_id: 'str', name: 'str', map_pool_id: 'str | None', start_at: 'int', end_at: 'int | None' = None, reset_ratings: 'bool' = False) -&gt; 'SeasonModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;scheduled&nbsp;season;&nbsp;one&nbsp;active&nbsp;season&nbsp;per&nbsp;ladder&nbsp;at&nbsp;a&nbsp;time.<br>
+&nbsp;<br>
+The&nbsp;season&nbsp;index&nbsp;is&nbsp;incremental&nbsp;per&nbsp;ladder&nbsp;(1,&nbsp;2,&nbsp;3…)&nbsp;and&nbsp;the<br>
+visible&nbsp;id&nbsp;embeds&nbsp;it:&nbsp;``&lt;ladder_id&gt;-&lt;index&gt;``&nbsp;—&nbsp;uniqueness&nbsp;is<br>
+the&nbsp;(ladder,&nbsp;index)&nbsp;pair,&nbsp;never&nbsp;the&nbsp;name.</span></dd></dl>
 
 <dl><dt>async <a name="SeasonService-end_season"><strong>end_season</strong></a>(self, season_id: 'str', now: 'int') -&gt; 'SeasonModel'</dt><dd><span class="code">End&nbsp;the&nbsp;active&nbsp;season;&nbsp;the&nbsp;ladder&nbsp;keeps&nbsp;its&nbsp;current&nbsp;pool.</span></dd></dl>
 

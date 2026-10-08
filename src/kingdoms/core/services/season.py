@@ -94,12 +94,20 @@ class SeasonService:
         end_at: int | None = None,
         reset_ratings: bool = False,
     ) -> SeasonModel:
-        """Create a scheduled season; one active season per ladder at a time."""
+        """Create a scheduled season; one active season per ladder at a time.
+
+        The season index is incremental per ladder (1, 2, 3…) and the
+        visible id embeds it: ``<ladder_id>-<index>`` — uniqueness is
+        the (ladder, index) pair, never the name.
+        """
         if end_at is not None and end_at <= start_at:
             raise ValueError("season end must be after start")
+        existing = await self._db.find_ladder_seasons(ladder_id)
+        index = max((int(doc.get("index", 0)) for doc in existing), default=0) + 1
         season = SeasonModel(
-            _id=f"season:{ladder_id}:{name}",
+            _id=f"{ladder_id}-{index}",
             ladder_id=ladder_id,
+            index=index,
             name=name,
             map_pool_id=map_pool_id,
             start_at=start_at,

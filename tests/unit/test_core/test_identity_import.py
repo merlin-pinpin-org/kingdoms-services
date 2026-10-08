@@ -3,8 +3,9 @@
 The identity perimeter: users.csv rows (Discord id + game profile)
 become core ``profile_bindings`` — the same documents
 ``RegistrationService.bind_profile`` writes. Ladder collections are
-never touched. Covers dedup, conflicts (profile bound to another
-user), idempotence and the ``bound_at`` import date.
+never touched. Covers dedup, the last-import-wins rebind (a game
+profile is bound to at most one Discord account — identities are
+global, not per-guild), idempotence and the ``bound_at`` import date.
 """
 
 from __future__ import annotations
@@ -40,6 +41,10 @@ class FakeCollection:
     async def replace_one(self, filt: dict, doc: dict, upsert: bool = False) -> None:
         del upsert
         self.docs[doc["_id"]] = doc
+
+    async def delete_one(self, filt: dict) -> int:
+        removed = self.docs.pop(filt["_id"], None)
+        return 1 if removed is not None else 0
 
     async def find_one(self, filt: dict) -> dict | None:
         key = filt.get("_id")
@@ -100,7 +105,7 @@ async def test_import_writes_core_bindings(users_csv: Path) -> None:
     report = await import_identity_links(db, users_csv, now_ms=NOW_MS)
     assert report.users == 3
     assert report.bindings == 4
-    assert report.conflicts == 0
+    assert report.rebounds == 0
     bindings = db.collections["profile_bindings"].docs
     assert set(bindings) == {
         "binding:aoe2:111:101",
@@ -129,17 +134,18 @@ async def test_import_is_idempotent(users_csv: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_import_skips_conflicting_profiles(users_csv: Path) -> None:
-    """A profile already bound to another user is skipped and counted."""
+async def test_last_import_wins_rebinds_profiles(users_csv: Path) -> None:
+    """A profile already bound to another account is rebound to the importer."""
     db = FakeDatabase()
     await import_identity_links(db, users_csv, now_ms=NOW_MS)
     other = USERS_CSV.replace("222,Bravo,201", "999,Delta,201")
     path = users_csv.parent / "other.csv"
     path.write_text(other, encoding="utf-8")
     report = await import_identity_links(db, path, now_ms=NOW_MS)
-    assert report.conflicts == 1
+    assert report.rebounds == 1
     bindings = db.collections["profile_bindings"].docs
-    assert bindings["binding:aoe2:222:201"]["user_id"] == "222"
+    assert bindings["binding:aoe2:999:201"]["user_id"] == "999"
+    assert "binding:aoe2:222:201" not in bindings
 
 
 @pytest.mark.asyncio

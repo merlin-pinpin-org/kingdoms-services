@@ -71,7 +71,22 @@ async def test_create_scheduled_season() -> None:
     season = await svc.create_season(LADDER, "Season 1", pool_id, start_at=1000, end_at=2000)
     assert season.state == SEASON_STATE_SCHEDULED
     assert season.reset_ratings is False
+    assert season.index == 1
+    assert season.id == f"{LADDER}-1"
     assert ("season.create", {"season_id": season.id, "ladder_id": LADDER, "name": "Season 1"}) in audit.lines
+
+
+@pytest.mark.asyncio
+async def test_season_index_is_incremental_per_ladder() -> None:
+    """Seasons are numbered 1, 2, 3 per ladder; ids embed the index."""
+    svc, game_data, _, _, _ = _env()
+    pool_id = await _map_and_pool(game_data)
+    first = await svc.create_season(LADDER, "Winter", pool_id, start_at=1000)
+    second = await svc.create_season(LADDER, "Spring", pool_id, start_at=2000)
+    assert (first.index, first.id) == (1, f"{LADDER}-1")
+    assert (second.index, second.id) == (2, f"{LADDER}-2")
+    other = await svc.create_season("ladder:2", "Winter", pool_id, start_at=1000)
+    assert (other.index, other.id) == (1, "ladder:2-1")
 
 
 @pytest.mark.asyncio
