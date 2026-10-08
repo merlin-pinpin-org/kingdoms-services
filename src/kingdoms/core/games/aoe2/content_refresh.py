@@ -32,7 +32,11 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     upserted). Raises when the dataset or Mongo is unreachable — the
     caller (DM panel, CLI) reports the failure.
     """
-    from kingdoms.core.games.aoe2.faction_content import SUPPORTED_LOCALES, TechtreeContentProvider
+    from kingdoms.core.games.aoe2.content_source import resolve_content_source
+    from kingdoms.core.games.aoe2.faction_content import (
+        SUPPORTED_LOCALES,
+        TechtreeContentProvider,
+    )
     from kingdoms.core.models.db import get_async_database
     from kingdoms.core.services.faction_content import FactionContentService
     from kingdoms.core.services.game_data import GameDataService
@@ -43,6 +47,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
         (dataset_dir / "data.json").read_text(encoding="utf-8"),
         {lng: (dataset_dir / f"strings-{lng}.json").read_text(encoding="utf-8") for lng in SUPPORTED_LOCALES},
     )
+    source = resolve_content_source(provider)
     database = get_async_database()
     game_data = GameDataService(MongoAoE2Database(database))
     content = FactionContentService(database)
@@ -54,18 +59,22 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     mapping = mapping_doc.get("factions") or {}
     factions = 0
     content_docs = 0
-    for name in provider.faction_names():
+    for name in await source.list_factions():
         existing = await game_data.get_faction(f"faction:aoe2:{name}")
         if existing is None:
             await game_data.create_faction("aoe2", name, faction_key=name.lower())
             factions += 1
         for locale in SUPPORTED_LOCALES:
-            descriptor = provider.faction_content(name, locale, mapping=mapping)
+            # The provider mapping (catalog name -> provider id) survives the
+            # seam: refresh resolves it first, then asks the source (dataset
+            # or ext process) for the provider-side key.
+            descriptor = await source.faction_content(mapping.get(name, name), locale)
             if descriptor is None:
                 continue
             await content.store(
                 {
-                    "entity_id": descriptor.entity_id,
+                    # The catalog's stable id always wins over the provider's.
+                    "entity_id": f"faction:aoe2:{name}",
                     "locale": descriptor.locale,
                     "name": descriptor.name,
                     "summary": descriptor.summary,

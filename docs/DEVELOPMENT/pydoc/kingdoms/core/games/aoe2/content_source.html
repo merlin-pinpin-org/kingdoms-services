@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.content_source</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.content_source</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/content_source.py">SOURCE_ROOT/core/games/aoe2/content_source.py</a></td></tr></table>
+    <p><span class="code">Abstract&nbsp;game&nbsp;content&nbsp;source&nbsp;for&nbsp;the&nbsp;core&nbsp;(consumer-side&nbsp;seam).<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;never&nbsp;reads&nbsp;a&nbsp;content&nbsp;upstream&nbsp;directly:&nbsp;it&nbsp;goes&nbsp;through&nbsp;this<br>
+seam.&nbsp;Two&nbsp;implementations&nbsp;ship:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#LocalDatasetSource">LocalDatasetSource</a>``&nbsp;—&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;read<br>
+&nbsp;&nbsp;in-process&nbsp;(default,&nbsp;current&nbsp;behavior&nbsp;of&nbsp;the&nbsp;DM&nbsp;refresh&nbsp;button&nbsp;and<br>
+&nbsp;&nbsp;the&nbsp;``/seed&nbsp;&lt;env&gt;&nbsp;game-content``&nbsp;CLI).<br>
+-&nbsp;``<a href="#RpcContentSource">RpcContentSource</a>``&nbsp;—&nbsp;the&nbsp;ext-aoe2techtree&nbsp;provider&nbsp;process&nbsp;over<br>
+&nbsp;&nbsp;gRPC&nbsp;(``EXT_AOE2TECHTREE_URI``),&nbsp;which&nbsp;itself&nbsp;may&nbsp;read&nbsp;the&nbsp;dataset&nbsp;or<br>
+&nbsp;&nbsp;a&nbsp;replacement&nbsp;HTTP&nbsp;API.<br>
+&nbsp;<br>
+Both&nbsp;speak&nbsp;the&nbsp;same&nbsp;interface,&nbsp;so&nbsp;switching&nbsp;to&nbsp;another&nbsp;API&nbsp;upstream&nbsp;is&nbsp;a<br>
+deployment&nbsp;concern&nbsp;(run&nbsp;the&nbsp;ext&nbsp;process,&nbsp;point&nbsp;the&nbsp;env&nbsp;var),&nbsp;never&nbsp;a<br>
+core&nbsp;code&nbsp;change.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.aoe2.content_source.html#LocalDatasetSource">LocalDatasetSource</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.games.aoe2.content_source.html#RpcContentSource">RpcContentSource</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.aoe2.content_source.html#GameContentSource">GameContentSource</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameContentSource">class <strong>GameContentSource</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameContentSource">GameContentSource</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Localized&nbsp;game&nbsp;content&nbsp;served&nbsp;by&nbsp;an&nbsp;upstream&nbsp;(dataset&nbsp;or&nbsp;API).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.games.aoe2.content_source.html#GameContentSource">GameContentSource</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GameContentSource-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="GameContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameContentSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;faction&nbsp;key&nbsp;known&nbsp;to&nbsp;the&nbsp;source.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="GameContentSource-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'faction_content', 'list_factions'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="GameContentSource-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GameContentSource-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalDatasetSource">class <strong>LocalDatasetSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalDatasetSource">LocalDatasetSource</a>(provider:&nbsp;'<a href="builtins.html#object">object</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Source&nbsp;=&nbsp;the&nbsp;vendored&nbsp;dataset,&nbsp;read&nbsp;in-process&nbsp;(current&nbsp;behavior).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LocalDatasetSource-__init__"><strong>__init__</strong></a>(self, provider: 'object') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="LocalDatasetSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Extract&nbsp;the&nbsp;faction's&nbsp;descriptor&nbsp;from&nbsp;the&nbsp;vendored&nbsp;dataset.</span></dd></dl>
+
+<dl><dt>async <a name="LocalDatasetSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;dataset's&nbsp;civ&nbsp;keys.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RpcContentSource">class <strong>RpcContentSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RpcContentSource">RpcContentSource</a>(provider_uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Source&nbsp;=&nbsp;the&nbsp;ext-aoe2techtree&nbsp;process&nbsp;over&nbsp;gRPC&nbsp;(kingdoms.v1.Content).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RpcContentSource-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="RpcContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="RpcContentSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;faction&nbsp;index,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-resolve_content_source"><strong>resolve_content_source</strong></a>(provider: 'object', env: 'dict[str, str] | None' = None) -&gt; 'GameContentSource'</dt><dd><span class="code">Pick&nbsp;the&nbsp;content&nbsp;source&nbsp;from&nbsp;the&nbsp;environment&nbsp;(dataset&nbsp;default).<br>
+&nbsp;<br>
+``EXT_AOE2TECHTREE_URI``&nbsp;set&nbsp;→&nbsp;the&nbsp;ext-aoe2techtree&nbsp;gRPC&nbsp;process;<br>
+unset&nbsp;→&nbsp;the&nbsp;vendored&nbsp;dataset&nbsp;read&nbsp;in-process.&nbsp;The&nbsp;provider&nbsp;<a href="builtins.html#object">object</a>&nbsp;is<br>
+the&nbsp;local&nbsp;``TechtreeContentProvider``,&nbsp;kept&nbsp;as&nbsp;the&nbsp;default&nbsp;so&nbsp;the<br>
+refresh&nbsp;button&nbsp;and&nbsp;the&nbsp;CLI&nbsp;keep&nbsp;working&nbsp;unchanged.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core.content_source (WARNING)&gt;</td></tr></table>
+</body></html>
