@@ -17,7 +17,7 @@ import asyncio
 import logging
 from typing import Any
 
-from kingdoms.mods.ladder.ladder_ids import ladder_id
+from kingdoms.core.ids import ladder_id
 
 logger = logging.getLogger("kingdoms.mods.ladder")
 

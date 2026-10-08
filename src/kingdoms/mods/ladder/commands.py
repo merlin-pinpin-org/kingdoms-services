@@ -16,7 +16,7 @@ import os
 import time
 from typing import TYPE_CHECKING, Any
 
-from kingdoms.mods.ladder.ladder_ids import ladder_id as ladder_id_for
+from kingdoms.core.ids import ladder_id as ladder_id_for
 
 if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from kingdoms.core.ids import ladder_id as ladder_id_for
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.season import SeasonService
-from kingdoms.mods.ladder.ladder_ids import ladder_id as ladder_id_for
 from kingdoms.mods.ladder.service import LadderService
 
 DAY_MS = 86_400_000

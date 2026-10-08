@@ -860,7 +860,7 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
         lines = []
         for s in seasons[-10:]:
             marker = "active" if s.id == (active.id if active else "") else s.state
-            lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id or 'aucun'}")
+            lines.append(f"- {s.name} ({marker}) - pool {s.map_pool_id or 'aucun'} - id `{s.id}`")
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
     if seasons:
@@ -871,6 +871,15 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
             )
         )
         view.add_item(select_row)
+    deletable = [s for s in seasons if s.state == "scheduled" and s.activated_at is None]
+    if deletable:
+        delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        delete_row.add_item(
+            LadderSeasonDeleteSelect(
+                [discord.SelectOption(label=f"Supprimer {s.name}", value=s.id) for s in deletable[-25:]]
+            )
+        )
+        view.add_item(delete_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(LadderSeasonCreateButton(ladder_id))
     view.add_item(action_row)
@@ -1026,6 +1035,60 @@ class LadderSeasonEndButton(
         await interaction.followup.send(f"Saison **{ended.name}** arretee.", ephemeral=True)
 
 
+class LadderSeasonDeleteSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:seasons:delete",
+):
+    """Delete a never-started season (scheduled, never activated)."""
+
+    def __init__(self, options: list[discord.SelectOption]) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:seasons:delete",
+                options=options,
+                placeholder="Supprimer une saison jamais demarree...",
+                min_values=1,
+                max_values=1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonDeleteSelect:
+        """Rebuild the item from the wire; options are read at click time."""
+        del interaction, item, match
+        return cls([discord.SelectOption(label="Recharge le panneau...", value="none")])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Delete the chosen never-started season, then re-render."""
+        wiring = build_ladder_wiring()
+        if wiring is None or wiring.season_service is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        data: Any = interaction.data or {}
+        chosen = str((data.get("values") or [""])[0])
+        if not chosen or chosen == "none":
+            ladder_id = await _resolved_ladder_id(interaction, wiring)
+            await interaction.response.edit_message(view=await seasons_view(ladder_id))
+            return
+        try:
+            deleted = await wiring.season_service.delete_season(chosen)
+        except Exception:
+            logger.warning("LADDER season delete refused (%s)", chosen, exc_info=True)
+            await interaction.response.send_message(
+                "Suppression refusee : la saison a demarre (activee ou terminee).", ephemeral=True
+            )
+            return
+        ladder_id = await _resolved_ladder_id(interaction, wiring)
+        await interaction.response.edit_message(view=await seasons_view(ladder_id))
+        await interaction.followup.send(f"Saison **{deleted.name}** (`{deleted.id}`) supprimee.", ephemeral=True)
+
+
 def register_ladder_admin_section() -> None:
     """Register the ladder section into the /admin panel (idempotent)."""
     register_admin_mod_section(
@@ -1043,6 +1106,7 @@ def register_ladder_admin_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(
         LadderCreateButton,
         LadderSeasonEndButton,
+        LadderSeasonDeleteSelect,
         LadderSettingsButton,
         LadderSeasonButton,
         LadderSeasonCreateButton,

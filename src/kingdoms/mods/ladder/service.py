@@ -19,7 +19,7 @@ import logging
 import random
 from typing import Any, Protocol
 
-from kingdoms.mods.ladder.ladder_ids import ladder_id
+from kingdoms.core.ids import ladder_id
 from kingdoms.mods.ladder.match_data import MatchDataService
 from kingdoms.mods.ladder.matchmaking import Pairing, QueueEntry, matchmaking_pass
 from kingdoms.mods.ladder.models import (

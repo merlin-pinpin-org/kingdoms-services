@@ -137,17 +137,17 @@ async def test_import_season_seeds_rotates_and_imports(tmp_path: Path) -> None:
     assert report.rotations == 1
 
     ladders = db.collections["ladders"].docs
-    ladder = ladders["ladder-aoe2-123456789"]
+    ladder = ladders["ladder:123456789:aoe2"]
     assert ladder["active_map_pool_id"] == "map_pool:aoe2:Rotation 2"
 
     seasons = db.collections["seasons"].docs
-    season = seasons["ladder-aoe2-123456789-1"]
+    season = seasons["ladder:123456789:aoe2:1"]
     assert season["state"] == "active"
 
     activations = db.collections["map_pool_history"].docs
     assert len(activations) == 2
 
-    assert "player:ladder-aoe2-123456789:111" in db.collections["players"].docs
+    assert "player:ladder:123456789:aoe2:111" in db.collections["players"].docs
     assert "legacy:1" in db.collections["matches"].docs
 
 
@@ -180,8 +180,8 @@ async def test_import_season_enrolls_players_into_the_season(tmp_path: Path) -> 
     )
     assert report.enrolled == 2
     enrollments = db.collections["season_enrollments"].docs
-    assert "season_enrollment:ladder-aoe2-123456789-1:111" in enrollments
-    assert "season_enrollment:ladder-aoe2-123456789-1:222" in enrollments
+    assert "season_enrollment:ladder:123456789:aoe2:1:111" in enrollments
+    assert "season_enrollment:ladder:123456789:aoe2:1:222" in enrollments
     second = await import_season(
         db,
         _write(tmp_path, "season2.yaml", SEASON_YAML),
