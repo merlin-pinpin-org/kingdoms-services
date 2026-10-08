@@ -62,7 +62,10 @@ Open&nbsp;the&nbsp;request&nbsp;picker&nbsp;from&nbsp;the&nbsp;guild's&nbsp;/adm
 Methods defined here:<br>
 <dl><dt><a name="GuildAccessRequestButton-__init__"><strong>__init__</strong></a>(self, guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GuildAccessRequestButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessRequestButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;(guild&nbsp;admins),&nbsp;then&nbsp;open&nbsp;the&nbsp;request&nbsp;select.</span></dd></dl>
+<dl><dt>async <a name="GuildAccessRequestButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;(guild&nbsp;admins),&nbsp;then&nbsp;open&nbsp;the&nbsp;request&nbsp;select.<br>
+&nbsp;<br>
+The&nbsp;guard's&nbsp;role&nbsp;lookups&nbsp;ride&nbsp;behind&nbsp;an&nbsp;immediate&nbsp;ack&nbsp;—&nbsp;the&nbsp;3s<br>
+window&nbsp;is&nbsp;not&nbsp;waited&nbsp;on&nbsp;the&nbsp;RolesService.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -202,7 +205,11 @@ Pick&nbsp;the&nbsp;games/mods&nbsp;the&nbsp;guild&nbsp;requests&nbsp;(guild&nbsp
 Methods defined here:<br>
 <dl><dt><a name="GuildAccessRequestSelect-__init__"><strong>__init__</strong></a>(self, guild_id: 'str', options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GuildAccessRequestSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GuildAccessRequestSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;request,&nbsp;DM&nbsp;the&nbsp;bot&nbsp;admins,&nbsp;confirm.</span></dd></dl>
+<dl><dt>async <a name="GuildAccessRequestSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Ack&nbsp;within&nbsp;the&nbsp;3s&nbsp;window,&nbsp;then&nbsp;record&nbsp;the&nbsp;request&nbsp;and&nbsp;DM&nbsp;admins.<br>
+&nbsp;<br>
+The&nbsp;interaction&nbsp;is&nbsp;deferred&nbsp;(ephemeral)&nbsp;FIRST&nbsp;—&nbsp;Mongo&nbsp;writes&nbsp;and<br>
+admin&nbsp;DMs&nbsp;can&nbsp;exceed&nbsp;Discord's&nbsp;3-second&nbsp;ack&nbsp;window,&nbsp;which&nbsp;left<br>
+the&nbsp;request&nbsp;"not&nbsp;responding".&nbsp;The&nbsp;confirmation&nbsp;lands&nbsp;as&nbsp;a&nbsp;followup.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

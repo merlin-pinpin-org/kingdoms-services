@@ -58,29 +58,34 @@ class GuildAccessRequestSelect(
         return cls(match.group("guild_id"), _request_options())
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Record the request, DM the bot admins, confirm."""
-        service = await _access_service()
-        if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
-            return
+        """Ack within the 3s window, then record the request and DM admins.
+
+        The interaction is deferred (ephemeral) FIRST — Mongo writes and
+        admin DMs can exceed Discord's 3-second ack window, which left
+        the request "not responding". The confirmation lands as a followup.
+        """
         data: Any = interaction.data or {}
         data_values: Any = data.get("values") or []
         chosen = [str(v) for v in data_values if v and v != "none"]
+        await interaction.response.defer(ephemeral=True, thinking=True)
         if not chosen:
-            await interaction.response.defer()
+            return
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
             return
         try:
             doc = await service.request_access(self.guild_id, chosen)
         except Exception:
             logger.exception("ACCESS REQUEST failed (guild %s)", self.guild_id)
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True
             )
             return
         pending = dict(doc.get("pending") or {})
         requested_at = max(pending, key=int) if pending else ""
         await _notify_bot_admins(interaction, self.guild_id, chosen, requested_at)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Demande enregistrée — un bot admin l'approuvera depuis ses DMs.", ephemeral=True
         )
 
@@ -114,10 +119,13 @@ class GuildAccessRequestButton(
         return cls(match.group("guild_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard (guild admins), then open the request select."""
-        from kingdoms.discord.maps_pool_flow import _guard_admin
+        """Guard (guild admins), then open the request select.
 
-        if not await _guard_admin(interaction):
+        The guard's role lookups ride behind an immediate ack — the 3s
+        window is not waited on the RolesService.
+        """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if not await _guard_admin_deferred(interaction):
             return
         select = GuildAccessRequestSelect(self.guild_id, _request_options())
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -125,11 +133,24 @@ class GuildAccessRequestButton(
         picker = discord.ui.LayoutView(timeout=None)
         picker.add_item(row)
         picker_view: Any = picker
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Choisis les games/mods que la guilde demande :",
             view=picker_view,
             ephemeral=True,
         )
+
+
+async def _guard_admin_deferred(interaction: discord.Interaction) -> bool:
+    """Admin guard for an already-deferred interaction (followup denial)."""
+    from kingdoms.discord.guards import is_admin
+
+    bot = interaction.client
+    admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
+    roles = getattr(bot, "roles_service", None)
+    if await is_admin(interaction, admins, roles):
+        return True
+    await interaction.followup.send("Réservé aux admins.", ephemeral=True)
+    return False
 
 
 def _request_options() -> list[discord.SelectOption]:
