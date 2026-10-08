@@ -33,7 +33,7 @@ def _default_mod(bot: Any) -> str:
     """First enabled mod (roster order), best-effort."""
     registry = getattr(bot, "registry", None)
     if registry is not None:
-        enabled = list(registry.enabled())
+        enabled = [str(name) for name in registry.enabled()]
         if enabled:
             return enabled[0]
     return "ladder"

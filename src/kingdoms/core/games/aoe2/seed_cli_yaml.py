@@ -37,11 +37,7 @@ def main() -> int:
         """Seed the parsed catalog and return the counts."""
         database = get_async_database()
         try:
-            try:
-                from kingdoms.mods.ladder.seeder import seed_ladders
-            except ImportError:
-                seed_ladders = None
-            return await seed_aoe2(database, data, ladder_seeder=seed_ladders)
+            return await seed_aoe2(database, data)
         finally:
             await close_async_client()
 

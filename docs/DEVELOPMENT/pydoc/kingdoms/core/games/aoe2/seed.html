@@ -131,10 +131,12 @@ Data descriptors defined here:<br>
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-collection_name"><strong>collection_name</strong></a>(kind: 'str') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;a&nbsp;seed&nbsp;collection&nbsp;kind&nbsp;to&nbsp;its&nbsp;MongoDB&nbsp;name.</span></dd></dl>
  <dl><dt><a name="-load_seed_data"><strong>load_seed_data</strong></a>(path: 'Path' = PosixPath('config/games/aoe2/seed.yaml')) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Parse&nbsp;the&nbsp;AoE2&nbsp;seed&nbsp;YAML&nbsp;document.</span></dd></dl>
- <dl><dt>async <a name="-seed_aoe2"><strong>seed_aoe2</strong></a>(database: 'Any', data: 'dict[str, Any]', now: 'int | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Idempotently&nbsp;seed&nbsp;the&nbsp;AoE2&nbsp;catalog,&nbsp;pools,&nbsp;ladders&nbsp;and&nbsp;seasons.<br>
+ <dl><dt>async <a name="-seed_aoe2"><strong>seed_aoe2</strong></a>(database: 'Any', data: 'dict[str, Any]', now: 'int | None' = None, ladder_seeder: 'Any' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Idempotently&nbsp;seed&nbsp;the&nbsp;AoE2&nbsp;catalog&nbsp;and&nbsp;pools.<br>
 &nbsp;<br>
 Returns&nbsp;per-section&nbsp;created&nbsp;counts.&nbsp;Re-running&nbsp;skips&nbsp;anything&nbsp;that<br>
-already&nbsp;exists&nbsp;(same&nbsp;ids),&nbsp;so&nbsp;a&nbsp;crashed&nbsp;deployment&nbsp;can&nbsp;just&nbsp;re-seed.</span></dd></dl>
+already&nbsp;exists&nbsp;(same&nbsp;ids),&nbsp;so&nbsp;a&nbsp;crashed&nbsp;deployment&nbsp;can&nbsp;just&nbsp;re-seed.<br>
+``ladder_seeder``&nbsp;(optional,&nbsp;injected&nbsp;by&nbsp;a&nbsp;mod)&nbsp;seeds&nbsp;the&nbsp;mod-owned<br>
+``ladders``/``seasons``&nbsp;sections&nbsp;of&nbsp;the&nbsp;same&nbsp;YAML&nbsp;document.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -142,9 +144,5 @@ already&nbsp;exists&nbsp;(same&nbsp;ids),&nbsp;so&nbsp;a&nbsp;crashed&nbsp;deplo
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>DAY_MS</strong> = 86400000<br>
-<strong>LADDERS_COLLECTION</strong> = 'ladders'<br>
-<strong>MATCHES_COLLECTION</strong> = 'matches'<br>
-<strong>PLAYERS_COLLECTION</strong> = 'players'<br>
-<strong>RATING_HISTORY_COLLECTION</strong> = 'rating_history'<br>
 <strong>SEED_PATH</strong> = PosixPath('config/games/aoe2/seed.yaml')</td></tr></table>
 </body></html>
