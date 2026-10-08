@@ -979,6 +979,9 @@ async def deploy_panels(
             report["statut saison"] = "deployed"
     except Exception:
         logger.warning("KINGDOM PANELS: season status deployment failed", exc_info=True)
+    # Epic #214 phase 1.1 — the gestion-saison dashboard and the Temps
+    # de saison live timers follow the same marker-refresh contract.
+    report.update(await _deploy_season_dashboards(guild, locale, kingdoms_service))
     try:
         if await refresh_changelog(guild, locale):
             report["update"] = "deployed"
@@ -987,6 +990,34 @@ async def deploy_panels(
     from kingdoms.discord.kingdom_content import refresh_salons_content
 
     report.update(await refresh_salons_content(guild, locale, kingdoms_service))
+    return report
+
+
+async def _deploy_season_dashboards(
+    guild: discord.Guild,
+    locale: str,
+    kingdoms_service: Any,
+) -> dict[str, str]:
+    """Deploy the epic #214 phase 1.1 surfaces (dashboard + live timers).
+
+    Each surface follows the marker-refresh contract of the season
+    status message: best-effort, never blocks the rest of the deploy.
+    """
+    from kingdoms.discord.season_dashboard import (
+        refresh_season_dashboard,
+        refresh_season_time,
+    )
+
+    report: dict[str, str] = {}
+    for report_key, refresh in (
+        ("gestion-saison", refresh_season_dashboard),
+        ("temps de saison", refresh_season_time),
+    ):
+        try:
+            if await refresh(guild, locale, kingdoms_service):
+                report[report_key] = "deployed"
+        except Exception:
+            logger.warning("KINGDOM PANELS: %s deployment failed", report_key, exc_info=True)
     return report
 
 
