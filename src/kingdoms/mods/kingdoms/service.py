@@ -116,6 +116,27 @@ class ReplacementError(KingdomsModError):
     message_key = "kingdoms.errors.replacement"
 
 
+class ApplicationsClosedError(KingdomsModError):
+    """Raised when enrollment hits the closed global applications switch (D75)."""
+
+    code = "KINGDOMS_APPLICATIONS_CLOSED"
+    message_key = "kingdoms.errors.applications_closed"
+
+
+class RecruitmentClosedError(KingdomsModError):
+    """Raised when joining hits a closed kingdom recruitment switch (D75)."""
+
+    code = "KINGDOMS_RECRUITMENT_CLOSED"
+    message_key = "kingdoms.errors.recruitment_closed"
+
+
+class FoundationClosedError(KingdomsModError):
+    """Raised when a player King founds with the right unchecked (D75)."""
+
+    code = "KINGDOMS_FOUNDATION_CLOSED"
+    message_key = "kingdoms.errors.foundation_closed"
+
+
 def _season_id(now: datetime) -> str:
     """Build the season id from its launch timestamp."""
     return f"s-{now:%Y%m%d-%H%M%S}"
@@ -241,14 +262,16 @@ class KingdomsService:
 
     async def assign(self, player_id: str, kingdom_name: str, role: LordRole) -> LordModel:
         """Assign a queued player to a kingdom (admin action, D23)."""
-        await self._require_season()
+        season = await self._require_season()
         lord = await self._require_lord(player_id)
         if not lord.in_queue:
             raise NotQueuedError("the player is not waiting in the queue")
         kingdom = await self._find_kingdom_by_name(kingdom_name)
         if kingdom.is_gaia:
             raise NotEnrollableError("Gaïa kingdoms are never enrollable")
-        await self._check_capacity(kingdom, role)
+        if not kingdom.recruitment_open:
+            raise RecruitmentClosedError("the kingdom's recruitment switch is closed (D75)")
+        await self._check_capacity(kingdom, role, season)
         lord.kingdom_id = kingdom.id
         lord.role = role
         lord.in_queue = False
@@ -264,7 +287,7 @@ class KingdomsService:
         season = await self._require_season()
         self._check_name(name)
         kingdoms = await self.kingdoms()
-        if len([k for k in kingdoms if not k.is_gaia]) >= self._config.kingdoms_count:
+        if len([k for k in kingdoms if not k.is_gaia]) >= self._effective_kingdoms_count(season):
             raise KingdomLimitError("the season already counts its maximum of kingdoms")
         if any(k.name.casefold() == name.strip().casefold() for k in kingdoms):
             raise KingdomNameInvalidError("a kingdom with this name already exists")
@@ -349,14 +372,16 @@ class KingdomsService:
         display_name: str,
         proposed_name: str | None,
     ) -> LordModel:
-        """Found a kingdom and become its King (D21/D22)."""
+        """Found a kingdom and become its King (D21/D22, D75)."""
         if season.imposed_kingdoms:
             raise ImposedKingdomsError("kingdoms are imposed for this season")
+        if not season.foundation_king:
+            raise FoundationClosedError("the King foundation right is unchecked (D75)")
         if not proposed_name:
             raise KingdomNameInvalidError("a founding King must propose a name")
         self._check_name(proposed_name)
         kingdoms = await self.kingdoms()
-        if len([k for k in kingdoms if not k.is_gaia]) >= self._config.kingdoms_count:
+        if len([k for k in kingdoms if not k.is_gaia]) >= self._effective_kingdoms_count(season):
             raise KingdomLimitError("the season already counts its maximum of kingdoms")
         kingdom = self._new_kingdom(
             f"k-{len(kingdoms)}",
@@ -386,6 +411,8 @@ class KingdomsService:
         kingdom_name: str | None,
     ) -> LordModel:
         """Join a kingdom as Lord, or wait in the queue (D22/D23)."""
+        if not season.applications_open:
+            raise ApplicationsClosedError("the global applications switch is closed (D75)")
         if not kingdom_name:
             lord = LordModel(
                 _id=player_id,
@@ -400,7 +427,9 @@ class KingdomsService:
         kingdom = await self._find_kingdom_by_name(kingdom_name)
         if kingdom.is_gaia:
             raise NotEnrollableError("Gaïa kingdoms are never enrollable")
-        await self._check_capacity(kingdom, LORD_ROLE)
+        if not kingdom.recruitment_open:
+            raise RecruitmentClosedError("the kingdom's recruitment switch is closed (D75)")
+        await self._check_capacity(kingdom, LORD_ROLE, season)
         lord = LordModel(
             _id=player_id,
             season_id=season.id,
@@ -412,15 +441,38 @@ class KingdomsService:
         logger.info("kingdoms: %s joined %s as Lord", player_id, kingdom.name)
         return lord
 
-    async def _check_capacity(self, kingdom: KingdomModel, role: LordRole) -> None:
-        """Enforce the configurable lord capacity of a kingdom (D22)."""
+    async def _check_capacity(
+        self, kingdom: KingdomModel, role: LordRole, season: SeasonState | None = None
+    ) -> None:
+        """Enforce the effective lord capacity of a kingdom (D22, D75).
+
+        The D75 quota policy is **free**: the admin may move the quota up
+        or down at any time. Lowering it below a kingdom's headcount
+        **gels** that kingdom — no new enrollment fits, but no member is
+        ever ejected (capacity only ever gates new members).
+        """
         if role is KING_ROLE:
             return
+        if season is None:
+            season = await self.current_season()
+        limit = (
+            self._effective_lords_per_kingdom(season)
+            if season is not None
+            else self._config.lords_per_kingdom
+        )
         lords = await self.lords()
         members = [lord for lord in lords if lord.kingdom_id == kingdom.id and not lord.left]
         subjects = [lord for lord in members if lord.role is not KING_ROLE]
-        if len(subjects) >= self._config.lords_per_kingdom:
+        if len(subjects) >= limit:
             raise KingdomFullError("the kingdom already counts its maximum of lords")
+
+    def _effective_kingdoms_count(self, season: SeasonState) -> int:
+        """Return the kingdom quota in force: the D75 override, else the config."""
+        return season.kingdoms_count_override or self._config.kingdoms_count
+
+    def _effective_lords_per_kingdom(self, season: SeasonState) -> int:
+        """Return the lord quota in force: the D75 override, else the config."""
+        return season.lords_per_kingdom_override or self._config.lords_per_kingdom
 
     def _check_name(self, name: str) -> None:
         """Validate a kingdom name against the configurable rules (D21)."""
@@ -429,6 +481,16 @@ class KingdomsService:
             raise KingdomNameInvalidError("the name length breaks the configured rules")
         if re.fullmatch(rules.pattern, name) is None:
             raise KingdomNameInvalidError("the name characters break the configured rules")
+
+    def check_name(self, name: str) -> str:
+        """Validate a kingdom name (D21) and return it, stripped.
+
+        The public seam for the admin rename flow (D75) — same rules as
+        the founding flow, no duplicated validation.
+        """
+        name = name.strip()
+        self._check_name(name)
+        return name
 
     async def _require_season(self) -> SeasonState:
         """Return the running season or raise the no-season error."""

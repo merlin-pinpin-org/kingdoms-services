@@ -18,6 +18,7 @@ TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
 ATTACKS_COLLECTION = "kingdoms_attacks"
 SHOWMATCH_COLLECTION = "kingdoms_showmatch"
+ADMIN_JOURNAL_COLLECTION = "kingdoms_admin_journal"
 
 
 class KingdomsStore(Protocol):
@@ -93,6 +94,18 @@ class KingdomsStore(Protocol):
 
     async def find_showmatches(self) -> list[dict[str, Any]]:
         """Return every ShowMatch document of the current data set."""
+        ...
+
+    async def insert_admin_action(self, document: dict[str, Any]) -> None:
+        """Insert one admin journal entry (D75) — append-only."""
+        ...
+
+    async def find_admin_actions(self) -> list[dict[str, Any]]:
+        """Return every admin journal entry of the current data set."""
+        ...
+
+    async def upsert_admin_action(self, document: dict[str, Any]) -> None:
+        """Update one admin journal entry (rollback flag, compaction)."""
         ...
 
     async def wipe_season_data(self) -> None:
@@ -200,6 +213,21 @@ class MongoKingdomsStore:
         cursor = self._database[SHOWMATCH_COLLECTION].find({})
         return [dict(doc) async for doc in cursor]
 
+    async def insert_admin_action(self, document: dict[str, Any]) -> None:
+        """Insert one admin journal entry (D75) — append-only."""
+        await self._database[ADMIN_JOURNAL_COLLECTION].insert_one(document)
+
+    async def find_admin_actions(self) -> list[dict[str, Any]]:
+        """Return every admin journal entry of the current data set."""
+        cursor = self._database[ADMIN_JOURNAL_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
+    async def upsert_admin_action(self, document: dict[str, Any]) -> None:
+        """Update one admin journal entry (rollback flag, compaction)."""
+        await self._database[ADMIN_JOURNAL_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38).
 
@@ -214,5 +242,6 @@ class MongoKingdomsStore:
             TECHNOLOGIES_COLLECTION,
             ATTACKS_COLLECTION,
             SHOWMATCH_COLLECTION,
+            ADMIN_JOURNAL_COLLECTION,
         ):
             await self._database[collection].delete_many({})
