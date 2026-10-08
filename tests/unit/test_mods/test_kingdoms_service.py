@@ -63,6 +63,9 @@ class MemoryStore:
     async def upsert_territory(self, document: dict) -> None:
         self.territories[document["_id"]] = document
 
+    async def delete_territory(self, territory_id: str) -> None:
+        self.territories.pop(territory_id, None)
+
     async def find_territories(self) -> list[dict]:
         return list(self.territories.values())
 

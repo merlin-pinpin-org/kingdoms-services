@@ -27,7 +27,6 @@ from datetime import UTC, datetime, timedelta
 from itertools import count
 from typing import Any
 
-
 from kingdoms.core.exceptions import KingdomsError
 from kingdoms.mods.kingdoms.models import AdminActionModel
 from kingdoms.mods.kingdoms.storage import KingdomsStore

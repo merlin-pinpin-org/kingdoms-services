@@ -172,6 +172,7 @@ class KingdomAdminService:
         reason: str,
     ) -> LordModel:
         """Assign a queued player to a kingdom (D23), journaled."""
+        self._require_reason(reason)
         before_lord = await self._require_lord(player_id)
         before = _snap(LORDS_COLLECTION, before_lord.to_mongo())
         lord = await self._kingdoms.assign(player_id, kingdom_name, role)
@@ -201,6 +202,7 @@ class KingdomAdminService:
         The role is kept, the capacity rules apply; a King is not a
         movable piece — the throne swap (or dissolution) handles them.
         """
+        self._require_reason(reason)
         season = await self._require_season()
         lord = await self._require_lord(player_id)
         if lord.in_queue or lord.left:
@@ -235,6 +237,7 @@ class KingdomAdminService:
         reason: str,
     ) -> LordModel:
         """Eject a lord back to the waiting queue, role kept (D75)."""
+        self._require_reason(reason)
         lord = await self._require_lord(player_id)
         if lord.in_queue or lord.left:
             raise ReassignError("the player is not an active member of a kingdom")
@@ -272,6 +275,7 @@ class KingdomAdminService:
         The territories the creation draws ride the ``after`` payload,
         so a rollback deletes the kingdom **and** its drawn maps.
         """
+        self._require_reason(reason)
         kingdom = await self._kingdoms.add_kingdom(name)
         after = _snap(KINGDOMS_COLLECTION, kingdom.to_mongo())
         for territory in await self._territories():
@@ -299,6 +303,7 @@ class KingdomAdminService:
         reason: str,
     ) -> KingdomModel:
         """Rename a kingdom (D75 — admin rename, reason mandatory)."""
+        self._require_reason(reason)
         kingdom = await self._find_kingdom(kingdom_name)
         cleaned = self._kingdoms.check_name(new_name)
         if any(
@@ -338,6 +343,7 @@ class KingdomAdminService:
         carries the budgets (the anti-abuse inheritance of D23). When
         the kingdom has no King, the lord is simply crowned.
         """
+        self._require_reason(reason)
         kingdom = await self._find_kingdom(kingdom_name)
         lords = [
             lord
@@ -392,6 +398,7 @@ class KingdomAdminService:
         to the waiting queue **with their role kept**, and the kingdom
         document is deleted — the rollback restores the whole set.
         """
+        self._require_reason(reason)
         await self._require_season()
         kingdom = await self._find_kingdom(kingdom_name)
         if kingdom.is_gaia:
@@ -443,6 +450,7 @@ class KingdomAdminService:
         reason: str,
     ) -> KingdomModel:
         """Flip one kingdom's recruitment switch (D75)."""
+        self._require_reason(reason)
         kingdom = await self._find_kingdom(kingdom_name)
         before = _snap(KINGDOMS_COLLECTION, kingdom.to_mongo())
         kingdom.recruitment_open = open
@@ -468,6 +476,7 @@ class KingdomAdminService:
         reason: str,
     ) -> SeasonState:
         """Flip the global applications switch (D75)."""
+        self._require_reason(reason)
         season = await self._require_season()
         before = _snap(SEASONS_COLLECTION, season.to_mongo())
         season.applications_open = open
@@ -499,6 +508,7 @@ class KingdomAdminService:
         below a kingdom's current headcount **gels** it: capacity only
         gates new members, nobody is ever ejected.
         """
+        self._require_reason(reason)
         season = await self._require_season()
         before = _snap(SEASONS_COLLECTION, season.to_mongo())
         season.kingdoms_count_override = kingdoms_count
@@ -530,6 +540,7 @@ class KingdomAdminService:
         The window closes with the season's first cycle: once the
         season is launched and rolling, the rights are locked.
         """
+        self._require_reason(reason)
         season = await self._require_season()
         if season.current_cycle > 0:
             raise FoundationWindowClosedError("the foundation rights are locked past the launch")
@@ -569,6 +580,7 @@ class KingdomAdminService:
         with no ``before`` counterpart) are deleted. The rollback is
         itself journaled — with its mandatory reason.
         """
+        self._require_reason(reason)
         action = await self._journal.rollback(action_id)
         for key, document in action.before.items():
             await self._restore(key, document)
@@ -590,6 +602,12 @@ class KingdomAdminService:
     # ------------------------------------------------------------------
     # helpers
 
+    def _require_reason(self, reason: str) -> None:
+        """Gate every admin action on a non-blank reason (D75), before any resolution."""
+        if not (reason or "").strip():
+            raise AdminReasonRequiredError("an admin action requires a reason (D75)")
+
+
     async def _record(
         self,
         action_type: str,
@@ -602,6 +620,7 @@ class KingdomAdminService:
         after: dict[str, dict[str, Any]],
     ) -> None:
         """Journal one action on the current season (reason mandatory)."""
+        self._require_reason(reason)
         season = await self._kingdoms.current_season()
         await self._journal.record(
             season_id=season.id if season is not None else "-",

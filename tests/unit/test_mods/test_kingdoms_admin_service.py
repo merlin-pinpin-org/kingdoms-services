@@ -125,7 +125,7 @@ async def test_reassign_moves_a_lord_between_kingdoms() -> None:
     assert lord.role is LordRole.LORD
     with pytest.raises(ReassignError):
         await admin.reassign("p1", "Bourgogne", reason="already there", **ACTOR)
-    with pytest.raises(ReassignError):
+    with pytest.raises(KingdomNotFoundError):
         await admin.reassign("nobody", "Aquitaine", reason="not enrolled", **ACTOR)
 
 

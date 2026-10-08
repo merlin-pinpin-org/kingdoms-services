@@ -467,11 +467,11 @@ class KingdomsService:
             raise KingdomFullError("the kingdom already counts its maximum of lords")
 
     def _effective_kingdoms_count(self, season: SeasonState) -> int:
-        """The kingdom quota in force: the D75 override, else the config."""
+        """Return the kingdom quota in force: the D75 override, else the config."""
         return season.kingdoms_count_override or self._config.kingdoms_count
 
     def _effective_lords_per_kingdom(self, season: SeasonState) -> int:
-        """The lord quota in force: the D75 override, else the config."""
+        """Return the lord quota in force: the D75 override, else the config."""
         return season.lords_per_kingdom_override or self._config.lords_per_kingdom
 
     def _check_name(self, name: str) -> None:
