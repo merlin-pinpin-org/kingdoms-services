@@ -7,6 +7,8 @@ weekly budgets — plus the D21 name rules.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from kingdoms.mods.kingdoms.config import default_season_config
@@ -243,3 +245,57 @@ async def test_re_enroll_after_leave_is_allowed() -> None:
     await service.leave("p1", "RL")
     lord = await service.enroll("p1", "Rollon", LordRole.LORD)
     assert lord.in_queue is True
+
+
+class _FakeCoreSeasons:
+    """In-memory core season registry (the SeasonService seam)."""
+
+    def __init__(self) -> None:
+        self.seasons: list[Any] = []
+
+    async def list_seasons(self, scope: str) -> list[Any]:
+        del scope
+        return list(self.seasons)
+
+    async def create_season(self, scope: str, name: str, pool: Any, start: int) -> Any:
+        from types import SimpleNamespace
+
+        index = max((s.index for s in self.seasons), default=0) + 1
+        season = SimpleNamespace(id=f"{scope}-{index}", index=index, name=name)
+        self.seasons.append(season)
+        return season
+
+
+class _FakeGameData:
+    """GameDataService seam returning a core-shaped map catalog."""
+
+    def __init__(self, names: list[str]) -> None:
+        self._names = names
+
+    async def list_maps(self, game_key: str) -> list[Any]:
+        del game_key
+        from types import SimpleNamespace
+
+        return [SimpleNamespace(name=n) for n in self._names]
+
+
+async def test_launch_creates_a_core_season_with_incremental_index() -> None:
+    service, store = _service()
+    core = _FakeCoreSeasons()
+    service._core_seasons = core
+    service._guild_id = "123"
+    first = await service.launch()
+    assert first.id == "kingdoms-aoe2-123-1"
+    second = await service.launch()
+    assert second.id == "kingdoms-aoe2-123-2"
+    assert len(core.seasons) == 2
+    del store
+
+
+async def test_launch_grafts_the_core_map_catalog() -> None:
+    service, _store = _service()
+    service._game_data = _FakeGameData(["Arabia", "Kawasan"])
+    await service.launch()
+    keys = {entry.key for entry in service.config.maps}
+    assert "arabia" in keys
+    assert "kawasan" in keys

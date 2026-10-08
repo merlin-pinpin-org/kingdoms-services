@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import UTC, datetime
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from kingdoms.core.exceptions import ErrorContext, KingdomsError
 from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
@@ -117,17 +117,34 @@ class ReplacementError(KingdomsModError):
 
 
 def _season_id(now: datetime) -> str:
-    """Build the season id from its launch timestamp."""
+    """Build the legacy season id from its launch timestamp (no core seam)."""
     return f"s-{now:%Y%m%d-%H%M%S}"
 
 
 class KingdomsService:
-    """Season lifecycle and enrollment rules over the store (reference §3-§5)."""
+    """Season lifecycle and enrollment rules over the store (reference §3-§5).
 
-    def __init__(self, store: KingdomsStore, config: KingdomsSeasonConfig) -> None:
-        """Store the seam and the validated season configuration."""
+    The season registry itself is the core's: ``launch`` creates a core
+    season in the mod's scope (``kingdoms-aoe2-<guild>-<index>``, the
+    incremental-index convention) and the mod's SeasonState carries that
+    visible id; without a core seam (unit tests, local runs) the legacy
+    timestamp id stays.
+    """
+
+    def __init__(
+        self,
+        store: KingdomsStore,
+        config: KingdomsSeasonConfig,
+        core_seasons: Any | None = None,
+        guild_id: str = "",
+        game_data: Any | None = None,
+    ) -> None:
+        """Store the seams: persistence, config, core seasons, core catalog."""
         self._store = store
         self._config = config
+        self._core_seasons = core_seasons
+        self._guild_id = guild_id
+        self._game_data = game_data
 
     async def launch(self, imposed_names: list[str] | None = None) -> SeasonState:
         """Launch a new season: wholesale reset, then the fresh state (D38).
@@ -142,9 +159,11 @@ class KingdomsService:
         if len(names) > self._config.kingdoms_count:
             raise KingdomLimitError("more imposed kingdoms than the configured maximum")
         await self._store.wipe_season_data()
+        await self._graft_core_catalog()
         now = datetime.now(tz=UTC)
+        season_id = await self._core_season_id(now)
         season = SeasonState(
-            _id=_season_id(now),
+            _id=season_id,
             started_at=now,
             weeks=self._config.weeks,
             current_cycle=0,
@@ -159,6 +178,45 @@ class KingdomsService:
             await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
         return season
+
+    async def _graft_core_catalog(self) -> None:
+        """Read the core's AoE2 map catalog into the live season config.
+
+        The core collection wins when it holds maps; the configured
+        (hard) catalog stays the fallback. Best-effort: a catalog
+        outage never blocks a launch.
+        """
+        if self._game_data is None:
+            return
+        try:
+            from kingdoms.mods.kingdoms import graft_core_catalog
+
+            self._config = await graft_core_catalog(self._config, self._game_data)
+        except Exception:
+            logger.warning("kingdoms: core map catalog graft failed — config fallback", exc_info=True)
+
+    async def _core_season_id(self, now: datetime) -> str:
+        """Resolve this launch's season id through the core season registry.
+
+        The core owns the index (incremental per scope); the visible id
+        follows the platform convention ``kingdoms-aoe2-<guild>-<index>``.
+        Without the core seam the legacy timestamp id stays (tests,
+        local runs).
+        """
+        if self._core_seasons is None:
+            return _season_id(now)
+        from kingdoms.mods.kingdoms import season_scope
+
+        scope = season_scope(self._guild_id)
+        seasons = await self._core_seasons.list_seasons(scope)
+        index = max((s.index for s in seasons), default=0) + 1
+        core_season = await self._core_seasons.create_season(
+            scope,
+            f"Kingdoms season {index}",
+            None,
+            int(now.timestamp() * 1000),
+        )
+        return str(core_season.id)
 
     async def reset(self) -> None:
         """Reset the season data without launching anything (reference §3.3)."""

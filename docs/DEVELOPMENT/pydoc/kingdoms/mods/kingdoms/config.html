@@ -4550,7 +4550,12 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-default_map_catalog"><strong>default_map_catalog</strong></a>() -&gt; 'tuple[MapEntry, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;default&nbsp;allowed-map&nbsp;catalog&nbsp;(issue&nbsp;#163,&nbsp;§6).<br>
+<td class="singlecolumn"><dl><dt><a name="-core_catalog_to_entries"><strong>core_catalog_to_entries</strong></a>(maps: 'Any') -&gt; 'tuple[MapEntry, ...]'</dt><dd><span class="code">Convert&nbsp;core&nbsp;map&nbsp;catalog&nbsp;documents&nbsp;into&nbsp;the&nbsp;mod's&nbsp;<a href="#MapEntry">MapEntry</a>&nbsp;catalog.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;map&nbsp;id&nbsp;is&nbsp;``map:&lt;game_key&gt;:&lt;name&gt;``;&nbsp;the&nbsp;mod's&nbsp;key&nbsp;is&nbsp;the<br>
+normalized&nbsp;name.&nbsp;Maps&nbsp;without&nbsp;a&nbsp;name&nbsp;are&nbsp;skipped.&nbsp;The&nbsp;cadastre<br>
+stays&nbsp;in&nbsp;the&nbsp;mod's&nbsp;own&nbsp;season.yaml&nbsp;(admin-editable&nbsp;data).</span></dd></dl>
+ <dl><dt><a name="-default_map_catalog"><strong>default_map_catalog</strong></a>() -&gt; 'tuple[MapEntry, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;default&nbsp;allowed-map&nbsp;catalog&nbsp;(issue&nbsp;#163,&nbsp;§6).<br>
 &nbsp;<br>
 A&nbsp;starter&nbsp;catalog&nbsp;of&nbsp;classic&nbsp;AoE2&nbsp;maps&nbsp;so&nbsp;the&nbsp;season&nbsp;is&nbsp;playable<br>
 with&nbsp;no&nbsp;local&nbsp;override;&nbsp;every&nbsp;entry&nbsp;(and&nbsp;its&nbsp;cadastre&nbsp;effects)&nbsp;is<br>
@@ -4561,6 +4566,7 @@ admin-editable&nbsp;data&nbsp;through&nbsp;``config/kingdoms/season.yaml``.</spa
 Missing&nbsp;file&nbsp;or&nbsp;empty&nbsp;mapping&nbsp;→&nbsp;Season&nbsp;II&nbsp;defaults&nbsp;(the&nbsp;game&nbsp;must&nbsp;be<br>
 playable&nbsp;with&nbsp;no&nbsp;local&nbsp;overrides).&nbsp;An&nbsp;invalid&nbsp;override&nbsp;raises:&nbsp;a<br>
 broken&nbsp;config&nbsp;must&nbsp;fail&nbsp;loudly,&nbsp;never&nbsp;load&nbsp;half-validated.</span></dd></dl>
+ <dl><dt><a name="-normalize_map_key"><strong>normalize_map_key</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;core&nbsp;map&nbsp;name&nbsp;to&nbsp;the&nbsp;mod's&nbsp;map&nbsp;key&nbsp;(lowercase&nbsp;kebab).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

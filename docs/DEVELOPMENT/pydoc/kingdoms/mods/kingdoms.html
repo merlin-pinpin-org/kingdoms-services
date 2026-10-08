@@ -9,7 +9,16 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.kingdoms</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/__init__.py">SOURCE_ROOT/mods/kingdoms/__init__.py</a></td></tr></table>
-    <p><span class="code">Kingdoms&nbsp;mod:&nbsp;the&nbsp;AoE2&nbsp;territory-conquest&nbsp;Season&nbsp;II&nbsp;feature.</span></p>
+    <p><span class="code">Kingdoms&nbsp;mod:&nbsp;the&nbsp;AoE2&nbsp;territory-conquest&nbsp;Season&nbsp;II&nbsp;feature.<br>
+&nbsp;<br>
+The&nbsp;mod&nbsp;is&nbsp;**game-bound**&nbsp;(AoE2&nbsp;only,&nbsp;by&nbsp;design&nbsp;—&nbsp;CADASTRE.md&nbsp;and&nbsp;the<br>
+civilization&nbsp;rules&nbsp;are&nbsp;AoE2&nbsp;data):&nbsp;it&nbsp;reuses&nbsp;the&nbsp;core's&nbsp;game&nbsp;catalog<br>
+(maps,&nbsp;map&nbsp;pools,&nbsp;the&nbsp;guild's&nbsp;``aoe2-maps``/``aoe2-map-pools``&nbsp;forum<br>
+topics)&nbsp;and&nbsp;the&nbsp;core's&nbsp;season&nbsp;registry,&nbsp;never&nbsp;its&nbsp;own.<br>
+&nbsp;<br>
+Season&nbsp;ids&nbsp;follow&nbsp;the&nbsp;core's&nbsp;visible-id&nbsp;convention&nbsp;with&nbsp;the&nbsp;mod's&nbsp;own<br>
+scope:&nbsp;``kingdoms-aoe2-&lt;guild_id&gt;-&lt;index&gt;``&nbsp;—&nbsp;the&nbsp;index&nbsp;is&nbsp;incremental<br>
+per&nbsp;guild,&nbsp;uniqueness&nbsp;is&nbsp;the&nbsp;(scope,&nbsp;index)&nbsp;pair.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -35,5 +44,34 @@
 <a href="kingdoms.mods.kingdoms.storage.html">storage</a><br>
 <a href="kingdoms.mods.kingdoms.territories.html">territories</a><br>
 <a href="kingdoms.mods.kingdoms.views.html">views</a><br>
-</td></tr></table></td></tr></table>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-close"><strong>close</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Stop&nbsp;the&nbsp;mod's&nbsp;background&nbsp;tasks&nbsp;(none&nbsp;today;&nbsp;the&nbsp;hook&nbsp;is&nbsp;the&nbsp;contract).</span></dd></dl>
+ <dl><dt>async <a name="-graft_core_catalog"><strong>graft_core_catalog</strong></a>(config: 'Any', game_data: 'Any') -&gt; 'Any'</dt><dd><span class="code">Graft&nbsp;the&nbsp;core's&nbsp;map&nbsp;catalog&nbsp;onto&nbsp;the&nbsp;mod's&nbsp;season&nbsp;config.<br>
+&nbsp;<br>
+The&nbsp;core's&nbsp;``maps``&nbsp;collection&nbsp;(fed&nbsp;by&nbsp;the&nbsp;seed&nbsp;and&nbsp;the&nbsp;games&nbsp;admin<br>
+panels,&nbsp;surfaced&nbsp;as&nbsp;the&nbsp;guild's&nbsp;``aoe2-maps``/``aoe2-map-pools``<br>
+forum&nbsp;topics)&nbsp;is&nbsp;the&nbsp;single&nbsp;source&nbsp;of&nbsp;truth&nbsp;for&nbsp;AoE2&nbsp;maps;&nbsp;the<br>
+mod's&nbsp;hard&nbsp;catalog&nbsp;stays&nbsp;the&nbsp;fallback&nbsp;when&nbsp;the&nbsp;core&nbsp;collection&nbsp;is<br>
+empty&nbsp;(fresh&nbsp;env,&nbsp;unit&nbsp;tests).</span></dd></dl>
+ <dl><dt><a name="-register"><strong>register</strong></a>(bot: 'Any', config: 'Any') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;Kingdoms&nbsp;mod&nbsp;onto&nbsp;the&nbsp;bot:&nbsp;store,&nbsp;services,&nbsp;commands,&nbsp;panels.<br>
+&nbsp;<br>
+The&nbsp;map-catalog&nbsp;graft&nbsp;happens&nbsp;at&nbsp;season&nbsp;launch&nbsp;(async&nbsp;context):<br>
+``KingdomsService.launch``&nbsp;reads&nbsp;the&nbsp;core&nbsp;catalog&nbsp;through&nbsp;the<br>
+``game_data``&nbsp;seam,&nbsp;so&nbsp;the&nbsp;drawn&nbsp;territories&nbsp;always&nbsp;match&nbsp;what&nbsp;the<br>
+guild&nbsp;sees&nbsp;in&nbsp;its&nbsp;maps&nbsp;forum.</span></dd></dl>
+ <dl><dt><a name="-season_scope"><strong>season_scope</strong></a>(guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;core&nbsp;season&nbsp;scope&nbsp;for&nbsp;this&nbsp;mod's&nbsp;seasons&nbsp;in&nbsp;one&nbsp;guild.</span></dd></dl>
+ <dl><dt><a name="-setup_hook"><strong>setup_hook</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;Kingdoms&nbsp;persistent&nbsp;UI&nbsp;after&nbsp;a&nbsp;restart.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GAME_KEY</strong> = 'aoe2'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms (WARNING)&gt;</td></tr></table>
 </body></html>

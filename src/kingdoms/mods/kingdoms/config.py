@@ -279,3 +279,27 @@ def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
     if not isinstance(data, dict):
         raise ValueError(f"{season_file}: season config must be a mapping")
     return KingdomsSeasonConfig.model_validate(data)
+
+
+def normalize_map_key(name: str) -> str:
+    """Normalize a core map name to the mod's map key (lowercase kebab)."""
+    return "".join(c if c.isalnum() else "-" for c in name.strip().lower()).strip("-")
+
+
+def core_catalog_to_entries(maps: Any) -> tuple[MapEntry, ...]:
+    """Convert core map catalog documents into the mod's MapEntry catalog.
+
+    The core map id is ``map:<game_key>:<name>``; the mod's key is the
+    normalized name. Maps without a name are skipped. The cadastre
+    stays in the mod's own season.yaml (admin-editable data).
+    """
+    entries: list[MapEntry] = []
+    for entry in maps:
+        name = str(getattr(entry, "name", "") or "").strip()
+        if not name:
+            continue
+        key = normalize_map_key(name)
+        if not key:
+            continue
+        entries.append(MapEntry(key=key, display_name=name))
+    return tuple(entries)

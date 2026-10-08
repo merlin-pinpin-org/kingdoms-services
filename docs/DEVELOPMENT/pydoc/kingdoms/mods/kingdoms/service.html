@@ -641,12 +641,18 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomsService">class <strong>KingdomsService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsService">KingdomsService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsService">KingdomsService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;core_seasons:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;guild_id:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;game_data:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-Season&nbsp;lifecycle&nbsp;and&nbsp;enrollment&nbsp;rules&nbsp;over&nbsp;the&nbsp;store&nbsp;(reference&nbsp;§3-§5).<br>&nbsp;</span></td></tr>
+Season&nbsp;lifecycle&nbsp;and&nbsp;enrollment&nbsp;rules&nbsp;over&nbsp;the&nbsp;store&nbsp;(reference&nbsp;§3-§5).<br>
+&nbsp;<br>
+The&nbsp;season&nbsp;registry&nbsp;itself&nbsp;is&nbsp;the&nbsp;core's:&nbsp;``launch``&nbsp;creates&nbsp;a&nbsp;core<br>
+season&nbsp;in&nbsp;the&nbsp;mod's&nbsp;scope&nbsp;(``kingdoms-aoe2-&lt;guild&gt;-&lt;index&gt;``,&nbsp;the<br>
+incremental-index&nbsp;convention)&nbsp;and&nbsp;the&nbsp;mod's&nbsp;SeasonState&nbsp;carries&nbsp;that<br>
+visible&nbsp;id;&nbsp;without&nbsp;a&nbsp;core&nbsp;seam&nbsp;(unit&nbsp;tests,&nbsp;local&nbsp;runs)&nbsp;the&nbsp;legacy<br>
+timestamp&nbsp;id&nbsp;stays.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="KingdomsService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seam&nbsp;and&nbsp;the&nbsp;validated&nbsp;season&nbsp;configuration.</span></dd></dl>
+<dl><dt><a name="KingdomsService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', core_seasons: 'Any | None' = None, guild_id: 'str' = '', game_data: 'Any | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;persistence,&nbsp;config,&nbsp;core&nbsp;seasons,&nbsp;core&nbsp;catalog.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-add_kingdom"><strong>add_kingdom</strong></a>(self, name: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Add&nbsp;a&nbsp;kingdom&nbsp;manually&nbsp;to&nbsp;the&nbsp;running&nbsp;season&nbsp;(admin&nbsp;action).<br>
 &nbsp;<br>
