@@ -11,6 +11,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from kingdoms.mods.kingdoms.config import default_season_config
+from kingdoms.mods.kingdoms.models import (
+    GAIA_KINGDOM_KEY,
+    LordRole,
+    TerritoryModel,
+)
 
 from kingdoms.mods.kingdoms.admin_journal import AdminReasonRequiredError
 from kingdoms.mods.kingdoms.admin_service import (
@@ -19,12 +25,6 @@ from kingdoms.mods.kingdoms.admin_service import (
     KingdomAdminService,
     ReassignError,
     ThroneSwapError,
-)
-from kingdoms.mods.kingdoms.config import default_season_config
-from kingdoms.mods.kingdoms.models import (
-    GAIA_KINGDOM_KEY,
-    LordRole,
-    TerritoryModel,
 )
 from kingdoms.mods.kingdoms.service import (
     AlreadyEnrolledError,
@@ -86,7 +86,7 @@ async def test_every_operation_requires_a_reason() -> None:
 
 
 async def test_add_lord_bypasses_the_queue_and_journals() -> None:
-    admin, kingdoms, store = await _launched()
+    admin, _kingdoms, store = await _launched()
     lord = await admin.add_lord(
         "p1", "Player One", LordRole.LORD, "Aquitaine", reason="joined late", **ACTOR
     )

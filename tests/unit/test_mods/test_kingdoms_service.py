@@ -8,9 +8,9 @@ weekly budgets — plus the D21 name rules.
 from __future__ import annotations
 
 import pytest
-
 from kingdoms.mods.kingdoms.config import default_season_config
 from kingdoms.mods.kingdoms.models import GAIA_KINGDOM_KEY, LordRole
+
 from kingdoms.mods.kingdoms.service import (
     AlreadyEnrolledError,
     ImposedKingdomsError,
