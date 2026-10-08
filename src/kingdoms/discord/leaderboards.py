@@ -27,7 +27,7 @@ MAX_BOARDS = 4
 
 async def get_guild_boards(guild_id: str, db: Any) -> list[str]:
     """Read the guild's chosen boards (ordered, validated, 1-4)."""
-    boards = DEFAULT_BOARDS
+    boards: list[str] = list(DEFAULT_BOARDS)
     try:
         settings = await db.get_guild_settings(guild_id) if db else None
         raw = (settings or {}).get("leaderboards")

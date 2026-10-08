@@ -127,7 +127,10 @@ class ProfileStatsService:
 
     async def _mongo_get(self, profile_id: str) -> dict[str, Any] | None:
         try:
-            return await self._db[PROFILE_STATS_COLLECTION].find_one({"_id": f"{self._game_key}:{profile_id}"})
+            doc: dict[str, Any] | None = await self._db[PROFILE_STATS_COLLECTION].find_one(
+                {"_id": f"{self._game_key}:{profile_id}"}
+            )
+            return doc
         except Exception:
             logger.warning("mongo stats read failed — degrading", exc_info=True)
             return None
@@ -145,7 +148,7 @@ class ProfileStatsService:
     @staticmethod
     def _is_stale(stats: dict[str, Any]) -> bool:
         fetched_at = stats.get("fetched_at")
-        if not fetched_at:
+        if not isinstance(fetched_at, int):
             return True
         return (fetched_at + DEFAULT_TTL_S) < _now_s()
 

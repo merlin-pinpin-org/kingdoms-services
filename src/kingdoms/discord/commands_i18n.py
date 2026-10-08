@@ -78,4 +78,5 @@ async def reply(interaction: discord.Interaction, key: str, **kwargs: object) ->
     locale = await reply_locale(interaction)
     if catalog is None:
         return key
-    return catalog.render(f"replies.{key}", locale, **kwargs)
+    rendered: str = catalog.render(f"replies.{key}", locale, **kwargs)
+    return rendered

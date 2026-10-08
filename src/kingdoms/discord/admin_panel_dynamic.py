@@ -392,16 +392,15 @@ class PinLeaderboardsSelect(
     """The guild's displayed leaderboards (1-4 of the provider's boards)."""
 
     def __init__(self, options: list[discord.SelectOption], defaults: list[str], placeholder: str = "") -> None:
-        super().__init__(
-            discord.ui.Select(
-                custom_id=PIN_LEADERBOARDS_SELECT_ID,
-                options=options,
-                placeholder=placeholder or None,
-                min_values=1,
-                max_values=4,
-                default_values=[o for o in options if o.value in defaults],
-            )
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=PIN_LEADERBOARDS_SELECT_ID,
+            options=options,
+            placeholder=placeholder or None,
+            min_values=1,
+            max_values=4,
         )
+        select._selected_values = [o for o in options if o.value in defaults]  # type: ignore[attr-defined]
+        super().__init__(select)
 
     @classmethod
     def create(cls, defaults: list[str], placeholder: str = "") -> PinLeaderboardsSelect:

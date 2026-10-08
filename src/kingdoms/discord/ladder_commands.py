@@ -284,8 +284,10 @@ async def _locale(interaction: Any) -> str:
     if logs is None:
         return "en"
     if interaction.guild_id is not None:
-        return await logs.get_locale(str(interaction.guild_id))
-    return await logs.get_user_locale(str(interaction.user.id))
+        locale: str = await logs.get_locale(str(interaction.guild_id))
+        return locale
+    user_locale: str = await logs.get_user_locale(str(interaction.user.id))
+    return user_locale
 
 
 def _t(interaction: Any, locale: str, key: str, fallback: str) -> str:
@@ -293,4 +295,5 @@ def _t(interaction: Any, locale: str, key: str, fallback: str) -> str:
     catalog = getattr(interaction.client, "messages", None)
     if catalog is None:
         return fallback
+    return str(catalog.render(key, locale))
     return catalog.render(key, locale) or fallback

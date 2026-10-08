@@ -303,10 +303,12 @@ async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY
         from redis.asyncio import Redis
 
         redis_client = Redis.from_url(redis_uri, decode_responses=True)
-    service = ProfileStatsService(provider, database, redis_client, game_key=game_key)
-    provider_stats = await service.get_many(profile_ids) if provider is not None else {}
+    service = ProfileStatsService(provider, database, redis_client, game_key=game_key) if provider is not None else None
+    provider_stats = await service.get_many(profile_ids) if service is not None else {}
     for profile_id in profile_ids:
-        binding = await bindings.find_one({"game_key": game_key, "profile_id": profile_id})
+        binding: dict[str, Any] | None = await bindings.find_one(
+            {"game_key": game_key, "profile_id": profile_id}
+        )
         display_name = ""
         if binding is not None:
             display_name = str((binding.get("profile") or {}).get("display_name", "")) or str(
@@ -318,7 +320,7 @@ async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY
             {"completed_at": 1},
         ):
             completed = doc.get("completed_at")
-            if completed and completed > last_match_ms:
+            if isinstance(completed, int) and completed > last_match_ms:
                 last_match_ms = completed
         stats = provider_stats.get(profile_id)
         enriched[profile_id] = {

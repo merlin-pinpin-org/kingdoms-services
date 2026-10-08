@@ -26,6 +26,7 @@ import discord
 
 from kingdoms.discord.admin_panel_mods import AdminModSection, register_admin_mod_section
 from kingdoms.discord.ladder_commands import build_ladder_wiring
+from kingdoms.discord.mod_admin_channels import ModAdminPinInteraction
 
 logger = logging.getLogger("kingdoms.ladder.admin_panel")
 
@@ -34,19 +35,20 @@ _NS = "admin:pin:modladder"
 GAME_KEY = "aoe2"
 
 
-def _catalog(interaction: discord.Interaction) -> Any:
+def _catalog(interaction: discord.Interaction | ModAdminPinInteraction) -> Any:
     """Resolve the message catalog through the running client."""
     return getattr(getattr(interaction, "client", None), "messages", None)
 
 
-async def _locale(interaction: discord.Interaction) -> str:
+async def _locale(interaction: discord.Interaction | ModAdminPinInteraction) -> str:
     """Read the guild's locale (en fallback)."""
     logs = getattr(getattr(interaction, "client", None), "logs_service", None)
     if logs is None:
         return "en"
     try:
         guild_id = str(getattr(interaction, "guild_id", "") or "")
-        return await logs.get_locale(guild_id)
+        locale: str = await logs.get_locale(guild_id)
+        return locale
     except Exception:
         return "en"
 
@@ -55,7 +57,8 @@ def _t(catalog: Any, locale: str, key: str, **kwargs: Any) -> str:
     """Render a ladder admin catalog key with an English fallback."""
     if catalog is None:
         return key
-    return catalog.render(f"ladder.{key}", locale, **kwargs)
+    rendered: str = catalog.render(f"ladder.{key}", locale, **kwargs)
+    return rendered
 
 LADDERS_COLLECTION = "ladders"
 
@@ -67,7 +70,9 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-async def _resolve_ladder(interaction: discord.Interaction, wiring: Any) -> dict[str, Any] | None:
+async def _resolve_ladder(
+    interaction: discord.Interaction | ModAdminPinInteraction, wiring: Any
+) -> dict[str, Any] | None:
     """Resolve the guild's ladder the same way the commands do."""
     service = wiring.service
     ladder_id = getattr(interaction.client, "_ladder_id", None)
@@ -113,7 +118,7 @@ def _selected_values(interaction: discord.Interaction) -> list[str]:
 
 
 async def ladder_admin_entry(
-    interaction: discord.Interaction, pinned: bool = False
+    interaction: discord.Interaction | ModAdminPinInteraction, pinned: bool = False
 ) -> discord.ui.LayoutView:
     """Render the ladder admin section's view (snapshot + config actions).
 
@@ -177,8 +182,8 @@ async def ladder_admin_entry(
     start_ok = enrolled >= 2 and pool_ok and season_ok
     checklist = [
         (" joueurs inscrits (2 minimum)", enrolled >= 2, f"{enrolled}/2"),
-        (" map pool actif", pool_ok, active_pool.name if pool_ok else "aucun"),
-        (" saison en cours", season_ok, active.name if season_ok else "aucune"),
+        (" map pool actif", pool_ok, (active_pool.name if active_pool is not None else "aucun")),
+        (" saison en cours", season_ok, (active.name if active is not None else "aucune")),
     ]
     checklist_lines = []
     for label, ok, detail in checklist:
@@ -553,7 +558,7 @@ class LadderPauseButton(
             return
         if not pausing and ladder is not None:
             players = await wiring.service._db.find_ladder_players(ladder_id)
-            pools = await wiring.game_data.list_map_pools(ladder.get("game_key", GAME_KEY))
+            pools = await wiring.game_data.list_map_pools(getattr(ladder, "game_key", GAME_KEY) or GAME_KEY)
             pool_ok = any(p.id == ladder.active_map_pool_id for p in pools)
             active_season = (
                 await wiring.season_service.get_active_season(ladder_id) if wiring.season_service else None
@@ -901,7 +906,9 @@ async def pools_view(ladder_id: str) -> discord.ui.LayoutView:
 
 
 
-async def ladder_mod_admin_view(interaction: discord.Interaction) -> discord.ui.LayoutView:
+async def ladder_mod_admin_view(
+    interaction: discord.Interaction | ModAdminPinInteraction,
+) -> discord.ui.LayoutView:
     """Render the mod-level admin view: the seasons' lifecycle (cross-season).
 
     The root \U0001f6e1-ladder-admin channel hosts this pinned panel: it

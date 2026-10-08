@@ -83,19 +83,19 @@ async def _step_pool(interaction: discord.Interaction, state: WizardState) -> No
         pools = await wiring.game_data.list_map_pools(_GAME_KEY, guild_id=guild_id or None)
     options = [discord.SelectOption(label=p.name, value=p.id) for p in pools[:24]]
     view = discord.ui.View(timeout=600)
-    select = discord.ui.Select(
+    select: discord.ui.Select[Any] = discord.ui.Select(
         placeholder="Map pool de la saison...",
         options=options or [discord.SelectOption(label="Aucun pool — à créer dans games/aoe2-map-pools", value="none")],
     )
 
     async def _pick(inner: discord.Interaction) -> None:
-        chosen = (inner.values or [""])[0]
+        chosen = (getattr(inner, "values", None) or [""])[0]
         if chosen != "none":
             state.pool_id = chosen
             state.pool_name = next((p.name for p in pools if p.id == chosen), chosen)
         await _step_pick_mode(inner, state)
 
-    select.callback = _pick
+    select.callback = _pick  # type: ignore[method-assign, assignment]
     view.add_item(select)
     content = f"Saison **{state.name}** — 2/6 : le map pool\nLes pools se gèrent dans `games/aoe2-map-pools` (forum)."
     if interaction.response.is_done():
@@ -111,15 +111,15 @@ async def _step_pick_mode(interaction: discord.Interaction, state: WizardState) 
     strategies = list_pick_strategies()
     options = [discord.SelectOption(label=s.label, value=s.key) for s in strategies[:24]]
     view = discord.ui.View(timeout=600)
-    select = discord.ui.Select(placeholder="Mode de sélection des maps...", options=options)
+    select: discord.ui.Select[Any] = discord.ui.Select(placeholder="Mode de sélection des maps...", options=options)
 
     async def _pick(inner: discord.Interaction) -> None:
-        chosen = (inner.values or [""])[0]
+        chosen = (getattr(inner, "values", None) or [""])[0]
         state.pick_strategy = chosen
         state.pick_label = next((s.label for s in strategies if s.key == chosen), chosen)
         await _step_rating(inner, state)
 
-    select.callback = _pick
+    select.callback = _pick  # type: ignore[method-assign, assignment]
     view.add_item(select)
     content = (
         f"Saison **{state.name}** — 3/6 : le mode de pick\n"
@@ -134,7 +134,7 @@ async def _step_pick_mode(interaction: discord.Interaction, state: WizardState) 
 async def _step_rating(interaction: discord.Interaction, state: WizardState) -> None:
     """Step 4: the ranking system (elo / glicko2)."""
     view = discord.ui.View(timeout=600)
-    select = discord.ui.Select(
+    select: discord.ui.Select[Any] = discord.ui.Select(
         placeholder="Type de ranking...",
         options=[
             discord.SelectOption(label="Elo", value="elo", description="Classique, simple à expliquer"),
@@ -143,10 +143,10 @@ async def _step_rating(interaction: discord.Interaction, state: WizardState) -> 
     )
 
     async def _pick(inner: discord.Interaction) -> None:
-        state.rating_system = (inner.values or ["elo"])[0]
+        state.rating_system = (getattr(inner, "values", None) or ["elo"])[0]
         await inner.response.send_modal(QuotasModal(state))
 
-    select.callback = _pick
+    select.callback = _pick  # type: ignore[method-assign, assignment]
     view.add_item(select)
     content = (
         f"Saison **{state.name}** — 4/6 : le type de ranking\n"
@@ -234,12 +234,14 @@ async def _step_recap(interaction: discord.Interaction, state: WizardState) -> N
         "c'est un ladder, les joueurs peuvent rejoindre en cours de saison.",
     ]
     view = discord.ui.View(timeout=600)
-    button = discord.ui.Button(label="Créer la saison et ouvrir les inscriptions", style=discord.ButtonStyle.success)
+    button: discord.ui.Button[Any] = discord.ui.Button(
+        label="Créer la saison et ouvrir les inscriptions", style=discord.ButtonStyle.success
+    )
 
     async def _create(inner: discord.Interaction) -> None:
         await _finish(inner, state)
 
-    button.callback = _create
+    button.callback = _create  # type: ignore[method-assign, assignment]
     view.add_item(button)
     if interaction.response.is_done():
         await interaction.followup.send(content="\n".join(lines), view=view, ephemeral=True)

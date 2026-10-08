@@ -227,7 +227,7 @@ async def _resolve_or_create_category(
 
     stored = await db.find_channel(guild_id, key)
     if stored is not None and _category_exists(guild, stored.channel_id):
-        return stored.channel_id
+        return str(stored.channel_id)
     if stored is not None:
         await db.delete_channel(guild_id, key)
     existing = _category_by_name(guild, name)
@@ -253,7 +253,7 @@ async def _resolve_or_create_channel(
 
     stored = await db.find_channel(guild_id, key)
     if stored is not None and _channel_exists(guild, stored.channel_id):
-        return stored.channel_id
+        return str(stored.channel_id)
     if stored is not None:
         await db.delete_channel(guild_id, key)
     channel_id = await platform.ensure_channel(guild_id, name, category_id)
@@ -267,7 +267,7 @@ async def _resolve_or_create_channel(
             name=name,
         )
     )
-    return channel_id
+    return str(channel_id)
 
 
 def _category_exists(guild: Any, category_id: str) -> bool:

@@ -329,20 +329,20 @@ class PoolMapPickerView(discord.ui.View):
         self.pages = max(1, (len(maps) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
         self.page = max(0, min(page, self.pages - 1))
         chunk = maps[self.page * self.PAGE_SIZE : (self.page + 1) * self.PAGE_SIZE]
-        select = discord.ui.Select(
+        select: discord.ui.Select[Any] = discord.ui.Select(
             placeholder=f"{pool.name} — choisir une map",
             options=[discord.SelectOption(label=m.name, value=m.id) for m in chunk]
             or [discord.SelectOption(label="Aucune map disponible", value="none")],
         )
-        select.callback = self._on_pick
+        select.callback = self._on_pick  # type: ignore[method-assign]
         self.add_item(select)
         if self.page > 0:
-            prev = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
-            prev.callback = self._nav(self.page - 1)
+            prev: discord.ui.Button[Any] = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
+            prev.callback = self._nav(self.page - 1)  # type: ignore[method-assign]
             self.add_item(prev)
         if self.page < self.pages - 1:
-            nxt = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
-            nxt.callback = self._nav(self.page + 1)
+            nxt: discord.ui.Button[Any] = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
+            nxt.callback = self._nav(self.page + 1)  # type: ignore[method-assign]
             self.add_item(nxt)
 
     def _nav(self, page: int) -> Any:

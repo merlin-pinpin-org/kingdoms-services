@@ -79,7 +79,7 @@ def set_settings_db_resolver(resolver: Callable[[], Any | None]) -> None:
     _SETTINGS_DB_RESOLVER = resolver
 
 
-def _settings_db(interaction: discord.Interaction) -> Any | None:
+def _settings_db(interaction: object) -> Any | None:
     """Resolve the guild-settings seam from the running bot."""
     client = getattr(interaction, "client", None)
     logs = getattr(client, "logs_service", None)
@@ -154,8 +154,7 @@ async def _save_settings(db: Any, guild_id: str, settings: dict[str, Any]) -> No
 
 def read_only_overwrite(read_only: bool, base: discord.PermissionOverwrite) -> discord.PermissionOverwrite:
     """Return the overwrite with ``send_messages`` closed for @everyone."""
-    base.send_messages = not read_only
-    return base
+    return discord.PermissionOverwrite(**{**dict(base), "send_messages": not read_only})
 
 
 async def apply_read_only_policy(

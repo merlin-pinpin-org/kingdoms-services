@@ -152,7 +152,8 @@ async def _reply(interaction: discord.Interaction, key: str) -> str:
     if catalog is None:
         return key
     locale = await reply_locale(interaction)
-    return catalog.render(f"admin_replies.{key}", locale)
+    rendered: str = catalog.render(f"admin_replies.{key}", locale)
+    return rendered
 
 
 async def _degrade(interaction: discord.Interaction, message: str) -> None:

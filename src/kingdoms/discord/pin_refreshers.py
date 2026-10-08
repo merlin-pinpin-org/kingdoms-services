@@ -63,7 +63,7 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
         channel = guild.get_channel(int(registered.channel_id))
         message = await channel.fetch_message(int(registered.message_id))
         enrollments_open, queue_paused = await _ladder_flags(guild_id)
-        await message.edit(view=build_ladder_menu_layout(enrollments_open, queue_paused))
+        await message.edit(view=build_ladder_menu_layout(enrollments_open=enrollments_open, queue_paused=queue_paused))
     except Exception:
         logger.warning("home pin refresh failed — best-effort", exc_info=True)
 
