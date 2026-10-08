@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder.admin_channel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.ladder.html" class="white">ladder</a>.admin_channel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/admin_channel.py">SOURCE_ROOT/mods/ladder/admin_channel.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;ladder's&nbsp;admin&nbsp;surfaces,&nbsp;registered&nbsp;on&nbsp;the&nbsp;core&nbsp;mod-admin&nbsp;mechanism.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;owns&nbsp;the&nbsp;generic&nbsp;pattern&nbsp;—&nbsp;a&nbsp;root&nbsp;admin&nbsp;channel&nbsp;per&nbsp;mod<br>
+(cross-season,&nbsp;hosting&nbsp;the&nbsp;pinned&nbsp;lifecycle&nbsp;panel)&nbsp;and,&nbsp;for&nbsp;seasonal<br>
+mods,&nbsp;a&nbsp;per-season&nbsp;admin&nbsp;salon&nbsp;inside&nbsp;the&nbsp;season's&nbsp;category&nbsp;(hosting<br>
+the&nbsp;pinned&nbsp;config&nbsp;panel):&nbsp;see&nbsp;:mod:`kingdoms.discord.mod_admin_channels`.<br>
+&nbsp;<br>
+The&nbsp;ladder&nbsp;only&nbsp;declares&nbsp;its&nbsp;:data:`LADDER_ADMIN_CHANNEL_SPEC`&nbsp;—&nbsp;the<br>
+🛡-ladder-admin&nbsp;channel&nbsp;(root,&nbsp;cross-season,&nbsp;staff&nbsp;+&nbsp;bot-admins)&nbsp;whose<br>
+pinned&nbsp;panel&nbsp;is&nbsp;the&nbsp;seasons'&nbsp;lifecycle&nbsp;(create&nbsp;/&nbsp;activate&nbsp;/&nbsp;end&nbsp;/<br>
+enrollments),&nbsp;and&nbsp;the&nbsp;per-season&nbsp;config&nbsp;panel&nbsp;rendered&nbsp;in&nbsp;the&nbsp;season's<br>
+own&nbsp;admin&nbsp;salon.&nbsp;Everything&nbsp;else&nbsp;(provisioning,&nbsp;visibility&nbsp;policy,<br>
+self-healing&nbsp;pins,&nbsp;registry-backed&nbsp;message&nbsp;ids)&nbsp;is&nbsp;the&nbsp;core's&nbsp;business.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_ladder_admin_channel_service"><strong>build_ladder_admin_channel_service</strong></a>(bot: 'discord.Client', mongo_uri: 'str', redis_uri: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;🛡-ladder-admin&nbsp;managed&nbsp;channel;&nbsp;None&nbsp;when&nbsp;stores&nbsp;are&nbsp;absent.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_pinned_ladder_admin_menu"><strong>ensure_pinned_ladder_admin_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;ladder-admin&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;lifecycle&nbsp;panel.</span></dd></dl>
+ <dl><dt>async <a name="-maintain_pinned_ladder_admin_menus"><strong>maintain_pinned_ladder_admin_menus</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;every&nbsp;registered&nbsp;mod's&nbsp;root&nbsp;admin&nbsp;menu&nbsp;alive&nbsp;(self-healing).</span></dd></dl>
+ <dl><dt><a name="-register_ladder_mod_admin_channel"><strong>register_ladder_mod_admin_channel</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;ladder's&nbsp;admin&nbsp;surfaces&nbsp;on&nbsp;the&nbsp;core&nbsp;mechanism.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>LADDER_ADMIN_CHANNEL_NAME</strong> = '🛡-ladder-admin'<br>
+<strong>LADDER_ADMIN_CHANNEL_SPEC</strong> = ModAdminChannelSpec(mod='ladder', channel_name='...n:ladder:pin:', root_category='mod_ladder_admin')<br>
+<strong>LADDER_SEASON_ADMIN_CHANNEL_NAME</strong> = '🛡-season-admin'<br>
+<strong>LADDER_STAFF_ROLE_PREFIX</strong> = 'Staff ladder'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ladder.admin_channel (WARNING)&gt;</td></tr></table>
+</body></html>
