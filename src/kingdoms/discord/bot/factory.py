@@ -34,6 +34,7 @@ from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definition
 from kingdoms.core.services.permissions import PermissionService
 from kingdoms.core.services.registration import RegistrationService
 from kingdoms.core.services.roles import ModRolesService, RolesService
+from kingdoms.core.services.state import StateService
 from kingdoms.core.services.status import StatusService, parse_bot_admins
 from kingdoms.core.services.workflow import WorkflowEngine
 from kingdoms.discord.announce import AnnounceConfig, announce_startup
@@ -154,6 +155,7 @@ class KingdomsBot(discord.Client):
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
+        self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
         """Re-register the persistent UI at every startup (#122).
@@ -169,6 +171,13 @@ class KingdomsBot(discord.Client):
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
+
+        if self.state_service is not None:
+            await self.state_service.start()
+            logger.info("STATE SERVICE STARTED (shared Redis state connected)")
+        if self.registration_engine is not None:
+            await self.registration_engine.start()
+            logger.info("REGISTRATION ENGINE STARTED (workflow store connected)")
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -428,6 +437,10 @@ class KingdomsBot(discord.Client):
                 await self.logs_service.log_event(str(guild.id), event)
         if self._ladder_sweep_task is not None:
             self._ladder_sweep_task.cancel()
+        if self.registration_engine is not None:
+            await self.registration_engine.stop()
+        if self.state_service is not None:
+            await self.state_service.close()
         await super().close()
 
 
@@ -464,13 +477,15 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         deploy_ci_run_number=resolved.deploy_ci_run_number,
         deploy_ci_run_ts=resolved.deploy_ci_run_ts,
     )
+    shared_state = _build_shared_state(resolved)
     bot = KingdomsBot(config=resolved, status=status, registry=registry)
-    bot.logs_service = _build_log_service(resolved, bot)
-    roles_service = _build_roles_service(resolved, bot)
+    bot.state_service = shared_state
+    bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
+    roles_service = _build_roles_service(resolved, bot, state=shared_state)
     bot.roles_service = roles_service
-    admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service)
+    admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service, state=shared_state)
     bot.admin_channel_service = admin_channel_service
-    channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry)
+    channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry, state=shared_state)
     bot.channel_service = channel_service
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
@@ -486,7 +501,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
     )
     register_live_commands(bot.tree, catalog=bot.messages)
-    registration_engine, registration_service = _build_registration(resolved)
+    registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
     register_registration_command(
         bot.tree,
@@ -563,7 +578,10 @@ def _build_permission_service(
     )
 
 
-def _build_registration(config: BotConfig) -> tuple[WorkflowEngine | None, RegistrationService | None]:
+def _build_registration(
+    config: BotConfig,
+    state: StateService | None = None,
+) -> tuple[WorkflowEngine | None, RegistrationService | None]:
     """Wire the DM enrollment stack (#133): engine + AoE2-validated service.
 
     Returns (None, None) when Mongo/Redis are not configured (unit tests,
@@ -583,8 +601,10 @@ def _build_registration(config: BotConfig) -> tuple[WorkflowEngine | None, Regis
     )
 
     database = get_async_database()
-    state = StateService(redis_uri=config.redis_uri or os.environ.get("REDIS_URI"))
-    engine = WorkflowEngine(MongoWorkflowStore(database), state)
+    engine = WorkflowEngine(
+        MongoWorkflowStore(database),
+        state or StateService(redis_uri=config.redis_uri or os.environ.get("REDIS_URI")),
+    )
     service = RegistrationService(
         MongoRegistrationDatabase(database),
         profile_seams={"aoe2": Aoe2ProfileValidationSeam()},
@@ -593,7 +613,19 @@ def _build_registration(config: BotConfig) -> tuple[WorkflowEngine | None, Regis
     return engine, service
 
 
-def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
+def _build_shared_state(config: BotConfig) -> StateService | None:
+    """One shared StateService for the whole bot (single Redis connection pool).
+
+    Started in ``setup_hook`` and closed in ``close``; the services hold it
+    as their cache-aside store. Returns None without Redis (unit tests,
+    local runs) — the consumers already degrade to uncached paths.
+    """
+    if not config.redis_uri:
+        return None
+    return StateService(redis_uri=config.redis_uri)
+
+
+def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:
     """Wire the Discord platform seam + the shared Redis state into RolesService.
 
     Returns None when Redis is not configured (unit tests, local runs):
@@ -605,8 +637,7 @@ def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | 
         from kingdoms.core.services.state import StateService
         from kingdoms.discord.roles_platform import DiscordRolesPlatform
 
-        state = StateService(redis_uri=config.redis_uri)
-        return RolesService(platform=DiscordRolesPlatform(bot), cache=state)
+        return RolesService(platform=DiscordRolesPlatform(bot), cache=state or StateService(redis_uri=config.redis_uri))
     except Exception:
         logger.exception("ROLES SERVICE WIRING FAILED — runtime role checks degrade")
         return None
@@ -616,6 +647,7 @@ def _build_mod_provisioning(
     config: BotConfig,
     bot: KingdomsBot,
     registry: ModRegistry,
+    state: StateService | None = None,
 ) -> tuple[ChannelService | None, ModRolesService | None]:
     """Wire Mongo + the Discord seams + Redis into the mod provisioning pair.
 
@@ -633,7 +665,7 @@ def _build_mod_provisioning(
         from kingdoms.discord.roles_platform import DiscordRolesPlatform, MongoRolesDatabase
 
         database = get_async_database()
-        state = StateService(redis_uri=config.redis_uri)
+        state = state or StateService(redis_uri=config.redis_uri)
         channel_service = ChannelService(
             database=MongoLogsDatabase(database),
             platform=DiscordChannelsPlatform(bot),
@@ -657,6 +689,7 @@ def _build_admin_channel_service(
     config: BotConfig,
     bot: KingdomsBot,
     roles_service: RolesService | None,
+    state: StateService | None = None,
 ) -> AdminChannelService | None:
     """Wire Mongo + the Discord platform seam + Redis into AdminChannelService.
 
@@ -675,14 +708,14 @@ def _build_admin_channel_service(
             platform=DiscordAdminChannelPlatform(bot),
             database=MongoLogsDatabase(get_async_database()),
             roles_service=roles_service,
-            state=StateService(redis_uri=config.redis_uri),
+            state=state or StateService(redis_uri=config.redis_uri),
         )
     except Exception:
         logger.exception("ADMIN CHANNEL SERVICE WIRING FAILED — admin messages degrade")
         return None
 
 
-def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None:
+def _build_log_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> LogService | None:
     """Wire Mongo (async) + the Discord platform seam + Redis into LogService.
 
     Returns None when the stores are not configured (unit tests, local
@@ -695,7 +728,7 @@ def _build_log_service(config: BotConfig, bot: KingdomsBot) -> LogService | None
         from kingdoms.core.services.state import StateService
         from kingdoms.discord.logs_platform import DiscordLogsPlatform, MongoLogsDatabase
 
-        state = StateService(redis_uri=config.redis_uri or None)
+        state = state or StateService(redis_uri=config.redis_uri or None)
         return LogService(
             database=MongoLogsDatabase(get_async_database()),
             platform=DiscordLogsPlatform(bot),
