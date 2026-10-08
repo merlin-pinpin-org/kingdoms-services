@@ -122,6 +122,10 @@ class MongoAoE2Database:
         doc = await self._database[collection_name("seasons")].find_one({"ladder_id": ladder_id, "state": "active"})
         return doc if doc is None else dict(doc)
 
+    async def delete_season(self, season_id: str) -> None:
+        """Delete one season document (never-started seasons only)."""
+        await self._database[collection_name("seasons")].delete_one({"_id": season_id})
+
     # ── Ladder seam ──────────────────────────────────────────────────────
 
     async def find_ladder_by_owner(self, owner_ref: str, game_key: str) -> dict[str, Any] | None:

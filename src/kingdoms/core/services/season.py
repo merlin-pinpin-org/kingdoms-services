@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Protocol
 
+from kingdoms.core.ids import season_id
 from kingdoms.core.models.season import (
     SEASON_STATE_ACTIVE,
     SEASON_STATE_ENDED,
@@ -43,6 +44,10 @@ class SeasonDatabase(Protocol):
 
     async def find_active_season(self, ladder_id: str) -> dict[str, Any] | None:
         """Return the ladder's active season; None when none."""
+        ...
+
+    async def delete_season(self, season_id: str) -> None:
+        """Delete one season document (never-started seasons only)."""
         ...
 
 
@@ -94,18 +99,24 @@ class SeasonService:
         end_at: int | None = None,
         reset_ratings: bool = False,
     ) -> SeasonModel:
-        """Create a scheduled season; one active season per ladder at a time.
+        """Create a scheduled season; no live (scheduled or active) season may exist when another is created.
 
         The season index is incremental per ladder (1, 2, 3…) and the
-        visible id embeds it: ``<ladder_id>-<index>`` — uniqueness is
+        visible id embeds it: ``<ladder_id>:<index>`` — uniqueness is
         the (ladder, index) pair, never the name.
         """
         if end_at is not None and end_at <= start_at:
             raise ValueError("season end must be after start")
         existing = await self._db.find_ladder_seasons(ladder_id)
+        unfinished = [d for d in existing if d.get("state") != SEASON_STATE_ENDED]
+        if unfinished:
+            raise SeasonActiveError(
+                f"ladder {ladder_id!r} already has a live season {unfinished[0].get('_id')!r} "
+                "(end or delete it before creating a new one)"
+            )
         index = max((int(doc.get("index", 0)) for doc in existing), default=0) + 1
         season = SeasonModel(
-            _id=f"{ladder_id}-{index}",
+            _id=season_id(ladder_id, index),
             ladder_id=ladder_id,
             index=index,
             name=name,
@@ -156,6 +167,23 @@ class SeasonService:
         if season.reset_ratings:
             await self._emit("ratings.reset", {"ladder_id": season.ladder_id, "season_id": season.id})
         await self._audit_record("season.activate", {"season_id": season.id, "ladder_id": season.ladder_id})
+        return season
+
+    async def delete_season(self, season_id: str) -> SeasonModel:
+        """Delete a season that never started (scheduled, never activated).
+
+        A season with an activation or an end is history: deleting it
+        would break the ladder's audit trail. Only a plain scheduled
+        season (created but never activated) can be removed, e.g. to
+        recreate one with a corrected id.
+        """
+        season = await self._require(season_id)
+        if season.state != SEASON_STATE_SCHEDULED or season.activated_at is not None:
+            raise SeasonActiveError(
+                f"season {season_id!r} already started (state {season.state!r}) - it cannot be deleted"
+            )
+        await self._db.delete_season(season_id)
+        await self._audit_record("season.delete", {"season_id": season.id, "ladder_id": season.ladder_id})
         return season
 
     async def end_season(self, season_id: str, now: int) -> SeasonModel:

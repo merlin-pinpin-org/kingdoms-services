@@ -2,11 +2,13 @@
 
 Every entity the designers manipulate carries a **visible, stable id**
 built here, from documented parts, never from timestamps or magic
-words. Uniqueness is always the embedded key pair (never the name):
+words. The prefix of every key is the mod's name (the ladder is a mod
+like any other); uniqueness is always the embedded key pair (never the
+name):
 
-- ladder: ``ladder-<game key>-<guild id>``
-- season: ``<ladder id>-<index>`` (index incremental from 1)
-- mod season scope: ``<mod key>-<game key>-<guild id>``
+- ladder: ``ladder:<guild id>:<game key>``
+- season: ``<ladder id>:<index>`` (index incremental from 1)
+- mod season scope: ``<mod key>:<game key>:<guild id>``
 - territory: ``territory:<season id>:<map key>``
 
 Footers surface these ids on Discord panels: one small-text line
@@ -21,18 +23,22 @@ TERRITORY_PREFIX = "territory"
 
 
 def ladder_id(game_key: str, guild_id: str) -> str:
-    """Build the visible ladder id: ``ladder-<game key>-<guild id>``."""
-    return f"{LADDER_PREFIX}-{game_key}-{guild_id}"
+    """Build the visible ladder id: ``ladder:<guild id>:<game key>``.
+
+    ``ladder`` is the mod's name — the prefix of every core key is the
+    mod name, the ladder being a mod like any other.
+    """
+    return f"{LADDER_PREFIX}:{guild_id}:{game_key}"
 
 
 def season_id(ladder_id: str, index: int) -> str:
-    """Build the visible season id: ``<ladder id>-<index>`` (from 1)."""
-    return f"{ladder_id}-{index}"
+    """Build the visible season id: ``<ladder id>:<index>`` (from 1)."""
+    return f"{ladder_id}:{index}"
 
 
 def mod_scope(mod_key: str, game_key: str, guild_id: str) -> str:
-    """Build a mod's season scope: ``<mod>-<game key>-<guild id>``."""
-    return f"{mod_key}-{game_key}-{guild_id}"
+    """Build a mod's season scope: ``<mod>:<game key>:<guild id>``."""
+    return f"{mod_key}:{game_key}:{guild_id}"
 
 
 def territory_id(season_id: str, map_key: str) -> str:

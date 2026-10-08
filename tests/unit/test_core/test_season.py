@@ -41,6 +41,9 @@ class FakeSeasonDatabase:
                 return d
         return None
 
+    async def delete_season(self, season_id: str) -> None:
+        self.seasons.pop(season_id, None)
+
 
 class FakeEvents:
     """In-memory notification-intent recorder."""
@@ -72,7 +75,7 @@ async def test_create_scheduled_season() -> None:
     assert season.state == SEASON_STATE_SCHEDULED
     assert season.reset_ratings is False
     assert season.index == 1
-    assert season.id == f"{LADDER}-1"
+    assert season.id == f"{LADDER}:1"
     assert ("season.create", {"season_id": season.id, "ladder_id": LADDER, "name": "Season 1"}) in audit.lines
 
 
@@ -82,11 +85,13 @@ async def test_season_index_is_incremental_per_ladder() -> None:
     svc, game_data, _, _, _ = _env()
     pool_id = await _map_and_pool(game_data)
     first = await svc.create_season(LADDER, "Winter", pool_id, start_at=1000)
+    await svc.activate_season(first.id, now=1100)
+    await svc.end_season(first.id, now=1900)
     second = await svc.create_season(LADDER, "Spring", pool_id, start_at=2000)
-    assert (first.index, first.id) == (1, f"{LADDER}-1")
-    assert (second.index, second.id) == (2, f"{LADDER}-2")
+    assert (first.index, first.id) == (1, f"{LADDER}:1")
+    assert (second.index, second.id) == (2, f"{LADDER}:2")
     other = await svc.create_season("ladder:2", "Winter", pool_id, start_at=1000)
-    assert (other.index, other.id) == (1, "ladder:2-1")
+    assert (other.index, other.id) == (1, "ladder:2:1")
 
 
 @pytest.mark.asyncio
@@ -120,14 +125,36 @@ async def test_activate_twice_rejected() -> None:
 
 
 @pytest.mark.asyncio
-async def test_second_season_blocked_while_one_active() -> None:
+async def test_create_blocked_while_a_season_is_live() -> None:
+    """A second season cannot even be created while one is live."""
     svc, game_data, _, _, _ = _env()
     pool_id = await _map_and_pool(game_data)
-    s1 = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
-    s2 = await svc.create_season(LADDER, "S2", pool_id, start_at=2000)
-    await svc.activate_season(s1.id, now=1500)
-    with pytest.raises(SeasonActiveError):
-        await svc.activate_season(s2.id, now=2500)
+    await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    with pytest.raises(SeasonActiveError, match="live season"):
+        await svc.create_season(LADDER, "S2", pool_id, start_at=2000)
+
+@pytest.mark.asyncio
+async def test_delete_never_started_season() -> None:
+    """A scheduled, never-activated season can be deleted and recreated."""
+    svc, game_data, _, _, audit = _env()
+    pool_id = await _map_and_pool(game_data)
+    season = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    deleted = await svc.delete_season(season.id)
+    assert deleted.id == season.id
+    assert ("season.delete", {"season_id": season.id, "ladder_id": LADDER}) in audit.lines
+    assert await svc.get_season(season.id) is None
+    fresh = await svc.create_season(LADDER, "S1 fixed", pool_id, start_at=1200)
+    assert (fresh.index, fresh.id) == (1, f"{LADDER}:1")
+
+@pytest.mark.asyncio
+async def test_delete_started_season_rejected() -> None:
+    """An activated season is history and cannot be deleted."""
+    svc, game_data, _, _, _ = _env()
+    pool_id = await _map_and_pool(game_data)
+    season = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    await svc.activate_season(season.id, now=1500)
+    with pytest.raises(SeasonActiveError, match="cannot be deleted"):
+        await svc.delete_season(season.id)
 
 
 @pytest.mark.asyncio
@@ -149,9 +176,9 @@ async def test_activate_after_end_allowed() -> None:
     svc, game_data, _, _, _ = _env()
     pool_id = await _map_and_pool(game_data)
     s1 = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
-    s2 = await svc.create_season(LADDER, "S2", pool_id, start_at=3000)
     await svc.activate_season(s1.id, now=1500)
     await svc.end_season(s1.id, now=2000)
+    s2 = await svc.create_season(LADDER, "S2", pool_id, start_at=3000)
     active2 = await svc.activate_season(s2.id, now=3500)
     assert active2.state == SEASON_STATE_ACTIVE
 
@@ -180,7 +207,9 @@ async def test_no_reset_no_ratings_intent() -> None:
 async def test_list_seasons_ascending() -> None:
     svc, game_data, _, _, _ = _env()
     pool_id = await _map_and_pool(game_data)
-    await svc.create_season(LADDER, "B", pool_id, start_at=2000)
+    first = await svc.create_season(LADDER, "B", pool_id, start_at=2000)
+    await svc.activate_season(first.id, now=2100)
+    await svc.end_season(first.id, now=2900)
     await svc.create_season(LADDER, "A", pool_id, start_at=1000)
     assert [s.name for s in await svc.list_seasons(LADDER)] == ["A", "B"]
 

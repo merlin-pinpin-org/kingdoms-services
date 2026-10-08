@@ -89,10 +89,10 @@ class GuildAccessRequestSelect(
             return
         pending = dict(doc.get("pending") or {})
         requested_at = max(pending, key=int) if pending else ""
-        await _notify_bot_admins(interaction, self.guild_id, chosen, requested_at)
         await interaction.followup.send(
             "Demande enregistrée — un bot admin l'approuvera depuis ses DMs.", ephemeral=True
         )
+        await _notify_bot_admins(interaction, self.guild_id, chosen, requested_at)
 
 
 class GuildAccessRequestButton(

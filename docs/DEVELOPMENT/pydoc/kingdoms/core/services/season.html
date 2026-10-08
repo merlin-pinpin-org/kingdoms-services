@@ -194,6 +194,8 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#SeasonService">
 Methods defined here:<br>
 <dl><dt><a name="SeasonDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
+<dl><dt>async <a name="SeasonDatabase-delete_season"><strong>delete_season</strong></a>(self, season_id: 'str') -&gt; 'None'</dt><dd><span class="code">Delete&nbsp;one&nbsp;season&nbsp;document&nbsp;(never-started&nbsp;seasons&nbsp;only).</span></dd></dl>
+
 <dl><dt>async <a name="SeasonDatabase-find_active_season"><strong>find_active_season</strong></a>(self, ladder_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;ladder's&nbsp;active&nbsp;season;&nbsp;None&nbsp;when&nbsp;none.</span></dd></dl>
 
 <dl><dt>async <a name="SeasonDatabase-find_ladder_seasons"><strong>find_ladder_seasons</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;seasons&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending&nbsp;by&nbsp;start).</span></dd></dl>
@@ -222,7 +224,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_season', 'find_ladder_seasons', 'find_season', 'upsert_season'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_season', 'find_active_season', 'find_ladder_seasons', 'find_season', 'upsert_season'}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -380,11 +382,18 @@ Delegates&nbsp;the&nbsp;pool&nbsp;history&nbsp;to&nbsp;``GameDataService.activat
 state,&nbsp;emits&nbsp;``pool.switched``&nbsp;(players)&nbsp;and&nbsp;—&nbsp;for&nbsp;reset&nbsp;seasons&nbsp;—<br>
 ``ratings.reset``&nbsp;intents,&nbsp;and&nbsp;audits&nbsp;the&nbsp;activation.</span></dd></dl>
 
-<dl><dt>async <a name="SeasonService-create_season"><strong>create_season</strong></a>(self, ladder_id: 'str', name: 'str', map_pool_id: 'str | None', start_at: 'int', end_at: 'int | None' = None, reset_ratings: 'bool' = False) -&gt; 'SeasonModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;scheduled&nbsp;season;&nbsp;one&nbsp;active&nbsp;season&nbsp;per&nbsp;ladder&nbsp;at&nbsp;a&nbsp;time.<br>
+<dl><dt>async <a name="SeasonService-create_season"><strong>create_season</strong></a>(self, ladder_id: 'str', name: 'str', map_pool_id: 'str | None', start_at: 'int', end_at: 'int | None' = None, reset_ratings: 'bool' = False) -&gt; 'SeasonModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;scheduled&nbsp;season;&nbsp;no&nbsp;live&nbsp;(scheduled&nbsp;or&nbsp;active)&nbsp;season&nbsp;may&nbsp;exist&nbsp;when&nbsp;another&nbsp;is&nbsp;created.<br>
 &nbsp;<br>
 The&nbsp;season&nbsp;index&nbsp;is&nbsp;incremental&nbsp;per&nbsp;ladder&nbsp;(1,&nbsp;2,&nbsp;3…)&nbsp;and&nbsp;the<br>
-visible&nbsp;id&nbsp;embeds&nbsp;it:&nbsp;``&lt;ladder_id&gt;-&lt;index&gt;``&nbsp;—&nbsp;uniqueness&nbsp;is<br>
+visible&nbsp;id&nbsp;embeds&nbsp;it:&nbsp;``&lt;ladder_id&gt;:&lt;index&gt;``&nbsp;—&nbsp;uniqueness&nbsp;is<br>
 the&nbsp;(ladder,&nbsp;index)&nbsp;pair,&nbsp;never&nbsp;the&nbsp;name.</span></dd></dl>
+
+<dl><dt>async <a name="SeasonService-delete_season"><strong>delete_season</strong></a>(self, season_id: 'str') -&gt; 'SeasonModel'</dt><dd><span class="code">Delete&nbsp;a&nbsp;season&nbsp;that&nbsp;never&nbsp;started&nbsp;(scheduled,&nbsp;never&nbsp;activated).<br>
+&nbsp;<br>
+A&nbsp;season&nbsp;with&nbsp;an&nbsp;activation&nbsp;or&nbsp;an&nbsp;end&nbsp;is&nbsp;history:&nbsp;deleting&nbsp;it<br>
+would&nbsp;break&nbsp;the&nbsp;ladder's&nbsp;audit&nbsp;trail.&nbsp;Only&nbsp;a&nbsp;plain&nbsp;scheduled<br>
+season&nbsp;(created&nbsp;but&nbsp;never&nbsp;activated)&nbsp;can&nbsp;be&nbsp;removed,&nbsp;e.g.&nbsp;to<br>
+recreate&nbsp;one&nbsp;with&nbsp;a&nbsp;corrected&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="SeasonService-end_season"><strong>end_season</strong></a>(self, season_id: 'str', now: 'int') -&gt; 'SeasonModel'</dt><dd><span class="code">End&nbsp;the&nbsp;active&nbsp;season;&nbsp;the&nbsp;ladder&nbsp;keeps&nbsp;its&nbsp;current&nbsp;pool.</span></dd></dl>
 

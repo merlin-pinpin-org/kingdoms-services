@@ -13,11 +13,13 @@
 &nbsp;<br>
 Every&nbsp;entity&nbsp;the&nbsp;designers&nbsp;manipulate&nbsp;carries&nbsp;a&nbsp;**visible,&nbsp;stable&nbsp;id**<br>
 built&nbsp;here,&nbsp;from&nbsp;documented&nbsp;parts,&nbsp;never&nbsp;from&nbsp;timestamps&nbsp;or&nbsp;magic<br>
-words.&nbsp;Uniqueness&nbsp;is&nbsp;always&nbsp;the&nbsp;embedded&nbsp;key&nbsp;pair&nbsp;(never&nbsp;the&nbsp;name):<br>
+words.&nbsp;The&nbsp;prefix&nbsp;of&nbsp;every&nbsp;key&nbsp;is&nbsp;the&nbsp;mod's&nbsp;name&nbsp;(the&nbsp;ladder&nbsp;is&nbsp;a&nbsp;mod<br>
+like&nbsp;any&nbsp;other);&nbsp;uniqueness&nbsp;is&nbsp;always&nbsp;the&nbsp;embedded&nbsp;key&nbsp;pair&nbsp;(never&nbsp;the<br>
+name):<br>
 &nbsp;<br>
--&nbsp;ladder:&nbsp;``ladder-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``<br>
--&nbsp;season:&nbsp;``&lt;ladder&nbsp;id&gt;-&lt;index&gt;``&nbsp;(index&nbsp;incremental&nbsp;from&nbsp;1)<br>
--&nbsp;mod&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&nbsp;key&gt;-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``<br>
+-&nbsp;ladder:&nbsp;``ladder:&lt;guild&nbsp;id&gt;:&lt;game&nbsp;key&gt;``<br>
+-&nbsp;season:&nbsp;``&lt;ladder&nbsp;id&gt;:&lt;index&gt;``&nbsp;(index&nbsp;incremental&nbsp;from&nbsp;1)<br>
+-&nbsp;mod&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&nbsp;key&gt;:&lt;game&nbsp;key&gt;:&lt;guild&nbsp;id&gt;``<br>
 -&nbsp;territory:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``<br>
 &nbsp;<br>
 Footers&nbsp;surface&nbsp;these&nbsp;ids&nbsp;on&nbsp;Discord&nbsp;panels:&nbsp;one&nbsp;small-text&nbsp;line<br>
@@ -30,9 +32,12 @@ commands.&nbsp;Mods&nbsp;must&nbsp;build&nbsp;ids&nbsp;and&nbsp;footers&nbsp;thr
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-footer"><strong>footer</strong></a>(*ids: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;ids&nbsp;footer&nbsp;line&nbsp;for&nbsp;a&nbsp;panel&nbsp;(empty&nbsp;ids&nbsp;are&nbsp;dropped).</span></dd></dl>
- <dl><dt><a name="-ladder_id"><strong>ladder_id</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;ladder&nbsp;id:&nbsp;``ladder-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``.</span></dd></dl>
- <dl><dt><a name="-mod_scope"><strong>mod_scope</strong></a>(mod_key: 'str', game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;mod's&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&gt;-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``.</span></dd></dl>
- <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;-&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
+ <dl><dt><a name="-ladder_id"><strong>ladder_id</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;ladder&nbsp;id:&nbsp;``ladder:&lt;guild&nbsp;id&gt;:&lt;game&nbsp;key&gt;``.<br>
+&nbsp;<br>
+``ladder``&nbsp;is&nbsp;the&nbsp;mod's&nbsp;name&nbsp;—&nbsp;the&nbsp;prefix&nbsp;of&nbsp;every&nbsp;core&nbsp;key&nbsp;is&nbsp;the<br>
+mod&nbsp;name,&nbsp;the&nbsp;ladder&nbsp;being&nbsp;a&nbsp;mod&nbsp;like&nbsp;any&nbsp;other.</span></dd></dl>
+ <dl><dt><a name="-mod_scope"><strong>mod_scope</strong></a>(mod_key: 'str', game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;mod's&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&gt;:&lt;game&nbsp;key&gt;:&lt;guild&nbsp;id&gt;``.</span></dd></dl>
+ <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;:&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
  <dl><dt><a name="-territory_id"><strong>territory_id</strong></a>(season_id: 'str', map_key: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;territory&nbsp;id:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

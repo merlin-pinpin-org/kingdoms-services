@@ -1,7 +1,7 @@
 """Game keys: the restricted vocabulary that scopes every game reference.
 
 A game key is the short slug identifying a game across the whole
-platform (``aoe2`` today). Ids embed it (``ladder-<game_key>-<guild>``),
+platform (``aoe2`` today). Ids embed it (``ladder:<guild>:<game_key>``),
 so the charset is restricted to lowercase alphanumerics — no separator
 ambiguity in ids, no case drift between Discord and the database.
 
