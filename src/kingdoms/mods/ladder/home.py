@@ -34,7 +34,7 @@ def _now_ms() -> int:
 
 def _wiring_and_ladder_id(interaction: discord.Interaction) -> tuple[Any, str]:
     """Resolve the wiring and the guild's ladder id (empty when absent)."""
-    from kingdoms.discord.ladder_commands import build_ladder_wiring
+    from kingdoms.mods.ladder.commands import build_ladder_wiring
 
     wiring = build_ladder_wiring(bot=interaction.client)
     ladder_id = str(getattr(interaction.client, "_ladder_id", "") or "")
@@ -97,7 +97,7 @@ class LadderJoinButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Run the join flow (profile precondition, then queue)."""
-        from kingdoms.discord.ladder_commands import _join_command
+        from kingdoms.mods.ladder.commands import _join_command
 
         wiring, ladder_id = _wiring_and_ladder_id(interaction)
         if wiring is None or not ladder_id:

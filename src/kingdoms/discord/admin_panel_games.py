@@ -681,7 +681,7 @@ class GamesPoolArchiveButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:pools:archive:(?P<pool_id>[^:]+)",
 ):
-    """Archive (delete) the pool, unless it is the active pool of a ladder."""
+    """Archive (delete) the pool, unless it is the active pool of a mod."""
 
     def __init__(self, pool_id: str) -> None:
         self.pool_id = pool_id
@@ -718,7 +718,7 @@ class GamesPoolArchiveButton(
         except Exception:
             logger.exception("GAMES ADMIN: pool archive failed")
             await interaction.response.send_message(
-                "Archivage echoue (pool actif d'un ladder ? voir les logs).", ephemeral=True
+                "Archivage echoue (pool actif ? voir les logs).", ephemeral=True
             )
             return
         await interaction.response.edit_message(view=await pools_admin_view(pool.game_key))

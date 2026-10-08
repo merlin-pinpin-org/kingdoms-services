@@ -36,8 +36,8 @@ LADDER_STAFF_ROLE_PREFIX = "Staff ladder"
 
 async def _build_root_layout(bot: discord.Client, guild_id: str) -> discord.ui.LayoutView:
     """Build the pinned lifecycle panel (the seasons' cross-season view)."""
-    from kingdoms.discord.admin_panel_ladder import ladder_mod_admin_view
     from kingdoms.discord.mod_admin_channels import ModAdminPinInteraction
+    from kingdoms.mods.ladder.admin_panel import ladder_mod_admin_view
 
     return await ladder_mod_admin_view(ModAdminPinInteraction(guild_id, bot))
 
@@ -45,8 +45,8 @@ async def _build_root_layout(bot: discord.Client, guild_id: str) -> discord.ui.L
 async def _build_season_layout(bot: discord.Client, guild_id: str, scope: str) -> discord.ui.LayoutView:
     """Build the pinned per-season config panel (settings/pool/enroll/pause)."""
     del scope
-    from kingdoms.discord.admin_panel_ladder import ladder_admin_entry
     from kingdoms.discord.mod_admin_channels import ModAdminPinInteraction
+    from kingdoms.mods.ladder.admin_panel import ladder_admin_entry
 
     return await ladder_admin_entry(ModAdminPinInteraction(guild_id, bot), pinned=True)
 

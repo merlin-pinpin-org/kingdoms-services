@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from kingdoms.core.games.aoe2.seed import MongoAoE2Database, seed_aoe2
+from kingdoms.mods.ladder.seeder import seed_ladders
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.identity_import import import_identity_links
 from kingdoms.core.services.season import SeasonService
@@ -85,7 +86,7 @@ async def import_season(
     ladder_spec = {**data["ladders"][0], "owner_ref": owner_ref}
     data["ladders"] = [ladder_spec]
 
-    seed_result = await seed_aoe2(database, data)
+    seed_result = await seed_aoe2(database, data, ladder_seeder=seed_ladders)
 
     ladder_id = f"ladder:{game_key}:{owner_ref}"
     adapter = MongoAoE2Database(database)

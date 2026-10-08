@@ -290,7 +290,7 @@ def _channel_exists(guild: Any, channel_id: str) -> bool:
 
 def _ladder_wiring() -> Any | None:
     try:
-        from kingdoms.discord.ladder_commands import build_ladder_wiring
+        from kingdoms.mods.ladder.commands import build_ladder_wiring
 
         return build_ladder_wiring()
     except Exception:
@@ -336,7 +336,7 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
     from typing import cast
 
     from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
-    from kingdoms.discord.ladder_home import build_ladder_menu_layout
+    from kingdoms.mods.ladder.home import build_ladder_menu_layout
 
     channel = _channel_by_id(guild, channels.home)
     if channel is None:
@@ -363,8 +363,8 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
 
 async def _ensure_pinned_season_admin(guild: Any, scope: str, channels: _SeasonChannels) -> None:
     """Keep the pinned per-season config panel alive in the season admin salon."""
-    from kingdoms.discord.ladder_admin_channel import LADDER_ADMIN_CHANNEL_SPEC
     from kingdoms.discord.mod_admin_channels import ensure_pinned_season_admin_panel
+    from kingdoms.mods.ladder.admin_channel import LADDER_ADMIN_CHANNEL_SPEC
 
     channel = _channel_by_id(guild, channels.season_admin)
     if channel is None:
@@ -399,7 +399,7 @@ async def _salon_message(guild: Any, channel: Any, key: str, view: Any, scope: s
 
 async def _sync_dashboard(guild: Any, channels: _SeasonChannels, surface: Any, ladder_id: str, scope: str) -> None:
     """Render the queue salon: the live queue plus the join/leave actions."""
-    from kingdoms.discord.ladder_home import LadderJoinButton, LadderLeaveButton
+    from kingdoms.mods.ladder.home import LadderJoinButton, LadderLeaveButton
 
     rows = await surface.queue_view(ladder_id, now=int(time.time() * 1000))
     if rows:

@@ -15,14 +15,6 @@ from typing import Any
 import yaml
 
 from kingdoms.core.services.game_data import GameDataService
-from kingdoms.core.services.season import SeasonService
-from kingdoms.mods.ladder.models import (
-    LADDERS_COLLECTION,
-    MATCHES_COLLECTION,
-    PLAYERS_COLLECTION,
-    RATING_HISTORY_COLLECTION,
-)
-from kingdoms.mods.ladder.service import LadderService
 
 SEED_PATH = Path("config/games/aoe2/seed.yaml")
 DAY_MS = 86_400_000
@@ -184,10 +176,10 @@ def collection_name(kind: str) -> str:
         "map_packs": "map_packs",
         "map_pool_history": "map_pool_history",
         "seasons": "seasons",
-        "ladders": LADDERS_COLLECTION,
-        "players": PLAYERS_COLLECTION,
-        "matches": MATCHES_COLLECTION,
-        "rating_history": RATING_HISTORY_COLLECTION,
+        "ladders": "ladders",
+        "players": "players",
+        "matches": "matches",
+        "rating_history": "rating_history",
     }
     return names[kind]
 
@@ -204,25 +196,24 @@ async def seed_aoe2(
     database: Any,
     data: dict[str, Any],
     now: int | None = None,
+    ladder_seeder: Any = None,
 ) -> dict[str, Any]:
-    """Idempotently seed the AoE2 catalog, pools, ladders and seasons.
+    """Idempotently seed the AoE2 catalog and pools.
 
     Returns per-section created counts. Re-running skips anything that
     already exists (same ids), so a crashed deployment can just re-seed.
+    ``ladder_seeder`` (optional, injected by a mod) seeds the mod-owned
+    ``ladders``/``seasons`` sections of the same YAML document.
     """
     now_ms = now if now is not None else int(time.time() * 1000)
     game_key = data["game_key"]
     adapter = MongoAoE2Database(database)
     game_data = GameDataService(adapter, audit=NullAudit())
-    ladder_service = LadderService(adapter, game_data)
-    season_service = SeasonService(adapter, game_data)
     result: dict[str, Any] = {"game_key": game_key, "maps": 0, "civs": 0, "map_pools": 0, "ladders": 0, "seasons": 0}
-
     counts = await game_data.seed_from_data(game_key, data)
     result["maps"] = counts["maps"]
     result["civs"] = counts["civs"]
     result["rules"] = counts.get("rules", 0)
-
     for spec in data.get("map_pools", []) or []:
         pool_id = f"map_pool:{game_key}:{spec['name']}"
         if await game_data.get_map_pool(pool_id) is None:
@@ -234,38 +225,6 @@ async def seed_aoe2(
                 description=spec.get("description", ""),
             )
             result["map_pools"] += 1
-
-    for spec in data.get("ladders", []) or []:
-        owner_ref = spec["owner_ref"]
-        ladder_id = f"ladder:{game_key}:{owner_ref}"
-        existing = await ladder_service.get_ladder(ladder_id)
-        if existing is None:
-            await ladder_service.create_ladder(owner_ref, spec["name"], game_key, now=now_ms)
-            result["ladders"] += 1
-
-        pool_name = spec.get("map_pool")
-        if pool_name:
-            pool_id = f"map_pool:{game_key}:{pool_name}"
-            ladder = await ladder_service.get_ladder(ladder_id)
-            if ladder is not None and ladder.active_map_pool_id is None:
-                await ladder_service.set_active_pool(ladder_id, pool_id)
-
-        season_spec = spec.get("season")
-        if season_spec:
-            season_name = season_spec["name"]
-            season_id = f"season:{ladder_id}:{season_name}"
-            if await season_service.get_season(season_id) is None:
-                start = now_ms + int(season_spec.get("start_in_days", 0)) * DAY_MS
-                duration = int(season_spec.get("duration_days", 0)) or None
-                end = start + duration * DAY_MS if duration else None
-                await season_service.create_season(
-                    ladder_id,
-                    season_name,
-                    f"map_pool:{game_key}:{season_spec.get('map_pool', spec.get('map_pool', pool_name))}",
-                    start,
-                    end_at=end,
-                    reset_ratings=bool(season_spec.get("reset_ratings", False)),
-                )
-                result["seasons"] += 1
-
+    if ladder_seeder is not None:
+        await ladder_seeder(adapter, data, game_key, now_ms, result)
     return result

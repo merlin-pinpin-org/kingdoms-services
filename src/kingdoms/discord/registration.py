@@ -213,7 +213,7 @@ def register_registration_command(
         await dm.send(
             content=(
                 "🏰 **Kingdoms enrollment**\n"
-                "Link your AoE2 profile to join the ladder.\n\n"
+                "Link your game profile to join.\n\n"
                 "Confirm to continue, or cancel. You can restart anytime with /register."
             ),
             view=view,

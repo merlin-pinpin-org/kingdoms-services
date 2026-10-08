@@ -79,7 +79,6 @@ PIN_CHANNEL_MENU_ID = "admin:pin:select:channel"
 PIN_VISIBILITY_SELECT_ID = "admin:pin:select:visibility"
 PIN_BACK_BUTTON_ID = "admin:pin:button:back"
 PIN_ROLES_BUTTON_ID = "admin:pin:button:roles"
-PIN_LEADERBOARDS_SELECT_ID = "admin:pin:select:leaderboards"
 PIN_READ_ONLY_SELECT_ID = "admin:pin:select:read-only"
 
 
@@ -385,53 +384,6 @@ class PinReadOnlySelect(
 
 
 
-class PinLeaderboardsSelect(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=r"admin:pin:select:leaderboards",
-):
-    """The guild's displayed leaderboards (1-4 of the provider's boards)."""
-
-    def __init__(self, options: list[discord.SelectOption], defaults: list[str], placeholder: str = "") -> None:
-        select: discord.ui.Select[Any] = discord.ui.Select(
-            custom_id=PIN_LEADERBOARDS_SELECT_ID,
-            options=options,
-            placeholder=placeholder or None,
-            min_values=1,
-            max_values=4,
-        )
-        select._selected_values = [o for o in options if o.value in defaults]  # type: ignore[attr-defined]
-        super().__init__(select)
-
-    @classmethod
-    def create(cls, defaults: list[str], placeholder: str = "") -> PinLeaderboardsSelect:
-        """Build the select with every available board."""
-        from kingdoms.discord.leaderboards import AVAILABLE_BOARDS
-
-        options = [
-            discord.SelectOption(label=label, value=key, description="Afficher ce leaderboard")
-            for key, label in AVAILABLE_BOARDS
-        ]
-        return cls(options, defaults, placeholder)
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> PinLeaderboardsSelect:
-        """Rebuild the select from the wire."""
-        del interaction, item, match
-        return cls.create([])
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Apply the boards choice through the persistent handler."""
-        from kingdoms.discord.admin_persistent import _handle_leaderboards
-
-        await _handle_leaderboards(interaction)
-
-
 _CLIENT_REF: list[discord.Client] = []
 
 
@@ -537,18 +489,6 @@ async def build_pin_main_menu(
                 PinModRouteSelect.create(
                     scope="games",
                     placeholder="Gerer les jeux...",
-                )
-            )
-        )
-        from kingdoms.discord.leaderboards import get_guild_boards
-
-        boards_db = getattr(logs_service, "_db", None) if logs_service is not None else None
-        boards = await get_guild_boards(guild_id, boards_db) if boards_db is not None else []
-        container_blocks.append(
-            _select_row(
-                PinLeaderboardsSelect.create(
-                    boards,
-                    placeholder="Leaderboards affiches (1 a 4)...",
                 )
             )
         )

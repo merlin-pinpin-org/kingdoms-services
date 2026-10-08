@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from kingdoms.discord.ladder_admin_channel import ensure_pinned_ladder_admin_menu
+from kingdoms.mods.ladder.admin_channel import ensure_pinned_ladder_admin_menu
 
 
 async def _async_layout(bot: Any, spec: Any, guild: str) -> object:

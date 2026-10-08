@@ -52,9 +52,7 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return
-    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM
-    from kingdoms.discord.ladder_channels import _ladder_flags
-    from kingdoms.discord.ladder_home import build_ladder_menu_layout
+    from kingdoms.discord.home import HOME_MESSAGE_KEY, HOME_MESSAGE_PLATFORM, build_home_menu_view
 
     try:
         registered = await registry.resolve(HOME_MESSAGE_PLATFORM, HOME_MESSAGE_KEY, guild_id)
@@ -62,37 +60,9 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
             return
         channel = guild.get_channel(int(registered.channel_id))
         message = await channel.fetch_message(int(registered.message_id))
-        enrollments_open, queue_paused = await _ladder_flags(guild_id)
-        await message.edit(view=build_ladder_menu_layout(enrollments_open=enrollments_open, queue_paused=queue_paused))
+        await message.edit(view=build_home_menu_view(bot, guild_id))
     except Exception:
         logger.warning("home pin refresh failed — best-effort", exc_info=True)
-
-
-async def _refresh_ladder_root_pin(bot: Any, guild_id: str) -> None:
-    """Re-render the pinned ladder root (lifecycle) panel in place."""
-    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
-    if guild is None:
-        return
-    from kingdoms.discord.mod_admin_channels import ModAdminPinInteraction
-
-    async def _build(gid: str) -> discord.ui.LayoutView:
-        from kingdoms.discord.admin_panel_ladder import ladder_mod_admin_view
-
-        return await ladder_mod_admin_view(ModAdminPinInteraction(gid, bot))
-
-    await pinned_views.refresh_pin_by_marker(bot, guild, "admin:pin:modladder", _build)
-
-
-async def _refresh_season_salons(bot: Any, guild_id: str) -> None:
-    """Re-render the season salons (config pin + dashboard & co) in place."""
-    from kingdoms.discord.ladder_channels import ladder_channels_wiring_ready, sync_ladder_channels
-
-    if not ladder_channels_wiring_ready():
-        return
-    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
-    if guild is None:
-        return
-    await sync_ladder_channels(guild, bot)
 
 
 def register_pin_refreshers(bot: Any) -> None:
@@ -104,13 +74,5 @@ def register_pin_refreshers(bot: Any) -> None:
     async def _home(guild_id: str) -> None:
         await _refresh_home_pin(bot, guild_id)
 
-    async def _ladder_root(guild_id: str) -> None:
-        await _refresh_ladder_root_pin(bot, guild_id)
-
-    async def _season(guild_id: str) -> None:
-        await _refresh_season_salons(bot, guild_id)
-
     pinned_views.register_pin_refresher("admin", _admin)
     pinned_views.register_pin_refresher("home", _home)
-    pinned_views.register_pin_refresher("ladder-root", _ladder_root)
-    pinned_views.register_pin_refresher("season-salons", _season)

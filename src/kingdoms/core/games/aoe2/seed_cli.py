@@ -22,7 +22,11 @@ def main() -> int:
         """Seed the AoE2 collections and return the inserted counts."""
         database = get_async_database()
         try:
-            return await seed_aoe2(database, load_seed_data())
+            try:
+                from kingdoms.mods.ladder.seeder import seed_ladders
+            except ImportError:
+                seed_ladders = None
+            return await seed_aoe2(database, load_seed_data(), ladder_seeder=seed_ladders)
         finally:
             await close_async_client()
 

@@ -58,7 +58,7 @@ class WizardState:
 
 
 def _wiring() -> Any | None:
-    from kingdoms.discord.ladder_commands import build_ladder_wiring
+    from kingdoms.mods.ladder.commands import build_ladder_wiring
 
     return build_ladder_wiring()
 
@@ -270,7 +270,7 @@ async def _step_recap(interaction: discord.Interaction, state: WizardState) -> N
 
 async def _finish(interaction: discord.Interaction, state: WizardState) -> None:
     """Create the season, apply the settings, open the enrollments."""
-    from kingdoms.discord.admin_panel_ladder import _provision_season_surface
+    from kingdoms.mods.ladder.admin_panel import _provision_season_surface
 
     wiring = _wiring()
     if wiring is None or wiring.season_service is None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from kingdoms.core.games.aoe2.seed import seed_aoe2
+from kingdoms.mods.ladder.seeder import seed_ladders
 
 
 class FakeDatabase:
@@ -78,7 +79,7 @@ def _data() -> dict[str, Any]:
 
 async def test_seed_creates_catalog_pool_ladder_season() -> None:
     db = FakeDatabase()
-    result = await seed_aoe2(db, _data(), now=1_000_000)
+    result = await seed_aoe2(db, _data(), now=1_000_000, ladder_seeder=seed_ladders)
     assert result["maps"] == 1
     assert result["civs"] == 1
     assert result["map_pools"] == 1
@@ -94,8 +95,8 @@ async def test_seed_creates_catalog_pool_ladder_season() -> None:
 
 async def test_seed_is_idempotent() -> None:
     db = FakeDatabase()
-    first = await seed_aoe2(db, _data(), now=1_000_000)
-    second = await seed_aoe2(db, _data(), now=2_000_000)
+    first = await seed_aoe2(db, _data(), now=1_000_000, ladder_seeder=seed_ladders)
+    second = await seed_aoe2(db, _data(), now=2_000_000, ladder_seeder=seed_ladders)
     assert first["maps"] == 1 and second["maps"] == 0
     assert first["map_pools"] == 1 and second["map_pools"] == 0
     assert first["ladders"] == 1 and second["ladders"] == 0

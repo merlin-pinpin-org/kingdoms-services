@@ -25,8 +25,8 @@ from typing import Any
 import discord
 
 from kingdoms.discord.admin_panel_mods import AdminModSection, register_admin_mod_section
-from kingdoms.discord.ladder_commands import build_ladder_wiring
 from kingdoms.discord.mod_admin_channels import ModAdminPinInteraction
+from kingdoms.mods.ladder.commands import build_ladder_wiring
 
 logger = logging.getLogger("kingdoms.ladder.admin_panel")
 
@@ -640,7 +640,7 @@ async def _provision_season_surface(interaction: discord.Interaction, season: An
             except Exception:
                 logger.warning("season role provisioning failed (%s)", kind, exc_info=True)
     try:
-        from kingdoms.discord.ladder_channels import sync_ladder_channels
+        from kingdoms.mods.ladder.channels import sync_ladder_channels
 
         await sync_ladder_channels(guild, interaction.client)
     except Exception:
@@ -683,7 +683,7 @@ class LadderSeasonCreateButton(
         if not ladder_id:
             await interaction.response.send_message("Aucun ladder pour ce guild.", ephemeral=True)
             return
-        from kingdoms.discord.season_wizard import start_season_wizard
+        from kingdoms.mods.ladder.season_wizard import start_season_wizard
 
         await start_season_wizard(interaction, ladder_id)
 

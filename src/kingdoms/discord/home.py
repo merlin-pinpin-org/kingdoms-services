@@ -184,17 +184,12 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     for binding in bindings:
         by_game.setdefault(str(binding.get("game_key", "?")), []).append(binding)
     players_by_id: dict[str, dict[str, Any]] = {}
-    from kingdoms.discord.ladder_commands import build_ladder_wiring
-
-    wiring = build_ladder_wiring()
-    if wiring is not None and wiring.season_roles is None and hasattr(wiring.service, "_db"):
+    enrichers: dict[str, Any] = getattr(interaction.client, "mod_profile_enrichers", {}) or {}
+    for enricher in enrichers.values():
         try:
-            ladder_id = str(getattr(interaction.client, "_ladder_id", "") or "")
-            if ladder_id:
-                players = await wiring.service._db.find_ladder_players(ladder_id)
-                players_by_id = {str(p.get("user_id", "")): p for p in players}
+            players_by_id.update(await enricher(interaction.client) or {})
         except Exception:
-            players_by_id = {}
+            logger.warning("HOME: profile enricher failed", exc_info=True)
     for game, entries in sorted(by_game.items()):
         lines = [f"## {game}"]
         for entry in entries:
@@ -572,7 +567,7 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
         guild_id,
         cast("PinnedMenuChannel", channel),
         marker=HOME_MARKER,
-        build_layout=lambda guild: _build_layout(home),
+        build_layout=_async_layout(home),
         pin_reason="kingdoms: pinned home menu (guild front door)",
     )
     if not created:
@@ -638,7 +633,13 @@ async def _register_menu_message(bot: discord.Client, guild_id: str, channel_id:
         logger.warning("PINNED HOME MENU registry register failed - best-effort")
 
 
-async def _build_layout(home: HomeService) -> discord.ui.LayoutView:
+def build_home_menu_view(bot: Any, guild_id: str) -> discord.ui.LayoutView:
+    """Build the pinned home menu layout for a guild (refresher entry)."""
+    del guild_id
+    home = getattr(bot, "home_service", None)
+    if home is None:
+        return discord.ui.LayoutView(timeout=None)
+
     return build_home_menu(home)
 
 
@@ -656,3 +657,13 @@ def register_home_command(
     async def home_command(interaction: discord.Interaction) -> None:
         """Answer /home with the home menu (ephemeral)."""
         await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
+
+
+def _async_layout(home: HomeService) -> Any:
+    """Return the awaited-layout builder expected by PinnedMenuService."""
+
+    async def build(guild_id: str) -> discord.ui.LayoutView:
+        del guild_id
+        return build_home_menu(home)
+
+    return build

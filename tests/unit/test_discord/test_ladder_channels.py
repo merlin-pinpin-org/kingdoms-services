@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from kingdoms.discord import ladder_channels
-from kingdoms.discord.ladder_channels import (
+from kingdoms.mods.ladder import channels as ladder_channels
+from kingdoms.mods.ladder.channels import (
     DASHBOARD_CHANNEL_NAME,
     HISTORY_CHANNEL_NAME,
     LEADERBOARD_CHANNEL_NAME,

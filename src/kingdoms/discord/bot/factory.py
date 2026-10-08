@@ -156,23 +156,21 @@ class KingdomsBot(discord.Client):
         self._live_dashboard_task: asyncio.Future[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
         self._pools_forum_task: asyncio.Task[None] | None = None
-        self._ladder_admin_pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
         self.home_channel_service: Any | None = None
         self.staff_service: Any | None = None
-        self.season_roles_service: Any | None = None
-        self.season_service: Any | None = None
-        self._ladder_id: str | None = None
         self.home_service: Any | None = None
         self.message_registry: Any | None = None
         self.mod_home_builders: dict[str, Any] = {}
+        self.mod_profile_enrichers: dict[str, Any] = {}
+        self.mod_tasks: dict[str, list[asyncio.Task[None]]] = {}
+        self.season_roles_service: Any | None = None
+        self.season_service: Any | None = None
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
         self._home_pin_task: asyncio.Task[None] | None = None
-        self._ladder_sweep_task: asyncio.Task[None] | None = None
-        self._ladder_channels_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
@@ -248,26 +246,17 @@ class KingdomsBot(discord.Client):
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
-            from kingdoms.discord.ladder_channels import ladder_channels_wiring_ready, start_ladder_channels_sync
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
             from kingdoms.discord.pools_forum import start_pools_forum_sync
 
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
                 self._pools_forum_task = start_pools_forum_sync(self)
-            from kingdoms.discord.ladder_admin_channel import (
-                build_ladder_admin_channel_service,
-                maintain_pinned_ladder_admin_menus,
-                register_ladder_mod_admin_channel,
-            )
-            register_ladder_mod_admin_channel(self)
-            self.ladder_admin_channel_service = build_ladder_admin_channel_service(
-                self, self.config.mongo_uri, self.config.redis_uri
-            )
-            if self.ladder_admin_channel_service is not None:
-                self._ladder_admin_pin_task = asyncio.create_task(maintain_pinned_ladder_admin_menus(self))
-            if ladder_channels_wiring_ready():
-                self._ladder_channels_task = start_ladder_channels_sync(self)
+            from kingdoms.core.services.mod_entrypoint import run_mod_hook
+
+            if self.registry is not None:
+                for mod_name in self.registry.enabled():
+                    run_mod_hook(self, mod_name, "setup_hook")
         self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
@@ -495,13 +484,15 @@ class KingdomsBot(discord.Client):
                     message=self.messages.render("lifecycle.stop", locale) if self.messages else "Bot shutting down.",
                 )
                 await self.logs_service.log_event(str(guild.id), event)
+        from kingdoms.core.services.mod_entrypoint import run_mod_hook
+
+        if self.registry is not None:
+            for mod_name in self.registry.enabled():
+                run_mod_hook(self, mod_name, "close")
         for task in (
-            self._ladder_sweep_task,
             self._live_dashboard_task,
             self._maps_forum_task,
             self._pools_forum_task,
-            self._ladder_admin_pin_task,
-            self._ladder_channels_task,
         ):
             if task is not None:
                 task.cancel()
@@ -577,10 +568,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-    from kingdoms.discord.ladder_home import build_ladder_home_view, register_ladder_home_items
 
-    bot.mod_home_builders = {"ladder": build_ladder_home_view}
-    register_ladder_home_items(bot)
 
     class _DiscordModHomeViews:
         """Bridge the bot's mod home builders onto the HomeService seam."""
@@ -597,7 +585,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
     bot.staff_service = _build_staff_service(resolved, bot, admin_channel_service)
-    bot.season_roles_service = _build_season_roles_service(bot, mod_roles_service)
     if bot.staff_service is not None:
         from kingdoms.discord.staff import register_staff_surface
 
@@ -620,22 +607,10 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         admin_channel_service=admin_channel_service,
         error_reporter=bot.crash_report,
     )
-    from kingdoms.discord.ladder_commands import (
-        build_ladder_wiring,
-        register_ladder_commands,
-        start_ladder_sweep,
-    )
+    from kingdoms.core.services.mod_entrypoint import register_mod
 
-    ladder_wiring = build_ladder_wiring(bot=bot, season_roles=bot.season_roles_service)
-    if ladder_wiring is not None:
-        register_ladder_commands(bot.tree, ladder_wiring, owner_ref=_ladder_owner_ref(resolved))
-        bot.season_service = ladder_wiring.season_service
-        bot._ladder_id = f"ladder:aoe2:{_ladder_owner_ref(resolved)}"
-        bot._ladder_sweep_task = start_ladder_sweep(ladder_wiring)
-        from kingdoms.discord.admin_panel_ladder import register_ladder_admin_items, register_ladder_admin_section
-
-        register_ladder_admin_section()
-        register_ladder_admin_items(bot)
+    for mod_name in registry.enabled():
+        register_mod(bot, resolved, mod_name)
     return bot
 
 
@@ -699,19 +674,6 @@ def _build_staff_service(
                 )
 
     return StaffService(database, _AdminNoticeEvents())
-
-
-def _build_season_roles_service(bot: KingdomsBot, mod_roles_service: ModRolesService | None) -> Any | None:
-    del bot
-    """Wire the season roles of the ladder mod (per-season player/staff)."""
-    if mod_roles_service is None:
-        return None
-    try:
-        from kingdoms.core.services.season_roles import SeasonRolesService
-
-        return SeasonRolesService(mod_roles_service, "ladder")
-    except Exception:
-        return None
 
 
 def _build_home_channel_service(
@@ -781,12 +743,6 @@ async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
             except Exception:
                 logger.warning("PINNED HOME MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
         await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
-
-
-def _ladder_owner_ref(config: BotConfig) -> str:
-    """Owner reference of the default ladder (guild-scoped by sync config)."""
-    guild_id = (config.sync_guild_id or "").strip()
-    return guild_id if guild_id else "default"
 
 
 def _build_permission_service(

@@ -8,7 +8,7 @@ lifecycle panel in a cross-season root channel plus one admin salon
 per season. A seasonal mod wants two admin surfaces, and both are generic — every
 mod can register them without writing channel plumbing:
 
-- a **root admin channel** (e.g. ``🛡-ladder-admin``): cross-season, at
+- a **root admin channel** (e.g. ``🛡-mod-admin``): cross-season, at
   the guild's root, visible to the mod's staff roles + bot-admins. It
   hosts the pinned **mod lifecycle panel** — for a seasonal mod this is
   the panel that creates seasons, activates one (it defines the active

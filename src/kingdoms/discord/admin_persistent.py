@@ -442,40 +442,11 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
 
 
 
-async def _handle_leaderboards(interaction: discord.Interaction) -> None:
-    """Persist the guild's displayed leaderboards (1-4 boards)."""
-    wiring = await _require_wiring(interaction)
-    if wiring is None:
-        return
-    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    if not guild_id:
-        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
-        return
-    values = await _chosen_values(interaction)
-    if not values:
-        await interaction.response.defer()
-        return
-    await interaction.response.defer()
-    if not await _guard(interaction, wiring):
-        return
-    from kingdoms.discord.leaderboards import set_guild_boards
-    from kingdoms.discord.pinned_views import refresh_registered_pins
-
-    logs = wiring.logs_service
-    db = getattr(logs, "_db", None) if logs is not None else None
-    try:
-        await set_guild_boards(guild_id, list(values), db)
-    except ValueError:
-        return
-    await refresh_registered_pins(guild_id)
-
-
 def register_admin_persistent_items(bot: discord.Client) -> None:
     """Register the pinned panel DynamicItems (called at every startup)."""
     from kingdoms.discord.admin_panel_dynamic import (
         PinBackButton,
         PinChannelMenu,
-        PinLeaderboardsSelect,
         PinLocaleSelect,
         PinReadOnlySelect,
         PinRolesButton,
@@ -492,7 +463,6 @@ def register_admin_persistent_items(bot: discord.Client) -> None:
         PinVisibilitySelect,
         PinRouteSelect,
         PinBackButton,
-        PinLeaderboardsSelect,
         PinReadOnlySelect,
         PinRolesButton,
         PinModRouteSelect,

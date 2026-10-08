@@ -29,7 +29,14 @@ logger = logging.getLogger("kingdoms.staff")
 
 STAFF_APPLY_MARKER = "staff:apply:"
 STAFF_DECIDE_MARKER = "staff:decide:"
-STAFF_DEFAULT_MOD = "ladder"
+def _default_mod(bot: Any) -> str:
+    """First enabled mod (roster order), best-effort."""
+    registry = getattr(bot, "registry", None)
+    if registry is not None:
+        enabled = list(registry.enabled())
+        if enabled:
+            return enabled[0]
+    return "ladder"
 
 
 class StaffApplyButton(
@@ -183,16 +190,17 @@ async def _nominate(interaction: discord.Interaction, member: discord.User) -> N
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id is not None else ""
     user_id = str(member.id)
-    await staff.apply(guild_id, STAFF_DEFAULT_MOD, user_id, now=_now_ms())
+    mod = _default_mod(bot)
+    await staff.apply(guild_id, mod, user_id, now=_now_ms())
     await staff.decide(
-        guild_id, STAFF_DEFAULT_MOD, user_id, accept=True, decided_by=str(interaction.user.id), now=_now_ms()
+        guild_id, mod, user_id, accept=True, decided_by=str(interaction.user.id), now=_now_ms()
     )
     season_roles = bot.season_roles_service
     if season_roles is not None:
         season = await _active_season_label(bot, guild_id)
         await season_roles.sync_staff_role(guild_id, user_id, season, member=True)
     await interaction.response.send_message(
-        f"<@{user_id}> est nommé staff {STAFF_DEFAULT_MOD}.", ephemeral=True
+        f"<@{user_id}> est nommé staff {mod}.", ephemeral=True
     )
 
 
