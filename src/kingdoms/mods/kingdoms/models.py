@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 GAIA_KINGDOM_KEY = "gaia"
 
@@ -53,6 +53,17 @@ class KingdomModel(BaseModel):
         """Convert to a MongoDB document."""
         return self.model_dump(by_alias=True)
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def _coerce_kingdom_type(cls, value: object) -> object:
+        """Accept the raw Mongo string on read (``strict=True`` refuses it).
+
+        ``to_mongo`` writes the enum value; pymongo stores it as a plain
+        string, so ``from_mongo`` reads ``'gaia'`` back — strict mode
+        would reject it (the launch-deployment regression of 2026-10-07).
+        """
+        return KingdomType(value) if isinstance(value, str) else value
+
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> KingdomModel:
         """Build from a MongoDB document."""
@@ -89,6 +100,12 @@ class LordModel(BaseModel):
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
         return self.model_dump(by_alias=True)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _coerce_lord_role(cls, value: object) -> object:
+        """Accept the raw Mongo string on read (same round-trip as type)."""
+        return LordRole(value) if isinstance(value, str) else value
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> LordModel:
