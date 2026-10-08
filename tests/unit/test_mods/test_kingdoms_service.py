@@ -34,6 +34,7 @@ class MemoryStore:
         self.kingdoms: dict[str, dict] = {}
         self.lords: dict[str, dict] = {}
         self.territories: dict[str, dict] = {}
+        self.admin_actions: dict[str, dict] = {}
 
     async def upsert_season(self, document: dict) -> None:
         self.seasons[document["_id"]] = document
@@ -70,6 +71,16 @@ class MemoryStore:
         self.kingdoms.clear()
         self.lords.clear()
         self.territories.clear()
+        self.admin_actions.clear()
+
+    async def insert_admin_action(self, document: dict) -> None:
+        self.admin_actions[document["_id"]] = document
+
+    async def find_admin_actions(self) -> list[dict]:
+        return list(self.admin_actions.values())
+
+    async def upsert_admin_action(self, document: dict) -> None:
+        self.admin_actions[document["_id"]] = document
 
 
 def _service() -> tuple[KingdomsService, MemoryStore]:
