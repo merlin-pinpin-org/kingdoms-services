@@ -61,13 +61,10 @@ ignore = ["D203", "D213", "D107", "S603"]
 "src/kingdoms/cli/**" = ["T201", "T203", "S603", "S607"]
 "src/kingdoms/core/games/aoe2/seed_cli.py" = ["T201"]
 "src/kingdoms/core/games/aoe2/seed_cli_yaml.py" = ["T201"]
-<<<<<<< HEAD
-=======
 "src/kingdoms/mods/ladder/legacy_import_cli.py" = ["T201"]
 "src/kingdoms/mods/ladder/season_import_cli.py" = ["T201"]
 "src/kingdoms/mods/ladder/season_report_cli.py" = ["T201"]
 "src/kingdoms/mods/ladder/legacy_export_cli.py" = ["T201"]
->>>>>>> 5e7a0a1 (feat(ladder): rebuild the mod on the new main head — kingdoms.mods.ladder only (users-seed CLI now core))
 "src/kingdoms/core/services/identity_export_cli.py" = ["T201"]
 "src/kingdoms/core_process/run_external_checks.py" = ["T201"]
 "src/kingdoms/core/services/identity_import_cli.py" = ["T201"]

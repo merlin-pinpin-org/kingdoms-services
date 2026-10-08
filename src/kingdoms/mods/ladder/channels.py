@@ -370,8 +370,12 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
     async def _build(guild_id: str) -> object:
         enrollments_open, queue_paused = await _ladder_flags(guild_id)
         footer = await _ladder_footer(guild_id)
+        seasons_block = await _pinned_seasons_details()
         return build_ladder_menu_layout(
-            enrollments_open=enrollments_open, queue_paused=queue_paused, footer_id=footer
+            enrollments_open=enrollments_open,
+            queue_paused=queue_paused,
+            season_details=seasons_block,
+            footer_id=footer,
         )
 
     service = PinnedMenuService(cast("Any", _Delivery()))
@@ -382,6 +386,15 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
         build_layout=_build,
         pin_reason="kingdoms: pinned ladder menu (ladder home salon)",
     )
+
+async def _pinned_seasons_details() -> str:
+    """Build the pinned menu's seasons block: the ladder's seasons with their ids."""
+    from kingdoms.mods.ladder.home import _seasons_details
+
+    wiring = _ladder_wiring()
+    ladder_id = str(getattr(getattr(wiring, "bot", None), "_ladder_id", "") or "")
+    return await _seasons_details(wiring, ladder_id)
+
 
 async def _ensure_pinned_season_admin(guild: Any, scope: str, channels: _SeasonChannels) -> None:
     """Keep the pinned per-season config panel alive in the season admin salon."""

@@ -21,6 +21,7 @@ too (same ids skip).
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,8 @@ class SeasonImportReport:
     matches: int
     rating_history_entries: int
     rotations: int
+    enrolled: int = 0
+    provider_enriched: int = 0
 
 
 def _ms(timestamp: int) -> int:
@@ -121,7 +124,8 @@ async def import_season(
 
     links_report = await import_identity_links(database, users_csv, game_key)
     legacy_report = await import_legacy(database, ladder_id, matches_csv)
-
+    enrolled = await _enroll_players(database, ladder_id, season_id)
+    enriched = await _enrich_matches(database, matches_csv)
     return SeasonImportReport(
         seed=seed_result,
         players=legacy_report.players,
@@ -129,4 +133,74 @@ async def import_season(
         matches=legacy_report.matches,
         rating_history_entries=legacy_report.rating_history_entries,
         rotations=rotations,
+        enrolled=enrolled,
+        provider_enriched=enriched,
     )
+
+
+async def _enroll_players(database: Any, ladder_id: str, season_id: str) -> int:
+    """Enroll every imported player into the season (idempotent).
+
+    The players are created by the match import; enrollment is the
+    season's membership. The Discord role sync is bot-side: the
+    season-role sweep grants the player role to enrolled members
+    once the bot connects.
+    """
+    if not season_id:
+        return 0
+    from kingdoms.mods.ladder.models import PLAYERS_COLLECTION
+
+    enrolled = 0
+    cursor = database[PLAYERS_COLLECTION].find({"ladder_id": ladder_id})
+    async for doc in cursor:
+        user_id = str(doc.get("user_id", ""))
+        if not user_id:
+            continue
+        entry_id = f"season_enrollment:{season_id}:{user_id}"
+        await database["season_enrollments"].replace_one(
+            {"_id": entry_id},
+            {"_id": entry_id, "season_id": season_id, "ladder_id": ladder_id, "user_id": user_id},
+            upsert=True,
+        )
+        enrolled += 1
+    return enrolled
+
+
+def _provider_bridge() -> Any | None:
+    """Build the cold provider bridge from the environment, or None."""
+    uri = os.environ.get("EXT_LIBREMATCH_URI", "").strip()
+    if not uri:
+        return None
+    from kingdoms.ext_librematch.adapter import LibrematchAdapter
+    from kingdoms.mods.ladder.provider_bridge import LibrematchProviderBridge
+
+    return LibrematchProviderBridge(
+        LibrematchAdapter(base_url=uri, api_key=os.environ.get("AOE2_API_KEY", ""))
+    )
+
+
+async def _enrich_matches(database: Any, matches_csv: Path) -> int:
+    """Best-effort provider enrichment of the imported matches (by match id).
+
+    Matches without a provider id, or behind an unreachable provider,
+    keep their CSV data — the CSV already carries the winner, duration,
+    map and civs, so this pass only deepens the record.
+    """
+    bridge = _provider_bridge()
+    if bridge is None:
+        return 0
+    from kingdoms.mods.ladder.models import MATCHES_COLLECTION
+
+    enriched = 0
+    for match in load_matches(matches_csv):
+        if not match.match_id:
+            continue
+        details = await bridge.fetch_match(match.match_id)
+        if details is None:
+            continue
+        await database[MATCHES_COLLECTION].update_one(
+            {"_id": f"legacy:{match.ladder_match_id}"},
+            {"$set": {"provider_details": details, "provider_enriched": True}},
+        )
+        enriched += 1
+    return enriched

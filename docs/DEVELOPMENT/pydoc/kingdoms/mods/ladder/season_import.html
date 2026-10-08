@@ -30,6 +30,13 @@ All&nbsp;three&nbsp;steps&nbsp;are&nbsp;individually&nbsp;idempotent;&nbsp;the&n
 too&nbsp;(same&nbsp;ids&nbsp;skip).</span></p>
 <p>
 <table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
     
@@ -48,7 +55,7 @@ too&nbsp;(same&nbsp;ids&nbsp;skip).</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="SeasonImportReport">class <strong>SeasonImportReport</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonImportReport">SeasonImportReport</a>(seed:&nbsp;'dict[str,&nbsp;Any]',&nbsp;players:&nbsp;'int',&nbsp;linked_profiles:&nbsp;'int',&nbsp;matches:&nbsp;'int',&nbsp;rating_history_entries:&nbsp;'int',&nbsp;rotations:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonImportReport">SeasonImportReport</a>(seed:&nbsp;'dict[str,&nbsp;Any]',&nbsp;players:&nbsp;'int',&nbsp;linked_profiles:&nbsp;'int',&nbsp;matches:&nbsp;'int',&nbsp;rating_history_entries:&nbsp;'int',&nbsp;rotations:&nbsp;'int',&nbsp;enrolled:&nbsp;'int'&nbsp;=&nbsp;0,&nbsp;provider_enriched:&nbsp;'int'&nbsp;=&nbsp;0)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Counts&nbsp;of&nbsp;the&nbsp;season&nbsp;import,&nbsp;printed&nbsp;by&nbsp;the&nbsp;CLI.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -64,7 +71,7 @@ Counts&nbsp;of&nbsp;the&nbsp;season&nbsp;import,&nbsp;printed&nbsp;by&nbsp;the&n
 
 <dl><dt><a name="SeasonImportReport-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="SeasonImportReport-__init__"><strong>__init__</strong></a>(self, seed: 'dict[str, Any]', players: 'int', linked_profiles: 'int', matches: 'int', rating_history_entries: 'int', rotations: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="SeasonImportReport-__init__"><strong>__init__</strong></a>(self, seed: 'dict[str, Any]', players: 'int', linked_profiles: 'int', matches: 'int', rating_history_entries: 'int', rotations: 'int', enrolled: 'int' = 0, provider_enriched: 'int' = 0) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="SeasonImportReport-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -74,11 +81,15 @@ Counts&nbsp;of&nbsp;the&nbsp;season&nbsp;import,&nbsp;printed&nbsp;by&nbsp;the&n
 
 <hr>
 Data descriptors defined here:<br>
+<dl><dt><strong>enrolled</strong></dt>
+</dl>
 <dl><dt><strong>linked_profiles</strong></dt>
 </dl>
 <dl><dt><strong>matches</strong></dt>
 </dl>
 <dl><dt><strong>players</strong></dt>
+</dl>
+<dl><dt><strong>provider_enriched</strong></dt>
 </dl>
 <dl><dt><strong>rating_history_entries</strong></dt>
 </dl>
@@ -88,13 +99,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'linked_profiles': 'int', 'matches': 'int', 'players': 'int', 'rating_history_entries': 'int', 'rotations': 'int', 'seed': 'dict[str, Any]'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'enrolled': 'int', 'linked_profiles': 'int', 'matches': 'int', 'players': 'int', 'provider_enriched': 'int', 'rating_history_entries': 'int', 'rotations': 'int', 'seed': 'dict[str, Any]'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'linked_profiles': Field(name='linked_profiles',type='int',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'matches': Field(name='matches',type='int',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'players': Field(name='players',type='int',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'rating_history_entries': Field(name='rating_history_entries',type='int',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'rotations': Field(name='rotations',type='int',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'seed': Field(name='seed',type='dict[str, Any]',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'enrolled': Field(name='enrolled',type='int',default=0,defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'linked_profiles': Field(name='linked_profiles',type='int',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'matches': Field(name='matches',type='int',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'players': Field(name='players',type='int',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'provider_enriched': Field(name='provider_enriched',type='int',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'rating_history_entries': Field(name='rating_history_entries',type='int',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'rotations': Field(name='rotations',type='int',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'seed': Field(name='seed',type='dict[str, Any]',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('seed', 'players', 'linked_profiles', 'matches', 'rating_history_entries', 'rotations')</dl>
+<dl><dt><strong>__match_args__</strong> = ('seed', 'players', 'linked_profiles', 'matches', 'rating_history_entries', 'rotations', 'enrolled', 'provider_enriched')</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">

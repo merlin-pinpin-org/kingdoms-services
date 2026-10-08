@@ -44,7 +44,8 @@ def main() -> int:
             f"{seed.get('seasons', 0)} seasons | {report.players} players, "
             f"{report.linked_profiles} linked profiles, {report.matches} matches, "
             f"{report.rating_history_entries} rating_history entries, "
-            f"{report.rotations} pool rotations"
+            f"{report.rotations} pool rotations | {report.enrolled} enrolled, "
+            f"{report.provider_enriched} provider-enriched"
         )
 
     asyncio.run(run())

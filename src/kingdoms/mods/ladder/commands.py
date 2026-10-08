@@ -54,6 +54,7 @@ class LadderWiring:
 
         self.bot = bot
         self.season_roles = season_roles
+        self.database = database
         adapter = MongoAoE2Database(database)
         self.game_data: GameDataService = GameDataService(adapter)
         self.season_service: SeasonService | None = SeasonService(adapter, self.game_data)

@@ -719,7 +719,10 @@ class LadderSeasonActivateSelect(
             ladder = await _resolve_ladder(interaction, wiring)
             if ladder is not None:
                 seasons = await wiring.season_service.list_seasons(str(ladder["_id"]))
-                options = [discord.SelectOption(label=f"{s.name} ({s.state})", value=s.id) for s in seasons[-25:]]
+                options = [
+                    discord.SelectOption(label=f"{s.name} - {s.id} ({s.state})", value=s.id)
+                    for s in seasons[-25:]
+                ]
         return cls(options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -946,7 +949,7 @@ async def ladder_mod_admin_view(
         parts = []
         for s in recent:
             state_key = "season_state.active" if s.id == active_id else f"season_state.{s.state}"
-            parts.append(f"\n- {s.name} ({_t(catalog, locale, state_key)})")
+            parts.append(f"\n- {s.name} ({_t(catalog, locale, state_key)}) - `{s.id}`")
         lines.append("".join(parts))
     else:
         lines.append("\n_" + _t(catalog, locale, "season_empty") + "_")

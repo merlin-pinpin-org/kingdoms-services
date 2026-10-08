@@ -92,11 +92,59 @@ def setup_hook(bot: Any) -> None:
         bot._ladder_admin_pin_task = asyncio.create_task(maintain_pinned_ladder_admin_menus(bot))
     if ladder_channels_wiring_ready():
         bot._ladder_channels_task = start_ladder_channels_sync(bot)
+    bot._ladder_season_roles_task = asyncio.create_task(_sweep_season_roles(bot))
 
 
 def close(bot: Any) -> None:
     """Cancel the ladder's background tasks."""
-    for attr in ("_ladder_sweep_task", "_ladder_admin_pin_task", "_ladder_channels_task"):
+    for attr in (
+        "_ladder_sweep_task",
+        "_ladder_admin_pin_task",
+        "_ladder_channels_task",
+        "_ladder_season_roles_task",
+    ):
         task = getattr(bot, attr, None)
         if task is not None:
             task.cancel()
+
+
+async def _sweep_season_roles(bot: Any) -> None:
+    """Grant the active season's player role to every enrolled player.
+
+    The season import (CLI, botless) writes ``season_enrollments``; the
+    Discord role only exists bot-side, so this startup sweep is the
+    import's role step: idempotent (assigning an already-held role is a
+    no-op) and quiet on failure — a role outage never blocks the bot.
+    """
+    from kingdoms.core.services.season_roles import season_label
+
+    await asyncio.sleep(20)
+    while True:
+        try:
+            from .commands import build_ladder_wiring
+
+            wiring = build_ladder_wiring()
+            season_roles = getattr(bot, "season_roles_service", None)
+            guild_id = (getattr(getattr(bot, "config", None), "sync_guild_id", "") or "").strip()
+            if wiring is None or season_roles is None or not guild_id.isdigit():
+                return
+            database = wiring.database
+            guild = bot.get_guild(int(guild_id))
+            if guild is None:
+                return
+            async for season in database["seasons"].find({"state": "active"}):
+                season_id = str(season.get("_id", ""))
+                if not season_id:
+                    continue
+                label = season_label(season)
+                async for enrollment in database["season_enrollments"].find({"season_id": season_id}):
+                    user_id = str(enrollment.get("user_id", ""))
+                    member = guild.get_member(int(user_id)) if user_id.isdigit() else None
+                    if member is None:
+                        continue
+                    await season_roles.sync_player_role(guild_id, user_id, label, member=True)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("LADDER season-role sweep failed — best-effort", exc_info=True)
+            return

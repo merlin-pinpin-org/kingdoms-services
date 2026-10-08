@@ -524,6 +524,23 @@ def _notice_view(text: str, options: list[discord.SelectOption] | None = None) -
     return view
 
 
+async def _seasons_details(wiring: Any, ladder_id: str) -> str:
+    """Build the banner's seasons block: the ladder's seasons with their ids."""
+    if wiring is None or wiring.season_service is None or not ladder_id:
+        return ""
+    try:
+        seasons = await wiring.season_service.list_seasons(ladder_id)
+    except Exception:
+        return ""
+    lines = []
+    for season in seasons[-5:]:
+        marker = "actif" if season.state == "active" else season.state
+        lines.append(f"- {season.name} ({marker}) - `{season.id}`")
+    if not lines:
+        return ""
+    return "**Saisons**\n" + "\n".join(lines)
+
+
 def build_ladder_menu_layout(
     user_id: str | None = None,
     in_queue: bool | None = None,
@@ -624,12 +641,15 @@ async def build_ladder_home_view(interaction: discord.Interaction) -> None:
     state = await _ladder_state(interaction)
     enrollments_open, queue_paused = state if state else (True, False)
     footer = await _ladder_footer(interaction)
+    wiring, ladder_id = _wiring_and_ladder_id(interaction)
+    seasons_block = await _seasons_details(wiring, ladder_id)
     await interaction.response.send_message(
         view=build_ladder_menu_layout(
             user_id=str(interaction.user.id),
             in_queue=in_queue,
             enrollments_open=enrollments_open,
             queue_paused=queue_paused,
+            season_details=seasons_block,
             footer_id=footer,
         ),
         ephemeral=True,

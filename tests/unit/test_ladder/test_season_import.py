@@ -167,3 +167,27 @@ async def test_import_season_is_idempotent(tmp_path: Path) -> None:
     assert second.rotations == 0
     assert len(db.collections["map_pool_history"].docs) == 2
     assert len(db.collections["matches"].docs) == 2
+
+
+async def test_import_season_enrolls_players_into_the_season(tmp_path: Path) -> None:
+    db = FakeDatabase()
+    report = await import_season(
+        db,
+        _write(tmp_path, "season.yaml", SEASON_YAML),
+        _write(tmp_path, "users.csv", USERS_CSV),
+        _write(tmp_path, "matches.csv", MATCHES_CSV),
+        "123456789",
+    )
+    assert report.enrolled == 2
+    enrollments = db.collections["season_enrollments"].docs
+    assert "season_enrollment:ladder-aoe2-123456789-1:111" in enrollments
+    assert "season_enrollment:ladder-aoe2-123456789-1:222" in enrollments
+    second = await import_season(
+        db,
+        _write(tmp_path, "season2.yaml", SEASON_YAML),
+        _write(tmp_path, "users2.csv", USERS_CSV),
+        _write(tmp_path, "matches2.csv", MATCHES_CSV),
+        "123456789",
+    )
+    assert second.enrolled == 2
+    assert len(enrollments) == 2
