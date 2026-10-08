@@ -20,25 +20,15 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from typing import Any
+
+from kingdoms.core.games.game_content import LocalizedContent
 
 logger = logging.getLogger("kingdoms.core.faction_content")
 
 PROVIDER_KEY = "aoe2techtree"
 SOURCE_URL = "https://github.com/SiegeEngineers/aoe2techtree"
 SUPPORTED_LOCALES = ("en", "fr")
-
-
-@dataclass(frozen=True, slots=True)
-class LocalizedContent:
-    """One entity's localized content, ready for a forum post."""
-
-    entity_id: str
-    locale: str
-    name: str
-    summary: str
-    source_url: str
 
 
 class TechtreeContentProvider:

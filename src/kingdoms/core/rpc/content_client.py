@@ -38,7 +38,7 @@ class ContentProviderClient:
                 raise
         return list(reply.faction_keys)
 
-    async def get_faction_content(self, faction_key: str, locale: str) -> dict[str, str | bool] | None:
+    async def get_faction_content(self, faction_key: str, locale: str) -> dict[str, str] | None:
         """Fetch one faction's localized descriptor, degrading to None."""
         async with build_channel(self._provider_uri) as channel:
             stub = content_pb2_grpc.ContentStub(channel)
@@ -56,5 +56,22 @@ class ContentProviderClient:
             "name": reply.name,
             "summary": reply.summary,
             "source_url": reply.source_url,
-            "found": reply.found,
+        }
+
+    async def get_map_content(self, map_key: str, locale: str) -> dict[str, str] | None:
+        """Fetch one map's localized descriptor, degrading to None."""
+        async with build_channel(self._provider_uri) as channel:
+            stub = content_pb2_grpc.ContentStub(channel)
+            try:
+                reply = await stub.GetMapContent(content_pb2.MapContentRequest(map_key=map_key, locale=locale))
+            except grpc.aio.AioRpcError as exc:
+                if exc.code() in _NOT_FOUND_CODES:
+                    return None
+                raise
+        return {
+            "entity_id": reply.entity_id,
+            "locale": reply.locale,
+            "name": reply.name,
+            "summary": reply.summary,
+            "source_url": reply.source_url,
         }

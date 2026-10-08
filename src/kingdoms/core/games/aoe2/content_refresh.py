@@ -32,7 +32,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     upserted). Raises when the dataset or Mongo is unreachable — the
     caller (DM panel, CLI) reports the failure.
     """
-    from kingdoms.core.games.aoe2.content_source import resolve_content_source
+    from kingdoms.core.games.aoe2.content_source import resolve_aoe2_content_source
     from kingdoms.core.games.aoe2.faction_content import (
         SUPPORTED_LOCALES,
         TechtreeContentProvider,
@@ -47,7 +47,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
         (dataset_dir / "data.json").read_text(encoding="utf-8"),
         {lng: (dataset_dir / f"strings-{lng}.json").read_text(encoding="utf-8") for lng in SUPPORTED_LOCALES},
     )
-    source = resolve_content_source(provider)
+    source = resolve_aoe2_content_source(provider)
     database = get_async_database()
     game_data = GameDataService(MongoAoE2Database(database))
     content = FactionContentService(database)

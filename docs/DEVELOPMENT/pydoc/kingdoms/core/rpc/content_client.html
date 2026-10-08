@@ -51,7 +51,9 @@ Typed&nbsp;client&nbsp;for&nbsp;a&nbsp;kingdoms.v1.Content&nbsp;provider&nbsp;pr
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ContentProviderClient-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="ContentProviderClient-get_faction_content"><strong>get_faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None.</span></dd></dl>
+<dl><dt>async <a name="ContentProviderClient-get_faction_content"><strong>get_faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None.</span></dd></dl>
+
+<dl><dt>async <a name="ContentProviderClient-get_map_content"><strong>get_map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'dict[str, str] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map's&nbsp;localized&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None.</span></dd></dl>
 
 <dl><dt>async <a name="ContentProviderClient-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;faction&nbsp;index,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
 
