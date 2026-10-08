@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 import discord
 
@@ -202,39 +202,8 @@ async def _run_panel_action(
                 reason=reason,
                 **actor,
             )
-        elif operation == "add_lord":
-            await admin.add_lord(
-                payload["player_id"],
-                payload["display_name"],
-                payload["role"],
-                payload["kingdom"],
-                reason=reason,
-                **actor,
-            )
-        elif operation == "assign_queued":
-            await admin.assign_queued(
-                payload["player_id"],
-                payload["kingdom"],
-                payload["role"],
-                reason=reason,
-                **actor,
-            )
-        elif operation == "reassign":
-            await admin.reassign(
-                payload["player_id"],
-                payload["kingdom"],
-                reason=reason,
-                **actor,
-            )
-        elif operation == "eject":
-            await admin.eject_to_queue(payload["player_id"], reason=reason, **actor)
-        elif operation == "swap_throne":
-            await admin.swap_throne(
-                payload["kingdom"],
-                payload["new_king_id"],
-                reason=reason,
-                **actor,
-            )
+        elif operation in _ROSTER_FIELDS:
+            await _run_roster_action(admin, operation, payload, reason, actor)
         else:  # pragma: no cover - the wire template only lets the panel actions through
             await _answer(interaction, strings["failed"].format(error=operation))
             return
@@ -242,6 +211,30 @@ async def _run_panel_action(
         await _answer(interaction, strings["failed"].format(error=error.message))
         return
     await _answer(interaction, strings["done"])
+
+
+async def _run_roster_action(
+    admin: Any,
+    operation: str,
+    payload: dict[str, Any],
+    reason: str,
+    actor: dict[str, str],
+) -> None:
+    """Run one roster operation — the caller catches and answers."""
+    if operation == "add_lord":
+        await admin.add_lord(
+            payload["player_id"], payload["display_name"], payload["role"], payload["kingdom"], reason=reason, **actor
+        )
+    elif operation == "assign_queued":
+        await admin.assign_queued(
+            payload["player_id"], payload["kingdom"], payload["role"], reason=reason, **actor
+        )
+    elif operation == "reassign":
+        await admin.reassign(payload["player_id"], payload["kingdom"], reason=reason, **actor)
+    elif operation == "eject":
+        await admin.eject_to_queue(payload["player_id"], reason=reason, **actor)
+    else:  # swap_throne — the five roster buttons of the wire template
+        await admin.swap_throne(payload["kingdom"], payload["new_king_id"], reason=reason, **actor)
 
 
 _ROSTER_FIELDS: dict[str, tuple[tuple[str, str], ...]] = {
@@ -315,43 +308,60 @@ class AdminReasonModal(discord.ui.Modal):
             await _answer(interaction, strings["reason_label"])
             return
         payload = dict(self._payload)
-        for key in ("kingdoms_count", "lords_per_kingdom", "king", "admin"):
-            if key not in self._fields:
-                continue
-            raw = str(self._fields[key].value or "").strip()
-            if key in {"kingdoms_count", "lords_per_kingdom"}:
-                if not raw:
-                    payload[key] = None
-                elif raw.isdigit():
-                    payload[key] = int(raw)
-                else:
-                    await _answer(interaction, strings["bad_number"])
-                    return
-            else:
-                if not raw:
-                    payload[key] = None
-                elif raw in {"0", "1"}:
-                    payload[key] = raw == "1"
-                else:
-                    await _answer(interaction, strings["bad_checkbox"])
-                    return
-        for key in _ROSTER_FIELDS.get(self._operation, ()):
+        error = self._parse_extras(payload)
+        if error is not None:
+            await _answer(interaction, strings[error])
+            return
+        await _run_panel_action(interaction, self._operation, payload, reason)
+
+    def _parse_extras(self, payload: dict[str, Any]) -> str | None:
+        """Parse the per-operation fields; the error key, or None."""
+        error = self._parse_season_extras(payload)
+        if error is not None:
+            return error
+        return self._parse_roster_extras(payload)
+
+    def _parse_season_extras(self, payload: dict[str, Any]) -> str | None:
+        """Parse the quotas and foundation fields."""
+        for key in ("kingdoms_count", "lords_per_kingdom"):
             if key not in self._fields:
                 continue
             raw = str(self._fields[key].value or "").strip()
             if not raw:
-                await _answer(interaction, strings["missing_field"])
-                return
+                payload[key] = None
+            elif raw.isdigit():
+                payload[key] = int(raw)
+            else:
+                return "bad_number"
+        for key in ("king", "admin"):
+            if key not in self._fields:
+                continue
+            raw = str(self._fields[key].value or "").strip()
+            if not raw:
+                payload[key] = None
+            elif raw in {"0", "1"}:
+                payload[key] = raw == "1"
+            else:
+                return "bad_checkbox"
+        return None
+
+    def _parse_roster_extras(self, payload: dict[str, Any]) -> str | None:
+        """Parse the roster text fields — all required, the role king/lord."""
+        from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
+
+        for key, _label in _ROSTER_FIELDS.get(self._operation, ()):
+            if key not in self._fields:
+                continue
+            raw = str(self._fields[key].value or "").strip()
+            if not raw:
+                return "missing_field"
             if key == "role":
                 if raw not in {"king", "lord"}:
-                    await _answer(interaction, strings["bad_role"])
-                    return
-                from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
-
+                    return "bad_role"
                 payload[key] = KING_ROLE if raw == "king" else LORD_ROLE
             else:
                 payload[key] = raw
-        await _run_panel_action(interaction, self._operation, payload, reason)
+        return None
 
 
 def _recruitment_options(strings: dict[str, str], kingdoms: list[Any]) -> list[discord.SelectOption]:
@@ -461,14 +471,14 @@ class KingdomsAdminRosterButton(
 ):
     """The roster buttons: add, assign, reassign, eject, throne swap."""
 
-    _LABEL_KEYS = {
+    _LABEL_KEYS: ClassVar[dict[str, str]] = {
         "add-lord": "add_lord_button",
         "assign-queued": "assign_queued_button",
         "reassign": "reassign_button",
         "eject": "eject_button",
         "swap-throne": "swap_throne_button",
     }
-    _STYLES = {
+    _STYLES: ClassVar[dict[str, discord.ButtonStyle]] = {
         "add-lord": discord.ButtonStyle.success,
         "assign-queued": discord.ButtonStyle.primary,
         "reassign": discord.ButtonStyle.primary,

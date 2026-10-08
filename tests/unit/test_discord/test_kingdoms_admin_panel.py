@@ -230,7 +230,7 @@ async def test_add_lord_runs_through_the_modal() -> None:
         store, "add-lord", reason="renfort manuel", player_id="p1", display_name="P1", role="lord", kingdom="Aquitaine"
     )
     service = _client(store).kingdoms_service
-    lord = next(l for l in await service.lords() if l.id == "p1")
+    lord = next(lord for lord in await service.lords() if lord.id == "p1")
     aquitaine = next(k for k in await service.kingdoms() if k.name == "Aquitaine")
     assert lord.kingdom_id == aquitaine.id
     assert lord.role is LORD_ROLE
@@ -245,7 +245,7 @@ async def test_assign_queued_runs_through_the_modal() -> None:
     await _roster_run(
         store, "assign-queued", reason="sortie de file", player_id="q1", kingdom="Bourgogne", role="lord"
     )
-    lord = next(l for l in await service.lords() if l.id == "q1")
+    lord = next(lord for lord in await service.lords() if lord.id == "q1")
     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
     assert lord.in_queue is False
     assert lord.kingdom_id == bourgogne.id
@@ -258,7 +258,7 @@ async def test_reassign_moves_an_active_lord() -> None:
     service = _client(store).kingdoms_service
     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
     await _roster_run(store, "reassign", reason="équilibrage", player_id="m1", kingdom="Bourgogne")
-    lord = next(l for l in await service.lords() if l.id == "m1")
+    lord = next(lord for lord in await service.lords() if lord.id == "m1")
     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
     assert lord.kingdom_id == bourgogne.id
     assert _action_of(store, "reassign")["action_type"] == "reassign"
@@ -270,7 +270,7 @@ async def test_eject_returns_a_lord_to_the_queue() -> None:
     service = _client(store).kingdoms_service
     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
     await _roster_run(store, "eject", reason="sanction", player_id="m1")
-    lord = next(l for l in await service.lords() if l.id == "m1")
+    lord = next(lord for lord in await service.lords() if lord.id == "m1")
     assert lord.in_queue is True
     assert lord.kingdom_id is None
     assert _action_of(store, "eject_to_queue")["action_type"] == "eject_to_queue"
@@ -287,7 +287,7 @@ async def test_swap_throne_promotes_a_lord() -> None:
     )
     await _roster_run(store, "swap-throne", reason="abdication", kingdom="Aquitaine", new_king_id="k2")
     service = _client(store).kingdoms_service
-    lords = {l.id: l for l in await service.lords()}
+    lords = {lord.id: lord for lord in await service.lords()}
     assert lords["k2"].role is KING_ROLE
     assert lords["k1"].role is LORD_ROLE
     assert _action_of(store, "swap_throne")["action_type"] == "swap_throne"
