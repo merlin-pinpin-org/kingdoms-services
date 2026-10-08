@@ -492,7 +492,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapCreateButton">class <strong>GamesMapCreateButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateButton">GamesMapCreateButton</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateButton">GamesMapCreateButton</a>(game_key:&nbsp;'str',&nbsp;global_scope:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Open&nbsp;the&nbsp;map-creation&nbsp;modal;&nbsp;the&nbsp;map&nbsp;lands&nbsp;in&nbsp;the&nbsp;maps&nbsp;forum.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -505,9 +505,12 @@ Open&nbsp;the&nbsp;map-creation&nbsp;modal;&nbsp;the&nbsp;map&nbsp;lands&nbsp;in
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="GamesMapCreateButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapCreateButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="GamesMapCreateButton-__init__"><strong>__init__</strong></a>(self, game_key: 'str', global_scope: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapCreateButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GamesMapCreateButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;the&nbsp;click,&nbsp;then&nbsp;open&nbsp;the&nbsp;creation&nbsp;modal.</span></dd></dl>
+<dl><dt>async <a name="GamesMapCreateButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;the&nbsp;click,&nbsp;then&nbsp;open&nbsp;the&nbsp;creation&nbsp;modal.<br>
+&nbsp;<br>
+The&nbsp;global-scope&nbsp;button&nbsp;is&nbsp;bot-admin&nbsp;only:&nbsp;a&nbsp;global&nbsp;map&nbsp;syncs<br>
+into&nbsp;every&nbsp;guild's&nbsp;forum,&nbsp;so&nbsp;only&nbsp;platform&nbsp;admins&nbsp;may&nbsp;add&nbsp;one.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -517,7 +520,7 @@ Class methods defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:maps:create:(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:modgames:maps:create:(?P&lt;scope&gt;global|guild):(?P&lt;game_key&gt;[a-z0-9_]+)')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
 
@@ -632,7 +635,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="GamesMapCreateModal">class <strong>GamesMapCreateModal</strong></a>(<a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateModal">GamesMapCreateModal</a>(game_key:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GamesMapCreateModal">GamesMapCreateModal</a>(game_key:&nbsp;'str',&nbsp;global_scope:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;map-creation&nbsp;form:&nbsp;name,&nbsp;filename,&nbsp;description.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -644,9 +647,13 @@ The&nbsp;map-creation&nbsp;form:&nbsp;name,&nbsp;filename,&nbsp;description.<br>
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="GamesMapCreateModal-__init__"><strong>__init__</strong></a>(self, game_key: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="GamesMapCreateModal-__init__"><strong>__init__</strong></a>(self, game_key: 'str', global_scope: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GamesMapCreateModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;map&nbsp;through&nbsp;the&nbsp;service,&nbsp;confirm.</span></dd></dl>
+<dl><dt>async <a name="GamesMapCreateModal-on_submit"><strong>on_submit</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;map&nbsp;through&nbsp;the&nbsp;service,&nbsp;confirm.<br>
+&nbsp;<br>
+Guild&nbsp;admins&nbsp;create&nbsp;guild-local&nbsp;maps&nbsp;(``owner_guild_id``);&nbsp;only<br>
+bot&nbsp;admins&nbsp;may&nbsp;create&nbsp;global&nbsp;ones&nbsp;(``None``&nbsp;scope),&nbsp;so&nbsp;a&nbsp;global<br>
+map&nbsp;is&nbsp;modifiable&nbsp;by&nbsp;admins&nbsp;alone.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>

@@ -564,10 +564,19 @@ def register_admin_command(
                 )
                 return
             await interaction.response.defer(ephemeral=True)
-            await interaction.followup.send(
-                view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
-                ephemeral=True,
-            )
+            is_bot_admin = _is_bot_admin(user_id, admins)
+            if is_bot_admin:
+                from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+
+                dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
+                admin_view = await build_admin_dm_panel(interaction)
+                await interaction.followup.send(view=dm_view, ephemeral=True)
+                await interaction.followup.send(view=admin_view, ephemeral=True)
+            else:
+                await interaction.followup.send(
+                    view=await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter),
+                    ephemeral=True,
+                )
             return
 
         if not (_is_bot_admin(user_id, admins) or _is_guild_admin(interaction)):

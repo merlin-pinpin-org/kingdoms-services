@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.guild_access</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.guild_access</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/guild_access.py">SOURCE_ROOT/core/services/guild_access.py</a></td></tr></table>
+    <p><span class="code"><a href="#GuildAccessService">GuildAccessService</a>:&nbsp;which&nbsp;guild&nbsp;may&nbsp;use&nbsp;which&nbsp;games&nbsp;and&nbsp;mods&nbsp;(core).<br>
+&nbsp;<br>
+A&nbsp;bot&nbsp;admin&nbsp;is&nbsp;cross-guild:&nbsp;they&nbsp;administer&nbsp;the&nbsp;platform&nbsp;from&nbsp;DMs,&nbsp;not<br>
+from&nbsp;any&nbsp;single&nbsp;guild's&nbsp;panel.&nbsp;Conversely,&nbsp;a&nbsp;guild&nbsp;never&nbsp;gets&nbsp;a&nbsp;game&nbsp;or<br>
+mod&nbsp;by&nbsp;default&nbsp;—&nbsp;every&nbsp;registered&nbsp;guild&nbsp;must&nbsp;request&nbsp;access,&nbsp;and&nbsp;a&nbsp;bot<br>
+admin&nbsp;approves&nbsp;it&nbsp;from&nbsp;the&nbsp;admin&nbsp;DM&nbsp;panel.&nbsp;This&nbsp;is&nbsp;the&nbsp;platform's<br>
+isolation&nbsp;seam:&nbsp;nothing&nbsp;is&nbsp;active&nbsp;until&nbsp;explicitly&nbsp;granted.<br>
+&nbsp;<br>
+Storage:&nbsp;the&nbsp;``guild_access``&nbsp;Mongo&nbsp;collection,&nbsp;one&nbsp;document&nbsp;per&nbsp;guild<br>
+(``guild:&lt;id&gt;``)&nbsp;carrying&nbsp;``games``&nbsp;and&nbsp;``mods``&nbsp;(lists&nbsp;of&nbsp;granted<br>
+keys)&nbsp;plus&nbsp;``pending``&nbsp;requests.&nbsp;Requests&nbsp;and&nbsp;grants&nbsp;are&nbsp;auditable<br>
+state,&nbsp;not&nbsp;config:&nbsp;they&nbsp;survive&nbsp;restarts&nbsp;and&nbsp;deployments.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.guild_access.html#GuildAccessError">GuildAccessError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.guild_access.html#GuildAccessService">GuildAccessService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.guild_access.html#GuildAccessDatabase">GuildAccessDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GuildAccessDatabase">class <strong>GuildAccessDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GuildAccessDatabase">GuildAccessDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Persistence&nbsp;seam&nbsp;for&nbsp;the&nbsp;per-guild&nbsp;access&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.guild_access.html#GuildAccessDatabase">GuildAccessDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GuildAccessDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="GuildAccessDatabase-get_guild_access"><strong>get_guild_access</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;guild's&nbsp;access&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessDatabase-list_guild_access"><strong>list_guild_access</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;access&nbsp;document&nbsp;(for&nbsp;the&nbsp;admin&nbsp;DM&nbsp;panel).</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessDatabase-upsert_guild_access"><strong>upsert_guild_access</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;access&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="GuildAccessDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'get_guild_access', 'list_guild_access', 'upsert_guild_access'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="GuildAccessDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GuildAccessDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GuildAccessError">class <strong>GuildAccessError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">A&nbsp;guild-access&nbsp;operation&nbsp;is&nbsp;invalid&nbsp;(unknown&nbsp;game/mod&nbsp;key).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.guild_access.html#GuildAccessError">GuildAccessError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="GuildAccessError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="GuildAccessError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="GuildAccessError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="GuildAccessError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="GuildAccessError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GuildAccessError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="GuildAccessError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="GuildAccessError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GuildAccessError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="GuildAccessError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GuildAccessError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GuildAccessService">class <strong>GuildAccessService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GuildAccessService">GuildAccessService</a>(database:&nbsp;'<a href="#GuildAccessDatabase">GuildAccessDatabase</a>',&nbsp;games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;mods:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Per-guild&nbsp;grants&nbsp;of&nbsp;games&nbsp;and&nbsp;mods:&nbsp;request,&nbsp;approve,&nbsp;revoke.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GuildAccessService-__init__"><strong>__init__</strong></a>(self, database: 'GuildAccessDatabase', games: 'tuple[str, ...]' = (), mods: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams&nbsp;and&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods.<br>
+&nbsp;<br>
+``games``/``mods``&nbsp;restrict&nbsp;what&nbsp;a&nbsp;guild&nbsp;may&nbsp;be&nbsp;granted:&nbsp;only<br>
+keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp;be&nbsp;approved.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-approve"><strong>approve</strong></a>(self, guild_id: 'str', requested_at: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Approve&nbsp;one&nbsp;pending&nbsp;request;&nbsp;the&nbsp;keys&nbsp;become&nbsp;active.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-deny"><strong>deny</strong></a>(self, guild_id: 'str', requested_at: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Drop&nbsp;one&nbsp;pending&nbsp;request&nbsp;without&nbsp;granting&nbsp;anything.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-enabled_games"><strong>enabled_games</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;games&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-enabled_mods"><strong>enabled_mods</strong></a>(self, guild_id: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;mods&nbsp;granted&nbsp;to&nbsp;one&nbsp;guild.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-get"><strong>get</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;guild's&nbsp;access&nbsp;state&nbsp;(default:&nbsp;nothing&nbsp;active).</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-list_all"><strong>list_all</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;access&nbsp;document&nbsp;(the&nbsp;admin&nbsp;DM&nbsp;panel's&nbsp;data).</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-pending_requests"><strong>pending_requests</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;pending&nbsp;requests,&nbsp;flattened&nbsp;for&nbsp;the&nbsp;panel.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-request_access"><strong>request_access</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;a&nbsp;guild's&nbsp;request&nbsp;for&nbsp;games/mods&nbsp;(pending&nbsp;approval).<br>
+&nbsp;<br>
+Keys&nbsp;carry&nbsp;their&nbsp;kind:&nbsp;``game:&lt;key&gt;``&nbsp;or&nbsp;``mod:&lt;key&gt;``.&nbsp;Unknown<br>
+or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-revoke"><strong>revoke</strong></a>(self, guild_id: 'str', key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;one&nbsp;granted&nbsp;game&nbsp;or&nbsp;mod&nbsp;from&nbsp;a&nbsp;guild.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GUILD_ACCESS_COLLECTION</strong> = 'guild_access'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.guild_access (WARNING)&gt;</td></tr></table>
+</body></html>

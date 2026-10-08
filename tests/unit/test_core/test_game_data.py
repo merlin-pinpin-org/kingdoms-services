@@ -41,14 +41,14 @@ class FakeGameDataDatabase:
                 return doc
         return None
 
-    async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
+    async def find_active_maps(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         return [
             d
             for d in self._collection(MAPS_COLLECTION).values()
             if d.get("game_key") == game_key and d.get("archived_at") is None
         ]
 
-    async def find_active_factions(self, game_key: str) -> list[dict[str, Any]]:
+    async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         return [
             d
             for d in self._collection("factions").values()

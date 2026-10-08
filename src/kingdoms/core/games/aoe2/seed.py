@@ -49,9 +49,16 @@ class MongoAoE2Database:
         doc = await self._database[collection].find_one({"game_key": game_key, "name": name, "archived_at": None})
         return doc if doc is None else dict(doc)
 
-    async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived maps for a game."""
-        cursor = self._database[collection_name("maps")].find({"game_key": game_key, "archived_at": None})
+    async def find_active_maps(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List the non-archived maps for a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones (config seed,
+        bot admins); unscoped: every map of the game.
+        """
+        query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}]
+        cursor = self._database[collection_name("maps")].find(query)
         return [doc async for doc in cursor]
 
     async def find_game_keys(self) -> list[str]:
@@ -59,9 +66,12 @@ class MongoAoE2Database:
         keys = await self._database[collection_name("maps")].distinct("game_key")
         return [str(k) for k in keys if k]
 
-    async def find_active_factions(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived civs for a game."""
-        cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
+    async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List the non-archived civs for a game, scoped like the maps."""
+        query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}]
+        cursor = self._database[collection_name("civs")].find(query)
         return [doc async for doc in cursor]
 
     async def find_active_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:

@@ -204,8 +204,12 @@ class KingdomsBot(discord.Client):
 
         register_games_admin_section()
         register_games_admin_items(self)
+        from kingdoms.discord.admin_dm_panel import register_admin_dm_items
+        from kingdoms.discord.guild_access_request import register_guild_access_request_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
         register_pool_flow_items(self)
+        register_admin_dm_items(self)
+        register_guild_access_request_items(self)
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -396,8 +400,27 @@ class KingdomsBot(discord.Client):
         mod_roles_service: ModRolesService,
         registry: ModRegistry,
     ) -> None:
-        """Provision channels and roles for every enabled mod (best-effort, idempotent)."""
+        """Provision channels and roles for the guild's granted mods (best-effort, idempotent).
+
+        Nothing is active by default: only the mods the guild was
+        granted through the access service (bot-admin DM approval) are
+        provisioned — the per-guild activation seam.
+        """
+        from kingdoms.discord.wiring import build_guild_access_service
+
+        access = build_guild_access_service()
+        if access is not None:
+            try:
+                granted = await access.enabled_mods(guild_id)
+            except Exception:
+                logger.warning("GUILD ACCESS read failed (guild %s) — best-effort", guild_id, exc_info=True)
+                return
+            if not granted:
+                logger.info("MODS SKIPPED (guild %s) — no access granted yet", guild_id)
+                return
         for mod_name, definition in registry.enabled().items():
+            if access is not None and mod_name not in granted:
+                continue
             try:
                 await channel_service.setup_mod_channels(guild_id, mod_name)
                 await mod_roles_service.setup_mod_roles(guild_id, mod_name)
@@ -624,7 +647,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
         error_reporter=bot.crash_report,
     )
     from kingdoms.core.services.mod_entrypoint import register_mod
+    from kingdoms.discord.wiring import set_guild_access_platform
 
+    set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
     return bot

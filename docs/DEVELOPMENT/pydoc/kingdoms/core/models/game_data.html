@@ -45,7 +45,7 @@ archival-only&nbsp;(``archived_at``),&nbsp;per&nbsp;the&nbsp;legacy&nbsp;referen
 <td class="section-title" colspan=3>&nbsp;<br><a name="CatalogEntryModel">class <strong>CatalogEntryModel</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#CatalogEntryModel">CatalogEntryModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#CatalogEntryModel">CatalogEntryModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;owner_guild_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Base&nbsp;shape&nbsp;shared&nbsp;by&nbsp;every&nbsp;game&nbsp;catalog&nbsp;entry.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -71,7 +71,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'archived_at': 'int | None', 'description': 'str', 'game_key': 'str', 'id': 'str', 'name': 'str', 'resource_url': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'archived_at': 'int | None', 'description': 'str', 'game_key': 'str', 'id': 'str', 'name': 'str', 'owner_guild_id': 'str | None', 'resource_url': 'str'}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -81,7 +81,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.CatalogEntryModel'&gt;, 'config': {'strict': True, 'title': 'CatalogEntryModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ngdoms.core.models.game_data.CatalogEntryModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.CatalogEntryModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'CatalogEntryModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.CatalogEntryModel'&gt;, 'config': {'strict': True, 'title': 'CatalogEntryModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ngdoms.core.models.game_data.CatalogEntryModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.CatalogEntryModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_guild_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'CatalogEntryModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -89,7 +89,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -107,7 +107,7 @@ Data and other attributes defined here:<br>
     },
 ), definitions=[], cache_strings=True)</dl>
 
-<dl><dt><strong>__signature__</strong> = &lt;Signature (*, _id: str, game_key: str, name: st...tr = '', archived_at: int | None = None) -&gt; None&gt;</dl>
+<dl><dt><strong>__signature__</strong> = &lt;Signature (*, _id: str, game_key: str, name: st... = None, archived_at: int | None = None) -&gt; None&gt;</dl>
 
 <dl><dt><strong>model_config</strong> = {'strict': True}</dl>
 
@@ -492,7 +492,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -500,7 +500,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="FactionModel">class <strong>FactionModel</strong></a>(<a href="kingdoms.core.models.game_data.html#CatalogEntryModel">CatalogEntryModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#FactionModel">FactionModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;faction_key:&nbsp;str&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FactionModel">FactionModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;owner_guild_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;faction_key:&nbsp;str&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;faction&nbsp;entry&nbsp;(a&nbsp;game's&nbsp;playable&nbsp;side),&nbsp;curated&nbsp;for&nbsp;admin&nbsp;editing.<br>
 &nbsp;<br>
@@ -528,7 +528,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.FactionModel'&gt;, 'config': {'strict': True, 'title': 'FactionModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...s 'kingdoms.core.models.game_data.FactionModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.FactionModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'faction_key': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'FactionModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.FactionModel'&gt;, 'config': {'strict': True, 'title': 'FactionModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...s 'kingdoms.core.models.game_data.FactionModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.FactionModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'faction_key': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_guild_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'FactionModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -536,7 +536,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'faction_key': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'faction_key': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -952,7 +952,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'faction_key': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'faction_key': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -960,7 +960,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="MapModel">class <strong>MapModel</strong></a>(<a href="kingdoms.core.models.game_data.html#CatalogEntryModel">CatalogEntryModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MapModel">MapModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;filename:&nbsp;str&nbsp;=&nbsp;'',&nbsp;forum_message_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MapModel">MapModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;owner_guild_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;filename:&nbsp;str&nbsp;=&nbsp;'',&nbsp;forum_message_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;map&nbsp;entry:&nbsp;``filename``&nbsp;is&nbsp;the&nbsp;opaque&nbsp;in-game&nbsp;reference&nbsp;(required).<br>
 &nbsp;<br>
@@ -988,7 +988,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.MapModel'&gt;, 'config': {'strict': True, 'title': 'MapModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...class 'kingdoms.core.models.game_data.MapModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.MapModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'filename': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'forum_message_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'MapModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.MapModel'&gt;, 'config': {'strict': True, 'title': 'MapModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...class 'kingdoms.core.models.game_data.MapModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.MapModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'filename': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'forum_message_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_guild_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'MapModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -996,7 +996,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'filename': FieldInfo(annotation=str, required=False, default=''), 'forum_message_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'filename': FieldInfo(annotation=str, required=False, default=''), 'forum_message_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -1412,7 +1412,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'filename': FieldInfo(annotation=str, required=False, default=''), 'forum_message_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'filename': FieldInfo(annotation=str, required=False, default=''), 'forum_message_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'resource_url': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -2789,7 +2789,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="RuleModel">class <strong>RuleModel</strong></a>(<a href="kingdoms.core.models.game_data.html#CatalogEntryModel">CatalogEntryModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RuleModel">RuleModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;rule_key:&nbsp;str&nbsp;=&nbsp;'',&nbsp;params:&nbsp;dict[str,&nbsp;str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RuleModel">RuleModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;game_key:&nbsp;str,&nbsp;name:&nbsp;str,&nbsp;description:&nbsp;str&nbsp;=&nbsp;'',&nbsp;resource_url:&nbsp;str&nbsp;=&nbsp;'',&nbsp;owner_guild_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;archived_at:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;rule_key:&nbsp;str&nbsp;=&nbsp;'',&nbsp;params:&nbsp;dict[str,&nbsp;str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;game&nbsp;rule/format&nbsp;entry&nbsp;(team&nbsp;sizes,&nbsp;settings,&nbsp;victory&nbsp;conditions).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -2813,7 +2813,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.RuleModel'&gt;, 'config': {'strict': True, 'title': 'RuleModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...lass 'kingdoms.core.models.game_data.RuleModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.RuleModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'params': {'metadata': {}, 'schema': {'default_factory': &lt;class 'dict'&gt;, 'default_factory_takes_data': False, 'schema': {'keys_schema': {...}, 'type': 'dict', 'values_schema': {...}}, 'type': 'default'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'rule_key': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'RuleModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.core.models.game_data.RuleModel'&gt;, 'config': {'strict': True, 'title': 'RuleModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...lass 'kingdoms.core.models.game_data.RuleModel'&gt;&gt;]}, 'ref': 'kingdoms.core.models.game_data.RuleModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'archived_at': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'description': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'game_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_guild_id': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'params': {'metadata': {}, 'schema': {'default_factory': &lt;class 'dict'&gt;, 'default_factory_takes_data': False, 'schema': {'keys_schema': {...}, 'type': 'dict', 'values_schema': {...}}, 'type': 'default'}, 'type': 'model-field'}, 'resource_url': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'rule_key': {'metadata': {}, 'schema': {'default': '', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'RuleModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -2821,7 +2821,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'params': FieldInfo(annotation=dict[str, str], required=False, default_factory=dict), 'resource_url': FieldInfo(annotation=str, required=False, default=''), 'rule_key': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'params': FieldInfo(annotation=dict[str, str], required=False, default_factory=dict), 'resource_url': FieldInfo(annotation=str, required=False, default=''), 'rule_key': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -3237,7 +3237,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'params': FieldInfo(annotation=dict[str, str], required=False, default_factory=dict), 'resource_url': FieldInfo(annotation=str, required=False, default=''), 'rule_key': FieldInfo(annotation=str, required=False, default='')}</dl>
+<dl><dt><strong>model_fields</strong> = {'archived_at': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'description': FieldInfo(annotation=str, required=False, default=''), 'game_key': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'name': FieldInfo(annotation=str, required=True), 'owner_guild_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'params': FieldInfo(annotation=dict[str, str], required=False, default_factory=dict), 'resource_url': FieldInfo(annotation=str, required=False, default=''), 'rule_key': FieldInfo(annotation=str, required=False, default='')}</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">

@@ -21,6 +21,48 @@ _GAMES_SERVICE: Any | None = None
 _GAMES_SERVICE_READY = False
 
 
+_GUILD_ACCESS_SERVICE: Any | None = None
+_GUILD_ACCESS_READY = False
+_GUILD_ACCESS_PLATFORM: tuple[str, ...] = ()
+_GUILD_ACCESS_MODS: tuple[str, ...] = ()
+
+
+def set_guild_access_platform(games: tuple[str, ...], mods: tuple[str, ...]) -> None:
+    """Record the platform's known games and mods (bot build time)."""
+    global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+    _GUILD_ACCESS_PLATFORM = tuple(games)
+    _GUILD_ACCESS_MODS = tuple(mods)
+
+
+def guild_access_platform() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return the platform's known games and mods (for request pickers)."""
+    return _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+
+
+def build_guild_access_service() -> Any | None:
+    """Build (and memoize) the GuildAccessService; None when Mongo is absent."""
+    global _GUILD_ACCESS_SERVICE, _GUILD_ACCESS_READY
+    if _GUILD_ACCESS_READY:
+        return _GUILD_ACCESS_SERVICE
+    _GUILD_ACCESS_READY = True
+    if not os.environ.get("MONGO_URI"):
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.guild_access import GuildAccessService
+        from kingdoms.core.services.guild_access_mongo import MongoGuildAccessDatabase
+
+        _GUILD_ACCESS_SERVICE = GuildAccessService(
+            MongoGuildAccessDatabase(get_async_database()),
+            games=_GUILD_ACCESS_PLATFORM,
+            mods=_GUILD_ACCESS_MODS,
+        )
+    except Exception:
+        logger.warning("GUILD ACCESS wiring build failed", exc_info=True)
+        return None
+    return _GUILD_ACCESS_SERVICE
+
+
 def games_wiring_ready() -> bool:
     """Whether the game-data wiring can be built (Mongo configured)."""
     return bool(os.environ.get("MONGO_URI"))
@@ -73,3 +115,20 @@ async def guild_category(guild: discord.Guild, name: str, *, create_reason: str 
             logger.warning("category creation failed (%s) — best-effort", name, exc_info=True)
             return None
     return category
+
+
+async def guild_has_game(guild_id: str, game_key: str) -> bool:
+    """Whether the guild was granted one game (access seam; True when unwired).
+
+    When the access service is unavailable (no Mongo), the forums keep
+    syncing as before — the seam degrades open for the core surfaces,
+    while mod provisioning is the strict seam (nothing active).
+    """
+    service = build_guild_access_service()
+    if service is None:
+        return True
+    try:
+        return game_key in await service.enabled_games(guild_id)
+    except Exception:
+        logger.warning("GUILD ACCESS game check failed (guild %s)", guild_id, exc_info=True)
+        return False

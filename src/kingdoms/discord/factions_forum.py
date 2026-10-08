@@ -41,12 +41,15 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
     """Build the factions forum spec wired onto the games service."""
 
     async def list_factions(guild_id: str) -> list[Any]:
-        del guild_id
+        from kingdoms.discord.wiring import guild_has_game
+
         service = _game_data(bot)
         if service is None:
             return []
         factions: list[Any] = []
         for game_key in await service.list_game_keys():
+            if not await guild_has_game(guild_id, game_key):
+                continue
             factions.extend(await service.list_factions(game_key))
         return factions
 

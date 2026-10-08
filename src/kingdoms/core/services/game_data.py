@@ -61,8 +61,14 @@ class GameDataDatabase(Protocol):
         """Return the non-archived entry for ``(game_key, name)``; None when absent."""
         ...
 
-    async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived maps for a game."""
+    async def find_active_maps(
+        self, game_key: str, guild_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List the non-archived maps for a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones; unscoped:
+        every map of the game.
+        """
         ...
 
     async def find_game_keys(self) -> list[str]:
@@ -79,8 +85,10 @@ class GameDataDatabase(Protocol):
         """
         ...
 
-    async def find_active_factions(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived factions for a game."""
+    async def find_active_factions(
+        self, game_key: str, guild_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List the non-archived factions for a game, scoped like the maps."""
         ...
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
@@ -123,9 +131,21 @@ class GameDataService:
     # ── Maps ────────────────────────────────────────────────────────────
 
     async def create_map(
-        self, game_key: str, name: str, filename: str, description: str = "", resource_url: str = ""
+        self,
+        game_key: str,
+        name: str,
+        filename: str,
+        description: str = "",
+        resource_url: str = "",
+        owner_guild_id: str | None = None,
     ) -> MapModel:
-        """Create a map; the name must be unique among non-archived maps."""
+        """Create a map; the name must be unique among non-archived maps.
+
+        ``owner_guild_id`` scopes the map to one guild (guild-local
+        enrichment); None is the global catalog (config seed and bot
+        admins). Global entries sync into every guild's forum; a
+        guild's entries stay in that guild's forum.
+        """
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
@@ -135,6 +155,7 @@ class GameDataService:
             filename=filename,
             description=description,
             resource_url=resource_url,
+            owner_guild_id=owner_guild_id,
         )
         await self._db.upsert_entry(MAPS_COLLECTION, entry.to_mongo())
         await self._audit_record("map.create", {"game_key": game_key, "name": name})
@@ -149,9 +170,13 @@ class GameDataService:
         """List the game keys known to the maps catalog (generic)."""
         return await self._db.find_game_keys()
 
-    async def list_maps(self, game_key: str) -> list[MapModel]:
-        """List the non-archived maps of a game."""
-        docs = await self._db.find_active_maps(game_key)
+    async def list_maps(self, game_key: str, guild_id: str | None = None) -> list[MapModel]:
+        """List the non-archived maps of a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones; unscoped:
+        every map of the game (the admin views).
+        """
+        docs = await self._db.find_active_maps(game_key, guild_id=guild_id)
         return [MapModel.from_mongo(d) for d in docs]
 
     async def list_map_pools(self, game_key: str, guild_id: str | None = None) -> list[MapPoolModel]:
@@ -432,7 +457,13 @@ class GameDataService:
     # ── Civs & rules ──────────────────────────────────────────────────────
 
     async def create_faction(
-        self, game_key: str, name: str, faction_key: str = "", description: str = "", resource_url: str = ""
+        self,
+        game_key: str,
+        name: str,
+        faction_key: str = "",
+        description: str = "",
+        resource_url: str = "",
+        owner_guild_id: str | None = None,
     ) -> FactionModel:
         """Create a faction entry; name unique among non-archived."""
         if await self._db.find_by_name(FACTIONS_COLLECTION, game_key, name) is not None:
@@ -444,6 +475,7 @@ class GameDataService:
             faction_key=faction_key,
             description=description,
             resource_url=resource_url,
+            owner_guild_id=owner_guild_id,
         )
         await self._db.upsert_entry(FACTIONS_COLLECTION, entry.to_mongo())
         await self._audit_record("faction.create", {"game_key": game_key, "name": name})
@@ -454,9 +486,13 @@ class GameDataService:
         doc = await self._db.find_entry(FACTIONS_COLLECTION, entry_id)
         return FactionModel.from_mongo(doc) if doc else None
 
-    async def list_factions(self, game_key: str) -> list[FactionModel]:
-        """List the non-archived factions of a game."""
-        docs = await self._db.find_active_factions(game_key)
+    async def list_factions(self, game_key: str, guild_id: str | None = None) -> list[FactionModel]:
+        """List the non-archived factions of a game, scoped for one guild.
+
+        Scoped: the guild's own factions plus the global ones; unscoped:
+        every faction of the game (the admin views).
+        """
+        docs = await self._db.find_active_factions(game_key, guild_id=guild_id)
         return [FactionModel.from_mongo(d) for d in docs]
 
     async def archive_faction(self, entry_id: str) -> FactionModel:

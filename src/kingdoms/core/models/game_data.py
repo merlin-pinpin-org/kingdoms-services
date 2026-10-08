@@ -23,6 +23,7 @@ class CatalogEntryModel(BaseModel):
     name: str
     description: str = ""
     resource_url: str = ""
+    owner_guild_id: str | None = None
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

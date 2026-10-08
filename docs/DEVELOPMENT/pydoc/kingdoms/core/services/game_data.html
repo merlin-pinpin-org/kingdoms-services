@@ -266,14 +266,17 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#GameDataService
 Methods defined here:<br>
 <dl><dt><a name="GameDataDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="GameDataDatabase-find_active_factions"><strong>find_active_factions</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataDatabase-find_active_factions"><strong>find_active_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;like&nbsp;the&nbsp;maps.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
 &nbsp;<br>
 Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
 guilds&nbsp;but&nbsp;shared);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataDatabase-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataDatabase-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;maps&nbsp;plus&nbsp;the&nbsp;global&nbsp;ones;&nbsp;unscoped:<br>
+every&nbsp;map&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_by_name"><strong>find_by_name</strong></a>(self, collection: 'str', game_key: 'str', name: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;non-archived&nbsp;entry&nbsp;for&nbsp;``(game_key,&nbsp;name)``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
@@ -362,9 +365,14 @@ Callers&nbsp;that&nbsp;track&nbsp;the&nbsp;ladder's&nbsp;``active_map_pool_id``&
 before&nbsp;the&nbsp;archive;&nbsp;the&nbsp;service&nbsp;itself&nbsp;keeps&nbsp;the&nbsp;check&nbsp;where&nbsp;the<br>
 ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history).</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-create_faction"><strong>create_faction</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '') -&gt; 'FactionModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-create_faction"><strong>create_faction</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None) -&gt; 'FactionModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '') -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None) -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.<br>
+&nbsp;<br>
+``owner_guild_id``&nbsp;scopes&nbsp;the&nbsp;map&nbsp;to&nbsp;one&nbsp;guild&nbsp;(guild-local<br>
+enrichment);&nbsp;None&nbsp;is&nbsp;the&nbsp;global&nbsp;catalog&nbsp;(config&nbsp;seed&nbsp;and&nbsp;bot<br>
+admins).&nbsp;Global&nbsp;entries&nbsp;sync&nbsp;into&nbsp;every&nbsp;guild's&nbsp;forum;&nbsp;a<br>
+guild's&nbsp;entries&nbsp;stay&nbsp;in&nbsp;that&nbsp;guild's&nbsp;forum.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_map_pack"><strong>create_map_pack</strong></a>(self, game_key: 'str', name: 'str', map_ids: 'tuple[str, ...]', description: 'str' = '') -&gt; 'MapPackModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;named&nbsp;bundle&nbsp;of&nbsp;maps.</span></dd></dl>
 
@@ -388,7 +396,10 @@ its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-get_rule"><strong>get_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;rule;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-list_factions"><strong>list_factions</strong></a>(self, game_key: 'str') -&gt; 'list[FactionModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-list_factions"><strong>list_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[FactionModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;of&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;factions&nbsp;plus&nbsp;the&nbsp;global&nbsp;ones;&nbsp;unscoped:<br>
+every&nbsp;faction&nbsp;of&nbsp;the&nbsp;game&nbsp;(the&nbsp;admin&nbsp;views).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-list_game_keys"><strong>list_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;game&nbsp;keys&nbsp;known&nbsp;to&nbsp;the&nbsp;maps&nbsp;catalog&nbsp;(generic).</span></dd></dl>
 
@@ -397,7 +408,10 @@ its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
 guilds&nbsp;but&nbsp;shared&nbsp;with&nbsp;everyone);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-list_maps"><strong>list_maps</strong></a>(self, game_key: 'str') -&gt; 'list[MapModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-list_maps"><strong>list_maps</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[MapModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;of&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;maps&nbsp;plus&nbsp;the&nbsp;global&nbsp;ones;&nbsp;unscoped:<br>
+every&nbsp;map&nbsp;of&nbsp;the&nbsp;game&nbsp;(the&nbsp;admin&nbsp;views).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-resolve_pool_map_ids"><strong>resolve_pool_map_ids</strong></a>(self, pool: 'MapPoolModel') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Union&nbsp;of&nbsp;the&nbsp;pool's&nbsp;direct&nbsp;maps&nbsp;and&nbsp;its&nbsp;packs'&nbsp;maps&nbsp;(archived&nbsp;included).</span></dd></dl>
 
