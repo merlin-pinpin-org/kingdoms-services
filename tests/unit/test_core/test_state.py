@@ -182,3 +182,26 @@ async def test_scoped_events_are_isolated(service: StateService) -> None:
     await service.subscribe("workflow", any_event_callback(received))
     await service.publish("ladder", "step.done", {"step": "ask_name"})
     assert received == []
+
+
+async def test_redis_store_connects_lazily_without_start(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression guard (kingdoms-services#225): wiring-built services never call start()."""
+    from kingdoms.core.services import state as state_module
+
+    class LazyClient:
+        def __init__(self) -> None:
+            self.written: list[str] = []
+
+        async def set(self, key: str, value: str, ex: int | None = None, nx: bool = False) -> bool:
+            self.written.append(key)
+            return True
+
+    lazy = LazyClient()
+
+    def fake_from_url(url: str, decode_responses: bool = False) -> LazyClient:
+        return lazy
+
+    monkeypatch.setattr(state_module.Redis, "from_url", staticmethod(fake_from_url))
+    store = RedisStateStore("redis://localhost:6379")
+    assert await store.set("kingdoms:probe", "1") is True
+    assert lazy.written == ["kingdoms:probe"]
