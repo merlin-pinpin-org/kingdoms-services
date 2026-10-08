@@ -21,6 +21,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -44,6 +45,12 @@ from kingdoms.discord.error_report import (
     report_guild_error,
     report_interaction_error,
 )
+
+if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.admin_service import KingdomAdminService
+    from kingdoms.mods.kingdoms.economy import EconomyService
+    from kingdoms.mods.kingdoms.service import KingdomsService
+    from kingdoms.mods.kingdoms.territories import TerritoryService
 
 logger = logging.getLogger("kingdoms.bot")
 
@@ -153,6 +160,10 @@ class KingdomsBot(discord.Client):
         self._pin_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
+        self.kingdoms_service: KingdomsService | None = None
+        self.kingdoms_economy_service: EconomyService | None = None
+        self.kingdoms_territory_service: TerritoryService | None = None
+        self.kingdoms_admin_service: KingdomAdminService | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
@@ -164,11 +175,21 @@ class KingdomsBot(discord.Client):
         deploy (§3b state reconstruction contract).
         """
         from kingdoms.discord.admin_persistent import register_admin_panel_bot, register_admin_persistent_items
+        from kingdoms.discord.kingdom_persistent import (
+            register_kingdoms_panel_bot,
+            register_kingdoms_persistent_items,
+        )
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
+        register_kingdoms_persistent_items(self)
+        register_kingdoms_panel_bot(self)
+        from kingdoms.discord.royaume_panel import RoyaumeActionButton, register_royaume_panel_bot
+
+        register_royaume_panel_bot(self)
+        self.add_dynamic_items(RoyaumeActionButton)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -474,8 +495,17 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.channel_service = channel_service
     bot.mod_roles_service = mod_roles_service
     bot.permission_service = _build_permission_service(resolved, bot, mod_roles_service, status.bot_admins)
+    kingdoms_service = _build_kingdoms_service(resolved)
+    bot.kingdoms_service = kingdoms_service
+    economy_service, territory_service = (
+        _build_kingdoms_economy_bundle(resolved, kingdoms_service) if kingdoms_service else (None, None)
+    )
+    bot.kingdoms_economy_service = economy_service
+    bot.kingdoms_territory_service = territory_service
+    bot.kingdoms_admin_service = _build_kingdoms_admin_service(kingdoms_service)
 
     from kingdoms.discord.admin import register_admin_command
+    from kingdoms.discord.kingdom_panels import register_kingdom_panels_command
     from kingdoms.discord.live import register_live_commands
     from kingdoms.discord.registration import register_registration_command
     from kingdoms.discord.status import register_status_command
@@ -484,6 +514,20 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     sync_target = f"guild {guild_id}" if guild_id.isdigit() else "global"
     register_status_command(
         bot.tree, status, sync_target=sync_target, logs_service=bot.logs_service, catalog=bot.messages
+    )
+    # The only kingdoms slash command is the /kingdom bootstrap
+    # (structure + pinned panels, admin only — kingdoms#138, kingdoms#175):
+    # without it a fresh environment has salons but no content, and the
+    # Parametres panel (which carries the deploy/sync buttons) is never
+    # pinned. The player screens group (kingdoms.py) and the /kingdom-admin
+    # group stay unregistered — every season admin action lives on the
+    # persistent Parametres panel buttons.
+    register_kingdom_panels_command(
+        bot.tree,
+        logs_service=bot.logs_service,
+        bot_admins=status.bot_admins,
+        mod_roles_service=bot.mod_roles_service,
+        kingdoms_service=kingdoms_service,
     )
     register_live_commands(bot.tree, catalog=bot.messages)
     registration_engine, registration_service = _build_registration(resolved)
@@ -591,6 +635,79 @@ def _build_registration(config: BotConfig) -> tuple[WorkflowEngine | None, Regis
     )
     engine.register_workflow(RegistrationWorkflow(service))
     return engine, service
+
+
+def _build_kingdoms_service(config: BotConfig) -> KingdomsService | None:
+    """Wire the Mongo store + season config into KingdomsService.
+
+    Returns None when Mongo is not configured (unit tests, local runs):
+    the /kingdom screens degrade to their no-season placeholders and
+    the admin panel buttons answer "no service".
+    """
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.mods.kingdoms.config import load_season_config
+        from kingdoms.mods.kingdoms.service import KingdomsService
+        from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
+
+        return KingdomsService(
+            store=MongoKingdomsStore(get_async_database()),
+            config=load_season_config(Path(config.config_dir)),
+        )
+    except Exception:
+        logger.exception("KINGDOMS SERVICE WIRING FAILED — season features disabled")
+        return None
+
+
+def _build_kingdoms_admin_service(
+    kingdoms_service: KingdomsService | None,
+) -> KingdomAdminService | None:
+    """Wrap the KingdomsService in the journaled admin service (D75).
+
+    The admin service shares the service's store seam — the same
+    single-persistence rule as the economy bundle. Returns None when
+    the base service is not wired: the Royaume panel then degrades to
+    its read-only placeholder.
+    """
+    if kingdoms_service is None:
+        return None
+    from kingdoms.mods.kingdoms.admin_service import KingdomAdminService
+
+    return KingdomAdminService(kingdoms_service, kingdoms_service._store)  # the shared wiring seam
+
+
+def _build_kingdoms_economy_bundle(
+    config: BotConfig,
+    kingdoms_service: KingdomsService,
+) -> tuple[EconomyService | None, TerritoryService | None]:
+    """Wire the economy bundle behind the Marché panel and the state views.
+
+    The EconomyService needs the territories and attacks services; all
+    four share the Mongo store and the season configuration of the
+    KingdomsService. The TerritoryService is returned on its own as
+    well: the per-kingdom state views (tranche ②) read the territory
+    list through it. Returns (None, None) when the wiring fails: the
+    Marché buttons then answer "market closed".
+    """
+    if not config.mongo_uri:
+        return None, None
+    try:
+        from kingdoms.mods.kingdoms.attacks import AttackService
+        from kingdoms.mods.kingdoms.economy import EconomyService
+        from kingdoms.mods.kingdoms.territories import TerritoryService
+
+        store = kingdoms_service._store  # same wiring seam as the service
+        territory_service = TerritoryService(store, kingdoms_service.config, kingdoms_service)
+        attacks_service = AttackService(store, kingdoms_service.config, kingdoms_service, territory_service)
+        economy_service = EconomyService(
+            store, kingdoms_service.config, kingdoms_service, territory_service, attacks_service
+        )
+        return economy_service, territory_service
+    except Exception:
+        logger.exception("KINGDOMS ECONOMY WIRING FAILED — market purchases disabled")
+        return None, None
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot) -> RolesService | None:
