@@ -468,6 +468,17 @@ async def start_live_dashboard_refresh(
 
 PLATFORM = "discord"
 DASHBOARD_REFRESH_INTERVAL_S = 15
+DASHBOARD_MIN_EDIT_INTERVAL_S = 60
+_LAST_PUSH: dict[str, tuple[float, str]] = {}
+
+
+def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
+    """Build a stable fingerprint of the rendered-relevant snapshot fields."""
+    players = snapshot.get("players") or []
+    return "|".join(
+        str(p.get("profile_id", "")) + ":" + str(p.get("state", ""))
+        for p in players
+    ) + f"|{snapshot.get('generated_at', '')}|degraded={snapshot.get('degraded', False)}"
 
 
 async def _watch_stream(
@@ -497,11 +508,27 @@ async def _push_snapshot(
     registry: MessageRegistryServiceLike,
     snapshot: dict[str, Any],
 ) -> None:
-    """Edit every guild's dashboard message with the changed snapshot."""
+    """Edit every guild's dashboard message — throttled, on change only.
+
+    Discord caps edits of messages older than one hour (30046): pushing
+    every stream frame edits far too often. Each guild edits at most
+    once per ``DASHBOARD_MIN_EDIT_INTERVAL_S`` and only when the
+    snapshot fingerprint actually changed; the periodic interval pass
+    remains the safety net.
+    """
+    now = time.monotonic()
+    fingerprint = _snapshot_fingerprint(snapshot)
+    if fingerprint == _LAST_PUSH.get("_global", (0.0, ""))[1]:
+        return
+    _LAST_PUSH["_global"] = (now, fingerprint)
     stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
     body = render_dashboard(snapshot, stats=stats)
     embed = _dashboard_embed(snapshot, body, bot)
     for guild in list(bot.guilds):
+        last_at, last_fp = _LAST_PUSH.get(str(guild.id), (0.0, ""))
+        if last_fp == fingerprint and now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S * 4:
+            continue
+        _LAST_PUSH[str(guild.id)] = (now, fingerprint)
         channel = await ensure_live_dashboard_channel(guild)
         registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, str(guild.id))
         try:

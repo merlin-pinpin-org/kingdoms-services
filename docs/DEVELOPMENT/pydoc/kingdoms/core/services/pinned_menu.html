@@ -56,6 +56,7 @@ same&nbsp;lifecycle.</span></p>
 <dl>
 <dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuChannel">PinnedMenuChannel</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuDelivery">PinnedMenuDelivery</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuUpdater">PinnedMenuUpdater</a>
 </dt></dl>
 </dd>
 </dl>
@@ -194,12 +195,12 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="PinnedMenuService">class <strong>PinnedMenuService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuService">PinnedMenuService</a>(delivery:&nbsp;'<a href="#PinnedMenuDelivery">PinnedMenuDelivery</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuService">PinnedMenuService</a>(delivery:&nbsp;'<a href="#PinnedMenuDelivery">PinnedMenuDelivery</a>',&nbsp;updater:&nbsp;'<a href="#PinnedMenuUpdater">PinnedMenuUpdater</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Keep&nbsp;one&nbsp;pinned&nbsp;menu&nbsp;alive&nbsp;in&nbsp;one&nbsp;channel&nbsp;(idempotent,&nbsp;best-effort).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="PinnedMenuService-__init__"><strong>__init__</strong></a>(self, delivery: 'PinnedMenuDelivery') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="PinnedMenuService-__init__"><strong>__init__</strong></a>(self, delivery: 'PinnedMenuDelivery', updater: 'PinnedMenuUpdater | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="PinnedMenuService-ensure"><strong>ensure</strong></a>(self, guild_id: 'str', channel: 'PinnedMenuChannel', marker: 'str', build_layout: 'LayoutBuilder', pin_reason: 'str', required_ids: 'tuple[str, ...]' = ()) -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;channel&nbsp;holds&nbsp;exactly&nbsp;one&nbsp;current&nbsp;pinned&nbsp;menu.<br>
 &nbsp;<br>
@@ -219,6 +220,65 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinnedMenuUpdater">class <strong>PinnedMenuUpdater</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinnedMenuUpdater">PinnedMenuUpdater</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;seam:&nbsp;edit&nbsp;an&nbsp;existing&nbsp;message&nbsp;to&nbsp;a&nbsp;new&nbsp;layout;&nbsp;True&nbsp;on&nbsp;success.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.pinned_menu.html#PinnedMenuUpdater">PinnedMenuUpdater</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PinnedMenuUpdater-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="PinnedMenuUpdater-update"><strong>update</strong></a>(self, channel: 'PinnedMenuChannel', message_id: 'str', layout: 'Any') -&gt; 'bool'</dt><dd><span class="code">Edit&nbsp;the&nbsp;message's&nbsp;view&nbsp;in&nbsp;place;&nbsp;False&nbsp;when&nbsp;it&nbsp;can't&nbsp;be&nbsp;edited.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="PinnedMenuUpdater-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'update'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="PinnedMenuUpdater-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PinnedMenuUpdater-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

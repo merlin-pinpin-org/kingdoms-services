@@ -646,8 +646,22 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
             self.last_message_id = str(message.id)
             return self.last_message_id
 
+        async def update(self, channel: Any, message_id: str, layout: Any) -> bool:
+            """Edit an existing menu message to the new layout in place."""
+            try:
+                message = await channel.fetch_message(int(message_id))
+                await message.edit(view=layout)
+                return True
+            except Exception:
+                logger.warning(
+                    "PINNED HOME MENU in-place update failed (message %s) — will re-post",
+                    message_id,
+                    exc_info=True,
+                )
+                return False
+
     delivery = _ChannelDelivery()
-    service = PinnedMenuService(delivery)
+    service = PinnedMenuService(delivery, delivery)
     created = await service.ensure(
         guild_id,
         cast("PinnedMenuChannel", channel),

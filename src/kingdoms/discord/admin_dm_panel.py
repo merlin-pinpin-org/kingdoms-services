@@ -103,6 +103,13 @@ async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.L
     return view
 
 
+async def _cleanup_request_dms(interaction: discord.Interaction, guild_id: str, requested_at: str) -> None:
+    """One admin answered: delete the request DMs every admin received."""
+    from kingdoms.discord.guild_access_request import _delete_pending_admin_dms
+
+    await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
+
+
 class AccessApproveButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:approve:(?P<guild_id>\d+):(?P<requested_at>\d+)",
@@ -147,6 +154,7 @@ class AccessApproveButton(
             logger.exception("DM PANEL: approve failed (guild %s)", self.guild_id)
             await interaction.response.send_message("Approbation échouée (déjà traitée ?).", ephemeral=True)
             return
+        await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
         await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
         await interaction.followup.send(
             f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True
@@ -197,6 +205,7 @@ class AccessDenyButton(
             logger.exception("DM PANEL: deny failed (guild %s)", self.guild_id)
             await interaction.response.send_message("Refus échoué (déjà traitée ?).", ephemeral=True)
             return
+        await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
         await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
 
 

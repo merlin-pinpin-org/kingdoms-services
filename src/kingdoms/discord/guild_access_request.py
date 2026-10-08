@@ -70,14 +70,16 @@ class GuildAccessRequestSelect(
             await interaction.response.defer()
             return
         try:
-            await service.request_access(self.guild_id, chosen)
+            doc = await service.request_access(self.guild_id, chosen)
         except Exception:
             logger.exception("ACCESS REQUEST failed (guild %s)", self.guild_id)
             await interaction.response.send_message(
                 "Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True
             )
             return
-        await _notify_bot_admins(interaction, self.guild_id, chosen)
+        pending = dict(doc.get("pending") or {})
+        requested_at = max(pending, key=int) if pending else ""
+        await _notify_bot_admins(interaction, self.guild_id, chosen, requested_at)
         await interaction.response.send_message(
             "Demande enregistrée — un bot admin l'approuvera depuis ses DMs.", ephemeral=True
         )
@@ -140,21 +142,58 @@ def _request_options() -> list[discord.SelectOption]:
     return options or [discord.SelectOption(label="Indisponible", value="none")]
 
 
-async def _notify_bot_admins(interaction: discord.Interaction, guild_id: str, keys: list[str]) -> None:
-    """DM every bot admin about the pending request (best-effort)."""
+_PENDING_DMS: dict[str, list[tuple[str, str]]] = {}
+
+
+def _dm_key(guild_id: str, requested_at: str) -> str:
+    return f"{guild_id}:{requested_at}"
+
+
+async def _notify_bot_admins(
+    interaction: discord.Interaction,
+    guild_id: str,
+    keys: list[str],
+    requested_at: str,
+) -> None:
+    """DM every bot admin about the pending request (best-effort).
+
+    The sent DM ids are tracked per request so any bot admin's answer
+    (approve or deny) can delete the copies the other admins received —
+    a request is handled exactly once and no stale DM stays behind.
+    """
     bot = interaction.client
     admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
     guild_name = getattr(getattr(interaction, "guild", None), "name", guild_id)
     content = f"**Demande d'accès** — guilde {guild_name} (`{guild_id}`) : {', '.join(keys)}"
+    sent: list[tuple[str, str]] = []
     for admin_id in admins:
         if not str(admin_id).strip().isdigit():
             continue
         try:
             user = bot.get_user(int(admin_id)) or await bot.fetch_user(int(admin_id))
             dm = await user.create_dm()
-            await dm.send(content)
+            message = await dm.send(content)
+            sent.append((str(admin_id), str(message.id)))
         except Exception:
             logger.warning("ACCESS REQUEST admin DM failed (admin %s) — best-effort", admin_id)
+    _PENDING_DMS[_dm_key(guild_id, requested_at)] = sent
+
+
+async def _delete_pending_admin_dms(bot: Any, guild_id: str, requested_at: str) -> None:
+    """Delete the request DMs every admin received once one admin answered."""
+    sent = _PENDING_DMS.pop(_dm_key(guild_id, requested_at), None) or []
+    for admin_id, message_id in sent:
+        try:
+            user = bot.get_user(int(admin_id)) or await bot.fetch_user(int(admin_id))
+            dm = await user.create_dm()
+            await dm.get_partial_message(int(message_id)).delete()
+        except Exception:
+            logger.debug(
+                "ACCESS REQUEST admin DM cleanup skipped (admin %s, message %s)",
+                admin_id,
+                message_id,
+                exc_info=True,
+            )
 
 
 def register_guild_access_request_items(bot: discord.Client) -> None:

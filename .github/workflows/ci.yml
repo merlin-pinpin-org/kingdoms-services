@@ -239,6 +239,41 @@ jobs:
           docker rm -f kingdoms-bot-smoke kingdoms-mongo kingdoms-redis || true
           docker network rm kingdoms-ci || true
 
+  external-services:
+    name: External services (real provider batteries)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Run every provider battery — all checks run, failures included
+        run: |
+          # Each battery hits the real upstream (aoe2techtree dataset,
+          # librematch public API, aoe2lobby ws): one report, exit
+          # non-zero only after ALL checks ran.
+          uv sync
+          uv run python src/kingdoms/core_process/run_external_checks.py
+      - name: Run against the composed ext processes (RPC access)
+        run: |
+          # The compose job runs the ext processes; this pass points the
+          # content battery at the deployed gRPC endpoint.
+          docker network create kingdoms-ci-ext || true
+          docker build -t kingdoms-bot:ci .
+          docker run -d --name kingdoms-ext-aoe2techtree --network kingdoms-ci-ext \
+            -e KINGDOMS_PROCESS=ext-aoe2techtree \
+            kingdoms-bot:ci
+          timeout 30 bash -c "until docker logs kingdoms-ext-aoe2techtree 2>&1 | grep -q _READY; do sleep 2; done" || true
+          docker run --rm --network kingdoms-ci-ext \
+            -e EXT_AOE2TECHTREE_URI=kingdoms-ext-aoe2techtree:50063 \
+            --entrypoint python \
+            kingdoms-bot:ci src/kingdoms/core_process/run_external_checks.py
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f kingdoms-ext-aoe2techtree || true
+          docker network rm kingdoms-ci-ext || true
+
   smoke:
     name: Smoke test (bot image + MongoDB + Redis)
     runs-on: ubuntu-latest

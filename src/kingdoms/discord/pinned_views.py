@@ -184,6 +184,18 @@ async def apply_read_only_policy(
                 overwrite=overwrite,
                 reason=f"kingdoms: pinned channel read-only policy ({category})",
             )
+            member = getattr(guild, "me", None)
+            if member is not None:
+                await channel.set_permissions(
+                    member,
+                    overwrite=discord.PermissionOverwrite(
+                        view_channel=True,
+                        send_messages=True,
+                        read_message_history=True,
+                        manage_messages=True,
+                    ),
+                    reason=f"kingdoms: pinned channel bot keeps writing ({category})",
+                )
     except Exception:
         logger.warning("read-only policy apply failed (%s) — best-effort", category, exc_info=True)
 

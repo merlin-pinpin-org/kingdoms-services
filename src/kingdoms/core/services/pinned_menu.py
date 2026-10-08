@@ -63,14 +63,23 @@ class PinnedMenuDelivery(Protocol):
         ...
 
 
+class PinnedMenuUpdater(Protocol):
+    """Narrow seam: edit an existing message to a new layout; True on success."""
+
+    async def update(self, channel: PinnedMenuChannel, message_id: str, layout: Any) -> bool:
+        """Edit the message's view in place; False when it can't be edited."""
+        ...
+
+
 LayoutBuilder = Callable[[str], Awaitable[Any]]
 
 
 class PinnedMenuService:
     """Keep one pinned menu alive in one channel (idempotent, best-effort)."""
 
-    def __init__(self, delivery: PinnedMenuDelivery) -> None:
+    def __init__(self, delivery: PinnedMenuDelivery, updater: PinnedMenuUpdater | None = None) -> None:
         self._delivery = delivery
+        self._updater = updater
 
     async def ensure(
         self,
@@ -93,6 +102,8 @@ class PinnedMenuService:
         """
         if await self._current_menu_exists(channel, marker, required_ids):
             return False
+        if await self._update_current(channel, marker, required_ids, build_layout, guild_id):
+            return False
         layout = await build_layout(guild_id)
         message_id = await self._delivery.deliver(channel, layout)
         if message_id is None:
@@ -101,6 +112,48 @@ class PinnedMenuService:
         pinned = await self._pin_message(channel, message_id, pin_reason)
         await self._unpin_stale(channel, marker, keep_message_id=message_id)
         return pinned
+
+    async def _update_current(
+        self,
+        channel: PinnedMenuChannel,
+        marker: str,
+        required_ids: tuple[str, ...],
+        build_layout: LayoutBuilder,
+        guild_id: str,
+    ) -> bool:
+        """Edit the existing (stale-revision) menu in place instead of re-posting.
+
+        A pinned menu found by marker but missing some ``required_ids`` is
+        an older revision of the same surface: it keeps its message id
+        (panels stay unique per channel) and only its view is edited to
+        the current revision. Falls back to a re-post when the updater
+        is absent or the edit fails (message deleted, no permission).
+        """
+        if self._updater is None:
+            return False
+        for message in await self._safe_pins(channel):
+            if not (self._carries_marker(message, marker) and self._carries_required(message, ())) :
+                continue
+            if self._carries_required(message, required_ids):
+                continue
+            layout = await build_layout(guild_id)
+            try:
+                edited = await self._updater.update(channel, str(getattr(message, "id", "")), layout)
+            except Exception:
+                logger.warning(
+                    "PINNED MENU in-place update failed (message %s)",
+                    getattr(message, "id", "?"),
+                    exc_info=True,
+                )
+                return False
+            if edited:
+                try:
+                    await message.pin(reason="kingdoms: pinned menu revision update")
+                except Exception:
+                    logger.warning("PINNED MENU re-pin after update failed (message %s)", getattr(message, "id", "?"))
+                return True
+            return False
+        return False
 
     async def _current_menu_exists(
         self,

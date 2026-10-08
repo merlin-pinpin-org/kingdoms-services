@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core_process.realtime_checks</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core_process.html" class="white">core_process</a>.realtime_checks</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core_process/realtime_checks.py">SOURCE_ROOT/core_process/realtime_checks.py</a></td></tr></table>
+    <p><span class="code">External-services&nbsp;battery&nbsp;for&nbsp;the&nbsp;realtime&nbsp;providers&nbsp;(librematch,&nbsp;aoe2lobby).<br>
+&nbsp;<br>
+Both&nbsp;are&nbsp;live-data&nbsp;upstreams:&nbsp;librematch&nbsp;through&nbsp;the&nbsp;Worlds&nbsp;Edge&nbsp;API<br>
+(``LIBREMATCH_BASE_URL``,&nbsp;default&nbsp;the&nbsp;public&nbsp;API),&nbsp;aoe2lobby&nbsp;through<br>
+its&nbsp;public&nbsp;WebSocket.&nbsp;Each&nbsp;check&nbsp;verifies&nbsp;real&nbsp;API&nbsp;access&nbsp;AND&nbsp;the<br>
+response-shape&nbsp;mappings&nbsp;(a&nbsp;shape&nbsp;change&nbsp;upstream&nbsp;fails&nbsp;the&nbsp;battery).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-aoe2lobby_battery"><strong>aoe2lobby_battery</strong></a>() -&gt; 'list[CheckResult]'</dt><dd><span class="code">Run&nbsp;the&nbsp;aoe2lobby&nbsp;checks;&nbsp;all&nbsp;of&nbsp;them,&nbsp;whatever&nbsp;happens.</span></dd></dl>
+ <dl><dt>async <a name="-librematch_battery"><strong>librematch_battery</strong></a>() -&gt; 'list[CheckResult]'</dt><dd><span class="code">Run&nbsp;the&nbsp;librematch&nbsp;checks;&nbsp;all&nbsp;of&nbsp;them,&nbsp;whatever&nbsp;happens.</span></dd></dl>
+</td></tr></table>
+</body></html>

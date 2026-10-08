@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core_process.content_checks</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core_process.html" class="white">core_process</a>.content_checks</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core_process/content_checks.py">SOURCE_ROOT/core_process/content_checks.py</a></td></tr></table>
+    <p><span class="code">External-services&nbsp;battery&nbsp;for&nbsp;the&nbsp;content&nbsp;providers&nbsp;(aoe2techtree).<br>
+&nbsp;<br>
+Hits&nbsp;the&nbsp;deployed&nbsp;ext&nbsp;process&nbsp;when&nbsp;``EXT_AOE2TECHTREE_URI``&nbsp;is&nbsp;set&nbsp;(the<br>
+CI&nbsp;compose&nbsp;runs&nbsp;it),&nbsp;else&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;dataset&nbsp;source&nbsp;directly.<br>
+Each&nbsp;check&nbsp;is&nbsp;a&nbsp;*real*&nbsp;access&nbsp;+&nbsp;mapping&nbsp;verification:&nbsp;the&nbsp;faction&nbsp;list<br>
+must&nbsp;be&nbsp;non-trivial,&nbsp;a&nbsp;known&nbsp;civ&nbsp;must&nbsp;resolve&nbsp;in&nbsp;fr&nbsp;AND&nbsp;en,&nbsp;and&nbsp;the<br>
+provider&nbsp;mapping&nbsp;must&nbsp;round-trip.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-battery"><strong>battery</strong></a>() -&gt; 'list[CheckResult]'</dt><dd><span class="code">Run&nbsp;every&nbsp;content&nbsp;check;&nbsp;all&nbsp;of&nbsp;them,&nbsp;whatever&nbsp;happens.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>EXPECTED_MIN_FACTIONS</strong> = 40<br>
+<strong>KNOWN_FACTIONS</strong> = ('Aztecs', 'Franks', 'Britons')<br>
+<strong>PROVIDER</strong> = 'aoe2techtree'</td></tr></table>
+</body></html>
