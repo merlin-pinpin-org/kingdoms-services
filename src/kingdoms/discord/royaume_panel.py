@@ -442,7 +442,10 @@ async def _refresh_marker_message(
             except Exception:
                 logger.warning("ROYAUME PANEL: refresh failed", exc_info=True)
             return True
-    await channel.send(content, view=view)
+    if view is not None:
+        await channel.send(content=content, view=view)
+    else:
+        await channel.send(content=content)
     return True
 
 
@@ -589,7 +592,8 @@ class _RollbackButton(discord.ui.Button[Any]):
         """Open the mandatory-reason modal, then roll the action back."""
         if not await _require_panel_access(interaction):
             return
-        modal: Any = build_action_modal("rollback", interaction.locale)
+        locale = _interaction_locale(interaction)
+        modal: Any = build_action_modal("rollback", str(locale) if locale else None)
         modal._royaume_action_id = self.action_id
         await interaction.response.send_modal(modal)
 
@@ -622,7 +626,7 @@ class RoyaumeActionButton(
     async def from_custom_id(
         cls,
         interaction: discord.Interaction,
-        item: discord.ui.Button[Any],
+        item: discord.ui.Item[Any],
         match: Any,
     ) -> RoyaumeActionButton:
         """Rebuild the button from the wire (labels localize at click time)."""
@@ -641,7 +645,8 @@ class RoyaumeActionButton(
         if self.action == "journal":
             await send_journal_view(interaction, wiring.admin_service)
             return
-        await interaction.response.send_modal(build_action_modal(self.action, interaction.locale))
+        locale = _interaction_locale(interaction)
+        await interaction.response.send_modal(build_action_modal(self.action, str(locale) if locale else None))
 
 
 async def run_action(
@@ -787,9 +792,10 @@ def _role_of(raw: str) -> Any:
 
 def _optional_int(raw: str | None) -> int | None:
     """Parse an optional quota input (empty = the config default)."""
-    if not (raw or "").strip():
+    text = (raw or "").strip()
+    if not text:
         return None
-    return int(raw.strip())
+    return int(text)
 
 
 def _optional_bool(raw: str | None) -> bool | None:

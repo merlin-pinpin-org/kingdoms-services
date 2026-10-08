@@ -182,7 +182,10 @@ class KingdomsBot(discord.Client):
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
-<<<<<<< HEAD
+        from kingdoms.discord.kingdom_persistent import (
+            register_kingdoms_panel_bot,
+            register_kingdoms_persistent_items,
+        )
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -190,14 +193,12 @@ class KingdomsBot(discord.Client):
         if self.registration_engine is not None:
             await self.registration_engine.start()
             logger.info("REGISTRATION ENGINE STARTED (workflow store connected)")
-=======
         register_kingdoms_persistent_items(self)
         register_kingdoms_panel_bot(self)
         from kingdoms.discord.royaume_panel import RoyaumeActionButton, register_royaume_panel_bot
 
         register_royaume_panel_bot(self)
         self.add_dynamic_items(RoyaumeActionButton)
->>>>>>> eb58236 (feat(kingdoms): the 🏰 Royaume admin panel over the D75 foundation (epic #214 phase 1.2))
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
