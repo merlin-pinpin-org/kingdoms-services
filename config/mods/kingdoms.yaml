@@ -109,6 +109,10 @@ channels:
     group: Admin
     display_name: Gestion-saison
     description: The pinned season-governance dashboard (admin, epic #214 phase 1.1)
+  - key: royaume
+    group: Admin
+    display_name: Royaume
+    description: The 🏰 kingdom roster and entities admin panel (D75, epic #214 phase 1.2)
   - key: requests
     group: Admin
     display_name: Demandes

@@ -48,6 +48,7 @@ from kingdoms.discord.error_report import (
 )
 
 if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.admin_service import KingdomAdminService
     from kingdoms.mods.kingdoms.economy import EconomyService
     from kingdoms.mods.kingdoms.service import KingdomsService
     from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -163,6 +164,7 @@ class KingdomsBot(discord.Client):
         self.kingdoms_service: KingdomsService | None = None
         self.kingdoms_economy_service: EconomyService | None = None
         self.kingdoms_territory_service: TerritoryService | None = None
+        self.kingdoms_admin_service: KingdomAdminService | None = None
         self._ladder_sweep_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
@@ -180,6 +182,7 @@ class KingdomsBot(discord.Client):
         register_persistent_items(self)
         register_admin_persistent_items(self)
         register_admin_panel_bot(self)
+<<<<<<< HEAD
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -187,6 +190,14 @@ class KingdomsBot(discord.Client):
         if self.registration_engine is not None:
             await self.registration_engine.start()
             logger.info("REGISTRATION ENGINE STARTED (workflow store connected)")
+=======
+        register_kingdoms_persistent_items(self)
+        register_kingdoms_panel_bot(self)
+        from kingdoms.discord.royaume_panel import RoyaumeActionButton, register_royaume_panel_bot
+
+        register_royaume_panel_bot(self)
+        self.add_dynamic_items(RoyaumeActionButton)
+>>>>>>> eb58236 (feat(kingdoms): the 🏰 Royaume admin panel over the D75 foundation (epic #214 phase 1.2))
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -505,6 +516,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     )
     bot.kingdoms_economy_service = economy_service
     bot.kingdoms_territory_service = territory_service
+    bot.kingdoms_admin_service = _build_kingdoms_admin_service(kingdoms_service)
 
     from kingdoms.discord.admin import register_admin_command
     from kingdoms.discord.kingdom_panels import register_kingdom_panels_command
@@ -855,3 +867,20 @@ def _bot_version() -> str:
     from kingdoms import __version__
 
     return __version__
+
+
+def _build_kingdoms_admin_service(
+    kingdoms_service: KingdomsService | None,
+) -> KingdomAdminService | None:
+    """Wrap the KingdomsService in the journaled admin service (D75).
+
+    The admin service shares the service's store seam — the same
+    single-persistence rule as the economy bundle. Returns None when
+    the base service is not wired: the Royaume panel then degrades to
+    its read-only placeholder.
+    """
+    if kingdoms_service is None:
+        return None
+    from kingdoms.mods.kingdoms.admin_service import KingdomAdminService
+
+    return KingdomAdminService(kingdoms_service, kingdoms_service._store)  # the shared wiring seam

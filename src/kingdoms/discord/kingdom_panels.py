@@ -990,6 +990,15 @@ async def deploy_panels(
     from kingdoms.discord.kingdom_content import refresh_salons_content
 
     report.update(await refresh_salons_content(guild, locale, kingdoms_service))
+    # Epic #214 phase 1.2 — the 🏰 Royaume admin panel follows the same
+    # marker-refresh contract (its services resolve from the wiring).
+    from kingdoms.discord.royaume_panel import refresh_royaume_panel
+
+    try:
+        if await refresh_royaume_panel(guild, locale):
+            report["royaume"] = "deployed"
+    except Exception:
+        logger.warning("KINGDOM PANELS: royaume panel deployment failed", exc_info=True)
     return report
 
 
