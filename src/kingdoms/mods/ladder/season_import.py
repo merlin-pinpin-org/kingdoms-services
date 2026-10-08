@@ -26,11 +26,11 @@ from pathlib import Path
 from typing import Any
 
 from kingdoms.core.games.aoe2.seed import MongoAoE2Database, seed_aoe2
-from kingdoms.mods.ladder.seeder import seed_ladders
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.identity_import import import_identity_links
 from kingdoms.core.services.season import SeasonService
 from kingdoms.mods.ladder.legacy_import import import_legacy, load_matches
+from kingdoms.mods.ladder.seeder import seed_ladders
 from kingdoms.mods.ladder.service import LadderService
 
 SEASON_STATE_ACTIVE = "active"

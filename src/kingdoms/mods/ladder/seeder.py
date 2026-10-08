@@ -11,7 +11,6 @@ from typing import Any
 
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.season import SeasonService
-
 from kingdoms.mods.ladder.service import LadderService
 
 DAY_MS = 86_400_000

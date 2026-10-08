@@ -33,9 +33,17 @@ logger = logging.getLogger(__name__)
 class ModHooks(Protocol):
     """The optional lifecycle surface of a mod package."""
 
-    def register(self, bot: Any, config: Any) -> None: ...
-    def setup_hook(self, bot: Any) -> None: ...
-    def close(self, bot: Any) -> None: ...
+    def register(self, bot: Any, config: Any) -> None:
+        """Wire the mod onto the bot (services, commands, registries)."""
+        ...
+
+    def setup_hook(self, bot: Any) -> None:
+        """Re-register persistent UI after a restart."""
+        ...
+
+    def close(self, bot: Any) -> None:
+        """Stop the mod's background tasks (best-effort)."""
+        ...
 
 
 @dataclass
