@@ -138,58 +138,57 @@ class RedisStateStore:
             self._client = None
         self._active_channels.clear()
 
+    async def _ensure_client(self) -> Redis[str]:
+        """Connect on first use: callers that never call ``start()`` still work."""
+        if self._client is None:
+            self._client = Redis.from_url(self.redis_uri, decode_responses=True)
+        return self._client
+
     async def get(self, key: str) -> str | None:
         """Read a raw value; returns None when missing or expired."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        value = await self._client.get(key)
+        client = await self._ensure_client()
+        value = await client.get(key)
         return value if value is None else str(value)
 
     async def set(self, key: str, value: str, ttl: int | None = None, only_if_absent: bool = False) -> bool:
         """Write a raw value with an optional TTL in seconds."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        written = await self._client.set(key, value, ex=ttl, nx=only_if_absent)
+        client = await self._ensure_client()
+        written = await client.set(key, value, ex=ttl, nx=only_if_absent)
         return written is not None
 
     async def delete(self, key: str) -> bool:
         """Delete a raw value; returns True when a key was removed."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        return bool(await self._client.delete(key))
+        client = await self._ensure_client()
+        return bool(await client.delete(key))
 
     async def increment(self, key: str, window: int | None = None) -> int:
         """Increment a counter; ``window`` sets the TTL on creation only (EXPIRE NX)."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        count = await self._client.incr(key)
+        client = await self._ensure_client()
+        count = await client.incr(key)
         if window is not None:
-            await self._client.expire(key, window, nx=True)
+            await client.expire(key, window, nx=True)
         return int(count)
 
     async def compare_delete(self, key: str, expected: str) -> bool:
         """Atomically delete the key only when it still holds the expected value."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        script = self._client.register_script(_RELEASE_LOCK_LUA)
+        client = await self._ensure_client()
+        script = client.register_script(_RELEASE_LOCK_LUA)
         result = await script(keys=[key], args=[expected])
         return bool(result)
 
     async def publish(self, channel: str, message: str) -> int:
         """Publish a raw message; returns the subscriber count."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
-        return int(await self._client.publish(channel, message))
+        client = await self._ensure_client()
+        return int(await client.publish(channel, message))
 
     async def subscribe(self, channel: str, callback: RawStateCallback) -> None:
         """Register a raw-message callback; the listener starts lazily."""
-        if self._client is None:
-            raise StateServiceError("state store not started")
+        client = await self._ensure_client()
         callbacks = self._callbacks.setdefault(channel, [])
         if callback not in callbacks:
             callbacks.append(callback)
         if self._pubsub is None:
-            self._pubsub = self._client.pubsub()
+            self._pubsub = client.pubsub()
         if channel not in self._active_channels:
             await self._pubsub.subscribe(channel)
             self._active_channels.add(channel)
