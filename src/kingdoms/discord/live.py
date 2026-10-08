@@ -22,6 +22,7 @@ from discord import app_commands
 
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.discord.commands_i18n import localized, reply
+from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
 
 logger = logging.getLogger("kingdoms.live")
 
@@ -404,7 +405,7 @@ def _dashboard_embed(
     icon_url = getattr(icon, "url", None) if icon else None
     # Discord caps embed descriptions at 4096 chars: a long player list
     # would make every push/edit fail with Invalid Form Body (50035).
-    description = body[:4093] + "..." if len(body) > 4096 else body
+    description = truncate_body(body, MAX_EMBED_DESCRIPTION)
     embed = discord.Embed(
         title="🎮 Live dashboard",
         description=description,

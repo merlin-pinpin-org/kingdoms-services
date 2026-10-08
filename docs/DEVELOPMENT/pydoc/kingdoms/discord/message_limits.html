@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.message_limits</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.message_limits</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/message_limits.py">SOURCE_ROOT/discord/message_limits.py</a></td></tr></table>
+    <p><span class="code">Discord&nbsp;message-size&nbsp;safety&nbsp;—&nbsp;truncate&nbsp;or&nbsp;paginate,&nbsp;never&nbsp;fail.<br>
+&nbsp;<br>
+Discord&nbsp;caps&nbsp;a&nbsp;message&nbsp;body&nbsp;at&nbsp;2000&nbsp;chars,&nbsp;an&nbsp;embed&nbsp;description&nbsp;at&nbsp;4096,<br>
+and&nbsp;a&nbsp;forum&nbsp;thread&nbsp;starter&nbsp;post&nbsp;at&nbsp;2000&nbsp;(plus&nbsp;the&nbsp;embed).&nbsp;Any&nbsp;view&nbsp;that<br>
+renders&nbsp;a&nbsp;list&nbsp;of&nbsp;variable&nbsp;length&nbsp;must&nbsp;expect&nbsp;to&nbsp;cross&nbsp;the&nbsp;cap:&nbsp;this<br>
+module&nbsp;is&nbsp;the&nbsp;single&nbsp;seam&nbsp;for&nbsp;that.<br>
+&nbsp;<br>
+Two&nbsp;policies:<br>
+&nbsp;<br>
+-&nbsp;``truncate_body``&nbsp;—&nbsp;one&nbsp;message,&nbsp;cut&nbsp;at&nbsp;a&nbsp;line&nbsp;boundary,&nbsp;with&nbsp;an<br>
+&nbsp;&nbsp;explicit&nbsp;``(+N&nbsp;more)``&nbsp;marker.&nbsp;For&nbsp;compact&nbsp;summaries.<br>
+-&nbsp;``<a href="#MultiMessageRegistry">MultiMessageRegistry</a>``&nbsp;—&nbsp;paginated&nbsp;follow-up&nbsp;messages,&nbsp;tracked&nbsp;by<br>
+&nbsp;&nbsp;registered&nbsp;message&nbsp;ids:&nbsp;growing&nbsp;a&nbsp;list&nbsp;appends&nbsp;messages,&nbsp;shrinking&nbsp;it<br>
+&nbsp;&nbsp;deletes&nbsp;the&nbsp;extra&nbsp;ones,&nbsp;and&nbsp;the&nbsp;pagination&nbsp;stays&nbsp;stable&nbsp;across<br>
+&nbsp;&nbsp;refreshes.&nbsp;For&nbsp;lists&nbsp;that&nbsp;must&nbsp;be&nbsp;read&nbsp;whole&nbsp;(live&nbsp;dashboards).<br>
+&nbsp;<br>
+Nothing&nbsp;here&nbsp;raises:&nbsp;a&nbsp;render&nbsp;that&nbsp;crosses&nbsp;a&nbsp;limit&nbsp;degrades&nbsp;to&nbsp;a<br>
+smaller,&nbsp;clearly-marked&nbsp;output.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.message_limits.html#MultiMessageRegistry">MultiMessageRegistry</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MultiMessageRegistry">class <strong>MultiMessageRegistry</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MultiMessageRegistry">MultiMessageRegistry</a>(registry:&nbsp;'Any',&nbsp;platform:&nbsp;'str',&nbsp;message_key:&nbsp;'str',&nbsp;*,&nbsp;limit:&nbsp;'int'&nbsp;=&nbsp;2000)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Publish&nbsp;``body``&nbsp;across&nbsp;one&nbsp;or&nbsp;more&nbsp;messages,&nbsp;tracked&nbsp;by&nbsp;ids.<br>
+&nbsp;<br>
+``publish``&nbsp;is&nbsp;idempotent&nbsp;and&nbsp;size-driven:&nbsp;it&nbsp;edits&nbsp;the&nbsp;first<br>
+message&nbsp;in&nbsp;place,&nbsp;edits&nbsp;the&nbsp;following&nbsp;pages,&nbsp;appends&nbsp;new&nbsp;pages&nbsp;when<br>
+the&nbsp;list&nbsp;grew,&nbsp;and&nbsp;deletes&nbsp;the&nbsp;surplus&nbsp;pages&nbsp;when&nbsp;it&nbsp;shrank&nbsp;—&nbsp;the<br>
+message&nbsp;ids&nbsp;live&nbsp;in&nbsp;a&nbsp;registry&nbsp;keyed&nbsp;by&nbsp;``registry_key``&nbsp;(the<br>
+caller&nbsp;owns&nbsp;that&nbsp;key,&nbsp;e.g.&nbsp;``live:&lt;guild_id&gt;``),&nbsp;so&nbsp;nothing&nbsp;leaks<br>
+and&nbsp;nothing&nbsp;duplicates.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MultiMessageRegistry-__init__"><strong>__init__</strong></a>(self, registry: 'Any', platform: 'str', message_key: 'str', *, limit: 'int' = 2000) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="MultiMessageRegistry-publish"><strong>publish</strong></a>(self, channel: '_MessageSink', entity_id: 'str', body: 'str') -&gt; 'list[str]'</dt><dd><span class="code">Render&nbsp;``body``&nbsp;into&nbsp;``channel``,&nbsp;reconciling&nbsp;message&nbsp;count.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-paginate"><strong>paginate</strong></a>(body: 'str', limit: 'int' = 2000) -&gt; 'list[str]'</dt><dd><span class="code">Split&nbsp;one&nbsp;body&nbsp;into&nbsp;page&nbsp;strings,&nbsp;each&nbsp;within&nbsp;``limit``.<br>
+&nbsp;<br>
+Splits&nbsp;on&nbsp;line&nbsp;boundaries&nbsp;when&nbsp;possible&nbsp;(a&nbsp;page&nbsp;never&nbsp;starts&nbsp;or<br>
+ends&nbsp;mid-list-item);&nbsp;a&nbsp;single&nbsp;line&nbsp;longer&nbsp;than&nbsp;the&nbsp;limit&nbsp;is&nbsp;hard-cut<br>
+across&nbsp;pages.</span></dd></dl>
+ <dl><dt><a name="-truncate_body"><strong>truncate_body</strong></a>(body: 'str', limit: 'int' = 2000) -&gt; 'str'</dt><dd><span class="code">Fit&nbsp;one&nbsp;message&nbsp;body&nbsp;under&nbsp;``limit``,&nbsp;cutting&nbsp;on&nbsp;a&nbsp;line&nbsp;boundary.<br>
+&nbsp;<br>
+When&nbsp;the&nbsp;body&nbsp;has&nbsp;to&nbsp;shrink,&nbsp;a&nbsp;final&nbsp;``(+N&nbsp;more)``&nbsp;line&nbsp;states&nbsp;how<br>
+much&nbsp;is&nbsp;hidden&nbsp;—&nbsp;a&nbsp;truncated&nbsp;list&nbsp;is&nbsp;never&nbsp;silently&nbsp;shorter.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_EMBED_DESCRIPTION</strong> = 4096<br>
+<strong>MAX_MESSAGE</strong> = 2000<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.message_limits (WARNING)&gt;</td></tr></table>
+</body></html>

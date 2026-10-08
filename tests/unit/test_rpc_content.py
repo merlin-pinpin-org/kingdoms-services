@@ -168,3 +168,39 @@ def test_dataset_source_faction_content() -> None:
         assert content["name"] == "Francs"
         assert content["summary"] == "Civilisation de cavalerie"
         assert source.faction_content("Huns", "fr") is None
+
+
+def test_content_server_list_factions_regression() -> None:
+    """serve_content_provider wires list_factions by CALLING the source.
+
+    Regression: the lambda used to pass the bound method instead of its
+    result, and ListFactions failed with "must assign iterable".
+    """
+    from kingdoms.core_process.content_server import _async_wrap
+
+    class _Source:
+        def faction_keys(self) -> list[str]:  # a method, not a property
+            return ["Franks", "Britons"]
+
+        async def faction_content(self, key: str, locale: str) -> dict[str, str | bool] | None:
+            return None
+
+        async def map_content(self, key: str, locale: str) -> dict[str, str | bool] | None:
+            return None
+
+    source = _Source()
+    list_factions = lambda: _async_wrap(source.faction_keys())  # noqa: E731
+    faction_content = lambda key, locale: _async_wrap(source.faction_content(key, locale))  # noqa: E731
+    map_content = lambda key, locale: _async_wrap(source.map_content(key, locale))  # noqa: E731
+    servicer = ContentServicer(
+        "aoe2techtree",
+        "aoe2",
+        ("en",),
+        list_factions=list_factions,
+        faction_content=faction_content,
+        map_content=map_content,
+    )
+    wire = asyncio.run(
+        servicer.ListFactions(content_pb2.ListFactionsRequest(), _ServicerContext())
+    )
+    assert list(wire.faction_keys) == ["Franks", "Britons"]

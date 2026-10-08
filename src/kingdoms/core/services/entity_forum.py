@@ -24,6 +24,8 @@ from typing import Any
 
 import discord
 
+from kingdoms.discord.message_limits import truncate_body
+
 logger = logging.getLogger("kingdoms.core.entity_forum")
 
 GAMES_CATEGORY_NAME = "games"
@@ -125,7 +127,7 @@ async def _refresh_post(thread: Any, content: str, view: Any | None) -> None:
     """Keep an existing post's content and components in sync (best-effort)."""
     try:
         starter = await thread.fetch_message(thread.id)
-        await starter.edit(content=content, view=view)
+        await starter.edit(content=truncate_body(content), view=view)
     except Exception:
         logger.debug("entity forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 

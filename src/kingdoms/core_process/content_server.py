@@ -39,7 +39,7 @@ async def serve_content_provider(
             provider_key,
             game_key,
             locales,
-            list_factions=lambda: _async_wrap(source.faction_keys),
+            list_factions=lambda: _async_wrap(source.faction_keys()),
             faction_content=lambda key, locale: _async_wrap(source.faction_content(key, locale)),
             map_content=lambda key, locale: _async_wrap(source.map_content(key, locale)),
         ),
