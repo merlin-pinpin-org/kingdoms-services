@@ -39,29 +39,13 @@ mods, YAML configs.
 - **Never rename a workflow or a workflow job backing a required status
   check** — GitHub matches check contexts by exact name, so a rename
   silently blocks merges (see CONVENTIONS.md, *Checks must pass everywhere*).
-- **PR merges are API-blocked — stop trying to merge PRs.** No session
-  can merge a PR through `gh` or the API (the org rulesets block it);
-  ready PRs automerge, or a human clicks Merge. The cowboy equivalent of
-  "merge a PR" is: push the PR's commits directly to `main`, bypassing the
-  ruleset — allowed only when the human is a maintainer (read
-  `CONTRIBUTORS.md` in the kingdoms repo), only after the human explicitly
-  activates cowboy mode, and only after the session asks for and receives
-  an explicit confirmation for **each** push to main. Force-pushing `main`
-  is technically possible but **always refused** — history is never
-  rewritten, no exceptions, no confirmation can unlock it.
-- **Delete the branch after every direct (bypass) merge to main:** when a
-  change is squash-pushed straight to main (bypassing its PR), the source
-  branch is dead — delete it on the remote immediately. More generally,
-  close any branch whose code is already on main (or on its integration
-  branch `vibe/<alias>/main`); keep only `main`, the `vibe/<alias>/main`
-  integration branches, deploy state branches (`deploy/*`), and branches
-  with open PRs or unmerged unique content.
-- Core is **platform-agnostic** (no discord.py in `src/kingdoms/core/`);
-  user-facing strings go through **i18n** (never hardcoded) — every
-  visible string resolves through the shared `MessageCatalog`
-  (`config/locales/`), command names/descriptions through
-  `commands_i18n` (`locale_str` + `CatalogTranslator`); mods declare
-  channels/roles via **`ModRegistry`** with **logical role keys**.
+- **PR merges, cowboy mode, branch cleanup and user-branch rules are
+  defined once in the kingdoms CONVENTIONS.md** (single source of
+  truth, all three repos): see
+  [kingdoms/docs/CONVENTIONS.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/CONVENTIONS.md)
+  — *Cowboy mode* (API-blocked merges, maintainer-only direct pushes
+  with per-push confirmation, never force-push `main`) and
+  *Integration branches* (never delete `vibe/<alias>/main`).
 - **No mod, no game, without a rostered owner (non-overridable):** a
   session never creates `src/kingdoms/mods/<mod>/`, `config/mods/<mod>.yaml`,
   `src/kingdoms/core/games/<game>/` or mod docs unless a `CONTRIBUTORS.md`
