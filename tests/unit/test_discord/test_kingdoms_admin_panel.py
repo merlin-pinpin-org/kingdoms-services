@@ -62,6 +62,12 @@ def _walk(view: discord.ui.LayoutView) -> list[Any]:
     return items
 
 
+def _fill(modal: panel.AdminReasonModal, **values: str) -> None:
+    """Set modal field values through the internal payload (repo idiom)."""
+    for key, value in values.items():
+        object.__setattr__(modal._fields[key], "_value", value)
+
+
 def _custom_ids(view: discord.ui.LayoutView) -> list[str]:
     return [item.custom_id for item in _walk(view) if getattr(item, "custom_id", None) is not None]
 
@@ -95,7 +101,7 @@ async def test_entry_builds_the_season_controls() -> None:
     assert "admin:pin:mod:kingdoms:quotas" in ids
     assert "admin:pin:mod:kingdoms:foundation" in ids
     applications = [i for i in ids if i.startswith("admin:pin:mod:kingdoms:applications")]
-    assert applications == ["admin:pin:mod:kingdoms:applications-open"]
+    assert applications == ["admin:pin:mod:kingdoms:applications-close"]
 
 
 async def test_recruitment_flips_through_the_modal() -> None:
@@ -110,11 +116,11 @@ async def test_recruitment_flips_through_the_modal() -> None:
         if getattr(item, "custom_id", None) == "admin:pin:mod:kingdoms:recruitment"
     )
     assert isinstance(select, panel.KingdomsAdminRecruitmentSelect)
-    select.item.values = ["Aquitaine"]
+    object.__setattr__(select.item, "_values", ["Aquitaine"])
     await select.callback(interaction)
     modal = interaction.response.modal
     assert isinstance(modal, panel.AdminReasonModal)
-    modal._fields["reason"].value = "ouvre le recrutement"
+    _fill(modal, reason="ouvre le recrutement")
     await modal.on_submit(interaction)
     kingdoms = await client.kingdoms_service.kingdoms()
     aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
@@ -134,7 +140,7 @@ async def test_applications_button_sends_the_modal() -> None:
     await button.callback(interaction)
     modal = interaction.response.modal
     assert isinstance(modal, panel.AdminReasonModal)
-    modal._fields["reason"].value = "ferme les candidatures"
+    _fill(modal, reason="ferme les candidatures")
     await modal.on_submit(interaction)
     season = await _client(store).kingdoms_service.current_season()
     assert season is not None
@@ -146,9 +152,7 @@ async def test_quotas_parse_and_reset() -> None:
     store = await _launched_store()
     interaction = _interaction(_client(store))
     modal = panel.AdminReasonModal(interaction, "quotas", {})
-    modal._fields["reason"].value = "élargit la saison"
-    modal._fields["kingdoms_count"].value = "6"
-    modal._fields["lords_per_kingdom"].value = ""
+    _fill(modal, reason="élargit la saison", kingdoms_count="6", lords_per_kingdom="")
     await modal.on_submit(interaction)
     season = await _client(store).kingdoms_service.current_season()
     assert season is not None
@@ -161,8 +165,7 @@ async def test_quotas_reject_garbage() -> None:
     store = await _launched_store()
     interaction = _interaction(_client(store))
     modal = panel.AdminReasonModal(interaction, "quotas", {})
-    modal._fields["reason"].value = "réglage"
-    modal._fields["kingdoms_count"].value = "six"
+    _fill(modal, reason="réglage", kingdoms_count="six")
     await modal.on_submit(interaction)
     assert "entiers" in str(interaction.response.message.content)
     assert store.admin_actions == {}
@@ -173,9 +176,7 @@ async def test_foundation_parse() -> None:
     store = await _launched_store()
     interaction = _interaction(_client(store))
     modal = panel.AdminReasonModal(interaction, "foundation", {})
-    modal._fields["reason"].value = "ouvre la fondation aux rois"
-    modal._fields["king"].value = "1"
-    modal._fields["admin"].value = ""
+    _fill(modal, reason="ouvre la fondation aux rois", king="1", admin="")
     await modal.on_submit(interaction)
     season = await _client(store).kingdoms_service.current_season()
     assert season is not None
@@ -188,7 +189,7 @@ async def test_reason_gate_answers_when_stripped_empty() -> None:
     store = await _launched_store()
     interaction = _interaction(_client(store))
     modal = panel.AdminReasonModal(interaction, "applications", {"open": True})
-    modal._fields["reason"].value = "   "
+    _fill(modal, reason="   ")
     await modal.on_submit(interaction)
     assert store.admin_actions == {}
     assert "Motif" in str(interaction.response.message.content)

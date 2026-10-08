@@ -198,7 +198,7 @@ class AdminReasonModal(discord.ui.Modal):
         self._operation = operation
         self._payload = payload
         self._fields: dict[str, discord.ui.TextInput[AdminReasonModal]] = {}
-        reason = discord.ui.TextInput(
+        reason: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
             label=strings["reason_label"][:45],
             placeholder=strings["reason_placeholder"][:100],
             max_length=200,
@@ -212,12 +212,16 @@ class AdminReasonModal(discord.ui.Modal):
                 ("kingdoms_count", "quotas_kingdoms_label"),
                 ("lords_per_kingdom", "quotas_lords_label"),
             ):
-                field = discord.ui.TextInput(label=strings[label_key][:45], required=False, max_length=4)
+                field: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
+                    label=strings[label_key][:45], required=False, max_length=4
+                )
                 self.add_item(field)
                 self._fields[key] = field
         elif operation == "foundation":
             for key, label_key in (("king", "foundation_king_label"), ("admin", "foundation_admin_label")):
-                field = discord.ui.TextInput(label=strings[label_key][:45], required=False, max_length=1)
+                field: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
+                    label=strings[label_key][:45], required=False, max_length=1
+                )
                 self.add_item(field)
                 self._fields[key] = field
 
