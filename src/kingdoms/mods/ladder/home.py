@@ -530,6 +530,7 @@ def build_ladder_menu_layout(
     enrollments_open: bool = True,
     queue_paused: bool = False,
     season_details: str = "",
+    footer_id: str = "",
 ) -> discord.ui.LayoutView:
     """Build the ladder home layout (shared by the ephemeral view and the pin).
 
@@ -577,15 +578,16 @@ def build_ladder_menu_layout(
         banner += "\n\n" + season_details
     if status_bits:
         banner += "\n" + " · ".join(status_bits)
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay(banner),
-            main_row,
-            info_row,
-            discord.ui.Separator(),
-            nav_row,
-        )
-    )
+    container_items: list[Any] = [
+        discord.ui.TextDisplay(banner),
+        main_row,
+        info_row,
+        discord.ui.Separator(),
+        nav_row,
+    ]
+    if footer_id:
+        container_items.append(discord.ui.TextDisplay(f"-# {footer_id}"))
+    view.add_item(discord.ui.Container(*container_items))
     return view
 
 
@@ -621,15 +623,33 @@ async def build_ladder_home_view(interaction: discord.Interaction) -> None:
     in_queue = await _clicker_in_queue(interaction)
     state = await _ladder_state(interaction)
     enrollments_open, queue_paused = state if state else (True, False)
+    footer = await _ladder_footer(interaction)
     await interaction.response.send_message(
         view=build_ladder_menu_layout(
             user_id=str(interaction.user.id),
             in_queue=in_queue,
             enrollments_open=enrollments_open,
             queue_paused=queue_paused,
+            footer_id=footer,
         ),
         ephemeral=True,
     )
+
+
+async def _ladder_footer(interaction: discord.Interaction) -> str:
+    """Visible ids footer: the interaction guild's ladder id and active season id."""
+    wiring, ladder_id = _wiring_and_ladder_id(interaction)
+    if wiring is None or not ladder_id:
+        return ""
+    footer = ladder_id
+    if wiring.season_service is not None:
+        try:
+            season = await wiring.season_service.get_active_season(ladder_id)
+            if season is not None:
+                footer = f"{footer} · {season.id}"
+        except Exception:
+            logger.debug("ladder footer: season id unavailable", exc_info=True)
+    return footer
 
 
 async def _clicker_in_queue(interaction: discord.Interaction) -> bool | None:

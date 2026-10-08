@@ -16,6 +16,8 @@ import os
 import time
 from typing import TYPE_CHECKING, Any
 
+from kingdoms.mods.ladder.ladder_ids import ladder_id as ladder_id_for
+
 if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase
 
@@ -25,6 +27,7 @@ if TYPE_CHECKING:
     from kingdoms.mods.ladder.provider_bridge import LibrematchProviderBridge
 
 logger = logging.getLogger(__name__)
+
 
 GAME_KEY = "aoe2"
 SWEEP_INTERVAL_S = 3600
@@ -185,7 +188,7 @@ def register_ladder_commands(
 
     from kingdoms.discord.commands_i18n import localized
 
-    ladder_id = f"ladder:{GAME_KEY}:{owner_ref}"
+    ladder_id = ladder_id_for(GAME_KEY, owner_ref)
     group = app_commands.Group(
         name=localized("commands.ladder_name", "ladder"),
         description=localized("commands.ladder_description", "Ladder: queue, matches, standings"),

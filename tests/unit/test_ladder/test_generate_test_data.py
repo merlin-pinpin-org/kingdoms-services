@@ -63,6 +63,7 @@ async def test_generated_dataset_imports_end_to_end(tmp_path: Path) -> None:
         out / "test-season.yaml",
         out / "test-users.csv",
         out / "test-matches.csv",
+        "123456789",
     )
     assert report.seed["maps"] == 18
     assert report.seed["map_pools"] == 3

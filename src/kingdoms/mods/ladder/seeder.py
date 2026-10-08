@@ -11,6 +11,7 @@ from typing import Any
 
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.season import SeasonService
+from kingdoms.mods.ladder.ladder_ids import ladder_id as ladder_id_for
 from kingdoms.mods.ladder.service import LadderService
 
 DAY_MS = 86_400_000
@@ -29,7 +30,7 @@ async def seed_ladders(
     season_service = SeasonService(adapter, game_data)
     for spec in data.get("ladders", []) or []:
         owner_ref = spec["owner_ref"]
-        ladder_id = f"ladder:{game_key}:{owner_ref}"
+        ladder_id = ladder_id_for(game_key, owner_ref)
         existing = await ladder_service.get_ladder(ladder_id)
         if existing is None:
             await ladder_service.create_ladder(owner_ref, spec["name"], game_key, now=now_ms)
@@ -43,8 +44,8 @@ async def seed_ladders(
         season_spec = spec.get("season")
         if season_spec:
             season_name = season_spec["name"]
-            season_id = f"season:{ladder_id}:{season_name}"
-            if await season_service.get_season(season_id) is None:
+            existing_seasons = await season_service.list_seasons(ladder_id)
+            if not existing_seasons:
                 start = now_ms + int(season_spec.get("start_in_days", 0)) * DAY_MS
                 duration = int(season_spec.get("duration_days", 0)) or None
                 end = start + duration * DAY_MS if duration else None

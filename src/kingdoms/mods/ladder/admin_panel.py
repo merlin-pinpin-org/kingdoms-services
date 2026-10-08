@@ -273,11 +273,10 @@ class LadderCreateModal(discord.ui.Modal):
             await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
             return
         owner_ref = str(getattr(interaction.client, "_ladder_id", "") or "")
-        if owner_ref.startswith("ladder:aoe2:"):
-            owner_ref = owner_ref[len("ladder:aoe2:"):]
+        if owner_ref.startswith("ladder-aoe2-"):
+            owner_ref = owner_ref[len("ladder-aoe2-"):]
         if not owner_ref:
-            guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-            owner_ref = f"guild:{guild_id}" if guild_id else "default"
+            owner_ref = str(interaction.guild_id) if interaction.guild_id else ""
         try:
             ladder = await wiring.service.create_ladder(
                 owner_ref, str(self.name.value).strip() or "Ladder", GAME_KEY, now=_now_ms()

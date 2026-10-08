@@ -50,7 +50,7 @@ map_pools:
     description: "Closing"
     maps: [Kawasan]
 ladders:
-  - owner_ref: "guild:default"
+  - owner_ref: "123456789"
     name: "AoE2 Community Ladder"
     map_pool: "Rotation 1"
     season:
@@ -125,6 +125,7 @@ async def test_import_season_seeds_rotates_and_imports(tmp_path: Path) -> None:
         _write(tmp_path, "season.yaml", SEASON_YAML),
         _write(tmp_path, "users.csv", USERS_CSV),
         _write(tmp_path, "matches.csv", MATCHES_CSV),
+        "123456789",
     )
     assert report.seed["maps"] == 2
     assert report.seed["map_pools"] == 2
@@ -136,17 +137,17 @@ async def test_import_season_seeds_rotates_and_imports(tmp_path: Path) -> None:
     assert report.rotations == 1
 
     ladders = db.collections["ladders"].docs
-    ladder = ladders["ladder:aoe2:guild:default"]
+    ladder = ladders["ladder-aoe2-123456789"]
     assert ladder["active_map_pool_id"] == "map_pool:aoe2:Rotation 2"
 
     seasons = db.collections["seasons"].docs
-    season = seasons["season:ladder:aoe2:guild:default:Season 1"]
+    season = seasons["ladder-aoe2-123456789-1"]
     assert season["state"] == "active"
 
     activations = db.collections["map_pool_history"].docs
     assert len(activations) == 2
 
-    assert "player:ladder:aoe2:guild:default:111" in db.collections["players"].docs
+    assert "player:ladder-aoe2-123456789:111" in db.collections["players"].docs
     assert "legacy:1" in db.collections["matches"].docs
 
 
@@ -157,8 +158,8 @@ async def test_import_season_is_idempotent(tmp_path: Path) -> None:
         _write(tmp_path, "users.csv", USERS_CSV),
         _write(tmp_path, "matches.csv", MATCHES_CSV),
     )
-    await import_season(db, *paths)
-    second = await import_season(db, *paths)
+    await import_season(db, *paths, "123456789")
+    second = await import_season(db, *paths, "123456789")
     assert second.seed["maps"] == 0
     assert second.seed["map_pools"] == 0
     assert second.seed["ladders"] == 0

@@ -29,6 +29,7 @@ from kingdoms.core.games.aoe2.seed import MongoAoE2Database, seed_aoe2
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.identity_import import import_identity_links
 from kingdoms.core.services.season import SeasonService
+from kingdoms.mods.ladder.ladder_ids import ladder_id as ladder_id_for
 from kingdoms.mods.ladder.legacy_import import import_legacy, load_matches
 from kingdoms.mods.ladder.seeder import seed_ladders
 from kingdoms.mods.ladder.service import LadderService
@@ -76,19 +77,19 @@ async def import_season(
     season_yaml: Path,
     users_csv: Path,
     matches_csv: Path,
-    owner_ref: str = "guild:default",
+    guild_id: str,
 ) -> SeasonImportReport:
     """Import a full season (catalog, ladder, season, users, matches)."""
     import yaml
 
     data = yaml.safe_load(season_yaml.read_text(encoding="utf-8"))
     game_key = data["game_key"]
-    ladder_spec = {**data["ladders"][0], "owner_ref": owner_ref}
+    ladder_spec = {**data["ladders"][0], "owner_ref": guild_id}
     data["ladders"] = [ladder_spec]
 
     seed_result = await seed_aoe2(database, data, ladder_seeder=seed_ladders)
 
-    ladder_id = f"ladder:{game_key}:{owner_ref}"
+    ladder_id = ladder_id_for(game_key, guild_id)
     adapter = MongoAoE2Database(database)
     game_data = GameDataService(adapter)
     ladder_service = LadderService(adapter, game_data)
@@ -97,9 +98,9 @@ async def import_season(
     pool_names = [spec["name"] for spec in data.get("map_pools", []) or []]
     pool_ids = [f"map_pool:{game_key}:{name}" for name in pool_names]
     boundaries = [_ms(b) for b in _rotation_boundaries(matches_csv, len(pool_ids))]
-    season_name = ladder_spec.get("season", {}).get("name", "Season 1")
-    season_id = f"season:{ladder_id}:{season_name}"
-    season = await season_service.get_season(season_id)
+    seasons = await season_service.list_seasons(ladder_id)
+    season = seasons[0] if seasons else None
+    season_id = season.id if season is not None else ""
     if season is not None and season.state != SEASON_STATE_ACTIVE:
         start = boundaries[0] if boundaries else season.start_at
         await season_service.activate_season(season_id, start)

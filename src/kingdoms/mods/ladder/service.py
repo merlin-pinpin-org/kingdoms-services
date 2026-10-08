@@ -19,6 +19,7 @@ import logging
 import random
 from typing import Any, Protocol
 
+from kingdoms.mods.ladder.ladder_ids import ladder_id
 from kingdoms.mods.ladder.match_data import MatchDataService
 from kingdoms.mods.ladder.matchmaking import Pairing, QueueEntry, matchmaking_pass
 from kingdoms.mods.ladder.models import (
@@ -215,7 +216,7 @@ class LadderService:
         if existing is not None:
             raise LadderError(f"ladder already exists for owner {owner_ref!r} and game {game_key!r}")
         ladder = LadderModel(
-            _id=f"ladder:{game_key}:{owner_ref}",
+            _id=ladder_id(game_key, owner_ref),
             owner_ref=owner_ref,
             name=name,
             game_key=game_key,

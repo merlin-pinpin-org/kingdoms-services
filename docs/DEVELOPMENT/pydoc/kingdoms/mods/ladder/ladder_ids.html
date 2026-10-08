@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder.ladder_ids</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.ladder.html" class="white">ladder</a>.ladder_ids</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/ladder_ids.py">SOURCE_ROOT/mods/ladder/ladder_ids.py</a></td></tr></table>
+    <p><span class="code">Ladder&nbsp;ids:&nbsp;the&nbsp;visible,&nbsp;guild-scoped&nbsp;identity&nbsp;of&nbsp;a&nbsp;ladder.<br>
+&nbsp;<br>
+A&nbsp;ladder&nbsp;id&nbsp;is&nbsp;human-readable&nbsp;and&nbsp;embedded&nbsp;in&nbsp;every&nbsp;UI&nbsp;footer:<br>
+``ladder-&lt;game_key&gt;-&lt;guild_id&gt;``&nbsp;(game&nbsp;keys&nbsp;restricted&nbsp;to&nbsp;``a-z0-9``<br>
+by&nbsp;:mod:`kingdoms.core.services.game_keys`,&nbsp;guild&nbsp;ids&nbsp;being&nbsp;Discord<br>
+snowflakes,&nbsp;the&nbsp;composite&nbsp;is&nbsp;unambiguous).&nbsp;Seasons&nbsp;append&nbsp;their<br>
+incremental&nbsp;index:&nbsp;``&lt;ladder_id&gt;-&lt;index&gt;``&nbsp;(see&nbsp;the&nbsp;core&nbsp;SeasonService).</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-ladder_id"><strong>ladder_id</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;ladder&nbsp;id&nbsp;``ladder-&lt;game_key&gt;-&lt;guild_id&gt;``.</span></dd></dl>
+</td></tr></table>
+</body></html>

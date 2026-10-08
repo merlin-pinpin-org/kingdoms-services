@@ -17,13 +17,14 @@ import asyncio
 import logging
 from typing import Any
 
+from kingdoms.mods.ladder.ladder_ids import ladder_id
+
 logger = logging.getLogger("kingdoms.mods.ladder")
 
 
-def _owner_ref(config: Any) -> str:
-    """Owner reference of the default ladder (guild-scoped by sync config)."""
-    guild_id = (getattr(config, "sync_guild_id", "") or "").strip()
-    return guild_id if guild_id else "default"
+def _guild_id(config: Any) -> str:
+    """Guild id of the default ladder (the bot's sync guild, test envs only)."""
+    return (getattr(config, "sync_guild_id", "") or "").strip()
 
 
 def register(bot: Any, config: Any) -> None:
@@ -42,9 +43,9 @@ def register(bot: Any, config: Any) -> None:
     if wiring is None:
         logger.info("LADDER wiring unavailable (Mongo/Redis) — mod inactive")
         return
-    register_ladder_commands(bot.tree, wiring, owner_ref=_owner_ref(config))
+    register_ladder_commands(bot.tree, wiring, owner_ref=_guild_id(config))
     bot.season_service = wiring.season_service
-    bot._ladder_id = f"ladder:aoe2:{_owner_ref(config)}"
+    bot._ladder_id = ladder_id("aoe2", _guild_id(config))
     bot._ladder_sweep_task = start_ladder_sweep(wiring)
 
     from .admin_panel import register_ladder_admin_items, register_ladder_admin_section

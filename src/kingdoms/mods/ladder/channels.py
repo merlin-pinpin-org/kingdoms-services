@@ -314,6 +314,25 @@ def _ladder_registry() -> Any | None:
         return None
 
 
+async def _ladder_footer(guild_id: str) -> str:
+    """Visible ids footer: the guild's ladder id and its active season id."""
+    wiring = _ladder_wiring()
+    if wiring is None:
+        return ""
+    ladder_id = str(getattr(wiring.bot, "_ladder_id", "") or "")
+    if not ladder_id:
+        return ""
+    footer = ladder_id
+    if wiring.season_service is not None:
+        try:
+            season = await wiring.season_service.get_active_season(ladder_id)
+            if season is not None:
+                footer = f"{footer} · {season.id}"
+        except Exception:
+            logger.debug("ladder footer: season id unavailable", exc_info=True)
+    return footer
+
+
 async def _ladder_flags(guild_id: str) -> tuple[bool, bool]:
     """Resolve (enrollments_open, queue_paused) for the guild's ladder; open+active when unresolvable."""
     wiring = _ladder_wiring()
@@ -350,7 +369,10 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
 
     async def _build(guild_id: str) -> object:
         enrollments_open, queue_paused = await _ladder_flags(guild_id)
-        return build_ladder_menu_layout(enrollments_open=enrollments_open, queue_paused=queue_paused)
+        footer = await _ladder_footer(guild_id)
+        return build_ladder_menu_layout(
+            enrollments_open=enrollments_open, queue_paused=queue_paused, footer_id=footer
+        )
 
     service = PinnedMenuService(cast("Any", _Delivery()))
     await service.ensure(

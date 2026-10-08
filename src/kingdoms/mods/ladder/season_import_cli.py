@@ -1,6 +1,6 @@
 """Season import CLI: one-shot full season load (kingdoms-services#205).
 
-Usage: ``python -m kingdoms.mods.ladder.season_import_cli <season_yaml> <users_csv> <matches_csv>``
+Usage: ``python -m kingdoms.mods.ladder.season_import_cli <season_yaml> <users_csv> <matches_csv> <guild_id>``
 
 Reads ``MONGO_URI``/``MONGO_DB`` from the environment and prints the
 import counts. Idempotent: re-running over the same inputs is a no-op.
@@ -15,16 +15,16 @@ from pathlib import Path
 
 def main() -> int:
     """Import a full season; exit 0 on success."""
-    if len(sys.argv) not in (4, 5):
+    if len(sys.argv) != 5:
         print(
-            "usage: season_import_cli <season_yaml> <users_csv> <matches_csv> [owner_ref]",
+            "usage: season_import_cli <season_yaml> <users_csv> <matches_csv> <guild_id>",
             file=sys.stderr,
         )
         return 2
     season_yaml = Path(sys.argv[1])
     users_csv = Path(sys.argv[2])
     matches_csv = Path(sys.argv[3])
-    owner_ref = sys.argv[4] if len(sys.argv) == 5 else "guild:default"
+    guild_id = sys.argv[4]
     sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "src"))
 
     from kingdoms.core.models.db import close_async_client, get_async_database
@@ -34,7 +34,7 @@ def main() -> int:
         """Run the import/export and close the database connection."""
         database = get_async_database()
         try:
-            report = await import_season(database, season_yaml, users_csv, matches_csv, owner_ref)
+            report = await import_season(database, season_yaml, users_csv, matches_csv, guild_id)
         finally:
             await close_async_client()
         seed = report.seed
