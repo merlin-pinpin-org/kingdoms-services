@@ -203,9 +203,10 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     view = discord.ui.LayoutView(timeout=None)
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(ProfileAddAccountButton())
+    row.add_item(ProfileRenameButton())
     if bindings:
         row.add_item(ProfileRemoveAccountButton([str(b.get("profile_id", "")) for b in bindings]))
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay("# 👤 Ton profil"), *blocks))
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(await _profile_header(interaction, user_id)), *blocks))
     view.add_item(row)
     await interaction.followup.send(view=view, ephemeral=True)
 
@@ -271,6 +272,90 @@ class ProfileAddAccountModal(discord.ui.Modal):
             )
             return
         await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
+
+
+
+async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
+    """Build the profile header: the user's chosen name when known."""
+    identity = getattr(interaction.client, "identity_service", None)
+    if identity is None:
+        return "# 👤 Ton profil"
+    try:
+        user = await identity.get_user(f"discord:{user_id}")
+    except Exception:
+        logger.warning("HOME: identity lookup failed", exc_info=True)
+        return "# 👤 Ton profil"
+    if user is None or not user.display_name:
+        return "# 👤 Ton profil"
+    return f"# 👤 {user.display_name}"
+
+
+class ProfileRenameButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"home:profile:rename",
+):
+    """Open the rename modal (the user's chosen gamer name)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label="Changer de pseudo", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> ProfileRenameButton:
+        """Rebuild the item from the wire."""
+        del interaction, item, match
+        return cls()
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the rename modal."""
+        await interaction.response.send_modal(ProfileRenameModal())
+
+
+class ProfileRenameModal(discord.ui.Modal):
+    """The rename form: the user's chosen name (1-16 chars)."""
+
+    def __init__(self) -> None:
+        super().__init__(title="Ton pseudo", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Pseudo (16 caractères max)", max_length=16, min_length=1, required=True
+        )
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Persist the new name, confirm."""
+        identity = getattr(interaction.client, "identity_service", None)
+        if identity is None:
+            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
+            return
+        user_id = f"discord:{interaction.user.id}"
+        try:
+            user = await identity.get_user(user_id)
+            if user is None:
+                user = await identity.get_or_create_user(
+                    platform="discord",
+                    platform_user_id=str(interaction.user.id),
+                    display_name=str(interaction.user.display_name),
+                )
+            await identity.set_display_name(user.id, str(self.name.value))
+        except ValueError:
+            await interaction.response.send_message(
+                "Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True
+            )
+            return
+        except Exception:
+            logger.warning("PROFILE RENAME failed", exc_info=True)
+            await interaction.response.send_message("Renommage impossible pour le moment.", ephemeral=True)
+            return
+        await interaction.response.send_message("Pseudo mis à jour ✅", ephemeral=True)
 
 
 class ProfileRemoveAccountButton(

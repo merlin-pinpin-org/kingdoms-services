@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.identity_platform</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.identity_platform</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/identity_platform.py">SOURCE_ROOT/discord/identity_platform.py</a></td></tr></table>
+    <p><span class="code">Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;IdentityService&nbsp;persistence&nbsp;seam.<br>
+&nbsp;<br>
+The&nbsp;identity&nbsp;database&nbsp;is&nbsp;intentionally&nbsp;narrow:&nbsp;the&nbsp;home&nbsp;profile&nbsp;only<br>
+needs&nbsp;to&nbsp;read&nbsp;one&nbsp;user&nbsp;document&nbsp;and&nbsp;persist&nbsp;a&nbsp;renamed&nbsp;display&nbsp;name,&nbsp;so<br>
+the&nbsp;adapter&nbsp;exposes&nbsp;exactly&nbsp;the&nbsp;``IdentityDatabase``&nbsp;protocol&nbsp;surface.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.identity_platform.html#MongoIdentityDatabase">MongoIdentityDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoIdentityDatabase">class <strong>MongoIdentityDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoIdentityDatabase">MongoIdentityDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;IdentityService&nbsp;persistence&nbsp;seam.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoIdentityDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(``get_async_database``).</span></dd></dl>
+
+<dl><dt>async <a name="MongoIdentityDatabase-bind_identity"><strong>bind_identity</strong></a>(self, platform: 'str', platform_user_id: 'str', user_id: 'str') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;(platform,&nbsp;account)&nbsp;→&nbsp;user_id&nbsp;binding&nbsp;(upsert).</span></dd></dl>
+
+<dl><dt>async <a name="MongoIdentityDatabase-find_identity"><strong>find_identity</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user_id&nbsp;bound&nbsp;to&nbsp;a&nbsp;platform&nbsp;account;&nbsp;None&nbsp;when&nbsp;unbound.</span></dd></dl>
+
+<dl><dt>async <a name="MongoIdentityDatabase-find_user"><strong>find_user</strong></a>(self, user_id: 'str') -&gt; 'UserModel | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="MongoIdentityDatabase-unbind_identity"><strong>unbind_identity</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Remove&nbsp;a&nbsp;binding;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
+<dl><dt>async <a name="MongoIdentityDatabase-upsert_user"><strong>upsert_user</strong></a>(self, user: 'UserModel') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;user&nbsp;document.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>IDENTITY_COLLECTION</strong> = 'platform_identities'<br>
+<strong>USERS_COLLECTION</strong> = 'users'</td></tr></table>
+</body></html>

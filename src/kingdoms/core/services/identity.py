@@ -107,6 +107,22 @@ class IdentityService:
         """Return the internal user document; None when absent."""
         return await self._database.find_user(user_id)
 
+    async def set_display_name(self, user_id: str, display_name: str) -> UserModel:
+        """Set the user's chosen gamer name (1-16 chars, trimmed).
+
+        The name is the user-facing identity carried everywhere the bot
+        addresses a player; it is user-owned and editable at will.
+        """
+        name = display_name.strip()
+        if not 1 <= len(name) <= 16:
+            raise ValueError("display name must be 1-16 characters")
+        user = await self._database.find_user(user_id)
+        if user is None:
+            raise LookupError(f"unknown user {user_id!r}")
+        updated = user.model_copy(update={"display_name": name})
+        await self._database.upsert_user(updated)
+        return updated
+
     async def _create_user(
         self, platform: str, platform_user_id: str, user_id: str, display_name: str, locale: str
     ) -> UserModel:

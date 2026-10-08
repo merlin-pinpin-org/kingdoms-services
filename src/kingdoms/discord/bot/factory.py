@@ -30,6 +30,7 @@ from kingdoms.core.exceptions import KingdomsError
 from kingdoms.core.services.admin_channel import AdminChannelService
 from kingdoms.core.services.channel import ChannelService
 from kingdoms.core.services.i18n import MessageCatalog
+from kingdoms.core.services.identity import IdentityService
 from kingdoms.core.services.logs import LifecycleEvent, LogService
 from kingdoms.core.services.mod_registry import ModRegistry, load_mod_definitions
 from kingdoms.core.services.permissions import PermissionService
@@ -159,6 +160,7 @@ class KingdomsBot(discord.Client):
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
+        self.identity_service: IdentityService | None = None
         self.home_channel_service: Any | None = None
         self.staff_service: Any | None = None
         self.home_service: Any | None = None
@@ -182,7 +184,12 @@ class KingdomsBot(discord.Client):
         deploy (§3b state reconstruction contract).
         """
         from kingdoms.discord.admin_persistent import register_admin_panel_bot, register_admin_persistent_items
-        from kingdoms.discord.home import HomeButton, ProfileAddAccountButton, ProfileRemoveAccountButton
+        from kingdoms.discord.home import (
+            HomeButton,
+            ProfileAddAccountButton,
+            ProfileRemoveAccountButton,
+            ProfileRenameButton,
+        )
         from kingdoms.discord.ui.persistent import register_persistent_items
 
         register_persistent_items(self)
@@ -191,6 +198,7 @@ class KingdomsBot(discord.Client):
         self.add_dynamic_items(HomeButton)
         self.add_dynamic_items(ProfileAddAccountButton)
         self.add_dynamic_items(ProfileRemoveAccountButton)
+        self.add_dynamic_items(ProfileRenameButton)
         from kingdoms.discord.admin_panel_games import register_games_admin_items, register_games_admin_section
 
         register_games_admin_section()
@@ -561,6 +569,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     registration_engine, registration_service = _build_registration(resolved, state=shared_state)
     bot.registration_engine = registration_engine
     bot.registration_service = registration_service
+    bot.identity_service = _build_identity_service(resolved, state=shared_state)
     home_channel_service = _build_home_channel_service(resolved, bot)
     bot.home_channel_service = home_channel_service
     from kingdoms.discord.messages_platform import build_message_registry
@@ -818,6 +827,26 @@ def _build_registration(
     )
     engine.register_workflow(RegistrationWorkflow(service))
     return engine, service
+
+
+def _build_identity_service(config: BotConfig, state: StateService | None = None) -> IdentityService | None:
+    """Wire the identity service (profile renames) onto Mongo/Redis.
+
+    Returns None when Mongo/Redis are not configured (unit tests, local
+    runs) — the profile view then keeps the default header and the
+    rename button answers with the not-configured note.
+    """
+    if not config.mongo_uri or not config.redis_uri:
+        return None
+    from kingdoms.core.models.db import get_async_database
+    from kingdoms.discord.identity_platform import MongoIdentityDatabase
+
+    cache = state
+    if cache is None:
+        from kingdoms.core.services.state import StateService
+
+        cache = StateService(redis_uri=config.redis_uri)
+    return IdentityService(MongoIdentityDatabase(get_async_database()), cache)
 
 
 def _build_shared_state(config: BotConfig) -> StateService | None:

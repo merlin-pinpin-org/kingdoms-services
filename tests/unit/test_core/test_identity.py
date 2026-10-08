@@ -6,6 +6,8 @@ cache-aside behaviour and cache-failure degradation.
 
 from __future__ import annotations
 
+import pytest
+
 from kingdoms.core.models.user import UserModel
 from kingdoms.core.services.identity import IdentityService
 from kingdoms.core.services.state import StateService
@@ -118,3 +120,30 @@ class TestGetUser:
     async def test_get_user_absent_returns_none(self) -> None:
         service, _db = make_service()
         assert await service.get_user("nobody") is None
+
+
+class TestSetDisplayName:
+    async def test_rename_updates_the_user_document(self) -> None:
+        service, db = make_service()
+        await service.get_or_create_user(platform="discord", platform_user_id="100", display_name="Aelis")
+        updated = await service.set_display_name("discord:100", "  Merlot  ")
+        assert updated.display_name == "Merlot"
+        assert db.users["discord:100"].display_name == "Merlot"
+
+    async def test_rename_rejects_empty_and_overlong_names(self) -> None:
+        service, _db = make_service()
+        await service.get_or_create_user(platform="discord", platform_user_id="100", display_name="Aelis")
+        for bad in ("", "   ", "x" * 17):
+            with pytest.raises(ValueError):
+                await service.set_display_name("discord:100", bad)
+
+    async def test_rename_of_unknown_user_raises(self) -> None:
+        service, _db = make_service()
+        with pytest.raises(LookupError):
+            await service.set_display_name("nobody", "Merlot")
+
+    async def test_sixteen_chars_is_allowed(self) -> None:
+        service, _db = make_service()
+        await service.get_or_create_user(platform="discord", platform_user_id="100", display_name="Aelis")
+        updated = await service.set_display_name("discord:100", "x" * 16)
+        assert updated.display_name == "x" * 16

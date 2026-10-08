@@ -196,6 +196,11 @@ Resolve&nbsp;internal&nbsp;user&nbsp;ids&nbsp;to&nbsp;platform&nbsp;accounts&nbs
 
 <dl><dt>async <a name="IdentityService-resolve_user_id"><strong>resolve_user_id</strong></a>(self, platform: 'str', platform_user_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;internal&nbsp;user_id&nbsp;bound&nbsp;to&nbsp;a&nbsp;platform&nbsp;account;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
+<dl><dt>async <a name="IdentityService-set_display_name"><strong>set_display_name</strong></a>(self, user_id: 'str', display_name: 'str') -&gt; 'UserModel'</dt><dd><span class="code">Set&nbsp;the&nbsp;user's&nbsp;chosen&nbsp;gamer&nbsp;name&nbsp;(1-16&nbsp;chars,&nbsp;trimmed).<br>
+&nbsp;<br>
+The&nbsp;name&nbsp;is&nbsp;the&nbsp;user-facing&nbsp;identity&nbsp;carried&nbsp;everywhere&nbsp;the&nbsp;bot<br>
+addresses&nbsp;a&nbsp;player;&nbsp;it&nbsp;is&nbsp;user-owned&nbsp;and&nbsp;editable&nbsp;at&nbsp;will.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
