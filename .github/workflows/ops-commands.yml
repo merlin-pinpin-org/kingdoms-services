@@ -203,17 +203,20 @@ jobs:
                 -f environment="$ENVIRONMENT"
               ;;
             seed)
-              # /seed <env> <type> [file] [ladder_id] — idempotent data
+              # /seed <env> <type> [file] [ladder_id|guild_id] — idempotent data
               # seeding through the env's kingdoms-core container
               # (kingdoms-infra env-seed.yml). Same env-control capability
               # as restart: seeding is additive, never destructive.
+              # matches takes the target test guild id (guild-scoped,
+              # fail-closed in env-seed.yml against the env's TEST_GUILD_ID);
+              # season/test-season take the ladder id / owner_ref.
               SEED_TYPE="$(echo "$COMMENT_BODY" | awk '{print $3}')"
               SEED_FILE="$(echo "$COMMENT_BODY" | awk '{print $4}')"
-              [[ -n "$SEED_TYPE" ]] || { echo "::error::usage: /seed <env> <users|matches|season|test-season> [file] [ladder_id]" >&2; exit 1; }
+              [[ -n "$SEED_TYPE" ]] || { echo "::error::usage: /seed <env> <users|matches|season|test-season> [file] [ladder_id|guild_id]" >&2; exit 1; }
               ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT" -f type="$SEED_TYPE")
               [[ -n "$SEED_FILE" ]] && ARGS+=(-f file="$SEED_FILE")
-              LADDER_ARG="$(echo "$COMMENT_BODY" | awk '{print $5}')"
-              [[ -n "$LADDER_ARG" ]] && ARGS+=(-f ladder_id="$LADDER_ARG")
+              LAST_ARG="$(echo "$COMMENT_BODY" | awk '{print $5}')"
+              [[ -n "$LAST_ARG" ]] && ARGS+=(-f "$([[ "$SEED_TYPE" == "matches" ]] && echo guild_id || echo ladder_id)"="$LAST_ARG")
               gh workflow run env-seed.yml "${ARGS[@]}"
               ;;
             rollback)
