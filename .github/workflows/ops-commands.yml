@@ -196,6 +196,12 @@ jobs:
               # Destructive: gated by the env-reset capability (self env
               # only, ops anywhere) in the roster matrix; env-control's
               # reset command does the wipe + reseed on the env's runner.
+              # Fail-closed before any dispatch: prod is never resettable,
+              # no matter the roster verdict (the infra side re-checks).
+              if [[ "$ENVIRONMENT" == "prod" ]]; then
+                echo "::error::/reset-env is never allowed on prod — refusing before any dispatch (env-reset denies it for every role, and prod carries no resettable flag)" >&2
+                exit 1
+              fi
               gh workflow run env-control.yml \
                 --repo merlin-pinpin-org/kingdoms-infra \
                 --ref "deploy/$ENVIRONMENT" \
@@ -207,17 +213,18 @@ jobs:
               # seeding through the env's kingdoms-core container
               # (kingdoms-infra env-seed.yml). Same env-control capability
               # as restart: seeding is additive, never destructive.
-              # matches takes the target test guild id (guild-scoped,
-              # fail-closed in env-seed.yml against the env's TEST_GUILD_ID);
-              # season/test-season take the ladder id / owner_ref.
+              # ladder-season takes the target test guild id (guild-scoped,
+              # fail-closed in env-seed.yml against the env's TEST_GUILD_ID —
+              # it creates the guild's ladder and its indexed season); the
+              # other types take the ladder id / owner_ref.
               SEED_TYPE="$(echo "$COMMENT_BODY" | awk '{print $3}')"
               SEED_FILE="$(echo "$COMMENT_BODY" | awk '{print $4}')"
-              [[ -n "$SEED_TYPE" ]] || { echo "::error::usage: /seed <env> <users|matches|season|test-season> [file] [ladder_id|guild_id]" >&2; exit 1; }
+              [[ -n "$SEED_TYPE" ]] || { echo "::error::usage: /seed <env> <users|ladder-season|season|test-season> [file] [ladder_id|guild_id]" >&2; exit 1; }
               ARGS=(--repo merlin-pinpin-org/kingdoms-infra --ref "deploy/$ENVIRONMENT" -f environment="$ENVIRONMENT" -f type="$SEED_TYPE")
               [[ -n "$SEED_FILE" ]] && ARGS+=(-f file="$SEED_FILE")
               LAST_ARG="$(echo "$COMMENT_BODY" | awk '{print $5}')"
               if [[ -n "$LAST_ARG" ]]; then
-                if [[ "$SEED_TYPE" == "matches" ]]; then
+                if [[ "$SEED_TYPE" == "ladder-season" ]]; then
                   ARGS+=(-f "guild_id=$LAST_ARG")
                 else
                   ARGS+=(-f "ladder_id=$LAST_ARG")
