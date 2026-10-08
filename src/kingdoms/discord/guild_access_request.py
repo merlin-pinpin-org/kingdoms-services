@@ -141,14 +141,11 @@ class GuildAccessRequestButton(
             )
             return
         select = GuildAccessRequestSelect(self.guild_id, options)
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        row.add_item(select)
-        picker = discord.ui.LayoutView(timeout=None)
-        picker.add_item(row)
-        picker_view: Any = picker
+        picker = discord.ui.View(timeout=None)
+        picker.add_item(select)
         await interaction.followup.send(
             "Choisis les games/mods que la guilde demande :",
-            view=picker_view,
+            view=picker,
             ephemeral=True,
         )
 
