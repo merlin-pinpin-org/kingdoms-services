@@ -39,6 +39,13 @@ mods, YAML configs.
 - **Never rename a workflow or a workflow job backing a required status
   check** — GitHub matches check contexts by exact name, so a rename
   silently blocks merges (see CONVENTIONS.md, *Checks must pass everywhere*).
+- **Delete the branch after every direct (bypass) merge to main:** when a
+  change is squash-pushed straight to main (bypassing its PR), the source
+  branch is dead — delete it on the remote immediately. More generally,
+  close any branch whose code is already on main (or on its integration
+  branch `vibe/<alias>/main`); keep only `main`, the `vibe/<alias>/main`
+  integration branches, deploy state branches (`deploy/*`), and branches
+  with open PRs or unmerged unique content.
 - Core is **platform-agnostic** (no discord.py in `src/kingdoms/core/`);
   user-facing strings go through **i18n** (never hardcoded) — every
   visible string resolves through the shared `MessageCatalog`
