@@ -988,6 +988,15 @@ async def _refresh_season_status_safe(guild: discord.Guild, locale: str) -> None
             if season is not None:
                 progress = season_label(season, wiring.kingdoms_service.config, locale=locale)
         await refresh_season_status(guild, locale, kingdoms=names, queued=queued, progress=progress)
+        # Epic #214 phase 1.1 — keep the gestion-saison dashboard and the
+        # Temps de saison timers in step with every launch/status action.
+        from kingdoms.discord.season_dashboard import (
+            refresh_season_dashboard,
+            refresh_season_time,
+        )
+
+        await refresh_season_dashboard(guild, locale, wiring.kingdoms_service)
+        await refresh_season_time(guild, locale, wiring.kingdoms_service)
     except Exception:
         logger.info("KINGDOMS: season status refresh skipped", exc_info=True)
 

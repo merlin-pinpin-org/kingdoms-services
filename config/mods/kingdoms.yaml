@@ -57,6 +57,10 @@ channels:
     group: Époque
     display_name: Âge sombre
     description: The current age (renamed at each age switch — adopt by group)
+  - key: season_time
+    group: Époque
+    display_name: Temps de saison
+    description: Live season timers (read only, epic #214 phase 1.1)
   - key: patrol
     group: Royaume Gaïa
     display_name: Patrouille
@@ -101,6 +105,10 @@ channels:
     group: Admin
     display_name: Paramètres
     description: Mod settings panel channel
+  - key: season_dashboard
+    group: Admin
+    display_name: Gestion-saison
+    description: The pinned season-governance dashboard (admin, epic #214 phase 1.1)
   - key: requests
     group: Admin
     display_name: Demandes

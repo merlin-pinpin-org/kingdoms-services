@@ -111,6 +111,15 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     epoch_channel = guild.get_channel(int(epoch.id)) if epoch and epoch.id.isdigit() else None
     if isinstance(epoch_channel, discord.TextChannel):
         await _enforce_epoch_overwrites(guild, epoch_channel)
+    # Temps de saison is a read-only live-timer channel (#214 phase 1.1):
+    # same strict-lecture decision as the epoch channel.
+    from kingdoms.discord.season_dashboard import SEASON_TIME_CHANNEL
+
+    time_channel = next(
+        (c for c in guild.text_channels if _slug(c.name) == SEASON_TIME_CHANNEL), None
+    )
+    if isinstance(time_channel, discord.TextChannel):
+        await _enforce_epoch_overwrites(guild, time_channel)
     return names, []
 
 
