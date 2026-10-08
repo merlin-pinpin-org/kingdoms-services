@@ -127,7 +127,7 @@ async def test_recruitment_flips_through_the_modal() -> None:
     assert aquitaine.recruitment_open is False  # the launch default True flipped
     [action] = list(store.admin_actions.values())
     assert action["action_type"] == "set_recruitment"
-    assert action["reason"] == "ouvre le recrutement"
+    assert action["reason"] == "ferme le recrutement"
 
 
 async def test_applications_button_sends_the_modal() -> None:
