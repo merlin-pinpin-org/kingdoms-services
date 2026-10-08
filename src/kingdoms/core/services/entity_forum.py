@@ -32,11 +32,18 @@ SYNC_INTERVAL_S = 3600
 
 @dataclass(frozen=True)
 class EntityForumSpec:
-    """Declarative description of one entity-post forum."""
+    """Declarative description of one entity-post forum.
+
+    ``forum_name`` names a single forum; when the entities span
+    several forums (e.g. one per game), set ``forum_name`` to ""
+    and provide ``forum_name_for`` — the entities are then grouped
+    into their forum and each is synced there.
+    """
 
     forum_name: str
     category_name: str = GAMES_CATEGORY_NAME
     list_entities: Callable[[str], Awaitable[list[Any]]] | None = None
+    forum_name_for: Callable[[Any], str] | None = None
     entity_name: Callable[[Any], str] = field(default=lambda entity: str(getattr(entity, "name", "")))
     build_post: Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None = None
 
@@ -49,16 +56,39 @@ async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> i
     Returns the number of forum actions taken.
     """
     from kingdoms.discord.channels_platform import DiscordChannelsPlatform
-    from kingdoms.discord.wiring import guild_category
 
     platform = DiscordChannelsPlatform(bot)
-    guild = bot.get_guild(int(guild_id))
-    if guild is None or spec.list_entities is None or spec.build_post is None:
+    if spec.list_entities is None or spec.build_post is None:
         return 0
-    forum = discord.utils.get(guild.forums, name=spec.forum_name)
+    entities = await spec.list_entities(guild_id)
+    groups: dict[str, list[Any]] = {}
+    for entity in entities:
+        forum_of = spec.forum_name_for(entity) if spec.forum_name_for is not None else spec.forum_name
+        groups.setdefault(forum_of, []).append(entity)
+    actions = 0
+    for forum_of, members in groups.items():
+        actions += await _sync_one_forum(guild_id, bot, spec, platform, forum_of, members)
+    return actions
+
+
+async def _sync_one_forum(
+    guild_id: str,
+    bot: Any,
+    spec: EntityForumSpec,
+    platform: Any,
+    forum_name: str,
+    entities: list[Any],
+) -> int:
+    """Sync one named forum against its entities (idempotent)."""
+    from kingdoms.discord.wiring import guild_category
+
+    guild = bot.get_guild(int(guild_id))
+    if guild is None or spec.build_post is None:
+        return 0
+    forum = discord.utils.get(guild.forums, name=forum_name)
     if forum is None:
         forum = await guild.create_forum(
-            spec.forum_name,
+            forum_name,
             category=await guild_category(guild, spec.category_name),
             overwrites={
                 guild.default_role: discord.PermissionOverwrite(
@@ -72,9 +102,8 @@ async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> i
                     read_message_history=True,
                 ),
             },
-            reason=f"kingdoms: {spec.forum_name} forum",
+            reason=f"kingdoms: {forum_name} forum",
         )
-    entities = await spec.list_entities(guild_id)
     wanted = {spec.entity_name(entity): entity for entity in entities}
     existing = {thread.name: thread for thread in forum.threads}
     actions = 0

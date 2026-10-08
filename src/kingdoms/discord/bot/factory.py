@@ -157,6 +157,7 @@ class KingdomsBot(discord.Client):
         self._live_dashboard_task: asyncio.Future[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
         self._pools_forum_task: asyncio.Task[None] | None = None
+        self._civs_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
@@ -254,12 +255,17 @@ class KingdomsBot(discord.Client):
         if announce_enabled:
             self._provision_task = asyncio.create_task(self._provision_default_channels())
             self._pin_task = asyncio.create_task(self._maintain_pinned_menus())
+            from kingdoms.core.services.entity_forum import start_entity_forum_sync
+            from kingdoms.discord.civs_forum import civs_forum_spec
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, start_maps_forum_sync
             from kingdoms.discord.pools_forum import start_pools_forum_sync
 
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
                 self._pools_forum_task = start_pools_forum_sync(self)
+                self._civs_forum_task = start_entity_forum_sync(
+                    self, civs_forum_spec(self), startup_delay_s=20
+                )
             from kingdoms.core.services.mod_entrypoint import run_mod_hook
 
             if self.registry is not None:
@@ -501,6 +507,7 @@ class KingdomsBot(discord.Client):
             self._live_dashboard_task,
             self._maps_forum_task,
             self._pools_forum_task,
+            self._civs_forum_task,
         ):
             if task is not None:
                 task.cancel()
