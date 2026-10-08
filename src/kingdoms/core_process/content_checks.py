@@ -32,8 +32,8 @@ def _build_source() -> object:
     return resolve_source(os.environ.get("AOE2TECHTREE_SOURCE", ""))
 
 
-def _call(source: object, name: str, *args: object) -> Any:
-    """Call a sync or async source method and return its result."""
+async def _call(source: object, name: str, *args: object) -> Any:
+    """Call a sync or async source method and await it when needed."""
     method = getattr(source, name, None)
     if method is None:
         fallback = {
@@ -44,13 +44,13 @@ def _call(source: object, name: str, *args: object) -> Any:
         method = getattr(source, fallback)
     result = method(*args)
     if asyncio.iscoroutine(result):
-        return asyncio.run(result)
+        return await result
     return result
 
 
 async def _check_faction_index() -> None:
     source = _build_source()
-    raw_keys = _call(source, "list_factions") or []
+    raw_keys = await _call(source, "list_factions") or []
     keys = [str(k) for k in raw_keys]
     if len(keys) < EXPECTED_MIN_FACTIONS:
         raise AssertionError(f"faction index too small ({len(keys)} < {EXPECTED_MIN_FACTIONS})")
@@ -62,7 +62,7 @@ async def _check_faction_index() -> None:
 async def _check_faction_content_fr_en() -> None:
     source = _build_source()
     for locale in ("fr", "en"):
-        content = _call(source, "get_faction_content", "Franks", locale)
+        content = await _call(source, "get_faction_content", "Franks", locale)
         if not content:
             raise AssertionError(f"Franks content missing in {locale}")
         name = str(content.get("name", ""))
@@ -76,7 +76,7 @@ async def _check_faction_content_fr_en() -> None:
 
 async def _check_map_content() -> None:
     source = _build_source()
-    content = _call(source, "get_map_content", "arabia", "en")
+    content = await _call(source, "get_map_content", "arabia", "en")
     if not content:
         raise AssertionError("map content for arabia missing")
     if str(content.get("name", "")).lower() != "arabia":
