@@ -56,7 +56,9 @@ class TechtreeContentProvider:
         strings = {lng: json.loads(raw) for lng, raw in locale_files.items()}
         return cls(dataset, strings)
 
-    def faction_content(self, faction_name: str, locale: str) -> LocalizedContent | None:
+    def faction_content(
+        self, faction_name: str, locale: str, mapping: dict[str, str] | None = None
+    ) -> LocalizedContent | None:
         """Build one faction's localized content descriptor.
 
         The dataset carries each civ's ``name_string_id`` and
@@ -64,8 +66,13 @@ class TechtreeContentProvider:
         unique unit) — both resolved in the requested locale, falling
         back to English. The help text's ``<br>`` markers become
         newlines for the Discord post.
+
+        ``mapping`` is the provider's optional remap table (catalog
+        name -> provider id, see ``ProviderMappingService``): a patch
+        can renumber the provider's ids, the catalog's never move.
         """
-        civ = (self._dataset.get("civs") or {}).get(faction_name)
+        provider_key = (mapping or {}).get(faction_name, faction_name)
+        civ = (self._dataset.get("civs") or {}).get(provider_key)
         if civ is None:
             logger.debug("techtree provider: unknown faction %s", faction_name)
             return None

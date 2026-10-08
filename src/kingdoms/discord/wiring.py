@@ -117,6 +117,30 @@ async def guild_category(guild: discord.Guild, name: str, *, create_reason: str 
     return category
 
 
+_PROVIDER_MAPPING_SERVICE: Any | None = None
+_PROVIDER_MAPPING_READY = False
+
+
+def build_provider_mapping_service() -> Any | None:
+    """Build (and memoize) the ProviderMappingService; None without Mongo."""
+    global _PROVIDER_MAPPING_SERVICE, _PROVIDER_MAPPING_READY
+    if _PROVIDER_MAPPING_READY:
+        return _PROVIDER_MAPPING_SERVICE
+    _PROVIDER_MAPPING_READY = True
+    if not os.environ.get("MONGO_URI"):
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.provider_mapping import ProviderMappingService
+        from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
+
+        _PROVIDER_MAPPING_SERVICE = ProviderMappingService(MongoProviderMappingDatabase(get_async_database()))
+    except Exception:
+        logger.warning("PROVIDER MAPPING wiring build failed", exc_info=True)
+        return None
+    return _PROVIDER_MAPPING_SERVICE
+
+
 async def guild_has_game(guild_id: str, game_key: str) -> bool:
     """Whether the guild was granted one game (access seam; True when unwired).
 

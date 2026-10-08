@@ -46,6 +46,12 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     database = get_async_database()
     game_data = GameDataService(MongoAoE2Database(database))
     content = FactionContentService(database)
+    from kingdoms.core.services.provider_mapping import ProviderMappingService
+    from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
+
+    mapping_service = ProviderMappingService(MongoProviderMappingDatabase(database))
+    mapping_doc = await mapping_service.get("aoe2techtree")
+    mapping = mapping_doc.get("factions") or {}
     factions = 0
     content_docs = 0
     for name in provider.faction_names():
@@ -54,7 +60,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
             await game_data.create_faction("aoe2", name, faction_key=name.lower())
             factions += 1
         for locale in SUPPORTED_LOCALES:
-            descriptor = provider.faction_content(name, locale)
+            descriptor = provider.faction_content(name, locale, mapping=mapping)
             if descriptor is None:
                 continue
             await content.store(

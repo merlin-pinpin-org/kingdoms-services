@@ -33,6 +33,7 @@ code&nbsp;minimal,&nbsp;the&nbsp;shared&nbsp;machinery&nbsp;in&nbsp;core).</span
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_games_service"><strong>build_games_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;GameDataService;&nbsp;None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent.</span></dd></dl>
  <dl><dt><a name="-build_guild_access_service"><strong>build_guild_access_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;GuildAccessService;&nbsp;None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent.</span></dd></dl>
+ <dl><dt><a name="-build_provider_mapping_service"><strong>build_provider_mapping_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;ProviderMappingService;&nbsp;None&nbsp;without&nbsp;Mongo.</span></dd></dl>
  <dl><dt><a name="-games_wiring_ready"><strong>games_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;game-data&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
  <dl><dt>async <a name="-guard_admin"><strong>guard_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.</span></dd></dl>
  <dl><dt><a name="-guild_access_platform"><strong>guild_access_platform</strong></a>() -&gt; 'tuple[tuple[str, ...], tuple[str, ...]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(for&nbsp;request&nbsp;pickers).</span></dd></dl>
@@ -53,6 +54,6 @@ while&nbsp;mod&nbsp;provisioning&nbsp;is&nbsp;the&nbsp;strict&nbsp;seam&nbsp;(no
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None'}<br>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None', '_PROVIDER_MAPPING_SERVICE': 'Any | None'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.wiring (WARNING)&gt;</td></tr></table>
 </body></html>
