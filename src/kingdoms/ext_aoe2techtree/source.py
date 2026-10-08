@@ -24,7 +24,7 @@ import httpx
 
 logger = logging.getLogger("kingdoms.ext_aoe2techtree")
 
-DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[2] / "data" / "core" / "aoe2techtree"
+DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[3] / "data" / "core" / "aoe2techtree"
 SUPPORTED_LOCALES = ("en", "fr")
 
 

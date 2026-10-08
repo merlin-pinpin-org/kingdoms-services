@@ -24,7 +24,7 @@ def main() -> int:
     if len(sys.argv) > 2:
         print("usage: faction_content_cli [dataset_dir]", file=sys.stderr)
         return 2
-    default_dir = Path(__file__).resolve().parents[4] / "data" / "core" / "aoe2techtree"
+    default_dir = Path(__file__).resolve().parents[5] / "data" / "core" / "aoe2techtree"
     dataset_dir = Path(sys.argv[1]) if len(sys.argv) == 2 else default_dir
     sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "src"))
 

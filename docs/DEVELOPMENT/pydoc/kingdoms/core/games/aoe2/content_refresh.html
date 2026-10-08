@@ -37,7 +37,7 @@ or&nbsp;manual&nbsp;catalog&nbsp;additions&nbsp;are&nbsp;never&nbsp;archived&nbs
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-refresh_aoe2_content"><strong>refresh_aoe2_content</strong></a>(dataset_dir: 'Path' = PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree')) -&gt; 'dict[str, int]'</dt><dd><span class="code">Reconcile&nbsp;the&nbsp;catalog&nbsp;and&nbsp;per-locale&nbsp;content&nbsp;with&nbsp;the&nbsp;dataset.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-refresh_aoe2_content"><strong>refresh_aoe2_content</strong></a>(dataset_dir: 'Path' = PosixPath('REPO_ROOT/data/core/aoe2techtree')) -&gt; 'dict[str, int]'</dt><dd><span class="code">Reconcile&nbsp;the&nbsp;catalog&nbsp;and&nbsp;per-locale&nbsp;content&nbsp;with&nbsp;the&nbsp;dataset.<br>
 &nbsp;<br>
 Returns&nbsp;the&nbsp;per-section&nbsp;counts&nbsp;(``factions``&nbsp;created,&nbsp;``content_docs``<br>
 upserted).&nbsp;Raises&nbsp;when&nbsp;the&nbsp;dataset&nbsp;or&nbsp;Mongo&nbsp;is&nbsp;unreachable&nbsp;—&nbsp;the<br>
@@ -48,6 +48,6 @@ caller&nbsp;(DM&nbsp;panel,&nbsp;CLI)&nbsp;reports&nbsp;the&nbsp;failure.</span>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DATASET_DIR</strong> = PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree')<br>
+<td class="singlecolumn"><strong>DATASET_DIR</strong> = PosixPath('REPO_ROOT/data/core/aoe2techtree')<br>
 <strong>logger</strong> = &lt;Logger kingdoms.core.content_refresh (WARNING)&gt;</td></tr></table>
 </body></html>

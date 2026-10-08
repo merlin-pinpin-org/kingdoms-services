@@ -100,7 +100,7 @@ Data descriptors inherited from <a href="kingdoms.ext_aoe2techtree.source.html#U
 <td class="section-title" colspan=3>&nbsp;<br><a name="DatasetContentSource">class <strong>DatasetContentSource</strong></a>(<a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DatasetContentSource">DatasetContentSource</a>(dataset_dir:&nbsp;'Path'&nbsp;=&nbsp;PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree'))&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DatasetContentSource">DatasetContentSource</a>(dataset_dir:&nbsp;'Path'&nbsp;=&nbsp;PosixPath('REPO_ROOT/data/core/aoe2techtree'))&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Upstream&nbsp;=&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;(licence-clean,&nbsp;offline).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -112,7 +112,7 @@ Upstream&nbsp;=&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;(lice
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="DatasetContentSource-__init__"><strong>__init__</strong></a>(self, dataset_dir: 'Path' = PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree')) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="DatasetContentSource-__init__"><strong>__init__</strong></a>(self, dataset_dir: 'Path' = PosixPath('REPO_ROOT/data/core/aoe2techtree')) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="DatasetContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;civ's&nbsp;localized&nbsp;name&nbsp;+&nbsp;help&nbsp;text&nbsp;from&nbsp;the&nbsp;dataset.</span></dd></dl>
 
@@ -171,7 +171,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-resolve_source"><strong>resolve_source</strong></a>(source: 'str', dataset_dir: 'Path' = PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree'), api_url: 'str' = '', api_key: 'str' = '') -&gt; 'UpstreamContentSource'</dt><dd><span class="code">Select&nbsp;the&nbsp;upstream&nbsp;implementation&nbsp;from&nbsp;config&nbsp;(dataset&nbsp;default).<br>
+<td class="singlecolumn"><dl><dt><a name="-resolve_source"><strong>resolve_source</strong></a>(source: 'str', dataset_dir: 'Path' = PosixPath('REPO_ROOT/data/core/aoe2techtree'), api_url: 'str' = '', api_key: 'str' = '') -&gt; 'UpstreamContentSource'</dt><dd><span class="code">Select&nbsp;the&nbsp;upstream&nbsp;implementation&nbsp;from&nbsp;config&nbsp;(dataset&nbsp;default).<br>
 &nbsp;<br>
 ``dataset``&nbsp;(default)&nbsp;reads&nbsp;the&nbsp;vendored&nbsp;files;&nbsp;``api``&nbsp;reads&nbsp;a&nbsp;remote<br>
 HTTP&nbsp;API&nbsp;and&nbsp;requires&nbsp;``AOE2TECHTREE_API_URL``.&nbsp;Any&nbsp;other&nbsp;value&nbsp;fails<br>
@@ -183,7 +183,7 @@ nothing.</span></dd></dl>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DEFAULT_DATASET_DIR</strong> = PosixPath('/workspace/github__merlin-pinpin-org__kingdoms-services/src/data/core/aoe2techtree')<br>
+<td class="singlecolumn"><strong>DEFAULT_DATASET_DIR</strong> = PosixPath('REPO_ROOT/data/core/aoe2techtree')<br>
 <strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
 <strong>logger</strong> = &lt;Logger kingdoms.ext_aoe2techtree (WARNING)&gt;</td></tr></table>
 </body></html>

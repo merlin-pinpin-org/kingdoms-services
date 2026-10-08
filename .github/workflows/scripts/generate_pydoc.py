@@ -78,6 +78,16 @@ def write_pages(
             "SOURCE_ROOT",
             content,
         )
+        # Default-argument Path values can point outside src_root (e.g. the
+        # vendored dataset dir at <repo>/data) — their absolute reprs embed
+        # the runner's checkout path and would make the freshness check flaky
+        # across machines. Normalize the repo root the same way.
+        repo_prefix = re.escape(str(src_root.resolve().parent.parent))
+        content = re.sub(
+            rf"{repo_prefix}",
+            "REPO_ROOT",
+            content,
+        )
         rel_dir = Path(*name.split(".")[:-1])
         out_dir = output_dir / rel_dir
         out_dir.mkdir(parents=True, exist_ok=True)

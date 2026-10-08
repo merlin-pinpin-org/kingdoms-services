@@ -22,7 +22,7 @@ from pathlib import Path
 
 logger = logging.getLogger("kingdoms.core.content_refresh")
 
-DATASET_DIR = Path(__file__).resolve().parents[4] / "data" / "core" / "aoe2techtree"
+DATASET_DIR = Path(__file__).resolve().parents[5] / "data" / "core" / "aoe2techtree"
 
 
 async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int]:
