@@ -22,6 +22,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 COPY --from=build /app/.venv ./.venv
 COPY src/ ./src/
 COPY config/ ./config/
+COPY data/ ./data/
 COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh && apt-get update -qq \
     && apt-get install -y -qq --no-install-recommends curl \
