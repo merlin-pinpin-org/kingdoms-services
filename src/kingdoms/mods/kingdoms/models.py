@@ -45,6 +45,9 @@ class KingdomModel(BaseModel):
     name: str
     marriage_capacity: int = Field(default=0, ge=0)
     name_approved: bool = True
+    recruitment_open: bool = True
+    """D75: the per-kingdom recruitment switch of the 🏰 Royaume panel —
+    independent of the season-level applications switch."""
     civilizations: list[str] = Field(default_factory=list)
     secured_civilizations: list[str] = Field(default_factory=list)
     tech_points_bank: int = Field(default=0, ge=0)
@@ -281,6 +284,17 @@ class SeasonState(BaseModel):
     current_cycle: int = Field(default=0, ge=0)
     current_age_key: str
     imposed_kingdoms: bool = False
+    applications_open: bool = True
+    """D75: the season-level applications switch (global candidatures) —
+    independent of the per-kingdom recruitment switches."""
+    kingdoms_count_override: int | None = Field(default=None, ge=1)
+    """D75: the admin-movable kingdom quota (free policy; None = config)."""
+    lords_per_kingdom_override: int | None = Field(default=None, ge=1)
+    """D75: the admin-movable lord quota (free policy; None = config)."""
+    foundation_king: bool = True
+    """D75: whether a player King may found a kingdom (initial window)."""
+    foundation_admin: bool = True
+    """D75: whether admins may create kingdoms manually (initial window)."""
     out_maps: list[str] = Field(default_factory=list)
     finished: bool = False
     winner_kingdom_id: str | None = None
@@ -355,5 +369,51 @@ class ShowMatchModel(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> ShowMatchModel:
+        """Build from a MongoDB document."""
+        return cls.model_validate(data)
+
+
+class AdminActionModel(BaseModel):
+    """One journaled admin action: the audit line and its restore payload.
+
+    D75: every admin action is recorded with a mandatory reason and a
+    snapshot of the touched documents *before* the mutation — the
+    ``before``/``after`` payloads are raw store documents keyed by
+    ``<collection>:<document id>``, and the rollback reapplies
+    ``before`` verbatim. A compacted entry (48h+) drops both payloads
+    and keeps the summary (who, what, why, when).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(alias="_id")
+    season_id: str
+    action_type: str
+    actor_id: str
+    actor_name: str
+    reason: str
+    target_kind: str
+    target_id: str
+    before: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    after: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    created_at: datetime
+    rolled_back: bool = False
+    rolled_back_at: datetime | None = None
+    compacted: bool = False
+
+    @field_validator("created_at", "rolled_back_at", mode="before")
+    @classmethod
+    def _coerce_datetimes(cls, value: object) -> object:
+        """Accept the raw Mongo string on read (same round-trip as type)."""
+        if isinstance(value, str):
+            return datetime.fromisoformat(value)
+        return value
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> AdminActionModel:
         """Build from a MongoDB document."""
         return cls.model_validate(data)
