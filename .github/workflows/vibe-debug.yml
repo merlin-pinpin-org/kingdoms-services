@@ -6,7 +6,7 @@ name: debug
 
 on:
   push:
-    branches: [feature/214-admin-panel-roster]
+    branches: [feature/214-admin-panel-roster-v2]
 
 permissions:
   contents: write
