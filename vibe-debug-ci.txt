@@ -65,7 +65,7 @@ tests/unit/test_discord/test_kingdom_setup.py ..........                 [ 47%]
 tests/unit/test_discord/test_kingdom_state_views.py ...........          [ 48%]
 tests/unit/test_discord/test_kingdom_structure.py .......                [ 49%]
 tests/unit/test_discord/test_kingdoms_admin.py ....                      [ 49%]
-tests/unit/test_discord/test_kingdoms_admin_panel.py ...............FF   [ 51%]
+tests/unit/test_discord/test_kingdoms_admin_panel.py .................   [ 51%]
 tests/unit/test_discord/test_kingdoms_command.py .........               [ 52%]
 tests/unit/test_discord/test_main.py ....                                [ 52%]
 tests/unit/test_discord/test_persistent_items.py ........                [ 53%]
@@ -113,31 +113,6 @@ tests/unit/test_rpc_client.py ......                                     [ 97%]
 tests/unit/test_rpc_game.py .....................                        [ 99%]
 tests/unit/test_rpc_status.py ..                                         [100%]
 
-=================================== FAILURES ===================================
-________________________ test_roster_rejects_a_bad_role ________________________
-
-    async def test_roster_rejects_a_bad_role() -> None:
-        """A role outside king/lord answers the error and journals nothing."""
-        store = await _launched_store()
-        interaction = await _roster_run(
-            store, "add-lord", reason="essai", player_id="p1", display_name="P1", role="boss", kingdom="Aquitaine"
-        )
->       assert "king ou lord" in str(interaction.response.message.content)
-                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'NoneType' object has no attribute 'content'
-
-tests/unit/test_discord/test_kingdoms_admin_panel.py:302: AttributeError
-_______________________ test_roster_requires_the_fields ________________________
-
-    async def test_roster_requires_the_fields() -> None:
-        """A blank required roster field never reaches the store."""
-        store = await _launched_store()
-        interaction = await _roster_run(store, "eject", reason="essai", player_id="")
->       assert "champs requis" in str(interaction.response.message.content)
-                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       AttributeError: 'NoneType' object has no attribute 'content'
-
-tests/unit/test_discord/test_kingdoms_admin_panel.py:310: AttributeError
 =============================== warnings summary ===============================
 tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
 tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
@@ -199,7 +174,4 @@ tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_roster_rejects_a_bad_role - AttributeError: 'NoneType' object has no attribute 'content'
-FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_roster_requires_the_fields - AttributeError: 'NoneType' object has no attribute 'content'
-================= 2 failed, 1015 passed, 27 warnings in 6.83s ==================
+====================== 1017 passed, 27 warnings in 5.96s =======================
