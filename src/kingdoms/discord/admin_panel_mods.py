@@ -133,19 +133,31 @@ class PinModRouteSelect(
     panel rebuild.
     """
 
-    def __init__(self, options: list[discord.SelectOption], scope: str = "mods", placeholder: str = "") -> None:
+    def __init__(
+        self,
+        options: list[discord.SelectOption],
+        scope: str = "mods",
+        placeholder: str = "",
+        disabled: bool = False,
+    ) -> None:
         self.scope = scope
         super().__init__(
             discord.ui.Select(
                 custom_id=mod_section_route_id(scope),
                 options=options,
                 placeholder=placeholder or None,
+                disabled=disabled,
             )
         )
 
     @classmethod
     def create(cls, scope: str = "mods", placeholder: str = "") -> PinModRouteSelect:
-        """Build the scoped select from the current registry (empty -> hidden)."""
+        """Build the scoped select from the current registry.
+
+        An empty registry yields a single disabled placeholder option —
+        Discord rejects a select with zero options (1-25 required), which
+        broke the panel with a silent 50035.
+        """
         sections = (
             registered_admin_core_sections() if scope == "games" else registered_admin_game_sections()
         )
@@ -153,6 +165,14 @@ class PinModRouteSelect(
             discord.SelectOption(label=section.label, value=section.mod, description=section.description or None)
             for section in sections
         ]
+        if not options:
+            label = "Aucun game actif" if scope == "games" else "Aucun mod actif"
+            return cls(
+                [discord.SelectOption(label=label, value="none")],
+                scope,
+                placeholder or label,
+                disabled=True,
+            )
         return cls(options, scope, placeholder)
 
     @classmethod
@@ -163,8 +183,14 @@ class PinModRouteSelect(
         match: re.Match[str],
         /,
     ) -> PinModRouteSelect:
-        """Rebuild the select from the wire (registry is read at click time)."""
-        return cls.create()
+        """Rebuild the select from the wire (registry is read at click time).
+
+        The scope travels in the custom id (``admin:pin:mod:{scope}``) —
+        rebuilding without it collapsed every panel into the ``mods``
+        scope, leaving the games list empty on panels that never had
+        a games section registered.
+        """
+        return cls.create(scope=match.group("mod"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Route to the chosen mod's section entry — admins only, at click time.

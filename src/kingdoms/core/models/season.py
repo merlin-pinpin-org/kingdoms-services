@@ -24,7 +24,7 @@ class SeasonModel(BaseModel):
 
     id: str = Field(alias="_id")
     ladder_id: str
-    index: int
+    index: int = 0
     name: str
     map_pool_id: str | None = None
     start_at: int
@@ -40,5 +40,5 @@ class SeasonModel(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> Self:
-        """Build from a MongoDB document."""
+        """Build from a MongoDB document (legacy docs without ``index`` default to 0)."""
         return cls.model_validate(data)

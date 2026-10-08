@@ -31,7 +31,7 @@ GAME_KEY = "aoe2"  # default context; the picker may switch it per view
 
 
 def _back_row() -> discord.ui.ActionRow[discord.ui.LayoutView]:
-    """Build the back row shared by every sub-view (returns to the games entry)."""
+    """Build the back row of the games entry (returns to the main menu)."""
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(GamesBackButton())
     return row
@@ -181,8 +181,14 @@ class GamesBackButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Re-render the games entry (the game picker)."""
-        await interaction.response.edit_message(view=await games_admin_entry(interaction))
+        """Return to the pinned main menu (top-level back).
+
+        The games entry used to loop back to itself — there was no way
+        back to the admin main menu from the games section.
+        """
+        from kingdoms.discord.admin_persistent import _handle_back
+
+        await _handle_back(interaction)
 
 
 class GamesMapsButton(

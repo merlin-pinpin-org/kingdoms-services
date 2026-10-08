@@ -33,15 +33,19 @@ class GuildAccessRequestSelect(
 ):
     """Pick the games/mods the guild requests (guild admins only)."""
 
-    def __init__(self, guild_id: str, options: list[discord.SelectOption] | None = None) -> None:
+    def __init__(
+        self, guild_id: str, options: list[discord.SelectOption] | None = None, disabled: bool = False
+    ) -> None:
         self.guild_id = guild_id
+        resolved = options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:select:{guild_id}"[:100],
-                options=options or [discord.SelectOption(label="Indisponible", value="none")],
+                options=resolved,
                 placeholder="Games/mods a demander...",
                 min_values=1,
                 max_values=25,
+                disabled=disabled or all(o.value == "none" for o in resolved),
             )
         )
 
@@ -69,6 +73,7 @@ class GuildAccessRequestSelect(
         chosen = [str(v) for v in data_values if v and v != "none"]
         await interaction.response.defer(ephemeral=True, thinking=True)
         if not chosen:
+            await interaction.followup.send("Rien a demander — aucun game/mod sélectionné.", ephemeral=True)
             return
         service = await _access_service()
         if service is None:
@@ -127,7 +132,15 @@ class GuildAccessRequestButton(
         await interaction.response.defer(ephemeral=True, thinking=True)
         if not await _guard_admin_deferred(interaction):
             return
-        select = GuildAccessRequestSelect(self.guild_id, _request_options())
+        options = _request_options()
+        if all(option.value == "none" for option in options):
+            await interaction.followup.send(
+                "Aucun game/mod actif sur la plateforme pour le moment — "
+                "demande a un bot admin d'en activer un.",
+                ephemeral=True,
+            )
+            return
+        select = GuildAccessRequestSelect(self.guild_id, options)
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         row.add_item(select)
         picker = discord.ui.LayoutView(timeout=None)
@@ -160,7 +173,7 @@ def _request_options() -> list[discord.SelectOption]:
     games, mods = guild_access_platform()
     options = [discord.SelectOption(label=f"game : {g}", value=f"game:{g}") for g in games]
     options += [discord.SelectOption(label=f"mod : {m}", value=f"mod:{m}") for m in mods]
-    return options or [discord.SelectOption(label="Indisponible", value="none")]
+    return options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
 
 
 _PENDING_DMS: dict[str, list[tuple[str, str]]] = {}
