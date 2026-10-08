@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.royaume_panel</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.royaume_panel</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/royaume_panel.py">SOURCE_ROOT/discord/royaume_panel.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;🏰&nbsp;Royaume&nbsp;admin&nbsp;panel&nbsp;(epic&nbsp;#214&nbsp;phase&nbsp;1.2,&nbsp;the&nbsp;first&nbsp;D75&nbsp;surface).<br>
+&nbsp;<br>
+The&nbsp;Royaume&nbsp;salon&nbsp;carries&nbsp;the&nbsp;roster-and-entities&nbsp;panel:&nbsp;every&nbsp;kingdom<br>
+operation&nbsp;an&nbsp;admin&nbsp;can&nbsp;run&nbsp;live&nbsp;—&nbsp;manual&nbsp;add,&nbsp;queue&nbsp;assignment,<br>
+reassignment&nbsp;(D17),&nbsp;throne&nbsp;swap,&nbsp;ejection,&nbsp;dissolution,&nbsp;manual&nbsp;kingdom<br>
+creation,&nbsp;admin&nbsp;rename,&nbsp;the&nbsp;recruitment/applications&nbsp;switches,&nbsp;the<br>
+free&nbsp;quotas&nbsp;and&nbsp;the&nbsp;foundation&nbsp;rights.<br>
+&nbsp;<br>
+Every&nbsp;button&nbsp;rides&nbsp;the&nbsp;D75&nbsp;foundation&nbsp;(``KingdomAdminService``):&nbsp;the<br>
+reason&nbsp;is&nbsp;**mandatory&nbsp;without&nbsp;exception**&nbsp;—&nbsp;collected&nbsp;by&nbsp;the&nbsp;action's<br>
+own&nbsp;modal&nbsp;before&nbsp;anything&nbsp;resolves&nbsp;—&nbsp;the&nbsp;action&nbsp;is&nbsp;journaled&nbsp;with&nbsp;its<br>
+before/after&nbsp;snapshots,&nbsp;and&nbsp;the&nbsp;journal&nbsp;section&nbsp;of&nbsp;the&nbsp;panel&nbsp;lists&nbsp;the<br>
+recent&nbsp;entries&nbsp;with&nbsp;their&nbsp;per-action&nbsp;rollback&nbsp;(2h&nbsp;window,&nbsp;once).<br>
+&nbsp;<br>
+Restart-proofness&nbsp;follows&nbsp;the&nbsp;§3b&nbsp;state&nbsp;reconstruction&nbsp;contract:&nbsp;the<br>
+pinned&nbsp;panel&nbsp;message&nbsp;is&nbsp;found&nbsp;by&nbsp;its&nbsp;marker&nbsp;and&nbsp;edited&nbsp;in&nbsp;place,&nbsp;and<br>
+every&nbsp;action&nbsp;button&nbsp;is&nbsp;a&nbsp;``<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>``&nbsp;whose&nbsp;whole&nbsp;state&nbsp;rides&nbsp;the<br>
+custom_id&nbsp;(``kingdoms:royaume:&lt;action&gt;``)&nbsp;—&nbsp;services&nbsp;resolve&nbsp;from&nbsp;the<br>
+live&nbsp;bot&nbsp;at&nbsp;click&nbsp;time.&nbsp;The&nbsp;modals&nbsp;and&nbsp;the&nbsp;journal&nbsp;view&nbsp;are<br>
+session-scoped&nbsp;ephemeral&nbsp;surfaces:&nbsp;they&nbsp;expire&nbsp;with&nbsp;the&nbsp;flow&nbsp;anyway.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.royaume_panel.html#RoyaumePanelSnapshot">RoyaumePanelSnapshot</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.royaume_panel.html#RoyaumePanelWiring">RoyaumePanelWiring</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.royaume_panel.html#RoyaumeActionButton">RoyaumeActionButton</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoyaumeActionButton">class <strong>RoyaumeActionButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoyaumeActionButton">RoyaumeActionButton</a>(action:&nbsp;'str',&nbsp;label:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+One&nbsp;pinned-panel&nbsp;action&nbsp;button&nbsp;—&nbsp;stateless,&nbsp;restart-proof&nbsp;(§3b).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.royaume_panel.html#RoyaumeActionButton">RoyaumeActionButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RoyaumeActionButton-__init__"><strong>__init__</strong></a>(self, action: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Build&nbsp;the&nbsp;button&nbsp;for&nbsp;one&nbsp;action&nbsp;key.</span></dd></dl>
+
+<dl><dt>async <a name="RoyaumeActionButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard&nbsp;the&nbsp;click,&nbsp;then&nbsp;open&nbsp;the&nbsp;action&nbsp;modal&nbsp;—&nbsp;or&nbsp;the&nbsp;journal&nbsp;view.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="RoyaumeActionButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Button[Any]', match: 'Any') -&gt; 'RoyaumeActionButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;button&nbsp;from&nbsp;the&nbsp;wire&nbsp;(labels&nbsp;localize&nbsp;at&nbsp;click&nbsp;time).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('kingdoms:royaume:(?P&lt;action&gt;[a-z_]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="RoyaumeActionButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="RoyaumeActionButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="RoyaumeActionButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="RoyaumeActionButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="RoyaumeActionButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="RoyaumeActionButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="RoyaumeActionButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RoyaumeActionButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="RoyaumeActionButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoyaumePanelSnapshot">class <strong>RoyaumePanelSnapshot</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoyaumePanelSnapshot">RoyaumePanelSnapshot</a>(season_id:&nbsp;'str&nbsp;|&nbsp;None',&nbsp;kingdoms:&nbsp;'tuple[tuple[str,&nbsp;bool,&nbsp;int],&nbsp;...]',&nbsp;queued:&nbsp;'int',&nbsp;applications_open:&nbsp;'bool&nbsp;|&nbsp;None',&nbsp;kingdoms_count:&nbsp;'int&nbsp;|&nbsp;None',&nbsp;lords_per_kingdom:&nbsp;'int&nbsp;|&nbsp;None',&nbsp;foundation_king:&nbsp;'bool&nbsp;|&nbsp;None',&nbsp;foundation_admin:&nbsp;'bool&nbsp;|&nbsp;None',&nbsp;actions:&nbsp;'tuple[tuple[str,&nbsp;str,&nbsp;str,&nbsp;str,&nbsp;bool],&nbsp;...]')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+The&nbsp;read-only&nbsp;state&nbsp;the&nbsp;pinned&nbsp;panel&nbsp;renders.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RoyaumePanelSnapshot-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__init__"><strong>__init__</strong></a>(self, season_id: 'str | None', kingdoms: 'tuple[tuple[str, bool, int], ...]', queued: 'int', applications_open: 'bool | None', kingdoms_count: 'int | None', lords_per_kingdom: 'int | None', foundation_king: 'bool | None', foundation_admin: 'bool | None', actions: 'tuple[tuple[str, str, str, str, bool], ...]') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelSnapshot-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>actions</strong></dt>
+</dl>
+<dl><dt><strong>applications_open</strong></dt>
+</dl>
+<dl><dt><strong>foundation_admin</strong></dt>
+</dl>
+<dl><dt><strong>foundation_king</strong></dt>
+</dl>
+<dl><dt><strong>kingdoms</strong></dt>
+</dl>
+<dl><dt><strong>kingdoms_count</strong></dt>
+</dl>
+<dl><dt><strong>lords_per_kingdom</strong></dt>
+</dl>
+<dl><dt><strong>queued</strong></dt>
+</dl>
+<dl><dt><strong>season_id</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'actions': 'tuple[tuple[str, str, str, str, bool], ...]', 'applications_open': 'bool | None', 'foundation_admin': 'bool | None', 'foundation_king': 'bool | None', 'kingdoms': 'tuple[tuple[str, bool, int], ...]', 'kingdoms_count': 'int | None', 'lords_per_kingdom': 'int | None', 'queued': 'int', 'season_id': 'str | None'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'actions': Field(name='actions',type='tuple[tuple[str, str,...appingproxy({}),kw_only=False,_field_type=_FIELD), 'applications_open': Field(name='applications_open',type='bool | None...appingproxy({}),kw_only=False,_field_type=_FIELD), 'foundation_admin': Field(name='foundation_admin',type='bool | None'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'foundation_king': Field(name='foundation_king',type='bool | None',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kingdoms': Field(name='kingdoms',type='tuple[tuple[str, boo...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kingdoms_count': Field(name='kingdoms_count',type='int | None',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'lords_per_kingdom': Field(name='lords_per_kingdom',type='int | None'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'queued': Field(name='queued',type='int',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'season_id': Field(name='season_id',type='str | None',default...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('season_id', 'kingdoms', 'queued', 'applications_open', 'kingdoms_count', 'lords_per_kingdom', 'foundation_king', 'foundation_admin', 'actions')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoyaumePanelWiring">class <strong>RoyaumePanelWiring</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoyaumePanelWiring">RoyaumePanelWiring</a>(admin_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;kingdoms_service:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;roles_service:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+The&nbsp;services&nbsp;a&nbsp;reconstructed&nbsp;Royaume&nbsp;component&nbsp;resolves&nbsp;at&nbsp;click&nbsp;time.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RoyaumePanelWiring-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__init__"><strong>__init__</strong></a>(self, admin_service: 'Any' = None, kingdoms_service: 'Any' = None, bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="RoyaumePanelWiring-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>admin_service</strong></dt>
+</dl>
+<dl><dt><strong>bot_admins</strong></dt>
+</dl>
+<dl><dt><strong>kingdoms_service</strong></dt>
+</dl>
+<dl><dt><strong>roles_service</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'admin_service': 'Any', 'bot_admins': 'tuple[str, ...]', 'kingdoms_service': 'Any', 'roles_service': 'Any'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'admin_service': Field(name='admin_service',type='Any',default=No...appingproxy({}),kw_only=False,_field_type=_FIELD), 'bot_admins': Field(name='bot_admins',type='tuple[str, ...]',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kingdoms_service': Field(name='kingdoms_service',type='Any',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'roles_service': Field(name='roles_service',type='Any',default=No...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('admin_service', 'kingdoms_service', 'bot_admins', 'roles_service')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_panel_content"><strong>build_panel_content</strong></a>(snapshot: 'RoyaumePanelSnapshot | None', locale: 'str | None') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;pinned&nbsp;Royaume&nbsp;panel&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-build_panel_view"><strong>build_panel_view</strong></a>(locale: 'str | None') -&gt; 'discord.ui.View'</dt><dd><span class="code">Build&nbsp;the&nbsp;action&nbsp;rows&nbsp;of&nbsp;the&nbsp;pinned&nbsp;panel&nbsp;(restart-proof&nbsp;buttons).</span></dd></dl>
+ <dl><dt>async <a name="-refresh_royaume_panel"><strong>refresh_royaume_panel</strong></a>(guild: 'discord.Guild', locale: 'str | None', admin_service: 'Any' = None) -&gt; 'bool'</dt><dd><span class="code">Post&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;pinned&nbsp;Royaume&nbsp;panel&nbsp;in&nbsp;the&nbsp;royaume&nbsp;salon.</span></dd></dl>
+ <dl><dt><a name="-register_royaume_panel_bot"><strong>register_royaume_panel_bot</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;bot&nbsp;as&nbsp;the&nbsp;wiring&nbsp;source&nbsp;(resolved&nbsp;at&nbsp;click&nbsp;time).</span></dd></dl>
+ <dl><dt><a name="-register_royaume_panel_wiring"><strong>register_royaume_panel_wiring</strong></a>(wiring: 'RoyaumePanelWiring') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;a&nbsp;static&nbsp;wiring&nbsp;(tests&nbsp;and&nbsp;local&nbsp;runs).</span></dd></dl>
+ <dl><dt>async <a name="-snapshot_from_services"><strong>snapshot_from_services</strong></a>(admin_service: 'Any', kingdoms_service: 'Any' = None) -&gt; 'RoyaumePanelSnapshot | None'</dt><dd><span class="code">Read&nbsp;the&nbsp;panel&nbsp;state&nbsp;through&nbsp;the&nbsp;admin&nbsp;service&nbsp;(no&nbsp;captured&nbsp;state).<br>
+&nbsp;<br>
+Returns&nbsp;None&nbsp;when&nbsp;no&nbsp;season&nbsp;runs&nbsp;or&nbsp;the&nbsp;service&nbsp;is&nbsp;not&nbsp;wired;&nbsp;a<br>
+read&nbsp;failure&nbsp;degrades&nbsp;to&nbsp;None&nbsp;as&nbsp;well&nbsp;—&nbsp;the&nbsp;panel&nbsp;never&nbsp;blocks.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ROYAUME_CHANNEL</strong> = 'royaume'<br>
+<strong>ROYAUME_PANEL_MARKER</strong> = 'kingdoms:royaume:panel'<br>
+<strong>__all__</strong> = ['ROYAUME_CHANNEL', 'ROYAUME_PANEL_MARKER', 'RoyaumeActionButton', 'RoyaumePanelSnapshot', 'RoyaumePanelWiring', 'build_panel_content', 'build_panel_view', 'refresh_royaume_panel', 'register_royaume_panel_bot', 'register_royaume_panel_wiring', 'snapshot_from_services']<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]', '_FIELDS': 'dict[str, tuple[_FieldSpec, ...]]', '_WIRING_RESOLVER': 'Callable[[], RoyaumePanelWiring] | None'}</td></tr></table>
+</body></html>
