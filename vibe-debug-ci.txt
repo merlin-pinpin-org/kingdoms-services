@@ -1,8 +1,7 @@
 === ruff ===
 All checks passed!
 === mypy ===
-src/kingdoms/discord/kingdoms_admin_panel.py:222: error: Name "field" already defined on line 215  [no-redef]
-Found 1 error in 1 file (checked 171 source files)
+Success: no issues found in 171 source files
 === pytest ===
 ........................................................................ [  7%]
 ........................................................................ [ 14%]
@@ -11,7 +10,7 @@ Found 1 error in 1 file (checked 171 source files)
 ........................................................................ [ 35%]
 ........................................................................ [ 42%]
 ........................................................................ [ 49%]
-.......F...F............................................................ [ 57%]
+.......F................................................................ [ 57%]
 ........................................................................ [ 64%]
 ........................................................................ [ 71%]
 ........................................................................ [ 78%]
@@ -38,32 +37,22 @@ ___________________ test_recruitment_flips_through_the_modal ___________________
         await select.callback(interaction)
         modal = interaction.response.modal
         assert isinstance(modal, panel.AdminReasonModal)
-        _fill(modal, reason="ouvre le recrutement")
+        _fill(modal, reason="ferme le recrutement")
         await modal.on_submit(interaction)
         kingdoms = await client.kingdoms_service.kingdoms()
         aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
->       assert aquitaine.recruitment_open is True
-E       AssertionError: assert False is True
-E        +  where False = KingdomModel(id='k-1', season_id='s-20261008-091417', type=<KingdomType.PLAYER: 'player'>, name='Aquitaine', marriage_capacity=1, name_approved=True, recruitment_open=False, civilizations=[], secured_civilizations=[], tech_points_bank=0).recruitment_open
+        assert aquitaine.recruitment_open is False  # the launch default True flipped
+        [action] = list(store.admin_actions.values())
+        assert action["action_type"] == "set_recruitment"
+>       assert action["reason"] == "ouvre le recrutement"
+E       AssertionError: assert 'ferme le recrutement' == 'ouvre le recrutement'
+E         
+E         - ouvre le recrutement
+E         ? ^^^
+E         + ferme le recrutement
+E         ? ^^ +
 
-tests/unit/test_discord/test_kingdoms_admin_panel.py:127: AssertionError
-____________________________ test_foundation_parse _____________________________
-
-    async def test_foundation_parse() -> None:
-        """Foundation checkboxes: 1/0 set, blank leaves unchanged (None)."""
-        store = await _launched_store()
-        interaction = _interaction(_client(store))
-        modal = panel.AdminReasonModal(interaction, "foundation", {})
-        _fill(modal, reason="ouvre la fondation aux rois", king="1", admin="")
-        await modal.on_submit(interaction)
-        season = await _client(store).kingdoms_service.current_season()
-        assert season is not None
-        assert season.foundation_king is True
->       assert season.foundation_admin is None
-E       AssertionError: assert True is None
-E        +  where True = SeasonState(id='s-20261008-091417', started_at=datetime.datetime(2026, 10, 8, 9, 14, 17, 629978, tzinfo=datetime.timez...tion_king=True, foundation_admin=True, out_maps=[], finished=False, winner_kingdom_id=None, pending_marriage_losses=[]).foundation_admin
-
-tests/unit/test_discord/test_kingdoms_admin_panel.py:184: AssertionError
+tests/unit/test_discord/test_kingdoms_admin_panel.py:130: AssertionError
 =============================== warnings summary ===============================
 tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
 tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
@@ -126,8 +115,10 @@ tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
-FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_recruitment_flips_through_the_modal - AssertionError: assert False is True
- +  where False = KingdomModel(id='k-1', season_id='s-20261008-091417', type=<KingdomType.PLAYER: 'player'>, name='Aquitaine', marriage_capacity=1, name_approved=True, recruitment_open=False, civilizations=[], secured_civilizations=[], tech_points_bank=0).recruitment_open
-FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_foundation_parse - AssertionError: assert True is None
- +  where True = SeasonState(id='s-20261008-091417', started_at=datetime.datetime(2026, 10, 8, 9, 14, 17, 629978, tzinfo=datetime.timez...tion_king=True, foundation_admin=True, out_maps=[], finished=False, winner_kingdom_id=None, pending_marriage_losses=[]).foundation_admin
-2 failed, 1007 passed, 27 warnings in 8.11s
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_recruitment_flips_through_the_modal - AssertionError: assert 'ferme le recrutement' == 'ouvre le recrutement'
+  
+  - ouvre le recrutement
+  ? ^^^
+  + ferme le recrutement
+  ? ^^ +
+1 failed, 1008 passed, 27 warnings in 6.54s
