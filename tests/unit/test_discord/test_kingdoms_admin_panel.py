@@ -120,11 +120,11 @@ async def test_recruitment_flips_through_the_modal() -> None:
     await select.callback(interaction)
     modal = interaction.response.modal
     assert isinstance(modal, panel.AdminReasonModal)
-    _fill(modal, reason="ouvre le recrutement")
+    _fill(modal, reason="ferme le recrutement")
     await modal.on_submit(interaction)
     kingdoms = await client.kingdoms_service.kingdoms()
     aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
-    assert aquitaine.recruitment_open is True
+    assert aquitaine.recruitment_open is False  # the launch default True flipped
     [action] = list(store.admin_actions.values())
     assert action["action_type"] == "set_recruitment"
     assert action["reason"] == "ouvre le recrutement"
@@ -181,7 +181,7 @@ async def test_foundation_parse() -> None:
     season = await _client(store).kingdoms_service.current_season()
     assert season is not None
     assert season.foundation_king is True
-    assert season.foundation_admin is None
+    assert season.foundation_admin is True  # the launch default, unchanged by the blank
 
 
 async def test_reason_gate_answers_when_stripped_empty() -> None:

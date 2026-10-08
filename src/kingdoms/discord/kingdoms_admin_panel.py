@@ -219,11 +219,11 @@ class AdminReasonModal(discord.ui.Modal):
                 self._fields[key] = field
         elif operation == "foundation":
             for key, label_key in (("king", "foundation_king_label"), ("admin", "foundation_admin_label")):
-                field: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
+                checkbox: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
                     label=strings[label_key][:45], required=False, max_length=1
                 )
-                self.add_item(field)
-                self._fields[key] = field
+                self.add_item(checkbox)
+                self._fields[key] = checkbox
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Gate the reason, parse the extras, run the operation."""
