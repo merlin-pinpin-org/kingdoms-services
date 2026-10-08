@@ -1,0 +1,212 @@
+=== ruff ===
+All checks passed!
+=== mypy ===
+src/kingdoms/discord/kingdoms_admin_panel.py:201: error: Need type annotation for "reason"  [var-annotated]
+src/kingdoms/discord/kingdoms_admin_panel.py:215: error: Need type annotation for "field"  [var-annotated]
+Found 2 errors in 1 file (checked 171 source files)
+=== pytest ===
+........................................................................ [  7%]
+........................................................................ [ 14%]
+........................................................................ [ 21%]
+........................................................................ [ 28%]
+........................................................................ [ 35%]
+........................................................................ [ 42%]
+........................................................................ [ 49%]
+......FFFFFFF........................................................... [ 57%]
+........................................................................ [ 64%]
+........................................................................ [ 71%]
+........................................................................ [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 92%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=================================== FAILURES ===================================
+____________________ test_entry_builds_the_season_controls _____________________
+
+    async def test_entry_builds_the_season_controls() -> None:
+        """A launched season -> the recruitment select and the three buttons."""
+        store = await _launched_store()
+        view = await panel.section_entry(_interaction(_client(store)))
+        ids = _custom_ids(view)
+        assert "admin:pin:mod:kingdoms:recruitment" in ids
+        assert "admin:pin:mod:kingdoms:quotas" in ids
+        assert "admin:pin:mod:kingdoms:foundation" in ids
+        applications = [i for i in ids if i.startswith("admin:pin:mod:kingdoms:applications")]
+>       assert applications == ["admin:pin:mod:kingdoms:applications-open"]
+E       AssertionError: assert ['admin:pin:m...ations-close'] == ['admin:pin:m...cations-open']
+E         
+E         At index 0 diff: 'admin:pin:mod:kingdoms:applications-close' != 'admin:pin:mod:kingdoms:applications-open'
+E         
+E         Full diff:
+E           [
+E         -     'admin:pin:mod:kingdoms:applications-open',
+E         ?                                           ^ -
+E         +     'admin:pin:mod:kingdoms:applications-close',
+E         ?                                          ++ ^
+E           ]
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:98: AssertionError
+___________________ test_recruitment_flips_through_the_modal ___________________
+
+    async def test_recruitment_flips_through_the_modal() -> None:
+        """A recruitment flip runs through the reason modal into the journal."""
+        store = await _launched_store()
+        client = _client(store)
+        interaction = _interaction(client)
+        view = await panel.section_entry(interaction)
+        select = next(
+            item
+            for item in _walk(view)
+            if getattr(item, "custom_id", None) == "admin:pin:mod:kingdoms:recruitment"
+        )
+        assert isinstance(select, panel.KingdomsAdminRecruitmentSelect)
+>       select.item.values = ["Aquitaine"]
+        ^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'values' of 'Select' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:113: AttributeError
+___________________ test_applications_button_sends_the_modal ___________________
+
+    async def test_applications_button_sends_the_modal() -> None:
+        """The applications button decodes its wire action and opens the modal."""
+        store = await _launched_store()
+        interaction = _interaction(_client(store))
+        button = panel.KingdomsAdminActionButton(
+            "applications-close", "Candidatures : ouvertes", discord.ButtonStyle.success
+        )
+        await button.callback(interaction)
+        modal = interaction.response.modal
+        assert isinstance(modal, panel.AdminReasonModal)
+>       modal._fields["reason"].value = "ferme les candidatures"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'value' of 'TextInput' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:137: AttributeError
+_________________________ test_quotas_parse_and_reset __________________________
+
+    async def test_quotas_parse_and_reset() -> None:
+        """Quota fields: numbers set the override, blanks reset to None."""
+        store = await _launched_store()
+        interaction = _interaction(_client(store))
+        modal = panel.AdminReasonModal(interaction, "quotas", {})
+>       modal._fields["reason"].value = "élargit la saison"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'value' of 'TextInput' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:149: AttributeError
+__________________________ test_quotas_reject_garbage __________________________
+
+    async def test_quotas_reject_garbage() -> None:
+        """A non-numeric quota answers the error string and changes nothing."""
+        store = await _launched_store()
+        interaction = _interaction(_client(store))
+        modal = panel.AdminReasonModal(interaction, "quotas", {})
+>       modal._fields["reason"].value = "réglage"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'value' of 'TextInput' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:164: AttributeError
+____________________________ test_foundation_parse _____________________________
+
+    async def test_foundation_parse() -> None:
+        """Foundation checkboxes: 1/0 set, blank leaves unchanged (None)."""
+        store = await _launched_store()
+        interaction = _interaction(_client(store))
+        modal = panel.AdminReasonModal(interaction, "foundation", {})
+>       modal._fields["reason"].value = "ouvre la fondation aux rois"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'value' of 'TextInput' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:176: AttributeError
+_________________ test_reason_gate_answers_when_stripped_empty _________________
+
+    async def test_reason_gate_answers_when_stripped_empty() -> None:
+        """A whitespace-only reason never reaches the store (D75 gate on the wire)."""
+        store = await _launched_store()
+        interaction = _interaction(_client(store))
+        modal = panel.AdminReasonModal(interaction, "applications", {"open": True})
+>       modal._fields["reason"].value = "   "
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: property 'value' of 'TextInput' object has no setter
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:191: AttributeError
+=============================== warnings summary ===============================
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:315: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom_name.label = strings["kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:317: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.insight_link.label = strings["insight_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:319: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.game_id.label = strings["game_id_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:321: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.smurfs.label = strings["smurfs_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_leave_modal_relays_to_demandes
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_profiles.py:439: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.reason.label = strings["leave_reason_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_remove_button_opens_modal
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:406: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["remove_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:456: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["assign_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:457: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["assign_kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:496: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["add_kingdom_field"][:45]
+
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_map_key_condition_unlocks_celtes
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_losing_the_territory_drops_the_civilization
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_water_maps_unlock_chinese_and_its_chain
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_kingdom_name_pattern_unlocks_hongrois
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_marry_secures_a_civilization_once_per_lord
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_at_the_next_recalculation
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/mods/kingdoms/diplomacy.py:172: RuntimeWarning: coroutine 'DiplomacyService._owns_map_type' was never awaited
+    if civ.requires_map_types and self._owns_map_type(kingdom.id, civ.requires_map_types):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_entry_builds_the_season_controls - AssertionError: assert ['admin:pin:m...ations-close'] == ['admin:pin:m...cations-open']
+  
+  At index 0 diff: 'admin:pin:mod:kingdoms:applications-close' != 'admin:pin:mod:kingdoms:applications-open'
+  
+  Full diff:
+    [
+  -     'admin:pin:mod:kingdoms:applications-open',
+  ?                                           ^ -
+  +     'admin:pin:mod:kingdoms:applications-close',
+  ?                                          ++ ^
+    ]
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_recruitment_flips_through_the_modal - AttributeError: property 'values' of 'Select' object has no setter
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_applications_button_sends_the_modal - AttributeError: property 'value' of 'TextInput' object has no setter
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_quotas_parse_and_reset - AttributeError: property 'value' of 'TextInput' object has no setter
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_quotas_reject_garbage - AttributeError: property 'value' of 'TextInput' object has no setter
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_foundation_parse - AttributeError: property 'value' of 'TextInput' object has no setter
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_reason_gate_answers_when_stripped_empty - AttributeError: property 'value' of 'TextInput' object has no setter
+7 failed, 1002 passed, 27 warnings in 7.15s
