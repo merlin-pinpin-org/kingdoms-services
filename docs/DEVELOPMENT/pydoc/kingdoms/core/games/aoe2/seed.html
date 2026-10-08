@@ -53,14 +53,17 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;GameData,&nbsp;Season&nbs
 
 <dl><dt>async <a name="MongoAoE2Database-delete_entry"><strong>delete_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
 
-<dl><dt>async <a name="MongoAoE2Database-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="MongoAoE2Database-find_active_factions"><strong>find_active_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;like&nbsp;the&nbsp;maps.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
 &nbsp;<br>
 Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;pools&nbsp;plus&nbsp;the&nbsp;public&nbsp;ones&nbsp;(owned&nbsp;by&nbsp;other<br>
 guilds&nbsp;but&nbsp;shared);&nbsp;unscoped:&nbsp;every&nbsp;pool&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
-<dl><dt>async <a name="MongoAoE2Database-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="MongoAoE2Database-find_active_maps"><strong>find_active_maps</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;maps&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
+&nbsp;<br>
+Scoped:&nbsp;the&nbsp;guild's&nbsp;own&nbsp;maps&nbsp;plus&nbsp;the&nbsp;global&nbsp;ones&nbsp;(config&nbsp;seed,<br>
+bot&nbsp;admins);&nbsp;unscoped:&nbsp;every&nbsp;map&nbsp;of&nbsp;the&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_active_match"><strong>find_active_match</strong></a>(self, ladder_id: 'str', user_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;user's&nbsp;live&nbsp;match&nbsp;on&nbsp;the&nbsp;ladder;&nbsp;None&nbsp;when&nbsp;free.</span></dd></dl>
 

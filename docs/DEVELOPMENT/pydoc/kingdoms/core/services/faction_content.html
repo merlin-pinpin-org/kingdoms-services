@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.faction_content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.faction_content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/faction_content.py">SOURCE_ROOT/core/services/faction_content.py</a></td></tr></table>
+    <p><span class="code">Localized&nbsp;content&nbsp;service:&nbsp;durable&nbsp;Mongo&nbsp;store&nbsp;+&nbsp;Redis&nbsp;cache&nbsp;(core).<br>
+&nbsp;<br>
+Entity&nbsp;content&nbsp;(faction/map&nbsp;descriptions,&nbsp;per&nbsp;platform&nbsp;locale)&nbsp;is<br>
+seeded&nbsp;from&nbsp;a&nbsp;licence-compatible&nbsp;provider&nbsp;into&nbsp;Mongo&nbsp;—&nbsp;durable,&nbsp;per<br>
+locale&nbsp;—&nbsp;and&nbsp;read&nbsp;through&nbsp;the&nbsp;StateService&nbsp;(Redis)&nbsp;cache&nbsp;at&nbsp;post<br>
+build&nbsp;time:&nbsp;Redis&nbsp;first&nbsp;(hot),&nbsp;Mongo&nbsp;second&nbsp;(durable),&nbsp;provider<br>
+never&nbsp;at&nbsp;runtime.<br>
+&nbsp;<br>
+Document&nbsp;shape&nbsp;(``faction_content``&nbsp;collection)::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{"_id":&nbsp;"&lt;entity&nbsp;id&gt;:&lt;locale&gt;",&nbsp;"entity_id":&nbsp;...,&nbsp;"locale":&nbsp;...,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"name":&nbsp;...,&nbsp;"summary":&nbsp;...,&nbsp;"source_url":&nbsp;...,&nbsp;"provider":&nbsp;...}<br>
+&nbsp;<br>
+The&nbsp;ids&nbsp;embed&nbsp;the&nbsp;visible&nbsp;catalog&nbsp;ids&nbsp;(``faction:aoe2:Franks:fr``),<br>
+so&nbsp;content&nbsp;is&nbsp;keyed&nbsp;by&nbsp;the&nbsp;same&nbsp;stable&nbsp;ids&nbsp;the&nbsp;panels'&nbsp;footers&nbsp;show.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.faction_content.html#FactionContentService">FactionContentService</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FactionContentService">class <strong>FactionContentService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FactionContentService">FactionContentService</a>(database:&nbsp;'Any',&nbsp;state:&nbsp;'StateService&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Per-locale&nbsp;entity&nbsp;content:&nbsp;cache-aside&nbsp;reads&nbsp;over&nbsp;the&nbsp;durable&nbsp;store.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="FactionContentService-__init__"><strong>__init__</strong></a>(self, database: 'Any', state: 'StateService | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;the&nbsp;Mongo&nbsp;database&nbsp;and&nbsp;the&nbsp;Redis-backed&nbsp;state.</span></dd></dl>
+
+<dl><dt>async <a name="FactionContentService-get"><strong>get</strong></a>(self, entity_id: 'str', locale: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;entity's&nbsp;content:&nbsp;Redis&nbsp;first,&nbsp;then&nbsp;Mongo.</span></dd></dl>
+
+<dl><dt>async <a name="FactionContentService-store"><strong>store</strong></a>(self, content: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Upsert&nbsp;one&nbsp;content&nbsp;document&nbsp;(idempotent&nbsp;by&nbsp;``&lt;entity&nbsp;id&gt;:&lt;locale&gt;``).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CACHE_SCOPE</strong> = 'faction_content'<br>
+<strong>CACHE_TTL_S</strong> = 86400<br>
+<strong>CONTENT_COLLECTION</strong> = 'faction_content'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.faction_content (WARNING)&gt;</td></tr></table>
+</body></html>

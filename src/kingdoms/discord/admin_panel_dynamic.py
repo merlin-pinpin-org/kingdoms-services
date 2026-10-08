@@ -436,6 +436,15 @@ class PinRolesButton(
         await _handle_roles(interaction)
 
 
+def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
+    """Build the access-request row (every guild admin may request)."""
+    from kingdoms.discord.guild_access_request import GuildAccessRequestButton
+
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(GuildAccessRequestButton(guild_id))
+    return row
+
+
 async def build_pin_main_menu(
     logs_service: LogService,
     guild_id: str,
@@ -478,6 +487,13 @@ async def build_pin_main_menu(
         discord.ui.Separator(),
         discord.ui.TextDisplay("## \U0001f9e9 R\u00f4les"),
         _roles_row(_t(catalog, locale, "roles_button")),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(
+            "## \U0001f513 Acc\u00e8s games/mods\n"
+            "Rien n'est actif par d\u00e9faut : la guilde doit demander l'acc\u00e8s aux "
+            "games et mods ; un bot admin l'approuve depuis ses DMs."
+        ),
+        _access_request_row(guild_id),
     ]
     from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
 

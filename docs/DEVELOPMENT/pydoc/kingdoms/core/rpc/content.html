@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/content.py">SOURCE_ROOT/core/rpc/content.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;content&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;server&nbsp;side&nbsp;(kingdoms.v1.Content).<br>
+&nbsp;<br>
+A&nbsp;game&nbsp;content&nbsp;provider&nbsp;process&nbsp;(ext-aoe2techtree,&nbsp;...)&nbsp;serves&nbsp;localized<br>
+game&nbsp;catalog&nbsp;data&nbsp;(factions,&nbsp;maps)&nbsp;through&nbsp;this&nbsp;servicer.&nbsp;The&nbsp;seam&nbsp;keeps<br>
+the&nbsp;upstream&nbsp;concern&nbsp;out&nbsp;of&nbsp;the&nbsp;core:&nbsp;it&nbsp;only&nbsp;translates&nbsp;between&nbsp;the<br>
+wire&nbsp;contract&nbsp;and&nbsp;the&nbsp;plain&nbsp;content&nbsp;descriptors.&nbsp;The&nbsp;upstream&nbsp;the&nbsp;ext<br>
+process&nbsp;reads&nbsp;(vendored&nbsp;dataset,&nbsp;HTTP&nbsp;API,&nbsp;...)&nbsp;is&nbsp;swappable&nbsp;per<br>
+process&nbsp;—&nbsp;the&nbsp;consumers&nbsp;never&nbsp;change.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc</a><br>
+</td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html#ContentServicer">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.ContentServicer</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.content.html#ContentServicer">ContentServicer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ContentServicer">class <strong>ContentServicer</strong></a>(<a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html#ContentServicer">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.ContentServicer</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ContentServicer">ContentServicer</a>(provider_key:&nbsp;'str',&nbsp;game_key:&nbsp;'str',&nbsp;locales:&nbsp;'tuple[str,&nbsp;...]',&nbsp;list_factions:&nbsp;'Callable[[],&nbsp;Awaitable[list[str]]]',&nbsp;faction_content:&nbsp;'Callable[[str,&nbsp;str],&nbsp;Awaitable[dict[str,&nbsp;str&nbsp;|&nbsp;bool]&nbsp;|&nbsp;None]]',&nbsp;map_content:&nbsp;'Callable[[str,&nbsp;str],&nbsp;Awaitable[dict[str,&nbsp;str&nbsp;|&nbsp;bool]&nbsp;|&nbsp;None]]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Serve&nbsp;the&nbsp;kingdoms.v1.Content&nbsp;contract&nbsp;from&nbsp;source-backed&nbsp;callables.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.rpc.content.html#ContentServicer">ContentServicer</a></dd>
+<dd><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html#ContentServicer">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.ContentServicer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt>async <a name="ContentServicer-GetContentCapabilities"><strong>GetContentCapabilities</strong></a>(self, request: 'content_pb2.ContentCapabilitiesRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.ContentCapabilities'</dt><dd><span class="code">Serve&nbsp;the&nbsp;provider&nbsp;identity&nbsp;and&nbsp;supported&nbsp;locale&nbsp;surface.</span></dd></dl>
+
+<dl><dt>async <a name="ContentServicer-GetFactionContent"><strong>GetFactionContent</strong></a>(self, request: 'content_pb2.FactionContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="ContentServicer-GetMapContent"><strong>GetMapContent</strong></a>(self, request: 'content_pb2.MapContentRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Serve&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content,&nbsp;NOT_FOUND&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="ContentServicer-ListFactions"><strong>ListFactions</strong></a>(self, request: 'content_pb2.ListFactionsRequest', context: 'grpc.aio.ServicerContext') -&gt; 'content_pb2.FactionList'</dt><dd><span class="code">Serve&nbsp;every&nbsp;faction&nbsp;key&nbsp;the&nbsp;upstream&nbsp;source&nbsp;knows.</span></dd></dl>
+
+<dl><dt><a name="ContentServicer-__init__"><strong>__init__</strong></a>(self, provider_key: 'str', game_key: 'str', locales: 'tuple[str, ...]', list_factions: 'Callable[[], Awaitable[list[str]]]', faction_content: 'Callable[[str, str], Awaitable[dict[str, str | bool] | None]]', map_content: 'Callable[[str, str], Awaitable[dict[str, str | bool] | None]]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html#ContentServicer">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.ContentServicer</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_content_servicer"><strong>add_content_servicer</strong></a>(server: 'grpc.aio.Server', servicer: 'ContentServicer') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;Content&nbsp;servicer&nbsp;onto&nbsp;the&nbsp;server.</span></dd></dl>
+ <dl><dt><a name="-content_capabilities_from_wire"><strong>content_capabilities_from_wire</strong></a>(wire: 'content_pb2.ContentCapabilities') -&gt; 'tuple[str, str, tuple[str, ...]]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;capability&nbsp;message&nbsp;into&nbsp;its&nbsp;plain&nbsp;parts.</span></dd></dl>
+ <dl><dt><a name="-content_capabilities_to_wire"><strong>content_capabilities_to_wire</strong></a>(provider_key: 'str', game_key: 'str', locales: 'tuple[str, ...]') -&gt; 'content_pb2.ContentCapabilities'</dt><dd><span class="code">Translate&nbsp;a&nbsp;content&nbsp;capability&nbsp;declaration&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-localized_content_from_wire"><strong>localized_content_from_wire</strong></a>(wire: 'content_pb2.LocalizedContent') -&gt; 'dict[str, str | bool]'</dt><dd><span class="code">Translate&nbsp;a&nbsp;wire&nbsp;content&nbsp;message&nbsp;into&nbsp;a&nbsp;plain&nbsp;descriptor.</span></dd></dl>
+ <dl><dt><a name="-localized_content_to_wire"><strong>localized_content_to_wire</strong></a>(content: 'dict[str, str | bool]') -&gt; 'content_pb2.LocalizedContent'</dt><dd><span class="code">Translate&nbsp;a&nbsp;plain&nbsp;content&nbsp;descriptor&nbsp;into&nbsp;the&nbsp;wire&nbsp;message.</span></dd></dl>
+</td></tr></table>
+</body></html>

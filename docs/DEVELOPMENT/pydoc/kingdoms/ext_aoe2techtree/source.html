@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.ext_aoe2techtree.source</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.ext_aoe2techtree.html" class="white">ext_aoe2techtree</a>.source</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/ext_aoe2techtree/source.py">SOURCE_ROOT/ext_aoe2techtree/source.py</a></td></tr></table>
+    <p><span class="code">Abstract&nbsp;upstream&nbsp;content&nbsp;source&nbsp;for&nbsp;the&nbsp;ext-aoe2techtree&nbsp;process.<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;process&nbsp;never&nbsp;reads&nbsp;the&nbsp;upstream&nbsp;data&nbsp;directly:&nbsp;it&nbsp;reads&nbsp;it<br>
+through&nbsp;this&nbsp;seam.&nbsp;Two&nbsp;implementations&nbsp;ship:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#DatasetContentSource">DatasetContentSource</a>``&nbsp;—&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;(default):<br>
+&nbsp;&nbsp;licence-clean,&nbsp;offline,&nbsp;byte-identical&nbsp;to&nbsp;the&nbsp;upstream&nbsp;HEAD.<br>
+-&nbsp;``<a href="#ApiContentSource">ApiContentSource</a>``&nbsp;—&nbsp;a&nbsp;remote&nbsp;HTTP&nbsp;API&nbsp;(``AOE2TECHTREE_API_URL``):<br>
+&nbsp;&nbsp;a&nbsp;future&nbsp;replacement&nbsp;source,&nbsp;selected&nbsp;via&nbsp;``AOE2TECHTREE_SOURCE=api``.<br>
+&nbsp;<br>
+Both&nbsp;speak&nbsp;the&nbsp;same&nbsp;interface,&nbsp;so&nbsp;the&nbsp;gRPC&nbsp;contract&nbsp;and&nbsp;the&nbsp;core-side<br>
+consumers&nbsp;never&nbsp;change&nbsp;when&nbsp;the&nbsp;upstream&nbsp;does.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="httpx.html">httpx</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="abc.html#ABC">abc.ABC</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.ext_aoe2techtree.source.html#ApiContentSource">ApiContentSource</a>
+</dt><dt class="heading-text"><a href="kingdoms.ext_aoe2techtree.source.html#DatasetContentSource">DatasetContentSource</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ApiContentSource">class <strong>ApiContentSource</strong></a>(<a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ApiContentSource">ApiContentSource</a>(api_url:&nbsp;'str',&nbsp;api_key:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;timeout_s:&nbsp;'float'&nbsp;=&nbsp;10.0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Upstream&nbsp;=&nbsp;a&nbsp;remote&nbsp;HTTP&nbsp;JSON&nbsp;API&nbsp;(replacement&nbsp;source,&nbsp;same&nbsp;interface).<br>
+&nbsp;<br>
+Expected&nbsp;API&nbsp;shape&nbsp;(documented&nbsp;for&nbsp;a&nbsp;future&nbsp;upstream&nbsp;author):<br>
+``GET&nbsp;{base}/factions``&nbsp;→&nbsp;``{"factions":&nbsp;["Aztecs",&nbsp;...]}``;<br>
+``GET&nbsp;{base}/factions/{key}?locale=fr``&nbsp;→&nbsp;the&nbsp;same&nbsp;descriptor&nbsp;dict<br>
+as&nbsp;the&nbsp;dataset&nbsp;source&nbsp;(``entity_id``,&nbsp;``locale``,&nbsp;``name``,<br>
+``summary``,&nbsp;``source_url``);&nbsp;``GET&nbsp;{base}/maps/{key}``&nbsp;likewise.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.ext_aoe2techtree.source.html#ApiContentSource">ApiContentSource</a></dd>
+<dd><a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ApiContentSource-__init__"><strong>__init__</strong></a>(self, api_url: 'str', api_key: 'str' = '', timeout_s: 'float' = 10.0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ApiContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;descriptor&nbsp;from&nbsp;the&nbsp;API.</span></dd></dl>
+
+<dl><dt><a name="ApiContentSource-faction_keys"><strong>faction_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;API's&nbsp;faction&nbsp;index.</span></dd></dl>
+
+<dl><dt><a name="ApiContentSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map's&nbsp;descriptor&nbsp;from&nbsp;the&nbsp;API.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DatasetContentSource">class <strong>DatasetContentSource</strong></a>(<a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DatasetContentSource">DatasetContentSource</a>(dataset_dir:&nbsp;'Path'&nbsp;=&nbsp;PosixPath('REPO_ROOT/data/core/aoe2techtree'))&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Upstream&nbsp;=&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;(licence-clean,&nbsp;offline).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.ext_aoe2techtree.source.html#DatasetContentSource">DatasetContentSource</a></dd>
+<dd><a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DatasetContentSource-__init__"><strong>__init__</strong></a>(self, dataset_dir: 'Path' = PosixPath('REPO_ROOT/data/core/aoe2techtree')) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DatasetContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;civ's&nbsp;localized&nbsp;name&nbsp;+&nbsp;help&nbsp;text&nbsp;from&nbsp;the&nbsp;dataset.</span></dd></dl>
+
+<dl><dt><a name="DatasetContentSource-faction_keys"><strong>faction_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;civ&nbsp;key&nbsp;from&nbsp;the&nbsp;dataset's&nbsp;civ&nbsp;index.</span></dd></dl>
+
+<dl><dt><a name="DatasetContentSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Serve&nbsp;a&nbsp;map's&nbsp;descriptor&nbsp;(name-only:&nbsp;the&nbsp;dataset&nbsp;has&nbsp;no&nbsp;map&nbsp;help).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<hr>
+Data descriptors inherited from <a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UpstreamContentSource">class <strong>UpstreamContentSource</strong></a>(<a href="abc.html#ABC">abc.ABC</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">One&nbsp;game-content&nbsp;upstream:&nbsp;localized&nbsp;faction/map&nbsp;descriptors.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.ext_aoe2techtree.source.html#UpstreamContentSource">UpstreamContentSource</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="UpstreamContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt><a name="UpstreamContentSource-faction_keys"><strong>faction_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;faction&nbsp;key&nbsp;known&nbsp;to&nbsp;the&nbsp;upstream.</span></dd></dl>
+
+<dl><dt><a name="UpstreamContentSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'dict[str, str | bool] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map's&nbsp;localized&nbsp;descriptor,&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'faction_content', 'faction_keys', 'map_content'})</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-resolve_source"><strong>resolve_source</strong></a>(source: 'str', dataset_dir: 'Path' = PosixPath('REPO_ROOT/data/core/aoe2techtree'), api_url: 'str' = '', api_key: 'str' = '') -&gt; 'UpstreamContentSource'</dt><dd><span class="code">Select&nbsp;the&nbsp;upstream&nbsp;implementation&nbsp;from&nbsp;config&nbsp;(dataset&nbsp;default).<br>
+&nbsp;<br>
+``dataset``&nbsp;(default)&nbsp;reads&nbsp;the&nbsp;vendored&nbsp;files;&nbsp;``api``&nbsp;reads&nbsp;a&nbsp;remote<br>
+HTTP&nbsp;API&nbsp;and&nbsp;requires&nbsp;``AOE2TECHTREE_API_URL``.&nbsp;Any&nbsp;other&nbsp;value&nbsp;fails<br>
+closed&nbsp;at&nbsp;startup&nbsp;—&nbsp;a&nbsp;misconfigured&nbsp;source&nbsp;must&nbsp;never&nbsp;silently&nbsp;serve<br>
+nothing.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_DATASET_DIR</strong> = PosixPath('REPO_ROOT/data/core/aoe2techtree')<br>
+<strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ext_aoe2techtree (WARNING)&gt;</td></tr></table>
+</body></html>

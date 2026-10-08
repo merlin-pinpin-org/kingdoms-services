@@ -89,9 +89,9 @@ async def test_admin_command_dm_shows_user_locale_setup() -> None:
     await command._callback(interaction)  # type: ignore[union-attr]
     assert interaction.response.deferred is True, "the DM panel defers before its reads"
     assert interaction.followup.messages, "the DM panel arrives through the followup"
-    layout = interaction.followup.messages[-1].layout
-    assert layout is not None
-    assert USER_LOCALE_SELECT_ID in _custom_ids(layout)
+    layouts = [m.layout for m in interaction.followup.messages]
+    assert all(layout is not None for layout in layouts)
+    assert any(USER_LOCALE_SELECT_ID in _custom_ids(layout) for layout in layouts if layout is not None)
     assert logs.user_locales_read == ["111111111"]
     await client.close()
 
@@ -107,7 +107,11 @@ async def test_admin_command_dm_locale_change_persists() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
     interaction.guild_id = None
     await command._callback(interaction)  # type: ignore[union-attr]
-    select = _find_select(interaction.followup.messages[-1].layout, USER_LOCALE_SELECT_ID)
+    select = None
+    for message in interaction.followup.messages:
+        select = _find_select(message.layout, USER_LOCALE_SELECT_ID)
+        if select is not None:
+            break
     assert select is not None
     await _choose(select, interaction, ["fr"])
     assert logs.user_locales_set == [("111111111", "fr")]

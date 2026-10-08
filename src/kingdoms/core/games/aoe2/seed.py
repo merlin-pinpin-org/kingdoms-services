@@ -49,9 +49,16 @@ class MongoAoE2Database:
         doc = await self._database[collection].find_one({"game_key": game_key, "name": name, "archived_at": None})
         return doc if doc is None else dict(doc)
 
-    async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived maps for a game."""
-        cursor = self._database[collection_name("maps")].find({"game_key": game_key, "archived_at": None})
+    async def find_active_maps(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List the non-archived maps for a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones (config seed,
+        bot admins); unscoped: every map of the game.
+        """
+        query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}]
+        cursor = self._database[collection_name("maps")].find(query)
         return [doc async for doc in cursor]
 
     async def find_game_keys(self) -> list[str]:
@@ -59,9 +66,12 @@ class MongoAoE2Database:
         keys = await self._database[collection_name("maps")].distinct("game_key")
         return [str(k) for k in keys if k]
 
-    async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived civs for a game."""
-        cursor = self._database[collection_name("civs")].find({"game_key": game_key, "archived_at": None})
+    async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
+        """List the non-archived civs for a game, scoped like the maps."""
+        query: dict[str, Any] = {"game_key": game_key, "archived_at": None}
+        if guild_id is not None:
+            query["$or"] = [{"owner_guild_id": guild_id}, {"owner_guild_id": None}]
+        cursor = self._database[collection_name("civs")].find(query)
         return [doc async for doc in cursor]
 
     async def find_active_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
@@ -171,7 +181,7 @@ def collection_name(kind: str) -> str:
     """Map a seed collection kind to its MongoDB name."""
     names = {
         "maps": "maps",
-        "civs": "civs",
+        "civs": "factions",
         "rules": "rules",
         "map_pools": "map_pools",
         "map_packs": "map_packs",
@@ -213,7 +223,7 @@ async def seed_aoe2(
     result: dict[str, Any] = {"game_key": game_key, "maps": 0, "civs": 0, "map_pools": 0, "ladders": 0, "seasons": 0}
     counts = await game_data.seed_from_data(game_key, data)
     result["maps"] = counts["maps"]
-    result["civs"] = counts["civs"]
+    result["factions"] = counts["factions"]
     result["rules"] = counts.get("rules", 0)
     for spec in data.get("map_pools", []) or []:
         pool_id = f"map_pool:{game_key}:{spec['name']}"

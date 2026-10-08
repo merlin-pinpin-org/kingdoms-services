@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.rpc.content_client</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.rpc.html" class="white">rpc</a>.content_client</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/rpc/content_client.py">SOURCE_ROOT/core/rpc/content_client.py</a></td></tr></table>
+    <p><span class="code">Game&nbsp;content&nbsp;RPC&nbsp;seam&nbsp;—&nbsp;client&nbsp;side&nbsp;(kingdoms.v1.Content).<br>
+&nbsp;<br>
+svc-core&nbsp;consumes&nbsp;a&nbsp;content&nbsp;provider&nbsp;process&nbsp;(ext-aoe2techtree)<br>
+through&nbsp;these&nbsp;typed&nbsp;helpers.&nbsp;Every&nbsp;call&nbsp;degrades&nbsp;cleanly:&nbsp;an<br>
+unreachable&nbsp;provider&nbsp;or&nbsp;an&nbsp;unknown&nbsp;key&nbsp;yields&nbsp;None/empty&nbsp;so&nbsp;the<br>
+caller&nbsp;(content&nbsp;refresh)&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;local&nbsp;dataset&nbsp;source.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2</a><br>
+</td><td class="multicolumn"><a href="kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc.html">kingdoms.rpc_generated.kingdoms.v1.content_pb2_grpc</a><br>
+</td><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.rpc.content_client.html#ContentProviderClient">ContentProviderClient</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ContentProviderClient">class <strong>ContentProviderClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ContentProviderClient">ContentProviderClient</a>(provider_uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Typed&nbsp;client&nbsp;for&nbsp;a&nbsp;kingdoms.v1.Content&nbsp;provider&nbsp;process.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ContentProviderClient-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="ContentProviderClient-get_faction_content"><strong>get_faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'dict[str, str] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None.</span></dd></dl>
+
+<dl><dt>async <a name="ContentProviderClient-get_map_content"><strong>get_map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'dict[str, str] | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map's&nbsp;localized&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None.</span></dd></dl>
+
+<dl><dt>async <a name="ContentProviderClient-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;faction&nbsp;index,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_NOT_FOUND_CODES': 'tuple[grpc.StatusCode, ...]'}</td></tr></table>
+</body></html>

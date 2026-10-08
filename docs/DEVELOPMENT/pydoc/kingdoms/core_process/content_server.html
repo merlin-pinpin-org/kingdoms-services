@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core_process.content_server</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core_process.html" class="white">core_process</a>.content_server</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core_process/content_server.py">SOURCE_ROOT/core_process/content_server.py</a></td></tr></table>
+    <p><span class="code">Content&nbsp;provider&nbsp;process&nbsp;entrypoints&nbsp;(ext-&lt;source&gt;&nbsp;family).<br>
+&nbsp;<br>
+Each&nbsp;ext&nbsp;content&nbsp;process&nbsp;serves&nbsp;the&nbsp;kingdoms.v1.Content&nbsp;contract,<br>
+backed&nbsp;by&nbsp;its&nbsp;own&nbsp;upstream&nbsp;source&nbsp;(vendored&nbsp;dataset,&nbsp;HTTP&nbsp;API,&nbsp;...).<br>
+This&nbsp;module&nbsp;holds&nbsp;the&nbsp;shared&nbsp;serving&nbsp;loop&nbsp;so&nbsp;content&nbsp;entrypoints&nbsp;stay<br>
+one-liners,&nbsp;mirroring&nbsp;the&nbsp;Game&nbsp;provider&nbsp;loop&nbsp;(ADR-0020).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="grpc.html">grpc</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-serve_content_provider"><strong>serve_content_provider</strong></a>(provider_key: 'str', game_key: 'str', locales: 'tuple[str, ...]', process_label: 'str', source: 'Any') -&gt; 'None'</dt><dd><span class="code">Serve&nbsp;the&nbsp;kingdoms.v1.Content&nbsp;contract&nbsp;until&nbsp;terminated.<br>
+&nbsp;<br>
+Reads&nbsp;``EXT_GRPC_PORT``&nbsp;(default&nbsp;50063&nbsp;for&nbsp;the&nbsp;content&nbsp;family).&nbsp;The<br>
+upstream&nbsp;source&nbsp;is&nbsp;opaque&nbsp;here:&nbsp;it&nbsp;only&nbsp;needs&nbsp;the&nbsp;faction/map<br>
+descriptor&nbsp;interface,&nbsp;so&nbsp;a&nbsp;dataset&nbsp;or&nbsp;an&nbsp;HTTP&nbsp;API&nbsp;serve&nbsp;identically.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.ext (WARNING)&gt;</td></tr></table>
+</body></html>

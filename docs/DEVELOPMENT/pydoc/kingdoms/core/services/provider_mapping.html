@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.provider_mapping</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.provider_mapping</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/provider_mapping.py">SOURCE_ROOT/core/services/provider_mapping.py</a></td></tr></table>
+    <p><span class="code">Provider&nbsp;mapping&nbsp;service:&nbsp;each&nbsp;provider's&nbsp;own&nbsp;ids,&nbsp;remapped&nbsp;(core).<br>
+&nbsp;<br>
+Every&nbsp;provider&nbsp;speaks&nbsp;its&nbsp;own&nbsp;dialect&nbsp;—&nbsp;aoe2techtree&nbsp;keys&nbsp;civs&nbsp;as<br>
+``Franks``,&nbsp;a&nbsp;match&nbsp;API&nbsp;may&nbsp;key&nbsp;them&nbsp;``1``&nbsp;or&nbsp;``franks``;&nbsp;a&nbsp;patch&nbsp;can<br>
+renumber&nbsp;them.&nbsp;The&nbsp;catalog's&nbsp;stable&nbsp;ids&nbsp;never&nbsp;move;&nbsp;the&nbsp;provider's&nbsp;ids<br>
+can.&nbsp;This&nbsp;service&nbsp;holds&nbsp;the&nbsp;per-provider&nbsp;remapping&nbsp;tables&nbsp;(catalog<br>
+name&nbsp;-&gt;&nbsp;provider&nbsp;id/name),&nbsp;persisted&nbsp;in&nbsp;Mongo&nbsp;(``provider_mappings``,<br>
+one&nbsp;document&nbsp;per&nbsp;provider)&nbsp;and&nbsp;read&nbsp;cache-aside&nbsp;through&nbsp;the<br>
+StateService&nbsp;(Redis)&nbsp;like&nbsp;the&nbsp;rest&nbsp;of&nbsp;the&nbsp;provider&nbsp;data.<br>
+&nbsp;<br>
+Bot&nbsp;admins&nbsp;edit&nbsp;the&nbsp;mappings&nbsp;from&nbsp;the&nbsp;admin&nbsp;DM&nbsp;panel&nbsp;after&nbsp;a&nbsp;game<br>
+patch:&nbsp;the&nbsp;mapping&nbsp;is&nbsp;data,&nbsp;not&nbsp;code&nbsp;—&nbsp;a&nbsp;provider&nbsp;renumbering&nbsp;is&nbsp;a<br>
+mapping&nbsp;fix,&nbsp;never&nbsp;a&nbsp;deploy.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.provider_mapping.html#ProviderMappingError">ProviderMappingError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.provider_mapping.html#ProviderMappingService">ProviderMappingService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.provider_mapping.html#ProviderMappingDatabase">ProviderMappingDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderMappingDatabase">class <strong>ProviderMappingDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderMappingDatabase">ProviderMappingDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Persistence&nbsp;seam&nbsp;for&nbsp;the&nbsp;per-provider&nbsp;mapping&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.provider_mapping.html#ProviderMappingDatabase">ProviderMappingDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ProviderMappingDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="ProviderMappingDatabase-get_mapping"><strong>get_mapping</strong></a>(self, provider: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Read&nbsp;one&nbsp;provider's&nbsp;mapping&nbsp;document;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderMappingDatabase-upsert_mapping"><strong>upsert_mapping</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;mapping&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ProviderMappingDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'get_mapping', 'upsert_mapping'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ProviderMappingDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ProviderMappingDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderMappingError">class <strong>ProviderMappingError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">A&nbsp;mapping&nbsp;update&nbsp;is&nbsp;invalid&nbsp;(unknown&nbsp;kind,&nbsp;bad&nbsp;line&nbsp;format).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.provider_mapping.html#ProviderMappingError">ProviderMappingError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ProviderMappingError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ProviderMappingError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ProviderMappingError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ProviderMappingError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ProviderMappingError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ProviderMappingError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ProviderMappingError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ProviderMappingError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ProviderMappingError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ProviderMappingError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ProviderMappingError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProviderMappingService">class <strong>ProviderMappingService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProviderMappingService">ProviderMappingService</a>(database:&nbsp;'<a href="#ProviderMappingDatabase">ProviderMappingDatabase</a>',&nbsp;state:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Per-provider&nbsp;id&nbsp;remapping&nbsp;tables,&nbsp;cache-aside&nbsp;over&nbsp;Mongo.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProviderMappingService-__init__"><strong>__init__</strong></a>(self, database: 'ProviderMappingDatabase', state: 'Any | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;persistence&nbsp;and&nbsp;optional&nbsp;Redis-cache&nbsp;seams.</span></dd></dl>
+
+<dl><dt>async <a name="ProviderMappingService-get"><strong>get</strong></a>(self, provider: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;provider's&nbsp;mapping&nbsp;document&nbsp;(default:&nbsp;empty).</span></dd></dl>
+
+<dl><dt>async <a name="ProviderMappingService-resolve"><strong>resolve</strong></a>(self, provider: 'str', kind: 'str', catalog_name: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;catalog&nbsp;name&nbsp;through&nbsp;the&nbsp;provider's&nbsp;own&nbsp;id&nbsp;(fallback:&nbsp;identity).</span></dd></dl>
+
+<dl><dt>async <a name="ProviderMappingService-update_kind"><strong>update_kind</strong></a>(self, provider: 'str', kind: 'str', mapping: 'dict[str, str]') -&gt; 'None'</dt><dd><span class="code">Replace&nbsp;one&nbsp;kind's&nbsp;mapping&nbsp;table&nbsp;for&nbsp;one&nbsp;provider.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-parse_mapping_lines"><strong>parse_mapping_lines</strong></a>(lines: 'list[str]') -&gt; 'dict[str, str]'</dt><dd><span class="code">Parse&nbsp;``catalog=provider``&nbsp;lines&nbsp;into&nbsp;a&nbsp;mapping&nbsp;dict.<br>
+&nbsp;<br>
+Blank&nbsp;lines&nbsp;are&nbsp;skipped;&nbsp;a&nbsp;line&nbsp;without&nbsp;``=``&nbsp;raises&nbsp;loudly&nbsp;—&nbsp;a<br>
+mapping&nbsp;fix&nbsp;must&nbsp;be&nbsp;explicit,&nbsp;never&nbsp;silently&nbsp;dropped.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CACHE_SCOPE</strong> = 'provider_mappings'<br>
+<strong>CACHE_TTL_S</strong> = 600<br>
+<strong>MAPPING_KINDS</strong> = ('factions', 'maps')<br>
+<strong>PROVIDER_MAPPINGS_COLLECTION</strong> = 'provider_mappings'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.provider_mapping (WARNING)&gt;</td></tr></table>
+</body></html>

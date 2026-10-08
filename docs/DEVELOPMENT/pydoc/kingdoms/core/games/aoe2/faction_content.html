@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.faction_content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.faction_content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/faction_content.py">SOURCE_ROOT/core/games/aoe2/faction_content.py</a></td></tr></table>
+    <p><span class="code">Faction/map&nbsp;localized-content&nbsp;provider:&nbsp;aoe2techtree&nbsp;extraction&nbsp;(core).<br>
+&nbsp;<br>
+The&nbsp;content&nbsp;source&nbsp;for&nbsp;AoE2&nbsp;factions&nbsp;and&nbsp;maps&nbsp;is&nbsp;the&nbsp;**aoe2techtree**<br>
+open-source&nbsp;dataset&nbsp;(SiegeEngineers/aoe2techtree,&nbsp;MIT&nbsp;licence,&nbsp;data<br>
+extracted&nbsp;from&nbsp;the&nbsp;game&nbsp;under&nbsp;Microsoft's&nbsp;Game&nbsp;Content&nbsp;Usage&nbsp;Rules).<br>
+It&nbsp;ships&nbsp;per-locale&nbsp;string&nbsp;files&nbsp;(``data/locales/&lt;lng&gt;/strings.json``)<br>
+and&nbsp;a&nbsp;per-civ&nbsp;tree&nbsp;index&nbsp;(``data/data.json``)&nbsp;—&nbsp;a&nbsp;public&nbsp;git<br>
+repository,&nbsp;not&nbsp;a&nbsp;protected&nbsp;backend&nbsp;API:&nbsp;no&nbsp;scraping&nbsp;of&nbsp;a&nbsp;live&nbsp;site,<br>
+no&nbsp;ToS-grey&nbsp;zone,&nbsp;no&nbsp;AI&nbsp;summarization.&nbsp;Only&nbsp;the&nbsp;extracted,<br>
+licence-compatible&nbsp;fields&nbsp;are&nbsp;used.<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;turns&nbsp;that&nbsp;dataset&nbsp;into&nbsp;per-faction,&nbsp;per-locale&nbsp;content<br>
+descriptors&nbsp;(localized&nbsp;name&nbsp;+&nbsp;the&nbsp;civ's&nbsp;unique&nbsp;units),&nbsp;addressed&nbsp;by<br>
+the&nbsp;catalog's&nbsp;stable&nbsp;keys&nbsp;(``faction:aoe2:Franks``).&nbsp;The&nbsp;locale&nbsp;string<br>
+id&nbsp;of&nbsp;each&nbsp;civ&nbsp;is&nbsp;resolved&nbsp;from&nbsp;the&nbsp;data&nbsp;itself&nbsp;(the&nbsp;English&nbsp;string<br>
+table&nbsp;maps&nbsp;each&nbsp;civ&nbsp;name&nbsp;to&nbsp;its&nbsp;id),&nbsp;never&nbsp;hardcoded.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.aoe2.faction_content.html#TechtreeContentProvider">TechtreeContentProvider</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TechtreeContentProvider">class <strong>TechtreeContentProvider</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TechtreeContentProvider">TechtreeContentProvider</a>(dataset:&nbsp;'dict[str,&nbsp;Any]',&nbsp;strings:&nbsp;'dict[str,&nbsp;dict[str,&nbsp;str]]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Extract&nbsp;per-faction&nbsp;and&nbsp;per-map&nbsp;localized&nbsp;content&nbsp;from&nbsp;aoe2techtree.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TechtreeContentProvider-__init__"><strong>__init__</strong></a>(self, dataset: 'dict[str, Any]', strings: 'dict[str, dict[str, str]]') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;dataset&nbsp;and&nbsp;the&nbsp;per-locale&nbsp;string&nbsp;tables.</span></dd></dl>
+
+<dl><dt><a name="TechtreeContentProvider-faction_content"><strong>faction_content</strong></a>(self, faction_name: 'str', locale: 'str', mapping: 'dict[str, str] | None' = None) -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Build&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;content&nbsp;descriptor.<br>
+&nbsp;<br>
+The&nbsp;dataset&nbsp;carries&nbsp;each&nbsp;civ's&nbsp;``name_string_id``&nbsp;and<br>
+``help_string_id``&nbsp;(the&nbsp;game's&nbsp;own&nbsp;civ&nbsp;help:&nbsp;strengths,&nbsp;bonuses,<br>
+unique&nbsp;unit)&nbsp;—&nbsp;both&nbsp;resolved&nbsp;in&nbsp;the&nbsp;requested&nbsp;locale,&nbsp;falling<br>
+back&nbsp;to&nbsp;English.&nbsp;The&nbsp;help&nbsp;text's&nbsp;``&lt;br&gt;``&nbsp;markers&nbsp;become<br>
+newlines&nbsp;for&nbsp;the&nbsp;Discord&nbsp;post.<br>
+&nbsp;<br>
+``mapping``&nbsp;is&nbsp;the&nbsp;provider's&nbsp;optional&nbsp;remap&nbsp;table&nbsp;(catalog<br>
+name&nbsp;-&gt;&nbsp;provider&nbsp;id,&nbsp;see&nbsp;``ProviderMappingService``):&nbsp;a&nbsp;patch<br>
+can&nbsp;renumber&nbsp;the&nbsp;provider's&nbsp;ids,&nbsp;the&nbsp;catalog's&nbsp;never&nbsp;move.</span></dd></dl>
+
+<dl><dt><a name="TechtreeContentProvider-faction_names"><strong>faction_names</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;civ&nbsp;name&nbsp;known&nbsp;to&nbsp;the&nbsp;dataset.</span></dd></dl>
+
+<dl><dt><a name="TechtreeContentProvider-map_content"><strong>map_content</strong></a>(self, map_name: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Build&nbsp;one&nbsp;map's&nbsp;localized&nbsp;content&nbsp;descriptor&nbsp;(name&nbsp;only&nbsp;today).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="TechtreeContentProvider-from_files"><strong>from_files</strong></a>(data_json: 'str', locale_files: 'dict[str, str]') -&gt; 'TechtreeContentProvider'</dt><dd><span class="code">Build&nbsp;from&nbsp;the&nbsp;raw&nbsp;file&nbsp;contents&nbsp;(data.json&nbsp;+&nbsp;locale&nbsp;strings).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PROVIDER_KEY</strong> = 'aoe2techtree'<br>
+<strong>SOURCE_URL</strong> = 'https://github.com/SiegeEngineers/aoe2techtree'<br>
+<strong>SUPPORTED_LOCALES</strong> = ('en', 'fr')<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.faction_content (WARNING)&gt;</td></tr></table>
+</body></html>

@@ -25,7 +25,7 @@ from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
 from kingdoms.core.models.game_data import (
-    CivModel,
+    FactionModel,
     MapModel,
     MapPackModel,
     MapPoolActivationModel,
@@ -42,7 +42,7 @@ MAP_POOLS_COLLECTION = "map_pools"
 MAP_PACKS_COLLECTION = "map_packs"
 MAP_POOL_HISTORY_COLLECTION = "map_pool_history"
 ADMIN_AUDIT_COLLECTION = "admin_audit"
-CIVS_COLLECTION = "civs"
+FACTIONS_COLLECTION = "factions"
 RULES_COLLECTION = "rules"
 
 
@@ -61,8 +61,14 @@ class GameDataDatabase(Protocol):
         """Return the non-archived entry for ``(game_key, name)``; None when absent."""
         ...
 
-    async def find_active_maps(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived maps for a game."""
+    async def find_active_maps(
+        self, game_key: str, guild_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List the non-archived maps for a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones; unscoped:
+        every map of the game.
+        """
         ...
 
     async def find_game_keys(self) -> list[str]:
@@ -79,8 +85,10 @@ class GameDataDatabase(Protocol):
         """
         ...
 
-    async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
-        """List the non-archived civs for a game."""
+    async def find_active_factions(
+        self, game_key: str, guild_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List the non-archived factions for a game, scoped like the maps."""
         ...
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
@@ -123,9 +131,21 @@ class GameDataService:
     # ── Maps ────────────────────────────────────────────────────────────
 
     async def create_map(
-        self, game_key: str, name: str, filename: str, description: str = "", resource_url: str = ""
+        self,
+        game_key: str,
+        name: str,
+        filename: str,
+        description: str = "",
+        resource_url: str = "",
+        owner_guild_id: str | None = None,
     ) -> MapModel:
-        """Create a map; the name must be unique among non-archived maps."""
+        """Create a map; the name must be unique among non-archived maps.
+
+        ``owner_guild_id`` scopes the map to one guild (guild-local
+        enrichment); None is the global catalog (config seed and bot
+        admins). Global entries sync into every guild's forum; a
+        guild's entries stay in that guild's forum.
+        """
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
@@ -135,6 +155,7 @@ class GameDataService:
             filename=filename,
             description=description,
             resource_url=resource_url,
+            owner_guild_id=owner_guild_id,
         )
         await self._db.upsert_entry(MAPS_COLLECTION, entry.to_mongo())
         await self._audit_record("map.create", {"game_key": game_key, "name": name})
@@ -149,9 +170,13 @@ class GameDataService:
         """List the game keys known to the maps catalog (generic)."""
         return await self._db.find_game_keys()
 
-    async def list_maps(self, game_key: str) -> list[MapModel]:
-        """List the non-archived maps of a game."""
-        docs = await self._db.find_active_maps(game_key)
+    async def list_maps(self, game_key: str, guild_id: str | None = None) -> list[MapModel]:
+        """List the non-archived maps of a game, scoped for one guild.
+
+        Scoped: the guild's own maps plus the global ones; unscoped:
+        every map of the game (the admin views).
+        """
+        docs = await self._db.find_active_maps(game_key, guild_id=guild_id)
         return [MapModel.from_mongo(d) for d in docs]
 
     async def list_map_pools(self, game_key: str, guild_id: str | None = None) -> list[MapPoolModel]:
@@ -431,42 +456,53 @@ class GameDataService:
 
     # ── Civs & rules ──────────────────────────────────────────────────────
 
-    async def create_civ(
-        self, game_key: str, name: str, faction_key: str = "", description: str = "", resource_url: str = ""
-    ) -> CivModel:
-        """Create a civilization/faction entry; name unique among non-archived."""
-        if await self._db.find_by_name(CIVS_COLLECTION, game_key, name) is not None:
-            raise NameTakenError(f"civ {name!r} already exists for game {game_key!r}")
-        entry = CivModel(
-            _id=f"civ:{game_key}:{name}",
+    async def create_faction(
+        self,
+        game_key: str,
+        name: str,
+        faction_key: str = "",
+        description: str = "",
+        resource_url: str = "",
+        owner_guild_id: str | None = None,
+    ) -> FactionModel:
+        """Create a faction entry; name unique among non-archived."""
+        if await self._db.find_by_name(FACTIONS_COLLECTION, game_key, name) is not None:
+            raise NameTakenError(f"faction {name!r} already exists for game {game_key!r}")
+        entry = FactionModel(
+            _id=f"faction:{game_key}:{name}",
             game_key=game_key,
             name=name,
             faction_key=faction_key,
             description=description,
             resource_url=resource_url,
+            owner_guild_id=owner_guild_id,
         )
-        await self._db.upsert_entry(CIVS_COLLECTION, entry.to_mongo())
-        await self._audit_record("civ.create", {"game_key": game_key, "name": name})
+        await self._db.upsert_entry(FACTIONS_COLLECTION, entry.to_mongo())
+        await self._audit_record("faction.create", {"game_key": game_key, "name": name})
         return entry
 
-    async def get_civ(self, entry_id: str) -> CivModel | None:
-        """Return one civ; None when unknown."""
-        doc = await self._db.find_entry(CIVS_COLLECTION, entry_id)
-        return CivModel.from_mongo(doc) if doc else None
+    async def get_faction(self, entry_id: str) -> FactionModel | None:
+        """Return one faction; None when unknown."""
+        doc = await self._db.find_entry(FACTIONS_COLLECTION, entry_id)
+        return FactionModel.from_mongo(doc) if doc else None
 
-    async def list_civs(self, game_key: str) -> list[CivModel]:
-        """List the non-archived civs of a game."""
-        docs = await self._db.find_active_civs(game_key)
-        return [CivModel.from_mongo(d) for d in docs]
+    async def list_factions(self, game_key: str, guild_id: str | None = None) -> list[FactionModel]:
+        """List the non-archived factions of a game, scoped for one guild.
 
-    async def archive_civ(self, entry_id: str) -> CivModel:
-        """Archive a civ (archival-only delete)."""
-        entry = await self._require(CIVS_COLLECTION, entry_id, CivModel.from_mongo)
+        Scoped: the guild's own factions plus the global ones; unscoped:
+        every faction of the game (the admin views).
+        """
+        docs = await self._db.find_active_factions(game_key, guild_id=guild_id)
+        return [FactionModel.from_mongo(d) for d in docs]
+
+    async def archive_faction(self, entry_id: str) -> FactionModel:
+        """Archive a faction (archival-only delete)."""
+        entry = await self._require(FACTIONS_COLLECTION, entry_id, FactionModel.from_mongo)
         if entry.archived_at is not None:
-            raise ArchivedEntryError(f"civ {entry_id!r} is already archived")
+            raise ArchivedEntryError(f"faction {entry_id!r} is already archived")
         entry = entry.model_copy(update={"archived_at": _now_ms()})
-        await self._db.upsert_entry(CIVS_COLLECTION, entry.to_mongo())
-        await self._audit_record("civ.archive", {"entry_id": entry_id})
+        await self._db.upsert_entry(FACTIONS_COLLECTION, entry.to_mongo())
+        await self._audit_record("faction.archive", {"entry_id": entry_id})
         return entry
 
     async def create_rule(
@@ -512,11 +548,11 @@ class GameDataService:
     async def seed_from_data(self, game_key: str, data: dict[str, Any]) -> dict[str, int]:
         """Seed a game's catalog from a parsed YAML document (idempotent).
 
-        Sections ``maps``, ``civs``, ``rules``: each a list of entries with
+        Sections ``maps``, ``factions`` (YAML section ``civs``), ``rules``: each a list of entries with
         a ``name`` plus optional fields. Entries already present (same id)
         are skipped, so seeding is safe to re-run.
         """
-        counts = {"maps": 0, "civs": 0, "rules": 0}
+        counts = {"maps": 0, "factions": 0, "rules": 0}
         for spec in data.get("maps", []) or []:
             if await self.get_map(f"map:{game_key}:{spec['name']}") is not None:
                 continue
@@ -528,17 +564,17 @@ class GameDataService:
                 resource_url=spec.get("resource_url", ""),
             )
             counts["maps"] += 1
-        for spec in data.get("civs", []) or []:
-            if await self.get_civ(f"civ:{game_key}:{spec['name']}") is not None:
+        for spec in data.get("factions", data.get("civs", [])) or []:
+            if await self.get_faction(f"faction:{game_key}:{spec['name']}") is not None:
                 continue
-            await self.create_civ(
+            await self.create_faction(
                 game_key,
                 spec["name"],
                 faction_key=spec.get("faction_key", ""),
                 description=spec.get("description", ""),
                 resource_url=spec.get("resource_url", ""),
             )
-            counts["civs"] += 1
+            counts["factions"] += 1
         for spec in data.get("rules", []) or []:
             if await self.get_rule(f"rule:{game_key}:{spec['name']}") is not None:
                 continue

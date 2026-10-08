@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.ids</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.ids</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/ids.py">SOURCE_ROOT/core/ids.py</a></td></tr></table>
+    <p><span class="code">Visible&nbsp;id&nbsp;builders&nbsp;and&nbsp;footers&nbsp;—&nbsp;the&nbsp;platform's&nbsp;single&nbsp;convention.<br>
+&nbsp;<br>
+Every&nbsp;entity&nbsp;the&nbsp;designers&nbsp;manipulate&nbsp;carries&nbsp;a&nbsp;**visible,&nbsp;stable&nbsp;id**<br>
+built&nbsp;here,&nbsp;from&nbsp;documented&nbsp;parts,&nbsp;never&nbsp;from&nbsp;timestamps&nbsp;or&nbsp;magic<br>
+words.&nbsp;Uniqueness&nbsp;is&nbsp;always&nbsp;the&nbsp;embedded&nbsp;key&nbsp;pair&nbsp;(never&nbsp;the&nbsp;name):<br>
+&nbsp;<br>
+-&nbsp;ladder:&nbsp;``ladder-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``<br>
+-&nbsp;season:&nbsp;``&lt;ladder&nbsp;id&gt;-&lt;index&gt;``&nbsp;(index&nbsp;incremental&nbsp;from&nbsp;1)<br>
+-&nbsp;mod&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&nbsp;key&gt;-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``<br>
+-&nbsp;territory:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``<br>
+&nbsp;<br>
+Footers&nbsp;surface&nbsp;these&nbsp;ids&nbsp;on&nbsp;Discord&nbsp;panels:&nbsp;one&nbsp;small-text&nbsp;line<br>
+(``-#``)&nbsp;so&nbsp;designers&nbsp;can&nbsp;quote&nbsp;an&nbsp;id&nbsp;to&nbsp;the&nbsp;bot&nbsp;in&nbsp;seeding&nbsp;and&nbsp;admin<br>
+commands.&nbsp;Mods&nbsp;must&nbsp;build&nbsp;ids&nbsp;and&nbsp;footers&nbsp;through&nbsp;this&nbsp;module&nbsp;only.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-footer"><strong>footer</strong></a>(*ids: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;ids&nbsp;footer&nbsp;line&nbsp;for&nbsp;a&nbsp;panel&nbsp;(empty&nbsp;ids&nbsp;are&nbsp;dropped).</span></dd></dl>
+ <dl><dt><a name="-ladder_id"><strong>ladder_id</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;ladder&nbsp;id:&nbsp;``ladder-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``.</span></dd></dl>
+ <dl><dt><a name="-mod_scope"><strong>mod_scope</strong></a>(mod_key: 'str', game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;mod's&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&gt;-&lt;game&nbsp;key&gt;-&lt;guild&nbsp;id&gt;``.</span></dd></dl>
+ <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;-&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
+ <dl><dt><a name="-territory_id"><strong>territory_id</strong></a>(season_id: 'str', map_key: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;territory&nbsp;id:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>LADDER_PREFIX</strong> = 'ladder'<br>
+<strong>TERRITORY_PREFIX</strong> = 'territory'</td></tr></table>
+</body></html>

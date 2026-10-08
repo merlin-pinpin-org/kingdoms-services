@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package kingdoms.v1;
+
+// Game content provider service (ext-aoe2techtree family): a content
+// source process serves localized game catalog data (factions, maps) to
+// svc-core. Content is immutable between game patches; the core caches it
+// in Mongo/Redis and bot admins trigger a refresh on patch days. The
+// upstream the ext process reads (vendored dataset, HTTP API, ...) is
+// the provider's own concern — the core only ever sees this contract,
+// so switching to another API source never touches the consumers.
+service Content {
+  // Declare the provider identity and its supported game/locale surface.
+  rpc GetContentCapabilities(ContentCapabilitiesRequest) returns (ContentCapabilities);
+  // Every faction key the source knows (catalog reconciliation).
+  rpc ListFactions(ListFactionsRequest) returns (FactionList);
+  // One faction's localized content (name + game-provided help summary).
+  rpc GetFactionContent(FactionContentRequest) returns (LocalizedContent);
+  // One map's localized content (name-only today).
+  rpc GetMapContent(MapContentRequest) returns (LocalizedContent);
+}
+
+message ContentCapabilitiesRequest {}
+
+message ContentCapabilities {
+  string provider_key = 1;   // e.g. "aoe2techtree"
+  string game_key = 2;       // e.g. "aoe2"
+  repeated string locales = 3; // supported content locales, e.g. "en", "fr"
+}
+
+message ListFactionsRequest {}
+
+message FactionList {
+  repeated string faction_keys = 1;
+}
+
+message FactionContentRequest {
+  string faction_key = 1;     // provider-side faction/civ identifier
+  string locale = 2;          // requested locale, empty = source default
+}
+
+message MapContentRequest {
+  string map_key = 1;         // provider-side map identifier
+  string locale = 2;
+}
+
+message LocalizedContent {
+  string entity_id = 1;       // canonical platform entity id
+  string locale = 2;          // locale actually served (fallback applied)
+  string name = 3;            // localized display name
+  string summary = 4;         // localized summary text, may be empty
+  string source_url = 5;      // data source attribution link
+  bool found = 6;             // false: the source does not know this key
+}

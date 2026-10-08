@@ -273,6 +273,7 @@ async def maps_admin_view(game_key: str) -> discord.ui.LayoutView:
     view.add_item(select_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesMapCreateButton(game_key))
+    action_row.add_item(GamesMapCreateButton(game_key, global_scope=True))
     view.add_item(action_row)
     view.add_item(GamesMapsBackButton(game_key))
     return view
@@ -280,16 +281,17 @@ async def maps_admin_view(game_key: str) -> discord.ui.LayoutView:
 
 class GamesMapCreateButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:maps:create:(?P<game_key>[a-z0-9_]+)",
+    template=rf"{_NS}:maps:create:(?P<scope>global|guild):(?P<game_key>[a-z0-9_]+)",
 ):
     """Open the map-creation modal; the map lands in the maps forum."""
 
-    def __init__(self, game_key: str) -> None:
+    def __init__(self, game_key: str, global_scope: bool = False) -> None:
         self.game_key = game_key
+        self.global_scope = global_scope
+        label = "+ Map globale" if global_scope else "+ Map"
+        custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
         super().__init__(
-            discord.ui.Button(
-                label="+ Map", style=discord.ButtonStyle.success, custom_id=f"{_NS}:maps:create:{game_key}"[:100]
-            )
+            discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100])
         )
 
     @classmethod
@@ -302,23 +304,37 @@ class GamesMapCreateButton(
     ) -> GamesMapCreateButton:
         """Rebuild the item from the wire (game key from the custom_id)."""
         del interaction, item
-        return cls(match.group("game_key"))
+        return cls(match.group("game_key"), global_scope=match.group("scope") == "global")
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard the click, then open the creation modal."""
+        """Guard the click, then open the creation modal.
+
+        The global-scope button is bot-admin only: a global map syncs
+        into every guild's forum, so only platform admins may add one.
+        """
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.send_modal(GamesMapCreateModal(self.game_key))
+        if self.global_scope:
+            from kingdoms.discord.guards import is_bot_admin
+
+            admins = getattr(getattr(interaction.client, "status_service", None), "bot_admins", ())
+            if not is_bot_admin(getattr(interaction.user, "id", None), tuple(admins)):
+                await interaction.response.send_message(
+                    "Les maps globales sont reservees aux bot admins.", ephemeral=True
+                )
+                return
+        await interaction.response.send_modal(GamesMapCreateModal(self.game_key, global_scope=self.global_scope))
 
 
 class GamesMapCreateModal(discord.ui.Modal):
     """The map-creation form: name, filename, description."""
 
-    def __init__(self, game_key: str) -> None:
+    def __init__(self, game_key: str, global_scope: bool = False) -> None:
         self.game_key = game_key
-        super().__init__(title="Creer une map", timeout=None)
+        self.global_scope = global_scope
+        super().__init__(title="Creer une map globale" if global_scope else "Creer une map", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Nom de la map", max_length=64, required=True
         )
@@ -333,7 +349,12 @@ class GamesMapCreateModal(discord.ui.Modal):
         self.add_item(self.description)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Create the map through the service, confirm."""
+        """Create the map through the service, confirm.
+
+        Guild admins create guild-local maps (``owner_guild_id``); only
+        bot admins may create global ones (``None`` scope), so a global
+        map is modifiable by admins alone.
+        """
         service = _games_wiring()
         if service is None:
             await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
@@ -342,12 +363,19 @@ class GamesMapCreateModal(discord.ui.Modal):
         if not name:
             await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
             return
+        from kingdoms.discord.guards import is_bot_admin
+
+        admins = getattr(getattr(interaction.client, "status_service", None), "bot_admins", ())
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        is_bot_admin_click = is_bot_admin(getattr(interaction.user, "id", None), tuple(admins))
+        owner_guild_id = None if is_bot_admin_click and self.global_scope else guild_id
         try:
             entry = await service.create_map(
                 self.game_key,
                 name,
                 filename=str(self.filename.value or "").strip() or name,
                 description=str(self.description.value or "").strip(),
+                owner_guild_id=owner_guild_id,
             )
         except Exception:
             logger.exception("GAMES ADMIN: map creation failed")

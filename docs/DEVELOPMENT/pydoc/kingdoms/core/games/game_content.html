@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.game_content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.game_content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/game_content.py">SOURCE_ROOT/core/games/game_content.py</a></td></tr></table>
+    <p><span class="code">Generic&nbsp;game&nbsp;content&nbsp;source&nbsp;seam&nbsp;(game-agnostic).<br>
+&nbsp;<br>
+Every&nbsp;game-specific&nbsp;content&nbsp;provider&nbsp;(aoe2:&nbsp;the&nbsp;vendored&nbsp;techtree&nbsp;dataset<br>
+or&nbsp;the&nbsp;ext-aoe2techtree&nbsp;process)&nbsp;implements&nbsp;**a&nbsp;part**&nbsp;of&nbsp;this&nbsp;generic<br>
+game&nbsp;data&nbsp;provider&nbsp;contract.&nbsp;The&nbsp;core&nbsp;consumes&nbsp;content&nbsp;through&nbsp;this&nbsp;seam<br>
+only:&nbsp;nothing&nbsp;aoe2-specific&nbsp;(or&nbsp;any&nbsp;other&nbsp;game-specific&nbsp;concern)&nbsp;leaks<br>
+here,&nbsp;so&nbsp;the&nbsp;same&nbsp;seam&nbsp;serves&nbsp;the&nbsp;next&nbsp;game's&nbsp;provider&nbsp;unchanged.<br>
+&nbsp;<br>
+Two&nbsp;source&nbsp;kinds&nbsp;implement&nbsp;the&nbsp;seam:<br>
+&nbsp;<br>
+-&nbsp;``<a href="#LocalProviderSource">LocalProviderSource</a>``&nbsp;—&nbsp;a&nbsp;game&nbsp;module's&nbsp;in-process&nbsp;content&nbsp;provider<br>
+&nbsp;&nbsp;(e.g.&nbsp;the&nbsp;vendored&nbsp;dataset&nbsp;extractor).<br>
+-&nbsp;``<a href="#RpcContentSource">RpcContentSource</a>``&nbsp;—&nbsp;a&nbsp;game&nbsp;content&nbsp;provider&nbsp;process&nbsp;over&nbsp;gRPC<br>
+&nbsp;&nbsp;(kingdoms.v1.Content).<br>
+&nbsp;<br>
+Selection&nbsp;is&nbsp;explicit&nbsp;(a&nbsp;game&nbsp;module&nbsp;resolves&nbsp;its&nbsp;own&nbsp;env/config&nbsp;and<br>
+hands&nbsp;the&nbsp;result&nbsp;here)&nbsp;—&nbsp;game&nbsp;identity&nbsp;stays&nbsp;in&nbsp;the&nbsp;game&nbsp;module.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.game_content.html#LocalProviderSource">LocalProviderSource</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.games.game_content.html#LocalizedContent">LocalizedContent</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.games.game_content.html#RpcContentSource">RpcContentSource</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.games.game_content.html#GameContentSource">GameContentSource</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GameContentSource">class <strong>GameContentSource</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GameContentSource">GameContentSource</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Localized&nbsp;game&nbsp;content&nbsp;served&nbsp;by&nbsp;an&nbsp;upstream&nbsp;(dataset&nbsp;or&nbsp;API).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.games.game_content.html#GameContentSource">GameContentSource</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GameContentSource-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="GameContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;faction's&nbsp;localized&nbsp;descriptor,&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="GameContentSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;every&nbsp;faction&nbsp;key&nbsp;known&nbsp;to&nbsp;the&nbsp;source.</span></dd></dl>
+
+<dl><dt>async <a name="GameContentSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map's&nbsp;localized&nbsp;descriptor,&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="GameContentSource-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'faction_content', 'list_factions', 'map_content'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="GameContentSource-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GameContentSource-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalProviderSource">class <strong>LocalProviderSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalProviderSource">LocalProviderSource</a>(provider:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Source&nbsp;=&nbsp;a&nbsp;game&nbsp;module's&nbsp;in-process&nbsp;content&nbsp;provider&nbsp;(default&nbsp;path).<br>
+&nbsp;<br>
+The&nbsp;wrapped&nbsp;provider&nbsp;is&nbsp;opaque&nbsp;here:&nbsp;it&nbsp;only&nbsp;needs&nbsp;the&nbsp;faction/map<br>
+extraction&nbsp;interface&nbsp;(``faction_names``,&nbsp;``faction_content``,<br>
+``map_content``).&nbsp;Game-specific&nbsp;extraction&nbsp;stays&nbsp;in&nbsp;the&nbsp;game&nbsp;module.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LocalProviderSource-__init__"><strong>__init__</strong></a>(self, provider: 'Any') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="LocalProviderSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Extract&nbsp;the&nbsp;faction's&nbsp;localized&nbsp;descriptor&nbsp;in-process.</span></dd></dl>
+
+<dl><dt>async <a name="LocalProviderSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;provider's&nbsp;faction&nbsp;index.</span></dd></dl>
+
+<dl><dt>async <a name="LocalProviderSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Extract&nbsp;the&nbsp;map's&nbsp;localized&nbsp;descriptor&nbsp;in-process.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalizedContent">class <strong>LocalizedContent</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalizedContent">LocalizedContent</a>(entity_id:&nbsp;'str',&nbsp;locale:&nbsp;'str',&nbsp;name:&nbsp;'str',&nbsp;summary:&nbsp;'str',&nbsp;source_url:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;entity's&nbsp;localized&nbsp;content,&nbsp;ready&nbsp;for&nbsp;a&nbsp;forum&nbsp;post.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LocalizedContent-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__getstate__"><strong>__getstate__</strong></a> = _dataclass_getstate(self)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt><dd><span class="code">#&nbsp;_dataclass_getstate&nbsp;and&nbsp;_dataclass_setstate&nbsp;are&nbsp;needed&nbsp;for&nbsp;pickling&nbsp;frozen<br>
+#&nbsp;classes&nbsp;with&nbsp;slots.&nbsp;&nbsp;These&nbsp;could&nbsp;be&nbsp;slightly&nbsp;more&nbsp;performant&nbsp;if&nbsp;we&nbsp;generated<br>
+#&nbsp;the&nbsp;code&nbsp;instead&nbsp;of&nbsp;iterating&nbsp;over&nbsp;fields.&nbsp;&nbsp;But&nbsp;that&nbsp;can&nbsp;be&nbsp;a&nbsp;project&nbsp;for<br>
+#&nbsp;another&nbsp;day,&nbsp;if&nbsp;performance&nbsp;becomes&nbsp;an&nbsp;issue.</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__init__"><strong>__init__</strong></a>(self, entity_id: 'str', locale: 'str', name: 'str', summary: 'str', source_url: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="LocalizedContent-__setstate__"><strong>__setstate__</strong></a> = _dataclass_setstate(self, state)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>entity_id</strong></dt>
+</dl>
+<dl><dt><strong>locale</strong></dt>
+</dl>
+<dl><dt><strong>name</strong></dt>
+</dl>
+<dl><dt><strong>source_url</strong></dt>
+</dl>
+<dl><dt><strong>summary</strong></dt>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'entity_id': 'str', 'locale': 'str', 'name': 'str', 'source_url': 'str', 'summary': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'entity_id': Field(name='entity_id',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locale': Field(name='locale',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_url': Field(name='source_url',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'summary': Field(name='summary',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('entity_id', 'locale', 'name', 'summary', 'source_url')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RpcContentSource">class <strong>RpcContentSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RpcContentSource">RpcContentSource</a>(provider_uri:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Source&nbsp;=&nbsp;a&nbsp;game&nbsp;content&nbsp;provider&nbsp;process&nbsp;(kingdoms.v1.Content).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RpcContentSource-__init__"><strong>__init__</strong></a>(self, provider_uri: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="RpcContentSource-faction_content"><strong>faction_content</strong></a>(self, faction_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;faction's&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="RpcContentSource-list_factions"><strong>list_factions</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">Fetch&nbsp;the&nbsp;provider's&nbsp;faction&nbsp;index,&nbsp;degrading&nbsp;to&nbsp;an&nbsp;empty&nbsp;list.</span></dd></dl>
+
+<dl><dt>async <a name="RpcContentSource-map_content"><strong>map_content</strong></a>(self, map_key: 'str', locale: 'str') -&gt; 'LocalizedContent | None'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;map's&nbsp;descriptor,&nbsp;degrading&nbsp;to&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-resolve_content_source"><strong>resolve_content_source</strong></a>(local: 'GameContentSource', provider_uri: 'str') -&gt; 'GameContentSource'</dt><dd><span class="code">Pick&nbsp;the&nbsp;source&nbsp;for&nbsp;one&nbsp;game&nbsp;(local&nbsp;dataset&nbsp;default,&nbsp;RPC&nbsp;optional).<br>
+&nbsp;<br>
+A&nbsp;set&nbsp;provider&nbsp;URI&nbsp;routes&nbsp;content&nbsp;through&nbsp;the&nbsp;game's&nbsp;ext&nbsp;provider<br>
+process;&nbsp;an&nbsp;empty&nbsp;URI&nbsp;keeps&nbsp;the&nbsp;local&nbsp;in-process&nbsp;provider.&nbsp;The&nbsp;game<br>
+module&nbsp;owns&nbsp;which&nbsp;env/config&nbsp;feeds&nbsp;``provider_uri``&nbsp;—&nbsp;this&nbsp;seam&nbsp;stays<br>
+game-agnostic.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core.game_content (WARNING)&gt;</td></tr></table>
+</body></html>
