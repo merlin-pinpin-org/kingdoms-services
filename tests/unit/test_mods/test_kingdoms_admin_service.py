@@ -11,12 +11,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from kingdoms.mods.kingdoms.config import default_season_config
-from kingdoms.mods.kingdoms.models import (
-    GAIA_KINGDOM_KEY,
-    LordRole,
-    TerritoryModel,
-)
 
 from kingdoms.mods.kingdoms.admin_journal import AdminReasonRequiredError
 from kingdoms.mods.kingdoms.admin_service import (
@@ -25,6 +19,12 @@ from kingdoms.mods.kingdoms.admin_service import (
     KingdomAdminService,
     ReassignError,
     ThroneSwapError,
+)
+from kingdoms.mods.kingdoms.config import default_season_config
+from kingdoms.mods.kingdoms.models import (
+    GAIA_KINGDOM_KEY,
+    LordRole,
+    TerritoryModel,
 )
 from kingdoms.mods.kingdoms.service import (
     AlreadyEnrolledError,
