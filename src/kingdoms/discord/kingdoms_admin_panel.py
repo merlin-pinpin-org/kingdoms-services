@@ -5,10 +5,10 @@ The pinned bot-admins panel is the single admin surface
 there through the ``admin_panel_mods`` seam — present when the mod is
 enabled, absent when it is not, with no core panel code change.
 
-This slice (tranche ②-a) surfaces the **season** policy operations of
-the D75 socle: the per-kingdom recruitment switch, the global
-applications switch, the kingdom/lord quotas and the foundation
-rights. Roster and entity operations follow in the next slices.
+This slice (tranche ②-b) adds the **roster** operations of the D75
+socle: the manual add, the queued assignment, the reassignment, the
+eject back to the queue and the throne swap. Entity operations and
+the journal view follow in the next slice.
 
 Every action opens a reason modal first — D75 makes the reason
 mandatory without exception, and the service layer re-checks it, so
@@ -33,6 +33,7 @@ __all__ = [
     "AdminReasonModal",
     "KingdomsAdminActionButton",
     "KingdomsAdminRecruitmentSelect",
+    "KingdomsAdminRosterButton",
     "register_kingdoms_admin_section",
     "section_entry",
     "unregister_kingdoms_admin_section",
@@ -43,7 +44,7 @@ _ACTION_PREFIX = "admin:pin:mod:kingdoms"
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "section_label": "🏰 Kingdoms",
-        "section_description": "Season policy: recruitment, applications, quotas, foundation",
+        "section_description": "Season and roster: recruitment, applications, quotas, foundation, lords, throne",
         "no_season": "No season service is wired — the panel is inactive on this run.",
         "title": "Kingdoms — season management",
         "subtitle": "D75: every action requires a reason, journaled with a 2h rollback window.",
@@ -66,10 +67,23 @@ STRINGS: dict[str, dict[str, str]] = {
         "bad_checkbox": "The foundation checkboxes take 1, 0 or nothing.",
         "done": "Done — the change is journaled (2h rollback window).",
         "failed": "The action failed: {error}",
+        "roster_label": "**Roster** — lords and throne (D75, journaled)",
+        "add_lord_button": "Add a lord",
+        "assign_queued_button": "Assign queued",
+        "reassign_button": "Reassign",
+        "eject_button": "Eject to queue",
+        "swap_throne_button": "Swap throne",
+        "player_id_label": "Player id",
+        "display_name_label": "Display name",
+        "role_label": "Role (king/lord)",
+        "kingdom_label": "Kingdom name",
+        "new_king_label": "New King id",
+        "bad_role": "The role must be king or lord.",
+        "missing_field": "Fill in the required fields.",
     },
     "fr": {
         "section_label": "🏰 Royaume",
-        "section_description": "Politique de saison : recrutement, candidatures, quotas, fondation",
+        "section_description": "Saison et roster : recrutement, candidatures, quotas, fondation, seigneurs, trône",
         "no_season": "Aucun service de saison câblé — le panneau est inactif sur cette instance.",
         "title": "Royaume — gestion de saison",
         "subtitle": "D75 : toute action exige un motif, journalisée avec fenêtre de rollback de 2 h.",
@@ -92,6 +106,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "bad_checkbox": "Les cases de fondation prennent 1, 0 ou rien.",
         "done": "Fait — le changement est journalisé (fenêtre de rollback de 2 h).",
         "failed": "L'action a échoué : {error}",
+        "roster_label": "**Roster** — seigneurs et trône (D75, journalisé)",
+        "add_lord_button": "Ajouter un seigneur",
+        "assign_queued_button": "Assigner la file",
+        "reassign_button": "Réaffecter",
+        "eject_button": "Éjecter vers la file",
+        "swap_throne_button": "Échanger le trône",
+        "player_id_label": "Identifiant joueur",
+        "display_name_label": "Nom d'affichage",
+        "role_label": "Rôle (king/lord)",
+        "kingdom_label": "Nom du royaume",
+        "new_king_label": "Id du nouveau Roi",
+        "bad_role": "Le rôle doit être king ou lord.",
+        "missing_field": "Remplis les champs requis.",
     },
 }
 
@@ -140,13 +167,13 @@ async def _season_kingdoms(interaction: discord.Interaction) -> tuple[Any | None
         return None, []
 
 
-async def _run_season_action(
+async def _run_panel_action(
     interaction: discord.Interaction,
     operation: str,
     payload: dict[str, Any],
     reason: str,
 ) -> None:
-    """Run one season operation through the D75 socle and answer."""
+    """Run one panel operation through the D75 socle and answer."""
     strings = _strings(_locale(interaction))
     admin = _admin_service(interaction)
     if admin is None:
@@ -175,13 +202,61 @@ async def _run_season_action(
                 reason=reason,
                 **actor,
             )
-        else:  # pragma: no cover - the wire template only lets the four through
+        elif operation == "add_lord":
+            await admin.add_lord(
+                payload["player_id"],
+                payload["display_name"],
+                payload["role"],
+                payload["kingdom"],
+                reason=reason,
+                **actor,
+            )
+        elif operation == "assign_queued":
+            await admin.assign_queued(
+                payload["player_id"],
+                payload["kingdom"],
+                payload["role"],
+                reason=reason,
+                **actor,
+            )
+        elif operation == "reassign":
+            await admin.reassign(
+                payload["player_id"],
+                payload["kingdom"],
+                reason=reason,
+                **actor,
+            )
+        elif operation == "eject":
+            await admin.eject_to_queue(payload["player_id"], reason=reason, **actor)
+        elif operation == "swap_throne":
+            await admin.swap_throne(
+                payload["kingdom"],
+                payload["new_king_id"],
+                reason=reason,
+                **actor,
+            )
+        else:  # pragma: no cover - the wire template only lets the panel actions through
             await _answer(interaction, strings["failed"].format(error=operation))
             return
     except KingdomsError as error:
         await _answer(interaction, strings["failed"].format(error=error.message))
         return
     await _answer(interaction, strings["done"])
+
+
+_ROSTER_FIELDS: dict[str, tuple[tuple[str, str], ...]] = {
+    "add_lord": (
+        ("player_id", "player_id_label"),
+        ("display_name", "display_name_label"),
+        ("role", "role_label"),
+        ("kingdom", "kingdom_label"),
+    ),
+    "assign_queued": (("player_id", "player_id_label"), ("kingdom", "kingdom_label"), ("role", "role_label")),
+    "reassign": (("player_id", "player_id_label"), ("kingdom", "kingdom_label")),
+    "eject": (("player_id", "player_id_label"),),
+    "swap_throne": (("kingdom", "kingdom_label"), ("new_king_id", "new_king_label")),
+}
+"""The roster modal fields per operation — text inputs, all required."""
 
 
 class AdminReasonModal(discord.ui.Modal):
@@ -224,6 +299,13 @@ class AdminReasonModal(discord.ui.Modal):
                 )
                 self.add_item(checkbox)
                 self._fields[key] = checkbox
+        elif operation in _ROSTER_FIELDS:
+            for key, label_key in _ROSTER_FIELDS[operation]:
+                roster_field: discord.ui.TextInput[AdminReasonModal] = discord.ui.TextInput(
+                    label=strings[label_key][:45], required=True, max_length=100
+                )
+                self.add_item(roster_field)
+                self._fields[key] = roster_field
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Gate the reason, parse the extras, run the operation."""
@@ -253,7 +335,23 @@ class AdminReasonModal(discord.ui.Modal):
                 else:
                     await _answer(interaction, strings["bad_checkbox"])
                     return
-        await _run_season_action(interaction, self._operation, payload, reason)
+        for key in _ROSTER_FIELDS.get(self._operation, ()):
+            if key not in self._fields:
+                continue
+            raw = str(self._fields[key].value or "").strip()
+            if not raw:
+                await _answer(interaction, strings["missing_field"])
+                return
+            if key == "role":
+                if raw not in {"king", "lord"}:
+                    await _answer(interaction, strings["bad_role"])
+                    return
+                from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
+
+                payload[key] = KING_ROLE if raw == "king" else LORD_ROLE
+            else:
+                payload[key] = raw
+        await _run_panel_action(interaction, self._operation, payload, reason)
 
 
 def _recruitment_options(strings: dict[str, str], kingdoms: list[Any]) -> list[discord.SelectOption]:
@@ -357,6 +455,52 @@ class KingdomsAdminActionButton(
         await interaction.response.send_modal(AdminReasonModal(interaction, operation, payload))
 
 
+class KingdomsAdminRosterButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_ACTION_PREFIX}:roster-(?P<action>add-lord|assign-queued|reassign|eject|swap-throne)",
+):
+    """The roster buttons: add, assign, reassign, eject, throne swap."""
+
+    _LABEL_KEYS = {
+        "add-lord": "add_lord_button",
+        "assign-queued": "assign_queued_button",
+        "reassign": "reassign_button",
+        "eject": "eject_button",
+        "swap-throne": "swap_throne_button",
+    }
+    _STYLES = {
+        "add-lord": discord.ButtonStyle.success,
+        "assign-queued": discord.ButtonStyle.primary,
+        "reassign": discord.ButtonStyle.primary,
+        "eject": discord.ButtonStyle.secondary,
+        "swap-throne": discord.ButtonStyle.danger,
+    }
+
+    def __init__(self, action: str, label: str, style: discord.ButtonStyle) -> None:
+        super().__init__(
+            discord.ui.Button(label=label, custom_id=f"{_ACTION_PREFIX}:roster-{action}", style=style)
+        )
+        self.action = action
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomsAdminRosterButton:
+        """Rebuild the button from the wire."""
+        strings = _strings(_locale(interaction))
+        action = match.group("action")
+        return cls(action, strings[cls._LABEL_KEYS[action]], cls._STYLES[action])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the reason modal with this roster action's fields."""
+        operation = self.action.replace("-", "_")
+        await interaction.response.send_modal(AdminReasonModal(interaction, operation, {}))
+
+
 def _select_row(item: discord.ui.DynamicItem[Any]) -> discord.ui.ActionRow[discord.ui.LayoutView]:
     """Wrap one dynamic item in its own ActionRow (Discord layout rule)."""
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -399,6 +543,18 @@ async def section_entry(interaction: discord.Interaction) -> discord.ui.LayoutVi
     row.add_item(KingdomsAdminActionButton("quotas", strings["quotas_button"], discord.ButtonStyle.primary))
     row.add_item(KingdomsAdminActionButton("foundation", strings["foundation_button"], discord.ButtonStyle.primary))
     blocks.append(row)
+    blocks.append(discord.ui.Separator())
+    blocks.append(discord.ui.TextDisplay(strings["roster_label"]))
+    roster_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for action in ("add-lord", "assign-queued", "reassign", "eject", "swap-throne"):
+        roster_row.add_item(
+            KingdomsAdminRosterButton(
+                action,
+                strings[KingdomsAdminRosterButton._LABEL_KEYS[action]],
+                KingdomsAdminRosterButton._STYLES[action],
+            )
+        )
+    blocks.append(roster_row)
     view.add_item(discord.ui.Container(*blocks, accent_colour=None))
     return view
 
@@ -415,7 +571,7 @@ def register_kingdoms_admin_section(bot: discord.Client) -> None:
             description=STRINGS["fr"]["section_description"],
         )
     )
-    bot.add_dynamic_items(KingdomsAdminRecruitmentSelect, KingdomsAdminActionButton)
+    bot.add_dynamic_items(KingdomsAdminRecruitmentSelect, KingdomsAdminActionButton, KingdomsAdminRosterButton)
 
 
 def unregister_kingdoms_admin_section() -> None:
