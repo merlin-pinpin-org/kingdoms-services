@@ -1,0 +1,308 @@
+"""Kingdoms mod diplomacy & marriages service (kingdoms-services#160, T6).
+
+Reference §18-§19 and decisions D32-D34, D45, D51, D53: the
+civilization-conditions engine (CIVILIZATIONS.md as admin data), the
+per-kingdom playable-civilization list recomputed at every cycle end,
+and the marriages (standard and arranged) that secure a civilization.
+
+Alliances equal civilizations (D51): the recomputed list is what the
+diplomacy surface displays; this service owns the rules only.
+"""
+from __future__ import annotations
+
+import logging
+import re
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
+
+from kingdoms.mods.kingdoms.service import (
+    KingdomNotFoundError,
+    KingdomsModError,
+    NoSeasonError,
+)
+
+if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.config import (
+        CivilizationCondition,
+        KingdomsSeasonConfig,
+    )
+    from kingdoms.mods.kingdoms.models import KingdomModel, LordModel, SeasonState
+    from kingdoms.mods.kingdoms.service import KingdomsService
+    from kingdoms.mods.kingdoms.storage import KingdomsStore
+    from kingdoms.mods.kingdoms.territories import TerritoryService
+
+logger = logging.getLogger("kingdoms.diplomacy")
+
+
+class MarriageError(KingdomsModError):
+    """Base of the marriage-domain errors."""
+
+    code = "KINGDOMS_MARRIAGE_ERROR"
+    message_key = "kingdoms.errors.marriage_unexpected"
+
+
+class AlreadyMarriedError(MarriageError):
+    """Raised when a lord weds twice (D34: one marriage per lord)."""
+
+    code = "KINGDOMS_ALREADY_MARRIED"
+    message_key = "kingdoms.errors.already_married"
+
+
+class MarriageCapacityError(MarriageError):
+    """Raised when the kingdom exceeds its marriage capacity (D53)."""
+
+    code = "KINGDOMS_MARRIAGE_CAPACITY"
+    message_key = "kingdoms.errors.marriage_capacity"
+
+
+class UnknownCivilizationError(MarriageError):
+    """Raised when the civilization is not in the catalog."""
+
+    code = "KINGDOMS_UNKNOWN_CIVILIZATION"
+    message_key = "kingdoms.errors.unknown_civilization"
+
+
+class DiplomacyService:
+    """Civilization conditions and marriage rules (reference §18-§19)."""
+
+    def __init__(
+        self,
+        store: KingdomsStore,
+        config: KingdomsSeasonConfig,
+        kingdoms_service: KingdomsService,
+        territory_service: TerritoryService,
+    ) -> None:
+        """Store the seams: persistence, config, enrollment, territories."""
+        self._store = store
+        self._config = config
+        self._kingdoms = kingdoms_service
+        self._territories = territory_service
+
+    # ------------------------------------------------------------------
+    # Conditions engine (D32/D33)
+    # ------------------------------------------------------------------
+    async def assign_starting_civilizations(self) -> dict[str, list[str]]:
+        """Give ``starting_civilizations`` civs to every kingdom at launch.
+
+        The admin parameter (0 by default) seeds the first list; the
+        recomputation then keeps it current (D32).
+        """
+        count = self._config.starting_civilizations
+        assigned: dict[str, list[str]] = {}
+        if count <= 0:
+            return assigned
+        catalog = [civ.key for civ in self._config.civilizations]
+        for kingdom in await self._kingdoms.kingdoms():
+            if kingdom.is_gaia:
+                continue
+            kingdom.civilizations = catalog[:count]
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+            assigned[kingdom.id] = kingdom.civilizations
+        return assigned
+
+    async def recalculate(self) -> dict[str, list[str]]:
+        """Recompute every kingdom's playable civilizations (cycle end).
+
+        Civs come from the owned territories' cadastre, the unlock
+        chains, the referential name rule and the marriages that secure
+        them; a lost territory drops its civ on the next pass (D32).
+        Lords of a kingdom flagged for a combat loss lose their marriage
+        first (D34/D53). Returns the new lists for the diplomacy screen.
+        """
+        season = await self._require_season()
+        kingdoms = await self._kingdoms.kingdoms()
+        lords = await self._kingdoms.lords()
+        reports: dict[str, list[str]] = {}
+        dropped = list(season.pending_marriage_losses)
+        for kingdom in kingdoms:
+            if kingdom.is_gaia:
+                continue
+            owned = await self._owned_map_keys(kingdom.id)
+            unlocked: list[str] = []
+            for civ in self._config.civilizations:
+                if self._condition_met(civ, kingdom, owned, unlocked):
+                    if civ.key not in unlocked:
+                        unlocked.append(civ.key)
+            secured = [
+                lord.married_civilization
+                for lord in lords
+                if lord.kingdom_id == kingdom.id
+                and not lord.left
+                and lord.married_civilization is not None
+                and kingdom.id not in dropped
+            ]
+            for key in secured:
+                if key not in unlocked:
+                    unlocked.append(key)
+            kingdom.civilizations = unlocked
+            kingdom.secured_civilizations = [c for c in secured if c]
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+            reports[kingdom.name] = unlocked
+        if dropped:
+            await self._apply_marriage_losses(lords, season, dropped)
+        logger.info("kingdoms: alliances recomputed - %s", reports)
+        return reports
+
+    async def _apply_marriage_losses(
+        self, lords: list[LordModel], season: SeasonState, dropped: list[str]
+    ) -> None:
+        """Drop the marriages of the defeated kingdoms (D34/D53)."""
+        for lord in lords:
+            if lord.kingdom_id in dropped and lord.married_civilization is not None:
+                logger.info(
+                    "kingdoms: %s loses the marriage %s (combat defeat)",
+                    lord.id,
+                    lord.married_civilization,
+                )
+                lord.married_civilization = None
+                await self._store.upsert_lord(lord.to_mongo())
+        season.pending_marriage_losses = []
+        await self._store.upsert_season(season.to_mongo())
+
+    def _condition_met(
+        self,
+        civ: CivilizationCondition,
+        kingdom: KingdomModel,
+        owned: list[str],
+        unlocked: list[str],
+    ) -> bool:
+        """Evaluate one unlock condition (data, never code)."""
+        if civ.requires_map_keys and any(key in owned for key in civ.requires_map_keys):
+            return True
+        if civ.requires_map_types and self._owns_map_type(kingdom.id, civ.requires_map_types):
+            return True
+        if civ.requires_civilization is not None:
+            base = civ.requires_civilization
+            return base in unlocked or base in kingdom.civilizations
+        if civ.requires_kingdom_name_pattern is not None:
+            return re.fullmatch(civ.requires_kingdom_name_pattern, kingdom.name) is not None
+        return False
+
+    async def _owns_map_type(self, kingdom_id: str, types: tuple[str, ...]) -> bool:
+        """Whether the kingdom owns a territory of one of the map types."""
+        territories = await self._territories.territories()
+        for territory in territories:
+            if territory.owner_kingdom_id != kingdom_id:
+                continue
+            entry = next(
+                (item for item in self._config.maps if item.key == territory.map_key),
+                None,
+            )
+            if entry is None:
+                continue
+            flags = entry.types.model_dump()
+            if any(flags.get(name, False) for name in types):
+                return True
+        return False
+
+    async def _owned_map_keys(self, kingdom_id: str) -> list[str]:
+        """Return the map keys owned by the kingdom."""
+        return [
+            territory.map_key
+            for territory in await self._territories.territories()
+            if territory.owner_kingdom_id == kingdom_id
+        ]
+
+    # ------------------------------------------------------------------
+    # Marriages (D34/D45/D53)
+    # ------------------------------------------------------------------
+    async def marry(self, player_id: str, civilization: str) -> str:
+        """Marry a lord to a civilization (D34: one marriage per lord).
+
+        The kingdom's capacity (grown by the epochs, D53) bounds the
+        marriages; the civilization becomes secured for the kingdom.
+        """
+        season = await self._require_season()
+        del season
+        self._check_civilization(civilization)
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == player_id),
+            None,
+        )
+        if lord is None:
+            raise KingdomNotFoundError("the player is not enrolled in the current season")
+        if lord.married_civilization is not None:
+            raise AlreadyMarriedError("a lord weds once per season (D34)")
+        if lord.kingdom_id is None:
+            raise MarriageCapacityError("the lord belongs to no kingdom")
+        kingdom = await self._kingdom_by_id(lord.kingdom_id)
+        married = await self._kingdom_marriages_async(kingdom.id)
+        if married >= kingdom.marriage_capacity:
+            raise MarriageCapacityError("the kingdom reached its marriage capacity")
+        lord.married_civilization = civilization
+        await self._store.upsert_lord(lord.to_mongo())
+        if civilization not in kingdom.secured_civilizations:
+            kingdom.secured_civilizations = [*kingdom.secured_civilizations, civilization]
+        if civilization not in kingdom.civilizations:
+            kingdom.civilizations = [*kingdom.civilizations, civilization]
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info("kingdoms: %s married %s", player_id, civilization)
+        return civilization
+
+    async def arranged_marriage(
+        self,
+        player_id: str,
+        civilization: str,
+        *,
+        spend_points: Callable[[str, int], Awaitable[None]] | None = None,
+    ) -> str:
+        """Buy an arranged marriage (3 techs, D45): instant exclusivity.
+
+        The exclusivity is instant - the civilization is reserved to
+        the kingdom right away - but the marriage capacity still binds
+        (D45: the limit is never bypassed). The caller passes the
+        ``spend_points`` seam (the economy service) so the cost lands
+        in the same transaction scope.
+        """
+        self._check_civilization(civilization)
+        if spend_points is not None:
+            await spend_points(player_id, self._config.technologies.mariage_arrange)
+        return await self.marry(player_id, civilization)
+
+    async def record_defeat(self, kingdom_id: str) -> None:
+        """Flag a combat defeat: the marriages drop at the next cycle (D34)."""
+        season = await self._require_season()
+        if kingdom_id not in season.pending_marriage_losses:
+            season.pending_marriage_losses = [
+                *season.pending_marriage_losses,
+                kingdom_id,
+            ]
+            await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: %s flagged for marriage loss at next cycle", kingdom_id)
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+    def _check_civilization(self, civilization: str) -> None:
+        """Refuse civilizations outside the admin catalog."""
+        if civilization not in {civ.key for civ in self._config.civilizations}:
+            raise UnknownCivilizationError(f"unknown civilization: {civilization}")
+
+    async def _kingdom_marriages_async(self, kingdom_id: str) -> int:
+        """Count the active marriages of a kingdom."""
+        return len(
+            [
+                lord
+                for lord in await self._kingdoms.lords()
+                if lord.kingdom_id == kingdom_id
+                and not lord.left
+                and lord.married_civilization is not None
+            ]
+        )
+
+    async def _kingdom_by_id(self, kingdom_id: str) -> KingdomModel:
+        """Resolve a kingdom by id."""
+        kingdom = next(
+            (item for item in await self._kingdoms.kingdoms() if item.id == kingdom_id),
+            None,
+        )
+        if kingdom is None:
+            raise KingdomNotFoundError("no kingdom with this id")
+        return kingdom
+
+    async def _require_season(self) -> SeasonState:
+        """Return the running season or raise the no-season error."""
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise NoSeasonError("no season is running")
+        return season

@@ -1,0 +1,99 @@
+# Kingdoms mod (Season II territory-conquest AoE2).
+# Design: kingdoms repo docs/MODS/kingdoms/ (reference Season II + DECISIONS.md D1-D54).
+# Enabled with T2 (enrollment); the declaration is validated at startup.
+#
+# Single source of truth of the mod's channels (kingdoms#138):
+# the startup provisioning and the /kingdom bootstrap both provision
+# from this declaration.
+id: kingdoms
+enabled: true
+seasonal: true
+settings: {}
+channels:
+  - key: presentation
+    display_name: Présentation
+    description: Server presentation (admin-written)
+  - key: announce
+    display_name: Annonce
+    description: Announcements (admin-written)
+  - key: rules
+    display_name: Règles
+    description: The game rules
+  - key: season
+    display_name: Saison
+    description: Season talk
+  - key: update
+    display_name: Update
+    description: Patch notes (admin-written)
+  - key: tavern
+    display_name: Taverne
+    description: Off-topic
+  - key: suggestions
+    display_name: Suggestion
+    description: Player suggestions
+  - key: apply
+    display_name: Postuler
+    description: The enrollment panel channel
+  - key: applications
+    display_name: Candidatures
+    description: Submitted applications (admin only)
+  - key: geopolitics
+    display_name: Géopolitique
+    description: Announcements, treaties and political rules
+  - key: epoch
+    display_name: Âge sombre
+    description: The current age (renamed at each age switch — adopt by group)
+  - key: patrol
+    display_name: Patrouille
+    description: Gaia patrol reports
+  - key: territory
+    display_name: Territoire
+    description: Territories and their cadastre effects
+  - key: exploration
+    display_name: Exploration
+    description: Exploration reports
+  - key: attack_delays
+    display_name: Délais-attaque
+    description: Attack delay tracking
+  - key: attack
+    display_name: Attaquer
+    description: Attack declarations
+  - key: talks
+    display_name: Pourparlers
+    description: War negotiations
+  - key: lords
+    display_name: Seigneurs
+    description: Lord profiles and orders
+  - key: diplomacy
+    display_name: Diplomatie
+    description: Alliances and civilizations
+  - key: cadastre
+    display_name: Cadastre
+    description: Territories and their cadastre effects
+  - key: settings
+    display_name: Paramètres
+    description: Mod settings panel channel
+  - key: requests
+    display_name: Demandes
+    description: Edit/leave requests (admin only)
+  - key: question
+    display_name: Question
+    description: Player questions
+  - key: bug
+    display_name: Signaler un Bug
+    description: Bug reports
+roles:
+  - key: kingdoms_king
+    display_name: Kingdoms King
+    color: 0xE6B800
+    hoisted: true
+  - key: kingdoms_lord
+    display_name: Kingdoms Lord
+    color: 0x3498DB
+  - key: kingdoms_admin
+    display_name: Kingdoms Admin
+    color: 0xE74C3C
+    hoisted: true
+workflows: []
+commands: []
+dependencies: []
