@@ -184,6 +184,9 @@ class KingdomsBot(discord.Client):
         register_admin_panel_bot(self)
         register_kingdoms_persistent_items(self)
         register_kingdoms_panel_bot(self)
+        from kingdoms.discord.kingdoms_admin_panel import register_kingdoms_admin_section
+
+        register_kingdoms_admin_section(self)
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
