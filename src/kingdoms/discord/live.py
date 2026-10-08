@@ -402,9 +402,12 @@ def _dashboard_embed(
     user = getattr(bot, "user", None) if bot is not None else None
     icon = getattr(user, "display_avatar", None) if user else None
     icon_url = getattr(icon, "url", None) if icon else None
+    # Discord caps embed descriptions at 4096 chars: a long player list
+    # would make every push/edit fail with Invalid Form Body (50035).
+    description = body[:4093] + "..." if len(body) > 4096 else body
     embed = discord.Embed(
         title="🎮 Live dashboard",
-        description=body,
+        description=description,
         colour=discord.Colour(0xF1C40F) if not snapshot.get("degraded") else discord.Colour(0xE74C3C),
     )
     if icon_url:
