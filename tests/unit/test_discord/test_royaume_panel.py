@@ -21,6 +21,7 @@ from kingdoms.discord.royaume_panel import (
     _role_of,
     build_action_modal,
     build_panel_content,
+    build_panel_view,
     register_royaume_panel_wiring,
     run_action,
     snapshot_from_services,
@@ -34,7 +35,7 @@ from tests.unit.test_mods.test_kingdoms_service import MemoryStore
 
 
 def _services() -> tuple[KingdomAdminService, KingdomsService, MemoryStore]:
-    """A launched season: Aquitaine and Bourgogne exist over MemoryStore."""
+    """A season over MemoryStore: Aquitaine and Bourgogne once launched."""
     store = MemoryStore()
     kingdoms = KingdomsService(store, default_season_config())  # type: ignore[arg-type]
     return KingdomAdminService(kingdoms, store), kingdoms, store
@@ -101,7 +102,7 @@ async def test_run_action_creates_and_journals_a_kingdom() -> None:
     admin, kingdoms, store = await _launched()
     interaction = _wire(admin, kingdoms, guild=MockGuild(id=99))
     await run_action(interaction, "create_kingdom", {"kingdom": "Gascogne", "reason": "D75 test"})
-    message = interaction.followup.messages[-1].content or interaction.response.message.content
+    message = interaction.followup.messages[-1].content
     assert "Gascogne" in message
     assert any(k.name == "Gascogne" for k in await kingdoms.kingdoms())
     assert store.admin_actions and store.admin_actions[0]["reason"] == "D75 test"
@@ -112,9 +113,22 @@ async def test_run_action_localizes_a_domain_error() -> None:
     admin, kingdoms, store = await _launched()
     interaction = _wire(admin, kingdoms)
     await run_action(interaction, "rename_kingdom", {"kingdom": "Nulle", "new_kingdom": "X", "reason": "r"})
-    message = interaction.followup.messages[-1].content or interaction.response.message.content
+    message = interaction.followup.messages[-1].content
     assert "introuvable" in message
     assert not store.admin_actions
+
+
+def test_panel_view_wires_every_action_button() -> None:
+    """The pinned panel view carries every D75 action, ids on the wire."""
+    view = build_panel_view("fr")
+    buttons = [item for item in view.children if hasattr(item, "custom_id")]
+    ids = {item.custom_id for item in buttons}
+    assert len(buttons) == 16
+    assert "kingdoms:royaume:add_lord" in ids
+    assert "kingdoms:royaume:dissolve" in ids
+    assert "kingdoms:royaume:quotas" in ids
+    assert "kingdoms:royaume:foundation" in ids
+    assert "kingdoms:royaume:journal" in ids
 
 
 def test_optional_parsers() -> None:
