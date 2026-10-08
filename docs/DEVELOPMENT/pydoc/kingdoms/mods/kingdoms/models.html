@@ -60,7 +60,12 @@ svc-core;&nbsp;the&nbsp;Discord&nbsp;surface&nbsp;reads&nbsp;them&nbsp;over&nbsp
 &nbsp;<br>
 One&nbsp;journaled&nbsp;admin&nbsp;action:&nbsp;the&nbsp;audit&nbsp;line&nbsp;and&nbsp;its&nbsp;restore&nbsp;payload.<br>
 &nbsp;<br>
-D75:&nbsp;every&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;with&nbsp;a&nbsp;mandatory&nbsp;reason&nbsp;and&nbsp;a&nbsp;snapshot&nbsp;of&nbsp;the&nbsp;touched&nbsp;documents&nbsp;*before*&nbsp;the&nbsp;mutation&nbsp;—&nbsp;the&nbsp;``before``/``after``&nbsp;payloads&nbsp;are&nbsp;raw&nbsp;store&nbsp;documents&nbsp;keyed&nbsp;by&nbsp;``&lt;collection&gt;:&lt;document&nbsp;id&gt;``,&nbsp;and&nbsp;the&nbsp;rollback&nbsp;reapplies&nbsp;``before``&nbsp;verbatim.&nbsp;A&nbsp;compacted&nbsp;entry&nbsp;(48h+)&nbsp;drops&nbsp;both&nbsp;payloads&nbsp;and&nbsp;keeps&nbsp;the&nbsp;summary&nbsp;(who,&nbsp;what,&nbsp;why,&nbsp;when).<br>&nbsp;</span></td></tr>
+D75:&nbsp;every&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;with&nbsp;a&nbsp;mandatory&nbsp;reason&nbsp;and&nbsp;a<br>
+snapshot&nbsp;of&nbsp;the&nbsp;touched&nbsp;documents&nbsp;*before*&nbsp;the&nbsp;mutation&nbsp;—&nbsp;the<br>
+``before``/``after``&nbsp;payloads&nbsp;are&nbsp;raw&nbsp;store&nbsp;documents&nbsp;keyed&nbsp;by<br>
+``&lt;collection&gt;:&lt;document&nbsp;id&gt;``,&nbsp;and&nbsp;the&nbsp;rollback&nbsp;reapplies<br>
+``before``&nbsp;verbatim.&nbsp;A&nbsp;compacted&nbsp;entry&nbsp;(48h+)&nbsp;drops&nbsp;both&nbsp;payloads<br>
+and&nbsp;keeps&nbsp;the&nbsp;summary&nbsp;(who,&nbsp;what,&nbsp;why,&nbsp;when).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.models.html#AdminActionModel">AdminActionModel</a></dd>
@@ -117,8 +122,6 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>__pydantic_setattr_handlers__</strong> = {}</dl>
 
 <dl><dt><strong>__pydantic_validator__</strong> = SchemaValidator(title="AdminActionModel", valida...l",
-    },
-), definitions=[], cache_strings=True)</dl>
     },
 ), definitions=[], cache_strings=True)</dl>
 

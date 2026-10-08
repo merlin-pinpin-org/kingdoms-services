@@ -1,0 +1,178 @@
+........................................................................ [  7%]
+........................................................................ [ 14%]
+........................................................................ [ 21%]
+........................................................................ [ 28%]
+........................................................................ [ 36%]
+........................................................................ [ 43%]
+........................................................................ [ 50%]
+........................................................................ [ 57%]
+........................................................................ [ 64%]
+........................................................................ [ 72%]
+........................................................................ [ 79%]
+................................................................F...F.F. [ 86%]
+........................................................................ [ 93%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+____________________ test_every_operation_requires_a_reason ____________________
+
+    async def test_every_operation_requires_a_reason() -> None:
+        admin, kingdoms, store = await _launched()
+        await _enroll_lord(kingdoms, "p1", "Aquitaine")
+        with pytest.raises(AdminReasonRequiredError):
+            await admin.rename_kingdom("Aquitaine", "Gascogne", reason="  ", **ACTOR)
+        with pytest.raises(AdminReasonRequiredError):
+>           await admin.set_recruitment("Aquitaine", open=False, reason="", **ACTOR)
+
+tests/unit/test_mods/test_kingdoms_admin_service.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/kingdoms/mods/kingdoms/admin_service.py:446: in set_recruitment
+    kingdom = await self._find_kingdom(kingdom_name)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <kingdoms.mods.kingdoms.admin_service.KingdomAdminService object at 0x7f651c2aea50>
+kingdom_name = 'Aquitaine'
+
+    async def _find_kingdom(self, kingdom_name: str) -> KingdomModel:
+        """Resolve a kingdom by display name, Gaïa included."""
+        kingdoms = await self._kingdoms.kingdoms()
+        wanted = kingdom_name.strip().casefold()
+        found = next((k for k in kingdoms if k.name.casefold() == wanted), None)
+        if found is None:
+>           raise KingdomNotFoundError("no kingdom with this name in the current season")
+E           kingdoms.mods.kingdoms.service.KingdomNotFoundError: [KINGDOMS_KINGDOM_NOT_FOUND] no kingdom with this name in the current season
+
+src/kingdoms/mods/kingdoms/admin_service.py:657: KingdomNotFoundError
+_________________ test_reassign_moves_a_lord_between_kingdoms __________________
+
+    async def test_reassign_moves_a_lord_between_kingdoms() -> None:
+        admin, kingdoms, _ = await _launched()
+        await _enroll_lord(kingdoms, "p1", "Aquitaine")
+        lord = await admin.reassign("p1", "Bourgogne", reason="D17 rebalance", **ACTOR)
+        assert lord.kingdom_id == "k-2"
+        assert lord.role is LordRole.LORD
+        with pytest.raises(ReassignError):
+            await admin.reassign("p1", "Bourgogne", reason="already there", **ACTOR)
+        with pytest.raises(ReassignError):
+>           await admin.reassign("nobody", "Aquitaine", reason="not enrolled", **ACTOR)
+
+tests/unit/test_mods/test_kingdoms_admin_service.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/kingdoms/mods/kingdoms/admin_service.py:205: in reassign
+    lord = await self._require_lord(player_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <kingdoms.mods.kingdoms.admin_service.KingdomAdminService object at 0x7f651f19c9b0>
+player_id = 'nobody'
+
+    async def _require_lord(self, player_id: str) -> LordModel:
+        """Return the player's lord document or raise a not-found error."""
+        lord = await self._find_lord(player_id)
+        if lord is None:
+>           raise KingdomNotFoundError("the player is not enrolled in the current season")
+E           kingdoms.mods.kingdoms.service.KingdomNotFoundError: [KINGDOMS_KINGDOM_NOT_FOUND] the player is not enrolled in the current season
+
+src/kingdoms/mods/kingdoms/admin_service.py:670: KingdomNotFoundError
+___________ test_create_and_rollback_delete_the_kingdom_and_its_maps ___________
+
+    async def test_create_and_rollback_delete_the_kingdom_and_its_maps() -> None:
+        admin, kingdoms, store = await _launched()
+        await admin.set_quotas(kingdoms_count=3, reason="expansion", **ACTOR)
+        kingdom = await admin.create_kingdom("Gascogne", reason="third kingdom", **ACTOR)
+        assert kingdom.name == "Gascogne"
+        drawn = [t for t in store.territories.values() if t["owner_kingdom_id"] == kingdom.id]
+        assert drawn  # the creation drew the kingdom's maps
+        action = next(
+            entry for entry in await admin.journal.actions() if entry.action_type == "create_kingdom"
+        )
+>       await admin.rollback(action.id, reason="wrong kingdom", **ACTOR)
+
+tests/unit/test_mods/test_kingdoms_admin_service.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/kingdoms/mods/kingdoms/admin_service.py:577: in rollback
+    await self._delete(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <kingdoms.mods.kingdoms.admin_service.KingdomAdminService object at 0x7f651c2f3680>
+key = 'kingdoms_territories:s-20261008-055046-t-salt-marsh'
+
+    async def _delete(self, key: str) -> None:
+        """Delete one document created by the rolled-back action."""
+        kind, doc_id = key.rsplit(":", 1)
+        if kind == KINGDOMS_COLLECTION:
+            await self._store.delete_kingdom(doc_id)
+        elif kind == LORDS_COLLECTION:
+            await self._store.delete_lord(doc_id)
+        elif kind == TERRITORIES_COLLECTION:
+>           await self._store.delete_territory(doc_id)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'MemoryStore' object has no attribute 'delete_territory'. Did you mean: 'upsert_territory'?
+
+src/kingdoms/mods/kingdoms/admin_service.py:640: AttributeError
+=============================== warnings summary ===============================
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:315: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom_name.label = strings["kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:317: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.insight_link.label = strings["insight_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:319: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.game_id.label = strings["game_id_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:321: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.smurfs.label = strings["smurfs_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_leave_modal_relays_to_demandes
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_profiles.py:439: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.reason.label = strings["leave_reason_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_remove_button_opens_modal
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:406: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["remove_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:456: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["assign_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:457: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["assign_kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:496: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["add_kingdom_field"][:45]
+
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_map_key_condition_unlocks_celtes
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_losing_the_territory_drops_the_civilization
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_water_maps_unlock_chinese_and_its_chain
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_kingdom_name_pattern_unlocks_hongrois
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_marry_secures_a_civilization_once_per_lord
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_at_the_next_recalculation
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/mods/kingdoms/diplomacy.py:172: RuntimeWarning: coroutine 'DiplomacyService._owns_map_type' was never awaited
+    if civ.requires_map_types and self._owns_map_type(kingdom.id, civ.requires_map_types):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_mods/test_kingdoms_admin_service.py::test_every_operation_requires_a_reason - kingdoms.mods.kingdoms.service.KingdomNotFoundError: [KINGDOMS_KINGDOM_NOT_FOUND] no kingdom with this name in the current season
+FAILED tests/unit/test_mods/test_kingdoms_admin_service.py::test_reassign_moves_a_lord_between_kingdoms - kingdoms.mods.kingdoms.service.KingdomNotFoundError: [KINGDOMS_KINGDOM_NOT_FOUND] the player is not enrolled in the current season
+FAILED tests/unit/test_mods/test_kingdoms_admin_service.py::test_create_and_rollback_delete_the_kingdom_and_its_maps - AttributeError: 'MemoryStore' object has no attribute 'delete_territory'. Did you mean: 'upsert_territory'?
+3 failed, 997 passed, 27 warnings in 7.47s

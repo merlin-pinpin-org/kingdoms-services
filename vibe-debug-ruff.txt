@@ -1,0 +1,58 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/kingdoms/mods/kingdoms/admin_journal.py:23:1
+   |
+21 |   stores the raw reason verbatim.
+22 |   """
+23 | / from __future__ import annotations
+24 | |
+25 | | import logging
+26 | | from datetime import UTC, datetime, timedelta
+27 | | from itertools import count
+28 | | from typing import Any
+29 | |
+30 | |
+31 | | from kingdoms.core.exceptions import KingdomsError
+32 | | from kingdoms.mods.kingdoms.models import AdminActionModel
+33 | | from kingdoms.mods.kingdoms.storage import KingdomsStore
+   | |________________________________________________________^
+34 |
+35 |   logger = logging.getLogger("kingdoms.admin_journal")
+   |
+help: Organize imports
+   |
+29 |
+   -
+30 | from kingdoms.core.exceptions import KingdomsError
+   |
+
+D401 First line of docstring should be in imperative mood: "The kingdom quota in force: the D75 override, else the config."
+   --> src/kingdoms/mods/kingdoms/service.py:470:9
+    |
+469 |     def _effective_kingdoms_count(self, season: SeasonState) -> int:
+470 |         """The kingdom quota in force: the D75 override, else the config."""
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+471 |         return season.kingdoms_count_override or self._config.kingdoms_count
+    |
+
+D401 First line of docstring should be in imperative mood: "The lord quota in force: the D75 override, else the config."
+   --> src/kingdoms/mods/kingdoms/service.py:474:9
+    |
+473 |     def _effective_lords_per_kingdom(self, season: SeasonState) -> int:
+474 |         """The lord quota in force: the D75 override, else the config."""
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+475 |         return season.lords_per_kingdom_override or self._config.lords_per_kingdom
+    |
+
+RUF059 Unpacked variable `kingdoms` is never used
+  --> tests/unit/test_mods/test_kingdoms_admin_service.py:89:12
+   |
+88 | async def test_add_lord_bypasses_the_queue_and_journals() -> None:
+89 |     admin, kingdoms, store = await _launched()
+   |            ^^^^^^^^
+90 |     lord = await admin.add_lord(
+91 |         "p1", "Player One", LordRole.LORD, "Aquitaine", reason="joined late", **ACTOR
+   |
+help: Prefix it with an underscore or any other dummy variable pattern
+
+Found 4 errors.
+[*] 1 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option).
