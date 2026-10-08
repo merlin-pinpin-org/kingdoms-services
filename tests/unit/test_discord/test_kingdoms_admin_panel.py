@@ -299,7 +299,7 @@ async def test_roster_rejects_a_bad_role() -> None:
     interaction = await _roster_run(
         store, "add-lord", reason="essai", player_id="p1", display_name="P1", role="boss", kingdom="Aquitaine"
     )
-    assert "king ou lord" in str(interaction.response.message.content)
+    assert "king ou lord" in str(interaction.followup.messages[-1].content)
     assert store.admin_actions == {}
 
 
@@ -307,5 +307,5 @@ async def test_roster_requires_the_fields() -> None:
     """A blank required roster field never reaches the store."""
     store = await _launched_store()
     interaction = await _roster_run(store, "eject", reason="essai", player_id="")
-    assert "champs requis" in str(interaction.response.message.content)
+    assert "champs requis" in str(interaction.followup.messages[-1].content)
     assert store.admin_actions == {}
