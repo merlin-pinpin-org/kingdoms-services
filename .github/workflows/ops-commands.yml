@@ -346,4 +346,8 @@ jobs:
               fi
             } > /tmp/report.md
           fi
-          gh pr comment "$THREAD" --repo merlin-pinpin-org/kingdoms-services --body-file /tmp/report.md
+          if gh pr view "$THREAD" --repo merlin-pinpin-org/kingdoms-services >/dev/null 2>&1; then
+            gh pr comment "$THREAD" --repo merlin-pinpin-org/kingdoms-services --body-file /tmp/report.md
+          else
+            gh issue comment "$THREAD" --repo merlin-pinpin-org/kingdoms-services --body-file /tmp/report.md
+          fi
