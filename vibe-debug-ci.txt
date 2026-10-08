@@ -1,0 +1,181 @@
+===== ruff =====
+C901 `_run_panel_action` is too complex (12 > 10)
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:170:11
+    |
+170 | async def _run_panel_action(
+    |           ^^^^^^^^^^^^^^^^^
+171 |     interaction: discord.Interaction,
+172 |     operation: str,
+    |
+
+C901 `on_submit` is too complex (14 > 10)
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:310:15
+    |
+308 |                 self._fields[key] = roster_field
+309 |
+310 |     async def on_submit(self, interaction: discord.Interaction) -> None:
+    |               ^^^^^^^^^
+311 |         """Gate the reason, parse the extras, run the operation."""
+312 |         strings = _strings(_locale(interaction))
+    |
+
+RUF012 Mutable default value for class attribute
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:464:19
+    |
+462 |       """The roster buttons: add, assign, reassign, eject, throne swap."""
+463 |
+464 |       _LABEL_KEYS = {
+    |  ___________________^
+465 | |         "add-lord": "add_lord_button",
+466 | |         "assign-queued": "assign_queued_button",
+467 | |         "reassign": "reassign_button",
+468 | |         "eject": "eject_button",
+469 | |         "swap-throne": "swap_throne_button",
+470 | |     }
+    | |_____^
+471 |       _STYLES = {
+472 |           "add-lord": discord.ButtonStyle.success,
+    |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+RUF012 Mutable default value for class attribute
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:471:15
+    |
+469 |           "swap-throne": "swap_throne_button",
+470 |       }
+471 |       _STYLES = {
+    |  _______________^
+472 | |         "add-lord": discord.ButtonStyle.success,
+473 | |         "assign-queued": discord.ButtonStyle.primary,
+474 | |         "reassign": discord.ButtonStyle.primary,
+475 | |         "eject": discord.ButtonStyle.secondary,
+476 | |         "swap-throne": discord.ButtonStyle.danger,
+477 | |     }
+    | |_____^
+478 |
+479 |       def __init__(self, action: str, label: str, style: discord.ButtonStyle) -> None:
+    |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/unit/test_discord/test_kingdoms_admin_panel.py:13:1
+   |
+11 |   """
+12 |
+13 | / from __future__ import annotations
+14 | |
+15 | | from types import SimpleNamespace
+16 | | from typing import Any
+17 | |
+18 | | import discord
+19 | | import pytest
+20 | |
+21 | | import kingdoms.discord.kingdoms_admin_panel as panel
+22 | | from kingdoms.discord.admin_panel_mods import registered_admin_mod_sections
+23 | | from kingdoms.mods.kingdoms.config import default_season_config
+24 | | from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE, KingdomsService
+25 | | from tests.mocks.discord_mock import MockInteraction, MockMember
+26 | |
+27 | | from ..test_mods.test_kingdoms_service import MemoryStore
+   | |_________________________________________________________^
+help: Organize imports
+   |
+19 | import pytest
+20 + from kingdoms.mods.kingdoms.config import default_season_config
+21 + from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE, KingdomsService
+22 |
+23 | import kingdoms.discord.kingdoms_admin_panel as panel
+24 | from kingdoms.discord.admin_panel_mods import registered_admin_mod_sections
+   - from kingdoms.mods.kingdoms.config import default_season_config
+   - from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE, KingdomsService
+25 | from tests.mocks.discord_mock import MockInteraction, MockMember
+   |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:233:23
+    |
+231 |     )
+232 |     service = _client(store).kingdoms_service
+233 |     lord = next(l for l in await service.lords() if l.id == "p1")
+    |                       ^
+234 |     aquitaine = next(k for k in await service.kingdoms() if k.name == "Aquitaine")
+235 |     assert lord.kingdom_id == aquitaine.id
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:248:23
+    |
+246 |         store, "assign-queued", reason="sortie de file", player_id="q1", kingdom="Bourgogne", role="lord"
+247 |     )
+248 |     lord = next(l for l in await service.lords() if l.id == "q1")
+    |                       ^
+249 |     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
+250 |     assert lord.in_queue is False
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:261:23
+    |
+259 |     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+260 |     await _roster_run(store, "reassign", reason="équilibrage", player_id="m1", kingdom="Bourgogne")
+261 |     lord = next(l for l in await service.lords() if l.id == "m1")
+    |                       ^
+262 |     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
+263 |     assert lord.kingdom_id == bourgogne.id
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:273:23
+    |
+271 |     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+272 |     await _roster_run(store, "eject", reason="sanction", player_id="m1")
+273 |     lord = next(l for l in await service.lords() if l.id == "m1")
+    |                       ^
+274 |     assert lord.in_queue is True
+275 |     assert lord.kingdom_id is None
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:290:26
+    |
+288 |     await _roster_run(store, "swap-throne", reason="abdication", kingdom="Aquitaine", new_king_id="k2")
+289 |     service = _client(store).kingdoms_service
+290 |     lords = {l.id: l for l in await service.lords()}
+    |                          ^
+291 |     assert lords["k2"].role is KING_ROLE
+292 |     assert lords["k1"].role is LORD_ROLE
+    |
+
+Found 10 errors.
+[*] 1 fixable with the `--fix` option.
+===== mypy =====
+src/kingdoms/discord/kingdoms_admin_panel.py:144: error: Skipping analyzing "kingdoms.mods.kingdoms.admin_service": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+src/kingdoms/discord/kingdoms_admin_panel.py:144: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+src/kingdoms/discord/kingdoms_admin_panel.py:338: error: Incompatible types in assignment (expression has type "tuple[str, str]", variable has type "str")  [assignment]
+src/kingdoms/discord/kingdoms_admin_panel.py:349: error: Skipping analyzing "kingdoms.mods.kingdoms.service": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+Found 3 errors in 1 file (checked 145 source files)
+===== pytest =====
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/runner/work/kingdoms-services/kingdoms-services
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.4.0, simcord-2.1.0, anyio-4.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 749 items / 1 error
+
+==================================== ERRORS ====================================
+____ ERROR collecting tests/unit/test_discord/test_kingdoms_admin_panel.py _____
+ImportError while importing test module '/home/runner/work/kingdoms-services/kingdoms-services/tests/unit/test_discord/test_kingdoms_admin_panel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/unit/test_discord/test_kingdoms_admin_panel.py:23: in <module>
+    from kingdoms.mods.kingdoms.config import default_season_config
+E   ModuleNotFoundError: No module named 'kingdoms.mods.kingdoms'
+=========================== short test summary info ============================
+ERROR tests/unit/test_discord/test_kingdoms_admin_panel.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 2.12s ===============================
