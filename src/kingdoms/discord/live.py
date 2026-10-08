@@ -21,7 +21,7 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.discord.commands_i18n import localized
+from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.live")
 
@@ -181,7 +181,7 @@ def register_live_commands(
         from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
 
         if interaction.user.id is None or profile_id.strip() == "":
-            await interaction.response.send_message("A profile id is required.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "profile_required"), ephemeral=True)
             return
         profile = profile_id.strip()
         binding = {

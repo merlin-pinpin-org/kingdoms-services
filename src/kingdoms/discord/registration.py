@@ -20,7 +20,7 @@ from discord import app_commands
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.registration import RegistrationService
 from kingdoms.core.services.workflow import WorkflowEngine
-from kingdoms.discord.commands_i18n import localized
+from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.registration")
 
@@ -59,7 +59,7 @@ class RegistrationConfirmButton(
         """Advance the workflow one step (confirm)."""
         engine, registration = _wiring()
         if engine is None:
-            await interaction.response.send_message("Registration is unavailable.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "unavailable"), ephemeral=True)
             return
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
@@ -97,7 +97,7 @@ class ProfileIdModal(discord.ui.Modal, title="AoE2 profile"):
         """Validate and bind through the RegistrationService."""
         engine, _ = _wiring()
         if engine is None:
-            await interaction.response.send_message("Registration is unavailable.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "unavailable"), ephemeral=True)
             return
         workflow_id = _active_workflow_id(interaction.user.id)
         if workflow_id is None:
@@ -189,7 +189,7 @@ def register_registration_command(
     async def register_command(interaction: discord.Interaction) -> None:
         """Start the DM enrollment workflow."""
         if engine is None or registration is None:
-            await interaction.response.send_message("Registration is unavailable on this deployment.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "unavailable_deploy"), ephemeral=True)
             return
         existing = await registration.get_binding(str(interaction.user.id), "aoe2")
         if existing is not None:

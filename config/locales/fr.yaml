@@ -38,8 +38,28 @@ fr:
       route: "Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>."
       visibility: "Visibilité des logs : {state}, par <@{by}>."
       language: "Langue définie sur {lang}, par <@{by}>."
+  replies:
+    unavailable: "Inscription indisponible."
+    unavailable_deploy: "Inscription indisponible sur ce déploiement."
+    not_configured: "L'inscription n'est pas configurée."
+    profile_required: "Un id de profil est requis."
+    profile_linked: "Compte lié."
+    profile_unlinked: "Compte détaché."
+    no_account: "Aucun compte à retirer."
+    remove_failed: "Retrait échoué."
+    menu_unavailable: "Menu indisponible."
+    unknown_view: "Vue inconnue."
+    no_home_view: "Ce mod n'a pas de vue d'accueil."
+
+  admin_replies:
+    panel_unavailable: "Le panneau admin n'est pas disponible."
+    language_changed: "Langue mise à jour."
+    language_change_failed: "Échec du changement de langue."
+
   commands:
     status_name: "statut"
+    staff_nominate_name: "Nommer staff"
+    staff_nominate_description: "Nommer ce membre au staff (admin)"
     status_description: "Statut du bot : uptime, mods, jeux, admins"
     admin_name: "admin"
     admin_description: "Panneau admin (opérateurs du bot et admins de guilde uniquement)"

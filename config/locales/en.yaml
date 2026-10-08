@@ -38,8 +38,28 @@ en:
       route: "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
       visibility: "Bot logs visibility set to {state}, by <@{by}>."
       language: "Language set to {lang}, by <@{by}>."
+  replies:
+    unavailable: "Registration is unavailable."
+    unavailable_deploy: "Registration is unavailable on this deployment."
+    not_configured: "Registration is not configured."
+    profile_required: "A profile id is required."
+    profile_linked: "Account linked."
+    profile_unlinked: "Account unlinked."
+    no_account: "No account to remove."
+    remove_failed: "Removal failed."
+    menu_unavailable: "Menu unavailable."
+    unknown_view: "Unknown view."
+    no_home_view: "This mod has no home view."
+
+  admin_replies:
+    panel_unavailable: "Admin panel unavailable."
+    language_changed: "Language updated."
+    language_change_failed: "Language change failed."
+
   commands:
     status_name: "status"
+    staff_nominate_name: "Appoint staff"
+    staff_nominate_description: "Appoint this member to the staff (admin)"
     status_description: "Bot status: uptime, mods, games, admins"
     admin_name: "admin"
     admin_description: "Admin panel (bot operators and guild admins only)"

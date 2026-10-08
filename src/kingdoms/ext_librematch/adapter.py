@@ -12,10 +12,7 @@ serves what it has and degrades — never fails the provider process.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
-from collections.abc import AsyncIterator
 from typing import Any
 from urllib.parse import urljoin
 
@@ -108,67 +105,6 @@ class LibrematchAdapter:
                 continue
             maps[name] = GameMap(map_key=name, name=name, map_type="lobby")
         return list(maps.values())
-
-    async def stream_events(self, poll_interval_s: float = 15.0) -> AsyncIterator[dict[str, Any]]:
-        """Poll the lobby advertisement list and diff it into events.
-
-        The Community API is poll-only: every interval the open lobbies
-        are fetched, and each lobby's player set is diffed against the
-        previous poll — new (lobby, profile) pairs emit ``lobby_opened``,
-        vanished pairs emit ``lobby_closed``. Transport failures degrade
-        to a skipped poll (the stream never dies).
-        """
-        known: dict[tuple[str, str], int] = {}
-        while True:
-            try:
-                lobbies = await self.fetch_lobbies()
-            except Exception:
-                logger.warning("lobby poll failed; skipping cycle", exc_info=True)
-                lobbies = []
-            now = int(time.time() * 1000)
-            seen: dict[tuple[str, str], int] = {}
-            for lobby in lobbies:
-                match_ref = str(lobby.get("advertiserId", lobby.get("match_id", "")))
-                if not match_ref:
-                    continue
-                for profile_id in self._lobby_profile_ids(lobby):
-                    key = (match_ref, profile_id)
-                    seen[key] = now
-                    if key not in known:
-                        yield {
-                            "match_ref": match_ref,
-                            "type": "lobby_opened",
-                            "occurred_at": now,
-                            "profile_ids": (profile_id,),
-                            "metadata": (),
-                        }
-            for key in known:
-                if key not in seen:
-                    yield {
-                        "match_ref": key[0],
-                        "type": "lobby_closed",
-                        "occurred_at": now,
-                        "profile_ids": (key[1],),
-                        "metadata": (),
-                    }
-            known = seen
-            await asyncio.sleep(poll_interval_s)
-
-    def _lobby_profile_ids(self, lobby: dict[str, Any]) -> tuple[str, ...]:
-        """Extract every filled slot's profile id from a raw lobby."""
-        blob = lobby.get("slotinfo")
-        if isinstance(blob, str):
-            try:
-                decoded = decode_blob(blob)
-            except BlobDecodeError:
-                return ()
-            if isinstance(decoded, list):
-                return tuple(
-                    slot.profile_id
-                    for slot in self._parse_slots(decoded)
-                    if slot.filled and slot.profile_id
-                )
-        return ()
 
     async def player_stats(self, profile_id: str) -> PlayerStats | None:
         """Fetch a profile's leaderboard stats as pre-formatted blocks.

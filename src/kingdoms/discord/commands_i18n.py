@@ -57,3 +57,25 @@ class CatalogTranslator(app_commands.Translator):
         if not rendered or rendered == key:
             return None
         return rendered
+
+
+async def reply_locale(interaction: discord.Interaction) -> str:
+    """Resolve the guild's configured locale for one interaction."""
+    bot = getattr(interaction, "client", None)
+    logs = getattr(bot, "logs_service", None)
+    guild_id = str(getattr(interaction, "guild_id", "") or "")
+    if logs is None or not guild_id:
+        return "en"
+    try:
+        return str(await logs.get_locale(guild_id) or "en")
+    except Exception:
+        return "en"
+
+
+async def reply(interaction: discord.Interaction, key: str, **kwargs: object) -> str:
+    """Render a ``replies.*`` message in the guild's locale (English fallback)."""
+    catalog = getattr(getattr(interaction, "client", None), "messages", None)
+    locale = await reply_locale(interaction)
+    if catalog is None:
+        return key
+    return catalog.render(f"replies.{key}", locale, **kwargs)

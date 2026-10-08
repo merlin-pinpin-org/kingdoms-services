@@ -23,6 +23,7 @@ from discord import app_commands
 
 from kingdoms.core.services.season_roles import SeasonRolesService
 from kingdoms.core.services.staff import StaffService
+from kingdoms.discord.commands_i18n import localized
 
 logger = logging.getLogger("kingdoms.staff")
 
@@ -292,7 +293,7 @@ def register_staff_surface(
 ) -> None:
     """Register the staff context menu and the persistent buttons on the bot."""
 
-    @app_commands.context_menu(name="Nommer staff")
+    @app_commands.context_menu(name=localized("commands.staff_nominate_name", "Nommer staff"))
     async def staff_nominate_menu(interaction: discord.Interaction, member: discord.User) -> None:
         """Right-click on a member: an admin appoints them to the staff."""
         await _nominate(interaction, member)

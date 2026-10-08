@@ -40,7 +40,7 @@ from discord import app_commands
 from kingdoms.core.services.home import HomeService
 from kingdoms.core.services.i18n import MessageCatalog
 from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
-from kingdoms.discord.commands_i18n import localized
+from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.home")
 
@@ -120,7 +120,7 @@ async def open_home_menu(interaction: discord.Interaction) -> None:
     """Answer with the home menu itself (the back target of mod views)."""
     home = getattr(interaction.client, "home_service", None)
     if home is None:
-        await interaction.response.send_message("Menu indisponible.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "menu_unavailable"), ephemeral=True)
         return
     await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
 
@@ -142,7 +142,7 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
     elif view_key.startswith("mod:"):
         await _view_mod(interaction, view_key[4:])
     else:
-        await interaction.response.send_message("Unknown view.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "unknown_view"), ephemeral=True)
 
 
 async def _view_status(interaction: discord.Interaction) -> None:
@@ -172,7 +172,7 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     """Render the user's games, linked accounts (name + elo) and actions."""
     registration = getattr(interaction.client, "registration_service", None)
     if registration is None:
-        await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
     user_id = str(interaction.user.id)
     await interaction.response.defer(ephemeral=True)
@@ -263,7 +263,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
         """Bind the account, audit, confirm."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
-            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         try:
             await registration.bind_profile(
@@ -275,7 +275,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 "Ajout echoue (profile inconnu du provider, ou deja lie).", ephemeral=True
             )
             return
-        await interaction.response.send_message("Compte lie.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
 
 
 class ProfileRemoveAccountButton(
@@ -315,7 +315,7 @@ class ProfileRemoveAccountButton(
         """Confirm with a select of the user's accounts."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
-            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         bindings = await registration.list_bindings(str(interaction.user.id))
         options = [
@@ -326,7 +326,7 @@ class ProfileRemoveAccountButton(
             for b in bindings[:25]
         ]
         if not options:
-            await interaction.response.send_message("Aucun compte a retirer.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "no_account"), ephemeral=True)
             return
         await interaction.response.send_message(
             "Quel compte retirer ?",
@@ -346,7 +346,7 @@ class ProfileRemoveSelectView(discord.ui.View):
         """Log and answer quietly (the surface is ephemeral)."""
         logger.warning("PROFILE REMOVE failed", exc_info=error)
         with contextlib.suppress(Exception):
-            await interaction.response.send_message("Retrait echoue.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "remove_failed"), ephemeral=True)
 
 
 class ProfileRemoveSelect(discord.ui.Select[Any]):
@@ -361,7 +361,7 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
         """Unlink the chosen account, confirm."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
-            await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         data = interaction.data
         raw = getattr(data, "values", None) if data is not None else None
@@ -375,7 +375,7 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
             await registration.unlink_profile(str(interaction.user.id), "aoe2", chosen)
         except Exception:
             logger.warning("PROFILE REMOVE failed", exc_info=True)
-            await interaction.response.send_message("Retrait echoue.", ephemeral=True)
+            await interaction.response.send_message(await reply(interaction, "remove_failed"), ephemeral=True)
             return
         await interaction.response.edit_message(content="Compte retire.", view=None)
 
@@ -461,7 +461,7 @@ async def _view_users(interaction: discord.Interaction) -> None:
     bot = interaction.client
     registration = getattr(bot, "registration_service", None)
     if registration is None:
-        await interaction.response.send_message("Registration is not configured.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
     roster = getattr(bot, "_registration_database", None)
@@ -528,7 +528,7 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
     bot = interaction.client
     builder = getattr(bot, "mod_home_builders", {}).get(mod)
     if builder is None:
-        await interaction.response.send_message("Ce mod n'a pas de vue home.", ephemeral=True)
+        await interaction.response.send_message(await reply(interaction, "no_home_view"), ephemeral=True)
         return
     await builder(interaction)
 

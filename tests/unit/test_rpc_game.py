@@ -80,8 +80,11 @@ def test_provider_declarations_are_zero_safe() -> None:
     for caps in (LIBREMATCH_CAPS, AOE2LOBBY_CAPS):
         assert caps.game_key == "aoe2"
         assert caps.provider_id.startswith("ext-")
-        # Both providers now serve live lobby events (WS or poll).
-        assert caps.realtime is True
+        # Lobby events come from ext-aoe2lobby (push); librematch is stats/maps.
+        if caps is AOE2LOBBY_CAPS:
+            assert caps.realtime is True
+        else:
+            assert caps.realtime is False
 
 
 def _match_details(match_ref: str) -> MatchDetails:

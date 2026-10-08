@@ -134,7 +134,7 @@ async def _require_wiring(interaction: discord.Interaction) -> AdminPanelWiring 
     """Resolve the wiring or answer the degradation note (awaited)."""
     wiring = _wiring()
     if wiring is None or wiring.logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return None
     return wiring
 
@@ -142,6 +142,17 @@ async def _require_wiring(interaction: discord.Interaction) -> AdminPanelWiring 
 async def _guard(interaction: discord.Interaction, wiring: AdminPanelWiring) -> bool:
     """Validate the click (the developer mandate), denying ephemerally."""
     return await require_admin(interaction, wiring.bot_admins, wiring.roles_service)
+
+
+async def _reply(interaction: discord.Interaction, key: str) -> str:
+    """Render an ``admin_replies.*`` message in the guild's locale."""
+    from kingdoms.discord.commands_i18n import reply_locale
+
+    catalog = getattr(getattr(interaction, "client", None), "messages", None)
+    if catalog is None:
+        return key
+    locale = await reply_locale(interaction)
+    return catalog.render(f"admin_replies.{key}", locale)
 
 
 async def _degrade(interaction: discord.Interaction, message: str) -> None:
@@ -183,14 +194,14 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values:
         return
     logs_service = wiring.logs_service
     if logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
@@ -201,12 +212,12 @@ async def _handle_locale(interaction: discord.Interaction) -> None:
     except Exception as exc:
         logger.exception("ADMIN PANEL (persistent): locale change failed for guild %s", guild_id)
         await _report(wiring, interaction, exc)
-        await _fail(interaction, "Language change failed")
+        await _fail(interaction, await _reply(interaction, "language_change_failed"))
         return
     from kingdoms.discord.pinned_views import refresh_registered_pins
 
     await refresh_registered_pins(guild_id)
-    await _fail(interaction, "Language updated")
+    await _fail(interaction, await _reply(interaction, "language_changed"))
     await _resync_guild_commands(interaction, guild_id)
 
 
@@ -231,14 +242,14 @@ async def _handle_channel(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values:
         return
     logs_service = wiring.logs_service
     if logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
@@ -265,14 +276,14 @@ async def _handle_visibility(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values:
         return
     logs_service = wiring.logs_service
     if logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
@@ -312,14 +323,14 @@ async def _handle_route(interaction: discord.Interaction, category: str) -> None
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values:
         return
     logs_service = wiring.logs_service
     if logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
@@ -359,11 +370,11 @@ async def _handle_back(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     logs_service = wiring.logs_service
     if logs_service is None:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     await interaction.response.defer()
     if not await _guard(interaction, wiring):
@@ -389,7 +400,7 @@ async def _handle_read_only(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values or values[0] == "none":
@@ -415,7 +426,7 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     if not await _guard(interaction, wiring):
         return
@@ -437,7 +448,7 @@ async def _handle_leaderboards(interaction: discord.Interaction) -> None:
         return
     guild_id = str(interaction.guild_id) if interaction.guild_id else ""
     if not guild_id:
-        await _degrade(interaction, "Admin panel unavailable")
+        await _degrade(interaction, await _reply(interaction, "panel_unavailable"))
         return
     values = await _chosen_values(interaction)
     if not values:

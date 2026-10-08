@@ -25,11 +25,9 @@ serves&nbsp;what&nbsp;it&nbsp;has&nbsp;and&nbsp;degrades&nbsp;—&nbsp;never&nbs
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
-</td><td class="multicolumn"><a href="httpx.html">httpx</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="httpx.html">httpx</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td><td class="multicolumn"><a href="time.html">time</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -78,14 +76,6 @@ Uses&nbsp;the&nbsp;authenticated&nbsp;leaderboard&nbsp;endpoint&nbsp;when&nbsp;a
 configured;&nbsp;without&nbsp;one,&nbsp;degrades&nbsp;to&nbsp;None&nbsp;(the&nbsp;caller&nbsp;falls&nbsp;back<br>
 to&nbsp;the&nbsp;manual&nbsp;path).&nbsp;Transport/decode&nbsp;failures&nbsp;also&nbsp;degrade&nbsp;—<br>
 the&nbsp;provider&nbsp;never&nbsp;fails&nbsp;the&nbsp;serving&nbsp;process.</span></dd></dl>
-
-<dl><dt>async <a name="LibrematchAdapter-stream_events"><strong>stream_events</strong></a>(self, poll_interval_s: 'float' = 15.0) -&gt; 'AsyncIterator[dict[str, Any]]'</dt><dd><span class="code">Poll&nbsp;the&nbsp;lobby&nbsp;advertisement&nbsp;list&nbsp;and&nbsp;diff&nbsp;it&nbsp;into&nbsp;events.<br>
-&nbsp;<br>
-The&nbsp;Community&nbsp;API&nbsp;is&nbsp;poll-only:&nbsp;every&nbsp;interval&nbsp;the&nbsp;open&nbsp;lobbies<br>
-are&nbsp;fetched,&nbsp;and&nbsp;each&nbsp;lobby's&nbsp;player&nbsp;set&nbsp;is&nbsp;diffed&nbsp;against&nbsp;the<br>
-previous&nbsp;poll&nbsp;—&nbsp;new&nbsp;(lobby,&nbsp;profile)&nbsp;pairs&nbsp;emit&nbsp;``lobby_opened``,<br>
-vanished&nbsp;pairs&nbsp;emit&nbsp;``lobby_closed``.&nbsp;Transport&nbsp;failures&nbsp;degrade<br>
-to&nbsp;a&nbsp;skipped&nbsp;poll&nbsp;(the&nbsp;stream&nbsp;never&nbsp;dies).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
