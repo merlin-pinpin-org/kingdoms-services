@@ -63,6 +63,8 @@ class TestModDeclaration:
             "requests",
             "rules",
             "season",
+            "season_dashboard",  # epic #214 phase 1.1 — gestion-saison
+            "season_time",  # epic #214 phase 1.1 — temps de saison
             "settings",
             "suggestions",
             "talks",
