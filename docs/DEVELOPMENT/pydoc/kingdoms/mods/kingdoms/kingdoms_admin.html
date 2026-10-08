@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdoms_admin</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdoms_admin</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdoms_admin.py">SOURCE_ROOT/mods/kingdoms/kingdoms_admin.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;/kingdoms-admin&nbsp;command&nbsp;group:&nbsp;the&nbsp;T2&nbsp;season&nbsp;management&nbsp;surface.<br>
+&nbsp;<br>
+Admin-only&nbsp;(bot&nbsp;operators,&nbsp;guild&nbsp;administrators,&nbsp;the&nbsp;bot-admins&nbsp;role&nbsp;—<br>
+the&nbsp;same&nbsp;click-time&nbsp;guard&nbsp;as&nbsp;/admin):&nbsp;launch&nbsp;a&nbsp;season,&nbsp;reset&nbsp;it,<br>
+approve&nbsp;or&nbsp;refuse&nbsp;a&nbsp;proposed&nbsp;kingdom&nbsp;name,&nbsp;assign&nbsp;queued&nbsp;players&nbsp;and<br>
+replace&nbsp;departed&nbsp;ones&nbsp;(reference&nbsp;§3-§5,&nbsp;D21-D26/D38).<br>
+&nbsp;<br>
+Answers&nbsp;are&nbsp;ephemeral&nbsp;—&nbsp;admin&nbsp;actions&nbsp;never&nbsp;flood&nbsp;the&nbsp;season&nbsp;channels.<br>
+The&nbsp;designer&nbsp;strings&nbsp;live&nbsp;in&nbsp;the&nbsp;FR/EN&nbsp;dict&nbsp;below;&nbsp;command&nbsp;names&nbsp;and<br>
+descriptions&nbsp;localize&nbsp;through&nbsp;the&nbsp;shared&nbsp;catalog<br>
+(``commands.kingdoms_admin_*``&nbsp;keys).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.app_commands.html">discord.app_commands</a><br>
+</td><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register_kingdoms_admin_command"><strong>register_kingdoms_admin_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', service: 'KingdomsService | None', bot_admins: 'tuple[str, ...]', roles_service: 'object | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdoms-admin&nbsp;command&nbsp;group&nbsp;on&nbsp;the&nbsp;command&nbsp;tree.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_LOCALE</strong> = 'en'<br>
+<strong>ERROR_STRINGS</strong> = {'en': {'already_enrolled': 'This player is already enrolled.', 'imposed': 'Kingdoms are imposed this season.', 'kingdom_full': 'This kingdom already counts its maximum of Lords.', 'kingdom_limit': 'The season already counts its maximum of kingdoms.', 'kingdom_not_found': 'No kingdom with this name.', 'name_invalid': 'This name breaks the configured rules.', 'no_season': 'No season is running.', 'not_enrollable': 'Gaïa kingdoms never enroll players.', 'not_queued': 'This player is not waiting in the queue.', 'replacement': 'The outgoing player has not left the season yet.', ...}, 'fr': {'already_enrolled': 'Ce joueur est déjà inscrit.', 'imposed': 'Les royaumes sont imposés cette saison.', 'kingdom_full': 'Ce royaume compte déjà son nombre maximum de Seigneurs.', 'kingdom_limit': 'La saison compte déjà son nombre maximum de royaumes.', 'kingdom_not_found': 'Aucun royaume de ce nom.', 'name_invalid': 'Ce nom ne respecte pas les règles configurées.', 'no_season': 'Aucune saison en cours.', 'not_enrollable': "Les royaumes Gaïa n'inscrivent jamais de joueurs.", 'not_queued': "Ce joueur n'est pas en file d'attente.", 'replacement': "Le joueur sortant n'a pas encore quitté la saison.", ...}}<br>
+<strong>Guard</strong> = collections.abc.Callable[[discord.interactions.Interaction], collections.abc.Awaitable[bool]]<br>
+<strong>STRINGS</strong> = {'en': {'assign_description': 'Assign a queued player to a kingdom', 'assign_kingdom_arg': 'kingdom', 'assign_kingdom_arg_description': 'The kingdom the player joins', 'assign_name': 'assign', 'assign_player_arg': 'player', 'assign_player_arg_description': 'The queued player to assign', 'assign_role_arg': 'role', 'assign_role_arg_description': 'King or Lord in the target kingdom', 'assigned': '🎖️ {player} joined **{kingdom}** as {role}.', 'denied': 'You are not allowed to do that — this action is reserved for bot admins.', ...}, 'fr': {'assign_description': 'Affecter un joueur en attente à un royaume', 'assign_kingdom_arg': 'royaume', 'assign_kingdom_arg_description': 'Le royaume que le joueur rejoint', 'assign_name': 'affecter', 'assign_player_arg': 'joueur', 'assign_player_arg_description': 'Le joueur en attente à affecter', 'assign_role_arg': 'role', 'assign_role_arg_description': 'Roi ou Seigneur dans le royaume cible', 'assigned': '🎖️ {player} a rejoint **{kingdom}** comme {role}.', 'denied': "Vous n'êtes pas autorisé — cette action est réservée aux admins du bot.", ...}}<br>
+<strong>__annotations__</strong> = {'ERROR_STRINGS': 'dict[str, dict[str, str]]', 'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdoms_admin (WARNING)&gt;</td></tr></table>
+</body></html>
