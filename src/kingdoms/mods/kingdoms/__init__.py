@@ -90,6 +90,7 @@ def register(bot: Any, config: Any) -> None:
         game_data=game_data,
     )
     bot.kingdoms_service = service
+    bot.kingdoms_game_data = game_data
 
     from kingdoms.mods.kingdoms.territories import TerritoryService
 
@@ -112,12 +113,17 @@ def register(bot: Any, config: Any) -> None:
 
 
 def setup_hook(bot: Any) -> None:
-    """Re-register the Kingdoms persistent UI after a restart."""
+    """Re-register the persistent UI and start the forums sync after a restart."""
+    from kingdoms.core.services.entity_forum import start_entity_forum_sync
     from kingdoms.mods.kingdoms.kingdom_persistent import register_kingdoms_persistent_items
+    from kingdoms.mods.kingdoms.territories_forum import territories_forum_spec
 
     register_kingdoms_persistent_items(bot)
+    bot._kingdoms_territories_forum_task = start_entity_forum_sync(bot, territories_forum_spec(bot))
 
 
 def close(bot: Any) -> None:
-    """Stop the mod's background tasks (none today; the hook is the contract)."""
-    del bot
+    """Stop the mod's background task (the territories forum sync)."""
+    task = getattr(bot, "_kingdoms_territories_forum_task", None)
+    if task is not None:
+        task.cancel()

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdoms_seed_cli</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdoms_seed_cli</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdoms_seed_cli.py">SOURCE_ROOT/mods/kingdoms/kingdoms_seed_cli.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;seed&nbsp;CLI&nbsp;—&nbsp;season&nbsp;data&nbsp;load,&nbsp;by&nbsp;visible&nbsp;ids.<br>
+&nbsp;<br>
+Usage::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.mods.kingdoms.kingdoms_seed_cli&nbsp;&lt;seed_yaml&gt;&nbsp;&lt;guild_id&gt;<br>
+&nbsp;<br>
+The&nbsp;seed&nbsp;file&nbsp;is&nbsp;a&nbsp;designer-authored&nbsp;YAML&nbsp;document&nbsp;keyed&nbsp;by&nbsp;the<br>
+mod's&nbsp;visible&nbsp;ids&nbsp;(the&nbsp;ones&nbsp;the&nbsp;panels'&nbsp;footers&nbsp;show):<br>
+&nbsp;<br>
+..&nbsp;code-block::&nbsp;yaml<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;season_id:&nbsp;kingdoms-aoe2-&lt;guild&nbsp;id&gt;-&lt;index&gt;&nbsp;&nbsp;&nbsp;#&nbsp;the&nbsp;footer's&nbsp;id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;map_pool_id:&nbsp;map_pool:aoe2:&lt;pool&nbsp;name&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;optional,&nbsp;the&nbsp;core&nbsp;pool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kingdoms:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;optional,&nbsp;imposed&nbsp;names<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Aquitaine<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Wessex<br>
+&nbsp;&nbsp;&nbsp;&nbsp;territories:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;optional&nbsp;initial&nbsp;draw<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;map_key:&nbsp;arabia<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;owner:&nbsp;gaia<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;map_key:&nbsp;kawasan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;owner:&nbsp;Aquitaine<br>
+&nbsp;<br>
+The&nbsp;command&nbsp;is&nbsp;idempotent:&nbsp;re-running&nbsp;over&nbsp;the&nbsp;same&nbsp;file&nbsp;is&nbsp;a&nbsp;no-op<br>
+(same&nbsp;territory&nbsp;ids&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``&nbsp;skip).&nbsp;It<br>
+never&nbsp;creates&nbsp;core&nbsp;catalog&nbsp;entries&nbsp;—&nbsp;the&nbsp;maps&nbsp;and&nbsp;pools&nbsp;come&nbsp;from&nbsp;the<br>
+core&nbsp;AoE2&nbsp;seed&nbsp;(``seed_aoe2``);&nbsp;this&nbsp;CLI&nbsp;only&nbsp;writes&nbsp;the&nbsp;mod's&nbsp;own<br>
+season&nbsp;data.&nbsp;Reads&nbsp;``MONGO_URI``/``MONGO_DB``&nbsp;from&nbsp;the&nbsp;environment.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">Seed&nbsp;the&nbsp;kingdoms&nbsp;mod's&nbsp;season&nbsp;data;&nbsp;exit&nbsp;0&nbsp;on&nbsp;success.</span></dd></dl>
+</td></tr></table>
+</body></html>

@@ -7,6 +7,8 @@ replacement, and the idempotent ownership transfer reused by T4/T5/T7.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from kingdoms.mods.kingdoms.config import (
@@ -23,6 +25,24 @@ from kingdoms.mods.kingdoms.territories import (
     TerritoryService,
 )
 
+
+class _FakeCoreSeasons:
+    """In-memory core season registry (the SeasonService seam)."""
+
+    def __init__(self) -> None:
+        self.seasons: list[Any] = []
+
+    async def list_seasons(self, scope: str) -> list[Any]:
+        del scope
+        return list(self.seasons)
+
+    async def create_season(self, scope: str, name: str, pool: Any, start: int) -> Any:
+        from types import SimpleNamespace
+
+        index = max((s.index for s in self.seasons), default=0) + 1
+        season = SimpleNamespace(id=f"{scope}-{index}", index=index, name=name)
+        self.seasons.append(season)
+        return season
 
 class MemoryStore:
     """In-memory KingdomsStore — the domain tests stay network-free."""
@@ -77,7 +97,7 @@ def _services(
     config: KingdomsSeasonConfig | None = None,
 ) -> tuple[TerritoryService, KingdomsService, MemoryStore]:
     store = MemoryStore()
-    kingdoms = KingdomsService(store, config or default_season_config())  # type: ignore[arg-type]
+    kingdoms = KingdomsService(store, config or default_season_config(), core_seasons=_FakeCoreSeasons(), guild_id="123")  # type: ignore[arg-type]
     return TerritoryService(store, kingdoms.config, kingdoms), kingdoms, store  # type: ignore[arg-type]
 
 

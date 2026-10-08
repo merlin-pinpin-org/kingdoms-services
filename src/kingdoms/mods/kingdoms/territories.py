@@ -230,9 +230,10 @@ class TerritoryService:
 
     @staticmethod
     def _new_territory(season: SeasonState, map_key: str, owner_kingdom_id: str) -> TerritoryModel:
-        """Build one territory document with a season-unique id."""
+        """Build one territory document with its visible id."""
+        from kingdoms.core.ids import territory_id
         return TerritoryModel(
-            _id=f"{season.id}-t-{map_key}",
+            _id=territory_id(season.id, map_key),
             season_id=season.id,
             map_key=map_key,
             owner_kingdom_id=owner_kingdom_id,

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.territories_forum</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.territories_forum</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/territories_forum.py">SOURCE_ROOT/mods/kingdoms/territories_forum.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;kingdoms&nbsp;territories&nbsp;forum:&nbsp;one&nbsp;post&nbsp;per&nbsp;territory,&nbsp;per&nbsp;season.<br>
+&nbsp;<br>
+Territories&nbsp;are&nbsp;**not**&nbsp;maps:&nbsp;a&nbsp;territory&nbsp;is&nbsp;backed&nbsp;by&nbsp;one&nbsp;AoE2&nbsp;map<br>
+but&nbsp;carries&nbsp;a&nbsp;mod-specific&nbsp;function&nbsp;(ownership,&nbsp;protection,&nbsp;attacks).<br>
+Each&nbsp;gets&nbsp;a&nbsp;visible&nbsp;id&nbsp;(``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``,&nbsp;built&nbsp;by<br>
+``kingdoms.core.ids``)&nbsp;and&nbsp;one&nbsp;post&nbsp;in&nbsp;the&nbsp;``kingdoms-territories``<br>
+forum&nbsp;(``games``&nbsp;category),&nbsp;built&nbsp;through&nbsp;the&nbsp;core's&nbsp;generic<br>
+entity-forum&nbsp;engine&nbsp;—&nbsp;no&nbsp;bespoke&nbsp;sync&nbsp;loop&nbsp;here.&nbsp;Every&nbsp;post&nbsp;links<br>
+back&nbsp;to&nbsp;its&nbsp;map's&nbsp;``aoe2-maps``&nbsp;forum&nbsp;post&nbsp;and&nbsp;shows&nbsp;the&nbsp;territory's<br>
+ids&nbsp;in&nbsp;a&nbsp;footer,&nbsp;so&nbsp;a&nbsp;designer&nbsp;can&nbsp;quote&nbsp;them&nbsp;in&nbsp;admin&nbsp;and&nbsp;seed<br>
+commands.<br>
+&nbsp;<br>
+The&nbsp;sync&nbsp;is&nbsp;idempotent&nbsp;and&nbsp;self-healing:&nbsp;a&nbsp;deleted&nbsp;post&nbsp;is&nbsp;recreated,<br>
+a&nbsp;redrawn&nbsp;territory&nbsp;keeps&nbsp;its&nbsp;id,&nbsp;a&nbsp;post&nbsp;for&nbsp;a&nbsp;vanished&nbsp;territory&nbsp;is<br>
+removed.&nbsp;Only&nbsp;the&nbsp;**current&nbsp;season's**&nbsp;territories&nbsp;are&nbsp;surfaced.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-territories_forum_spec"><strong>territories_forum_spec</strong></a>(bot: 'Any') -&gt; 'EntityForumSpec'</dt><dd><span class="code">Build&nbsp;the&nbsp;territories&nbsp;forum&nbsp;spec&nbsp;wired&nbsp;onto&nbsp;the&nbsp;bot's&nbsp;services.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FORUM_NAME</strong> = 'kingdoms-territories'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms.territories_forum (WARNING)&gt;</td></tr></table>
+</body></html>

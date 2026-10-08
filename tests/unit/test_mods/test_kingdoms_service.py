@@ -20,6 +20,7 @@ from kingdoms.mods.kingdoms.service import (
     KingdomLimitError,
     KingdomNameInvalidError,
     KingdomNotFoundError,
+    KingdomsModError,
     KingdomsService,
     NoSeasonError,
     NotEnrollableError,
@@ -68,7 +69,13 @@ class MemoryStore:
 
 def _service() -> tuple[KingdomsService, MemoryStore]:
     store = MemoryStore()
-    return KingdomsService(store, default_season_config()), store  # type: ignore[arg-type]
+    service = KingdomsService(
+        store,
+        default_season_config(),
+        core_seasons=_FakeCoreSeasons(),
+        guild_id="123",
+    )  # type: ignore[arg-type]
+    return service, store
 
 
 async def test_enroll_requires_a_running_season() -> None:
@@ -277,6 +284,13 @@ class _FakeGameData:
         from types import SimpleNamespace
 
         return [SimpleNamespace(name=n) for n in self._names]
+
+
+async def test_launch_without_the_core_registry_fails_explicitly() -> None:
+    service, _store = _service()
+    service._core_seasons = None
+    with pytest.raises(KingdomsModError, match="core season registry"):
+        await service.launch()
 
 
 async def test_launch_creates_a_core_season_with_incremental_index() -> None:

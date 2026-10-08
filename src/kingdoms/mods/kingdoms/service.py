@@ -200,23 +200,33 @@ class KingdomsService:
 
         The core owns the index (incremental per scope); the visible id
         follows the platform convention ``kingdoms-aoe2-<guild>-<index>``.
-        Without the core seam the legacy timestamp id stays (tests,
-        local runs).
+        Without the core seam there is no fallback: the launch raises
+        the explicit configuration error (the registry is mandatory).
         """
         if self._core_seasons is None:
-            return _season_id(now)
-        from kingdoms.mods.kingdoms import season_scope
+            raise KingdomsModError("core season registry is not wired (kingdoms needs the core seam)")
+        from kingdoms.core.ids import mod_scope
+        from kingdoms.mods.kingdoms import GAME_KEY
 
-        scope = season_scope(self._guild_id)
+        scope = mod_scope("kingdoms", GAME_KEY, self._guild_id)
         seasons = await self._core_seasons.list_seasons(scope)
         index = max((s.index for s in seasons), default=0) + 1
         core_season = await self._core_seasons.create_season(
             scope,
             f"Kingdoms season {index}",
-            None,
+            self._resolve_map_pool_id(),
             int(now.timestamp() * 1000),
         )
         return str(core_season.id)
+
+    def _resolve_map_pool_id(self) -> str | None:
+        """Resolve the season's map pool reference for the core season.
+
+        The pool and its rotations live on the core season document
+        (``map_pool_id`` + the core ``map_pool_history`` activations),
+        never on the mod's own state.
+        """
+        return getattr(self._config, "map_pool_id", None) or None
 
     async def reset(self) -> None:
         """Reset the season data without launching anything (reference §3.3)."""

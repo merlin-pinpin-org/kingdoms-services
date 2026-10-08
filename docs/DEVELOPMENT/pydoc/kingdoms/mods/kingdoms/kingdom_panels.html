@@ -48,7 +48,7 @@ stores&nbsp;are&nbsp;not&nbsp;wired&nbsp;(local&nbsp;runs):&nbsp;the&nbsp;button
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;one&nbsp;Enroll&nbsp;button.</span></dd></dl>
- <dl><dt>async <a name="-build_settings_panel"><strong>build_settings_panel</strong></a>(logs_service: 'LogService | None', guild_id: 'str', by: 'str', bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;the&nbsp;admin&nbsp;season&nbsp;actions.<br>
+ <dl><dt>async <a name="-build_settings_panel"><strong>build_settings_panel</strong></a>(logs_service: 'LogService | None', guild_id: 'str', by: 'str', bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None, kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;the&nbsp;admin&nbsp;season&nbsp;actions.<br>
 &nbsp;<br>
 Language&nbsp;and&nbsp;timezone&nbsp;live&nbsp;in&nbsp;the&nbsp;platform&nbsp;core&nbsp;(bot-admin)&nbsp;—&nbsp;the&nbsp;mod<br>
 only&nbsp;exposes&nbsp;its&nbsp;own&nbsp;season&nbsp;actions&nbsp;here.</span></dd></dl>

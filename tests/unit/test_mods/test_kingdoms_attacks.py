@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from typing import Any
+
 import pytest
 
 from kingdoms.mods.kingdoms.attacks import (
@@ -36,6 +38,24 @@ from kingdoms.mods.kingdoms.territories import TerritoryService
 
 from .test_kingdoms_service import MemoryStore as _BaseStore
 
+
+class _FakeCoreSeasons:
+    """In-memory core season registry (the SeasonService seam)."""
+
+    def __init__(self) -> None:
+        self.seasons: list[Any] = []
+
+    async def list_seasons(self, scope: str) -> list[Any]:
+        del scope
+        return list(self.seasons)
+
+    async def create_season(self, scope: str, name: str, pool: Any, start: int) -> Any:
+        from types import SimpleNamespace
+
+        index = max((s.index for s in self.seasons), default=0) + 1
+        season = SimpleNamespace(id=f"{scope}-{index}", index=index, name=name)
+        self.seasons.append(season)
+        return season
 
 class MemoryStore(_BaseStore):
     """The enrollment store extended with the T3/T4 collections."""
@@ -77,7 +97,7 @@ class Bundle:
     def __init__(self, config=None) -> None:
         self.store = MemoryStore()
         self.config = config or default_season_config()
-        self.kingdoms = KingdomsService(self.store, self.config)  # type: ignore[arg-type]
+        self.kingdoms = KingdomsService(self.store, self.config, core_seasons=_FakeCoreSeasons(), guild_id="123")  # type: ignore[arg-type]
         self.territories = TerritoryService(self.store, self.config, self.kingdoms)  # type: ignore[arg-type]
         self.attacks = AttackService(self.store, self.config, self.kingdoms, self.territories)  # type: ignore[arg-type]
 

@@ -30,19 +30,22 @@ per&nbsp;guild,&nbsp;uniqueness&nbsp;is&nbsp;the&nbsp;(scope,&nbsp;index)&nbsp;p
 <a href="kingdoms.mods.kingdoms.diplomacy.html">diplomacy</a><br>
 <a href="kingdoms.mods.kingdoms.economy.html">economy</a><br>
 <a href="kingdoms.mods.kingdoms.events.html">events</a><br>
-</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.kingdom_content.html">kingdom_content</a><br>
-<a href="kingdoms.mods.kingdoms.kingdom_panels.html">kingdom_panels</a><br>
+<a href="kingdoms.mods.kingdoms.kingdom_content.html">kingdom_content</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.kingdom_panels.html">kingdom_panels</a><br>
 <a href="kingdoms.mods.kingdoms.kingdom_persistent.html">kingdom_persistent</a><br>
 <a href="kingdoms.mods.kingdoms.kingdom_profiles.html">kingdom_profiles</a><br>
 <a href="kingdoms.mods.kingdoms.kingdom_setup.html">kingdom_setup</a><br>
-</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.kingdoms.html">kingdoms</a><br>
+<a href="kingdoms.mods.kingdoms.kingdoms.html">kingdoms</a><br>
 <a href="kingdoms.mods.kingdoms.kingdoms_admin.html">kingdoms_admin</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.kingdoms_seed.html">kingdoms_seed</a><br>
+<a href="kingdoms.mods.kingdoms.kingdoms_seed_cli.html">kingdoms_seed_cli</a><br>
 <a href="kingdoms.mods.kingdoms.models.html">models</a><br>
 <a href="kingdoms.mods.kingdoms.season_end.html">season_end</a><br>
 <a href="kingdoms.mods.kingdoms.service.html">service</a><br>
-</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.snapshot.html">snapshot</a><br>
-<a href="kingdoms.mods.kingdoms.storage.html">storage</a><br>
+<a href="kingdoms.mods.kingdoms.snapshot.html">snapshot</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.kingdoms.storage.html">storage</a><br>
 <a href="kingdoms.mods.kingdoms.territories.html">territories</a><br>
+<a href="kingdoms.mods.kingdoms.territories_forum.html">territories_forum</a><br>
 <a href="kingdoms.mods.kingdoms.views.html">views</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
@@ -50,7 +53,7 @@ per&nbsp;guild,&nbsp;uniqueness&nbsp;is&nbsp;the&nbsp;(scope,&nbsp;index)&nbsp;p
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-close"><strong>close</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Stop&nbsp;the&nbsp;mod's&nbsp;background&nbsp;tasks&nbsp;(none&nbsp;today;&nbsp;the&nbsp;hook&nbsp;is&nbsp;the&nbsp;contract).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-close"><strong>close</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Stop&nbsp;the&nbsp;mod's&nbsp;background&nbsp;task&nbsp;(the&nbsp;territories&nbsp;forum&nbsp;sync).</span></dd></dl>
  <dl><dt>async <a name="-graft_core_catalog"><strong>graft_core_catalog</strong></a>(config: 'Any', game_data: 'Any') -&gt; 'Any'</dt><dd><span class="code">Graft&nbsp;the&nbsp;core's&nbsp;map&nbsp;catalog&nbsp;onto&nbsp;the&nbsp;mod's&nbsp;season&nbsp;config.<br>
 &nbsp;<br>
 The&nbsp;core's&nbsp;``maps``&nbsp;collection&nbsp;(fed&nbsp;by&nbsp;the&nbsp;seed&nbsp;and&nbsp;the&nbsp;games&nbsp;admin<br>
@@ -65,7 +68,7 @@ The&nbsp;map-catalog&nbsp;graft&nbsp;happens&nbsp;at&nbsp;season&nbsp;launch&nbs
 ``game_data``&nbsp;seam,&nbsp;so&nbsp;the&nbsp;drawn&nbsp;territories&nbsp;always&nbsp;match&nbsp;what&nbsp;the<br>
 guild&nbsp;sees&nbsp;in&nbsp;its&nbsp;maps&nbsp;forum.</span></dd></dl>
  <dl><dt><a name="-season_scope"><strong>season_scope</strong></a>(guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;core&nbsp;season&nbsp;scope&nbsp;for&nbsp;this&nbsp;mod's&nbsp;seasons&nbsp;in&nbsp;one&nbsp;guild.</span></dd></dl>
- <dl><dt><a name="-setup_hook"><strong>setup_hook</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;Kingdoms&nbsp;persistent&nbsp;UI&nbsp;after&nbsp;a&nbsp;restart.</span></dd></dl>
+ <dl><dt><a name="-setup_hook"><strong>setup_hook</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;persistent&nbsp;UI&nbsp;and&nbsp;start&nbsp;the&nbsp;forums&nbsp;sync&nbsp;after&nbsp;a&nbsp;restart.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

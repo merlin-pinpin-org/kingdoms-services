@@ -737,6 +737,7 @@ async def build_settings_panel(
     by: str,
     bot_admins: tuple[str, ...] = (),
     roles_service: Any = None,
+    kingdoms_service: Any = None,
 ) -> discord.ui.LayoutView:
     """Build the Paramètres panel: the admin season actions.
 
@@ -771,16 +772,32 @@ async def build_settings_panel(
         target = season_row if index < 5 else maintenance_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
+    from kingdoms.core.ids import footer
+
+    season_id_line = ""
+    if kingdoms_service is not None:
+        try:
+            season = await kingdoms_service.current_season()
+        except Exception:
+            logger.warning("KINGDOM SETTINGS: season read failed", exc_info=True)
+            season = None
+        if season is not None:
+            season_id_line = footer(season.id)
     view = discord.ui.LayoutView(timeout=None)
+    items: list[discord.ui.Item[discord.ui.LayoutView]] = [
+        discord.ui.TextDisplay(f"# {strings['settings_title']}"),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
+        season_row,
+        maintenance_row,
+        discord.ui.Separator(),
+    ]
+    if season_id_line:
+        items.append(discord.ui.TextDisplay(season_id_line))
+    items.append(discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"))
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(f"# {strings['settings_title']}"),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
-            season_row,
-            maintenance_row,
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
+            *items,
             accent_colour=GREEN,
         )
     )
@@ -837,6 +854,7 @@ async def _deploy_settings_panel(
     logs_service: LogService | None,
     guild_id: str,
     bot_admins: tuple[str, ...],
+    kingdoms_service: Any = None,
 ) -> None:
     """Remove every stale settings message (old locale/timezone panel included), then pin the fresh one."""
     for message in list(getattr(channel, "messages", [])):
@@ -854,7 +872,11 @@ async def _deploy_settings_panel(
                 await message.delete()
             except Exception:
                 logger.warning("KINGDOM PANELS: old settings panel removal failed", exc_info=True)
-    await channel.send(view=await build_settings_panel(logs_service, guild_id, "system", bot_admins))
+    await channel.send(
+        view=await build_settings_panel(
+            logs_service, guild_id, "system", bot_admins, kingdoms_service=kingdoms_service
+        )
+    )
 
 
 async def _deploy_apply_panel(
@@ -920,7 +942,7 @@ async def deploy_panels(
             )
             report["postuler"] = "deployed"
         if _slug(channel.name) == "parametres":
-            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
+            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins, kingdoms_service)
             report["paramètres"] = "deployed"
     context = _ApplicationContext(
         locale=locale,
