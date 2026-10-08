@@ -1,0 +1,829 @@
+===== ruff =====
+C901 `_run_panel_action` is too complex (12 > 10)
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:170:11
+    |
+170 | async def _run_panel_action(
+    |           ^^^^^^^^^^^^^^^^^
+171 |     interaction: discord.Interaction,
+172 |     operation: str,
+    |
+
+C901 `on_submit` is too complex (14 > 10)
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:310:15
+    |
+308 |                 self._fields[key] = roster_field
+309 |
+310 |     async def on_submit(self, interaction: discord.Interaction) -> None:
+    |               ^^^^^^^^^
+311 |         """Gate the reason, parse the extras, run the operation."""
+312 |         strings = _strings(_locale(interaction))
+    |
+
+RUF012 Mutable default value for class attribute
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:464:19
+    |
+462 |       """The roster buttons: add, assign, reassign, eject, throne swap."""
+463 |
+464 |       _LABEL_KEYS = {
+    |  ___________________^
+465 | |         "add-lord": "add_lord_button",
+466 | |         "assign-queued": "assign_queued_button",
+467 | |         "reassign": "reassign_button",
+468 | |         "eject": "eject_button",
+469 | |         "swap-throne": "swap_throne_button",
+470 | |     }
+    | |_____^
+471 |       _STYLES = {
+472 |           "add-lord": discord.ButtonStyle.success,
+    |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+RUF012 Mutable default value for class attribute
+   --> src/kingdoms/discord/kingdoms_admin_panel.py:471:15
+    |
+469 |           "swap-throne": "swap_throne_button",
+470 |       }
+471 |       _STYLES = {
+    |  _______________^
+472 | |         "add-lord": discord.ButtonStyle.success,
+473 | |         "assign-queued": discord.ButtonStyle.primary,
+474 | |         "reassign": discord.ButtonStyle.primary,
+475 | |         "eject": discord.ButtonStyle.secondary,
+476 | |         "swap-throne": discord.ButtonStyle.danger,
+477 | |     }
+    | |_____^
+478 |
+479 |       def __init__(self, action: str, label: str, style: discord.ButtonStyle) -> None:
+    |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:233:23
+    |
+231 |     )
+232 |     service = _client(store).kingdoms_service
+233 |     lord = next(l for l in await service.lords() if l.id == "p1")
+    |                       ^
+234 |     aquitaine = next(k for k in await service.kingdoms() if k.name == "Aquitaine")
+235 |     assert lord.kingdom_id == aquitaine.id
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:248:23
+    |
+246 |         store, "assign-queued", reason="sortie de file", player_id="q1", kingdom="Bourgogne", role="lord"
+247 |     )
+248 |     lord = next(l for l in await service.lords() if l.id == "q1")
+    |                       ^
+249 |     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
+250 |     assert lord.in_queue is False
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:261:23
+    |
+259 |     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+260 |     await _roster_run(store, "reassign", reason="équilibrage", player_id="m1", kingdom="Bourgogne")
+261 |     lord = next(l for l in await service.lords() if l.id == "m1")
+    |                       ^
+262 |     bourgogne = next(k for k in await service.kingdoms() if k.name == "Bourgogne")
+263 |     assert lord.kingdom_id == bourgogne.id
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:273:23
+    |
+271 |     await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+272 |     await _roster_run(store, "eject", reason="sanction", player_id="m1")
+273 |     lord = next(l for l in await service.lords() if l.id == "m1")
+    |                       ^
+274 |     assert lord.in_queue is True
+275 |     assert lord.kingdom_id is None
+    |
+
+E741 Ambiguous variable name: `l`
+   --> tests/unit/test_discord/test_kingdoms_admin_panel.py:290:26
+    |
+288 |     await _roster_run(store, "swap-throne", reason="abdication", kingdom="Aquitaine", new_king_id="k2")
+289 |     service = _client(store).kingdoms_service
+290 |     lords = {l.id: l for l in await service.lords()}
+    |                          ^
+291 |     assert lords["k2"].role is KING_ROLE
+292 |     assert lords["k1"].role is LORD_ROLE
+    |
+
+Found 9 errors.
+===== mypy =====
+src/kingdoms/discord/kingdoms_admin_panel.py:338: error: Incompatible types in assignment (expression has type "tuple[str, str]", variable has type "str")  [assignment]
+Found 1 error in 1 file (checked 171 source files)
+===== pytest =====
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/runner/work/kingdoms-services/kingdoms-services
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.4.0, simcord-2.1.0, anyio-4.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1017 items
+
+tests/architecture/test_three_second_rule.py ...                         [  0%]
+tests/integration/test_bot_logs_journey.py .                             [  0%]
+tests/integration/test_delivery_journeys.py ...                          [  0%]
+tests/integration/test_permission_journeys.py ...                        [  0%]
+tests/integration/test_persistent_journeys.py .                          [  1%]
+tests/integration/test_simcord_journeys.py ......                        [  1%]
+tests/unit/test_aoe2_blobs.py ........                                   [  2%]
+tests/unit/test_aoe2_grace.py ......                                     [  3%]
+tests/unit/test_aoe2lobby_adapter.py ..........                          [  4%]
+tests/unit/test_cli.py ................                                  [  5%]
+tests/unit/test_core/test_admin_channel.py ....                          [  5%]
+tests/unit/test_core/test_aoe2_seed.py ...                               [  6%]
+tests/unit/test_core/test_channel_audit.py ........                      [  7%]
+tests/unit/test_core/test_channel_service.py ..............              [  8%]
+tests/unit/test_core/test_db.py ........                                 [  9%]
+tests/unit/test_core/test_debug.py ....                                  [  9%]
+tests/unit/test_core/test_delivery.py ......                             [ 10%]
+tests/unit/test_core/test_exceptions.py ........................         [ 12%]
+tests/unit/test_core/test_game_data.py ................                  [ 14%]
+tests/unit/test_core/test_i18n.py .............                          [ 15%]
+tests/unit/test_core/test_identity.py ........                           [ 16%]
+tests/unit/test_core/test_interfaces.py .....                            [ 16%]
+tests/unit/test_core/test_live.py .....                                  [ 17%]
+tests/unit/test_core/test_logs.py ...................                    [ 19%]
+tests/unit/test_core/test_message_registry.py ........                   [ 19%]
+tests/unit/test_core/test_mod_registry.py ........                       [ 20%]
+tests/unit/test_core/test_mod_roles.py ...........                       [ 21%]
+tests/unit/test_core/test_models.py ...........                          [ 22%]
+tests/unit/test_core/test_permissions.py ...........                     [ 23%]
+tests/unit/test_core/test_provider_cache.py .....                        [ 24%]
+tests/unit/test_core/test_registration.py .............                  [ 25%]
+tests/unit/test_core/test_season.py ...........                          [ 26%]
+tests/unit/test_core/test_state.py ........................              [ 29%]
+tests/unit/test_core/test_status.py ..............                       [ 30%]
+tests/unit/test_core/test_surfaces.py .....                              [ 30%]
+tests/unit/test_core/test_workflow_engine.py .............               [ 32%]
+tests/unit/test_discord/test_admin.py ..............                     [ 33%]
+tests/unit/test_discord/test_admin_panel_mods.py ........                [ 34%]
+tests/unit/test_discord/test_admin_panel_pin.py ......                   [ 35%]
+tests/unit/test_discord/test_admin_persistent.py ..................      [ 36%]
+tests/unit/test_discord/test_announce.py .................               [ 38%]
+tests/unit/test_discord/test_error_report.py ...........                 [ 39%]
+tests/unit/test_discord/test_factory.py ............                     [ 40%]
+tests/unit/test_discord/test_guards.py ......                            [ 41%]
+tests/unit/test_discord/test_health.py .....                             [ 41%]
+tests/unit/test_discord/test_kingdom_content.py ..........               [ 42%]
+tests/unit/test_discord/test_kingdom_market.py ......                    [ 43%]
+tests/unit/test_discord/test_kingdom_panels.py .....................     [ 45%]
+tests/unit/test_discord/test_kingdom_profiles.py ..............          [ 46%]
+tests/unit/test_discord/test_kingdom_setup.py ..........                 [ 47%]
+tests/unit/test_discord/test_kingdom_state_views.py ...........          [ 48%]
+tests/unit/test_discord/test_kingdom_structure.py .......                [ 49%]
+tests/unit/test_discord/test_kingdoms_admin.py ....                      [ 49%]
+tests/unit/test_discord/test_kingdoms_admin_panel.py ..........FFFFFFF   [ 51%]
+tests/unit/test_discord/test_kingdoms_command.py .........               [ 52%]
+tests/unit/test_discord/test_main.py ....                                [ 52%]
+tests/unit/test_discord/test_persistent_items.py ........                [ 53%]
+tests/unit/test_discord/test_registration_surface.py ....                [ 54%]
+tests/unit/test_discord/test_season_dashboard.py ...............         [ 55%]
+tests/unit/test_discord/test_status.py ................................. [ 58%]
+.......                                                                  [ 59%]
+tests/unit/test_discord/test_ui_components.py ......................     [ 61%]
+tests/unit/test_discord/test_ui_delivery.py .................            [ 63%]
+tests/unit/test_discord/test_ui_factory.py ..................            [ 65%]
+tests/unit/test_discord/test_ui_screens.py .......                       [ 65%]
+tests/unit/test_generate_changelog.py ........................           [ 68%]
+tests/unit/test_kingdoms_mod.py ................                         [ 69%]
+tests/unit/test_ladder/test_acceptance_matchmaking.py ...........        [ 70%]
+tests/unit/test_ladder/test_admin.py ......                              [ 71%]
+tests/unit/test_ladder/test_admin_tools.py ..........                    [ 72%]
+tests/unit/test_ladder/test_domain.py ......................             [ 74%]
+tests/unit/test_ladder/test_generate_test_data.py ...                    [ 74%]
+tests/unit/test_ladder/test_legacy_export.py ..                          [ 75%]
+tests/unit/test_ladder/test_legacy_import.py ......                      [ 75%]
+tests/unit/test_ladder/test_live_bridge.py ....                          [ 76%]
+tests/unit/test_ladder/test_match_data.py .....                          [ 76%]
+tests/unit/test_ladder/test_profile_links_export.py ..                   [ 76%]
+tests/unit/test_ladder/test_profile_links_import.py ...                  [ 76%]
+tests/unit/test_ladder/test_provider_bridge.py ....                      [ 77%]
+tests/unit/test_ladder/test_season_import.py ..                          [ 77%]
+tests/unit/test_ladder/test_season_report.py ....                        [ 77%]
+tests/unit/test_ladder/test_surface.py .........                         [ 78%]
+tests/unit/test_librematch_adapter.py ..........                         [ 79%]
+tests/unit/test_mock_discord.py ........................................ [ 83%]
+...............                                                          [ 85%]
+tests/unit/test_mods/test_kingdoms_admin_journal.py ......               [ 85%]
+tests/unit/test_mods/test_kingdoms_admin_service.py .................    [ 87%]
+tests/unit/test_mods/test_kingdoms_attacks.py ...............            [ 88%]
+tests/unit/test_mods/test_kingdoms_diplomacy.py ..........               [ 89%]
+tests/unit/test_mods/test_kingdoms_economy.py .........                  [ 90%]
+tests/unit/test_mods/test_kingdoms_events.py ......                      [ 91%]
+tests/unit/test_mods/test_kingdoms_models.py ..                          [ 91%]
+tests/unit/test_mods/test_kingdoms_season_end.py .........               [ 92%]
+tests/unit/test_mods/test_kingdoms_service.py ...................        [ 94%]
+tests/unit/test_mods/test_kingdoms_snapshot.py .........                 [ 95%]
+tests/unit/test_mods/test_kingdoms_territories.py .............          [ 96%]
+tests/unit/test_mods/test_kingdoms_views.py ......                       [ 97%]
+tests/unit/test_rpc_client.py ......                                     [ 97%]
+tests/unit/test_rpc_game.py .....................                        [ 99%]
+tests/unit/test_rpc_status.py ..                                         [100%]
+
+=================================== FAILURES ===================================
+_____________________ test_add_lord_runs_through_the_modal _____________________
+
+    async def test_add_lord_runs_through_the_modal() -> None:
+        """The add-lord button adds a lord to a kingdom, journaled."""
+        store = await _launched_store()
+>       await _roster_run(
+            store, "add-lord", reason="renfort manuel", player_id="p1", display_name="P1", role="lord", kingdom="Aquitaine"
+        )
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001871 name='TestMember'>>
+operation = 'add_lord', payload = {}, reason = 'renfort manuel'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+>                   payload["player_id"],
+                    ^^^^^^^^^^^^^^^^^^^^
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+E                   KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:207: KeyError
+__________________ test_assign_queued_runs_through_the_modal ___________________
+
+    async def test_assign_queued_runs_through_the_modal() -> None:
+        """A queued player is assigned to a kingdom, journaled."""
+        store = await _launched_store()
+        service = _client(store).kingdoms_service
+        await service.enroll("q1", "Q1", LORD_ROLE)
+>       await _roster_run(
+            store, "assign-queued", reason="sortie de file", player_id="q1", kingdom="Bourgogne", role="lord"
+        )
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001879 name='TestMember'>>
+operation = 'assign_queued', payload = {}, reason = 'sortie de file'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+                    payload["player_id"],
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "assign_queued":
+                await admin.assign_queued(
+>                   payload["player_id"],
+                    ^^^^^^^^^^^^^^^^^^^^
+                    payload["kingdom"],
+                    payload["role"],
+                    reason=reason,
+                    **actor,
+E                   KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:216: KeyError
+______________________ test_reassign_moves_an_active_lord ______________________
+
+    async def test_reassign_moves_an_active_lord() -> None:
+        """Reassignment moves an enrolled lord to another kingdom."""
+        store = await _launched_store()
+        service = _client(store).kingdoms_service
+        await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+>       await _roster_run(store, "reassign", reason="équilibrage", player_id="m1", kingdom="Bourgogne")
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001887 name='TestMember'>>
+operation = 'reassign', payload = {}, reason = 'équilibrage'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+                    payload["player_id"],
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "assign_queued":
+                await admin.assign_queued(
+                    payload["player_id"],
+                    payload["kingdom"],
+                    payload["role"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "reassign":
+                await admin.reassign(
+>                   payload["player_id"],
+                    ^^^^^^^^^^^^^^^^^^^^
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+E                   KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:224: KeyError
+____________________ test_eject_returns_a_lord_to_the_queue ____________________
+
+    async def test_eject_returns_a_lord_to_the_queue() -> None:
+        """The eject button queues an active lord back, role kept."""
+        store = await _launched_store()
+        service = _client(store).kingdoms_service
+        await service.enroll("m1", "M1", LORD_ROLE, kingdom_name="Aquitaine")
+>       await _roster_run(store, "eject", reason="sanction", player_id="m1")
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001895 name='TestMember'>>
+operation = 'eject', payload = {}, reason = 'sanction'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+                    payload["player_id"],
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "assign_queued":
+                await admin.assign_queued(
+                    payload["player_id"],
+                    payload["kingdom"],
+                    payload["role"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "reassign":
+                await admin.reassign(
+                    payload["player_id"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "eject":
+>               await admin.eject_to_queue(payload["player_id"], reason=reason, **actor)
+                                           ^^^^^^^^^^^^^^^^^^^^
+E               KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:230: KeyError
+_______________________ test_swap_throne_promotes_a_lord _______________________
+
+    async def test_swap_throne_promotes_a_lord() -> None:
+        """The throne swap demotes the King and crowns the chosen lord."""
+        store = await _launched_store()
+>       await _roster_run(
+            store, "add-lord", reason="roi initial", player_id="k1", display_name="K1", role="king", kingdom="Aquitaine"
+        )
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:282: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001903 name='TestMember'>>
+operation = 'add_lord', payload = {}, reason = 'roi initial'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+>                   payload["player_id"],
+                    ^^^^^^^^^^^^^^^^^^^^
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+E                   KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:207: KeyError
+________________________ test_roster_rejects_a_bad_role ________________________
+
+    async def test_roster_rejects_a_bad_role() -> None:
+        """A role outside king/lord answers the error and journals nothing."""
+        store = await _launched_store()
+>       interaction = await _roster_run(
+            store, "add-lord", reason="essai", player_id="p1", display_name="P1", role="boss", kingdom="Aquitaine"
+        )
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001911 name='TestMember'>>
+operation = 'add_lord', payload = {}, reason = 'essai'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+>                   payload["player_id"],
+                    ^^^^^^^^^^^^^^^^^^^^
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+E                   KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:207: KeyError
+_______________________ test_roster_requires_the_fields ________________________
+
+    async def test_roster_requires_the_fields() -> None:
+        """A blank required roster field never reaches the store."""
+        store = await _launched_store()
+>       interaction = await _roster_run(store, "eject", reason="essai", player_id="")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_discord/test_kingdoms_admin_panel.py:309: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_discord/test_kingdoms_admin_panel.py:208: in _roster_run
+    await modal.on_submit(interaction)
+src/kingdoms/discord/kingdoms_admin_panel.py:354: in on_submit
+    await _run_panel_action(interaction, self._operation, payload, reason)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+interaction = <MockInteraction custom_id='test_interaction' user=<MockMember id=100000000000001919 name='TestMember'>>
+operation = 'eject', payload = {}, reason = 'essai'
+
+    async def _run_panel_action(
+        interaction: discord.Interaction,
+        operation: str,
+        payload: dict[str, Any],
+        reason: str,
+    ) -> None:
+        """Run one panel operation through the D75 socle and answer."""
+        strings = _strings(_locale(interaction))
+        admin = _admin_service(interaction)
+        if admin is None:
+            await _answer(interaction, strings["no_season"])
+            return
+        actor = {
+            "actor_id": str(interaction.user.id),
+            "actor_name": interaction.user.display_name,
+        }
+        try:
+            if operation == "recruitment":
+                await admin.set_recruitment(payload["kingdom"], open=payload["open"], reason=reason, **actor)
+            elif operation == "applications":
+                await admin.set_applications(open=payload["open"], reason=reason, **actor)
+            elif operation == "quotas":
+                await admin.set_quotas(
+                    kingdoms_count=payload["kingdoms_count"],
+                    lords_per_kingdom=payload["lords_per_kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "foundation":
+                await admin.set_foundation_rights(
+                    king=payload.get("king"),
+                    admin=payload.get("admin"),
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "add_lord":
+                await admin.add_lord(
+                    payload["player_id"],
+                    payload["display_name"],
+                    payload["role"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "assign_queued":
+                await admin.assign_queued(
+                    payload["player_id"],
+                    payload["kingdom"],
+                    payload["role"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "reassign":
+                await admin.reassign(
+                    payload["player_id"],
+                    payload["kingdom"],
+                    reason=reason,
+                    **actor,
+                )
+            elif operation == "eject":
+>               await admin.eject_to_queue(payload["player_id"], reason=reason, **actor)
+                                           ^^^^^^^^^^^^^^^^^^^^
+E               KeyError: 'player_id'
+
+src/kingdoms/discord/kingdoms_admin_panel.py:230: KeyError
+=============================== warnings summary ===============================
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:315: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom_name.label = strings["kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:317: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.insight_link.label = strings["insight_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:319: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.game_id.label = strings["game_id_field"][:45]
+
+tests/unit/test_discord/test_kingdom_panels.py::test_king_choice_opens_king_modal_with_kingdom_name
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+tests/unit/test_discord/test_kingdom_panels.py::test_king_modal_validates_name_insight_game_id
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_panels.py:321: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.smurfs.label = strings["smurfs_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_leave_modal_relays_to_demandes
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_profiles.py:439: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.reason.label = strings["leave_reason_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_remove_button_opens_modal
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:406: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["remove_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:456: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.player.label = strings["assign_player_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:457: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["assign_kingdom_field"][:45]
+
+tests/unit/test_discord/test_kingdom_profiles.py::test_admin_assign_and_add_kingdom_open_modals
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/discord/kingdom_persistent.py:496: DeprecationWarning: label is deprecated, use discord.ui.Label instead.
+    self.kingdom.label = strings["add_kingdom_field"][:45]
+
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_map_key_condition_unlocks_celtes
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_losing_the_territory_drops_the_civilization
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_water_maps_unlock_chinese_and_its_chain
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_kingdom_name_pattern_unlocks_hongrois
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_marry_secures_a_civilization_once_per_lord
+tests/unit/test_mods/test_kingdoms_diplomacy.py::test_defeat_drops_the_marriage_at_the_next_recalculation
+  /home/runner/work/kingdoms-services/kingdoms-services/src/kingdoms/mods/kingdoms/diplomacy.py:172: RuntimeWarning: coroutine 'DiplomacyService._owns_map_type' was never awaited
+    if civ.requires_map_types and self._owns_map_type(kingdom.id, civ.requires_map_types):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_add_lord_runs_through_the_modal - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_assign_queued_runs_through_the_modal - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_reassign_moves_an_active_lord - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_eject_returns_a_lord_to_the_queue - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_swap_throne_promotes_a_lord - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_roster_rejects_a_bad_role - KeyError: 'player_id'
+FAILED tests/unit/test_discord/test_kingdoms_admin_panel.py::test_roster_requires_the_fields - KeyError: 'player_id'
+================= 7 failed, 1010 passed, 27 warnings in 5.49s ==================

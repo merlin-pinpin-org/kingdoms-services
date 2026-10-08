@@ -16,10 +16,10 @@ The&nbsp;pinned&nbsp;bot-admins&nbsp;panel&nbsp;is&nbsp;the&nbsp;single&nbsp;adm
 there&nbsp;through&nbsp;the&nbsp;``admin_panel_mods``&nbsp;seam&nbsp;—&nbsp;present&nbsp;when&nbsp;the&nbsp;mod&nbsp;is<br>
 enabled,&nbsp;absent&nbsp;when&nbsp;it&nbsp;is&nbsp;not,&nbsp;with&nbsp;no&nbsp;core&nbsp;panel&nbsp;code&nbsp;change.<br>
 &nbsp;<br>
-This&nbsp;slice&nbsp;(tranche&nbsp;②-a)&nbsp;surfaces&nbsp;the&nbsp;**season**&nbsp;policy&nbsp;operations&nbsp;of<br>
-the&nbsp;D75&nbsp;socle:&nbsp;the&nbsp;per-kingdom&nbsp;recruitment&nbsp;switch,&nbsp;the&nbsp;global<br>
-applications&nbsp;switch,&nbsp;the&nbsp;kingdom/lord&nbsp;quotas&nbsp;and&nbsp;the&nbsp;foundation<br>
-rights.&nbsp;Roster&nbsp;and&nbsp;entity&nbsp;operations&nbsp;follow&nbsp;in&nbsp;the&nbsp;next&nbsp;slices.<br>
+This&nbsp;slice&nbsp;(tranche&nbsp;②-b)&nbsp;adds&nbsp;the&nbsp;**roster**&nbsp;operations&nbsp;of&nbsp;the&nbsp;D75<br>
+socle:&nbsp;the&nbsp;manual&nbsp;add,&nbsp;the&nbsp;queued&nbsp;assignment,&nbsp;the&nbsp;reassignment,&nbsp;the<br>
+eject&nbsp;back&nbsp;to&nbsp;the&nbsp;queue&nbsp;and&nbsp;the&nbsp;throne&nbsp;swap.&nbsp;Entity&nbsp;operations&nbsp;and<br>
+the&nbsp;journal&nbsp;view&nbsp;follow&nbsp;in&nbsp;the&nbsp;next&nbsp;slice.<br>
 &nbsp;<br>
 Every&nbsp;action&nbsp;opens&nbsp;a&nbsp;reason&nbsp;modal&nbsp;first&nbsp;—&nbsp;D75&nbsp;makes&nbsp;the&nbsp;reason<br>
 mandatory&nbsp;without&nbsp;exception,&nbsp;and&nbsp;the&nbsp;service&nbsp;layer&nbsp;re-checks&nbsp;it,&nbsp;so<br>
@@ -47,6 +47,7 @@ rides&nbsp;the&nbsp;seam's&nbsp;own&nbsp;namespace,&nbsp;restart-proof,&nbsp;no&
 <dl>
 <dt class="heading-text"><a href="kingdoms.discord.kingdoms_admin_panel.html#KingdomsAdminActionButton">KingdomsAdminActionButton</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.kingdoms_admin_panel.html#KingdomsAdminRecruitmentSelect">KingdomsAdminRecruitmentSelect</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.kingdoms_admin_panel.html#KingdomsAdminRosterButton">KingdomsAdminRosterButton</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
@@ -582,6 +583,146 @@ when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`
 However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
 classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KingdomsAdminRosterButton">class <strong>KingdomsAdminRosterButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomsAdminRosterButton">KingdomsAdminRosterButton</a>(action:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;style:&nbsp;'discord.ButtonStyle')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;roster&nbsp;buttons:&nbsp;add,&nbsp;assign,&nbsp;reassign,&nbsp;eject,&nbsp;throne&nbsp;swap.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.kingdoms_admin_panel.html#KingdomsAdminRosterButton">KingdomsAdminRosterButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="KingdomsAdminRosterButton-__init__"><strong>__init__</strong></a>(self, action: 'str', label: 'str', style: 'discord.ButtonStyle') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomsAdminRosterButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsAdminRosterButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;reason&nbsp;modal&nbsp;with&nbsp;this&nbsp;roster&nbsp;action's&nbsp;fields.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="KingdomsAdminRosterButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'KingdomsAdminRosterButton'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;button&nbsp;from&nbsp;the&nbsp;wire.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:mod:kingdoms:roster-(?P&lt;ac...-lord|assign-queued|reassign|eject|swap-throne)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="KingdomsAdminRosterButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="KingdomsAdminRosterButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="KingdomsAdminRosterButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="KingdomsAdminRosterButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="KingdomsAdminRosterButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="KingdomsAdminRosterButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="KingdomsAdminRosterButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="KingdomsAdminRosterButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="KingdomsAdminRosterButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
@@ -597,6 +738,6 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['AdminReasonModal', 'KingdomsAdminActionButton', 'KingdomsAdminRecruitmentSelect', 'register_kingdoms_admin_section', 'section_entry', 'unregister_kingdoms_admin_section']<br>
-<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['AdminReasonModal', 'KingdomsAdminActionButton', 'KingdomsAdminRecruitmentSelect', 'KingdomsAdminRosterButton', 'register_kingdoms_admin_section', 'section_entry', 'unregister_kingdoms_admin_section']<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]', '_ROSTER_FIELDS': 'dict[str, tuple[tuple[str, str], ...]]'}</td></tr></table>
 </body></html>
