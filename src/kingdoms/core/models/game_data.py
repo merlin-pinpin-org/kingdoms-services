@@ -1,4 +1,4 @@
-"""Game catalog models: maps, civs, rules, map pools and map packs.
+"""Game catalog models: maps, factions, rules, map pools and map packs.
 
 Generic and game-agnostic (kingdoms-services#131): every entry is keyed by
 ``game_key`` with stable IDs, so rotating a pool or adding a civ never
@@ -47,8 +47,13 @@ class MapModel(CatalogEntryModel):
     forum_message_id: str | None = None
 
 
-class CivModel(CatalogEntryModel):
-    """A civilization/faction entry, curated for admin editing."""
+class FactionModel(CatalogEntryModel):
+    """A faction entry (a game's playable side), curated for admin editing.
+
+    The game-generic name is faction: AoE2 calls them civilizations,
+    StarCraft races, chess colors. ``faction_key`` is the game's own
+    stable key for the faction.
+    """
 
     faction_key: str = ""
 

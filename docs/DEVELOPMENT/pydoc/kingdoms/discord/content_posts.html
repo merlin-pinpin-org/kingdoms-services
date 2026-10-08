@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.content_posts</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.content_posts</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/content_posts.py">SOURCE_ROOT/discord/content_posts.py</a></td></tr></table>
+    <p><span class="code">Entity-post&nbsp;content&nbsp;resolution:&nbsp;locale-aware,&nbsp;Redis&nbsp;then&nbsp;Mongo&nbsp;(core).<br>
+&nbsp;<br>
+The&nbsp;forums'&nbsp;posts&nbsp;(maps,&nbsp;factions)&nbsp;carry&nbsp;localized&nbsp;content&nbsp;seeded&nbsp;from<br>
+a&nbsp;licence-compatible&nbsp;provider&nbsp;(see&nbsp;``kingdoms.core.services.faction_content``).<br>
+This&nbsp;module&nbsp;resolves,&nbsp;at&nbsp;post&nbsp;build&nbsp;time,&nbsp;the&nbsp;guild's&nbsp;content&nbsp;for&nbsp;one<br>
+entity:&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(en&nbsp;fallback),&nbsp;then&nbsp;the&nbsp;content&nbsp;through&nbsp;the<br>
+cache-aside&nbsp;service&nbsp;—&nbsp;Redis&nbsp;first,&nbsp;Mongo&nbsp;second.&nbsp;When&nbsp;no&nbsp;content&nbsp;is<br>
+stored&nbsp;the&nbsp;entity's&nbsp;catalog&nbsp;name&nbsp;stands&nbsp;in&nbsp;and&nbsp;the&nbsp;summary&nbsp;is&nbsp;empty,<br>
+so&nbsp;a&nbsp;fresh&nbsp;environment&nbsp;still&nbsp;gets&nbsp;its&nbsp;posts.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-content_service"><strong>content_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Memoize&nbsp;the&nbsp;content&nbsp;service&nbsp;(None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent).</span></dd></dl>
+ <dl><dt>async <a name="-entity_post_content"><strong>entity_post_content</strong></a>(entity_id: 'str', fallback_name: 'str', guild_id: 'str', bot: 'Any') -&gt; 'tuple[str, str, str]'</dt><dd><span class="code">Return&nbsp;``(name,&nbsp;summary,&nbsp;source_url)``&nbsp;for&nbsp;one&nbsp;entity's&nbsp;post.<br>
+&nbsp;<br>
+The&nbsp;stored&nbsp;content&nbsp;wins;&nbsp;the&nbsp;catalog&nbsp;entry's&nbsp;name&nbsp;is&nbsp;the&nbsp;fallback.</span></dd></dl>
+ <dl><dt>async <a name="-guild_locale"><strong>guild_locale</strong></a>(guild_id: 'str', bot: 'Any') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild's&nbsp;configured&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_CONTENT_SERVICE': 'Any'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.discord.content_posts (WARNING)&gt;</td></tr></table>
+</body></html>

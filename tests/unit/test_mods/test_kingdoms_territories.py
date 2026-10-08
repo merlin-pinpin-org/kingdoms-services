@@ -97,7 +97,9 @@ def _services(
     config: KingdomsSeasonConfig | None = None,
 ) -> tuple[TerritoryService, KingdomsService, MemoryStore]:
     store = MemoryStore()
-    kingdoms = KingdomsService(store, config or default_season_config(), core_seasons=_FakeCoreSeasons(), guild_id="123")  # type: ignore[arg-type]
+    kingdoms = KingdomsService(  # type: ignore[arg-type]
+        store, config or default_season_config(), core_seasons=_FakeCoreSeasons(), guild_id="123"
+    )
     return TerritoryService(store, kingdoms.config, kingdoms), kingdoms, store  # type: ignore[arg-type]
 
 

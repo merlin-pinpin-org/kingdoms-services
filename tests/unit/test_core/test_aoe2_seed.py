@@ -72,7 +72,7 @@ async def test_seed_creates_catalog_and_pools() -> None:
     db = FakeDatabase()
     result = await seed_aoe2(db, _data(), now=1_000_000)
     assert result["maps"] == 1
-    assert result["civs"] == 1
+    assert result["factions"] == 1
     assert result["map_pools"] == 1
     assert result["ladders"] == 0
     assert result["seasons"] == 0
@@ -100,6 +100,6 @@ async def test_seed_yaml_file_is_valid() -> None:
     data = yaml.safe_load(path.read_text())
     assert data["game_key"] == "aoe2"
     assert len(data["maps"]) >= 8
-    civs = {c["name"] for c in data["civs"]}
-    assert len(civs) == len(data["civs"])
-    assert "Franks" in civs
+    factions = {c["name"] for c in data["civs"]}
+    assert len(factions) == len(data["civs"])
+    assert "Franks" in factions

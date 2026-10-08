@@ -7,8 +7,8 @@ from typing import Any
 from kingdoms.core.services.entity_forum import EntityForumSpec, sync_entity_forum
 
 
-class _Civ:
-    """A core-shaped civ entity."""
+class _Faction:
+    """A core-shaped faction entity."""
 
     def __init__(self, game_key: str, name: str, entry_id: str) -> None:
         self.game_key = game_key
@@ -92,20 +92,20 @@ class _Platform:
         return "thread-1"
 
 
-def _spec(bot: _Bot, platform: _Platform, civs: list[_Civ], *, per_game: bool) -> EntityForumSpec:
-    async def list_civs(guild_id: str) -> list[_Civ]:
+def _spec(bot: _Bot, platform: _Platform, factions: list[_Faction], *, per_game: bool) -> EntityForumSpec:
+    async def list_factions(guild_id: str) -> list[_Faction]:
         del guild_id
-        return civs
+        return factions
 
-    async def build_post(civ: _Civ, guild_id: str) -> tuple[str, None]:
+    async def build_post(faction: _Faction, guild_id: str) -> tuple[str, None]:
         del guild_id
-        return f"**{civ.name}**", None
+        return f"**{faction.name}**", None
 
     return EntityForumSpec(
-        forum_name="" if per_game else "aoe2-civs",
-        list_entities=list_civs,
+        forum_name="" if per_game else "aoe2-factions",
+        list_entities=list_factions,
         build_post=build_post,
-        forum_name_for=(lambda civ: f"{civ.game_key}-civs") if per_game else None,
+        forum_name_for=(lambda faction: f"{faction.game_key}-factions") if per_game else None,
     )
 
 
@@ -114,9 +114,9 @@ async def test_sync_groups_entities_into_one_forum_per_game(monkeypatch: Any) ->
     bot = _Bot(guild)
     platform = _Platform()
     monkeypatch.setattr("kingdoms.discord.channels_platform.DiscordChannelsPlatform", lambda b: platform)
-    civs = [_Civ("aoe2", "Britons", "civ:aoe2:britons"), _Civ("aoe2", "Franks", "civ:aoe2:franks")]
-    actions = await sync_entity_forum("1", bot, _spec(bot, platform, civs, per_game=True))
-    assert guild.created == ["aoe2-civs"]
+    factions = [_Faction("aoe2", "Britons", "faction:aoe2:britons"), _Faction("aoe2", "Franks", "faction:aoe2:franks")]
+    actions = await sync_entity_forum("1", bot, _spec(bot, platform, factions, per_game=True))
+    assert guild.created == ["aoe2-factions"]
     assert [name for name, _ in platform.posts] == ["Britons", "Franks"]
     assert actions == 2
 
@@ -126,21 +126,21 @@ async def test_sync_uses_the_fixed_forum_name_without_forum_name_for(monkeypatch
     bot = _Bot(guild)
     platform = _Platform()
     monkeypatch.setattr("kingdoms.discord.channels_platform.DiscordChannelsPlatform", lambda b: platform)
-    civs = [_Civ("aoe2", "Britons", "civ:aoe2:britons")]
-    actions = await sync_entity_forum("1", bot, _spec(bot, platform, civs, per_game=False))
-    assert guild.created == ["aoe2-civs"]
+    factions = [_Faction("aoe2", "Britons", "faction:aoe2:britons")]
+    actions = await sync_entity_forum("1", bot, _spec(bot, platform, factions, per_game=False))
+    assert guild.created == ["aoe2-factions"]
     assert actions == 1
 
 
 async def test_sync_is_idempotent_for_existing_threads(monkeypatch: Any) -> None:
     guild = _Guild()
-    forum = _Forum("aoe2-civs")
+    forum = _Forum("aoe2-factions")
     forum.threads.append(_Thread("Britons"))
     guild.forums.append(forum)
     bot = _Bot(guild)
     platform = _Platform()
     monkeypatch.setattr("kingdoms.discord.channels_platform.DiscordChannelsPlatform", lambda b: platform)
-    civs = [_Civ("aoe2", "Britons", "civ:aoe2:britons")]
-    actions = await sync_entity_forum("1", bot, _spec(bot, platform, civs, per_game=False))
+    factions = [_Faction("aoe2", "Britons", "faction:aoe2:britons")]
+    actions = await sync_entity_forum("1", bot, _spec(bot, platform, factions, per_game=False))
     assert actions == 0
     assert platform.posts == []

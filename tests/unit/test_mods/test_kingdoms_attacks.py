@@ -9,7 +9,6 @@ technologies (D9-D12/D18/D28/D36/D43).
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-
 from typing import Any
 
 import pytest

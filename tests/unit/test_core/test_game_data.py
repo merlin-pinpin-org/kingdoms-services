@@ -48,10 +48,10 @@ class FakeGameDataDatabase:
             if d.get("game_key") == game_key and d.get("archived_at") is None
         ]
 
-    async def find_active_civs(self, game_key: str) -> list[dict[str, Any]]:
+    async def find_active_factions(self, game_key: str) -> list[dict[str, Any]]:
         return [
             d
-            for d in self._collection("civs").values()
+            for d in self._collection("factions").values()
             if d.get("game_key") == game_key and d.get("archived_at") is None
         ]
 
@@ -132,10 +132,10 @@ async def test_archived_name_can_be_recreated() -> None:
 @pytest.mark.asyncio
 async def test_civ_and_rule_crud() -> None:
     svc, _, _ = _service()
-    civ = await svc.create_civ(GAME, "Franks", faction_key="franks")
-    assert civ.faction_key == "franks"
-    assert [c.name for c in await svc.list_civs(GAME)] == ["Franks"]
-    await svc.archive_civ(civ.id)
+    faction = await svc.create_faction(GAME, "Franks", faction_key="franks")
+    assert faction.faction_key == "franks"
+    assert [c.name for c in await svc.list_factions(GAME)] == ["Franks"]
+    await svc.archive_faction(faction.id)
     rule = await svc.create_rule(GAME, "1v1 RM", rule_key="rm_1v1", params={"team_size": "1"})
     fetched = await svc.get_rule(rule.id)
     assert fetched is not None and fetched.params == {"team_size": "1"}
@@ -234,9 +234,9 @@ async def test_seed_from_data_idempotent() -> None:
         "rules": [{"name": "1v1 RM", "rule_key": "rm_1v1"}],
     }
     counts = await svc.seed_from_data(GAME, data)
-    assert counts == {"maps": 2, "civs": 1, "rules": 1}
+    assert counts == {"maps": 2, "factions": 1, "rules": 1}
     again = await svc.seed_from_data(GAME, data)
-    assert again == {"maps": 0, "civs": 0, "rules": 0}
+    assert again == {"maps": 0, "factions": 0, "rules": 0}
     assert len(await svc.list_maps(GAME)) == 2
 
 

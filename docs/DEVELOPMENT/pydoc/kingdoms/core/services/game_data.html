@@ -266,7 +266,7 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#GameDataService
 Methods defined here:<br>
 <dl><dt><a name="GameDataDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
-<dl><dt>async <a name="GameDataDatabase-find_active_civs"><strong>find_active_civs</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataDatabase-find_active_factions"><strong>find_active_factions</strong></a>(self, game_key: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;for&nbsp;a&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
 &nbsp;<br>
@@ -307,7 +307,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_civs', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', 'find_game_keys', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_factions', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', 'find_game_keys', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -346,7 +346,7 @@ rows&nbsp;so&nbsp;the&nbsp;switch&nbsp;is&nbsp;atomic&nbsp;from&nbsp;the&nbsp;st
 Re-activating&nbsp;the&nbsp;pool&nbsp;that&nbsp;is&nbsp;already&nbsp;active&nbsp;is&nbsp;a&nbsp;no-op&nbsp;(the<br>
 history&nbsp;stays&nbsp;one&nbsp;row&nbsp;per&nbsp;real&nbsp;switch).</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-archive_civ"><strong>archive_civ</strong></a>(self, entry_id: 'str') -&gt; 'CivModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;civ&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
+<dl><dt>async <a name="GameDataService-archive_faction"><strong>archive_faction</strong></a>(self, entry_id: 'str') -&gt; 'FactionModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;faction&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-archive_map"><strong>archive_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Archive&nbsp;a&nbsp;map&nbsp;(archival-only&nbsp;delete).</span></dd></dl>
 
@@ -362,7 +362,7 @@ Callers&nbsp;that&nbsp;track&nbsp;the&nbsp;ladder's&nbsp;``active_map_pool_id``&
 before&nbsp;the&nbsp;archive;&nbsp;the&nbsp;service&nbsp;itself&nbsp;keeps&nbsp;the&nbsp;check&nbsp;where&nbsp;the<br>
 ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history).</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-create_civ"><strong>create_civ</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '') -&gt; 'CivModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;civilization/faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-create_faction"><strong>create_faction</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '') -&gt; 'FactionModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '') -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.</span></dd></dl>
 
@@ -378,7 +378,7 @@ its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name&nbsp;(a&nbsp;new&nbsp;stable&nbsp;id).</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-get_civ"><strong>get_civ</strong></a>(self, entry_id: 'str') -&gt; 'CivModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;civ;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-get_faction"><strong>get_faction</strong></a>(self, entry_id: 'str') -&gt; 'FactionModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;faction;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-get_map"><strong>get_map</strong></a>(self, entry_id: 'str') -&gt; 'MapModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;map;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
@@ -388,7 +388,7 @@ its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-get_rule"><strong>get_rule</strong></a>(self, entry_id: 'str') -&gt; 'RuleModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;rule;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-list_civs"><strong>list_civs</strong></a>(self, game_key: 'str') -&gt; 'list[CivModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;civs&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
+<dl><dt>async <a name="GameDataService-list_factions"><strong>list_factions</strong></a>(self, game_key: 'str') -&gt; 'list[FactionModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;of&nbsp;a&nbsp;game.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-list_game_keys"><strong>list_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;game&nbsp;keys&nbsp;known&nbsp;to&nbsp;the&nbsp;maps&nbsp;catalog&nbsp;(generic).</span></dd></dl>
 
@@ -403,7 +403,7 @@ guilds&nbsp;but&nbsp;shared&nbsp;with&nbsp;everyone);&nbsp;unscoped:&nbsp;every&
 
 <dl><dt>async <a name="GameDataService-seed_from_data"><strong>seed_from_data</strong></a>(self, game_key: 'str', data: 'dict[str, Any]') -&gt; 'dict[str, int]'</dt><dd><span class="code">Seed&nbsp;a&nbsp;game's&nbsp;catalog&nbsp;from&nbsp;a&nbsp;parsed&nbsp;YAML&nbsp;document&nbsp;(idempotent).<br>
 &nbsp;<br>
-Sections&nbsp;``maps``,&nbsp;``civs``,&nbsp;``rules``:&nbsp;each&nbsp;a&nbsp;list&nbsp;of&nbsp;entries&nbsp;with<br>
+Sections&nbsp;``maps``,&nbsp;``factions``&nbsp;(YAML&nbsp;section&nbsp;``civs``),&nbsp;``rules``:&nbsp;each&nbsp;a&nbsp;list&nbsp;of&nbsp;entries&nbsp;with<br>
 a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&nbsp;present&nbsp;(same&nbsp;id)<br>
 are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.</span></dd></dl>
 
@@ -499,7 +499,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ADMIN_AUDIT_COLLECTION</strong> = 'admin_audit'<br>
-<strong>CIVS_COLLECTION</strong> = 'civs'<br>
+<strong>FACTIONS_COLLECTION</strong> = 'factions'<br>
 <strong>MAPS_COLLECTION</strong> = 'maps'<br>
 <strong>MAP_PACKS_COLLECTION</strong> = 'map_packs'<br>
 <strong>MAP_POOLS_COLLECTION</strong> = 'map_pools'<br>

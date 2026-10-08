@@ -71,7 +71,12 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.forum_message_id and await platform.forum_thread_exists(guild_id, entry.forum_message_id):
             await _ensure_add_button(platform, guild_id, entry.forum_message_id, entry.id)
             continue
-        content = f"**{entry.name}**\n{entry.description or '_Aucune description._'}"
+        from kingdoms.discord.content_posts import entity_post_content
+
+        _, summary, source = await entity_post_content(entry.id, "", guild_id, bot)
+        description = summary or (entry.description or "_Aucune description._")
+        head = f"Source : {source}\n" if source else ""
+        content = f"{head}**{entry.name}**\n{description}"
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
         thread_id = await platform.create_map_post(

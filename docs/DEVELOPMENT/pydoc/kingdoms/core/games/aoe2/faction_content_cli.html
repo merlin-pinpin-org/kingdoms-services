@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.games.aoe2.faction_content_cli</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.games.html" class="white">games</a>.<a href="kingdoms.core.games.aoe2.html" class="white">aoe2</a>.faction_content_cli</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/games/aoe2/faction_content_cli.py">SOURCE_ROOT/core/games/aoe2/faction_content_cli.py</a></td></tr></table>
+    <p><span class="code">Faction&nbsp;content&nbsp;seed&nbsp;CLI:&nbsp;aoe2techtree&nbsp;dataset&nbsp;→&nbsp;Mongo&nbsp;(per&nbsp;locale).<br>
+&nbsp;<br>
+Usage::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;python&nbsp;-m&nbsp;kingdoms.core.games.aoe2.faction_content_cli&nbsp;[dataset_dir]<br>
+&nbsp;<br>
+Loads&nbsp;the&nbsp;vendored&nbsp;aoe2techtree&nbsp;dataset&nbsp;(``data/core/aoe2techtree``&nbsp;—<br>
+MIT&nbsp;licence,&nbsp;extracted&nbsp;game&nbsp;data&nbsp;under&nbsp;Microsoft's&nbsp;Game&nbsp;Content&nbsp;Usage<br>
+Rules)&nbsp;and&nbsp;upserts&nbsp;one&nbsp;``faction_content``&nbsp;document&nbsp;per&nbsp;civ&nbsp;per<br>
+platform&nbsp;locale&nbsp;(``en``,&nbsp;``fr``),&nbsp;addressed&nbsp;by&nbsp;the&nbsp;catalog's&nbsp;stable&nbsp;ids<br>
+(``faction:aoe2:Franks``).&nbsp;Idempotent:&nbsp;re-running&nbsp;overwrites&nbsp;the&nbsp;same<br>
+documents.&nbsp;Reads&nbsp;``MONGO_URI``/``MONGO_DB``&nbsp;from&nbsp;the&nbsp;environment.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">Seed&nbsp;the&nbsp;per-locale&nbsp;faction&nbsp;content&nbsp;into&nbsp;Mongo;&nbsp;exit&nbsp;0&nbsp;on&nbsp;success.</span></dd></dl>
+</td></tr></table>
+</body></html>
