@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.admin_journal</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.admin_journal</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/admin_journal.py">SOURCE_ROOT/mods/kingdoms/admin_journal.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;common&nbsp;admin&nbsp;foundation:&nbsp;Journal&nbsp;+&nbsp;Snapshot&nbsp;+&nbsp;Rollback.<br>
+&nbsp;<br>
+Decision&nbsp;D75&nbsp;(kingdoms#166,&nbsp;epic&nbsp;kingdoms-services#214&nbsp;phase&nbsp;1.2):&nbsp;every<br>
+admin&nbsp;action&nbsp;of&nbsp;the&nbsp;six&nbsp;Admin&nbsp;panels&nbsp;rides&nbsp;the&nbsp;**same**&nbsp;foundation&nbsp;—<br>
+a&nbsp;reason&nbsp;**mandatory&nbsp;without&nbsp;exception**,&nbsp;a&nbsp;before/after&nbsp;snapshot&nbsp;of&nbsp;the<br>
+touched&nbsp;documents,&nbsp;a&nbsp;timestamped&nbsp;journal&nbsp;entry,&nbsp;and&nbsp;a&nbsp;per-action<br>
+rollback:<br>
+&nbsp;<br>
+-&nbsp;**Reason**:&nbsp;``record``&nbsp;refuses&nbsp;an&nbsp;empty&nbsp;reason&nbsp;—&nbsp;the&nbsp;check&nbsp;lives&nbsp;here,<br>
+&nbsp;&nbsp;in&nbsp;the&nbsp;one&nbsp;place&nbsp;every&nbsp;surface&nbsp;goes&nbsp;through,&nbsp;so&nbsp;no&nbsp;panel&nbsp;can&nbsp;bypass&nbsp;it.<br>
+-&nbsp;**Rollback**:&nbsp;per&nbsp;action&nbsp;(never&nbsp;per&nbsp;timestamp),&nbsp;inside&nbsp;a&nbsp;2-hour<br>
+&nbsp;&nbsp;window,&nbsp;at&nbsp;most&nbsp;once&nbsp;per&nbsp;action;&nbsp;the&nbsp;``before``&nbsp;snapshot&nbsp;of&nbsp;the&nbsp;entry<br>
+&nbsp;&nbsp;is&nbsp;the&nbsp;restoration&nbsp;payload&nbsp;—&nbsp;the&nbsp;domain&nbsp;service&nbsp;reapplies&nbsp;it.<br>
+-&nbsp;**Retention**:&nbsp;after&nbsp;48&nbsp;hours&nbsp;the&nbsp;entry&nbsp;is&nbsp;*compacted*&nbsp;—&nbsp;the&nbsp;before/<br>
+&nbsp;&nbsp;after&nbsp;payloads&nbsp;are&nbsp;dropped,&nbsp;the&nbsp;summary&nbsp;line&nbsp;(who,&nbsp;what,&nbsp;why,&nbsp;when)<br>
+&nbsp;&nbsp;stays.&nbsp;The&nbsp;journal&nbsp;is&nbsp;an&nbsp;audit&nbsp;trail&nbsp;first,&nbsp;a&nbsp;restore&nbsp;source&nbsp;second.<br>
+&nbsp;<br>
+The&nbsp;service&nbsp;is&nbsp;storage-agnostic&nbsp;(the&nbsp;``KingdomsStore``&nbsp;Protocol&nbsp;—&nbsp;the<br>
+three&nbsp;``*_admin_action``&nbsp;seams);&nbsp;Mongo&nbsp;is&nbsp;the&nbsp;production&nbsp;adapter.&nbsp;No<br>
+Discord&nbsp;here:&nbsp;the&nbsp;panels&nbsp;localize&nbsp;their&nbsp;own&nbsp;strings,&nbsp;the&nbsp;journal<br>
+stores&nbsp;the&nbsp;raw&nbsp;reason&nbsp;verbatim.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalService">AdminJournalService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminReasonRequiredError">AdminReasonRequiredError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AlreadyRolledBackError">AlreadyRolledBackError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#RollbackWindowClosedError">RollbackWindowClosedError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="pydantic.html#BaseModel">pydantic.BaseModel</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#AdminActionModel">kingdoms.mods.kingdoms.models.AdminActionModel</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminActionModel">class <strong>AdminActionModel</strong></a>(<a href="pydantic.html#BaseModel">pydantic.BaseModel</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminActionModel">AdminActionModel</a>(*args:&nbsp;Any,&nbsp;**kwargs:&nbsp;Any)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;journaled&nbsp;admin&nbsp;action:&nbsp;the&nbsp;audit&nbsp;line&nbsp;and&nbsp;its&nbsp;restore&nbsp;payload.<br>
+&nbsp;<br>
+D75:&nbsp;every&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;with&nbsp;a&nbsp;mandatory&nbsp;reason&nbsp;and&nbsp;a<br>
+snapshot&nbsp;of&nbsp;the&nbsp;touched&nbsp;documents&nbsp;*before*&nbsp;the&nbsp;mutation&nbsp;—&nbsp;the<br>
+``before``/``after``&nbsp;payloads&nbsp;are&nbsp;raw&nbsp;store&nbsp;documents&nbsp;keyed&nbsp;by<br>
+``&lt;collection&gt;:&lt;document&nbsp;id&gt;``,&nbsp;and&nbsp;the&nbsp;rollback&nbsp;reapplies<br>
+``before``&nbsp;verbatim.&nbsp;A&nbsp;compacted&nbsp;entry&nbsp;(48h+)&nbsp;drops&nbsp;both&nbsp;payloads<br>
+and&nbsp;keeps&nbsp;the&nbsp;summary&nbsp;(who,&nbsp;what,&nbsp;why,&nbsp;when).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.models.html#AdminActionModel">AdminActionModel</a></dd>
+<dd><a href="pydantic.html#BaseModel">pydantic.BaseModel</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="AdminActionModel-to_mongo"><strong>to_mongo</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Convert&nbsp;to&nbsp;a&nbsp;MongoDB&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="AdminActionModel-from_mongo"><strong>from_mongo</strong></a>(data: 'dict[str, Any]') -&gt; 'AdminActionModel'</dt><dd><span class="code">Build&nbsp;from&nbsp;a&nbsp;MongoDB&nbsp;document.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'action_type': 'str', 'actor_id': 'str', 'actor_name': 'str', 'after': 'dict[str, dict[str, Any]]', 'before': 'dict[str, dict[str, Any]]', 'compacted': 'bool', 'created_at': 'datetime', 'id': 'str', 'reason': 'str', 'rolled_back': 'bool', ...}</dl>
+
+<dl><dt><strong>after</strong> = None</dl>
+
+<dl><dt><strong>before</strong> = None</dl>
+
+<dl><dt><strong>compacted</strong> = False</dl>
+
+<dl><dt><strong>id</strong> = None</dl>
+
+<dl><dt><strong>model_config</strong> = {'strict': True}</dl>
+
+<dl><dt><strong>rolled_back</strong> = False</dl>
+
+<dl><dt><strong>rolled_back_at</strong> = None</dl>
+
+<hr>
+Methods inherited from <a href="pydantic.html#BaseModel">pydantic.BaseModel</a>:<br>
+<dl><dt><a name="AdminActionModel-__init__"><strong>__init__</strong></a>(self, *args: Any, **kwargs: Any) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="pydantic.html#BaseModel">pydantic.BaseModel</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminJournalService">class <strong>AdminJournalService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminJournalService">AdminJournalService</a>(store:&nbsp;'KingdomsStore')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;single&nbsp;journal&nbsp;every&nbsp;Admin&nbsp;panel&nbsp;records&nbsp;through&nbsp;(D75).<br>
+&nbsp;<br>
+Storage-agnostic&nbsp;over&nbsp;the&nbsp;``KingdomsStore``&nbsp;Protocol;&nbsp;the&nbsp;caller<br>
+provides&nbsp;the&nbsp;clock&nbsp;(``now=``)&nbsp;so&nbsp;the&nbsp;window&nbsp;and&nbsp;retention&nbsp;rules&nbsp;are<br>
+deterministically&nbsp;testable.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="AdminJournalService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;persistence&nbsp;seam.</span></dd></dl>
+
+<dl><dt>async <a name="AdminJournalService-actions"><strong>actions</strong></a>(self, season_id: 'str | None' = None) -&gt; 'list[AdminActionModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;journal&nbsp;entries,&nbsp;newest&nbsp;first.</span></dd></dl>
+
+<dl><dt>async <a name="AdminJournalService-compact"><strong>compact</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'int'</dt><dd><span class="code">Compact&nbsp;every&nbsp;entry&nbsp;past&nbsp;the&nbsp;48h&nbsp;retention&nbsp;(D75&nbsp;archival).<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;number&nbsp;of&nbsp;compacted&nbsp;entries;&nbsp;idempotent.</span></dd></dl>
+
+<dl><dt>async <a name="AdminJournalService-record"><strong>record</strong></a>(self, *, season_id: 'str', action_type: 'str', actor_id: 'str', actor_name: 'str', reason: 'str', target_kind: 'str', target_id: 'str', before: 'dict[str, dict[str, Any]] | None' = None, after: 'dict[str, dict[str, Any]] | None' = None, now: 'datetime | None' = None) -&gt; 'AdminActionModel'</dt><dd><span class="code">Journal&nbsp;one&nbsp;admin&nbsp;action&nbsp;with&nbsp;its&nbsp;snapshots&nbsp;(reason&nbsp;mandatory).<br>
+&nbsp;<br>
+``before``/``after``&nbsp;are&nbsp;keyed&nbsp;by&nbsp;collection&nbsp;name,&nbsp;each&nbsp;value&nbsp;a<br>
+raw&nbsp;store&nbsp;document.&nbsp;An&nbsp;empty&nbsp;or&nbsp;blank&nbsp;reason&nbsp;raises&nbsp;—&nbsp;D75&nbsp;makes<br>
+the&nbsp;reason&nbsp;mandatory&nbsp;**without&nbsp;exception**.</span></dd></dl>
+
+<dl><dt>async <a name="AdminJournalService-rollback"><strong>rollback</strong></a>(self, action_id: 'str', *, now: 'datetime | None' = None) -&gt; 'AdminActionModel'</dt><dd><span class="code">Mark&nbsp;one&nbsp;action&nbsp;rolled&nbsp;back&nbsp;—&nbsp;once,&nbsp;inside&nbsp;the&nbsp;2h&nbsp;window&nbsp;(D75).<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;entry:&nbsp;the&nbsp;caller&nbsp;restores&nbsp;the&nbsp;state&nbsp;from&nbsp;its<br>
+``before``&nbsp;payloads&nbsp;(the&nbsp;domain&nbsp;owns&nbsp;the&nbsp;reapplication).&nbsp;Raises<br>
+after&nbsp;the&nbsp;window&nbsp;or&nbsp;on&nbsp;a&nbsp;second&nbsp;rollback&nbsp;of&nbsp;the&nbsp;same&nbsp;action.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminReasonRequiredError">class <strong>AdminReasonRequiredError</strong></a>(<a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminReasonRequiredError">AdminReasonRequiredError</a>(message:&nbsp;'str',&nbsp;context:&nbsp;'ErrorContext&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;without&nbsp;a&nbsp;reason&nbsp;(D75).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminReasonRequiredError">AdminReasonRequiredError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>code</strong> = 'KINGDOMS_ADMIN_REASON_REQUIRED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.admin_reason_required'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__init__"><strong>__init__</strong></a>(self, message: 'str', context: 'ErrorContext | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;its&nbsp;message&nbsp;and&nbsp;serializable&nbsp;context.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AdminReasonRequiredError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AdminReasonRequiredError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AlreadyRolledBackError">class <strong>AlreadyRolledBackError</strong></a>(<a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AlreadyRolledBackError">AlreadyRolledBackError</a>(message:&nbsp;'str',&nbsp;context:&nbsp;'ErrorContext&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;action&nbsp;is&nbsp;rolled&nbsp;back&nbsp;twice&nbsp;(1&nbsp;max&nbsp;per&nbsp;action).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AlreadyRolledBackError">AlreadyRolledBackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>code</strong> = 'KINGDOMS_ALREADY_ROLLED_BACK'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.already_rolled_back'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AlreadyRolledBackError-__init__"><strong>__init__</strong></a>(self, message: 'str', context: 'ErrorContext | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;its&nbsp;message&nbsp;and&nbsp;serializable&nbsp;context.</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AlreadyRolledBackError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AlreadyRolledBackError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AlreadyRolledBackError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AlreadyRolledBackError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AlreadyRolledBackError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RollbackWindowClosedError">class <strong>RollbackWindowClosedError</strong></a>(<a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RollbackWindowClosedError">RollbackWindowClosedError</a>(message:&nbsp;'str',&nbsp;context:&nbsp;'ErrorContext&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;2-hour&nbsp;rollback&nbsp;window&nbsp;of&nbsp;an&nbsp;action&nbsp;has&nbsp;expired.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#RollbackWindowClosedError">RollbackWindowClosedError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>code</strong> = 'KINGDOMS_ROLLBACK_WINDOW_CLOSED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.rollback_window_closed'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="RollbackWindowClosedError-__init__"><strong>__init__</strong></a>(self, message: 'str', context: 'ErrorContext | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;its&nbsp;message&nbsp;and&nbsp;serializable&nbsp;context.</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="RollbackWindowClosedError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="RollbackWindowClosedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RollbackWindowClosedError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="RollbackWindowClosedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RollbackWindowClosedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-compact_action"><strong>compact_action</strong></a>(action: 'AdminActionModel') -&gt; 'AdminActionModel'</dt><dd><span class="code">Drop&nbsp;the&nbsp;restore&nbsp;payloads&nbsp;of&nbsp;one&nbsp;entry&nbsp;(the&nbsp;48h&nbsp;archival,&nbsp;D75).<br>
+&nbsp;<br>
+Pure&nbsp;function:&nbsp;the&nbsp;caller&nbsp;persists&nbsp;the&nbsp;result.&nbsp;A&nbsp;compacted&nbsp;entry<br>
+keeps&nbsp;the&nbsp;summary&nbsp;—&nbsp;action,&nbsp;actor,&nbsp;target,&nbsp;reason,&nbsp;timestamps.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADMIN_JOURNAL_COLLECTION</strong> = 'kingdoms_admin_journal'<br>
+<strong>RETENTION</strong> = datetime.timedelta(days=2)<br>
+<strong>ROLLBACK_WINDOW</strong> = datetime.timedelta(seconds=7200)<br>
+<strong>__all__</strong> = ['ADMIN_JOURNAL_COLLECTION', 'RETENTION', 'ROLLBACK_WINDOW', 'AdminActionModel', 'AdminJournalService', 'AdminReasonRequiredError', 'AlreadyRolledBackError', 'RollbackWindowClosedError', 'compact_action']</td></tr></table>
+</body></html>

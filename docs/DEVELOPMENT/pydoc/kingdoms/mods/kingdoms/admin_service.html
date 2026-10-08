@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.admin_service</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.admin_service</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/admin_service.py">SOURCE_ROOT/mods/kingdoms/admin_service.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;🏰&nbsp;Royaume&nbsp;admin&nbsp;operations&nbsp;over&nbsp;the&nbsp;D75&nbsp;foundation.<br>
+&nbsp;<br>
+Every&nbsp;operation&nbsp;of&nbsp;the&nbsp;Royaume&nbsp;panel&nbsp;(D75,&nbsp;item&nbsp;1)&nbsp;as&nbsp;a&nbsp;journaled<br>
+domain&nbsp;action:&nbsp;a&nbsp;**mandatory&nbsp;reason**,&nbsp;a&nbsp;snapshot&nbsp;of&nbsp;the&nbsp;touched<br>
+documents&nbsp;*before*&nbsp;the&nbsp;mutation,&nbsp;the&nbsp;mutation&nbsp;itself,&nbsp;then&nbsp;the&nbsp;journal<br>
+entry&nbsp;carrying&nbsp;both&nbsp;snapshots&nbsp;—&nbsp;so&nbsp;``rollback``&nbsp;restores&nbsp;the&nbsp;exact<br>
+prior&nbsp;state,&nbsp;document&nbsp;by&nbsp;document.<br>
+&nbsp;<br>
+The&nbsp;Discord&nbsp;concerns&nbsp;(confirmation&nbsp;before/after,&nbsp;the&nbsp;📣&nbsp;announcement,<br>
+the&nbsp;player&nbsp;DM,&nbsp;the&nbsp;panel&nbsp;buttons)&nbsp;are&nbsp;the&nbsp;surface's,&nbsp;delivered&nbsp;by&nbsp;the<br>
+next&nbsp;tranche&nbsp;of&nbsp;epic&nbsp;kingdoms-services#214&nbsp;phase&nbsp;1.2;&nbsp;this&nbsp;module&nbsp;is<br>
+platform-agnostic&nbsp;and&nbsp;never&nbsp;imports&nbsp;discord.<br>
+&nbsp;<br>
+Snapshot&nbsp;keys&nbsp;are&nbsp;``&lt;collection&gt;:&lt;document&nbsp;id&gt;``;&nbsp;the&nbsp;rollback<br>
+reapplies&nbsp;the&nbsp;``before``&nbsp;payloads&nbsp;through&nbsp;the&nbsp;store&nbsp;seams&nbsp;and&nbsp;deletes<br>
+the&nbsp;documents&nbsp;an&nbsp;action&nbsp;created&nbsp;(an&nbsp;``after``&nbsp;entry&nbsp;with&nbsp;no&nbsp;``before``<br>
+counterpart).&nbsp;The&nbsp;store&nbsp;stays&nbsp;the&nbsp;single&nbsp;persistence&nbsp;seam.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_service.html#KingdomAdminService">KingdomAdminService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">kingdoms.mods.kingdoms.admin_journal.AdminJournalError</a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminReasonRequiredError">kingdoms.mods.kingdoms.admin_journal.AdminReasonRequiredError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_service.html#EjectKingError">EjectKingError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_service.html#FoundationWindowClosedError">FoundationWindowClosedError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_service.html#ReassignError">ReassignError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.admin_service.html#ThroneSwapError">ThroneSwapError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="pydantic.html#BaseModel">pydantic.BaseModel</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#AdminActionModel">kingdoms.mods.kingdoms.models.AdminActionModel</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminActionModel">class <strong>AdminActionModel</strong></a>(<a href="pydantic.html#BaseModel">pydantic.BaseModel</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminActionModel">AdminActionModel</a>(*args:&nbsp;Any,&nbsp;**kwargs:&nbsp;Any)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;journaled&nbsp;admin&nbsp;action:&nbsp;the&nbsp;audit&nbsp;line&nbsp;and&nbsp;its&nbsp;restore&nbsp;payload.<br>
+&nbsp;<br>
+D75:&nbsp;every&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;with&nbsp;a&nbsp;mandatory&nbsp;reason&nbsp;and&nbsp;a<br>
+snapshot&nbsp;of&nbsp;the&nbsp;touched&nbsp;documents&nbsp;*before*&nbsp;the&nbsp;mutation&nbsp;—&nbsp;the<br>
+``before``/``after``&nbsp;payloads&nbsp;are&nbsp;raw&nbsp;store&nbsp;documents&nbsp;keyed&nbsp;by<br>
+``&lt;collection&gt;:&lt;document&nbsp;id&gt;``,&nbsp;and&nbsp;the&nbsp;rollback&nbsp;reapplies<br>
+``before``&nbsp;verbatim.&nbsp;A&nbsp;compacted&nbsp;entry&nbsp;(48h+)&nbsp;drops&nbsp;both&nbsp;payloads<br>
+and&nbsp;keeps&nbsp;the&nbsp;summary&nbsp;(who,&nbsp;what,&nbsp;why,&nbsp;when).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.models.html#AdminActionModel">AdminActionModel</a></dd>
+<dd><a href="pydantic.html#BaseModel">pydantic.BaseModel</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="AdminActionModel-to_mongo"><strong>to_mongo</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Convert&nbsp;to&nbsp;a&nbsp;MongoDB&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="AdminActionModel-from_mongo"><strong>from_mongo</strong></a>(data: 'dict[str, Any]') -&gt; 'AdminActionModel'</dt><dd><span class="code">Build&nbsp;from&nbsp;a&nbsp;MongoDB&nbsp;document.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'action_type': 'str', 'actor_id': 'str', 'actor_name': 'str', 'after': 'dict[str, dict[str, Any]]', 'before': 'dict[str, dict[str, Any]]', 'compacted': 'bool', 'created_at': 'datetime', 'id': 'str', 'reason': 'str', 'rolled_back': 'bool', ...}</dl>
+
+<dl><dt><strong>after</strong> = None</dl>
+
+<dl><dt><strong>before</strong> = None</dl>
+
+<dl><dt><strong>compacted</strong> = False</dl>
+
+<dl><dt><strong>id</strong> = None</dl>
+
+<dl><dt><strong>model_config</strong> = {'strict': True}</dl>
+
+<dl><dt><strong>rolled_back</strong> = False</dl>
+
+<dl><dt><strong>rolled_back_at</strong> = None</dl>
+
+<hr>
+Methods inherited from <a href="pydantic.html#BaseModel">pydantic.BaseModel</a>:<br>
+<dl><dt><a name="AdminActionModel-__init__"><strong>__init__</strong></a>(self, *args: Any, **kwargs: Any) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="pydantic.html#BaseModel">pydantic.BaseModel</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="AdminReasonRequiredError">class <strong>AdminReasonRequiredError</strong></a>(<a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminReasonRequiredError">AdminReasonRequiredError</a>(message:&nbsp;'str',&nbsp;context:&nbsp;'ErrorContext&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;admin&nbsp;action&nbsp;is&nbsp;recorded&nbsp;without&nbsp;a&nbsp;reason&nbsp;(D75).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminReasonRequiredError">AdminReasonRequiredError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.admin_journal.html#AdminJournalError">AdminJournalError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>code</strong> = 'KINGDOMS_ADMIN_REASON_REQUIRED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.admin_reason_required'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__init__"><strong>__init__</strong></a>(self, message: 'str', context: 'ErrorContext | None' = None) -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;its&nbsp;message&nbsp;and&nbsp;serializable&nbsp;context.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AdminReasonRequiredError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AdminReasonRequiredError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="AdminReasonRequiredError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AdminReasonRequiredError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EjectKingError">class <strong>EjectKingError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EjectKingError">EjectKingError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;ejecting&nbsp;a&nbsp;King&nbsp;—&nbsp;the&nbsp;kingdom&nbsp;needs&nbsp;its&nbsp;King&nbsp;(D75).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_service.html#EjectKingError">EjectKingError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_EJECT_KING'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.eject_king'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="EjectKingError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="EjectKingError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="EjectKingError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="EjectKingError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="EjectKingError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="EjectKingError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="EjectKingError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EjectKingError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="EjectKingError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#EjectKingError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="EjectKingError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#EjectKingError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FoundationWindowClosedError">class <strong>FoundationWindowClosedError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FoundationWindowClosedError">FoundationWindowClosedError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;foundation&nbsp;rights&nbsp;are&nbsp;edited&nbsp;past&nbsp;the&nbsp;initial&nbsp;window.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_service.html#FoundationWindowClosedError">FoundationWindowClosedError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_FOUNDATION_WINDOW_CLOSED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.foundation_window_closed'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="FoundationWindowClosedError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="FoundationWindowClosedError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="FoundationWindowClosedError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="FoundationWindowClosedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FoundationWindowClosedError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="FoundationWindowClosedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FoundationWindowClosedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KingdomAdminService">class <strong>KingdomAdminService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomAdminService">KingdomAdminService</a>(service:&nbsp;'KingdomsService',&nbsp;store:&nbsp;'KingdomsStore')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;journaled&nbsp;Royaume&nbsp;operations&nbsp;(D75&nbsp;item&nbsp;1)&nbsp;over&nbsp;the&nbsp;store.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="KingdomAdminService-__init__"><strong>__init__</strong></a>(self, service: 'KingdomsService', store: 'KingdomsStore') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;the&nbsp;domain&nbsp;service;&nbsp;both&nbsp;share&nbsp;the&nbsp;one&nbsp;store&nbsp;seam.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-add_lord"><strong>add_lord</strong></a>(self, player_id: 'str', display_name: 'str', role: 'LordRole', kingdom_name: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Add&nbsp;a&nbsp;player&nbsp;manually&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;(D75&nbsp;—&nbsp;modal&nbsp;flow).<br>
+&nbsp;<br>
+The&nbsp;admin&nbsp;path&nbsp;bypasses&nbsp;the&nbsp;queue;&nbsp;the&nbsp;capacity&nbsp;rules&nbsp;still<br>
+apply&nbsp;(the&nbsp;D75&nbsp;gel).&nbsp;A&nbsp;King&nbsp;may&nbsp;only&nbsp;be&nbsp;added&nbsp;to&nbsp;a&nbsp;kingdom<br>
+without&nbsp;an&nbsp;active&nbsp;King.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-assign_queued"><strong>assign_queued</strong></a>(self, player_id: 'str', kingdom_name: 'str', role: 'LordRole', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Assign&nbsp;a&nbsp;queued&nbsp;player&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;(D23),&nbsp;journaled.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-create_kingdom"><strong>create_kingdom</strong></a>(self, name: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;kingdom&nbsp;manually&nbsp;(D75)&nbsp;—&nbsp;distinct&nbsp;from&nbsp;the&nbsp;presets.<br>
+&nbsp;<br>
+The&nbsp;territories&nbsp;the&nbsp;creation&nbsp;draws&nbsp;ride&nbsp;the&nbsp;``after``&nbsp;payload,<br>
+so&nbsp;a&nbsp;rollback&nbsp;deletes&nbsp;the&nbsp;kingdom&nbsp;**and**&nbsp;its&nbsp;drawn&nbsp;maps.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-dissolve_kingdom"><strong>dissolve_kingdom</strong></a>(self, kingdom_name: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Dissolve&nbsp;a&nbsp;kingdom&nbsp;(D75):&nbsp;territories&nbsp;to&nbsp;Gaïa,&nbsp;players&nbsp;queued.<br>
+&nbsp;<br>
+The&nbsp;territories&nbsp;revert&nbsp;to&nbsp;Gaïa&nbsp;(D32),&nbsp;every&nbsp;member&nbsp;falls&nbsp;back<br>
+to&nbsp;the&nbsp;waiting&nbsp;queue&nbsp;**with&nbsp;their&nbsp;role&nbsp;kept**,&nbsp;and&nbsp;the&nbsp;kingdom<br>
+document&nbsp;is&nbsp;deleted&nbsp;—&nbsp;the&nbsp;rollback&nbsp;restores&nbsp;the&nbsp;whole&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-eject_to_queue"><strong>eject_to_queue</strong></a>(self, player_id: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Eject&nbsp;a&nbsp;lord&nbsp;back&nbsp;to&nbsp;the&nbsp;waiting&nbsp;queue,&nbsp;role&nbsp;kept&nbsp;(D75).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-reassign"><strong>reassign</strong></a>(self, player_id: 'str', kingdom_name: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Move&nbsp;an&nbsp;enrolled&nbsp;lord&nbsp;to&nbsp;another&nbsp;kingdom&nbsp;(D17&nbsp;lives&nbsp;here,&nbsp;D75).<br>
+&nbsp;<br>
+The&nbsp;role&nbsp;is&nbsp;kept,&nbsp;the&nbsp;capacity&nbsp;rules&nbsp;apply;&nbsp;a&nbsp;King&nbsp;is&nbsp;not&nbsp;a<br>
+movable&nbsp;piece&nbsp;—&nbsp;the&nbsp;throne&nbsp;swap&nbsp;(or&nbsp;dissolution)&nbsp;handles&nbsp;them.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-rename_kingdom"><strong>rename_kingdom</strong></a>(self, kingdom_name: 'str', new_name: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Rename&nbsp;a&nbsp;kingdom&nbsp;(D75&nbsp;—&nbsp;admin&nbsp;rename,&nbsp;reason&nbsp;mandatory).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-rollback"><strong>rollback</strong></a>(self, action_id: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'AdminActionModel'</dt><dd><span class="code">Roll&nbsp;one&nbsp;admin&nbsp;action&nbsp;back&nbsp;(D75):&nbsp;2h&nbsp;window,&nbsp;once&nbsp;per&nbsp;action.<br>
+&nbsp;<br>
+The&nbsp;``before``&nbsp;snapshots&nbsp;are&nbsp;reapplied&nbsp;verbatim&nbsp;through&nbsp;the<br>
+store&nbsp;seams;&nbsp;documents&nbsp;the&nbsp;action&nbsp;created&nbsp;(an&nbsp;``after``&nbsp;entry<br>
+with&nbsp;no&nbsp;``before``&nbsp;counterpart)&nbsp;are&nbsp;deleted.&nbsp;The&nbsp;rollback&nbsp;is<br>
+itself&nbsp;journaled&nbsp;—&nbsp;with&nbsp;its&nbsp;mandatory&nbsp;reason.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-set_applications"><strong>set_applications</strong></a>(self, *, open: 'bool', actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'SeasonState'</dt><dd><span class="code">Flip&nbsp;the&nbsp;global&nbsp;applications&nbsp;switch&nbsp;(D75).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-set_foundation_rights"><strong>set_foundation_rights</strong></a>(self, *, king: 'bool | None' = None, admin: 'bool | None' = None, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'SeasonState'</dt><dd><span class="code">Edit&nbsp;the&nbsp;foundation&nbsp;checkboxes&nbsp;(D75)&nbsp;—&nbsp;initial&nbsp;window&nbsp;only.<br>
+&nbsp;<br>
+The&nbsp;window&nbsp;closes&nbsp;with&nbsp;the&nbsp;season's&nbsp;first&nbsp;cycle:&nbsp;once&nbsp;the<br>
+season&nbsp;is&nbsp;launched&nbsp;and&nbsp;rolling,&nbsp;the&nbsp;rights&nbsp;are&nbsp;locked.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-set_quotas"><strong>set_quotas</strong></a>(self, *, kingdoms_count: 'int | None' = None, lords_per_kingdom: 'int | None' = None, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'SeasonState'</dt><dd><span class="code">Move&nbsp;the&nbsp;kingdom/lord&nbsp;quotas&nbsp;(D75&nbsp;—&nbsp;free&nbsp;policy).<br>
+&nbsp;<br>
+``None``&nbsp;resets&nbsp;a&nbsp;quota&nbsp;to&nbsp;its&nbsp;config&nbsp;default.&nbsp;Lowering&nbsp;a&nbsp;quota<br>
+below&nbsp;a&nbsp;kingdom's&nbsp;current&nbsp;headcount&nbsp;**gels**&nbsp;it:&nbsp;capacity&nbsp;only<br>
+gates&nbsp;new&nbsp;members,&nbsp;nobody&nbsp;is&nbsp;ever&nbsp;ejected.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-set_recruitment"><strong>set_recruitment</strong></a>(self, kingdom_name: 'str', *, open: 'bool', actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Flip&nbsp;one&nbsp;kingdom's&nbsp;recruitment&nbsp;switch&nbsp;(D75).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomAdminService-swap_throne"><strong>swap_throne</strong></a>(self, kingdom_name: 'str', new_king_id: 'str', *, actor_id: 'str', actor_name: 'str', reason: 'str') -&gt; 'tuple[LordModel, LordModel | None]'</dt><dd><span class="code">Swap&nbsp;the&nbsp;throne&nbsp;inside&nbsp;a&nbsp;kingdom&nbsp;(D75&nbsp;—&nbsp;total&nbsp;inheritance,&nbsp;D23).<br>
+&nbsp;<br>
+The&nbsp;new&nbsp;King&nbsp;must&nbsp;be&nbsp;an&nbsp;active&nbsp;lord&nbsp;of&nbsp;the&nbsp;kingdom;&nbsp;the&nbsp;crowns<br>
+and&nbsp;the&nbsp;weekly&nbsp;attack/defense&nbsp;budgets&nbsp;trade&nbsp;places&nbsp;—&nbsp;the&nbsp;throne<br>
+carries&nbsp;the&nbsp;budgets&nbsp;(the&nbsp;anti-abuse&nbsp;inheritance&nbsp;of&nbsp;D23).&nbsp;When<br>
+the&nbsp;kingdom&nbsp;has&nbsp;no&nbsp;King,&nbsp;the&nbsp;lord&nbsp;is&nbsp;simply&nbsp;crowned.</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>journal</strong></dt>
+<dd><span class="code">The&nbsp;shared&nbsp;journal&nbsp;—&nbsp;the&nbsp;panels&nbsp;list&nbsp;and&nbsp;roll&nbsp;back&nbsp;through&nbsp;it.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ReassignError">class <strong>ReassignError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ReassignError">ReassignError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;reassignment&nbsp;target&nbsp;is&nbsp;not&nbsp;a&nbsp;movable&nbsp;lord&nbsp;(D17).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_service.html#ReassignError">ReassignError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_REASSIGN'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.reassign'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="ReassignError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ReassignError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ReassignError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ReassignError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ReassignError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ReassignError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ReassignError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ReassignError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ReassignError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ReassignError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ReassignError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ReassignError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ThroneSwapError">class <strong>ThroneSwapError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ThroneSwapError">ThroneSwapError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;throne&nbsp;swap&nbsp;target&nbsp;is&nbsp;not&nbsp;a&nbsp;lord&nbsp;of&nbsp;the&nbsp;kingdom.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.admin_service.html#ThroneSwapError">ThroneSwapError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_THRONE_SWAP'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.throne_swap'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="ThroneSwapError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ThroneSwapError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ThroneSwapError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ThroneSwapError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ThroneSwapError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ThroneSwapError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ThroneSwapError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ThroneSwapError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ThroneSwapError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ThroneSwapError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ThroneSwapError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ThroneSwapError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['AdminActionModel', 'AdminReasonRequiredError', 'EjectKingError', 'FoundationWindowClosedError', 'KingdomAdminService', 'ReassignError', 'ThroneSwapError']</td></tr></table>
+</body></html>

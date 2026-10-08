@@ -65,6 +65,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-find_admin_actions"><strong>find_admin_actions</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -78,6 +80,10 @@ Methods defined here:<br>
 <dl><dt>async <a name="KingdomsStore-find_technologies"><strong>find_technologies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;technology&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-insert_admin_action"><strong>insert_admin_action</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;one&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;(D75)&nbsp;—&nbsp;append-only.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-upsert_admin_action"><strong>upsert_admin_action</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Update&nbsp;one&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;(rollback&nbsp;flag,&nbsp;compaction).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_attack"><strong>upsert_attack</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;attack&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -115,7 +121,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_attack', 'delete_kingdom', 'delete_lord', 'delete_territory', 'find_attacks', 'find_kingdoms', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_attack', 'delete_kingdom', 'delete_lord', 'delete_territory', 'find_admin_actions', 'find_attacks', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -153,6 +159,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 
 <dl><dt>async <a name="MongoKingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-find_admin_actions"><strong>find_admin_actions</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -166,6 +174,10 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 <dl><dt>async <a name="MongoKingdomsStore-find_technologies"><strong>find_technologies</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;technology&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-insert_admin_action"><strong>insert_admin_action</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;one&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;(D75)&nbsp;—&nbsp;append-only.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-upsert_admin_action"><strong>upsert_admin_action</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Update&nbsp;one&nbsp;admin&nbsp;journal&nbsp;entry&nbsp;(rollback&nbsp;flag,&nbsp;compaction).</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_attack"><strong>upsert_attack</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;attack&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -200,7 +212,8 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>ATTACKS_COLLECTION</strong> = 'kingdoms_attacks'<br>
+<td class="singlecolumn"><strong>ADMIN_JOURNAL_COLLECTION</strong> = 'kingdoms_admin_journal'<br>
+<strong>ATTACKS_COLLECTION</strong> = 'kingdoms_attacks'<br>
 <strong>KINGDOMS_COLLECTION</strong> = 'kingdoms_kingdoms'<br>
 <strong>LORDS_COLLECTION</strong> = 'kingdoms_lords'<br>
 <strong>SEASONS_COLLECTION</strong> = 'kingdoms_seasons'<br>
