@@ -172,3 +172,88 @@ async def test_provision_default_channels_survives_one_guild_failure(config_dir:
     bot.logs_service.resolve_channel = _boom  # type: ignore[method-assign]
     await bot._provision_default_channels()
     assert admin.resolved == [("42", bot.status_service.bot_admins)]
+
+
+def test_create_bot_without_redis_has_no_shared_state(config_dir: str) -> None:
+    """No REDIS_URI (unit tests, local runs): no shared state, degraded paths."""
+    bot = create_bot(BotConfig(config_dir=config_dir))
+    assert bot.state_service is None
+    assert bot.roles_service is None
+    assert bot.registration_engine is None
+
+
+def test_create_bot_with_redis_shares_one_state_service(config_dir: str) -> None:
+    """With Redis configured, every wired service holds the SAME StateService.
+
+    Regression guard (kingdoms-services#225): each service used to build its
+    own never-started store; the shared instance is what setup_hook connects.
+    """
+    from kingdoms.core.services.state import StateService
+
+    bot = create_bot(
+        BotConfig(config_dir=config_dir, mongo_uri="mongodb://localhost:27017", redis_uri="redis://localhost:6379")
+    )
+    assert isinstance(bot.state_service, StateService)
+    assert bot.roles_service is not None
+    assert bot.roles_service._cache is bot.state_service
+    assert bot.channel_service is not None
+    assert bot.channel_service._cache is bot.state_service
+    assert bot.logs_service is not None
+    assert bot.logs_service._state is bot.state_service
+    assert bot.registration_engine is not None
+    assert bot.registration_engine._state is bot.state_service
+
+
+async def test_setup_hook_starts_shared_state_and_registration_engine(config_dir: str) -> None:
+    """setup_hook must connect the shared state and resume workflows.
+
+    Regression guard (kingdoms-services#225): 'state store not started' meant
+    nothing ever called start() — the bot booted degraded in production with
+    green CI because no test asserted the store connects on the startup path.
+    """
+    from tests.mocks.state_mock import InMemoryStateStore
+
+    class _RecordingStore(InMemoryStateStore):
+        started = False
+        stopped = False
+
+        async def start(self) -> None:
+            self.started = True
+            await super().start()
+
+        async def stop(self) -> None:
+            self.stopped = True
+            await super().stop()
+
+    store = _RecordingStore()
+    bot = create_bot(
+        BotConfig(config_dir=config_dir, mongo_uri="mongodb://localhost:27017", redis_uri="redis://localhost:6379")
+    )
+    assert bot.state_service is not None
+    bot.state_service._store = store
+
+    class _NullWorkflowStore:
+        """Store-less engine stand-in: resume finds nothing, start is a no-op."""
+        started = False
+        stopped = False
+
+        async def start(self) -> None:
+            self.started = True
+
+        async def stop(self) -> None:
+            self.stopped = True
+
+        async def list_by_status(self, status: object) -> list[object]:
+            return []
+
+    assert bot.registration_engine is not None
+    workflow_store = _NullWorkflowStore()
+    bot.registration_engine._store = workflow_store
+
+    await bot.setup_hook()
+    assert store.started, "setup_hook must start the shared state store"
+    assert workflow_store.started, "setup_hook must start the registration workflow store"
+    await bot.registration_engine.stop()
+    assert workflow_store.stopped
+    await bot.state_service.close()
+    assert store.stopped, "close() must stop the shared state store"

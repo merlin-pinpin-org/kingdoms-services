@@ -193,6 +193,23 @@ jobs:
           done"
           docker logs kingdoms-bot-smoke 2>&1 | grep KINGDOMS_BOT_READY
           echo "DISCORD GATEWAY READY OK"
+      - name: Assert the hot state connected (no degraded startup)
+        # kingdoms-services#225: the bot used to boot READY with its Redis
+        # state store never started — every cache-aside write failed at
+        # runtime while CI stayed green. A wired bot that degrades on the
+        # startup path must fail here, not in production.
+        run: |
+          if docker logs kingdoms-bot-smoke 2>&1 | grep -q 'state store not started'; then
+            echo '::error::Bot started with its state store NOT connected (degraded startup)'
+            docker logs kingdoms-bot-smoke 2>&1 | grep -B2 -A2 'state store not started' | head -40
+            exit 1
+          fi
+          if ! docker logs kingdoms-bot-smoke 2>&1 | grep -q 'STATE SERVICE STARTED'; then
+            echo '::error::STATE SERVICE STARTED marker missing from startup logs'
+            docker logs --tail 60 kingdoms-bot-smoke
+            exit 1
+          fi
+          echo "HOT STATE CONNECTED OK"
       - name: Soak the bot for 60s (no crash loop)
         run: |
           sleep 60
