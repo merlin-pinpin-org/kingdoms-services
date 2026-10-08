@@ -14,17 +14,19 @@ jobs:
           python-version: "3.12.14"
       - run: uv sync --frozen
       - name: Dump diagnostics
+        continue-on-error: true
         run: |
           {
             echo "=== ruff ==="
-            uv run ruff check src/ tests/ 2>&1
+            uv run ruff check src/ tests/ 2>&1 || true
             echo "=== mypy ==="
-            uv run mypy src/ 2>&1
+            uv run mypy src/ 2>&1 || true
             echo "=== pytest ==="
-            uv run pytest -q 2>&1
+            uv run pytest -q 2>&1 || true
           } > vibe-debug-ci.txt
-          echo "exit codes recorded"
+          exit 0
       - name: Refresh pydoc exactly as the freshness gate
+        continue-on-error: true
         run: |
           uv run python .github/workflows/scripts/generate_pydoc.py \
             --source src/kingdoms \
