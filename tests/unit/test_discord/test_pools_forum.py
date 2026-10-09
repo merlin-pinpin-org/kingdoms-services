@@ -120,6 +120,7 @@ def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
 
 def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
     import discord
+
     from kingdoms.discord.maps_pool_flow import PoolAddMapButton
 
     view = _pool_post_layout(

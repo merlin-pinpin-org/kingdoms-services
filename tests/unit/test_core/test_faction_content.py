@@ -6,7 +6,6 @@ from pathlib import Path
 
 from kingdoms.core.games.aoe2.faction_content import (
     PROVIDER_KEY,
-    SOURCE_URL,
     SUPPORTED_LOCALES,
     TechtreeContentProvider,
 )
@@ -30,7 +29,7 @@ def test_provider_extracts_french_faction_content() -> None:
     assert content.locale == "fr"
     assert content.name == "Francs"
     assert "civilisation" in content.summary.lower()
-    assert content.source_url == SOURCE_URL
+    assert content.source_url == "https://aoe2techtree.net/Franks"
 
 
 def test_provider_extracts_english_faction_content() -> None:
