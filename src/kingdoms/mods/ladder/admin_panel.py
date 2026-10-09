@@ -880,6 +880,15 @@ async def seasons_view(ladder_id: str) -> discord.ui.LayoutView:
             )
         )
         view.add_item(delete_row)
+    reopenable = [s for s in seasons if s.state == "ended"]
+    if reopenable:
+        reopen_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        reopen_row.add_item(
+            LadderSeasonReopenSelect(
+                [discord.SelectOption(label=f"Rouvrir {s.name}", value=s.id) for s in reopenable[-25:]]
+            )
+        )
+        view.add_item(reopen_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(LadderSeasonCreateButton(ladder_id))
     view.add_item(action_row)
@@ -1089,6 +1098,64 @@ class LadderSeasonDeleteSelect(
         await interaction.followup.send(f"Saison **{deleted.name}** (`{deleted.id}`) supprimee.", ephemeral=True)
 
 
+class LadderSeasonReopenSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:seasons:reopen",
+):
+    """Reopen an ended season: it becomes the active season again."""
+
+    def __init__(self, options: list[discord.SelectOption]) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:seasons:reopen",
+                options=options,
+                placeholder="Rouvrir une saison terminee...",
+                min_values=1,
+                max_values=1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> LadderSeasonReopenSelect:
+        """Rebuild the item from the wire; options are read at click time."""
+        del interaction, item, match
+        return cls([discord.SelectOption(label="Recharge le panneau...", value="none")])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Reopen the chosen ended season, then re-render."""
+        wiring = build_ladder_wiring()
+        if wiring is None or wiring.season_service is None:
+            await interaction.response.send_message("Ladder wiring indisponible.", ephemeral=True)
+            return
+        data: Any = interaction.data or {}
+        chosen = str((data.get("values") or [""])[0])
+        if not chosen or chosen == "none":
+            ladder_id = await _resolved_ladder_id(interaction, wiring)
+            await interaction.response.edit_message(view=await seasons_view(ladder_id))
+            return
+        try:
+            reopened = await wiring.season_service.reopen_season(chosen, _now_ms())
+        except Exception:
+            logger.warning("LADDER season reopen refused (%s)", chosen, exc_info=True)
+            await interaction.response.send_message(
+                "Reouverture refusee : une autre saison est en cours, ou la saison n'est pas terminee.",
+                ephemeral=True,
+            )
+            return
+        await _provision_season_surface(interaction, reopened)
+        ladder_id = await _resolved_ladder_id(interaction, wiring)
+        await interaction.response.edit_message(view=await seasons_view(ladder_id))
+        await interaction.followup.send(
+            f"Saison **{reopened.name}** (`{reopened.id}`) rouverte et active.", ephemeral=True
+        )
+
+
 def register_ladder_admin_section() -> None:
     """Register the ladder section into the /admin panel (idempotent)."""
     register_admin_mod_section(
@@ -1107,6 +1174,7 @@ def register_ladder_admin_items(bot: discord.Client) -> None:
         LadderCreateButton,
         LadderSeasonEndButton,
         LadderSeasonDeleteSelect,
+        LadderSeasonReopenSelect,
         LadderSettingsButton,
         LadderSeasonButton,
         LadderSeasonCreateButton,
