@@ -192,17 +192,25 @@ async def _refresh_pool_post(
     """Edit one pool post, only when its content actually changed."""
     import time
 
-    from kingdoms.core.services.entity_forum import _note_stale_edit, _stagger_stale_edit
+    from kingdoms.core.services.entity_forum import (
+        _content_fingerprint,
+        _last_layout_render,
+        _note_stale_edit,
+        _remember_layout_render,
+        _stagger_stale_edit,
+    )
 
     now = time.monotonic()
     if _stagger_stale_edit(str(thread.id), now):
         return
     content = _pool_post_content(pool, maps)
+    fingerprint = _content_fingerprint(content)
     try:
         starter = await thread.fetch_message(thread.id)
-        if starter.content == content:
+        if _last_layout_render(str(thread.id)) == fingerprint:
             return
-        await starter.edit(content=content, view=_pool_post_layout(pool, maps))
+        _remember_layout_render(str(thread.id), fingerprint)
+        await starter.edit(view=_pool_post_layout(pool, maps))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:
             _note_stale_edit(str(thread.id), now)

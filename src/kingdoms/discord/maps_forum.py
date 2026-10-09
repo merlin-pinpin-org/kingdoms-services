@@ -169,7 +169,13 @@ async def _refresh_map_post(
     import time
 
     from kingdoms.core.ids import footer
-    from kingdoms.core.services.entity_forum import _note_stale_edit, _stagger_stale_edit
+    from kingdoms.core.services.entity_forum import (
+        _content_fingerprint,
+        _last_layout_render,
+        _note_stale_edit,
+        _remember_layout_render,
+        _stagger_stale_edit,
+    )
     from kingdoms.discord.content_posts import entity_post_content
 
     thread_id = str(entry.forum_message_id)
@@ -187,6 +193,10 @@ async def _refresh_map_post(
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
         content = f"{content}\n\n{footer(entry.id)}"
+        fingerprint = _content_fingerprint(content)
+        if _last_layout_render(thread_id) == fingerprint:
+            return
+        _remember_layout_render(thread_id, fingerprint)
         await platform.edit_forum_post(guild_id, entry.forum_message_id, content, view)
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:

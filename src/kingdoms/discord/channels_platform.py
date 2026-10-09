@@ -202,10 +202,15 @@ class DiscordChannelsPlatform:
         kwargs: dict[str, Any] = {"applied_tags": applied}
         if view is not None:
             kwargs["view"] = view
+        # A components-v2 layout carries its own text: Discord rejects a
+        # message that sends both a view and a content string (50035).
+        content_kwarg: dict[str, Any] = (
+            {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
+        )
         thread, _ = await forum.create_thread(
             name=name,
-            content=content,
             reason=f"kingdoms: map post {name}",
+            **content_kwarg,
             **kwargs,
         )
         return str(thread.id)
@@ -251,7 +256,10 @@ class DiscordChannelsPlatform:
         if not isinstance(thread, discord.Thread):
             return False
         message = await thread.fetch_message(thread.id)
-        await message.edit(content=truncate_body(content), view=view)
+        if isinstance(view, discord.ui.LayoutView):
+            await message.edit(view=view)
+        else:
+            await message.edit(content=truncate_body(content), view=view)
         return True
 
     async def get_channel_overwrites(

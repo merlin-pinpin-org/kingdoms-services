@@ -57,6 +57,19 @@ def _note_stale_edit(thread_id: str, now: float) -> None:
     _STALE_EDITS[thread_id] = now + EDIT_BACKOFF_S
 
 
+_LAST_LAYOUT_RENDER: dict[str, str] = {}
+
+
+def _last_layout_render(thread_id: str) -> str:
+    """Return the fingerprint last pushed to a components-v2 post, if any."""
+    return _LAST_LAYOUT_RENDER.get(thread_id, "")
+
+
+def _remember_layout_render(thread_id: str, fingerprint: str) -> None:
+    """Remember the last fingerprint pushed to one layout post."""
+    _LAST_LAYOUT_RENDER[thread_id] = fingerprint
+
+
 @dataclass(frozen=True)
 class EntityForumSpec:
     """Declarative description of one entity-post forum.
@@ -163,9 +176,17 @@ async def _refresh_post(thread: Any, content: str, view: Any | None) -> None:
     fingerprint = _content_fingerprint(truncate_body(content))
     try:
         starter = await thread.fetch_message(thread.id)
-        if _content_fingerprint(starter.content or "") == fingerprint:
+        if isinstance(view, discord.ui.LayoutView):
+            current = _last_layout_render(thread.id)
+        else:
+            current = starter.content
+        if _content_fingerprint(current or "") == fingerprint:
             return
-        await starter.edit(content=truncate_body(content), view=view)
+        _remember_layout_render(thread.id, fingerprint)
+        if isinstance(view, discord.ui.LayoutView):
+            await starter.edit(view=view)
+        else:
+            await starter.edit(content=truncate_body(content), view=view)
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:
             _note_stale_edit(str(thread.id), now)
