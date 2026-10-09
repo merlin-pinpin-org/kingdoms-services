@@ -9,7 +9,14 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.kingdoms</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/__init__.py">SOURCE_ROOT/mods/kingdoms/__init__.py</a></td></tr></table>
-    <p><span class="code">Kingdoms&nbsp;mod:&nbsp;the&nbsp;AoE2&nbsp;territory-conquest&nbsp;Season&nbsp;II&nbsp;feature.</span></p>
+    <p><span class="code">Kingdoms&nbsp;mod:&nbsp;the&nbsp;AoE2&nbsp;territory-conquest&nbsp;Season&nbsp;II&nbsp;feature.<br>
+&nbsp;<br>
+Lifecycle&nbsp;hooks&nbsp;(the&nbsp;mod_entrypoint&nbsp;contract):&nbsp;``register``&nbsp;wires&nbsp;the<br>
+mod&nbsp;onto&nbsp;the&nbsp;bot&nbsp;at&nbsp;build&nbsp;time&nbsp;(services,&nbsp;commands,&nbsp;panel&nbsp;wiring)&nbsp;and<br>
+``setup_hook``&nbsp;re-registers&nbsp;the&nbsp;persistent&nbsp;UI&nbsp;at&nbsp;every&nbsp;startup&nbsp;—&nbsp;the<br>
+restart-proof&nbsp;state&nbsp;reconstruction&nbsp;(§3b).&nbsp;Without&nbsp;these&nbsp;hooks&nbsp;the&nbsp;mod<br>
+loads&nbsp;but&nbsp;nothing&nbsp;reaches&nbsp;Discord:&nbsp;no&nbsp;/kingdom,&nbsp;no&nbsp;/kingdoms&nbsp;screens,<br>
+dead&nbsp;buttons.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -35,5 +42,20 @@
 <a href="kingdoms.mods.kingdoms.storage.html">storage</a><br>
 <a href="kingdoms.mods.kingdoms.territories.html">territories</a><br>
 <a href="kingdoms.mods.kingdoms.views.html">views</a><br>
-</td></tr></table></td></tr></table>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register"><strong>register</strong></a>(bot: 'Any', config: 'Any') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;mod&nbsp;onto&nbsp;the&nbsp;bot:&nbsp;service,&nbsp;commands,&nbsp;panel&nbsp;wiring.</span></dd></dl>
+ <dl><dt><a name="-setup_hook"><strong>setup_hook</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;persistent&nbsp;Kingdoms&nbsp;components&nbsp;after&nbsp;a&nbsp;restart.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MOD_NAME</strong> = 'kingdoms'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms (WARNING)&gt;</td></tr></table>
 </body></html>
