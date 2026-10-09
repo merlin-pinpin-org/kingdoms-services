@@ -91,7 +91,7 @@ def _pool_post_layout(
                     discord.ui.TextDisplay(text),
                     accessory=discord.ui.Thumbnail(image)
                     if image
-                    else discord.ui.Button(label="Voir la map", url=link),
+                    else discord.ui.Button(label="View the map", url=link),
                 )
             )
         else:

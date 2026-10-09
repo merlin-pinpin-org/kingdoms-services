@@ -88,8 +88,8 @@ class StaffApplyModal(discord.ui.Modal):
         super().__init__(title=f"Candidature staff {mod}", timeout=None)
         self.mod = mod
         self.message: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Ton message de candidature",
-            placeholder="Pourquoi toi ? Dispo, experience, envies...",
+            label="Your application message",
+            placeholder="Why you? Availability, experience, wishes...",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=True,

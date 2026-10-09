@@ -47,10 +47,10 @@ POOL_STATE_USED = "used"
 POOL_STATE_CLOSED = "closed"
 POOL_STATES = (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED, POOL_STATE_USED, POOL_STATE_CLOSED)
 POOL_STATE_LABELS = {
-    POOL_STATE_DRAFT: "créé",
-    POOL_STATE_PUBLISHED: "publié",
-    POOL_STATE_USED: "utilisé",
-    POOL_STATE_CLOSED: "fermé",
+    POOL_STATE_DRAFT: "created",
+    POOL_STATE_PUBLISHED: "published",
+    POOL_STATE_USED: "used",
+    POOL_STATE_CLOSED: "closed",
 }
 # Allowed transitions: the next state(s) a pool may move to.
 POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {

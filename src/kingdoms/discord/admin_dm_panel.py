@@ -168,7 +168,7 @@ class AccessDenyButton(
         self.requested_at = requested_at
         super().__init__(
             discord.ui.Button(
-                label="Refuser",
+                label="Deny",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:deny:{guild_id}:{requested_at}"[:100],
             )
@@ -283,7 +283,7 @@ class ProviderMappingSelect(
                     for p in PROVIDER_KEYS
                     for k in MAPPING_KINDS_LABELS
                 ],
-                placeholder="Editer un mapping de provider...",
+                placeholder="Edit a provider mapping...",
             )
         )
 
@@ -329,7 +329,7 @@ class ProviderMappingModal(discord.ui.Modal):
         self.kind = kind
         super().__init__(title=f"Mapping {provider} ({kind})", timeout=None)
         self.lines: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="catalog=provider (une par ligne)",
+            label="catalog=provider (one per line)",
             style=discord.TextStyle.paragraph,
             default=current,
             max_length=4000,

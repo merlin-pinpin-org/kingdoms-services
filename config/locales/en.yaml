@@ -176,3 +176,53 @@ en:
     transition_failed: State transition failed (see the logs).
     name_required: The name is required.
     selection_invalid: Invalid selection.
+  ui:
+    games:
+      no_game: No game
+      no_game_granted: No granted game
+      no_map: No map
+      no_pool: No map pool
+      description: Description
+      duplicate: Duplicate
+      send_to_guild: Send to a guild
+      file_label: File (rms/txt filename)
+      games: Games
+      maps: Maps
+      map_pools: Map pools
+      target_guild_id: Target guild ID
+      source_pool_id: Source pool id (e.g. map_pool:aoe2:ladder_cf_s1_r1)
+      import_map: Import a map
+      import_pool: Import a map pool
+      copy_name: Copy name
+      map_name: Map name
+      map_page_name: Map name (Liquipedia page)
+      pool_name: Pool name
+      received_pool_name: Received pool name
+      new_name: New name
+      add_pool: + Pool
+      first_map: First map (name, optional)
+      rename: Rename
+      back: Back
+      back_to_game: Back to the game
+      delete: Delete
+      archive_map_placeholder: Enable / disable a map...
+      toggle_map_placeholder: Add / remove a map...
+      edit_pool_placeholder: Edit a pool...
+      manage_game_placeholder: Manage a game...
+      page_placeholder: Map picker page...
+      create_global_map_title: Create a global map
+      create_pool_title: Create a map pool
+      duplicate_pool_title: Duplicate the pool
+      send_pool_title: Send the pool
+      import_map_title: Import a map (Liquipedia)
+      import_pool_title: Import a map pool
+      rename_pool_title: Rename the pool
+      edit_map_title: Edit the map
+      edit_map: Edit the map
+      new_pool_option: + New pool...
+      public_yes_no: Public? (yes / no)
+      liquipedia_url: Page URL (liquipedia)
+      pick_pool_placeholder: Pick a map pool...
+      no_map_available: No map available
+      new_state_placeholder: New pool state...
+      name: Name

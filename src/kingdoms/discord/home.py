@@ -224,7 +224,7 @@ class ProfileAddAccountButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Ajouter un compte", style=discord.ButtonStyle.success, custom_id="home:profile:add"
+                label="Add an account", style=discord.ButtonStyle.success, custom_id="home:profile:add"
             )
         )
 
@@ -249,9 +249,9 @@ class ProfileAddAccountModal(discord.ui.Modal):
     """The add-account form: game key + profile id."""
 
     def __init__(self) -> None:
-        super().__init__(title="Ajouter un compte", timeout=None)
+        super().__init__(title="Add an account", timeout=None)
         self.game: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Jeu (aoe2)", default="aoe2", max_length=16, required=True
+            label="Game (aoe2)", default="aoe2", max_length=16, required=True
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Profile id", max_length=64, required=True
@@ -302,7 +302,7 @@ class ProfileRenameButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Changer de pseudo", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+                label="Change nickname", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
             )
         )
 
@@ -327,9 +327,9 @@ class ProfileRenameModal(discord.ui.Modal):
     """The rename form: the user's chosen name (1-16 chars)."""
 
     def __init__(self) -> None:
-        super().__init__(title="Ton pseudo", timeout=None)
+        super().__init__(title="Your nickname", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Pseudo (16 caractères max)", max_length=16, min_length=1, required=True
+            label="Nickname (16 chars max)", max_length=16, min_length=1, required=True
         )
         self.add_item(self.name)
 
@@ -369,7 +369,7 @@ class ProfileRemoveAccountButton(
         self.profile_ids = profile_ids or []
         super().__init__(
             discord.ui.Button(
-                label="Retirer un compte", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label="Remove an account", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 
@@ -434,7 +434,7 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
     """The account picker of the remove flow."""
 
     def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Compte a retirer...")
+        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Account to remove...")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Unlink the chosen account, confirm."""

@@ -188,3 +188,53 @@ fr:
     transition_failed: Transition impossible (voir les logs).
     name_required: Le nom est obligatoire.
     selection_invalid: Sélection invalide.
+  ui:
+    games:
+      no_game: Aucun jeu
+      no_game_granted: Aucun jeu autorise
+      no_map: Aucune map
+      no_pool: Aucun pool
+      description: Description
+      duplicate: Dupliquer
+      send_to_guild: Envoyer a une guilde
+      file_label: Fichier (nom de fichier rms/txt)
+      games: Games
+      maps: Maps
+      map_pools: Map pools
+      target_guild_id: ID de la guilde destinataire
+      source_pool_id: Id du pool source (ex. map_pool:aoe2:ladder_cf_s1_r1)
+      import_map: Importer une map
+      import_pool: Importer un map pool
+      copy_name: Nom de la copie
+      map_name: Nom de la map
+      map_page_name: Nom de la map (page Liquipedia)
+      pool_name: Nom du pool
+      received_pool_name: Nom du pool recu
+      new_name: Nouveau nom
+      add_pool: + Pool
+      first_map: Premiere map (nom, optionnel)
+      rename: Renommer
+      back: Retour
+      back_to_game: Retour au jeu
+      delete: Supprimer
+      archive_map_placeholder: Activer / desactiver une map...
+      toggle_map_placeholder: Ajouter / retirer une map...
+      edit_pool_placeholder: Editer un pool...
+      manage_game_placeholder: Gerer un jeu...
+      page_placeholder: Page du selecteur de maps...
+      create_global_map_title: Creer une map globale
+      create_pool_title: Creer un map pool
+      duplicate_pool_title: Dupliquer le pool
+      send_pool_title: Envoyer le pool
+      import_map_title: Importer une map (Liquipedia)
+      import_pool_title: Importer un map pool
+      rename_pool_title: Renommer le pool
+      edit_map_title: Modifier la map
+      edit_map: Modifier la map
+      new_pool_option: + Nouveau pool...
+      public_yes_no: Public ? (oui / non)
+      liquipedia_url: URL de la fiche (liquipedia)
+      pick_pool_placeholder: Choisis un map pool...
+      no_map_available: Aucune map disponible
+      new_state_placeholder: Nouvel etat du pool...
+      name: Nom

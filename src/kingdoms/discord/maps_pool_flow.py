@@ -51,11 +51,11 @@ class MapAddToPoolButton(
 ):
     """The map post's entry point: add this map to a pool (admins)."""
 
-    def __init__(self, map_id: str) -> None:
+    def __init__(self, map_id: str, label: str = "Add to map pool") -> None:
         self.map_id = map_id
         super().__init__(
             discord.ui.Button(
-                label="Ajouter au map pool",
+                label=label,
                 emoji="\u2795",
                 custom_id=f"{_ADD_NS}:{map_id}"[:100],
             )
@@ -70,7 +70,9 @@ class MapAddToPoolButton(
         /,
     ) -> MapAddToPoolButton:
         """Rebuild from the wire; the map id rides the custom_id."""
-        return cls(match.group("map_id"))
+        from kingdoms.discord.commands_i18n import tr
+
+        return cls(match.group("map_id"), await tr(interaction, "ui.games.add_to_pool", "Add to map pool"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Answer with the ephemeral pool picker (admin-gated)."""
@@ -87,7 +89,14 @@ class MapAddToPoolButton(
                 p for p in pools if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
             ]
             options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
-        options.append(discord.SelectOption(label="+ Nouveau pool...", value="__new__"))
+        from kingdoms.discord.commands_i18n import tr
+
+        options.append(
+            discord.SelectOption(
+                label=await tr(interaction, "ui.games.new_pool_option", "+ New pool..."),
+                value="__new__",
+            )
+        )
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(discord.ui.Container(discord.ui.TextDisplay("## Ajouter à quel map pool ?")))
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -107,8 +116,8 @@ class MapPoolPickerSelect(
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_PICK_NS}:{map_id}"[:100],
-                options=options or [discord.SelectOption(label="Aucun pool", value="none")],
-                placeholder="Choisis un map pool...",
+                options=options or [discord.SelectOption(label="No map pool", value="none")],
+                placeholder="Pick a map pool...",
             )
         )
 
@@ -133,7 +142,14 @@ class MapPoolPickerSelect(
                     p for p in pools if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
                 ]
                 options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
-        options.append(discord.SelectOption(label="+ Nouveau pool...", value="__new__"))
+        from kingdoms.discord.commands_i18n import tr
+
+        options.append(
+            discord.SelectOption(
+                label=await tr(interaction, "ui.games.new_pool_option", "+ New pool..."),
+                value="__new__",
+            )
+        )
         return cls(map_id, options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -177,10 +193,10 @@ class MapNewPoolModal(discord.ui.Modal):
     def __init__(self, map_id: str, game_key: str) -> None:
         self.map_id = map_id
         self.game_key = game_key
-        super().__init__(title="Nouveau map pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom du pool", max_length=64, required=True)
+        super().__init__(title="New map pool", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Pool name", max_length=64, required=True)
         self.public: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Public ? (oui / non)",
+            label="Public? (yes / no)",
             placeholder="non",
             max_length=3,
             required=False,
@@ -286,7 +302,7 @@ class PoolMapPickerView(discord.ui.View):
         select: discord.ui.Select[Any] = discord.ui.Select(
             placeholder=f"{pool.name} — choisir une map",
             options=[discord.SelectOption(label=m.name, value=m.id) for m in chunk]
-            or [discord.SelectOption(label="Aucune map disponible", value="none")],
+            or [discord.SelectOption(label="No map available", value="none")],
         )
         select.callback = self._on_pick  # type: ignore[method-assign]
         self.add_item(select)
@@ -343,7 +359,7 @@ class MapEditButton(
         self.map_id = map_id
         super().__init__(
             discord.ui.Button(
-                label="Modifier la map",
+                label="Edit the map",
                 emoji="\u270f\ufe0f",
                 style=discord.ButtonStyle.secondary,
                 custom_id=("games:map:edit:" + map_id)[:100],
@@ -392,7 +408,7 @@ class MapEditModal(discord.ui.Modal):
 
     def __init__(self, map_id: str, current_name: str) -> None:
         self.map_id = map_id
-        super().__init__(title="Modifier la map", timeout=None)
+        super().__init__(title="Edit the map", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Nom", max_length=64, required=True, default=current_name
         )
@@ -529,7 +545,7 @@ class PoolTransitionSelectView(discord.ui.View):
         from kingdoms.core.services.game_data import POOL_STATE_LABELS
 
         select: discord.ui.Select[Any] = discord.ui.Select(
-            placeholder="Nouvel état du pool...",
+            placeholder="New pool state...",
             options=[
                 discord.SelectOption(
                     label=POOL_STATE_LABELS.get(t, t),

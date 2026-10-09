@@ -103,7 +103,7 @@ class GuildAccessRequestButton(
         self.guild_id = guild_id
         super().__init__(
             discord.ui.Button(
-                label="Demander l'accès aux games/mods",
+                label="Request access to games/mods",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:open:{guild_id}"[:100],
             )

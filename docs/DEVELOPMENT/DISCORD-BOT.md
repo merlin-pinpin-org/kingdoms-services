@@ -99,11 +99,13 @@ Aucune stat par civ/map/pool — les stats sont joueur seulement.
   est silencieusement ignorée (le rendu retombe en anglais).
 - Clés : `commands.*`, `replies.*`, `replies_shared.*` (messages
   admin partagés), `live.*` (dashboard, rendu par locale de guilde).
-- **Aucune chaîne user-facing n'est écrite en dur** : toute nouvelle
-  chaîne passe par le catalogue (`reply()` pour les réponses, clés
-  dédiées pour les labels de composants), avec ses valeurs FR **et**
-  EN ; le rendu suit la locale de la guilde, le fallback est
-  l'anglais.
+- **Aucune chaîne user-facing n'est écrite en dur** : les réponses
+  passent par `reply()` (`replies.*`, `replies_shared.*`), les labels
+  de composants par `tr()`/`tr_guild()` (`ui.*`) — valeurs FR **et**
+  EN dans le catalogue ; le rendu suit la locale de la guilde, le
+  fallback est l'anglais. Un composant persistant résout son label au
+  clic (rebuild DynamicItem) ou par la locale de guilde (builds de
+  fond).
 
 ---
 
