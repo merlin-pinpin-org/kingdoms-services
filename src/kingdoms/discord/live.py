@@ -510,7 +510,7 @@ _GUILD_COOLDOWN: dict[str, float] = {}
 
 
 def _guild_paused(guild_id: str) -> bool:
-    """True while the guild sits in its failure back-off window."""
+    """Report whether the guild sits in its failure back-off window."""
     until = _GUILD_COOLDOWN.get(guild_id, 0.0)
     if until and time.monotonic() < until:
         return True
