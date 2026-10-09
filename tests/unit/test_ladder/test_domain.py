@@ -366,8 +366,8 @@ async def test_leave_queue_blocked_with_created_match() -> None:
 async def test_map_pick_respects_bans_and_fav_weights() -> None:
     svc, game_data, _ = _env(NullGameGateway())
     ladder_id = await _ladder_with_pool(svc, game_data)
-    m_arabia = await game_data.get_map(f"map:{GAME}:Arabia")
-    m_arena = await game_data.get_map(f"map:{GAME}:Arena")
+    m_arabia = await game_data.get_map(f"map:{GAME}:arabia")
+    m_arena = await game_data.get_map(f"map:{GAME}:arena")
     assert m_arabia and m_arena
     await svc.register_player(ladder_id, "u1", "Alice", now=NOW)
     await svc.register_player(ladder_id, "u2", "Bob", now=NOW)
@@ -386,8 +386,8 @@ async def test_preferences_disjoint_and_capped() -> None:
     svc, game_data, _ = _env(NullGameGateway())
     ladder_id = await _ladder_with_pool(svc, game_data)
     await svc.register_player(ladder_id, "u1", "Alice", now=NOW)
-    m_arabia = await game_data.get_map(f"map:{GAME}:Arabia")
-    m_arena = await game_data.get_map(f"map:{GAME}:Arena")
+    m_arabia = await game_data.get_map(f"map:{GAME}:arabia")
+    m_arena = await game_data.get_map(f"map:{GAME}:arena")
     assert m_arabia and m_arena
     with pytest.raises(LadderError, match="disjoint"):
         await svc.set_preferences(ladder_id, "u1", (m_arabia.id,), (m_arabia.id,))

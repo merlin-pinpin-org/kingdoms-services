@@ -22,7 +22,7 @@ def _provider() -> TechtreeContentProvider:
 def test_provider_extracts_french_faction_content() -> None:
     content = _provider().faction_content("Franks", "fr")
     assert content is not None
-    assert content.entity_id == "faction:aoe2:Franks"
+    assert content.entity_id == "faction:aoe2:franks"
     assert content.locale == "fr"
     assert content.name == "Francs"
     assert "civilisation" in content.summary.lower()

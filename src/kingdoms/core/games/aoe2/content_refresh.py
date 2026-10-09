@@ -37,6 +37,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
         SUPPORTED_LOCALES,
         TechtreeContentProvider,
     )
+    from kingdoms.core.ids import slug_id
     from kingdoms.core.models.db import get_async_database
     from kingdoms.core.services.faction_content import FactionContentService
     from kingdoms.core.services.game_data import GameDataService
@@ -62,7 +63,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     new_factions: list[str] = []
     known = await source.list_factions()
     for name in known:
-        existing = await game_data.get_faction(f"faction:aoe2:{name}")
+        existing = await game_data.get_faction(f"faction:aoe2:{slug_id(name)}")
         if existing is None:
             await game_data.create_faction("aoe2", name, faction_key=name.lower())
             factions += 1
@@ -77,7 +78,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
             await content.store(
                 {
                     # The catalog's stable id always wins over the provider's.
-                    "entity_id": f"faction:aoe2:{name}",
+                    "entity_id": f"faction:aoe2:{slug_id(name)}",
                     "locale": descriptor.locale,
                     "name": descriptor.name,
                     "summary": descriptor.summary,
@@ -87,10 +88,41 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
                 }
             )
             content_docs += 1
-    logger.info("CONTENT REFRESH: %d factions created, %d content docs upserted", factions, content_docs)
+    maps_enriched = 0
+    try:
+        from kingdoms.mapsdata.seed import fetch_map_seed
+
+        for entry in await game_data.list_maps("aoe2"):
+            already = await content.get(entry.id, "en")
+            if already is not None and already.get("image_url"):
+                continue
+            seed = await fetch_map_seed(entry.name)
+            if seed is None or not seed.image_url:
+                continue
+            await content.store(
+                {
+                    "entity_id": entry.id,
+                    "locale": "en",
+                    "name": entry.name,
+                    "summary": seed.description,
+                    "source_url": seed.resource_url,
+                    "image_url": seed.image_url,
+                    "provider": "liquipedia",
+                }
+            )
+            maps_enriched += 1
+    except Exception:
+        logger.warning("CONTENT REFRESH: map image enrichment failed — best-effort", exc_info=True)
+    logger.info(
+        "CONTENT REFRESH: %d factions created, %d content docs upserted, %d maps enriched",
+        factions,
+        content_docs,
+        maps_enriched,
+    )
     return {
         "factions": factions,
         "new_factions": new_factions,
         "total_factions": len(known),
         "content_docs": content_docs,
+        "maps_enriched": maps_enriched,
     }

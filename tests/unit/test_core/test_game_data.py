@@ -89,7 +89,7 @@ GAME = "aoe2"
 async def test_create_and_get_map() -> None:
     svc, _, audit = _service()
     entry = await svc.create_map(GAME, "Arabia", filename="arabia.v0", description="The classic")
-    assert entry.id == f"map:{GAME}:Arabia"
+    assert entry.id == f"map:{GAME}:arabia"
     fetched = await svc.get_map(entry.id)
     assert fetched is not None and fetched.filename == "arabia.v0"
     assert ("map.create", {"game_key": GAME, "name": "Arabia"}) in audit.lines

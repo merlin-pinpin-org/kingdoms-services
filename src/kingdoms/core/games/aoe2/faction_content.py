@@ -23,6 +23,7 @@ import logging
 from typing import Any
 
 from kingdoms.core.games.game_content import LocalizedContent
+from kingdoms.core.ids import slug_id
 
 logger = logging.getLogger("kingdoms.core.faction_content")
 
@@ -87,7 +88,7 @@ class TechtreeContentProvider:
         help_raw = str(table.get(str(civ.get("help_string_id")), ""))
         summary = help_raw.replace("<br>", "\n").strip()
         return LocalizedContent(
-            entity_id=f"faction:aoe2:{faction_name}",
+            entity_id=f"faction:aoe2:{slug_id(faction_name)}",
             locale=locale,
             name=localized,
             summary=summary,
@@ -107,7 +108,7 @@ class TechtreeContentProvider:
         """
         del locale
         return LocalizedContent(
-            entity_id=f"map:aoe2:{map_name}",
+            entity_id=f"map:aoe2:{slug_id(map_name)}",
             locale="en",
             name=map_name,
             summary="",

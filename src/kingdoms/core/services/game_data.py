@@ -24,6 +24,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
+from kingdoms.core.ids import slug_id
 from kingdoms.core.models.game_data import (
     FactionModel,
     MapModel,
@@ -148,7 +149,7 @@ class GameDataService:
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
-            _id=f"map:{game_key}:{name}",
+            _id=f"map:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             filename=filename,
@@ -560,7 +561,7 @@ class GameDataService:
         if await self._db.find_by_name(FACTIONS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"faction {name!r} already exists for game {game_key!r}")
         entry = FactionModel(
-            _id=f"faction:{game_key}:{name}",
+            _id=f"faction:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             faction_key=faction_key,
@@ -608,7 +609,7 @@ class GameDataService:
         if await self._db.find_by_name(RULES_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"rule {name!r} already exists for game {game_key!r}")
         entry = RuleModel(
-            _id=f"rule:{game_key}:{name}",
+            _id=f"rule:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             rule_key=rule_key,
@@ -645,7 +646,7 @@ class GameDataService:
         """
         counts = {"maps": 0, "factions": 0, "rules": 0}
         for spec in data.get("maps", []) or []:
-            if await self.get_map(f"map:{game_key}:{spec['name']}") is not None:
+            if await self.get_map(f"map:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_map(
                 game_key,
@@ -656,7 +657,7 @@ class GameDataService:
             )
             counts["maps"] += 1
         for spec in data.get("factions", data.get("civs", [])) or []:
-            if await self.get_faction(f"faction:{game_key}:{spec['name']}") is not None:
+            if await self.get_faction(f"faction:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_faction(
                 game_key,
@@ -667,7 +668,7 @@ class GameDataService:
             )
             counts["factions"] += 1
         for spec in data.get("rules", []) or []:
-            if await self.get_rule(f"rule:{game_key}:{spec['name']}") is not None:
+            if await self.get_rule(f"rule:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_rule(
                 game_key,

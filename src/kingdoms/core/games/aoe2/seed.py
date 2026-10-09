@@ -14,6 +14,7 @@ from typing import Any
 
 import yaml
 
+from kingdoms.core.ids import slug_id
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.game_keys import validate_game_key
 
@@ -232,7 +233,7 @@ async def seed_aoe2(
     for spec in data.get("map_pools", []) or []:
         pool_id = f"map_pool:{game_key}:{spec['name']}"
         if await game_data.get_map_pool(pool_id) is None:
-            map_ids = tuple(f"map:{game_key}:{m}" for m in spec.get("maps", []))
+            map_ids = tuple(f"map:{game_key}:{slug_id(m)}" for m in spec.get("maps", []))
             await game_data.create_map_pool(
                 game_key,
                 spec["name"],
