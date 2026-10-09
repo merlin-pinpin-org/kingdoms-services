@@ -204,7 +204,7 @@ async def dm_admins(
             dm = await user.create_dm()
             await dm.send(content)
         except Exception:
-            logger.warning("ADMIN DM FAILED (admin %s) — best-effort", admin_id)
+            logger.warning("ADMIN DM FAILED (admin %s) — best-effort", admin_id, exc_info=True)
 
 
 async def report_guild_error(
