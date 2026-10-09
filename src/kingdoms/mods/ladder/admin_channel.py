@@ -6,7 +6,7 @@ mods, a per-season admin salon inside the season's category (hosting
 the pinned config panel): see :mod:`kingdoms.discord.mod_admin_channels`.
 
 The ladder only declares its :data:`LADDER_ADMIN_CHANNEL_SPEC` — the
-🛡-ladder-admin channel (root, cross-season, staff + bot-admins) whose
+🛡-ladder-admins channel (root, cross-season, staff + bot-admins) whose
 pinned panel is the seasons' lifecycle (create / activate / end /
 enrollments), and the per-season config panel rendered in the season's
 own admin salon. Everything else (provisioning, visibility policy,
@@ -29,7 +29,7 @@ from kingdoms.discord.mod_admin_channels import (
 
 logger = logging.getLogger("kingdoms.ladder.admin_channel")
 
-LADDER_ADMIN_CHANNEL_NAME = "🛡-ladder-admin"
+LADDER_ADMIN_CHANNEL_NAME = "🛡-ladder-admins"
 LADDER_SEASON_ADMIN_CHANNEL_NAME = "🛡-season-admin"
 LADDER_STAFF_ROLE_PREFIX = "Staff ladder"
 
@@ -68,14 +68,14 @@ def register_ladder_mod_admin_channel(bot: discord.Client) -> None:
 
 
 def build_ladder_admin_channel_service(bot: discord.Client, mongo_uri: str, redis_uri: str) -> Any | None:
-    """Wire the 🛡-ladder-admin managed channel; None when stores are absent."""
+    """Wire the 🛡-ladder-admins managed channel; None when stores are absent."""
     from kingdoms.discord.mod_admin_channels import build_mod_admin_channel_service
 
     return build_mod_admin_channel_service(bot, LADDER_ADMIN_CHANNEL_SPEC, mongo_uri, redis_uri)
 
 
 async def ensure_pinned_ladder_admin_menu(bot: discord.Client, guild_id: str) -> bool:
-    """Ensure the ladder-admin channel holds its pinned lifecycle panel."""
+    """Ensure the ladder-admins channel holds its pinned lifecycle panel."""
     return await ensure_pinned_mod_admin_menu(bot, LADDER_ADMIN_CHANNEL_SPEC, guild_id)
 
 

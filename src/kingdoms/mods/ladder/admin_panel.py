@@ -122,7 +122,7 @@ async def ladder_admin_entry(
 ) -> discord.ui.LayoutView:
     """Render the ladder admin section's view (snapshot + config actions).
 
-    ``pinned`` renders the ladder-admin channel's entry: a pin lives in
+    ``pinned`` renders the ladder-admins channel's entry: a pin lives in
     its own channel, so it carries no back button — every sub-view keeps
     its return to this entry.
     """
@@ -931,7 +931,7 @@ async def ladder_mod_admin_view(
 ) -> discord.ui.LayoutView:
     """Render the mod-level admin view: the seasons' lifecycle (cross-season).
 
-    The root \U0001f6e1-ladder-admin channel hosts this pinned panel: it
+    The root \U0001f6e1-ladder-admins channel hosts this pinned panel: it
     creates seasons, activates one (the active season is defined here),
     ends it, and toggles the enrollments. The per-season configuration
     lives in the season's own admin salon; this panel owns the cycle.
