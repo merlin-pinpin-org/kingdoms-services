@@ -60,7 +60,12 @@ Un panel épinglé par salon d'admin. Règles projet :
 guilde pour les admins) — sections : Langue (pré-rempli), Salons
 (sous-menu par salon : provisionnement, visibilité journaux,
 **lecture seule** — option de chaque salon, pré-remplie —, back en
-flux commande), Rôles, Accès games/mods (contexte guilde seulement),
+flux commande), Rôles (rôles provisionnés + **mapping fonction →
+  rôles** : n'importe quel rôle de la guilde peut porter une fonction
+  du bot — `bot-admins`, `staff` ; le multi-select pré-coche le
+  mapping actuel, sélection vide = retour au défaut ; BOT_ADMINS et
+  admins Discord passent toujours, le mapping s'ajoute ; bouton
+  **Recreate all channels**), Accès games/mods (contexte guilde seulement),
 Jeux (uniquement si jeux accordés, listés dès le menu), Mods.
 
 **Games admin** (`<Jeu> — Admin`) : Maps (catalogue, activer, créer),
