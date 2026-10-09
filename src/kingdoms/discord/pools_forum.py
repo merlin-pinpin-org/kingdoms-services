@@ -45,34 +45,54 @@ def _pools_forum_name(game_key: str) -> str:
     return f"{game_key}{POOLS_FORUM_SUFFIX}"
 
 
-def _pool_post_layout(pool: Any, maps: list[dict[str, Any]]) -> discord.ui.LayoutView:
-    """Build the pool post's component layout: one section per map."""
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolRemoveMapButton
+def _pool_post_layout(
+    pool: Any,
+    maps: list[dict[str, Any]],
+    editable: bool = False,
+) -> discord.ui.LayoutView:
+    """Build the pool post's component layout: one section per map.
+
+    The pool's member maps are listed read-only: name + image, no action
+    buttons on the maps themselves. The map's image links to its map post
+    when one exists. The **Add map** entry point only renders on a pool
+    still in edition mode — a locked pool is a read-only surface.
+    """
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
 
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(f"## {pool.name}\n{pool.description or ''}")))
     for m in maps[:MAX_SECTIONS]:
-        if m.get("forum_message_id"):
-            text = f"### {m['name']}\n- [fiche de la map](https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']})"
-        else:
-            text = f"### {m['name']}"
-        view.add_item(
-            discord.ui.Section(
-                discord.ui.TextDisplay(text),
-                accessory=PoolRemoveMapButton(m["id"], pool.id, label=f"Retirer {m['name']}"),
+        text = f"### {m['name']}"
+        image = m.get("resource_url") or m.get("image_url") or ""
+        if m.get("forum_message_id") and m.get("guild_id"):
+            link = f"https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']}"
+            view.add_item(
+                discord.ui.Section(
+                    discord.ui.TextDisplay(text),
+                    accessory=discord.ui.Thumbnail(image)
+                    if image
+                    else discord.ui.Button(label="Voir la map", url=link),
+                )
             )
-        )
+        else:
+            view.add_item(
+                discord.ui.Section(
+                    discord.ui.TextDisplay(text),
+                    accessory=discord.ui.Button(label="-", disabled=True),
+                )
+            )
     overflow = maps[MAX_SECTIONS:]
     for chunk_start in range(0, len(overflow), TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS):
         chunk = overflow[chunk_start : chunk_start + TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS]
         view.add_item(discord.ui.TextDisplay("\n".join(f"- {m['name']}" for m in chunk)))
     view.add_item(discord.ui.Separator())
-    view.add_item(
-        discord.ui.Section(
-            discord.ui.TextDisplay("Ajouter une map à ce pool :"),
-            accessory=PoolAddMapButton(pool.id),
+    if editable:
+        view.add_item(
+            discord.ui.Section(
+                discord.ui.TextDisplay("Ajouter une map à ce pool :"),
+                accessory=PoolAddMapButton(pool.id),
+            )
         )
-    )
     return view
 
 
@@ -81,6 +101,23 @@ def _pool_post_content(pool: Any, maps: list[dict[str, Any]]) -> str:
     lines = [f"**{pool.name}**", pool.description or "", "", "Maps :"]
     lines += [f"- **{m['name']}**" for m in maps] or ["_Aucune map._"]
     return "\n".join(lines)
+
+
+async def _map_image_url(entry: Any) -> str:
+    """Resolve the map's image URL from the stored content (best-effort)."""
+    try:
+        from kingdoms.discord.content_posts import content_service
+
+        service = content_service()
+        if service is None:
+            return ""
+        for locale in ("fr", "en"):
+            doc = await service.get(entry.id, locale)
+            if doc and doc.get("image_url"):
+                return str(doc["image_url"])
+    except Exception:
+        logger.debug("pools forum: image resolve skipped (%s)", entry.id, exc_info=True)
+    return ""
 
 
 async def _pool_maps(service: Any, pool: Any, guild_id: str) -> list[dict[str, Any]]:
@@ -97,6 +134,7 @@ async def _pool_maps(service: Any, pool: Any, guild_id: str) -> list[dict[str, A
                 "resource_url": entry.resource_url,
                 "forum_message_id": entry.forum_message_id if entry.forum_message_id else None,
                 "guild_id": guild_id,
+                "image_url": await _map_image_url(entry),
             }
         )
     return maps
@@ -165,11 +203,12 @@ async def _sync_game_pools(
     actions = 0
     for name, pool in wanted.items():
         maps = await _pool_maps(service, pool, guild_id)
+        editable = pool.edition_mode and pool.owner_guild_id == guild_id
         if name not in existing:
-            await _create_pool_post(platform, guild_id, forum, pool, maps)
+            await _create_pool_post(platform, guild_id, forum, pool, maps, editable)
             actions += 1
         else:
-            await _refresh_pool_post(guild, guild_id, existing[name], pool, maps)
+            await _refresh_pool_post(guild, guild_id, existing[name], pool, maps, editable)
     for name, thread in existing.items():
         if name not in wanted:
             await thread.delete(reason=f"kingdoms: pool {name} no longer visible")
@@ -178,19 +217,29 @@ async def _sync_game_pools(
 
 
 async def _create_pool_post(
-    platform: Any, guild_id: str, forum: Any, pool: Any, maps: list[dict[str, Any]]
+    platform: Any,
+    guild_id: str,
+    forum: Any,
+    pool: Any,
+    maps: list[dict[str, Any]],
+    editable: bool = False,
 ) -> None:
     await platform.create_map_post(
         guild_id,
         str(forum.id),
         pool.name,
         _pool_post_content(pool, maps),
-        view=_pool_post_layout(pool, maps),
+        view=_pool_post_layout(pool, maps, editable),
     )
 
 
 async def _refresh_pool_post(
-    guild: discord.Guild, guild_id: str, thread: Any, pool: Any, maps: list[dict[str, Any]]
+    guild: discord.Guild,
+    guild_id: str,
+    thread: Any,
+    pool: Any,
+    maps: list[dict[str, Any]],
+    editable: bool = False,
 ) -> None:
     """Edit one pool post, only when its content actually changed."""
     import time
@@ -213,7 +262,7 @@ async def _refresh_pool_post(
         if _last_layout_render(str(thread.id)) == fingerprint:
             return
         _remember_layout_render(str(thread.id), fingerprint)
-        await starter.edit(view=_pool_post_layout(pool, maps))
+        await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:
             _note_stale_edit(str(thread.id), now)
