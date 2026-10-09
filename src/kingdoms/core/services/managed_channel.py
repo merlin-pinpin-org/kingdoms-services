@@ -1,7 +1,7 @@
 """Core managed-channel service: one named, self-healing channel per surface.
 
 Several bot surfaces need a **dedicated channel** provisioned the same
-way (the admin home 🛡-bot-admins, the guild home 🏛-kingdoms-home): a
+way (the admin home 🛡-bot-admins, the guild home 🏛-home): a
 channel found by name, adopted when it already exists, created when it
 does not, persisted (Mongo) and cached (Redis), with every resolution
 re-applying the surface's visibility policy.

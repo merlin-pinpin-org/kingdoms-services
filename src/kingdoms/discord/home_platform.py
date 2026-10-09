@@ -1,4 +1,4 @@
-"""discord.py platform seam for the 🏛-kingdoms-home managed channel.
+"""discord.py platform seam for the 🏛-home managed channel.
 
 The home channel is the guild's front door: public by design (the
 pinned menu's buttons answer ephemerally, guarded at click time), so
@@ -31,13 +31,28 @@ class DiscordHomeChannelPlatform:
                 return None
         return guild
 
+    HOME_LEGACY_CHANNEL_NAME = "🏛-kingdoms-home"
+
     async def find_channel_by_name(self, guild_id: str, name: str) -> str | None:
-        """Find a guild channel id by its exact name; None when absent."""
+        """Find a guild channel id by its exact name; None when absent.
+
+        A legacy ``kingdoms-home`` channel is renamed in place — the
+        stored channel id keeps pointing at the same channel, so the
+        pinned home menu survives the rename.
+        """
         guild = await self._guild(guild_id)
         if guild is None:
             return None
         channel = discord.utils.get(guild.text_channels, name=name)
-        return str(channel.id) if channel is not None else None
+        if channel is not None:
+            return str(channel.id)
+        legacy = discord.utils.get(guild.text_channels, name=self.HOME_LEGACY_CHANNEL_NAME)
+        if legacy is not None:
+            await legacy.edit(
+                name=name, reason="Kingdoms: rename the home channel (kingdoms-home -> home)"
+            )
+            return str(legacy.id)
+        return None
 
     async def create_channel(self, guild_id: str, name: str, reason: str) -> str:
         """Create the channel; return its id."""

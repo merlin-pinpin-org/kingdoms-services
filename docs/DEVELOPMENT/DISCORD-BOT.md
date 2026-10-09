@@ -19,7 +19,14 @@ Des choix que **le projet a faits** et qu'il peut faire évoluer seul.
 Chaque guilde provisionne ses canaux au démarrage (idempotent) :
 
 - **Salons par défaut** : `🛠-bot-logs` (journaux), `🛡-bot-admins`
-  (panel admin épinglé).
+  (panel admin épinglé), `🏛-home` (accueil — l'ancien
+  `kingdoms-home` est renommé in-place au premier passage).
+- **Self-healing universel** : tout salon, forum ou post géré par le
+  bot se recrée s'il est supprimé — les salons gérés via la boucle
+  horaire `_maintain_managed_channels` (résolution cache-aside :
+  Redis → Mongo → adoption → création), les forums et leurs posts
+  via les syncs horaires, le dashboard live via son intervalle
+  court, les pins via leurs boucles dédiées.
 - **Catégorie `games`** : un forum par entité et par jeu accordé —
   `aoe2-maps`, `aoe2-factions`, `aoe2-map-pools`. Gated sur les jeux
   **accordés** (`granted_game_keys`), pas sur le contenu : un forum se

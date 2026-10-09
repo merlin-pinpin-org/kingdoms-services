@@ -1,6 +1,6 @@
 """The home surface: /home + the pinned 🏛 menu, one ephemeral view per button.
 
-The home is the guild's front door: a pinned menu in the 🏛-kingdoms-home
+The home is the guild's front door: a pinned menu in the 🏛-home
 channel (provisioned like every managed channel), plus the /home command
 showing the same menu. Every button answers with an **ephemeral** view —
 the home is public, the answers are personal.
@@ -44,7 +44,7 @@ from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.home")
 
-HOME_CHANNEL_NAME = "🏛-kingdoms-home"
+HOME_CHANNEL_NAME = "🏛-home"
 HOME_CHANNEL_CATEGORY = "bot_home"
 HOME_MARKER = "home:pin:"
 HOME_MESSAGE_KEY = "home-menu"

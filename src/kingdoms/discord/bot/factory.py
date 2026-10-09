@@ -174,6 +174,7 @@ class KingdomsBot(discord.Client):
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
         self._home_pin_task: asyncio.Task[None] | None = None
+        self._managed_channels_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
@@ -223,6 +224,7 @@ class KingdomsBot(discord.Client):
         if getattr(self, "_home_pin_pending", False):
             self._home_pin_pending = False
             self._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(self))
+            self._managed_channels_task = asyncio.create_task(_maintain_managed_channels(self))
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -532,6 +534,7 @@ class KingdomsBot(discord.Client):
             self._maps_forum_task,
             self._pools_forum_task,
             self._factions_forum_task,
+            self._managed_channels_task,
         ):
             if task is not None:
                 task.cancel()
@@ -721,7 +724,7 @@ def _build_home_channel_service(
     config: BotConfig,
     bot: KingdomsBot,
 ) -> Any | None:
-    """Wire the 🏛-kingdoms-home managed channel (cache-aside like the admin channel).
+    """Wire the 🏛-home managed channel (cache-aside like the admin channel).
 
     Returns None when the stores are not configured: the home degrades
     to the /home command only.
@@ -739,7 +742,7 @@ def _build_home_channel_service(
             platform=DiscordHomeChannelPlatform(bot),
             database=MongoLogsDatabase(get_async_database()),
             category="bot_home",
-            name="🏛-kingdoms-home",
+            name="🏛-home",
             state=StateService(redis_uri=config.redis_uri),
         )
     except Exception:
@@ -770,6 +773,38 @@ def _build_home_provider(config: BotConfig) -> Any | None:
         return LibrematchAdapter(api_key=os.environ.get("AOE2_API_KEY", ""))
     except Exception:
         return None
+
+
+async def _maintain_managed_channels(bot: KingdomsBot) -> None:
+    """Keep every managed channel alive (self-healing, runtime).
+
+    A deleted home/admin/logs channel is recreated on the next pass:
+    the managed-channel resolution is cache-aside (Redis -> Mongo ->
+    adoption -> creation), so a missing channel costs one pass. The
+    pinned menus ride along: their ensure steps resolve the channel
+    first, so the pin follows the recreated channel.
+    """
+    await asyncio.sleep(15)
+    while True:
+        for guild in list(bot.guilds):
+            guild_id = str(guild.id)
+            for service, admin_ids in (
+                (getattr(bot, "home_channel_service", None), ()),
+                (getattr(bot, "admin_channel_service", None), tuple(bot.status_service.bot_admins)),
+                (getattr(bot, "logs_service", None), ()),
+            ):
+                if service is None:
+                    continue
+                try:
+                    if admin_ids:
+                        await service.resolve_channel(guild_id, admin_ids)
+                    else:
+                        await service.resolve_channel(guild_id)
+                except Exception:
+                    logger.warning(
+                        "MANAGED CHANNEL check failed (guild %s) — best-effort", guild_id, exc_info=True
+                    )
+        await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
 
 
 async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
