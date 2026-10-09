@@ -500,13 +500,12 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="PinReadOnlySelect">class <strong>PinReadOnlySelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#PinReadOnlySelect">PinReadOnlySelect</a>(options:&nbsp;'list[discord.SelectOption]',&nbsp;placeholder:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinReadOnlySelect">PinReadOnlySelect</a>(options:&nbsp;'list[discord.SelectOption]',&nbsp;category:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-The&nbsp;pinned&nbsp;read-only&nbsp;toggle&nbsp;for&nbsp;one&nbsp;channel&nbsp;(default:&nbsp;read-only).<br>
+The&nbsp;per-channel&nbsp;read-only&nbsp;toggle,&nbsp;shown&nbsp;in&nbsp;the&nbsp;channel's&nbsp;sub-menu.<br>
 &nbsp;<br>
-The&nbsp;managed&nbsp;options&nbsp;cover&nbsp;the&nbsp;core&nbsp;pinned&nbsp;channels&nbsp;plus&nbsp;every<br>
-mod-registered&nbsp;admin&nbsp;surface&nbsp;(the&nbsp;mod&nbsp;hook),&nbsp;addressed&nbsp;by&nbsp;their<br>
-stored&nbsp;channel&nbsp;category.<br>&nbsp;</span></td></tr>
+Two&nbsp;options&nbsp;(lock&nbsp;/&nbsp;open),&nbsp;the&nbsp;current&nbsp;state&nbsp;pre-selected;&nbsp;the<br>
+channel&nbsp;category&nbsp;rides&nbsp;the&nbsp;custom_id&nbsp;so&nbsp;the&nbsp;rebuild&nbsp;is&nbsp;state-aware.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.discord.admin_panel_dynamic.html#PinReadOnlySelect">PinReadOnlySelect</a></dd>
@@ -517,7 +516,7 @@ stored&nbsp;channel&nbsp;category.<br>&nbsp;</span></td></tr>
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="PinReadOnlySelect-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]', placeholder: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#PinReadOnlySelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="PinReadOnlySelect-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]', category: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#PinReadOnlySelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="PinReadOnlySelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;read-only&nbsp;intent&nbsp;through&nbsp;the&nbsp;persistent&nbsp;handler.</span></dd></dl>
 
@@ -525,13 +524,13 @@ Methods defined here:<br>
 Class methods defined here:<br>
 <dl><dt>async <a name="PinReadOnlySelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'PinReadOnlySelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select&nbsp;from&nbsp;the&nbsp;wire&nbsp;(state-aware&nbsp;options).</span></dd></dl>
 
-<dl><dt>async <a name="PinReadOnlySelect-read_only_options"><strong>read_only_options</strong></a>(guild_id: 'str' = '') -&gt; 'list[discord.SelectOption]'</dt><dd><span class="code">Build&nbsp;the&nbsp;options:&nbsp;per&nbsp;channel,&nbsp;lock&nbsp;or&nbsp;unlock,&nbsp;with&nbsp;the&nbsp;current&nbsp;state.</span></dd></dl>
+<dl><dt><a name="PinReadOnlySelect-per_channel"><strong>per_channel</strong></a>(category: 'str', locked: 'bool') -&gt; 'PinReadOnlySelect'</dt><dd><span class="code">Build&nbsp;the&nbsp;two&nbsp;lock/open&nbsp;options&nbsp;with&nbsp;the&nbsp;current&nbsp;state&nbsp;pre-selected.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
-<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:select:read-only')</dl>
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:select:read-only:(?P&lt;category&gt;[A-Za-z0-9_:-]+)')</dl>
 
 <dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
 
@@ -945,7 +944,7 @@ Methods defined here:<br>
 
 <hr>
 Class methods defined here:<br>
-<dl><dt><a name="PinVisibilitySelect-create"><strong>create</strong></a>(catalog: 'MessageCatalog | None', locale: 'str', placeholder: 'str' = '') -&gt; 'PinVisibilitySelect'</dt><dd><span class="code">Build&nbsp;the&nbsp;visibility&nbsp;options&nbsp;for&nbsp;the&nbsp;guild's&nbsp;locale.</span></dd></dl>
+<dl><dt><a name="PinVisibilitySelect-create"><strong>create</strong></a>(catalog: 'MessageCatalog | None', locale: 'str', placeholder: 'str' = '', current: 'str' = 'admin_only') -&gt; 'PinVisibilitySelect'</dt><dd><span class="code">Build&nbsp;the&nbsp;visibility&nbsp;options,&nbsp;the&nbsp;current&nbsp;policy&nbsp;pre-selected.</span></dd></dl>
 
 <dl><dt>async <a name="PinVisibilitySelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'PinVisibilitySelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select&nbsp;from&nbsp;the&nbsp;wire&nbsp;(generic&nbsp;options;&nbsp;the&nbsp;callback&nbsp;re-renders).</span></dd></dl>
 

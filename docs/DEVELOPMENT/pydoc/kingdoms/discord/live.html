@@ -263,7 +263,7 @@ registered&nbsp;dashboard&nbsp;message&nbsp;survives&nbsp;the&nbsp;rename.</span
 The&nbsp;commands&nbsp;read&nbsp;svc-core's&nbsp;Live&nbsp;service&nbsp;through&nbsp;``LiveClient``<br>
 when&nbsp;``CORE_URI``&nbsp;is&nbsp;set;&nbsp;without&nbsp;it&nbsp;(local&nbsp;runs,&nbsp;providers&nbsp;down),<br>
 the&nbsp;dashboard&nbsp;degrades&nbsp;to&nbsp;a&nbsp;note&nbsp;—&nbsp;the&nbsp;command&nbsp;still&nbsp;answers.</span></dd></dl>
- <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None, now_ms: 'int | None' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
+ <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None, now_ms: 'int | None' = None, bot: 'Any' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
 &nbsp;<br>
 One&nbsp;line&nbsp;per&nbsp;Discord&nbsp;user:&nbsp;their&nbsp;linked&nbsp;profiles&nbsp;are&nbsp;fused&nbsp;into&nbsp;a<br>
 single&nbsp;record&nbsp;and&nbsp;a&nbsp;user&nbsp;is&nbsp;active&nbsp;when&nbsp;any&nbsp;of&nbsp;their&nbsp;profiles&nbsp;is.<br>

@@ -80,11 +80,43 @@ async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any
                 return fallback
         return fallback
 
+    import unicodedata
+
+    def sort_key(name: str) -> str:
+        """Build the accent-stripped, casefolded sort key of a display name."""
+        stripped = unicodedata.normalize("NFKD", name)
+        return "".join(c for c in stripped if not unicodedata.combining(c)).casefold()
+
     keyed: list[tuple[str, Any]] = []
     for faction in factions:
         keyed.append((await display_name(faction), faction))
-    keyed.sort(key=lambda pair: pair[0], reverse=True)
+    keyed.sort(key=lambda pair: sort_key(pair[0]), reverse=True)
     return [faction for _, faction in keyed]
+
+
+async def _localized_faction_name(faction: Any, guild_id: str, bot: Any = None) -> str:
+    """Resolve the faction's display name in the guild's locale.
+
+    The content store holds the localized names (aoe2techtree FR/EN);
+    the catalog name is the fallback when no content was synced.
+    """
+    from kingdoms.discord.content_posts import content_service, guild_locale
+
+    entry_id = str(getattr(faction, "id", ""))
+    fallback = str(getattr(faction, "name", faction))
+    service = None
+    try:
+        service = content_service()
+    except Exception:
+        service = None
+    if service is not None and entry_id:
+        try:
+            doc = await service.get(entry_id, await guild_locale(guild_id, bot))
+            if doc and doc.get("name"):
+                return str(doc["name"])
+        except Exception:
+            return fallback
+    return fallback
 
 
 def factions_forum_name(game_key: str) -> str:
@@ -140,6 +172,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
     return EntityForumSpec(
         forum_name="",
         list_entities=list_factions,
+        display_name_for=lambda faction, guild_id: _localized_faction_name(faction, guild_id, bot),
         build_post=build_post,
         forum_name_for=forum_name_for,
     )

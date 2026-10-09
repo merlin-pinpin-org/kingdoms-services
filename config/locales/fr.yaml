@@ -159,3 +159,14 @@ fr:
     clean: "Audit des canaux : aucun écart détecté."
     header: "Audit des canaux — {count} écart(s) :"
     finding: "[{severity}] {category} : {kind} (attendu {expected}, constaté {actual})"
+
+live:
+  title: "🎮 Dashboard en direct"
+  offline_separator: "— hors ligne —"
+  no_players: "Aucun joueur lié — liez un profil avec /game-link."
+  all_offline: "Tout le monde est hors ligne depuis plus d'une heure."
+  unavailable: "Dashboard indisponible : CORE_URI n'est pas configuré."
+  linked: "Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier d'autres profils."
+  unlinked: "Profil `{profile}` délié."
+  no_link: "Aucun lien pour le profil `{profile}`."
+  degraded: "⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le monde hors ligne."

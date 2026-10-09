@@ -37,11 +37,24 @@ _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 OFFLINE_GRACE_MS = 3600 * 1000
 
 
+def _t(bot: Any, locale: str, key: str, fallback: str) -> str:
+    """Render one live-dashboard string in the guild's locale (fallback)."""
+    catalog = getattr(bot, "messages", None)
+    if catalog is None:
+        return fallback
+    try:
+        rendered = catalog.render(f"live.{key}", locale)
+    except Exception:
+        return fallback
+    return rendered if rendered != f"live.{key}" else fallback
+
+
 def render_dashboard(
     snapshot: dict[str, Any],
     locale: str = "en",
     stats: dict[str, dict[str, Any]] | None = None,
     now_ms: int | None = None,
+    bot: Any = None,
 ) -> str:
     """Render the dashboard snapshot as a plain-text message body.
 
@@ -51,13 +64,13 @@ def render_dashboard(
     hour (with their last completed match timestamp); users offline for
     longer are omitted.
     """
-    del locale
     lines: list[str] = []
+    degraded_fb = "⚠️ Providers unreachable — states may be stale, all shown offline."
     if snapshot.get("degraded"):
-        lines.append("⚠️ Providers unreachable — states may be stale, all shown offline.")
+        lines.append(_t(bot, locale, "degraded", degraded_fb))
     players = snapshot.get("players", [])
     if not players:
-        lines.append("No linked players yet — link a profile with /game-link.")
+        lines.append(_t(bot, locale, "no_players", "No linked players yet — link a profile with /game-link."))
         return "\n".join(lines)
     now = now_ms if now_ms is not None else _now_ms()
     accounts = group_by_account(players, stats)
@@ -66,11 +79,11 @@ def render_dashboard(
     offline_seen = False
     for account in ordered:
         if not offline_seen and not account["active"]:
-            lines.append("— offline —")
+            lines.append(_t(bot, locale, "offline_separator", "— offline —"))
             offline_seen = True
         lines.append(_render_account(account))
     if not ordered:
-        lines.append("Everyone is offline for more than an hour.")
+        lines.append(_t(bot, locale, "all_offline", "Everyone is offline for more than an hour."))
     return "\n".join(lines)
 
 
@@ -149,7 +162,7 @@ def register_live_commands(
         """Answer /live with the current dashboard snapshot."""
         await interaction.response.defer(ephemeral=True)
         if client is None:
-            await interaction.followup.send("Live dashboard unavailable: CORE_URI not configured.", ephemeral=True)
+            await interaction.followup.send(await reply(interaction, "live.unavailable"), ephemeral=True)
             return
         try:
             snapshot = await client.watch("aoe2")
@@ -186,8 +199,7 @@ def register_live_commands(
         db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
         await db.replace_one({"_id": binding["_id"]}, binding, upsert=True)
         await interaction.response.send_message(
-            f"Linked profile `{profile}` to <@{interaction.user.id}> — the dashboard will show it. "
-            "Link more profiles by running /game-link again.",
+            await reply(interaction, "live.linked", profile=profile, user=interaction.user.id),
             ephemeral=True,
         )
 
@@ -205,9 +217,13 @@ def register_live_commands(
         db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
         removed = await db.delete_one({"_id": f"binding:aoe2:{interaction.user.id}:{profile}"})
         if removed and removed.deleted_count > 0:
-            await interaction.response.send_message(f"Profile `{profile}` unlinked.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "live.unlinked", profile=profile), ephemeral=True
+            )
         else:
-            await interaction.response.send_message(f"No link found for profile `{profile}`.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "live.no_link", profile=profile), ephemeral=True
+            )
 
 
 def _locale(interaction: discord.Interaction) -> str:
@@ -384,8 +400,11 @@ async def ensure_live_dashboard(
     except Exception:
         logger.warning("live dashboard fetch failed (guild %s) — best-effort", guild_id, exc_info=True)
         snapshot = {"players": [], "generated_at": _now_ms(), "degraded": True}
-    body = render_dashboard(snapshot)
-    embeds = _dashboard_embeds(snapshot, body, bot)
+    from kingdoms.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
+    body = render_dashboard(snapshot, locale=locale, bot=bot)
+    embeds = _dashboard_embeds(snapshot, body, bot, locale=locale)
     registered = await registry.resolve(PLATFORM, _page_key(1), guild_id)
     if await _edit_registered(channel, registered, embeds[0]):
         await _sync_extra_pages(guild_id, channel, registry, embeds)
@@ -428,6 +447,7 @@ def _dashboard_embeds(
     snapshot: dict[str, Any],
     body: str,
     bot: discord.Client | None = None,
+    locale: str = "en",
 ) -> list[discord.Embed]:
     """Build the dashboard embeds: as many as the player list needs.
 
@@ -450,7 +470,10 @@ def _dashboard_embeds(
     if not pages:
         pages = [body]
     return [
-        _dashboard_embed(snapshot, page, bot, page_index=i + 1, page_count=len(pages)) for i, page in enumerate(pages)
+        _dashboard_embed(
+            snapshot, page, bot, page_index=i + 1, page_count=len(pages), locale=locale
+        )
+        for i, page in enumerate(pages)
     ]
 
 
@@ -513,13 +536,14 @@ def _dashboard_embed(
     bot: discord.Client | None = None,
     page_index: int = 1,
     page_count: int = 1,
+    locale: str = "en",
 ) -> discord.Embed:
     """Build one dashboard page's embed: title, icon, and the players' states."""
     user = getattr(bot, "user", None) if bot is not None else None
     icon = getattr(user, "display_avatar", None) if user else None
     icon_url = getattr(icon, "url", None) if icon else None
     description = truncate_body(body, MAX_EMBED_DESCRIPTION)
-    title = "🎮 Live dashboard"
+    title = _t(bot, locale, "title", "🎮 Live dashboard")
     if page_count > 1:
         title += f" ({page_index}/{page_count})"
     embed = discord.Embed(

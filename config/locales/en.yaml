@@ -161,3 +161,14 @@ en:
     admin_season_bad_days: "Invalid duration (a number of days)."
     admin_season_name_required: "The name is required."
     admin_title_seasons: "Ladder admin — seasons"
+
+live:
+  title: "🎮 Live dashboard"
+  offline_separator: "— offline —"
+  no_players: "No linked players yet — link a profile with /game-link."
+  all_offline: "Everyone is offline for more than an hour."
+  unavailable: "Live dashboard unavailable: CORE_URI not configured."
+  linked: "Linked profile `{profile}` to <@{user}> — the dashboard will show it. Link more profiles by running /game-link again."
+  unlinked: "Profile `{profile}` unlinked."
+  no_link: "No link found for profile `{profile}`."
+  degraded: "⚠️ Providers unreachable — states may be stale, all shown offline."
