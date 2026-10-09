@@ -86,3 +86,34 @@ async def test_unknown_key_is_refused() -> None:
         raise AssertionError("expected GuildAccessError")
     except GuildAccessError:
         pass
+
+
+async def test_re_request_pending_is_idempotent_and_keeps_entry() -> None:
+    service = _service()
+    await service.request_access("123", ["game:aoe2"])
+    [request] = await service.pending_requests()
+    doc = await service.request_access("123", ["game:aoe2"])
+    assert doc["pending"] == {request["requested_at"]: ["game:aoe2"]}
+    assert await service.pending_requests() == [request]
+
+
+async def test_re_request_refused_only_when_already_granted() -> None:
+    service = _service()
+    await service.request_access("123", ["game:aoe2"])
+    [request] = await service.pending_requests()
+    await service.approve("123", request["requested_at"])
+    try:
+        await service.request_access("123", ["game:aoe2"])
+        raise AssertionError("expected GuildAccessError")
+    except GuildAccessError:
+        pass
+
+
+async def test_mixed_request_adds_only_fresh_keys() -> None:
+    service = _service()
+    await service.request_access("123", ["game:aoe2"])
+    [first] = await service.pending_requests()
+    await service.request_access("123", ["game:aoe2", "mod:kingdoms"])
+    requests = {r["requested_at"]: r["keys"] for r in await service.pending_requests()}
+    assert requests[first["requested_at"]] == ["game:aoe2"]
+    assert "mod:kingdoms" in [k for ks in requests.values() for k in ks]

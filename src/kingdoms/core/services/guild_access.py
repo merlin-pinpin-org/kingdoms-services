@@ -82,25 +82,34 @@ class GuildAccessService:
         """Record a guild's request for games/mods (pending approval).
 
         Keys carry their kind: ``game:<key>`` or ``mod:<key>``. Unknown
-        or already-granted keys are refused loudly.
+        or already-granted keys are refused loudly. Keys already pending
+        are idempotent: the request is not duplicated, the existing
+        pending entry is returned so the caller can re-notify the bot
+        admins (a lost DM must never lock the guild out).
         """
         self._validate_keys(keys)
         doc = await self.get(guild_id)
         pending: dict[str, list[str]] = dict(doc.get("pending") or {})
         games = set(doc.get("games") or ())
         mods = set(doc.get("mods") or ())
+        pending_keys = {k for ks in pending.values() for k in ks}
         fresh: list[str] = []
         for key in keys:
             if key.startswith("game:"):
                 granted = key[5:] in games
             else:
                 granted = key[4:] in mods
-            if granted or key in [k for ks in pending.values() for k in ks]:
+            if granted or key in pending_keys:
                 continue
             fresh.append(key)
         if not fresh:
-            raise GuildAccessError("rien a demander : deja accorde ou deja en attente")
-        pending[str(int(time.time()))] = fresh
+            if not pending_keys & set(keys):
+                raise GuildAccessError("rien a demander : deja accorde")
+            return doc
+        requested_at = str(int(time.time()))
+        while requested_at in pending:
+            requested_at = str(int(requested_at) + 1)
+        pending[requested_at] = fresh
         doc["pending"] = pending
         doc["updated_at"] = int(time.time())
         await self._db.upsert_guild_access(self._to_mongo(doc))
