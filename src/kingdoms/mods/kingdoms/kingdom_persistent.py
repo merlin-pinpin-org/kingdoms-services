@@ -877,6 +877,8 @@ def _declared_structure_slugs(registry: Any) -> set[str]:
     except Exception:
         logger.warning("KINGDOMS ADMIN: mod registry lookup failed", exc_info=True)
         return names
+    for group in mod.channel_groups:
+        names.add(_slug(group.display_name))
     for category in mod.channel_categories:
         names.add(_slug(category.display_name))
     return names
