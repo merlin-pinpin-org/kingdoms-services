@@ -641,8 +641,11 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discor
         return view
     maps = [m for m in await service.list_maps(pool.game_key) if m.archived_at is None]
     names = {m.id: m.name for m in maps}
-    state = "edition" if pool.edition_mode else "verrouille"
-    lines = [f"**{pool.name}** - {len(pool.map_ids)} maps - mode {state}"]
+    from kingdoms.core.ids import footer
+    from kingdoms.core.services.game_data import POOL_STATE_LABELS
+
+    state = POOL_STATE_LABELS.get(getattr(pool, "state", "draft"), "créé")
+    lines = [f"**{pool.name}** - {len(pool.map_ids)} maps - {state}", footer(pool.id)]
     for map_id in pool.map_ids:
         lines.append(f"- {names.get(map_id, map_id)}")
     if not pool.map_ids:
