@@ -39,7 +39,7 @@ The doc separates three kinds of rules, in this order:
 
 1. **Conventions projet** — choices this project made and can change
    by itself (pin immutability, ephemeral sub-views, `slug_id`, the
-   state machine, FR-first admin strings...).
+   state machine, French admin strings with an English catalog fallback...).
 2. **Contraintes de la lib (discord.py)** — library mechanics
    (DynamicItem rebuild from custom_id, LayoutView children budget,
    modal lifecycles, permission overwrites...).
