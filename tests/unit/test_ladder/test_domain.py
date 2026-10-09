@@ -397,7 +397,7 @@ async def test_preferences_disjoint_and_capped() -> None:
     p = await svc.set_preferences(ladder_id, "u1", (m_arabia.id, m_arena.id, "x", "y", "z"), ())
     assert len(p.fav_map_ids) == 1
     # An explicit pool quota overrides the derivation.
-    pool = await game_data.get_map_pool(f"map_pool:{GAME}:P")
+    pool = await game_data.get_map_pool(f"map_pool:{GAME}:p")
     assert pool is not None
     updated = await game_data.update_map_pool(pool.id, fav_quota=3, ban_quota=0)
     assert updated.fav_quota == 3 and updated.ban_quota == 0

@@ -75,6 +75,9 @@ def _pool_post_layout(
     mod_link = getattr(pool, "mod_link", "")
     if mod_link:
         header += f"\n**Mod à installer** : {mod_link}"
+    from kingdoms.core.ids import footer
+
+    header += f"\n{footer(pool.id)}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header)))
     for m in maps[:MAX_SECTIONS]:
         text = f"### {m['name']}"

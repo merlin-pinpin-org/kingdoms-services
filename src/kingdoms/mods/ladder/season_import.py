@@ -23,11 +23,13 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
 from kingdoms.core.games.aoe2.seed import MongoAoE2Database, seed_aoe2
 from kingdoms.core.ids import ladder_id as ladder_id_for
+from kingdoms.core.ids import slug_id
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.identity_import import import_identity_links
 from kingdoms.core.services.season import SeasonService
@@ -55,6 +57,25 @@ class SeasonImportReport:
 def _ms(timestamp: int) -> int:
     """Normalize a dump timestamp to milliseconds (dumps carry seconds)."""
     return timestamp * 1000 if 0 < timestamp < 10**12 else timestamp
+
+
+def _dated_boundaries(pool_specs: list[dict[str, Any]]) -> list[int]:
+    """Resolve the pools' declared activation dates (``activated_on``).
+
+    A dated rotation file beats the timeline-split fallback: the first
+    pool starts with the season, each next pool at its declared date
+    (naive UTC midnight — the dump's dates are day-granular anyway).
+    """
+    from datetime import datetime
+
+    boundaries: list[int] = []
+    for spec in pool_specs:
+        raw = str(spec.get("activated_on", "") or "").strip()
+        if not raw:
+            return []
+        day = datetime.strptime(raw, "%Y-%m-%d").replace(tzinfo=UTC)
+        boundaries.append(int(day.timestamp() * 1000))
+    return boundaries
 
 
 def _rotation_boundaries(matches_path: Path, rotation_count: int) -> list[int]:
@@ -98,9 +119,9 @@ async def import_season(
     ladder_service = LadderService(adapter, game_data)
     season_service = SeasonService(adapter, game_data)
 
-    pool_names = [spec["name"] for spec in data.get("map_pools", []) or []]
-    pool_ids = [f"map_pool:{game_key}:{name}" for name in pool_names]
-    boundaries = [_ms(b) for b in _rotation_boundaries(matches_csv, len(pool_ids))]
+    pool_specs = data.get("map_pools", []) or []
+    pool_ids = [f"map_pool:{game_key}:{slug_id(spec['name'])}" for spec in pool_specs]
+    boundaries = _dated_boundaries(pool_specs) or [_ms(b) for b in _rotation_boundaries(matches_csv, len(pool_ids))]
     seasons = await season_service.list_seasons(ladder_id)
     season = seasons[0] if seasons else None
     season_id = season.id if season is not None else ""
