@@ -30,7 +30,8 @@ GAMES_CATEGORY_NAME = "games"
 POOLS_FORUM_SUFFIX = "-map-pools"
 LEGACY_PREFIX = "map-pools-"
 SYNC_INTERVAL_S = 3600
-MAX_SECTIONS = 40
+MAX_SECTIONS = 20
+TEXT_CHUNK_MAPS = 20
 
 
 def _build_service() -> Any:
@@ -54,15 +55,16 @@ def _pool_post_layout(pool: Any, maps: list[dict[str, Any]]) -> discord.ui.Layou
             text = f"### {m['name']}\n- [fiche de la map](https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']})"
         else:
             text = f"### {m['name']}"
-        children: list[discord.ui.Item[Any] | str] = [discord.ui.TextDisplay(text)]
-        if m.get("resource_url"):
-            children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(m["resource_url"])))
         view.add_item(
             discord.ui.Section(
-                *children,
+                discord.ui.TextDisplay(text),
                 accessory=PoolRemoveMapButton(m["id"], pool.id, label=f"Retirer {m['name']}"),
             )
         )
+    overflow = maps[MAX_SECTIONS:]
+    for chunk_start in range(0, len(overflow), TEXT_CHUNK_MAPS):
+        chunk = overflow[chunk_start : chunk_start + TEXT_CHUNK_MAPS]
+        view.add_item(discord.ui.TextDisplay("\n".join(f"- {m['name']}" for m in chunk)))
     view.add_item(discord.ui.Separator())
     view.add_item(
         discord.ui.Section(
