@@ -499,11 +499,17 @@ async def _sync_extra_pages(
             message_id=str(message.id),
             guild_id=guild_id,
         )
+    from kingdoms.discord.pinned_marks import is_pinned_view
+
     for page_number in range(len(embeds) + 1, len(embeds) + 10):
         registered = await registry.resolve(PLATFORM, _page_key(page_number), guild_id)
         if registered is None:
             break
         try:
+            stale = await channel.get_partial_message(int(registered.message_id)).fetch()
+            if is_pinned_view(stale):
+                await stale.edit(content=None, embed=None)
+                continue
             await channel.get_partial_message(int(registered.message_id)).delete()
         except Exception:
             logger.warning("live dashboard page %s cleanup failed", page_number, exc_info=True)
@@ -542,7 +548,9 @@ def _dashboard_embed(
     user = getattr(bot, "user", None) if bot is not None else None
     icon = getattr(user, "display_avatar", None) if user else None
     icon_url = getattr(icon, "url", None) if icon else None
-    description = truncate_body(body, MAX_EMBED_DESCRIPTION)
+    from kingdoms.discord.pinned_marks import pinned_mark
+
+    description = truncate_body(body + "\n" + pinned_mark("live-dashboard"), MAX_EMBED_DESCRIPTION)
     title = _t(bot, locale, "title", "🎮 Live dashboard")
     if page_count > 1:
         title += f" ({page_index}/{page_count})"

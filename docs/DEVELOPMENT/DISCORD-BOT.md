@@ -43,6 +43,12 @@ Un panel épinglé par salon d'admin. Règles projet :
 - Le pin est **figé** : une interaction sur le pin répond par une
   vue **ephemeral dédiée** (`send_message(ephemeral=True)`), jamais
   `edit_message` sur le pin.
+- **Marque de pin** (`pinned_marks.py`) : chaque message pinned porte
+  un footer id `fixe:<suffixe>` (`fixe:admin-panel`, `fixe:home-menu`,
+  `fixe:live-dashboard`, `fixe:boot-status`). Tout chemin de
+  suppression **doit** vérifier `is_pinned_view(message)` d'abord —
+  un message marqué ne se supprime jamais (il se vide ou se
+  remplace) ; les deletes sont réservés aux messages non marqués.
 - Le pin ne se met à jour que si une action (de n'importe qui) en
   change le contenu ; sinon il est édité in-place au boot seulement.
 - **Origine des vues** (`view_origin.from_pin`) : message ephemeral =

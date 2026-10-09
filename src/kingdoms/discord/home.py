@@ -106,11 +106,14 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
             )
         )
     rows.append(row)
+    from kingdoms.discord.pinned_marks import pinned_mark
+
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay("## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."),
             *rows,
+            discord.ui.TextDisplay(pinned_mark("home-menu")),
         )
     )
     return view
