@@ -128,6 +128,10 @@ class LogsPlatform(Protocol):
         """Unpin one message (the superseded boot status)."""
         ...
 
+    async def delete_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
+        """Delete one superseded message (opt-in path; mark-guarded)."""
+        ...
+
     async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
         """List every pinned message id of the logs channel."""
         ...
@@ -176,17 +180,22 @@ class LogService:
         state: Any,
         clock: Any = time.monotonic,
         catalog: MessageCatalog | None = None,
+        delete_old_boot_status: bool = False,
     ) -> None:
         """Wire the stores; ``state`` is a StateService (Redis cache-aside).
 
         ``catalog`` localizes the audit events with the guild's locale;
         None keeps the built-in English messages.
+        ``delete_old_boot_status`` (default False) also deletes the
+        superseded boot-status messages instead of only unpinning them
+        — off by default: old logs stay readable in the channel.
         """
         self._db = database
         self._platform = platform
         self._state = state
         self._clock = clock
         self._catalog = catalog
+        self._delete_old_boot_status = delete_old_boot_status
 
     def _tr(self, key: str, locale: str, **kwargs: Any) -> str:
         """Render a lifecycle message, falling back to English strings."""
@@ -291,6 +300,8 @@ class LogService:
         for pinned_id in pinned_ids:
             try:
                 await self._platform.unpin_log_message(guild_id, channel_id, pinned_id)
+                if self._delete_old_boot_status:
+                    await self._platform.delete_log_message(guild_id, channel_id, pinned_id)
             except Exception:
                 logger.warning(
                     "PINNED BOOT STATUS unpin failed (guild %s, message %s) — best-effort", guild_id, pinned_id

@@ -124,15 +124,18 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="LogService">class <strong>LogService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LogService">LogService</a>(database:&nbsp;'<a href="#LogsDatabase">LogsDatabase</a>',&nbsp;platform:&nbsp;'<a href="#LogsPlatform">LogsPlatform</a>',&nbsp;state:&nbsp;'Any',&nbsp;clock:&nbsp;'Any'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;catalog:&nbsp;'MessageCatalog&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LogService">LogService</a>(database:&nbsp;'<a href="#LogsDatabase">LogsDatabase</a>',&nbsp;platform:&nbsp;'<a href="#LogsPlatform">LogsPlatform</a>',&nbsp;state:&nbsp;'Any',&nbsp;clock:&nbsp;'Any'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;catalog:&nbsp;'MessageCatalog&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;delete_old_boot_status:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;lifecycle&nbsp;events&nbsp;to&nbsp;it.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="LogService-__init__"><strong>__init__</strong></a>(self, database: 'LogsDatabase', platform: 'LogsPlatform', state: 'Any', clock: 'Any' = &lt;built-in function monotonic&gt;, catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``state``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).<br>
+<dl><dt><a name="LogService-__init__"><strong>__init__</strong></a>(self, database: 'LogsDatabase', platform: 'LogsPlatform', state: 'Any', clock: 'Any' = &lt;built-in function monotonic&gt;, catalog: 'MessageCatalog | None' = None, delete_old_boot_status: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``state``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).<br>
 &nbsp;<br>
 ``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale;<br>
-None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.</span></dd></dl>
+None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.<br>
+``delete_old_boot_status``&nbsp;(default&nbsp;False)&nbsp;also&nbsp;deletes&nbsp;the<br>
+superseded&nbsp;boot-status&nbsp;messages&nbsp;instead&nbsp;of&nbsp;only&nbsp;unpinning&nbsp;them<br>
+—&nbsp;off&nbsp;by&nbsp;default:&nbsp;old&nbsp;logs&nbsp;stay&nbsp;readable&nbsp;in&nbsp;the&nbsp;channel.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 
@@ -289,6 +292,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="LogsPlatform-create_logs_channel"><strong>create_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;logs&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="LogsPlatform-delete_log_message"><strong>delete_log_message</strong></a>(self, guild_id: 'str', channel_id: 'str', message_id: 'str') -&gt; 'None'</dt><dd><span class="code">Delete&nbsp;one&nbsp;superseded&nbsp;message&nbsp;(opt-in&nbsp;path;&nbsp;mark-guarded).</span></dd></dl>
+
 <dl><dt>async <a name="LogsPlatform-find_logs_channel"><strong>find_logs_channel</strong></a>(self, guild_id: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;an&nbsp;existing&nbsp;logs&nbsp;channel&nbsp;by&nbsp;name;&nbsp;None&nbsp;when&nbsp;there&nbsp;is&nbsp;none.</span></dd></dl>
 
 <dl><dt>async <a name="LogsPlatform-grant_role_view"><strong>grant_role_view</strong></a>(self, guild_id: 'str', channel_id: 'str', role_id: 'str') -&gt; 'None'</dt><dd><span class="code">Grant&nbsp;a&nbsp;role&nbsp;view&nbsp;access&nbsp;on&nbsp;the&nbsp;logs&nbsp;channel.</span></dd></dl>
@@ -323,7 +328,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'create_logs_channel', 'find_logs_channel', 'grant_role_view', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_default_policy', 'apply_public_policy', 'channel_exists', 'create_logs_channel', 'delete_log_message', 'find_logs_channel', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
