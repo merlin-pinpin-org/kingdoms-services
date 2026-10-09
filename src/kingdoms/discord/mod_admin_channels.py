@@ -249,9 +249,7 @@ def build_mod_admin_channel_service(
         return None
 
 
-async def _resolve_root_message_id(
-    bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str
-) -> str | None:
+async def _resolve_root_message_id(bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str) -> str | None:
     """Resolve the registered root menu id (registry first, memory fallback)."""
     registry = getattr(bot, "message_registry", None)
     if registry is not None:
@@ -287,7 +285,12 @@ async def _register_root_message(
 
 
 async def _registered_menu_lives(bot: discord.Client, spec: ModAdminChannelSpec, guild_id: str, channel: Any) -> bool:
-    """Whether the registered root menu still exists; re-pin when unpinned."""
+    """Whether the registered root menu still exists **and is current**.
+
+    An existing message is edited in place to the current layout revision
+    (a boot with a changed surface must update the pin, not keep the old
+    version); the message id stays stable. Re-pins best-effort.
+    """
     message_id = await _resolve_root_message_id(bot, spec, guild_id)
     if message_id is None:
         return False
@@ -295,6 +298,16 @@ async def _registered_menu_lives(bot: discord.Client, spec: ModAdminChannelSpec,
         message = await channel.fetch_message(int(message_id))
     except Exception:
         return False
+    try:
+        layout = await _build_root_layout(bot, spec, guild_id)
+        await message.edit(view=layout)
+    except Exception:
+        logger.warning(
+            "%s admin menu in-place update failed (message %s) — keeping the old pin",
+            spec.mod,
+            message_id,
+            exc_info=True,
+        )
     try:
         await message.pin(reason=f"kingdoms: pinned {spec.mod} admin menu (mod staff home)")
     except Exception:
@@ -374,9 +387,7 @@ async def maintain_pinned_mod_admin_menus(bot: discord.Client) -> None:
         await asyncio.sleep(300)
 
 
-async def ensure_pinned_season_admin_panel(
-    spec: ModAdminChannelSpec, guild: Any, scope: str, channel: Any
-) -> None:
+async def ensure_pinned_season_admin_panel(spec: ModAdminChannelSpec, guild: Any, scope: str, channel: Any) -> None:
     """Keep the pinned per-season config panel alive in the season's salon.
 
     The season admin channel is provisioned by the mod's channels sync

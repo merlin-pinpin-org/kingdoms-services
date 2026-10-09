@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder.seeder</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.ladder.html" class="white">ladder</a>.seeder</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/seeder.py">SOURCE_ROOT/mods/ladder/seeder.py</a></td></tr></table>
+    <p><span class="code">Ladder-owned&nbsp;seeding:&nbsp;the&nbsp;``ladders``/``seasons``&nbsp;sections&nbsp;of&nbsp;the&nbsp;AoE2&nbsp;seed&nbsp;YAML.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;``seed_aoe2``&nbsp;owns&nbsp;the&nbsp;game&nbsp;catalog&nbsp;(maps,&nbsp;civs,&nbsp;rules,&nbsp;pools);<br>
+this&nbsp;module&nbsp;owns&nbsp;everything&nbsp;the&nbsp;ladder&nbsp;mod&nbsp;persists.&nbsp;The&nbsp;core&nbsp;calls&nbsp;it<br>
+through&nbsp;the&nbsp;injected&nbsp;``ladder_seeder``&nbsp;hook&nbsp;(see&nbsp;``seed_aoe2``).</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-seed_ladders"><strong>seed_ladders</strong></a>(adapter: 'Any', data: 'dict[str, Any]', game_key: 'str', now_ms: 'int', result: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Idempotently&nbsp;seed&nbsp;the&nbsp;ladders&nbsp;and&nbsp;their&nbsp;seasons&nbsp;from&nbsp;the&nbsp;YAML&nbsp;document.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DAY_MS</strong> = 86400000</td></tr></table>
+</body></html>

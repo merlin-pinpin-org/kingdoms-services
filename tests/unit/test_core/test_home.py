@@ -5,6 +5,7 @@ standard buttons, how a mod contributes its own) and stays
 platform-agnostic — a mod gets a button only when the wiring provides
 its home view builder.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -24,6 +24,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
+from kingdoms.core.ids import slug_id
 from kingdoms.core.models.game_data import (
     FactionModel,
     MapModel,
@@ -38,6 +39,7 @@ logger = logging.getLogger("kingdoms.core.game_data")
 T = TypeVar("T")
 
 MAPS_COLLECTION = "maps"
+MAX_POOL_MAPS = 25
 MAP_POOLS_COLLECTION = "map_pools"
 MAP_PACKS_COLLECTION = "map_packs"
 MAP_POOL_HISTORY_COLLECTION = "map_pool_history"
@@ -61,9 +63,7 @@ class GameDataDatabase(Protocol):
         """Return the non-archived entry for ``(game_key, name)``; None when absent."""
         ...
 
-    async def find_active_maps(
-        self, game_key: str, guild_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def find_active_maps(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         """List the non-archived maps for a game, scoped for one guild.
 
         Scoped: the guild's own maps plus the global ones; unscoped:
@@ -75,9 +75,7 @@ class GameDataDatabase(Protocol):
         """List the distinct game keys present in the maps catalog."""
         ...
 
-    async def find_active_map_pools(
-        self, game_key: str, guild_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def find_active_map_pools(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         """List the non-archived map pools for a game, scoped for one guild.
 
         Scoped: the guild's own pools plus the public ones (owned by other
@@ -85,9 +83,7 @@ class GameDataDatabase(Protocol):
         """
         ...
 
-    async def find_active_factions(
-        self, game_key: str, guild_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         """List the non-archived factions for a game, scoped like the maps."""
         ...
 
@@ -114,6 +110,10 @@ class NameTakenError(ValueError):
 
 class ArchivedEntryError(ValueError):
     """The entry is archived: read-only, never mutated."""
+
+
+class PoolNotEditableError(ValueError):
+    """The pool is locked (activated once, or received from another guild)."""
 
 
 class ActivePoolArchiveError(ValueError):
@@ -149,7 +149,7 @@ class GameDataService:
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
-            _id=f"map:{game_key}:{name}",
+            _id=f"map:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             filename=filename,
@@ -187,6 +187,43 @@ class GameDataService:
         """
         docs = await self._db.find_active_map_pools(game_key, guild_id=guild_id)
         return [MapPoolModel.from_mongo(d) for d in docs]
+
+    async def update_map(
+        self,
+        entry_id: str,
+        name: str | None = None,
+        filename: str | None = None,
+        description: str | None = None,
+        resource_url: str | None = None,
+    ) -> MapModel:
+        """Update a map's editable fields (guild-owned maps only change).
+
+        The id stays stable (it is the pools' and posts' reference), so
+        only the descriptive fields move; the name check keeps the
+        game's taken names unique.
+        """
+        entry = await self._require(MAPS_COLLECTION, entry_id, MapModel.from_mongo)
+        if entry.archived_at is not None:
+            raise ArchivedEntryError(f"map {entry_id!r} is archived")
+        if name is not None and name != entry.name:
+            taken = await self._db.find_by_name(MAPS_COLLECTION, entry.game_key, name)
+            if taken is not None and taken["_id"] != entry_id:
+                raise NameTakenError(f"map {name!r} already exists for game {entry.game_key!r}")
+        updates: dict[str, Any] = {}
+        if name is not None and name != entry.name:
+            updates["name"] = name
+        if filename is not None:
+            updates["filename"] = filename
+        if description is not None:
+            updates["description"] = description
+        if resource_url is not None:
+            updates["resource_url"] = resource_url
+        if not updates:
+            return entry
+        updated = entry.model_copy(update=updates)
+        await self._db.upsert_entry(MAPS_COLLECTION, updated.to_mongo())
+        await self._audit_record("map.update", {"entry_id": entry_id, "changes": updates})
+        return updated
 
     async def archive_map(self, entry_id: str) -> MapModel:
         """Archive a map (archival-only delete)."""
@@ -263,8 +300,10 @@ class GameDataService:
                 raise ValueError(f"unknown map pack {pack_id!r}")
         if not map_ids and not map_pack_ids:
             raise ValueError("a map pool references at least one map or map pack")
+        if len(map_ids) > MAX_POOL_MAPS:
+            raise ValueError(f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}")
         pool = MapPoolModel(
-            _id=f"map_pool:{game_key}:{name}",
+            _id=f"map_pool:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             description=description,
@@ -302,6 +341,7 @@ class GameDataService:
         keeps the current value, use ``0`` to disable a kind explicitly.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        name, map_ids, description = self._guard_pool_edition(pool, name, map_ids, description, fav_quota, ban_quota)
         if name is not None and name != pool.name:
             taken = await self._db.find_by_name(MAP_POOLS_COLLECTION, pool.game_key, name)
             if taken is not None and taken["_id"] != entry_id:
@@ -310,6 +350,10 @@ class GameDataService:
             for map_id in map_ids:
                 if await self._db.find_entry(MAPS_COLLECTION, map_id) is None:
                     raise ValueError(f"unknown map {map_id!r}")
+            if len(map_ids) > MAX_POOL_MAPS:
+                raise ValueError(
+                    f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}"
+                )
         updates = self._pool_updates(
             pool,
             name=name,
@@ -327,6 +371,27 @@ class GameDataService:
             {"pool_id": entry_id, "changes": {k: list(v) if k == "map_ids" else v for k, v in updates.items()}},
         )
         return updated
+
+    @staticmethod
+    def _guard_pool_edition(
+        pool: MapPoolModel,
+        name: str | None,
+        map_ids: tuple[str, ...] | None,
+        description: str | None,
+        fav_quota: int | None,
+        ban_quota: int | None,
+    ) -> tuple[str | None, tuple[str, ...] | None, str | None]:
+        """Enforce the edition lock: a locked pool only moves its quotas.
+
+        Composition changes (name, maps, description) are refused on a
+        locked pool — duplicate it to edit; a quota-only update is the
+        ladder's runtime setting and stays allowed.
+        """
+        if pool.edition_mode:
+            return name, map_ids, description
+        if fav_quota is None and ban_quota is None:
+            raise PoolNotEditableError(f"map pool {pool.id!r} is locked (duplicate it to edit)")
+        return None, None, None
 
     @staticmethod
     def _pool_updates(
@@ -358,8 +423,12 @@ class GameDataService:
         await self._db.upsert_entry(MAPS_COLLECTION, updated.to_mongo())
         return updated
 
-    async def duplicate_map_pool(self, entry_id: str, new_name: str) -> MapPoolModel:
-        """Duplicate a pool under a new name (a new stable id)."""
+    async def duplicate_map_pool(self, entry_id: str, new_name: str, owner_guild_id: str | None = None) -> MapPoolModel:
+        """Duplicate a pool under a new name (a new stable id).
+
+        The copy starts editable (a duplicate exists to be modified); the
+        duplicating guild owns it, whatever the source's owner.
+        """
         source = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
         return await self.create_map_pool(
             source.game_key,
@@ -367,6 +436,8 @@ class GameDataService:
             map_ids=source.map_ids,
             map_pack_ids=source.map_pack_ids,
             description=source.description,
+            owner_guild_id=owner_guild_id,
+            is_public=False,
         )
 
     async def resolve_pool_map_ids(self, pool: MapPoolModel) -> tuple[str, ...]:
@@ -392,6 +463,9 @@ class GameDataService:
         pool = await self._require(MAP_POOLS_COLLECTION, map_pool_id, MapPoolModel.from_mongo)
         if pool.archived_at is not None:
             raise ArchivedEntryError(f"map pool {map_pool_id!r} is archived")
+        if not pool.edition_mode or not pool.ever_activated:
+            locked = pool.model_copy(update={"edition_mode": False, "ever_activated": True})
+            await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
         now = _now_ms()
         for doc in await self._db.find_ladder_activations(ladder_id):
             activation = MapPoolActivationModel.from_mongo(doc)
@@ -440,6 +514,22 @@ class GameDataService:
         await self._audit_record("map_pool.visibility", {"entry_id": entry_id, "is_public": is_public})
         return updated
 
+    async def send_map_pool_to_guild(self, entry_id: str, target_guild_id: str, new_name: str) -> MapPoolModel:
+        """Send one pool to another guild: the received copy is locked.
+
+        The receiving guild gets its own copy (own stable id, own forum
+        post) that it can use and activate but never modify: the copy is
+        created with ``edition_mode=False``.
+        """
+        copy = await self.duplicate_map_pool(entry_id, new_name, owner_guild_id=target_guild_id)
+        locked = copy.model_copy(update={"edition_mode": False})
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
+        await self._audit_record(
+            "map_pool.sent",
+            {"pool_id": entry_id, "target_guild_id": target_guild_id, "copy_id": locked.id},
+        )
+        return locked
+
     async def assert_pool_archivable(self, entry_id: str) -> None:
         """Guard: refuse archiving a pool still active on a ladder.
 
@@ -469,7 +559,7 @@ class GameDataService:
         if await self._db.find_by_name(FACTIONS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"faction {name!r} already exists for game {game_key!r}")
         entry = FactionModel(
-            _id=f"faction:{game_key}:{name}",
+            _id=f"faction:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             faction_key=faction_key,
@@ -517,7 +607,7 @@ class GameDataService:
         if await self._db.find_by_name(RULES_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"rule {name!r} already exists for game {game_key!r}")
         entry = RuleModel(
-            _id=f"rule:{game_key}:{name}",
+            _id=f"rule:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             rule_key=rule_key,
@@ -554,7 +644,7 @@ class GameDataService:
         """
         counts = {"maps": 0, "factions": 0, "rules": 0}
         for spec in data.get("maps", []) or []:
-            if await self.get_map(f"map:{game_key}:{spec['name']}") is not None:
+            if await self.get_map(f"map:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_map(
                 game_key,
@@ -565,7 +655,7 @@ class GameDataService:
             )
             counts["maps"] += 1
         for spec in data.get("factions", data.get("civs", [])) or []:
-            if await self.get_faction(f"faction:{game_key}:{spec['name']}") is not None:
+            if await self.get_faction(f"faction:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_faction(
                 game_key,
@@ -576,7 +666,7 @@ class GameDataService:
             )
             counts["factions"] += 1
         for spec in data.get("rules", []) or []:
-            if await self.get_rule(f"rule:{game_key}:{spec['name']}") is not None:
+            if await self.get_rule(f"rule:{game_key}:{slug_id(spec['name'])}") is not None:
                 continue
             await self.create_rule(
                 game_key,

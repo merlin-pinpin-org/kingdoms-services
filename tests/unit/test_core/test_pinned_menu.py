@@ -5,6 +5,7 @@ namespace, ``ensure`` is idempotent (a current pin is a no-op), a
 stale menu of the same namespace is unpinned after the rebuild, and
 everything is best-effort.
 """
+
 from __future__ import annotations
 
 from typing import Any

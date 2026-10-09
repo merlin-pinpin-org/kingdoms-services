@@ -207,6 +207,7 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
         from kingdoms.discord.guild_access_request import register_guild_access_request_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
+
         register_pool_flow_items(self)
         register_admin_dm_items(self)
         register_guild_access_request_items(self)
@@ -267,9 +268,7 @@ class KingdomsBot(discord.Client):
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
                 self._pools_forum_task = start_pools_forum_sync(self)
-                self._factions_forum_task = start_entity_forum_sync(
-                    self, factions_forum_spec(self), startup_delay_s=20
-                )
+                self._factions_forum_task = start_entity_forum_sync(self, factions_forum_spec(self), startup_delay_s=20)
             from kingdoms.core.services.mod_entrypoint import run_mod_hook
 
             if self.registry is not None:
@@ -607,7 +606,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-
 
     class _DiscordModHomeViews:
         """Bridge the bot's mod home builders onto the HomeService seam."""

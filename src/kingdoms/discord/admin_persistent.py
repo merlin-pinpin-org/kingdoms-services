@@ -440,8 +440,6 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
         logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
 
 
-
-
 def register_admin_persistent_items(bot: discord.Client) -> None:
     """Register the pinned panel DynamicItems (called at every startup)."""
     from kingdoms.discord.admin_panel_dynamic import (

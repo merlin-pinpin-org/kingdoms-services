@@ -23,7 +23,6 @@ def _async_layout(value: str):
     return _build
 
 
-
 @pytest.mark.asyncio
 async def test_all_checks_run_despite_failures() -> None:
     """A battery reports ALL failures — it never stops at the first."""

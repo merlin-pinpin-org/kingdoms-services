@@ -18,6 +18,8 @@ commands. Mods must build ids and footers through this module only.
 
 from __future__ import annotations
 
+import re
+
 LADDER_PREFIX = "ladder"
 TERRITORY_PREFIX = "territory"
 
@@ -50,3 +52,17 @@ def footer(*ids: str) -> str:
     """Render the ids footer line for a panel (empty ids are dropped)."""
     parts = [part for part in ids if part]
     return "-# " + " · ".join(f"`{part}`" for part in parts) if parts else ""
+
+
+_NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
+
+
+def slug_id(name: str) -> str:
+    """Normalize a human name into its stable slug (ids, everywhere).
+
+    Lowercase, every non-alphanumeric run collapsed to one underscore:
+    ``Fish n Fish`` -> ``fish_n_fish``, ``Coast to Mountain`` ->
+    ``coast_to_mountain``. Uniform across the catalog, the content
+    store and the Discord footers.
+    """
+    return _NON_ALPHA_RE.sub("_", name.strip().lower()).strip("_") or "_"

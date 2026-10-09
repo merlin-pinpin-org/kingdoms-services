@@ -56,13 +56,7 @@ class FakeCollection:
         return None
 
     def find(self, filt: dict) -> FakeCursor:
-        return FakeCursor(
-            [
-                dict(d)
-                for d in self.docs.values()
-                if all(d.get(k) == v for k, v in filt.items())
-            ]
-        )
+        return FakeCursor([dict(d) for d in self.docs.values() if all(d.get(k) == v for k, v in filt.items())])
 
 
 class FakeCursor:

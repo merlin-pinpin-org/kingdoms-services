@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder.provider_bridge</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.ladder.html" class="white">ladder</a>.provider_bridge</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/provider_bridge.py">SOURCE_ROOT/mods/ladder/provider_bridge.py</a></td></tr></table>
+    <p><span class="code">Bridges&nbsp;between&nbsp;the&nbsp;provider&nbsp;adapters&nbsp;and&nbsp;the&nbsp;MatchDataProvider&nbsp;protocol.<br>
+&nbsp;<br>
+The&nbsp;ladder&nbsp;consumes&nbsp;providers&nbsp;through&nbsp;the&nbsp;narrow&nbsp;``MatchDataProvider``<br>
+seam&nbsp;(``fetch_match&nbsp;-&gt;&nbsp;wire&nbsp;dict``).&nbsp;The&nbsp;concrete&nbsp;adapters&nbsp;return&nbsp;typed<br>
+dataclasses&nbsp;(``MatchDetails``);&nbsp;these&nbsp;bridges&nbsp;convert&nbsp;without&nbsp;touching<br>
+the&nbsp;adapters&nbsp;themselves.</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.ladder.provider_bridge.html#LibrematchProviderBridge">LibrematchProviderBridge</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LibrematchProviderBridge">class <strong>LibrematchProviderBridge</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LibrematchProviderBridge">LibrematchProviderBridge</a>(adapter:&nbsp;'LibrematchAdapter')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+MatchDataProvider&nbsp;adapter&nbsp;over&nbsp;LibrematchAdapter&nbsp;(cold&nbsp;fetch&nbsp;path).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LibrematchProviderBridge-__init__"><strong>__init__</strong></a>(self, adapter: 'LibrematchAdapter') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchProviderBridge-fetch_match"><strong>fetch_match</strong></a>(self, match_ref: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;match's&nbsp;details&nbsp;as&nbsp;a&nbsp;wire&nbsp;dict,&nbsp;or&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="LibrematchProviderBridge-fetch_player_stats"><strong>fetch_player_stats</strong></a>(self, profile_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Fetch&nbsp;a&nbsp;profile's&nbsp;stats&nbsp;blocks&nbsp;as&nbsp;a&nbsp;plain&nbsp;dict,&nbsp;or&nbsp;None.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>provider_key</strong> = 'librematch'</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-match_details_to_wire"><strong>match_details_to_wire</strong></a>(details: 'MatchDetails') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Convert&nbsp;a&nbsp;typed&nbsp;MatchDetails&nbsp;to&nbsp;the&nbsp;wire&nbsp;dict&nbsp;the&nbsp;ladder&nbsp;extracts.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False</td></tr></table>
+</body></html>

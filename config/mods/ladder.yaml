@@ -1,0 +1,27 @@
+# Ladder mod declaration: seasonal 1v1 ladder (AoE2).
+# Loaded by ModRegistry at startup; /status lists this mod when enabled.
+id: ladder
+enabled: true
+seasonal: true
+settings: {}
+channels: []
+roles:
+  # Mod-level role: ladder staff act as admins within the mod.
+  - key: staff
+    display_name: "Staff ladder"
+    description: "Staff du ladder (agissent comme admin au sein du mod)"
+  # Per-season roles: provisioned at season creation by the core's
+  # SeasonRolesService (player:<season>, staff:<season>), e.g.
+  # "Joueur ladder s1" / "Staff ladder s1".
+  - key: player
+    display_name: "Joueur ladder"
+    description: "Joueur inscrit à la saison en cours (rôle par saison)"
+    per_season: true
+  - key: season_staff
+    display_name: "Staff ladder"
+    description: "Staff de la saison (rôle par saison)"
+    per_season: true
+workflows: []
+commands:
+  - ladder
+dependencies: []

@@ -13,6 +13,7 @@ creation). The *policy* (who may see the channel) is a platform-seam
 callback: the admin channel restricts to the bot-admins role, the home
 channel is open to everyone.
 """
+
 from __future__ import annotations
 
 import logging

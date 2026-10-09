@@ -171,15 +171,21 @@ class TestStateReconstruction:
     @pytest.mark.asyncio
     async def test_every_item_rebuilds_from_its_custom_id(self) -> None:
         select = await PinLocaleSelect.from_custom_id(
-            None, None, re.fullmatch(PIN_SELECT_TEMPLATE, PIN_LOCALE_SELECT_ID)  # type: ignore[arg-type]
+            None,
+            None,
+            re.fullmatch(PIN_SELECT_TEMPLATE, PIN_LOCALE_SELECT_ID),  # type: ignore[arg-type]
         )
         assert isinstance(select, PinLocaleSelect)
         route = await PinRouteSelect.from_custom_id(
-            None, None, re.fullmatch(PIN_ROUTE_TEMPLATE, pin_route_id("bot_admins"))  # type: ignore[arg-type]
+            None,
+            None,
+            re.fullmatch(PIN_ROUTE_TEMPLATE, pin_route_id("bot_admins")),  # type: ignore[arg-type]
         )
         assert route.category == "bot_admins"
         button = await PinBackButton.from_custom_id(
-            None, None, re.fullmatch(PIN_BUTTON_TEMPLATE, PIN_BACK_BUTTON_ID)  # type: ignore[arg-type]
+            None,
+            None,
+            re.fullmatch(PIN_BUTTON_TEMPLATE, PIN_BACK_BUTTON_ID),  # type: ignore[arg-type]
         )
         assert isinstance(button, PinBackButton)
 

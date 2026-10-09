@@ -47,8 +47,7 @@ def test_every_command_acknowledges_before_any_slow_await(path: str, callback: s
     ack = ACK_RE.search(body)
     slow = SLOW_RE.search(body)
     assert ack is not None, (
-        f"{path}:{callback} never acknowledges (defer/send) — a slow read "
-        "would answer past Discord's 3s window (10062)"
+        f"{path}:{callback} never acknowledges (defer/send) — a slow read would answer past Discord's 3s window (10062)"
     )
     if slow is not None:
         assert ack.start() < slow.start(), (
@@ -68,6 +67,4 @@ def test_the_command_list_covers_every_tree_command() -> None:
                 rel = str(py.relative_to(ROOT))
                 registered.add((rel, m.group(1)))
     for path, callback in COMMANDS:
-        assert (path, callback) in registered or _command_body(path, callback), (
-            f"stale guard entry: {path}:{callback}"
-        )
+        assert (path, callback) in registered or _command_body(path, callback), f"stale guard entry: {path}:{callback}"

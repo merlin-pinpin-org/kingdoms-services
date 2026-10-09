@@ -47,11 +47,7 @@ def _parse_channel_categories(declared: object, source: Path) -> list[ChannelCat
         if not isinstance(key, str) or not key or not isinstance(display, str) or not display:
             raise ValueError(f"{source}: channel entries need 'key' and 'display_name'")
         access_data = entry.get("access")
-        access = (
-            ChannelAccessPolicy.from_dict(access_data)
-            if isinstance(access_data, dict)
-            else ChannelAccessPolicy()
-        )
+        access = ChannelAccessPolicy.from_dict(access_data) if isinstance(access_data, dict) else ChannelAccessPolicy()
         categories.append(
             ChannelCategoryDef(
                 key=key,

@@ -358,10 +358,12 @@ class PinReadOnlySelect(
                 except Exception:
                     locked = True
             state = "\U0001f512 lecture seule" if locked else "\u270f\ufe0f messages ouverts"
-            options.append(discord.SelectOption(label=f"Verrouiller {label}", value=key,
-                description=f"actuel : {state}"))
-            options.append(discord.SelectOption(label=f"Ouvrir {label}", value=f"{key}:open",
-                description=f"actuel : {state}"))
+            options.append(
+                discord.SelectOption(label=f"Verrouiller {label}", value=key, description=f"actuel : {state}")
+            )
+            options.append(
+                discord.SelectOption(label=f"Ouvrir {label}", value=f"{key}:open", description=f"actuel : {state}")
+            )
         return options[:25]
 
     @classmethod
@@ -381,7 +383,6 @@ class PinReadOnlySelect(
         from kingdoms.discord.admin_persistent import _handle_read_only
 
         await _handle_read_only(interaction)
-
 
 
 _CLIENT_REF: list[discord.Client] = []
@@ -463,9 +464,7 @@ async def build_pin_main_menu(
         discord.ui.TextDisplay(f"# \u2699\ufe0f {_t(catalog, locale, 'title')}"),
         discord.ui.Separator(),
         discord.ui.TextDisplay(f"## \ud83c\udf0d {_t(catalog, locale, 'language')}"),
-        discord.ui.TextDisplay(
-            _t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))
-        ),
+        discord.ui.TextDisplay(_t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))),
         _select_row(PinLocaleSelect(locale)),
         discord.ui.Separator(),
         discord.ui.TextDisplay(f"## \ud83d\udccb {_t(catalog, locale, 'channels')}"),
@@ -539,9 +538,7 @@ async def build_pin_channel_menu(
     entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
     if entry is None:
         view = discord.ui.LayoutView(timeout=None)
-        view.add_item(
-            discord.ui.Container(discord.ui.TextDisplay(f"Unknown channel category: `{category}`."))
-        )
+        view.add_item(discord.ui.Container(discord.ui.TextDisplay(f"Unknown channel category: `{category}`.")))
         return view
     _, icon, label_key = entry
     label = _t(catalog, locale, label_key)
@@ -563,9 +560,7 @@ async def build_pin_channel_menu(
         )
         blocks.append(discord.ui.TextDisplay(f"{_t(catalog, locale, 'visibility')}: {visibility_label}"))
         blocks.append(discord.ui.Separator())
-        blocks.append(
-            _select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder")))
-        )
+        blocks.append(_select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder"))))
         blocks.append(
             _select_row(
                 PinVisibilitySelect.create(
@@ -578,9 +573,7 @@ async def build_pin_channel_menu(
     else:
         blocks.append(discord.ui.Separator())
         blocks.append(discord.ui.TextDisplay(_t(catalog, locale, "admin_channel_note")))
-        blocks.append(
-            _select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder")))
-        )
+        blocks.append(_select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder"))))
     blocks.append(discord.ui.Separator())
     blocks.append(_select_row(PinBackButton(_t(catalog, locale, "back"))))
     view = discord.ui.LayoutView(timeout=None)

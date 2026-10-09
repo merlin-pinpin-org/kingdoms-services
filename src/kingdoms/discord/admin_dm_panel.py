@@ -81,9 +81,7 @@ async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.L
     if requests:
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         first = requests[0]
-        row.add_item(
-            AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests))
-        )
+        row.add_item(AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests)))
         row.add_item(AccessDenyButton(str(first["guild_id"]), str(first["requested_at"])))
         view.add_item(row)
     blocks.append(
@@ -156,9 +154,7 @@ class AccessApproveButton(
             return
         await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
         await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
-        await interaction.followup.send(
-            f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True
-        )
+        await interaction.followup.send(f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True)
 
 
 class AccessDenyButton(
@@ -250,7 +246,8 @@ class ContentRefreshButton(
             logger.exception("DM PANEL: content refresh failed")
             await interaction.followup.send("Refresh échoué (voir les logs).", ephemeral=True)
             return
-        new_factions = list(counts.get("new_factions") or [])
+        raw_new_factions = counts.get("new_factions") or []
+        new_factions: list[str] = raw_new_factions if isinstance(raw_new_factions, list) else []
         new_line = f"Nouvelles civs : {', '.join(new_factions)}\n" if new_factions else ""
         await interaction.followup.send(
             f"Contenu rafraîchi : {counts.get('total_factions', 0)} civs "

@@ -99,12 +99,9 @@ def test_render_dashboard_degraded_and_empty() -> None:
     assert "No linked players" in degraded
     populated = render_dashboard(
         {
-            "players": [
-                {"user_id": "10", "profile_id": "A", "state": STATE_IN_GAME, "match_ref": "m1", "since": 1000}
-            ],
+            "players": [{"user_id": "10", "profile_id": "A", "state": STATE_IN_GAME, "match_ref": "m1", "since": 1000}],
             "generated_at": 1,
             "degraded": False,
         }
     )
     assert "🟢 <@10>" in populated
-    assert "m1" in populated

@@ -263,13 +263,13 @@ registered&nbsp;dashboard&nbsp;message&nbsp;survives&nbsp;the&nbsp;rename.</span
 The&nbsp;commands&nbsp;read&nbsp;svc-core's&nbsp;Live&nbsp;service&nbsp;through&nbsp;``LiveClient``<br>
 when&nbsp;``CORE_URI``&nbsp;is&nbsp;set;&nbsp;without&nbsp;it&nbsp;(local&nbsp;runs,&nbsp;providers&nbsp;down),<br>
 the&nbsp;dashboard&nbsp;degrades&nbsp;to&nbsp;a&nbsp;note&nbsp;—&nbsp;the&nbsp;command&nbsp;still&nbsp;answers.</span></dd></dl>
- <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
+ <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None, now_ms: 'int | None' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
 &nbsp;<br>
-Players&nbsp;are&nbsp;grouped&nbsp;by&nbsp;Discord&nbsp;account&nbsp;(one&nbsp;line&nbsp;per&nbsp;account,&nbsp;one<br>
-sub-line&nbsp;per&nbsp;bound&nbsp;game&nbsp;profile).&nbsp;An&nbsp;account&nbsp;is&nbsp;active&nbsp;when&nbsp;any&nbsp;of<br>
-its&nbsp;profiles&nbsp;is;&nbsp;active&nbsp;accounts&nbsp;come&nbsp;first,&nbsp;then&nbsp;a&nbsp;separator,&nbsp;then<br>
-offline&nbsp;accounts&nbsp;—&nbsp;each&nbsp;side&nbsp;sorted&nbsp;by&nbsp;last-match&nbsp;time&nbsp;(most<br>
-recent&nbsp;first).</span></dd></dl>
+One&nbsp;line&nbsp;per&nbsp;Discord&nbsp;user:&nbsp;their&nbsp;linked&nbsp;profiles&nbsp;are&nbsp;fused&nbsp;into&nbsp;a<br>
+single&nbsp;record&nbsp;and&nbsp;a&nbsp;user&nbsp;is&nbsp;active&nbsp;when&nbsp;any&nbsp;of&nbsp;their&nbsp;profiles&nbsp;is.<br>
+Shown:&nbsp;every&nbsp;active&nbsp;user,&nbsp;plus&nbsp;the&nbsp;users&nbsp;offline&nbsp;for&nbsp;less&nbsp;than&nbsp;an<br>
+hour&nbsp;(with&nbsp;their&nbsp;last&nbsp;completed&nbsp;match&nbsp;timestamp);&nbsp;users&nbsp;offline&nbsp;for<br>
+longer&nbsp;are&nbsp;omitted.</span></dd></dl>
  <dl><dt>async <a name="-start_live_dashboard_refresh"><strong>start_live_dashboard_refresh</strong></a>(bot: 'discord.Client', client: 'LiveClientLike', registry: 'MessageRegistryServiceLike') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;guild's&nbsp;dashboard&nbsp;on&nbsp;change:&nbsp;a&nbsp;stream&nbsp;watcher&nbsp;plus&nbsp;a&nbsp;self-healing&nbsp;interval.<br>
 &nbsp;<br>
 The&nbsp;stream&nbsp;consumes&nbsp;WatchDashboard&nbsp;frames&nbsp;—&nbsp;the&nbsp;server&nbsp;emits&nbsp;one&nbsp;per<br>
@@ -289,6 +289,7 @@ deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd><
 <strong>LIVE_LEGACY_CHANNEL_NAME</strong> = 'live-dashboard'<br>
 <strong>LIVE_MESSAGE_KEY</strong> = 'live-dashboard'<br>
 <strong>MAX_EMBED_DESCRIPTION</strong> = 4096<br>
+<strong>OFFLINE_GRACE_MS</strong> = 3600000<br>
 <strong>PLATFORM</strong> = 'discord'<br>
 <strong>__annotations__</strong> = {'_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.live (WARNING)&gt;</td></tr></table>

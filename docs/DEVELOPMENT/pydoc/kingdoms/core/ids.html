@@ -27,6 +27,13 @@ Footers&nbsp;surface&nbsp;these&nbsp;ids&nbsp;on&nbsp;Discord&nbsp;panels:&nbsp;
 commands.&nbsp;Mods&nbsp;must&nbsp;build&nbsp;ids&nbsp;and&nbsp;footers&nbsp;through&nbsp;this&nbsp;module&nbsp;only.</span></p>
 <p>
 <table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
@@ -38,6 +45,12 @@ commands.&nbsp;Mods&nbsp;must&nbsp;build&nbsp;ids&nbsp;and&nbsp;footers&nbsp;thr
 mod&nbsp;name,&nbsp;the&nbsp;ladder&nbsp;being&nbsp;a&nbsp;mod&nbsp;like&nbsp;any&nbsp;other.</span></dd></dl>
  <dl><dt><a name="-mod_scope"><strong>mod_scope</strong></a>(mod_key: 'str', game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;mod's&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&gt;:&lt;game&nbsp;key&gt;:&lt;guild&nbsp;id&gt;``.</span></dd></dl>
  <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;:&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
+ <dl><dt><a name="-slug_id"><strong>slug_id</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;human&nbsp;name&nbsp;into&nbsp;its&nbsp;stable&nbsp;slug&nbsp;(ids,&nbsp;everywhere).<br>
+&nbsp;<br>
+Lowercase,&nbsp;every&nbsp;non-alphanumeric&nbsp;run&nbsp;collapsed&nbsp;to&nbsp;one&nbsp;underscore:<br>
+``Fish&nbsp;n&nbsp;Fish``&nbsp;-&gt;&nbsp;``fish_n_fish``,&nbsp;``Coast&nbsp;to&nbsp;Mountain``&nbsp;-&gt;<br>
+``coast_to_mountain``.&nbsp;Uniform&nbsp;across&nbsp;the&nbsp;catalog,&nbsp;the&nbsp;content<br>
+store&nbsp;and&nbsp;the&nbsp;Discord&nbsp;footers.</span></dd></dl>
  <dl><dt><a name="-territory_id"><strong>territory_id</strong></a>(season_id: 'str', map_key: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;territory&nbsp;id:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

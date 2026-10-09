@@ -14,6 +14,7 @@ from typing import Any
 
 import yaml
 
+from kingdoms.core.ids import slug_id
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.game_keys import validate_game_key
 
@@ -230,9 +231,9 @@ async def seed_aoe2(
     result["factions"] = counts["factions"]
     result["rules"] = counts.get("rules", 0)
     for spec in data.get("map_pools", []) or []:
-        pool_id = f"map_pool:{game_key}:{spec['name']}"
+        pool_id = f"map_pool:{game_key}:{slug_id(spec['name'])}"
         if await game_data.get_map_pool(pool_id) is None:
-            map_ids = tuple(f"map:{game_key}:{m}" for m in spec.get("maps", []))
+            map_ids = tuple(f"map:{game_key}:{slug_id(m)}" for m in spec.get("maps", []))
             await game_data.create_map_pool(
                 game_key,
                 spec["name"],
@@ -240,6 +241,36 @@ async def seed_aoe2(
                 description=spec.get("description", ""),
             )
             result["map_pools"] += 1
+    await _seed_provider_mappings(database, data)
+
     if ladder_seeder is not None:
         await ladder_seeder(adapter, data, game_key, now_ms, result)
     return result
+
+
+async def _seed_provider_mappings(database: Any, data: dict[str, Any]) -> int:
+    """Idempotently seed the provider mapping tables from the YAML document.
+
+    The optional ``provider_mappings`` section lists providers, each
+    with per-kind tables (``factions``, ``maps``) mapping catalog names
+    to the provider's own ids. Seeding replaces each provider's tables
+    wholesale — the YAML is the source of truth for seeded mappings.
+    """
+    specs = data.get("provider_mappings", []) or []
+    if not specs:
+        return 0
+    from kingdoms.core.services.provider_mapping import ProviderMappingService
+    from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
+
+    service = ProviderMappingService(MongoProviderMappingDatabase(database))
+    seeded = 0
+    for spec in specs:
+        provider = str(spec.get("provider", "")).strip()
+        if not provider:
+            continue
+        for kind in ("factions", "maps"):
+            table = spec.get(kind) or {}
+            if table:
+                await service.update_kind(provider, kind, {str(k): str(v) for k, v in table.items()})
+        seeded += 1
+    return seeded

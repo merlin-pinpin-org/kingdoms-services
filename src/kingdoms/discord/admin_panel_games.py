@@ -65,6 +65,8 @@ async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.Layo
         view.add_item(_back_row())
         return view
     keys = await service.list_game_keys()
+    if GAME_KEY not in keys:
+        keys.append(GAME_KEY)
     if not keys:
         blocks.append(discord.ui.TextDisplay("_Aucun jeu connu - seed un catalogue._"))
     else:
@@ -110,7 +112,10 @@ class GamesGameSelect(
         service = _games_wiring()
         options: list[discord.SelectOption] = []
         if service is not None:
-            for key in (await service.list_game_keys())[:25]:
+            keys = await service.list_game_keys()
+            if GAME_KEY not in keys:
+                keys.append(GAME_KEY)
+            for key in keys[:25]:
                 options.append(discord.SelectOption(label=key, value=key))
         return cls(options)
 
@@ -139,9 +144,7 @@ async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
     blocks.extend(
         [
             discord.ui.Separator(),
-            discord.ui.TextDisplay(
-                f"**Maps actives** : {len(active_maps)} - **Pools** : {len(pools)}"
-            ),
+            discord.ui.TextDisplay(f"**Maps actives** : {len(active_maps)} - **Pools** : {len(pools)}"),
         ]
     )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
@@ -200,9 +203,7 @@ class GamesMapsButton(
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
         super().__init__(
-            discord.ui.Button(
-                label="Maps", style=discord.ButtonStyle.primary, custom_id=f"{_NS}:maps:{game_key}"[:100]
-            )
+            discord.ui.Button(label="Maps", style=discord.ButtonStyle.primary, custom_id=f"{_NS}:maps:{game_key}"[:100])
         )
 
     @classmethod
@@ -296,9 +297,7 @@ class GamesMapCreateButton(
         self.global_scope = global_scope
         label = "+ Map globale" if global_scope else "+ Map"
         custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
-        super().__init__(
-            discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100])
-        )
+        super().__init__(discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
 
     @classmethod
     async def from_custom_id(
@@ -341,9 +340,7 @@ class GamesMapCreateModal(discord.ui.Modal):
         self.game_key = game_key
         self.global_scope = global_scope
         super().__init__(title="Creer une map globale" if global_scope else "Creer une map", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nom de la map", max_length=64, required=True
-        )
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom de la map", max_length=64, required=True)
         self.filename: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Fichier (nom de fichier rms/txt)", max_length=128, required=False
         )
@@ -375,19 +372,44 @@ class GamesMapCreateModal(discord.ui.Modal):
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         is_bot_admin_click = is_bot_admin(getattr(interaction.user, "id", None), tuple(admins))
         owner_guild_id = None if is_bot_admin_click and self.global_scope else guild_id
+        description = str(self.description.value or "").strip()
+        filename = str(self.filename.value or "").strip() or name
+        seed = None
+        if owner_guild_id is not None:
+            from kingdoms.mapsdata.seed import fetch_map_seed
+
+            seed = await fetch_map_seed(name)
+            if seed is not None:
+                description = description or seed.description
+                filename = seed.name.replace(" ", "_").lower()
         try:
             entry = await service.create_map(
                 self.game_key,
                 name,
-                filename=str(self.filename.value or "").strip() or name,
-                description=str(self.description.value or "").strip(),
+                filename=filename,
+                description=description,
                 owner_guild_id=owner_guild_id,
+                resource_url=seed.resource_url if seed is not None else "",
             )
+            if seed is not None and seed.image_url:
+                from kingdoms.discord.content_posts import content_service
+
+                content = content_service()
+                if content is not None:
+                    await content.store(
+                        {
+                            "entity_id": entry.id,
+                            "locale": "en",
+                            "name": entry.name,
+                            "summary": seed.description,
+                            "source_url": seed.resource_url,
+                            "image_url": seed.image_url,
+                            "provider": "liquipedia",
+                        }
+                    )
         except Exception:
             logger.exception("GAMES ADMIN: map creation failed")
-            await interaction.response.send_message(
-                "Creation echouee (nom deja pris ? voir les logs).", ephemeral=True
-            )
+            await interaction.response.send_message("Creation echouee (nom deja pris ? voir les logs).", ephemeral=True)
             return
         await interaction.response.send_message(
             f"Map **{entry.name}** creee - elle apparaitra dans le forum maps.", ephemeral=True
@@ -525,9 +547,7 @@ class GamesPoolCreateModal(discord.ui.Modal):
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
         super().__init__(title="Creer un map pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nom du pool", max_length=64, required=True
-        )
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom du pool", max_length=64, required=True)
         self.map_name: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Premiere map (nom, optionnel)", max_length=64, required=False
         )
@@ -621,7 +641,8 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discor
         return view
     maps = [m for m in await service.list_maps(pool.game_key) if m.archived_at is None]
     names = {m.id: m.name for m in maps}
-    lines = [f"**{pool.name}** - {len(pool.map_ids)} maps"]
+    state = "edition" if pool.edition_mode else "verrouille"
+    lines = [f"**{pool.name}** - {len(pool.map_ids)} maps - mode {state}"]
     for map_id in pool.map_ids:
         lines.append(f"- {names.get(map_id, map_id)}")
     if not pool.map_ids:
@@ -634,16 +655,22 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discor
     page_count = max(1, -(-len(maps) // PAGE_SIZE))
     page = max(0, min(page, page_count - 1))
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    select_row.add_item(GamesPoolMapToggle(pool_id, page, _page_options(pool, maps, page)))
-    view.add_item(select_row)
+    if pool.edition_mode:
+        select_row.add_item(GamesPoolMapToggle(pool_id, page, _page_options(pool, maps, page)))
+        view.add_item(select_row)
     if page_count > 1:
         page_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         page_row.add_item(GamesPoolMapPageSelect(pool_id, page_count, page))
         view.add_item(page_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    action_row.add_item(GamesPoolRenameButton(pool_id))
-    action_row.add_item(GamesPoolArchiveButton(pool_id))
+    action_row.add_item(GamesPoolDuplicateButton(pool_id))
+    if pool.edition_mode:
+        action_row.add_item(GamesPoolRenameButton(pool_id))
+        action_row.add_item(GamesPoolArchiveButton(pool_id))
     view.add_item(action_row)
+    send_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    send_row.add_item(GamesPoolSendButton(pool_id))
+    view.add_item(send_row)
     back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     back_row.add_item(GamesPoolsBackButton(pool.game_key))
     view.add_item(back_row)
@@ -690,9 +717,7 @@ class GamesPoolRenameModal(discord.ui.Modal):
     def __init__(self, pool_id: str) -> None:
         self.pool_id = pool_id
         super().__init__(title="Renommer le pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nouveau nom", max_length=64, required=True
-        )
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nouveau nom", max_length=64, required=True)
         self.add_item(self.name)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -751,9 +776,7 @@ class GamesPoolArchiveButton(
             await service.archive_map_pool(self.pool_id)
         except Exception:
             logger.exception("GAMES ADMIN: pool archive failed")
-            await interaction.response.send_message(
-                "Archivage echoue (pool actif ? voir les logs).", ephemeral=True
-            )
+            await interaction.response.send_message("Archivage echoue (pool actif ? voir les logs).", ephemeral=True)
             return
         await interaction.response.edit_message(view=await pools_admin_view(pool.game_key))
         await interaction.followup.send("Pool supprime (archive).", ephemeral=True)
@@ -821,9 +844,7 @@ class GamesPoolMapPageSelect(
             await interaction.response.send_message("Pool introuvable.", ephemeral=True)
             return
         page = int((self.item.values or ["0"])[0])
-        await interaction.response.edit_message(
-            view=await pool_editor_view(self.pool_id, pool.game_key, page)
-        )
+        await interaction.response.edit_message(view=await pool_editor_view(self.pool_id, pool.game_key, page))
 
 
 class GamesPoolMapToggle(
@@ -889,9 +910,7 @@ class GamesPoolMapToggle(
             logger.exception("GAMES ADMIN: pool map toggle failed")
             await interaction.response.send_message("Modification echouee (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(
-            view=await pool_editor_view(self.pool_id, pool.game_key, self.page)
-        )
+        await interaction.response.edit_message(view=await pool_editor_view(self.pool_id, pool.game_key, self.page))
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
 
 
@@ -961,6 +980,153 @@ class GamesPoolsBackButton(
         await interaction.response.edit_message(view=await game_menu_view(self.game_key))
 
 
+class GamesPoolDuplicateButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pools:duplicate:(?P<pool_id>[^:]+)",
+):
+    """Duplicate the pool: the copy starts editable (that is its point)."""
+
+    def __init__(self, pool_id: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label="Dupliquer",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:pools:duplicate:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolDuplicateButton:
+        """Rebuild the item from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Duplicate under a fresh name, then open the editable copy."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        await interaction.response.send_modal(GamesPoolDuplicateModal(pool.id, pool.name))
+
+
+class GamesPoolDuplicateModal(discord.ui.Modal):
+    """The pool duplication form: the copy's name."""
+
+    def __init__(self, pool_id: str, source_name: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(title="Dupliquer le pool", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom de la copie", max_length=64, required=True, default=f"{source_name} (copie)"
+        )
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Duplicate the pool, then open the editable copy's editor."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        try:
+            copy = await service.duplicate_map_pool(self.pool_id, str(self.name.value).strip(), owner_guild_id=guild_id)
+        except Exception:
+            logger.exception("GAMES ADMIN: pool duplicate failed")
+            await interaction.response.send_message("Duplication echouee (voir les logs).", ephemeral=True)
+            return
+        await interaction.response.edit_message(view=await pool_editor_view(copy.id, copy.game_key))
+        await interaction.followup.send(f"Pool duplique en **{copy.name}** (editable).", ephemeral=True)
+
+
+class GamesPoolSendButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pools:send:(?P<pool_id>[^:]+)",
+):
+    """Send the pool to another guild: the received copy is locked."""
+
+    def __init__(self, pool_id: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label="Envoyer a une guilde",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:pools:send:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolSendButton:
+        """Rebuild the item from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the send modal after resolving the pool."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        await interaction.response.send_modal(GamesPoolSendModal(pool.id, pool.name))
+
+
+class GamesPoolSendModal(discord.ui.Modal):
+    """The pool send form: target guild id + the copy's name."""
+
+    def __init__(self, pool_id: str, pool_name: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(title="Envoyer le pool", timeout=None)
+        self.guild_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="ID de la guilde destinataire", max_length=25, required=True
+        )
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom du pool recu", max_length=64, required=True, default=pool_name
+        )
+        self.add_item(self.guild_id)
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Send the locked copy to the target guild, confirm."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        target = str(self.guild_id.value or "").strip()
+        if not target.isdigit():
+            await interaction.response.send_message("L'ID de guilde doit etre numerique.", ephemeral=True)
+            return
+        try:
+            copy = await service.send_map_pool_to_guild(self.pool_id, target, str(self.name.value).strip())
+        except Exception:
+            logger.exception("GAMES ADMIN: pool send failed")
+            await interaction.response.send_message("Envoi echoue (nom deja pris ? voir les logs).", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            f"Pool **{copy.name}** envoye a la guilde {target} - il y sera verrouille (non modifiable).",
+            ephemeral=True,
+        )
+
+
 def register_games_admin_section() -> None:
     """Register the games section into the /admin panel (idempotent)."""
     register_admin_mod_section(
@@ -990,4 +1156,6 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolRenameButton,
         GamesPoolArchiveButton,
         GamesPoolMapToggle,
+        GamesPoolDuplicateButton,
+        GamesPoolSendButton,
     )
