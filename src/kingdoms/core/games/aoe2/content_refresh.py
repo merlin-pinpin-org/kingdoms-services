@@ -79,6 +79,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
                     "name": descriptor.name,
                     "summary": descriptor.summary,
                     "source_url": descriptor.source_url,
+                    "image_url": descriptor.image_url,
                     "provider": "aoe2techtree",
                 }
             )

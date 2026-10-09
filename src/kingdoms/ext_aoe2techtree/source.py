@@ -26,6 +26,7 @@ logger = logging.getLogger("kingdoms.ext_aoe2techtree")
 
 DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[3] / "data" / "core" / "aoe2techtree"
 SUPPORTED_LOCALES = ("en", "fr")
+CREST_BASE_URL = "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/master/img/Civs"
 
 
 class UpstreamContentSource(ABC):
@@ -84,6 +85,7 @@ class DatasetContentSource(UpstreamContentSource):
             "summary": summary,
             "source_url": "https://github.com/SiegeEngineers/aoe2techtree",
             "found": True,
+            "image_url": f"{CREST_BASE_URL}/{faction_key.lower()}.png",
         }
 
     def map_content(self, map_key: str, locale: str) -> dict[str, str | bool] | None:
@@ -145,6 +147,7 @@ class ApiContentSource(UpstreamContentSource):
             "summary": str(payload.get("summary", "")),
             "source_url": str(payload.get("source_url", self._api_url)),
             "found": True,
+            "image_url": str(payload.get("image_url", "")),
         }
 
     def map_content(self, map_key: str, locale: str) -> dict[str, str | bool] | None:
@@ -166,6 +169,7 @@ class ApiContentSource(UpstreamContentSource):
             "summary": str(payload.get("summary", "")),
             "source_url": str(payload.get("source_url", self._api_url)),
             "found": True,
+            "image_url": str(payload.get("image_url", "")),
         }
 
 

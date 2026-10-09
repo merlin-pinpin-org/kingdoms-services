@@ -188,7 +188,7 @@ class DiscordChannelsPlatform:
         name: str,
         content: str,
         tags: list[str] | None = None,
-        view: discord.ui.View | None = None,
+        view: discord.ui.View | discord.ui.LayoutView | None = None,
     ) -> str:
         """Create one forum post (thread), optionally with a view; return its id."""
         guild = await self._guild(guild_id)
@@ -232,6 +232,26 @@ class DiscordChannelsPlatform:
                 if getattr(child, "custom_id", "").startswith(marker_custom_id):
                     return True
         await message.edit(view=view)
+        return True
+
+    async def edit_forum_post(
+        self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None
+    ) -> bool:
+        """Edit a forum post's starter message content and components.
+
+        Best-effort refresh used by the forum sync loops: False when the
+        guild, the thread or the message is gone (the caller recreates).
+        """
+        from kingdoms.discord.message_limits import truncate_body
+
+        guild = await self._guild(guild_id)
+        if guild is None or not str(thread_id).isdigit():
+            return False
+        thread = guild.get_channel_or_thread(int(thread_id))
+        if not isinstance(thread, discord.Thread):
+            return False
+        message = await thread.fetch_message(thread.id)
+        await message.edit(content=truncate_body(content), view=view)
         return True
 
     async def get_channel_overwrites(

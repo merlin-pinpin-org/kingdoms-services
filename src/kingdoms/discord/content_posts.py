@@ -61,8 +61,8 @@ async def guild_locale(guild_id: str, bot: Any) -> str:
 
 async def entity_post_content(
     entity_id: str, fallback_name: str, guild_id: str, bot: Any
-) -> tuple[str, str, str]:
-    """Return ``(name, summary, source_url)`` for one entity's post.
+) -> tuple[str, str, str, str]:
+    """Return ``(name, summary, source_url, image_url)`` for one entity's post.
 
     The stored content wins; the catalog entry's name is the fallback.
     """
@@ -76,5 +76,10 @@ async def entity_post_content(
         logger.debug("content read failed (%s)", entity_id, exc_info=True)
         doc = None
     if doc is None:
-        return fallback_name, "", ""
-    return str(doc.get("name") or fallback_name), str(doc.get("summary") or ""), str(doc.get("source_url") or "")
+        return fallback_name, "", "", ""
+    return (
+        str(doc.get("name") or fallback_name),
+        str(doc.get("summary") or ""),
+        str(doc.get("source_url") or ""),
+        str(doc.get("image_url") or ""),
+    )

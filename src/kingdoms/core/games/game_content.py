@@ -35,6 +35,7 @@ class LocalizedContent:
     name: str
     summary: str
     source_url: str
+    image_url: str = ""
 
 
 class GameContentSource(Protocol):
@@ -101,6 +102,7 @@ class RpcContentSource:
             name=payload["name"],
             summary=payload["summary"],
             source_url=payload["source_url"],
+            image_url=str(payload.get("image_url", "")),
         )
 
     async def map_content(self, map_key: str, locale: str) -> LocalizedContent | None:
@@ -116,6 +118,7 @@ class RpcContentSource:
             name=payload["name"],
             summary=payload["summary"],
             source_url=payload["source_url"],
+            image_url=str(payload.get("image_url", "")),
         )
 
 

@@ -46,6 +46,7 @@ def localized_content_to_wire(content: dict[str, str | bool]) -> content_pb2.Loc
         summary=str(content.get("summary", "")),
         source_url=str(content.get("source_url", "")),
         found=bool(content.get("found", True)),
+        image_url=str(content.get("image_url", "")),
     )
 
 
@@ -58,6 +59,7 @@ def localized_content_from_wire(wire: content_pb2.LocalizedContent) -> dict[str,
         "summary": wire.summary,
         "source_url": wire.source_url,
         "found": wire.found,
+        "image_url": wire.image_url,
     }
 
 

@@ -56,6 +56,7 @@ def main() -> int:
                             "name": content.name,
                             "summary": content.summary,
                             "source_url": content.source_url,
+                            "image_url": content.image_url,
                             "provider": "aoe2techtree",
                         }
                     )

@@ -32,7 +32,7 @@ so&nbsp;a&nbsp;fresh&nbsp;environment&nbsp;still&nbsp;gets&nbsp;its&nbsp;posts.<
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-content_service"><strong>content_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Memoize&nbsp;the&nbsp;content&nbsp;service&nbsp;(None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent).</span></dd></dl>
- <dl><dt>async <a name="-entity_post_content"><strong>entity_post_content</strong></a>(entity_id: 'str', fallback_name: 'str', guild_id: 'str', bot: 'Any') -&gt; 'tuple[str, str, str]'</dt><dd><span class="code">Return&nbsp;``(name,&nbsp;summary,&nbsp;source_url)``&nbsp;for&nbsp;one&nbsp;entity's&nbsp;post.<br>
+ <dl><dt>async <a name="-entity_post_content"><strong>entity_post_content</strong></a>(entity_id: 'str', fallback_name: 'str', guild_id: 'str', bot: 'Any') -&gt; 'tuple[str, str, str, str]'</dt><dd><span class="code">Return&nbsp;``(name,&nbsp;summary,&nbsp;source_url,&nbsp;image_url)``&nbsp;for&nbsp;one&nbsp;entity's&nbsp;post.<br>
 &nbsp;<br>
 The&nbsp;stored&nbsp;content&nbsp;wins;&nbsp;the&nbsp;catalog&nbsp;entry's&nbsp;name&nbsp;is&nbsp;the&nbsp;fallback.</span></dd></dl>
  <dl><dt>async <a name="-guild_locale"><strong>guild_locale</strong></a>(guild_id: 'str', bot: 'Any') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild's&nbsp;configured&nbsp;locale&nbsp;(en&nbsp;fallback).</span></dd></dl>

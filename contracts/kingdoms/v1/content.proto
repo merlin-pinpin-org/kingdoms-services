@@ -51,4 +51,5 @@ message LocalizedContent {
   string summary = 4;         // localized summary text, may be empty
   string source_url = 5;      // data source attribution link
   bool found = 6;             // false: the source does not know this key
+  string image_url = 7;       // optional visual (e.g. the faction's crest), may be empty
 }

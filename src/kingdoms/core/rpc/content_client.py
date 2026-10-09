@@ -56,6 +56,7 @@ class ContentProviderClient:
             "name": reply.name,
             "summary": reply.summary,
             "source_url": reply.source_url,
+            "image_url": reply.image_url,
         }
 
     async def get_map_content(self, map_key: str, locale: str) -> dict[str, str] | None:
@@ -74,4 +75,5 @@ class ContentProviderClient:
             "name": reply.name,
             "summary": reply.summary,
             "source_url": reply.source_url,
+            "image_url": reply.image_url,
         }

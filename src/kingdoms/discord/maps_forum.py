@@ -69,41 +69,121 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.archived_at is not None:
             continue
         if entry.forum_message_id and await platform.forum_thread_exists(guild_id, entry.forum_message_id):
-            await _ensure_add_button(platform, guild_id, entry.forum_message_id, entry.id)
+            await _refresh_map_post(
+                bot, platform, guild_id, entry, service
+            )
             continue
+        from kingdoms.core.ids import footer
         from kingdoms.discord.content_posts import entity_post_content
 
-        _, summary, source = await entity_post_content(entry.id, "", guild_id, bot)
+        _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
         description = summary or (entry.description or "_Aucune description._")
-        head = f"Source : {source}\n" if source else ""
-        content = f"{head}**{entry.name}**\n{description}"
+        pools = await _map_pools_link(service, entry, guild_id, bot=bot)
+        view = _map_post_view(entry.id, entry.name, description, pools, source, image, entry.resource_url)
+        tail = f"Source : {source}\n" if source else ""
+        content = f"{tail}**{entry.name}**\n{description}"
+        if pools:
+            content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
+        content = f"{content}\n\n{footer(entry.id)}"
         thread_id = await platform.create_map_post(
-            guild_id, forum_id, entry.name, content, view=_map_post_view(entry.id)
+            guild_id, forum_id, entry.name, content, view=view
         )
         await service.set_map_forum_message(entry.id, thread_id)
         created += 1
     return created
 
 
-def _map_post_view(map_id: str) -> Any:
-    """Build the map post's view: the pool-flow entry point (admins)."""
+
+async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = None) -> list[str]:
+    """Build the map's pool links: one line per pool containing the map.
+
+    Pool posts are matched by thread name (the pools sync's own
+    convention); a pool without a live post still lists as plain text,
+    so the map post never links into a dead thread.
+    """
+    try:
+        pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
+    except Exception:
+        return []
+    thread_ids: dict[str, str] = {}
+    guild = bot.get_guild(int(guild_id)) if bot is not None and guild_id.isdigit() else None
+    if guild is not None:
+        forum = discord.utils.get(guild.forums, name=f"{entry.game_key}-map-pools")
+        if forum is not None:
+            thread_ids = {thread.name: str(thread.id) for thread in forum.threads}
+    lines = []
+    for pool in pools:
+        if entry.id not in pool.map_ids:
+            continue
+        thread_id = thread_ids.get(pool.name)
+        if thread_id:
+            lines.append(
+                f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})"
+            )
+        else:
+            lines.append(f"- {pool.name}")
+    return lines
+
+def _map_post_view(
+    map_id: str,
+    name: str,
+    description: str,
+    pools: list[str],
+    source: str,
+    image: str,
+    resource_url: str | None,
+) -> discord.ui.LayoutView:
+    """Build the map post's layout: title, content, image, ids, pool flow."""
+    from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton
 
-    view = discord.ui.View(timeout=None)
-    view.add_item(MapAddToPoolButton(map_id))
+    view = discord.ui.LayoutView(timeout=None)
+    children: list[discord.ui.Item[discord.ui.LayoutView] | str] = [discord.ui.TextDisplay(description)]
+    if pools:
+        children.append(discord.ui.TextDisplay("\n".join(pools)))
+    media = resource_url or image
+    if media:
+        children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
+    view.add_item(
+        discord.ui.Section(
+            *children,
+            accessory=MapAddToPoolButton(map_id),
+        )
+    )
+    view.add_item(discord.ui.Separator())
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"## {name}"),
+            discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)),
+        )
+    )
     return view
 
 
-async def _ensure_add_button(platform: Any, guild_id: str, thread_id: str, map_id: str) -> None:
-    """Attach the add-to-pool button to pre-flow posts (best-effort)."""
-    from kingdoms.discord.maps_pool_flow import _ADD_NS
+async def _refresh_map_post(
+    bot: Any, platform: Any, guild_id: str, entry: Any, service: Any
+) -> None:
+    """Keep an existing map post's content and layout in sync (best-effort)."""
+    from kingdoms.core.ids import footer
+    from kingdoms.discord.content_posts import entity_post_content
 
     try:
-        await platform.ensure_forum_post_view(guild_id, thread_id, _map_post_view(map_id), _ADD_NS)
+        _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
+        description = summary or (entry.description or "_Aucune description._")
+        pools = await _map_pools_link(service, entry, guild_id, bot=bot)
+        view = _map_post_view(entry.id, entry.name, description, pools, source, image, entry.resource_url)
+        tail = f"Source : {source}\n" if source else ""
+        content = f"{tail}**{entry.name}**\n{description}"
+        if pools:
+            content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
+        if entry.resource_url:
+            content = f"{content}\n{entry.resource_url}"
+        content = f"{content}\n\n{footer(entry.id)}"
+        await platform.edit_forum_post(guild_id, entry.forum_message_id, content, view)
     except Exception:
-        logger.debug("maps forum: add-button migration skipped (thread %s)", thread_id, exc_info=True)
+        logger.debug("maps forum: post refresh skipped (thread %s)", entry.forum_message_id, exc_info=True)
 
 
 def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:

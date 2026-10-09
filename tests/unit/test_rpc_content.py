@@ -55,6 +55,7 @@ def test_localized_content_round_trip() -> None:
         "summary": "Civilisation de cavalerie",
         "source_url": "https://github.com/SiegeEngineers/aoe2techtree",
         "found": True,
+        "image_url": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/master/img/Civs/franks.png",
     }
     plain = localized_content_from_wire(localized_content_to_wire(descriptor))
     assert plain == descriptor

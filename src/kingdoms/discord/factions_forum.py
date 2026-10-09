@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import discord
+
 from kingdoms.core.services.entity_forum import EntityForumSpec
 
 FACTIONS_FORUM_SUFFIX = "-factions"
@@ -59,10 +61,19 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
 
         entry_id = str(getattr(faction, "id", ""))
         fallback = str(getattr(faction, "name", faction))
-        name, summary, source = await entity_post_content(entry_id, fallback, guild_id, bot)
-        head = f"Source : {source}\n" if source else ""
-        content = f"{head}**{name}**\n{summary}\n\n{footer(entry_id)}"
-        return content, None
+        name, summary, source, image = await entity_post_content(entry_id, fallback, guild_id, bot)
+        view = discord.ui.LayoutView(timeout=None)
+        blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(f"## {name}")]
+        if summary:
+            blocks.append(discord.ui.TextDisplay(summary))
+        if image:
+            blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
+        view.add_item(discord.ui.Separator())
+        tail = f"Source : {source}\n" if source else ""
+        blocks.append(discord.ui.TextDisplay(f"{tail}{footer(entry_id)}"))
+        view.add_item(discord.ui.Container(*blocks))
+        content = f"**{name}**\n{summary}\n\n{tail}{footer(entry_id)}"
+        return content, view
 
     def forum_name_for(faction: Any) -> str:
         return factions_forum_name(str(getattr(faction, "game_key", "")))

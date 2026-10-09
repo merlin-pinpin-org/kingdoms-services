@@ -155,7 +155,7 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="LocalizedContent">class <strong>LocalizedContent</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalizedContent">LocalizedContent</a>(entity_id:&nbsp;'str',&nbsp;locale:&nbsp;'str',&nbsp;name:&nbsp;'str',&nbsp;summary:&nbsp;'str',&nbsp;source_url:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalizedContent">LocalizedContent</a>(entity_id:&nbsp;'str',&nbsp;locale:&nbsp;'str',&nbsp;name:&nbsp;'str',&nbsp;summary:&nbsp;'str',&nbsp;source_url:&nbsp;'str',&nbsp;image_url:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;entity's&nbsp;localized&nbsp;content,&nbsp;ready&nbsp;for&nbsp;a&nbsp;forum&nbsp;post.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -171,7 +171,7 @@ One&nbsp;entity's&nbsp;localized&nbsp;content,&nbsp;ready&nbsp;for&nbsp;a&nbsp;f
 
 <dl><dt><a name="LocalizedContent-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="LocalizedContent-__init__"><strong>__init__</strong></a>(self, entity_id: 'str', locale: 'str', name: 'str', summary: 'str', source_url: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="LocalizedContent-__init__"><strong>__init__</strong></a>(self, entity_id: 'str', locale: 'str', name: 'str', summary: 'str', source_url: 'str', image_url: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="LocalizedContent-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -183,6 +183,8 @@ One&nbsp;entity's&nbsp;localized&nbsp;content,&nbsp;ready&nbsp;for&nbsp;a&nbsp;f
 Data descriptors defined here:<br>
 <dl><dt><strong>entity_id</strong></dt>
 </dl>
+<dl><dt><strong>image_url</strong></dt>
+</dl>
 <dl><dt><strong>locale</strong></dt>
 </dl>
 <dl><dt><strong>name</strong></dt>
@@ -193,13 +195,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'entity_id': 'str', 'locale': 'str', 'name': 'str', 'source_url': 'str', 'summary': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'entity_id': 'str', 'image_url': 'str', 'locale': 'str', 'name': 'str', 'source_url': 'str', 'summary': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'entity_id': Field(name='entity_id',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locale': Field(name='locale',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_url': Field(name='source_url',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'summary': Field(name='summary',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'entity_id': Field(name='entity_id',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'image_url': Field(name='image_url',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'locale': Field(name='locale',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_url': Field(name='source_url',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'summary': Field(name='summary',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('entity_id', 'locale', 'name', 'summary', 'source_url')</dl>
+<dl><dt><strong>__match_args__</strong> = ('entity_id', 'locale', 'name', 'summary', 'source_url', 'image_url')</dl>
 
 </td></tr></table> <p>
 <table class="section">

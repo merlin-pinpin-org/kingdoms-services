@@ -64,7 +64,12 @@ through&nbsp;the&nbsp;guild's&nbsp;role&nbsp;list&nbsp;—&nbsp;logical&nbsp;key
 
 <dl><dt>async <a name="DiscordChannelsPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;a&nbsp;text&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordChannelsPlatform-create_map_post"><strong>create_map_post</strong></a>(self, guild_id: 'str', forum_id: 'str', name: 'str', content: 'str', tags: 'list[str] | None' = None, view: 'discord.ui.View | None' = None) -&gt; 'str'</dt><dd><span class="code">Create&nbsp;one&nbsp;forum&nbsp;post&nbsp;(thread),&nbsp;optionally&nbsp;with&nbsp;a&nbsp;view;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+<dl><dt>async <a name="DiscordChannelsPlatform-create_map_post"><strong>create_map_post</strong></a>(self, guild_id: 'str', forum_id: 'str', name: 'str', content: 'str', tags: 'list[str] | None' = None, view: 'discord.ui.View | discord.ui.LayoutView | None' = None) -&gt; 'str'</dt><dd><span class="code">Create&nbsp;one&nbsp;forum&nbsp;post&nbsp;(thread),&nbsp;optionally&nbsp;with&nbsp;a&nbsp;view;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
+
+<dl><dt>async <a name="DiscordChannelsPlatform-edit_forum_post"><strong>edit_forum_post</strong></a>(self, guild_id: 'str', thread_id: 'str', content: 'str', view: 'discord.ui.View | None') -&gt; 'bool'</dt><dd><span class="code">Edit&nbsp;a&nbsp;forum&nbsp;post's&nbsp;starter&nbsp;message&nbsp;content&nbsp;and&nbsp;components.<br>
+&nbsp;<br>
+Best-effort&nbsp;refresh&nbsp;used&nbsp;by&nbsp;the&nbsp;forum&nbsp;sync&nbsp;loops:&nbsp;False&nbsp;when&nbsp;the<br>
+guild,&nbsp;the&nbsp;thread&nbsp;or&nbsp;the&nbsp;message&nbsp;is&nbsp;gone&nbsp;(the&nbsp;caller&nbsp;recreates).</span></dd></dl>
 
 <dl><dt>async <a name="DiscordChannelsPlatform-ensure_category"><strong>ensure_category</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str'</dt><dd><span class="code">Find&nbsp;or&nbsp;create&nbsp;a&nbsp;category&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id&nbsp;(idempotent).</span></dd></dl>
 

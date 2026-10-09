@@ -27,6 +27,12 @@ from kingdoms.core.games.game_content import LocalizedContent
 logger = logging.getLogger("kingdoms.core.faction_content")
 
 PROVIDER_KEY = "aoe2techtree"
+CREST_BASE_URL = "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/master/img/Civs"
+
+
+def _civ_crest_url(provider_key: str) -> str:
+    """Build the civ's crest image URL from the aoe2techtree repository."""
+    return f"{CREST_BASE_URL}/{provider_key.lower()}.png"
 SOURCE_URL = "https://github.com/SiegeEngineers/aoe2techtree"
 SUPPORTED_LOCALES = ("en", "fr")
 
@@ -76,6 +82,7 @@ class TechtreeContentProvider:
             name=localized,
             summary=summary,
             source_url=SOURCE_URL,
+            image_url=_civ_crest_url(provider_key),
         )
 
     def faction_names(self) -> list[str]:

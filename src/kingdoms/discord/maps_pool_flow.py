@@ -54,7 +54,7 @@ class MapAddToPoolButton(
         super().__init__(
             discord.ui.Button(
                 label="Ajouter au map pool",
-                emoji="+",
+                emoji="\u2795",
                 custom_id=f"{_ADD_NS}:{map_id}"[:100],
             )
         )
