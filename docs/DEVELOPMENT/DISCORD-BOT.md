@@ -22,11 +22,14 @@ Chaque guilde provisionne ses canaux au démarrage (idempotent) :
   (panel admin épinglé), `🏛-home` (accueil — l'ancien
   `kingdoms-home` est renommé in-place au premier passage).
 - **Self-healing universel** : tout salon, forum ou post géré par le
-  bot se recrée s'il est supprimé — les salons gérés via la boucle
-  horaire `_maintain_managed_channels` (résolution cache-aside :
-  Redis → Mongo → adoption → création), les forums et leurs posts
-  via les syncs horaires, le dashboard live via son intervalle
-  court, les pins via leurs boucles dédiées.
+  bot se recrée s'il est supprimé. **Réactif** pour les salons gérés
+  (`on_guild_channel_delete` → re-résolution immédiate :
+  l'existence est vérifiée à chaque résolution, un salon supprimé
+  est recréé à l'instant) ; les forums et leurs posts via les syncs
+  horaires (le réactif par thread raterait le bookkeeping des
+  fingerprints) ; le dashboard live via son intervalle court. La
+  boucle horaire `_maintain_managed_channels` reste en filet de
+  sécurité (elle rattrape un event manqué).
 - **Catégorie `games`** : un forum par entité et par jeu accordé —
   `aoe2-maps`, `aoe2-factions`, `aoe2-map-pools`. Gated sur les jeux
   **accordés** (`granted_game_keys`), pas sur le contenu : un forum se

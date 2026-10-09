@@ -437,6 +437,48 @@ class KingdomsBot(discord.Client):
             except Exception:
                 logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
 
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        """Recreate a deleted managed channel immediately (self-healing).
+
+        The managed-channel resolution is existence-checked (Redis ->
+        Mongo -> adoption -> creation), so re-resolving after a delete
+        recreates the channel now instead of waiting for the hourly
+        sweep. The pinned menus follow: their next ensure finds the
+        fresh channel. Only the bot's own channels react; anything
+        else is ignored.
+        """
+        guild = getattr(channel, "guild", None)
+        guild_id = str(guild.id) if guild is not None else ""
+        if not guild_id:
+            return
+        for service, admin_ids in (
+            (getattr(self, "home_channel_service", None), ()),
+            (getattr(self, "admin_channel_service", None), tuple(self.status_service.bot_admins)),
+            (getattr(self, "logs_service", None), ()),
+        ):
+            if service is None:
+                continue
+            try:
+                if admin_ids:
+                    await service.resolve_channel(guild_id, admin_ids)
+                else:
+                    await service.resolve_channel(guild_id)
+            except Exception:
+                logger.warning(
+                    "MANAGED CHANNEL recreation failed (guild %s) — best-effort",
+                    guild_id,
+                    exc_info=True,
+                )
+
+    async def on_thread_delete(self, thread: discord.Thread) -> None:
+        """Let the entity-forum syncs heal a deleted post (no-op here).
+
+        Forum posts are matched by name on the hourly syncs; reacting
+        per-delete would race the syncs' fingerprint bookkeeping. The
+        hourly pass recreates the missing post with its full layout.
+        """
+        return
+
     async def on_tree_error(
         self,
         interaction: discord.Interaction,
