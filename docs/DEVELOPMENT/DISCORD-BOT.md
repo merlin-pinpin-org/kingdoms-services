@@ -99,9 +99,11 @@ Aucune stat par civ/map/pool — les stats sont joueur seulement.
   est silencieusement ignorée (le rendu retombe en anglais).
 - Clés : `commands.*`, `replies.*`, `replies_shared.*` (messages
   admin partagés), `live.*` (dashboard, rendu par locale de guilde).
-- Toute chaîne user-facing nouvelle passe par le catalogue
-  (`reply(interaction, "replies_shared.<key>")`) ; le bilingue FR/EN
-  est systématique.
+- **Aucune chaîne user-facing n'est écrite en dur** : toute nouvelle
+  chaîne passe par le catalogue (`reply()` pour les réponses, clés
+  dédiées pour les labels de composants), avec ses valeurs FR **et**
+  EN ; le rendu suit la locale de la guilde, le fallback est
+  l'anglais.
 
 ---
 
