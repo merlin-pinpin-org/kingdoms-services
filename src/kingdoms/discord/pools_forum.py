@@ -45,24 +45,41 @@ def _pools_forum_name(game_key: str) -> str:
     return f"{game_key}{POOLS_FORUM_SUFFIX}"
 
 
+def _pool_state_badge(state: str) -> str:
+    """Render the pool's state as a labeled badge line."""
+    from kingdoms.core.services.game_data import POOL_STATE_LABELS
+
+    label = POOL_STATE_LABELS.get(state, state)
+    return f"**État** : {label}"
+
+
 def _pool_post_layout(
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
 ) -> discord.ui.LayoutView:
-    """Build the pool post's component layout: one section per map.
+    """Build the pool post's component layout: state, maps, transition.
 
-    The pool's member maps are listed read-only: name + image, no action
-    buttons on the maps themselves. The map's image links to its map post
-    when one exists. The **Add map** entry point only renders on a pool
-    still in edition mode — a locked pool is a read-only surface.
+    The pool's lifecycle state leads the post, then its member maps are
+    listed read-only (name + image + type when known, each image linking
+    to its map post). The **Add map** entry point only renders on a pool
+    still in edition (draft, or published-and-reopened); the transition
+    button proposes the next state(s) the lifecycle allows.
     """
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolTransitionButton
 
     view = discord.ui.LayoutView(timeout=None)
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay(f"## {pool.name}\n{pool.description or ''}")))
+    header = f"## {pool.name}\n{_pool_state_badge(getattr(pool, 'state', 'draft'))}"
+    if pool.description:
+        header += f"\n{pool.description}"
+    mod_link = getattr(pool, "mod_link", "")
+    if mod_link:
+        header += f"\n**Mod à installer** : {mod_link}"
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(header)))
     for m in maps[:MAX_SECTIONS]:
         text = f"### {m['name']}"
+        if m.get("map_type"):
+            text += f" — *{m['map_type']}*"
         image = m.get("resource_url") or m.get("image_url") or ""
         if m.get("forum_message_id") and m.get("guild_id"):
             link = f"https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']}"
@@ -93,6 +110,9 @@ def _pool_post_layout(
                 accessory=PoolAddMapButton(pool.id),
             )
         )
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(PoolTransitionButton(pool.id))
+    view.add_item(row)
     return view
 
 
@@ -135,6 +155,8 @@ async def _pool_maps(service: Any, pool: Any, guild_id: str) -> list[dict[str, A
                 "forum_message_id": entry.forum_message_id if entry.forum_message_id else None,
                 "guild_id": guild_id,
                 "image_url": await _map_image_url(entry),
+                "map_type": getattr(entry, "map_type", ""),
+                "filenames": tuple(getattr(entry, "filenames", ()) or ()),
             }
         )
     return maps

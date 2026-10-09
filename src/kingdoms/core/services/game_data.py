@@ -40,6 +40,31 @@ T = TypeVar("T")
 
 MAPS_COLLECTION = "maps"
 MAX_POOL_MAPS = 25
+
+POOL_STATE_DRAFT = "draft"
+POOL_STATE_PUBLISHED = "published"
+POOL_STATE_USED = "used"
+POOL_STATE_CLOSED = "closed"
+POOL_STATES = (POOL_STATE_DRAFT, POOL_STATE_PUBLISHED, POOL_STATE_USED, POOL_STATE_CLOSED)
+POOL_STATE_LABELS = {
+    POOL_STATE_DRAFT: "créé",
+    POOL_STATE_PUBLISHED: "publié",
+    POOL_STATE_USED: "utilisé",
+    POOL_STATE_CLOSED: "fermé",
+}
+# Allowed transitions: the next state(s) a pool may move to.
+POOL_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    POOL_STATE_DRAFT: (POOL_STATE_PUBLISHED,),
+    POOL_STATE_PUBLISHED: (POOL_STATE_DRAFT, POOL_STATE_USED),
+    POOL_STATE_USED: (POOL_STATE_CLOSED,),
+    POOL_STATE_CLOSED: (),
+}
+
+
+class InvalidPoolStateError(ValueError):
+    """The requested state transition is not allowed."""
+
+
 MAP_POOLS_COLLECTION = "map_pools"
 MAP_PACKS_COLLECTION = "map_packs"
 MAP_POOL_HISTORY_COLLECTION = "map_pool_history"
@@ -120,6 +145,32 @@ class ActivePoolArchiveError(ValueError):
     """The pool is active on a ladder: it cannot be archived."""
 
 
+def _map_updates(
+    entry: MapModel,
+    name: str | None,
+    filename: str | None,
+    description: str | None,
+    resource_url: str | None,
+    map_type: str | None,
+    filenames: tuple[str, ...] | None,
+) -> dict[str, Any]:
+    """Build one map's change set; only the provided fields change."""
+    updates: dict[str, Any] = {}
+    if name is not None and name != entry.name:
+        updates["name"] = name
+    if filename is not None:
+        updates["filename"] = filename
+    if description is not None:
+        updates["description"] = description
+    if resource_url is not None:
+        updates["resource_url"] = resource_url
+    if map_type is not None:
+        updates["map_type"] = map_type
+    if filenames is not None:
+        updates["filenames"] = tuple(filenames)
+    return updates
+
+
 class GameDataService:
     """CRUD + lifecycle for the game catalog, pools and packs."""
 
@@ -138,6 +189,9 @@ class GameDataService:
         description: str = "",
         resource_url: str = "",
         owner_guild_id: str | None = None,
+        map_type: str = "",
+        filenames: tuple[str, ...] = (),
+        is_public: bool = True,
     ) -> MapModel:
         """Create a map; the name must be unique among non-archived maps.
 
@@ -153,9 +207,12 @@ class GameDataService:
             game_key=game_key,
             name=name,
             filename=filename,
+            filenames=filenames or ((filename,) if filename else ()),
             description=description,
             resource_url=resource_url,
             owner_guild_id=owner_guild_id,
+            map_type=map_type,
+            is_public=is_public,
         )
         await self._db.upsert_entry(MAPS_COLLECTION, entry.to_mongo())
         await self._audit_record("map.create", {"game_key": game_key, "name": name})
@@ -195,6 +252,8 @@ class GameDataService:
         filename: str | None = None,
         description: str | None = None,
         resource_url: str | None = None,
+        map_type: str | None = None,
+        filenames: tuple[str, ...] | None = None,
     ) -> MapModel:
         """Update a map's editable fields (guild-owned maps only change).
 
@@ -209,15 +268,7 @@ class GameDataService:
             taken = await self._db.find_by_name(MAPS_COLLECTION, entry.game_key, name)
             if taken is not None and taken["_id"] != entry_id:
                 raise NameTakenError(f"map {name!r} already exists for game {entry.game_key!r}")
-        updates: dict[str, Any] = {}
-        if name is not None and name != entry.name:
-            updates["name"] = name
-        if filename is not None:
-            updates["filename"] = filename
-        if description is not None:
-            updates["description"] = description
-        if resource_url is not None:
-            updates["resource_url"] = resource_url
+        updates = _map_updates(entry, name, filename, description, resource_url, map_type, filenames)
         if not updates:
             return entry
         updated = entry.model_copy(update=updates)
@@ -463,7 +514,9 @@ class GameDataService:
         pool = await self._require(MAP_POOLS_COLLECTION, map_pool_id, MapPoolModel.from_mongo)
         if pool.archived_at is not None:
             raise ArchivedEntryError(f"map pool {map_pool_id!r} is archived")
-        if not pool.edition_mode or not pool.ever_activated:
+        if pool.state != POOL_STATE_CLOSED and pool.state != POOL_STATE_USED:
+            await self._force_pool_state(pool, POOL_STATE_USED)
+        elif not pool.edition_mode or not pool.ever_activated:
             locked = pool.model_copy(update={"edition_mode": False, "ever_activated": True})
             await self._db.upsert_entry(MAP_POOLS_COLLECTION, locked.to_mongo())
         now = _now_ms()
@@ -529,6 +582,46 @@ class GameDataService:
             {"pool_id": entry_id, "target_guild_id": target_guild_id, "copy_id": locked.id},
         )
         return locked
+
+    async def _force_pool_state(self, pool: MapPoolModel, new_state: str) -> MapPoolModel:
+        """Force a pool's state along activation (usage is a fact, not a choice).
+
+        Activating a pool on a ladder moves it to ``used`` whatever its
+        current state — a draft pool that gets used is used.
+        """
+        updates: dict[str, Any] = {"state": new_state, "edition_mode": False, "ever_activated": True}
+        updated = pool.model_copy(update=updates)
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        await self._audit_record("map_pool.transition", {"entry_id": pool.id, "from": pool.state, "to": new_state})
+        return updated
+
+    async def transition_map_pool(self, entry_id: str, new_state: str) -> MapPoolModel:
+        """Move a pool along its lifecycle (draft->published->used->closed).
+
+        A used pool is frozen: its composition never changes again. A
+        published pool may go back to draft (edition). The activation
+        path (a ladder using the pool) moves it to ``used`` and locks
+        it; closing is terminal.
+        """
+        pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
+        if new_state not in POOL_STATES:
+            raise ValueError(f"unknown pool state {new_state!r}")
+        if new_state == pool.state:
+            return pool
+        if new_state not in POOL_TRANSITIONS.get(pool.state, ()):
+            raise InvalidPoolStateError(f"map pool {entry_id!r} cannot move from {pool.state!r} to {new_state!r}")
+        updates: dict[str, Any] = {"state": new_state}
+        if new_state == POOL_STATE_USED:
+            updates["edition_mode"] = False
+            updates["ever_activated"] = True
+        elif new_state == POOL_STATE_DRAFT:
+            updates["edition_mode"] = True
+        elif new_state == POOL_STATE_CLOSED:
+            updates["edition_mode"] = False
+        updated = pool.model_copy(update=updates)
+        await self._db.upsert_entry(MAP_POOLS_COLLECTION, updated.to_mongo())
+        await self._audit_record("map_pool.transition", {"entry_id": entry_id, "from": pool.state, "to": new_state})
+        return updated
 
     async def assert_pool_archivable(self, entry_id: str) -> None:
         """Guard: refuse archiving a pool still active on a ladder.

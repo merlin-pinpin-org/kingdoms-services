@@ -51,6 +51,7 @@ class MapInfo:
     description: str
     terrain: str
     size: str
+    map_type: str
     image_file: str
     image_license: str
     source_url: str
@@ -171,6 +172,7 @@ class LiquipediaMapsProvider:
             description=description,
             terrain=self._clean_wikitext(fields.get("terrain", "")),
             size=self._clean_wikitext(fields.get("size", "")),
+            map_type=self._clean_wikitext(fields.get("type", "")),
             image_file=fields.get("image", ""),
             image_license="",
             source_url=f"{LIQUIPEDIA_ATTRIBUTION}{page}",

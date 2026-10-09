@@ -95,6 +95,8 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
             image,
             entry.resource_url,
             editable=entry.owner_guild_id == guild_id,
+            map_type=getattr(entry, "map_type", ""),
+            filenames=tuple(getattr(entry, "filenames", ()) or ()),
         )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"
@@ -147,25 +149,37 @@ def _map_post_view(
     image: str,
     resource_url: str | None,
     editable: bool = False,
+    map_type: str = "",
+    filenames: tuple[str, ...] = (),
 ) -> discord.ui.LayoutView:
-    """Build the map post's layout: title, content, image, ids, pool flow.
+    """Build the map post's layout: type, description, files, pools, image.
 
+    The order is designer-chosen and unordered by nature: pools' links,
+    description, associated filenames, map type, image, the id footer,
+    then the add-to-pool entry point (admins, pools in edition).
     ``editable`` marks a guild-owned map: its post carries the edit
-    entry point (MapEditButton) next to the add-to-pool action.
+    entry point too.
     """
     from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapEditButton
 
     view = discord.ui.LayoutView(timeout=None)
-    children: list[discord.ui.Item[discord.ui.LayoutView] | str] = [discord.ui.TextDisplay(description)]
+    blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(f"## {name}")]
+    if map_type:
+        blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
+    if description:
+        blocks.append(discord.ui.TextDisplay(description))
+    if filenames:
+        blocks.append(discord.ui.TextDisplay("**Fichiers**\n" + "\n".join(f"`{f}`" for f in filenames)))
     if pools:
-        children.append(discord.ui.TextDisplay("\n".join(pools)))
+        blocks.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
     media = resource_url or image
     if media:
-        children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
+        blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
+    blocks.append(discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)))
     view.add_item(
         discord.ui.Section(
-            *children,
+            *blocks,
             accessory=MapAddToPoolButton(map_id),
         )
     )
@@ -173,13 +187,6 @@ def _map_post_view(
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         row.add_item(MapEditButton(map_id))
         view.add_item(row)
-    view.add_item(discord.ui.Separator())
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay(f"## {name}"),
-            discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)),
-        )
-    )
     return view
 
 
@@ -214,6 +221,8 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
             image,
             entry.resource_url,
             editable=entry.owner_guild_id == guild_id,
+            map_type=getattr(entry, "map_type", ""),
+            filenames=tuple(getattr(entry, "filenames", ()) or ()),
         )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"

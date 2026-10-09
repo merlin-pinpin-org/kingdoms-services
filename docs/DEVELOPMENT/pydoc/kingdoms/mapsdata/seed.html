@@ -45,7 +45,7 @@ up&nbsp;like&nbsp;any&nbsp;other&nbsp;map.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="MapSeed">class <strong>MapSeed</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MapSeed">MapSeed</a>(name:&nbsp;'str',&nbsp;description:&nbsp;'str',&nbsp;resource_url:&nbsp;'str',&nbsp;image_url:&nbsp;'str',&nbsp;terrain:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;size:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;public:&nbsp;'bool'&nbsp;=&nbsp;True)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MapSeed">MapSeed</a>(name:&nbsp;'str',&nbsp;description:&nbsp;'str',&nbsp;resource_url:&nbsp;'str',&nbsp;image_url:&nbsp;'str',&nbsp;terrain:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;size:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;map_type:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;public:&nbsp;'bool'&nbsp;=&nbsp;True)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 The&nbsp;fields&nbsp;a&nbsp;provider&nbsp;resolves&nbsp;for&nbsp;one&nbsp;map&nbsp;name.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -56,7 +56,7 @@ The&nbsp;fields&nbsp;a&nbsp;provider&nbsp;resolves&nbsp;for&nbsp;one&nbsp;map&nb
 
 <dl><dt><a name="MapSeed-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="MapSeed-__init__"><strong>__init__</strong></a>(self, name: 'str', description: 'str', resource_url: 'str', image_url: 'str', terrain: 'str' = '', size: 'str' = '', public: 'bool' = True) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="MapSeed-__init__"><strong>__init__</strong></a>(self, name: 'str', description: 'str', resource_url: 'str', image_url: 'str', terrain: 'str' = '', size: 'str' = '', map_type: 'str' = '', public: 'bool' = True) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="MapSeed-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -72,13 +72,15 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'description': 'str', 'image_url': 'str', 'name': 'str', 'public': 'bool', 'resource_url': 'str', 'size': 'str', 'terrain': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'description': 'str', 'image_url': 'str', 'map_type': 'str', 'name': 'str', 'public': 'bool', 'resource_url': 'str', 'size': 'str', 'terrain': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'description': Field(name='description',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'image_url': Field(name='image_url',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'public': Field(name='public',type='bool',default=True,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'resource_url': Field(name='resource_url',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='str',default='',default_...appingproxy({}),kw_only=False,_field_type=_FIELD), 'terrain': Field(name='terrain',type='str',default='',defau...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'description': Field(name='description',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'image_url': Field(name='image_url',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'map_type': Field(name='map_type',type='str',default='',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'public': Field(name='public',type='bool',default=True,def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'resource_url': Field(name='resource_url',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='str',default='',default_...appingproxy({}),kw_only=False,_field_type=_FIELD), 'terrain': Field(name='terrain',type='str',default='',defau...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('name', 'description', 'resource_url', 'image_url', 'terrain', 'size', 'public')</dl>
+<dl><dt><strong>__match_args__</strong> = ('name', 'description', 'resource_url', 'image_url', 'terrain', 'size', 'map_type', 'public')</dl>
+
+<dl><dt><strong>map_type</strong> = ''</dl>
 
 <dl><dt><strong>public</strong> = True</dl>
 

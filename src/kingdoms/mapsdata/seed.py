@@ -37,6 +37,7 @@ class MapSeed:
     image_url: str
     terrain: str = ""
     size: str = ""
+    map_type: str = ""
     public: bool = True
 
 
@@ -67,6 +68,7 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
             image_url=data.image_url,
             terrain=data.info.terrain,
             size=data.info.size,
+            map_type=data.info.map_type,
             public=True,
         )
     except MapLicenseError:

@@ -403,9 +403,137 @@ class MapEditModal(discord.ui.Modal):
         )
 
 
+_TRANSITION_NS = "games:pool:state"
+
+
+class PoolTransitionButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_TRANSITION_NS}:(?P<pool_id>[^:]+)",
+):
+    """The pool post's lifecycle action: move the pool to its next state.
+
+    The button's label reflects the pool's current state and the action
+    it proposes (draft->publish, published->use/reopen, used->close).
+    Admin-guarded at click time; the transition itself is validated by
+    the service's state machine.
+    """
+
+    def __init__(self, pool_id: str, label: str = "Changer d'état") -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                emoji="\U0001f4c4",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_TRANSITION_NS}:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PoolTransitionButton:
+        """Rebuild the item from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then answer with the allowed transitions as a view."""
+        if not await _guard_admin(interaction):
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        from kingdoms.core.services.game_data import (
+            POOL_STATE_LABELS,
+            POOL_TRANSITIONS,
+        )
+
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        targets = POOL_TRANSITIONS.get(pool.state, ())
+        if not targets:
+            await interaction.response.send_message(
+                f"Ce pool est **{POOL_STATE_LABELS.get(pool.state, pool.state)}** — aucune transition possible.",
+                ephemeral=True,
+            )
+            return
+        if len(targets) == 1:
+            try:
+                updated = await service.transition_map_pool(pool.id, targets[0])
+            except Exception:
+                logger.warning("POOL FLOW: transition failed", exc_info=True)
+                await interaction.response.send_message("Transition impossible (voir les logs).", ephemeral=True)
+                return
+            await interaction.response.send_message(
+                f"Pool **{updated.name}** : {POOL_STATE_LABELS.get(updated.state, updated.state)} — "
+                "la fiche se met à jour à la prochaine sync.",
+                ephemeral=True,
+            )
+            return
+        await interaction.response.send_message(
+            f"Pool **{pool.name}** ({POOL_STATE_LABELS.get(pool.state, pool.state)}) — quelle transition ?",
+            view=PoolTransitionSelectView(pool.id, targets),
+            ephemeral=True,
+        )
+
+
+class PoolTransitionSelectView(discord.ui.View):
+    """Ephemeral one-shot view: pick one of the allowed transitions."""
+
+    def __init__(self, pool_id: str, targets: tuple[str, ...]) -> None:
+        super().__init__(timeout=180)
+        from kingdoms.core.services.game_data import POOL_STATE_LABELS
+
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder="Nouvel état du pool...",
+            options=[
+                discord.SelectOption(
+                    label=POOL_STATE_LABELS.get(t, t),
+                    value=t,
+                )
+                for t in targets
+            ],
+        )
+        select.callback = self._on_pick  # type: ignore[method-assign]
+        self.add_item(select)
+        self.pool_id = pool_id
+
+    async def _on_pick(self, interaction: discord.Interaction) -> None:
+        """Apply the chosen transition, confirm ephemerally."""
+        children = [c for c in self.children if isinstance(c, discord.ui.Select)]
+        chosen = (children[0].values or [""])[0] if children else ""
+        service = _games_wiring()
+        if service is None or not chosen:
+            await interaction.response.edit_message(content="Sélection invalide.")
+            return
+        from kingdoms.core.services.game_data import POOL_STATE_LABELS
+
+        try:
+            updated = await service.transition_map_pool(self.pool_id, chosen)
+        except Exception:
+            logger.warning("POOL FLOW: transition failed", exc_info=True)
+            await interaction.response.edit_message(content="Transition impossible (voir les logs).")
+            return
+        await interaction.response.edit_message(
+            content=(
+                f"Pool **{updated.name}** : {POOL_STATE_LABELS.get(updated.state, updated.state)} — "
+                "la fiche se met à jour à la prochaine sync."
+            )
+        )
+
+
 def register_pool_flow_items(bot: discord.Client) -> None:
     """Register the flow's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(MapAddToPoolButton)
     bot.add_dynamic_items(MapPoolPickerSelect)
     bot.add_dynamic_items(PoolAddMapButton)
     bot.add_dynamic_items(MapEditButton)
+    bot.add_dynamic_items(PoolTransitionButton)
