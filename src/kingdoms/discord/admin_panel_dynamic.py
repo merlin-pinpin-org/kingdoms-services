@@ -492,11 +492,9 @@ async def build_pin_main_menu(
                 placeholder=_t(catalog, locale, "channels_placeholder"),
             )
         ),
-        discord.ui.Separator(),
         discord.ui.TextDisplay(
-            "## \U0001f512 Lecture seule\n"
-            "Les salons \u00e9pingl\u00e9s sont en lecture seule par d\u00e9faut : personne ne peut y \u00e9crire, "
-            "seules les vues du bot s'y affichent. Choisis un salon pour le verrouiller ou l'ouvrir aux messages."
+            "\U0001f512 Lecture seule : les salons \u00e9pingl\u00e9s sont verrouill\u00e9s par d\u00e9faut, "
+            "seules les vues du bot s'y affichent. Choisis un salon pour le verrouiller ou l'ouvrir."
         ),
         _select_row(PinReadOnlySelect(await PinReadOnlySelect.read_only_options(guild_id))),
         discord.ui.Separator(),
@@ -511,21 +509,16 @@ async def build_pin_main_menu(
     ]
     if guild_id:
         container_blocks.append(_access_request_row(guild_id))
-    from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
+    from kingdoms.discord.admin_panel_mods import registered_admin_game_sections
 
     granted_games = await _granted_games(guild_id)
-    if registered_admin_core_sections() and granted_games:
+    if granted_games:
         container_blocks.append(discord.ui.Separator())
         listed = ", ".join(f"`{key}`" for key in granted_games)
         container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
-        container_blocks.append(
-            _select_row(
-                PinModRouteSelect.create(
-                    scope="games",
-                    placeholder="Gerer les jeux...",
-                )
-            )
-        )
+        from kingdoms.discord.admin_panel_games import GamesGrantedSelect
+
+        container_blocks.append(_select_row(GamesGrantedSelect()))
     if registered_admin_game_sections():
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))

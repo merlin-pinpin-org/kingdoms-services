@@ -64,9 +64,9 @@ async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.Layo
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
         view.add_item(_back_row())
         return view
-    keys = await service.list_game_keys()
-    if GAME_KEY not in keys:
-        keys.append(GAME_KEY)
+    from kingdoms.discord.wiring import granted_game_keys
+
+    keys = list(await granted_game_keys("", tuple(await service.list_game_keys())))
     if not keys:
         blocks.append(discord.ui.TextDisplay("_Aucun jeu connu - seed un catalogue._"))
     else:
@@ -108,15 +108,19 @@ class GamesGameSelect(
         match: re.Match[str],
         /,
     ) -> GamesGameSelect:
-        """Rebuild the select's options at click time."""
+        """Rebuild the select's options at click time (granted games)."""
+        from kingdoms.discord.wiring import granted_game_keys
+
         service = _games_wiring()
         options: list[discord.SelectOption] = []
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        catalog: tuple[str, ...] = ()
         if service is not None:
-            keys = await service.list_game_keys()
-            if GAME_KEY not in keys:
-                keys.append(GAME_KEY)
-            for key in keys[:25]:
-                options.append(discord.SelectOption(label=key, value=key))
+            catalog = tuple(await service.list_game_keys())
+            if GAME_KEY not in catalog:
+                catalog = (*catalog, GAME_KEY)
+        for key in (await granted_game_keys(guild_id, catalog))[:25]:
+            options.append(discord.SelectOption(label=key, value=key))
         return cls(options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -158,6 +162,51 @@ async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
     view.add_item(imports)
     view.add_item(_back_row())
     return view
+
+
+class GamesGrantedSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:granted:games",
+):
+    """The admin menu's games entry: pick one granted game to manage."""
+
+    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:granted:games"[:100],
+                options=options or [discord.SelectOption(label="Aucun jeu autorise", value="none")],
+                placeholder="Gerer un jeu...",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesGrantedSelect:
+        """Rebuild the options at click time (the guild's granted games)."""
+        del item, match
+        from kingdoms.discord.wiring import granted_game_keys
+
+        service = _games_wiring()
+        catalog: tuple[str, ...] = ()
+        if service is not None:
+            catalog = tuple(await service.list_game_keys())
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        keys = await granted_game_keys(guild_id, catalog)
+        options = [discord.SelectOption(label=key, value=key) for key in keys[:25]]
+        return cls(options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the chosen game's sub-menu."""
+        chosen = (_selected_values(interaction) or [""])[0]
+        if not chosen or chosen == "none":
+            await interaction.response.defer()
+            return
+        await interaction.response.edit_message(view=await game_menu_view(chosen))
 
 
 class GamesBackButton(
@@ -1362,4 +1411,5 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolSendButton,
         GamesMapImportButton,
         GamesPoolImportButton,
+        GamesGrantedSelect,
     )
