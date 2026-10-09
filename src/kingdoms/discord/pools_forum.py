@@ -53,30 +53,10 @@ def _pool_state_badge(state: str) -> str:
     return f"**État** : {label}"
 
 
-async def _pool_stats_line(maps: list[dict[str, Any]]) -> str:
-    """Render the pool's played-matches line (empty when no history)."""
-    if not maps:
-        return ""
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.entity_stats import EntityStatsService
-
-        service = EntityStatsService(get_async_database())
-        games = 0
-        for m in maps:
-            games += (await service.map_stats(m["name"])).games
-    except Exception:
-        return ""
-    if not games:
-        return ""
-    return f"**Matchs joués sur ce pool** : {games}"
-
-
 def _pool_post_layout(
     pool: Any,
     maps: list[dict[str, Any]],
     editable: bool = False,
-    stats_line: str = "",
 ) -> discord.ui.LayoutView:
     """Build the pool post's component layout: state, maps, transition.
 
@@ -98,8 +78,6 @@ def _pool_post_layout(
     from kingdoms.core.ids import footer
 
     header += f"\n{footer(pool.id)}"
-    if stats_line:
-        header += f"\n{stats_line}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header)))
     for m in maps[:MAX_SECTIONS]:
         text = f"### {m['name']}"
@@ -276,7 +254,7 @@ async def _create_pool_post(
         str(forum.id),
         pool.name,
         _pool_post_content(pool, maps),
-        view=_pool_post_layout(pool, maps, editable, await _pool_stats_line(maps)),
+        view=_pool_post_layout(pool, maps, editable),
     )
 
 
@@ -309,9 +287,7 @@ async def _refresh_pool_post(
         if _last_layout_render(str(thread.id)) == fingerprint:
             return
         _remember_layout_render(str(thread.id), fingerprint)
-        await starter.edit(
-            view=_pool_post_layout(pool, maps, editable, await _pool_stats_line(maps))
-        )
+        await starter.edit(view=_pool_post_layout(pool, maps, editable))
     except discord.HTTPException as exc:
         if getattr(exc, "code", None) == 30046:
             _note_stale_edit(str(thread.id), now)

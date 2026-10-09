@@ -86,7 +86,6 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
-        stats_line = await _map_stats_line(entry.name)
         view = _map_post_view(
             entry.id,
             entry.name,
@@ -98,7 +97,6 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
             editable=entry.owner_guild_id == guild_id,
             map_type=getattr(entry, "map_type", ""),
             filenames=tuple(getattr(entry, "filenames", ()) or ()),
-            stats_line=stats_line,
         )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"
@@ -142,21 +140,6 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
     return lines
 
 
-async def _map_stats_line(map_name: str) -> str:
-    """Render the map's play stats line (empty when no history)."""
-    try:
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.entity_stats import EntityStatsService
-
-        service = EntityStatsService(get_async_database())
-        stats = await service.map_stats(map_name)
-    except Exception:
-        return ""
-    if not stats.games:
-        return ""
-    return f"**Jouée** : {stats.games} matchs"
-
-
 def _map_post_view(
     map_id: str,
     name: str,
@@ -168,7 +151,6 @@ def _map_post_view(
     editable: bool = False,
     map_type: str = "",
     filenames: tuple[str, ...] = (),
-    stats_line: str = "",
 ) -> discord.ui.LayoutView:
     """Build the map post's layout: type, description, files, pools, image.
 
@@ -183,8 +165,6 @@ def _map_post_view(
 
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(f"## {name}")]
-    if stats_line:
-        blocks.append(discord.ui.TextDisplay(stats_line))
     if map_type:
         blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
     if description:
@@ -232,7 +212,6 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
         source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
-        stats_line = await _map_stats_line(entry.name)
         view = _map_post_view(
             entry.id,
             entry.name,
@@ -244,7 +223,6 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
             editable=entry.owner_guild_id == guild_id,
             map_type=getattr(entry, "map_type", ""),
             filenames=tuple(getattr(entry, "filenames", ()) or ()),
-            stats_line=stats_line,
         )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"
