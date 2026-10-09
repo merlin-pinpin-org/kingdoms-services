@@ -128,10 +128,6 @@ class LogsPlatform(Protocol):
         """Unpin one message (the superseded boot status)."""
         ...
 
-    async def delete_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
-        """Delete one superseded message (opt-in path; mark-guarded)."""
-        ...
-
     async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
         """List every pinned message id of the logs channel."""
         ...
@@ -180,22 +176,20 @@ class LogService:
         state: Any,
         clock: Any = time.monotonic,
         catalog: MessageCatalog | None = None,
-        delete_old_boot_status: bool = False,
     ) -> None:
         """Wire the stores; ``state`` is a StateService (Redis cache-aside).
 
         ``catalog`` localizes the audit events with the guild's locale;
-        None keeps the built-in English messages.
-        ``delete_old_boot_status`` (default False) also deletes the
-        superseded boot-status messages instead of only unpinning them
-        — off by default: old logs stay readable in the channel.
+        None keeps the built-in English messages. The superseded
+        boot-status messages stay (unpinned, never deleted): the boot
+        status declares ``delete_when_superseded=False`` on the static
+        -pin registry — the log trail stays readable.
         """
         self._db = database
         self._platform = platform
         self._state = state
         self._clock = clock
         self._catalog = catalog
-        self._delete_old_boot_status = delete_old_boot_status
 
     def _tr(self, key: str, locale: str, **kwargs: Any) -> str:
         """Render a lifecycle message, falling back to English strings."""
@@ -284,24 +278,20 @@ class LogService:
     async def _replace_pinned_boot_status(
         self, guild_id: str, channel_id: str, content: str, event: LifecycleEvent
     ) -> None:
-        """Pin the new boot status and keep only it pinned (the pins contract).
+        """Pin the new boot status; the superseded stay (unpinned).
 
-        The previous pinned status id rides the state store; a missing
-        or stale id is skipped silently (already unpinned, deleted, or
-        the first boot) — best-effort like every delivery.
+        The static-pin registry owns the policy: the boot status is
+        declared with ``delete_when_superseded=False`` — the old
+        statuses are unpinned (only the latest stays pinned) but the
+        messages remain readable in the log trail. The per-guild id
+        rides the state store; the cycle is best-effort like every
+        delivery.
         """
         key = f"pinned_boot:{guild_id}"
-        # Unpin EVERY pinned message of the channel, not only the tracked
-        # one: deployments from before the pins contract (or a purged
-        # state store) leave orphans no tracked id can reach. Only the
-        # boot status is pinned by the bot in this channel; a foreign
-        # pin is rare and re-pinnable by hand — the contract is absolute.
         pinned_ids = await self._safe(self._platform.list_pinned_log_messages(guild_id, channel_id)) or []
         for pinned_id in pinned_ids:
             try:
                 await self._platform.unpin_log_message(guild_id, channel_id, pinned_id)
-                if self._delete_old_boot_status:
-                    await self._platform.delete_log_message(guild_id, channel_id, pinned_id)
             except Exception:
                 logger.warning(
                     "PINNED BOOT STATUS unpin failed (guild %s, message %s) — best-effort", guild_id, pinned_id

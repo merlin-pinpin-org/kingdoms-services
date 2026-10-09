@@ -35,13 +35,20 @@ ResolveChannel = Callable[[str], Awaitable[str | None]]
 
 @dataclass(frozen=True)
 class StaticPinnedView:
-    """One static pinned surface, declared once at wiring."""
+    """One static pinned surface, declared once at wiring.
+
+    ``delete_when_superseded`` (default True): a superseded pinned
+    message is deleted — the cycle keeps one pin per view. A surface
+    that must keep its history (the boot status log trail) declares
+    False: the old pins are merely unpinned, the messages stay.
+    """
 
     key: str
     mark_suffix: str
     resolve_channel: ResolveChannel
     build_layout: BuildLayout
     registry: Any = None
+    delete_when_superseded: bool = True
 
     async def resolve_message_id(self, guild_id: str) -> str | None:
         """Resolve the registered pin id (registry first, memory fallback)."""
@@ -126,11 +133,37 @@ async def ensure_static_pin(bot: discord.Client, spec: StaticPinnedView, guild_i
         except Exception:
             logger.info("%s pin is gone — recreating", spec.key, exc_info=True)
 
+    superseded = await _collect_superseded(channel, message_id)
+    if superseded and spec.delete_when_superseded:
+        from kingdoms.discord.pinned_marks import is_pinned_view
+
+        for stale in superseded:
+            if not is_pinned_view(stale):
+                continue
+            try:
+                await stale.unpin(reason=f"kingdoms: superseded {spec.key}")
+                await stale.delete()
+            except Exception:
+                logger.info("%s superseded cleanup skipped — best-effort", spec.key, exc_info=True)
+
     layout = await spec.build_layout(guild_id)
     message = await channel.send(view=layout)
     await message.pin(reason=f"kingdoms: pinned {spec.key}")
     await spec.register_message_id(guild_id, str(channel_id), str(message.id))
     return True
+
+
+async def _collect_superseded(channel: Any, current_id: str | None) -> list[Any]:
+    """List the view's superseded messages in the channel (best-effort).
+
+    The pins of the channel minus the current one; unreadable pins
+    degrade to an empty list — the cycle never fails on this.
+    """
+    try:
+        pinned = await channel.pins()
+    except Exception:
+        return []
+    return [m for m in pinned if str(m.id) != str(current_id or "")]
 
 
 async def heal_static_pins(bot: discord.Client, guild_id: str) -> int:

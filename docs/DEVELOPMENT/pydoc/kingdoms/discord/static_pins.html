@@ -55,9 +55,14 @@ logical&nbsp;key;&nbsp;an&nbsp;in-memory&nbsp;fallback&nbsp;covers&nbsp;the&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><a name="StaticPinnedView">class <strong>StaticPinnedView</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#StaticPinnedView">StaticPinnedView</a>(key:&nbsp;'str',&nbsp;mark_suffix:&nbsp;'str',&nbsp;resolve_channel:&nbsp;'ResolveChannel',&nbsp;build_layout:&nbsp;'BuildLayout',&nbsp;registry:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StaticPinnedView">StaticPinnedView</a>(key:&nbsp;'str',&nbsp;mark_suffix:&nbsp;'str',&nbsp;resolve_channel:&nbsp;'ResolveChannel',&nbsp;build_layout:&nbsp;'BuildLayout',&nbsp;registry:&nbsp;'Any'&nbsp;=&nbsp;None,&nbsp;delete_when_superseded:&nbsp;'bool'&nbsp;=&nbsp;True)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-One&nbsp;static&nbsp;pinned&nbsp;surface,&nbsp;declared&nbsp;once&nbsp;at&nbsp;wiring.<br>&nbsp;</span></td></tr>
+One&nbsp;static&nbsp;pinned&nbsp;surface,&nbsp;declared&nbsp;once&nbsp;at&nbsp;wiring.<br>
+&nbsp;<br>
+``delete_when_superseded``&nbsp;(default&nbsp;True):&nbsp;a&nbsp;superseded&nbsp;pinned<br>
+message&nbsp;is&nbsp;deleted&nbsp;—&nbsp;the&nbsp;cycle&nbsp;keeps&nbsp;one&nbsp;pin&nbsp;per&nbsp;view.&nbsp;A&nbsp;surface<br>
+that&nbsp;must&nbsp;keep&nbsp;its&nbsp;history&nbsp;(the&nbsp;boot&nbsp;status&nbsp;log&nbsp;trail)&nbsp;declares<br>
+False:&nbsp;the&nbsp;old&nbsp;pins&nbsp;are&nbsp;merely&nbsp;unpinned,&nbsp;the&nbsp;messages&nbsp;stay.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="StaticPinnedView-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -66,7 +71,7 @@ One&nbsp;static&nbsp;pinned&nbsp;surface,&nbsp;declared&nbsp;once&nbsp;at&nbsp;w
 
 <dl><dt><a name="StaticPinnedView-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="StaticPinnedView-__init__"><strong>__init__</strong></a>(self, key: 'str', mark_suffix: 'str', resolve_channel: 'ResolveChannel', build_layout: 'BuildLayout', registry: 'Any' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="StaticPinnedView-__init__"><strong>__init__</strong></a>(self, key: 'str', mark_suffix: 'str', resolve_channel: 'ResolveChannel', build_layout: 'BuildLayout', registry: 'Any' = None, delete_when_superseded: 'bool' = True) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="StaticPinnedView-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -86,13 +91,15 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'build_layout': 'BuildLayout', 'key': 'str', 'mark_suffix': 'str', 'registry': 'Any', 'resolve_channel': 'ResolveChannel'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'build_layout': 'BuildLayout', 'delete_when_superseded': 'bool', 'key': 'str', 'mark_suffix': 'str', 'registry': 'Any', 'resolve_channel': 'ResolveChannel'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'build_layout': Field(name='build_layout',type='BuildLayout',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mark_suffix': Field(name='mark_suffix',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'registry': Field(name='registry',type='Any',default=None,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'resolve_channel': Field(name='resolve_channel',type='ResolveChanne...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'build_layout': Field(name='build_layout',type='BuildLayout',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'delete_when_superseded': Field(name='delete_when_superseded',type='bool',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'mark_suffix': Field(name='mark_suffix',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'registry': Field(name='registry',type='Any',default=None,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'resolve_channel': Field(name='resolve_channel',type='ResolveChanne...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('key', 'mark_suffix', 'resolve_channel', 'build_layout', 'registry')</dl>
+<dl><dt><strong>__match_args__</strong> = ('key', 'mark_suffix', 'resolve_channel', 'build_layout', 'registry', 'delete_when_superseded')</dl>
+
+<dl><dt><strong>delete_when_superseded</strong> = True</dl>
 
 <dl><dt><strong>registry</strong> = None</dl>
 

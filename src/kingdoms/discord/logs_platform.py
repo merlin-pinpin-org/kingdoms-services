@@ -222,22 +222,6 @@ class DiscordLogsPlatform:
         message = await channel.fetch_message(int(message_id))
         await message.unpin(reason="kingdoms: superseded boot status (only the latest stays pinned)")
 
-    async def delete_log_message(self, guild_id: str, channel_id: str, message_id: str) -> None:
-        """Delete one superseded boot status (opt-in; never a foreign pin).
-
-        The pinned-view mark guards the delete: only the bot's own
-        boot-status messages (``fixe:boot-status``) are deletable; a
-        message without the mark is skipped — it is not ours.
-        """
-        from kingdoms.discord.pinned_marks import is_pinned_view
-
-        channel = await self._text_channel(guild_id, channel_id)
-        message = await channel.fetch_message(int(message_id))
-        if not is_pinned_view(message):
-            logger.info("LOGS delete skipped (message %s is not a boot status)", message_id)
-            return
-        await message.delete()
-
     async def list_pinned_log_messages(self, guild_id: str, channel_id: str) -> list[str]:
         """List every pinned message id of the logs channel.
 
