@@ -3,6 +3,7 @@
 Implements the :class:`StaffDatabase` seam the core
 :class:`StaffService` depends on, with real infrastructure only.
 """
+
 from __future__ import annotations
 
 from typing import Any

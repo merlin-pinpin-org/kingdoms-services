@@ -142,15 +142,15 @@ async def test_servicer_serves_match_details_and_maps() -> None:
         list_maps=_async_list_maps,
     )
     reply = await servicer.GetMatchDetails(
-        game_pb2.GetMatchDetailsRequest(match_ref="m-42"), _ServicerContext()  # type: ignore[arg-type]
+        game_pb2.GetMatchDetailsRequest(match_ref="m-42"),
+        _ServicerContext(),  # type: ignore[arg-type]
     )
     assert match_details_from_wire(reply) == _match_details("m-42")
     maps_reply = await servicer.ListMaps(
-        game_pb2.ListMapsRequest(), _ServicerContext()  # type: ignore[arg-type]
+        game_pb2.ListMapsRequest(),
+        _ServicerContext(),  # type: ignore[arg-type]
     )
-    assert [game_map_from_wire(m) for m in maps_reply.maps] == [
-        GameMap(map_key="arabia", name="Arabia")
-    ]
+    assert [game_map_from_wire(m) for m in maps_reply.maps] == [GameMap(map_key="arabia", name="Arabia")]
 
 
 @pytest.mark.asyncio
@@ -182,12 +182,11 @@ async def test_servicer_streams_match_events_with_since_filter() -> None:
     )
     received = []
     async for wire in servicer.StreamMatchEvents(
-        game_pb2.StreamMatchEventsRequest(since=1500), _ServicerContext()  # type: ignore[arg-type]
+        game_pb2.StreamMatchEventsRequest(since=1500),
+        _ServicerContext(),  # type: ignore[arg-type]
     ):
         received.append(match_event_from_wire(wire))
-    assert received == [
-        MatchEvent(match_ref="m-42", type="game_started", occurred_at=2000, profile_ids=("p1", "p2"))
-    ]
+    assert received == [MatchEvent(match_ref="m-42", type="game_started", occurred_at=2000, profile_ids=("p1", "p2"))]
 
 
 def test_match_event_wire_round_trip() -> None:
@@ -220,7 +219,8 @@ async def test_servicer_serves_declared_capabilities() -> None:
     """The Game servicer serves the provider's declaration over the wire."""
     servicer = GameServicer(lambda: AOE2LOBBY_CAPS)
     reply = await servicer.GetCapabilities(
-        game_pb2.CapabilitiesRequest(), _ServicerContext()  # type: ignore[arg-type]
+        game_pb2.CapabilitiesRequest(),
+        _ServicerContext(),  # type: ignore[arg-type]
     )
     assert capabilities_from_wire(reply) == AOE2LOBBY_CAPS
 
@@ -272,9 +272,7 @@ async def test_client_degrades_to_zero_capabilities_when_unreachable() -> None:
 async def test_client_maps_unimplemented_to_unsupported_capability() -> None:
     """A provider explicitly rejecting the capability raises the typed error."""
     server = grpc.aio.server()
-    game_pb2_grpc.add_GameServicer_to_server(
-        _UnimplementedGameServicer(), server
-    )
+    game_pb2_grpc.add_GameServicer_to_server(_UnimplementedGameServicer(), server)
     server.add_insecure_port("127.0.0.1:50081")
     await server.start()
     try:
@@ -289,7 +287,6 @@ class _UnimplementedGameServicer(game_pb2_grpc.GameServicer):
     """A provider that declares nothing and rejects every capability."""
 
     async def GetCapabilities(  # noqa: N802 - generated stub name
-
         self,
         request: game_pb2.CapabilitiesRequest,
         context: grpc.aio.ServicerContext,
@@ -366,7 +363,8 @@ async def test_servicer_serves_player_stats() -> None:
         player_stats=_async_player_stats,
     )
     reply = await servicer.GetPlayerStats(
-        game_pb2.GetPlayerStatsRequest(profile_id="p1"), _ServicerContext()  # type: ignore[arg-type]
+        game_pb2.GetPlayerStatsRequest(profile_id="p1"),
+        _ServicerContext(),  # type: ignore[arg-type]
     )
     assert player_stats_from_wire(reply).blocks == _player_stats("p1").blocks
 
@@ -378,7 +376,8 @@ async def test_servicer_player_stats_unimplemented_without_callable() -> None:
     context = _ServicerContext()
     with pytest.raises(grpc.aio.AioRpcError) as exc_info:
         await servicer.GetPlayerStats(
-            game_pb2.GetPlayerStatsRequest(profile_id="p1"), context  # type: ignore[arg-type]
+            game_pb2.GetPlayerStatsRequest(profile_id="p1"),
+            context,  # type: ignore[arg-type]
         )
     assert exc_info.value.code() == grpc.StatusCode.UNIMPLEMENTED
 

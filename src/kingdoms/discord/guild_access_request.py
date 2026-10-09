@@ -83,9 +83,7 @@ class GuildAccessRequestSelect(
             doc = await service.request_access(self.guild_id, chosen)
         except Exception:
             logger.exception("ACCESS REQUEST failed (guild %s)", self.guild_id)
-            await interaction.followup.send(
-                "Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True
-            )
+            await interaction.followup.send("Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True)
             return
         pending = dict(doc.get("pending") or {})
         requested_at = max(pending, key=int) if pending else ""
@@ -135,8 +133,7 @@ class GuildAccessRequestButton(
         options = _request_options()
         if all(option.value == "none" for option in options):
             await interaction.followup.send(
-                "Aucun game/mod actif sur la plateforme pour le moment — "
-                "demande a un bot admin d'en activer un.",
+                "Aucun game/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
                 ephemeral=True,
             )
             return
@@ -247,9 +244,7 @@ async def _answer_pending_request(
             doc = await service.deny(guild_id, requested_at)
     except Exception:
         logger.warning("ACCESS REQUEST answer failed (guild %s, approve=%s)", guild_id, approve)
-        await interaction.followup.send(
-            "Demande introuvable (déjà traitée ?).", ephemeral=True
-        )
+        await interaction.followup.send("Demande introuvable (déjà traitée ?).", ephemeral=True)
         return
     await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
     granted = ", ".join((doc.get("games") or []) + [f"mod:{m}" for m in doc.get("mods") or []])

@@ -81,15 +81,13 @@ class MapAddToPoolButton(
             entry = await service.get_map(self.map_id)
             game_key = entry.game_key if entry else "aoe2"
             pools = await service.list_map_pools(game_key, guild_id=guild_id)
-            options = [
-                discord.SelectOption(label=f"{p.name}{' (public)' if p.is_public else ''}", value=p.id)
-                for p in pools[:24]
+            editable = [
+                p for p in pools if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
             ]
+            options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
         options.append(discord.SelectOption(label="+ Nouveau pool...", value="__new__"))
         view = discord.ui.LayoutView(timeout=None)
-        view.add_item(
-            discord.ui.Container(discord.ui.TextDisplay("## Ajouter à quel map pool ?"))
-        )
+        view.add_item(discord.ui.Container(discord.ui.TextDisplay("## Ajouter à quel map pool ?")))
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         row.add_item(MapPoolPickerSelect(self.map_id, options))
         view.add_item(row)
@@ -129,10 +127,10 @@ class MapPoolPickerSelect(
             entry = await service.get_map(map_id)
             if entry is not None:
                 pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
-                options = [
-                    discord.SelectOption(label=f"{p.name}{' (public)' if p.is_public else ''}", value=p.id)
-                    for p in pools[:24]
+                editable = [
+                    p for p in pools if p.edition_mode and (p.owner_guild_id == guild_id or p.owner_guild_id is None)
                 ]
+                options = [discord.SelectOption(label=p.name, value=p.id) for p in editable[:24]]
         options.append(discord.SelectOption(label="+ Nouveau pool...", value="__new__"))
         return cls(map_id, options)
 
@@ -160,9 +158,7 @@ class MapPoolPickerSelect(
             logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
             await interaction.response.send_message("Ajout impossible (voir les logs).", ephemeral=True)
             return
-        await interaction.response.send_message(
-            f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True
-        )
+        await interaction.response.send_message(f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True)
 
 
 class MapNewPoolModal(discord.ui.Modal):
@@ -172,9 +168,7 @@ class MapNewPoolModal(discord.ui.Modal):
         self.map_id = map_id
         self.game_key = game_key
         super().__init__(title="Nouveau map pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nom du pool", max_length=64, required=True
-        )
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom du pool", max_length=64, required=True)
         self.public: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Public ? (oui / non)",
             placeholder="non",
@@ -202,67 +196,9 @@ class MapNewPoolModal(discord.ui.Modal):
             )
         except Exception:
             logger.warning("POOL FLOW: pool create failed", exc_info=True)
-            await interaction.response.send_message(
-                "Création impossible (nom déjà pris ?).", ephemeral=True
-            )
+            await interaction.response.send_message("Création impossible (nom déjà pris ?).", ephemeral=True)
             return
-        await interaction.response.send_message(
-            f"Pool **{pool.name}** créé — la map a été ajoutée.", ephemeral=True
-        )
-
-
-class PoolRemoveMapButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_REMOVE_NS}:(?P<map_id>.+):(?P<pool_id>.+)",
-):
-    """The pool post's remove action: drop this map from the pool (admins)."""
-
-    def __init__(self, map_id: str, pool_id: str, label: str | None = None) -> None:
-        self.map_id = map_id
-        self.pool_id = pool_id
-        super().__init__(
-            discord.ui.Button(
-                label=label or "Retirer du pool",
-                emoji="🗑️",
-                style=discord.ButtonStyle.danger,
-                custom_id=f"{_REMOVE_NS}:{map_id}:{pool_id}"[:100],
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> PoolRemoveMapButton:
-        """Rebuild from the wire; both ids ride the custom_id."""
-        return cls(match.group("map_id"), match.group("pool_id"))
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Remove the map from the pool, confirm ephemerally."""
-        if not await _guard_admin(interaction):
-            return
-        service = _games_wiring()
-        if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
-            return
-        pool = await service.get_map_pool(self.pool_id)
-        if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
-            return
-        remaining = tuple(mid for mid in pool.map_ids if mid != self.map_id)
-        try:
-            await service.update_map_pool(pool.id, map_ids=remaining)
-        except Exception:
-            logger.warning("POOL FLOW: remove from pool failed", exc_info=True)
-            await interaction.response.send_message("Retrait impossible (voir les logs).", ephemeral=True)
-            return
-        await interaction.response.send_message(
-            f"Map retirée de **{pool.name}** — la fiche du pool se met à jour à la prochaine sync.",
-            ephemeral=True,
-        )
+        await interaction.response.send_message(f"Pool **{pool.name}** créé — la map a été ajoutée.", ephemeral=True)
 
 
 _ADD_TO_POOL_NS = "games:pool:addmap"
@@ -377,9 +313,99 @@ class PoolMapPickerView(discord.ui.View):
         )
 
 
+class MapEditButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"games:map:edit:(?P<map_id>[^:]+)",
+):
+    """A guild-owned map post's edit action: open the edit modal (admins)."""
+
+    def __init__(self, map_id: str) -> None:
+        self.map_id = map_id
+        super().__init__(
+            discord.ui.Button(
+                label="Modifier la map",
+                emoji="\u270f\ufe0f",
+                style=discord.ButtonStyle.secondary,
+                custom_id=("games:map:edit:" + map_id)[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> MapEditButton:
+        """Rebuild the item from the wire (map id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("map_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the edit modal for this guild map."""
+        if not await _guard_admin(interaction):
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        entry = await service.get_map(self.map_id)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if entry is None:
+            await interaction.response.send_message("Map introuvable.", ephemeral=True)
+            return
+        if entry.owner_guild_id != guild_id:
+            await interaction.response.send_message("Seules les maps de la guilde sont modifiables.", ephemeral=True)
+            return
+        await interaction.response.send_modal(MapEditModal(self.map_id, entry.name))
+
+
+class MapEditModal(discord.ui.Modal):
+    """The guild map's edit form: name, description, resource URL."""
+
+    def __init__(self, map_id: str, current_name: str) -> None:
+        self.map_id = map_id
+        super().__init__(title="Modifier la map", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom", max_length=64, required=True, default=current_name
+        )
+        self.description: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Description", max_length=256, required=False, style=discord.TextStyle.paragraph
+        )
+        self.resource_url: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="URL de la fiche (liquipedia)", max_length=200, required=False
+        )
+        self.add_item(self.name)
+        self.add_item(self.description)
+        self.add_item(self.resource_url)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Persist the edits; the post refreshes at the next sync."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        try:
+            entry = await service.update_map(
+                self.map_id,
+                name=str(self.name.value or "").strip() or None,
+                description=str(self.description.value or "").strip() or None,
+                resource_url=str(self.resource_url.value or "").strip() or None,
+            )
+        except Exception:
+            logger.warning("POOL FLOW: map edit failed", exc_info=True)
+            await interaction.response.send_message("Modification impossible (voir les logs).", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            f"Map **{entry.name}** mise à jour — la fiche se rafraîchit à la prochaine sync.",
+            ephemeral=True,
+        )
+
+
 def register_pool_flow_items(bot: discord.Client) -> None:
     """Register the flow's DynamicItems (called at every startup)."""
     bot.add_dynamic_items(MapAddToPoolButton)
     bot.add_dynamic_items(MapPoolPickerSelect)
-    bot.add_dynamic_items(PoolRemoveMapButton)
     bot.add_dynamic_items(PoolAddMapButton)
+    bot.add_dynamic_items(MapEditButton)

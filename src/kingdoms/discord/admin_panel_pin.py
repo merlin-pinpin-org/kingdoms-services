@@ -84,11 +84,9 @@ async def ensure_pinned_admin_menu(
 
     from kingdoms.discord.admin_panel_mods import mod_section_route_id, registered_admin_mod_sections
 
-    required_ids = (
-        (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
-    )
+    required_ids = (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
     delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
-    service = PinnedMenuService(delivery)
+    service = PinnedMenuService(delivery, delivery)
     created = await service.ensure(
         str(guild_id),
         cast("PinnedMenuChannel", channel),
@@ -115,6 +113,19 @@ class _AdminPinDelivery:
         del channel
         message_id = await self._service.deliver(self._guild_id, layout, self._admin_ids)
         return str(message_id or "")
+
+    async def update(self, channel: object, message_id: str, layout: object) -> bool:
+        """Edit an existing admin pin to the current layout revision."""
+        try:
+            await self._service.edit_layout(self._guild_id, message_id, layout)
+            return True
+        except Exception:
+            logger.warning(
+                "PINNED ADMIN MENU in-place update failed (message %s) — will re-post",
+                message_id,
+                exc_info=True,
+            )
+            return False
 
 
 async def _current_locale(logs_service: LogService, guild_id: str) -> str:
@@ -193,5 +204,3 @@ def _text_channel(bot: discord.Client, guild_id: str, channel_id: str) -> discor
         return None
     channel = guild.get_channel(int(channel_id))
     return channel if isinstance(channel, discord.TextChannel) else None
-
-

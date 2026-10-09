@@ -101,9 +101,41 @@ def test_pool_post_layout_has_section_per_map_and_add_button() -> None:
             },
             {"id": "m2", "name": "Plain", "resource_url": "", "forum_message_id": None, "guild_id": "42"},
         ],
+        editable=True,
     )
     assert isinstance(view, discord.ui.LayoutView)
     sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
-    assert len(sections) == 3  # two map sections + the add-map section
+    assert len(sections) == 3  # two map sections + the add-map section (editable pool)
     assert sections[0].accessory is not None
     assert sections[2].accessory is not None
+
+
+def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
+    import discord
+
+    view = _pool_post_layout(_POOL, [], editable=False)
+    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    assert sections == []  # a locked pool is read-only: no add entry point
+
+
+def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
+    import discord
+
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
+
+    view = _pool_post_layout(
+        _POOL,
+        [
+            {
+                "id": "m1",
+                "name": "Arabia",
+                "resource_url": "",
+                "forum_message_id": "111",
+                "guild_id": "42",
+            }
+        ],
+        editable=True,
+    )
+    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    assert len(sections) == 2
+    assert isinstance(sections[1].accessory, PoolAddMapButton)  # only the add entry point remains

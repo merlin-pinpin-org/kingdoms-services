@@ -16,8 +16,8 @@ PROVIDER_ID = "ext-librematch"
 DECLARED_CAPABILITIES = ProviderCapabilities(
     provider_id=PROVIDER_ID,
     game_key="aoe2",
-    realtime=False,          # lobby events come from ext-aoe2lobby (push)
+    realtime=False,  # lobby events come from ext-aoe2lobby (push)
     reliable_results=False,  # permissive until live validation (spike)
-    check_map=True,          # map metadata available via mods endpoints
-    player_stats=True,       # leaderboard/profile stats available
+    check_map=True,  # map metadata available via mods endpoints
+    player_stats=True,  # leaderboard/profile stats available
 )

@@ -5,6 +5,7 @@ Usage: ``python -m kingdoms.core.services.identity_export_cli <users_csv>``
 Reads ``MONGO_URI``/``MONGO_DB`` from the environment and prints the
 export counts.
 """
+
 from __future__ import annotations
 
 import asyncio

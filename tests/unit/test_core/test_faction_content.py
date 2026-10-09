@@ -6,7 +6,6 @@ from pathlib import Path
 
 from kingdoms.core.games.aoe2.faction_content import (
     PROVIDER_KEY,
-    SOURCE_URL,
     SUPPORTED_LOCALES,
     TechtreeContentProvider,
 )
@@ -16,10 +15,7 @@ DATASET_DIR = Path(__file__).resolve().parents[3] / "data" / "core" / "aoe2techt
 
 def _provider() -> TechtreeContentProvider:
     data_json = (DATASET_DIR / "data.json").read_text(encoding="utf-8")
-    locale_files = {
-        lng: (DATASET_DIR / f"strings-{lng}.json").read_text(encoding="utf-8")
-        for lng in SUPPORTED_LOCALES
-    }
+    locale_files = {lng: (DATASET_DIR / f"strings-{lng}.json").read_text(encoding="utf-8") for lng in SUPPORTED_LOCALES}
     return TechtreeContentProvider.from_files(data_json, locale_files)
 
 
@@ -30,7 +26,7 @@ def test_provider_extracts_french_faction_content() -> None:
     assert content.locale == "fr"
     assert content.name == "Francs"
     assert "civilisation" in content.summary.lower()
-    assert content.source_url == SOURCE_URL
+    assert content.source_url == "https://aoe2techtree.net/#Franks"
 
 
 def test_provider_extracts_english_faction_content() -> None:

@@ -5,6 +5,7 @@ cross-process wiring assert) and Live (the aggregated dashboard of
 #147 — the background loop consumes the providers' StreamMatchEvents
 and folds them into the LiveAggregator).
 """
+
 from __future__ import annotations
 
 import logging
@@ -62,11 +63,7 @@ async def _consume_provider_events(aggregator: LiveAggregator) -> None:
         ("ext-aoe2lobby", os.environ.get("EXT_AOE2LOBBY_URI", ""), "aoe2"),
         ("ext-librematch", os.environ.get("EXT_LIBREMATCH_URI", ""), "aoe2"),
     ]
-    tasks = [
-        _consume_one(aggregator, provider_id, uri, game_key)
-        for provider_id, uri, game_key in providers
-        if uri
-    ]
+    tasks = [_consume_one(aggregator, provider_id, uri, game_key) for provider_id, uri, game_key in providers if uri]
     if not tasks:
         aggregator.mark_degraded()
         return
@@ -93,9 +90,7 @@ async def _watch_provider_health(aggregator: LiveAggregator, client: Any) -> Non
         await asyncio.sleep(interval_s)
 
 
-async def _consume_one(
-    aggregator: LiveAggregator, provider_id: str, uri: str, game_key: str
-) -> None:
+async def _consume_one(aggregator: LiveAggregator, provider_id: str, uri: str, game_key: str) -> None:
     """Consume one provider stream forever, degrading on silence."""
     import asyncio
 

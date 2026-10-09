@@ -35,9 +35,7 @@ def _options_blob(pairs: list[tuple[str, str]]) -> str:
     documented by the LibreMatch wiki).
     """
     records = [f"{k}:{v}" for k, v in pairs]
-    stream = bytes([len(records)]) + b"".join(
-        struct.pack("<I", len(r.encode())) + r.encode() for r in records
-    )
+    stream = bytes([len(records)]) + b"".join(struct.pack("<I", len(r.encode())) + r.encode() for r in records)
     inner = base64.b64encode(stream).decode()
     return base64.b64encode(zlib.compress(inner.encode())).decode()
 
@@ -143,9 +141,7 @@ async def test_player_stats_serves_leaderboard_blocks() -> None:
             }
         ]
     }
-    adapter = LibrematchAdapter(
-        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
-    )
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     stats = await adapter.player_stats("12345")
     assert stats is not None
     assert stats.profile_id == "12345"
@@ -161,9 +157,7 @@ async def test_player_stats_serves_leaderboard_blocks() -> None:
 async def test_player_stats_unknown_profile_returns_none() -> None:
     """A leaderboard reply without the profile degrades to None."""
     payload = {"result": [{"profileId": "other", "rank": 1}]}
-    adapter = LibrematchAdapter(
-        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
-    )
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     assert await adapter.player_stats("12345") is None
 
 

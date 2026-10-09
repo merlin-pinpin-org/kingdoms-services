@@ -4,6 +4,7 @@ The contract: the logical keys are namespaced per season
 (player:s1/staff:s1), the display names are formatted from the mod,
 and the sync adds/removes the provisioned role.
 """
+
 from __future__ import annotations
 
 import pytest

@@ -21,6 +21,7 @@ service's business: the caller provides a layout builder, the seam
 delivers it. The admin pin and the guild home are two builders over the
 same lifecycle.
 """
+
 from __future__ import annotations
 
 import logging
@@ -132,7 +133,7 @@ class PinnedMenuService:
         if self._updater is None:
             return False
         for message in await self._safe_pins(channel):
-            if not (self._carries_marker(message, marker) and self._carries_required(message, ())) :
+            if not (self._carries_marker(message, marker) and self._carries_required(message, ())):
                 continue
             if self._carries_required(message, required_ids):
                 continue

@@ -212,6 +212,7 @@ async def test_setup_hook_starts_shared_state_and_registration_engine(config_dir
 
     class _NullWorkflowStore:
         """Store-less engine stand-in: resume finds nothing, start is a no-op."""
+
         started = False
         stopped = False
 

@@ -28,6 +28,8 @@ def _config_dir() -> str:
 def _config_path() -> str:
     """Full path of the user's hosts config file."""
     return os.path.join(_config_dir(), CONFIG_FILENAME)
+
+
 FIELDS = ("host", "user", "port", "key")
 DESTRUCTIVE = ("rm ", "rm -", "mkfs", "dd ", ":(){", "shutdown", "reboot", "drop database")
 
@@ -186,13 +188,17 @@ def main(argv: list[str]) -> int:
         return 2
     if action == "add" and rest:
         opts = _parse_add(rest)
-        return cmd_add(
-            name=str(opts["name"]),
-            host=str(opts["host"]),
-            user=str(opts["user"]),
-            port=str(opts["port"]),
-            key=opts["key"],
-        ) if opts else 1
+        return (
+            cmd_add(
+                name=str(opts["name"]),
+                host=str(opts["host"]),
+                user=str(opts["user"]),
+                port=str(opts["port"]),
+                key=opts["key"],
+            )
+            if opts
+            else 1
+        )
     if action == "rm" and len(rest) == 1:
         return cmd_rm(rest[0])
     return _run_host_action(action, rest)

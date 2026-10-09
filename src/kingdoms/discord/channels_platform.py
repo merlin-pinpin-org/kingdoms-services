@@ -53,9 +53,7 @@ class DiscordChannelsPlatform:
             return False
         return guild.get_channel(int(channel_id)) is not None
 
-    async def apply_access_policy(
-        self, guild_id: str, channel_id: str, policy: dict[str, Any]
-    ) -> None:
+    async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, Any]) -> None:
         """Apply a category's declared access policy as overwrites (#57).
 
         The bot overwrite is set first so the bot can never lock itself
@@ -204,9 +202,7 @@ class DiscordChannelsPlatform:
             kwargs["view"] = view
         # A components-v2 layout carries its own text: Discord rejects a
         # message that sends both a view and a content string (50035).
-        content_kwarg: dict[str, Any] = (
-            {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
-        )
+        content_kwarg: dict[str, Any] = {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
         thread, _ = await forum.create_thread(
             name=name,
             reason=f"kingdoms: map post {name}",
@@ -239,9 +235,7 @@ class DiscordChannelsPlatform:
         await message.edit(view=view)
         return True
 
-    async def edit_forum_post(
-        self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None
-    ) -> bool:
+    async def edit_forum_post(self, guild_id: str, thread_id: str, content: str, view: discord.ui.View | None) -> bool:
         """Edit a forum post's starter message content and components.
 
         Best-effort refresh used by the forum sync loops: False when the
@@ -262,9 +256,7 @@ class DiscordChannelsPlatform:
             await message.edit(content=truncate_body(content), view=view)
         return True
 
-    async def get_channel_overwrites(
-        self, guild_id: str, channel_id: str
-    ) -> dict[str, dict[str, bool]] | None:
+    async def get_channel_overwrites(self, guild_id: str, channel_id: str) -> dict[str, dict[str, bool]] | None:
         """Actual permission overwrites: target id -> {permission: bool}."""
         guild = await self._guild(guild_id)
         if guild is None or not channel_id.isdigit():

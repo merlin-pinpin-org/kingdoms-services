@@ -77,9 +77,7 @@ class FakeDb:
 async def test_real_grpc_provider_feeds_the_stats_cache(tmp_path: Any) -> None:
     server = grpc.aio.server()
     servicer = GameServicer(
-        lambda: ProviderCapabilities(
-            provider_id="ext-librematch", game_key="aoe2", player_stats=True
-        ),
+        lambda: ProviderCapabilities(provider_id="ext-librematch", game_key="aoe2", player_stats=True),
         player_stats=lambda profile_id: _stats(profile_id),
     )
     game_pb2_grpc.add_GameServicer_to_server(servicer, server)
@@ -114,7 +112,4 @@ async def _stats(profile_id: str) -> PlayerStats:
 
 
 def _blocks(stats: PlayerStats) -> list[dict[str, Any]]:
-    return [
-        {"name": b.name, "entries": [{"key": e.key, "value": e.value} for e in b.entries]}
-        for b in stats.blocks
-    ]
+    return [{"name": b.name, "entries": [{"key": e.key, "value": e.value} for e in b.entries]} for b in stats.blocks]

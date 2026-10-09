@@ -108,6 +108,8 @@ class MapPoolModel(BaseModel):
     ban_quota: int | None = None
     owner_guild_id: str | None = None
     is_public: bool = False
+    edition_mode: bool = True
+    ever_activated: bool = False
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

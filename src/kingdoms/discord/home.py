@@ -274,7 +274,6 @@ class ProfileAddAccountModal(discord.ui.Modal):
         await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
 
 
-
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
     """Build the profile header: the user's chosen name when known."""
     identity = getattr(interaction.client, "identity_service", None)
@@ -347,9 +346,7 @@ class ProfileRenameModal(discord.ui.Modal):
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
-            await interaction.response.send_message(
-                "Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True
-            )
+            await interaction.response.send_message("Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True)
             return
         except Exception:
             logger.warning("PROFILE RENAME failed", exc_info=True)
@@ -433,9 +430,7 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
     """The account picker of the remove flow."""
 
     def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(
-            custom_id="home:profile:remove:select", options=options, placeholder="Compte a retirer..."
-        )
+        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Compte a retirer...")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Unlink the chosen account, confirm."""
@@ -479,9 +474,7 @@ async def _view_games(interaction: discord.Interaction) -> None:
                     pools = await service.list_map_pools(key)
                     provider = await _provider_status(bot, key)
                     active = sum(1 for m in maps if m.archived_at is None)
-                    lines.append(
-                        f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}"
-                    )
+                    lines.append(f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}")
         except Exception:
             logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
     if not lines:
@@ -502,7 +495,8 @@ async def _provider_status(bot: Any, game: str) -> str:
         return "❔ aucun provider configuré"
     try:
         maps = await asyncio.wait_for(adapter.list_maps(), timeout=5)
-        return f"✅ en ligne ({len(maps)} maps)" if maps else "⚠️ réponse vide"
+        del maps  # the probe checks reachability, not the lobby-scoped map list
+        return "✅ provider en ligne"
     except TimeoutError:
         return "⚠️ timeout"
     except Exception:
@@ -677,7 +671,12 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
 
 
 async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:
-    """Whether the registered menu message still exists; re-pin it if unpinned."""
+    """Whether the registered menu message exists **and is current**.
+
+    A live message is edited in place to the current layout revision —
+    a boot with a changed surface must update the pin, not keep the old
+    version. The message id stays stable. Re-pins best-effort.
+    """
     message_id = await _resolve_menu_message_id(bot, guild_id)
     if message_id is None:
         return False
@@ -685,6 +684,16 @@ async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: An
         message = await channel.fetch_message(int(message_id))
     except Exception:
         return False
+    try:
+        home = getattr(bot, "home_service", None)
+        if home is not None:
+            await message.edit(view=await _async_layout(home)(guild_id))
+    except Exception:
+        logger.warning(
+            "PINNED HOME MENU in-place update failed (message %s) — keeping the old pin",
+            message_id,
+            exc_info=True,
+        )
     try:
         await message.pin(reason="kingdoms: pinned home menu (guild front door)")
     except Exception:

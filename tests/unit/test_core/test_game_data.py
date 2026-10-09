@@ -56,11 +56,7 @@ class FakeGameDataDatabase:
         ]
 
     async def find_ladder_activations(self, ladder_id: str) -> list[dict[str, Any]]:
-        rows = [
-            d
-            for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values()
-            if d.get("ladder_id") == ladder_id
-        ]
+        rows = [d for d in self._collection(MAP_POOL_HISTORY_COLLECTION).values() if d.get("ladder_id") == ladder_id]
         return sorted(rows, key=lambda d: d["activated_at"])
 
     async def find_open_activations(self, map_pool_id: str) -> list[dict[str, Any]]:
