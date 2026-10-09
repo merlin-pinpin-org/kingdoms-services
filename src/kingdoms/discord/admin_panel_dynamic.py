@@ -492,8 +492,9 @@ async def build_pin_main_menu(
             "Rien n'est actif par d\u00e9faut : la guilde doit demander l'acc\u00e8s aux "
             "games et mods ; un bot admin l'approuve depuis ses DMs."
         ),
-        _access_request_row(guild_id),
     ]
+    if guild_id:
+        container_blocks.append(_access_request_row(guild_id))
     from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
 
     if registered_admin_core_sections():

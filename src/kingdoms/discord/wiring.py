@@ -139,6 +139,25 @@ def build_provider_mapping_service() -> Any | None:
     return _PROVIDER_MAPPING_SERVICE
 
 
+async def granted_game_keys(guild_id: str, catalog_keys: tuple[str, ...] = ()) -> tuple[str, ...]:
+    """List the game keys a guild may provision (access-first).
+
+    The granted keys drive the channel provisioning: forums are created
+    on the grant even when the catalog is still empty, and fill up as
+    the content arrives. When the access service is unwired the
+    catalog's keys stand in (the open-degradation seam).
+    """
+    service = build_guild_access_service()
+    if service is None:
+        return catalog_keys
+    try:
+        granted = await service.enabled_games(guild_id)
+        return granted if granted else catalog_keys
+    except Exception:
+        logger.warning("GUILD ACCESS keys read failed (guild %s)", guild_id, exc_info=True)
+        return catalog_keys
+
+
 async def guild_has_game(guild_id: str, game_key: str) -> bool:
     """Whether the guild was granted one game (access seam; True when unwired).
 

@@ -253,10 +253,12 @@ def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
         while True:
             for guild in list(bot.guilds):
                 try:
-                    from kingdoms.discord.wiring import guild_has_game
+                    from kingdoms.discord.wiring import granted_game_keys, guild_has_game
 
                     service = _build_service()
-                    for game_key in await service.list_game_keys():
+                    for game_key in await granted_game_keys(
+                        str(guild.id), tuple(await service.list_game_keys())
+                    ):
                         if not await guild_has_game(str(guild.id), game_key):
                             continue
                         created = await sync_maps_forum(str(guild.id), game_key, bot, service)

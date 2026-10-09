@@ -175,9 +175,9 @@ async def sync_pools_forum(guild_id: str, bot: Any, service: Any = None) -> int:
     if guild is None:
         return 0
     actions = await _purge_legacy_forums(guild)
-    from kingdoms.discord.wiring import guild_has_game
+    from kingdoms.discord.wiring import granted_game_keys, guild_has_game
 
-    for game_key in await service.list_game_keys():
+    for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
         if not await guild_has_game(guild_id, game_key):
             continue
         actions += await _sync_game_pools(guild, guild_id, platform, service, game_key)
