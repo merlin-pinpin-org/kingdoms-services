@@ -233,6 +233,6 @@ class PinModRouteSelect(
                 await interaction.followup.send(message, ephemeral=True)
             return
         if not interaction.response.is_done():
-            await interaction.response.edit_message(view=view)
+            await interaction.response.send_message(view=view, ephemeral=True)
         else:
             await interaction.followup.send(view=view, ephemeral=True)

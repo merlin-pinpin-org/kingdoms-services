@@ -68,6 +68,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
 
     async def list_factions(guild_id: str) -> list[Any]:
         from kingdoms.discord.wiring import granted_game_keys
+
         service = _game_data(bot)
         if service is None:
             return []

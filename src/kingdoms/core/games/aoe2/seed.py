@@ -8,6 +8,7 @@ the services, never direct DB edits, and remains safe to re-run.
 
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -63,9 +64,19 @@ class MongoAoE2Database:
         return [doc async for doc in cursor]
 
     async def find_game_keys(self) -> list[str]:
-        """List the distinct game keys present in the maps catalog."""
-        keys = await self._database[collection_name("maps")].distinct("game_key")
-        return [str(k) for k in keys if k]
+        """List the distinct game keys across the content collections.
+
+        Factions (civs) and maps each carry the game key: a game whose
+        civs were synced (no map yet) is as known as one with maps.
+        """
+        keys: list[str] = []
+        for kind in ("maps", "factions"):
+            try:
+                found = await self._database[collection_name(kind)].distinct("game_key")
+                keys.extend(str(k) for k in found if k)
+            except Exception:
+                logging.getLogger(__name__).debug("game keys scan failed for %s", kind, exc_info=True)
+        return sorted(set(keys))
 
     async def find_active_factions(self, game_key: str, guild_id: str | None = None) -> list[dict[str, Any]]:
         """List the non-archived civs for a game, scoped like the maps."""

@@ -22,10 +22,7 @@ _PICK_NS = "guild:context:pick"
 
 def _guild_options(client: discord.Client) -> list[discord.SelectOption]:
     """List the bot's shared guilds as picker options (25 max)."""
-    return [
-        discord.SelectOption(label=guild.name, value=str(guild.id))
-        for guild in list(client.guilds)[:25]
-    ]
+    return [discord.SelectOption(label=guild.name, value=str(guild.id)) for guild in list(client.guilds)[:25]]
 
 
 class GuildContextPicker(

@@ -124,12 +124,12 @@ class GamesGameSelect(
         return cls(options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the chosen game's sub-menu."""
+        """Answer the chosen game's sub-menu as a dedicated ephemeral view."""
         chosen = (_selected_values(interaction) or [""])[0]
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.edit_message(view=await game_menu_view(chosen))
+        await interaction.response.send_message(view=await game_menu_view(chosen), ephemeral=True)
 
 
 async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
@@ -206,7 +206,7 @@ class GamesGrantedSelect(
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.edit_message(view=await game_menu_view(chosen))
+        await interaction.response.send_message(view=await game_menu_view(chosen), ephemeral=True)
 
 
 class GamesBackButton(
@@ -1000,7 +1000,7 @@ class GamesMapsBackButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Re-render the game's sub-menu."""
-        await interaction.response.edit_message(view=await game_menu_view(self.game_key))
+        await interaction.response.send_message(view=await game_menu_view(self.game_key), ephemeral=True)
 
 
 class GamesPoolsBackButton(
@@ -1033,7 +1033,7 @@ class GamesPoolsBackButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Re-render the game's sub-menu."""
-        await interaction.response.edit_message(view=await game_menu_view(self.game_key))
+        await interaction.response.send_message(view=await game_menu_view(self.game_key), ephemeral=True)
 
 
 class GamesPoolDuplicateButton(
@@ -1264,9 +1264,7 @@ class GamesMapImportModal(discord.ui.Modal):
             )
         except Exception:
             logger.exception("GAMES ADMIN: map import failed")
-            await interaction.response.send_message(
-                "Import echoue (nom deja pris ? voir les logs).", ephemeral=True
-            )
+            await interaction.response.send_message("Import echoue (nom deja pris ? voir les logs).", ephemeral=True)
             return
         if seed.image_url:
             from kingdoms.discord.content_posts import content_service
@@ -1354,24 +1352,16 @@ class GamesPoolImportModal(discord.ui.Modal):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         if guild_id is not None and source.owner_guild_id == guild_id:
-            await interaction.response.send_message(
-                "Ce pool appartient deja a cette guilde.", ephemeral=True
-            )
+            await interaction.response.send_message("Ce pool appartient deja a cette guilde.", ephemeral=True)
             return
         if not source.is_public:
-            await interaction.response.send_message(
-                "Seuls les pools publies peuvent etre importes.", ephemeral=True
-            )
+            await interaction.response.send_message("Seuls les pools publies peuvent etre importes.", ephemeral=True)
             return
         try:
-            copy = await service.send_map_pool_to_guild(
-                source.id, guild_id or "unknown", f"{source.name} (importe)"
-            )
+            copy = await service.send_map_pool_to_guild(source.id, guild_id or "unknown", f"{source.name} (importe)")
         except Exception:
             logger.exception("GAMES ADMIN: pool import failed")
-            await interaction.response.send_message(
-                "Import echoue (nom deja pris ? voir les logs).", ephemeral=True
-            )
+            await interaction.response.send_message("Import echoue (nom deja pris ? voir les logs).", ephemeral=True)
             return
         await interaction.response.send_message(
             f"Pool **{copy.name}** importe (verrouille, non modifiable).", ephemeral=True

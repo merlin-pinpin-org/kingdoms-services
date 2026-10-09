@@ -21,9 +21,10 @@ the&nbsp;services,&nbsp;never&nbsp;direct&nbsp;DB&nbsp;edits,&nbsp;and&nbsp;rema
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="time.html">time</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
 </td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -75,7 +76,10 @@ bot&nbsp;admins);&nbsp;unscoped:&nbsp;every&nbsp;map&nbsp;of&nbsp;the&nbsp;game.
 
 <dl><dt>async <a name="MongoAoE2Database-find_entry"><strong>find_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
-<dl><dt>async <a name="MongoAoE2Database-find_game_keys"><strong>find_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;distinct&nbsp;game&nbsp;keys&nbsp;present&nbsp;in&nbsp;the&nbsp;maps&nbsp;catalog.</span></dd></dl>
+<dl><dt>async <a name="MongoAoE2Database-find_game_keys"><strong>find_game_keys</strong></a>(self) -&gt; 'list[str]'</dt><dd><span class="code">List&nbsp;the&nbsp;distinct&nbsp;game&nbsp;keys&nbsp;across&nbsp;the&nbsp;content&nbsp;collections.<br>
+&nbsp;<br>
+Factions&nbsp;(civs)&nbsp;and&nbsp;maps&nbsp;each&nbsp;carry&nbsp;the&nbsp;game&nbsp;key:&nbsp;a&nbsp;game&nbsp;whose<br>
+civs&nbsp;were&nbsp;synced&nbsp;(no&nbsp;map&nbsp;yet)&nbsp;is&nbsp;as&nbsp;known&nbsp;as&nbsp;one&nbsp;with&nbsp;maps.</span></dd></dl>
 
 <dl><dt>async <a name="MongoAoE2Database-find_ladder_activations"><strong>find_ladder_activations</strong></a>(self, ladder_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;pool&nbsp;activation&nbsp;history&nbsp;of&nbsp;a&nbsp;ladder&nbsp;(ascending).</span></dd></dl>
 
