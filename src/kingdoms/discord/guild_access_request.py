@@ -209,7 +209,9 @@ async def _notify_bot_admins(
             message = await dm.send(content, view=view)
             sent.append((str(admin_id), str(message.id)))
         except Exception:
-            logger.warning("ACCESS REQUEST admin DM failed (admin %s) — best-effort", admin_id)
+            logger.warning(
+                "ACCESS REQUEST admin DM failed (admin %s) — best-effort", admin_id, exc_info=True
+            )
     _PENDING_DMS[_dm_key(guild_id, requested_at)] = sent
 
 
