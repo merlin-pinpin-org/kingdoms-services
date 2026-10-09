@@ -22,6 +22,7 @@ from typing import Any
 import discord
 
 from kingdoms.discord.admin_panel_mods import AdminModSection, register_admin_mod_section
+from kingdoms.discord.view_origin import from_pin
 
 logger = logging.getLogger("kingdoms.games.admin_panel")
 
@@ -129,11 +130,18 @@ class GamesGameSelect(
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.send_message(view=await game_menu_view(chosen), ephemeral=True)
+        await interaction.response.send_message(
+            view=await game_menu_view(chosen, from_pin=from_pin(interaction)),
+            ephemeral=True,
+        )
 
 
-async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
-    """One game's sub-menu: snapshot + the maps/pools actions."""
+async def game_menu_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
+    """One game's sub-menu: snapshot + the maps/pools actions.
+
+    A pin-opened view carries no back button (the pin stays under the
+    ephemeral); a command-opened one keeps it for the walk back.
+    """
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay(f"# Jeu `{game_key}`")]
@@ -160,7 +168,8 @@ async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
     imports.add_item(GamesMapImportButton(game_key))
     imports.add_item(GamesPoolImportButton(game_key))
     view.add_item(imports)
-    view.add_item(_back_row())
+    if not from_pin:
+        view.add_item(_back_row())
     return view
 
 
@@ -206,7 +215,10 @@ class GamesGrantedSelect(
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.send_message(view=await game_menu_view(chosen), ephemeral=True)
+        await interaction.response.send_message(
+            view=await game_menu_view(chosen, from_pin=from_pin(interaction)),
+            ephemeral=True,
+        )
 
 
 class GamesBackButton(
@@ -273,7 +285,9 @@ class GamesMapsButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Render the maps sub-view."""
-        await interaction.response.edit_message(view=await maps_admin_view(self.game_key))
+        await interaction.response.edit_message(
+            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
 
 
 class GamesPoolsButton(
@@ -304,10 +318,12 @@ class GamesPoolsButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Render the pools sub-view."""
-        await interaction.response.edit_message(view=await pools_admin_view(self.game_key))
+        await interaction.response.edit_message(
+            view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
 
 
-async def maps_admin_view(game_key: str) -> discord.ui.LayoutView:
+async def maps_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
     """Render the game's maps sub-view: the catalog with archive toggles."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -335,7 +351,8 @@ async def maps_admin_view(game_key: str) -> discord.ui.LayoutView:
     action_row.add_item(GamesMapCreateButton(game_key))
     action_row.add_item(GamesMapCreateButton(game_key, global_scope=True))
     view.add_item(action_row)
-    view.add_item(GamesMapsBackButton(game_key))
+    if not from_pin:
+        view.add_item(GamesMapsBackButton(game_key))
     return view
 
 
@@ -532,11 +549,13 @@ class GamesMapArchiveSelect(
         else:
             await service.archive_map(chosen)
             message = f"Map **{entry.name}** desactivee (archivee)."
-        await interaction.response.edit_message(view=await maps_admin_view(self.game_key))
+        await interaction.response.edit_message(
+            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
         await interaction.followup.send(message, ephemeral=True)
 
 
-async def pools_admin_view(game_key: str) -> discord.ui.LayoutView:
+async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
     """Render the game's map pools sub-view: list + CRUD actions."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -559,7 +578,8 @@ async def pools_admin_view(game_key: str) -> discord.ui.LayoutView:
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(action_row)
-    view.add_item(GamesPoolsBackButton(game_key))
+    if not from_pin:
+        view.add_item(GamesPoolsBackButton(game_key))
     return view
 
 
@@ -673,10 +693,14 @@ class GamesPoolEditSelect(
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.edit_message(view=await pool_editor_view(chosen, self.game_key))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(chosen, self.game_key, from_pin=from_pin(interaction))
+        )
 
 
-async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discord.ui.LayoutView:
+async def pool_editor_view(
+    pool_id: str, game_key: str, page: int = 0, from_pin: bool = False
+) -> discord.ui.LayoutView:
     """One pool's editor: rename, add/remove maps (paged, 25 per select), archive."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -727,9 +751,10 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0) -> discor
     send_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     send_row.add_item(GamesPoolSendButton(pool_id))
     view.add_item(send_row)
-    back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    back_row.add_item(GamesPoolsBackButton(pool.game_key))
-    view.add_item(back_row)
+    if not from_pin:
+        back_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        back_row.add_item(GamesPoolsBackButton(pool.game_key))
+        view.add_item(back_row)
     return view
 
 
@@ -788,7 +813,9 @@ class GamesPoolRenameModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool rename failed")
             await interaction.response.send_message("Renommage echoue (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(view=await pool_editor_view(pool.id, pool.game_key))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(pool.id, pool.game_key, from_pin=from_pin(interaction))
+        )
         await interaction.followup.send(f"Pool renomme **{pool.name}**.", ephemeral=True)
 
 
@@ -900,7 +927,11 @@ class GamesPoolMapPageSelect(
             await interaction.response.send_message("Pool introuvable.", ephemeral=True)
             return
         page = int((self.item.values or ["0"])[0])
-        await interaction.response.edit_message(view=await pool_editor_view(self.pool_id, pool.game_key, page))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(
+                self.pool_id, pool.game_key, page, from_pin=from_pin(interaction)
+            )
+        )
 
 
 class GamesPoolMapToggle(
@@ -966,7 +997,11 @@ class GamesPoolMapToggle(
             logger.exception("GAMES ADMIN: pool map toggle failed")
             await interaction.response.send_message("Modification echouee (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(view=await pool_editor_view(self.pool_id, pool.game_key, self.page))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(
+                self.pool_id, pool.game_key, self.page, from_pin=from_pin(interaction)
+            )
+        )
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
 
 
@@ -1101,7 +1136,9 @@ class GamesPoolDuplicateModal(discord.ui.Modal):
             logger.exception("GAMES ADMIN: pool duplicate failed")
             await interaction.response.send_message("Duplication echouee (voir les logs).", ephemeral=True)
             return
-        await interaction.response.edit_message(view=await pool_editor_view(copy.id, copy.game_key))
+        await interaction.response.edit_message(
+            view=await pool_editor_view(copy.id, copy.game_key, from_pin=from_pin(interaction))
+        )
         await interaction.followup.send(f"Pool duplique en **{copy.name}** (editable).", ephemeral=True)
 
 
