@@ -159,6 +159,7 @@ class KingdomsBot(discord.Client):
         self._pools_forum_task: asyncio.Task[None] | None = None
         self._factions_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
+        self.role_grants_service: Any | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
@@ -174,7 +175,6 @@ class KingdomsBot(discord.Client):
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
         self._home_pin_task: asyncio.Task[None] | None = None
-        self._managed_channels_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
     async def setup_hook(self) -> None:
@@ -212,6 +212,9 @@ class KingdomsBot(discord.Client):
 
         register_pool_flow_items(self)
         register_guild_context_items(self)
+        from kingdoms.discord.admin_roles import register_roles_admin_items
+
+        register_roles_admin_items(self)
         register_admin_dm_items(self)
         register_guild_access_request_items(self)
 
@@ -224,7 +227,6 @@ class KingdomsBot(discord.Client):
         if getattr(self, "_home_pin_pending", False):
             self._home_pin_pending = False
             self._home_pin_task = asyncio.create_task(_maintain_pinned_home_menu(self))
-            self._managed_channels_task = asyncio.create_task(_maintain_managed_channels(self))
 
     async def on_ready(self) -> None:
         """Log the ready marker asserted by smoke CI, then sync commands once."""
@@ -576,7 +578,6 @@ class KingdomsBot(discord.Client):
             self._maps_forum_task,
             self._pools_forum_task,
             self._factions_forum_task,
-            self._managed_channels_task,
         ):
             if task is not None:
                 task.cancel()
@@ -624,6 +625,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
     roles_service = _build_roles_service(resolved, bot, state=shared_state)
     bot.roles_service = roles_service
+    bot.role_grants_service = _build_role_grants_service(resolved)
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service, state=shared_state)
     bot.admin_channel_service = admin_channel_service
     channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry, state=shared_state)
@@ -817,38 +819,6 @@ def _build_home_provider(config: BotConfig) -> Any | None:
         return None
 
 
-async def _maintain_managed_channels(bot: KingdomsBot) -> None:
-    """Keep every managed channel alive (self-healing, runtime).
-
-    A deleted home/admin/logs channel is recreated on the next pass:
-    the managed-channel resolution is cache-aside (Redis -> Mongo ->
-    adoption -> creation), so a missing channel costs one pass. The
-    pinned menus ride along: their ensure steps resolve the channel
-    first, so the pin follows the recreated channel.
-    """
-    await asyncio.sleep(15)
-    while True:
-        for guild in list(bot.guilds):
-            guild_id = str(guild.id)
-            for service, admin_ids in (
-                (getattr(bot, "home_channel_service", None), ()),
-                (getattr(bot, "admin_channel_service", None), tuple(bot.status_service.bot_admins)),
-                (getattr(bot, "logs_service", None), ()),
-            ):
-                if service is None:
-                    continue
-                try:
-                    if admin_ids:
-                        await service.resolve_channel(guild_id, admin_ids)
-                    else:
-                        await service.resolve_channel(guild_id)
-                except Exception:
-                    logger.warning(
-                        "MANAGED CHANNEL check failed (guild %s) — best-effort", guild_id, exc_info=True
-                    )
-        await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
-
-
 async def _maintain_pinned_home_menu(bot: KingdomsBot) -> None:
     """Keep the pinned home menu alive in every guild (self-healing)."""
     from kingdoms.discord.home import ensure_pinned_home_menu
@@ -968,6 +938,23 @@ def _build_shared_state(config: BotConfig) -> StateService | None:
     if not config.redis_uri:
         return None
     return StateService(redis_uri=config.redis_uri)
+
+
+def _build_role_grants_service(config: BotConfig) -> Any | None:
+    """Wire the per-guild role-grant mappings; None without Mongo."""
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.role_grants import (
+            MongoRoleGrantsDatabase,
+            RoleGrantsService,
+        )
+
+        return RoleGrantsService(MongoRoleGrantsDatabase(get_async_database()))
+    except Exception:
+        logger.exception("ROLE GRANTS SERVICE WIRING FAILED — role mapping disabled")
+        return None
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:

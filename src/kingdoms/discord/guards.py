@@ -71,16 +71,26 @@ async def is_admin(
     user_id = getattr(interaction.user, "id", None)
     if is_bot_admin(user_id, bot_admins) or is_guild_admin(interaction):
         return True
-    if roles_service is None:
-        return False
-    try:
-        role_id = await roles_service.resolve_admin_role(str(interaction.guild_id) if interaction.guild_id else "")
-    except Exception:
-        logger.warning("ADMIN ROLE LOOKUP FAILED — denying", exc_info=True)
-        return False
-    if not role_id or not role_id.isdigit():
-        return False
-    return int(role_id) in _member_role_ids(interaction)
+    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+    member_roles = _member_role_ids(interaction)
+    if roles_service is not None:
+        try:
+            role_id = await roles_service.resolve_admin_role(guild_id)
+            if role_id and role_id.isdigit() and int(role_id) in member_roles:
+                return True
+        except Exception:
+            logger.warning("ADMIN ROLE LOOKUP FAILED — continuing", exc_info=True)
+    grants = getattr(interaction.client, "role_grants_service", None)
+    if grants is not None and guild_id:
+        try:
+            from kingdoms.core.services.role_grants import FUNCTION_BOT_ADMINS
+
+            for mapped in await grants.function_roles(guild_id, FUNCTION_BOT_ADMINS):
+                if mapped.isdigit() and int(mapped) in member_roles:
+                    return True
+        except Exception:
+            logger.warning("ROLE GRANTS LOOKUP FAILED — denying", exc_info=True)
+    return False
 
 
 async def require_admin(
