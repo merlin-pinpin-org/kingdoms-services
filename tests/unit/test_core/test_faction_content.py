@@ -29,7 +29,7 @@ def test_provider_extracts_french_faction_content() -> None:
     assert content.locale == "fr"
     assert content.name == "Francs"
     assert "civilisation" in content.summary.lower()
-    assert content.source_url == "https://aoe2techtree.net/Franks"
+    assert content.source_url == "https://aoe2techtree.net/#Franks"
 
 
 def test_provider_extracts_english_faction_content() -> None:
