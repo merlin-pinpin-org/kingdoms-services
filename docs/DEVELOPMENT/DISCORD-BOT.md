@@ -40,6 +40,12 @@ Chaque guilde provisionne ses canaux au démarrage (idempotent) :
   pin vivant (id stable), re-pin si désépinglé, marque `fixe:`, heal
   sur delete de salon. **Toute nouvelle pinned view statique passe
   par ce registre** — jamais de cycle ad-hoc.
+- **Boot status (`bot-logs`)** : le nouveau statut se pinline à
+  chaque boot, les anciens se dépinent (contrat : seul le dernier
+  reste épinglé). Les anciens messages **ne se suppriment pas** par
+  défaut ; `LogService(delete_old_boot_status=True)` active la
+  suppression — gardée par la marque (seul `fixe:boot-status` se
+  supprime ; un message non marqué n'est jamais le nôtre, il reste).
 - **Salons de mods** : provisionnés par chaque mod (ChannelService).
 
 ### Vues épinglées (pinned views)
