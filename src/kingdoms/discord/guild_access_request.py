@@ -44,7 +44,7 @@ class GuildAccessRequestSelect(
                 options=resolved,
                 placeholder="Games/mods a demander...",
                 min_values=1,
-                max_values=25,
+                max_values=min(25, len(resolved)),
                 disabled=disabled or all(o.value == "none" for o in resolved),
             )
         )
