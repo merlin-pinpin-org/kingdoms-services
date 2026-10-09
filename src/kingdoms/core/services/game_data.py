@@ -340,8 +340,9 @@ class GameDataService:
         keeps the current value, use ``0`` to disable a kind explicitly.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        if not pool.edition_mode:
-            raise PoolNotEditableError(f"map pool {entry_id!r} is locked (duplicate it to edit)")
+        name, map_ids, description = self._guard_pool_edition(
+            pool, name, map_ids, description, fav_quota, ban_quota
+        )
         if name is not None and name != pool.name:
             taken = await self._db.find_by_name(MAP_POOLS_COLLECTION, pool.game_key, name)
             if taken is not None and taken["_id"] != entry_id:
@@ -371,6 +372,27 @@ class GameDataService:
             {"pool_id": entry_id, "changes": {k: list(v) if k == "map_ids" else v for k, v in updates.items()}},
         )
         return updated
+
+    @staticmethod
+    def _guard_pool_edition(
+        pool: MapPoolModel,
+        name: str | None,
+        map_ids: tuple[str, ...] | None,
+        description: str | None,
+        fav_quota: int | None,
+        ban_quota: int | None,
+    ) -> tuple[str | None, tuple[str, ...] | None, str | None]:
+        """Enforce the edition lock: a locked pool only moves its quotas.
+
+        Composition changes (name, maps, description) are refused on a
+        locked pool — duplicate it to edit; a quota-only update is the
+        ladder's runtime setting and stays allowed.
+        """
+        if pool.edition_mode:
+            return name, map_ids, description
+        if fav_quota is None and ban_quota is None:
+            raise PoolNotEditableError(f"map pool {pool.id!r} is locked (duplicate it to edit)")
+        return None, None, None
 
     @staticmethod
     def _pool_updates(
