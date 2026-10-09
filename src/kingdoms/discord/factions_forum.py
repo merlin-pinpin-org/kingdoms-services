@@ -49,6 +49,44 @@ def _civ_post_layout(
     return view
 
 
+async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any) -> list[Any]:
+    """Sort the factions by their localized name, newest-first.
+
+    The guild's locale drives the name resolution (content store first,
+    catalog name fallback); the posts then read in reverse alphabetical
+    order of the names the players actually see.
+    """
+    from kingdoms.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
+    service = None
+    try:
+        from kingdoms.discord.content_posts import content_service
+
+        service = content_service()
+    except Exception:
+        service = None
+
+    async def display_name(faction: Any) -> str:
+        """Resolve the faction's name in the guild's locale (catalog fallback)."""
+        entry_id = str(getattr(faction, "id", ""))
+        fallback = str(getattr(faction, "name", faction))
+        if service is not None and entry_id:
+            try:
+                doc = await service.get(entry_id, locale)
+                if doc and doc.get("name"):
+                    return str(doc["name"])
+            except Exception:
+                return fallback
+        return fallback
+
+    keyed: list[tuple[str, Any]] = []
+    for faction in factions:
+        keyed.append((await display_name(faction), faction))
+    keyed.sort(key=lambda pair: pair[0], reverse=True)
+    return [faction for _, faction in keyed]
+
+
 def factions_forum_name(game_key: str) -> str:
     """Build the per-game factions forum name (``aoe2`` -> ``aoe2-factions``)."""
     return f"{game_key}{FACTIONS_FORUM_SUFFIX}"
@@ -75,7 +113,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         factions: list[Any] = []
         for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
             factions.extend(await service.list_factions(game_key))
-        return sorted(factions, key=lambda f: str(getattr(f, "name", f)), reverse=True)
+        return await _sorted_by_localized_name(factions, guild_id, bot)
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
         from kingdoms.core.ids import footer
