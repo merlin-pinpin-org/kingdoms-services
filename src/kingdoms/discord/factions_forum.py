@@ -75,7 +75,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         factions: list[Any] = []
         for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
             factions.extend(await service.list_factions(game_key))
-        return factions
+        return sorted(factions, key=lambda f: str(getattr(f, "name", f)), reverse=True)
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
         from kingdoms.core.ids import footer
