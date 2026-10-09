@@ -420,7 +420,9 @@ async def ensure_live_dashboard(
             guild_id=guild_id,
         )
         await _sync_extra_pages(guild_id, channel, registry, embeds)
+        await _sweep_duplicate_dashboards(channel, keep=reused)
         return False
+    await _sweep_duplicate_dashboards(channel, keep=None)
     message = await channel.send(embed=embeds[0])
     try:
         await message.pin(reason="kingdoms: live dashboard (#147)")
@@ -513,6 +515,40 @@ async def _sync_extra_pages(
             await channel.get_partial_message(int(registered.message_id)).delete()
         except Exception:
             logger.warning("live dashboard page %s cleanup failed", page_number, exc_info=True)
+
+
+async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | None) -> int:
+    """Delete the duplicate dashboard messages; the kept one stays.
+
+    A crash mid-cycle (or a pre-adoption deployment) can leave an
+    orphan dashboard next to the pinned one. The sweep keeps the
+    pinned (or freshly created) message and removes the bot's other
+    dashboard messages in the channel — the ``fixe:`` mark identifies
+    ours; foreign messages are never touched.
+    """
+    from kingdoms.discord.pinned_marks import is_pinned_view
+
+    removed = 0
+    try:
+        async for message in channel.history(limit=50, oldest_first=False):
+            if str(message.id) == str(keep or ""):
+                continue
+            if message.author.id != channel.guild.me.id:
+                continue
+            if not is_pinned_view(message):
+                continue
+            if message.pinned:
+                continue
+            try:
+                await message.delete()
+                removed += 1
+            except Exception:
+                logger.debug("dashboard sweep skip (message %s)", message.id, exc_info=True)
+    except Exception:
+        logger.debug("dashboard sweep failed — best-effort", exc_info=True)
+    if removed:
+        logger.info("live dashboard: %d duplicate message(s) swept", removed)
+    return removed
 
 
 async def _reuse_pinned_dashboard(channel: discord.TextChannel, embed: discord.Embed) -> str | None:

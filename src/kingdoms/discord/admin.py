@@ -92,9 +92,14 @@ LOCALES = ("en", "fr")
 
 # (category, icon, i18n label key) — the label renders through the
 # guild's locale (admin.channel_bot_logs / admin.channel_bot_admins).
+HOME_CHANNEL_CATEGORY = "home"
+LIVE_CHANNEL_CATEGORY = "live"
+
 MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
     (BOT_LOGS_CATEGORY, "🛰", "channel_bot_logs"),
     (ADMIN_CHANNEL_CATEGORY, "🛡", "channel_bot_admins"),
+    (HOME_CHANNEL_CATEGORY, "🏛", "channel_home"),
+    (LIVE_CHANNEL_CATEGORY, "📡", "channel_live"),
 )
 
 _LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
@@ -499,14 +504,35 @@ async def _resolve_managed_channel(
     admin_channel_service: AdminChannelService | None = None,
 ) -> str | None:
     """Resolve a managed channel id, degrading to None on failure."""
+    client = _panel_client()
+    if client is None and category in (HOME_CHANNEL_CATEGORY, LIVE_CHANNEL_CATEGORY):
+        return None
     try:
         if category == BOT_LOGS_CATEGORY:
             return await logs_service.resolve_channel(guild_id)
         if category == ADMIN_CHANNEL_CATEGORY and admin_channel_service is not None:
             return await admin_channel_service.resolve_channel(guild_id)
+        if category == HOME_CHANNEL_CATEGORY:
+            home_channel = getattr(client, "home_channel_service", None)
+            if home_channel is not None:
+                resolved = await home_channel.resolve_channel(guild_id)
+                return str(resolved) if resolved else None
+        if category == LIVE_CHANNEL_CATEGORY and client is not None:
+            from kingdoms.discord.live import LIVE_CHANNEL_NAME
+
+            guild = client.get_guild(int(guild_id)) if guild_id.isdigit() else None
+            channel = discord.utils.get(guild.text_channels, name=LIVE_CHANNEL_NAME) if guild else None
+            return str(channel.id) if channel is not None else None
     except Exception:
         logger.warning("ADMIN PANEL: channel resolution failed (guild %s, category %s)", guild_id, category)
     return None
+
+
+def _panel_client() -> discord.Client | None:
+    """Resolve the running bot (the admin module's client reference; None unwired)."""
+    from kingdoms.discord.admin_panel_dynamic import _CLIENT_REF
+
+    return _CLIENT_REF[0] if _CLIENT_REF else None
 
 
 def build_admin_note_view(message: str) -> discord.ui.LayoutView:

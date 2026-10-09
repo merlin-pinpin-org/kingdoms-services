@@ -378,6 +378,42 @@ class KingdomsBot(discord.Client):
         remembering to type the command.
         """
         from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+        from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
+
+        async def _resolve_admin_channel(guild_id: str) -> str | None:
+            """Resolve (or recreate) the admin channel."""
+            service = self.admin_channel_service
+            if service is None:
+                return None
+            return await service.resolve_channel(guild_id, self.status_service.bot_admins)
+
+        async def _build_admin_panel(guild_id: str) -> Any:
+            """Build the admin panel layout for the static-pin registry."""
+            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+
+            if self.logs_service is None:
+                return discord.ui.LayoutView(timeout=None)
+            try:
+                locale = str(await self.logs_service.get_locale(guild_id) or "en")
+            except Exception:
+                locale = "en"
+            return await build_pin_main_menu(
+                self.logs_service,
+                guild_id,
+                self.messages,
+                locale,
+                self.admin_channel_service,
+            )
+
+        register_static_pin(
+            StaticPinnedView(
+                key="admin-panel",
+                mark_suffix="admin-panel",
+                resolve_channel=_resolve_admin_channel,
+                build_layout=_build_admin_panel,
+                registry=getattr(self, "message_registry", None),
+            )
+        )
 
         await asyncio.sleep(5)
         while True:
