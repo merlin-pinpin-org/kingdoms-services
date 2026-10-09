@@ -368,10 +368,23 @@ async def ensure_live_dashboard(
     Returns True when a message was created, False when an existing
     one was refreshed (or the step degraded quietly).
     """
+    if _guild_paused(guild_id):
+        return False
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return False
-    channel = await ensure_live_dashboard_channel(guild)
+    try:
+        channel = await ensure_live_dashboard_channel(guild)
+    except discord.Forbidden:
+        # 50001 Missing Access: the bot lost the channel (channel reset,
+        # permissions revoked). Recreating would 403 too -- back off.
+        _pause_guild(guild_id)
+        logger.warning(
+            "live dashboard channel access forbidden (guild %s) - pausing %ss",
+            guild_id,
+            DASHBOARD_FAILURE_COOLDOWN_S,
+        )
+        return False
     try:
         snapshot = await client.watch(GAME_KEY)
     except Exception:
@@ -382,7 +395,18 @@ async def ensure_live_dashboard(
     registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, guild_id)
     if await _edit_registered(channel, registered, embed):
         return False
-    message = await channel.send(embed=embed)
+    try:
+        message = await channel.send(embed=embed)
+    except discord.Forbidden:
+        # The channel exists but the bot cannot send: pause instead of
+        # retrying every frame (a tight 403 loop starves interactions).
+        _pause_guild(guild_id)
+        logger.warning(
+            "live dashboard send forbidden (guild %s) - pausing %ss",
+            guild_id,
+            DASHBOARD_FAILURE_COOLDOWN_S,
+        )
+        return False
     await registry.register(
         platform=PLATFORM,
         message_key=LIVE_MESSAGE_KEY,
@@ -428,6 +452,17 @@ async def _edit_registered(
         message = channel.get_partial_message(int(registered.message_id))
         await message.edit(content=None, embed=embed)
         return True
+    except discord.Forbidden:
+        # 50001 Missing Access: editing is impossible and so is sending a
+        # replacement -- pause the guild instead of recreate-looping.
+        _pause_guild(str(channel.guild.id))
+        logger.warning(
+            "live dashboard edit forbidden (message %s) - pausing guild %s for %ss",
+            getattr(registered, "message_id", "?"),
+            channel.guild.id,
+            DASHBOARD_FAILURE_COOLDOWN_S,
+        )
+        return False
     except Exception:
         logger.warning(
             "live dashboard edit failed (message %s) — recreating",
@@ -469,7 +504,23 @@ async def start_live_dashboard_refresh(
 PLATFORM = "discord"
 DASHBOARD_REFRESH_INTERVAL_S = 15
 DASHBOARD_MIN_EDIT_INTERVAL_S = 60
+DASHBOARD_FAILURE_COOLDOWN_S = 600
 _LAST_PUSH: dict[str, tuple[float, str]] = {}
+_GUILD_COOLDOWN: dict[str, float] = {}
+
+
+def _guild_paused(guild_id: str) -> bool:
+    """True while the guild sits in its failure back-off window."""
+    until = _GUILD_COOLDOWN.get(guild_id, 0.0)
+    if until and time.monotonic() < until:
+        return True
+    _GUILD_COOLDOWN.pop(guild_id, None)
+    return False
+
+
+def _pause_guild(guild_id: str, seconds: float = DASHBOARD_FAILURE_COOLDOWN_S) -> None:
+    """Back off a guild after a hard Discord failure (403 Missing Access)."""
+    _GUILD_COOLDOWN[guild_id] = time.monotonic() + seconds
 
 
 def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
@@ -525,14 +576,23 @@ async def _push_snapshot(
     body = render_dashboard(snapshot, stats=stats)
     embed = _dashboard_embed(snapshot, body, bot)
     for guild in list(bot.guilds):
+        if _guild_paused(str(guild.id)):
+            continue
         last_at, last_fp = _LAST_PUSH.get(str(guild.id), (0.0, ""))
         if last_fp == fingerprint and now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S * 4:
             continue
         _LAST_PUSH[str(guild.id)] = (now, fingerprint)
-        channel = await ensure_live_dashboard_channel(guild)
-        registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, str(guild.id))
         try:
+            channel = await ensure_live_dashboard_channel(guild)
+            registered = await registry.resolve(PLATFORM, LIVE_MESSAGE_KEY, str(guild.id))
             if not await _edit_registered(channel, registered, embed):
                 await ensure_live_dashboard(bot, str(guild.id), client, registry)
+        except discord.Forbidden:
+            _pause_guild(str(guild.id))
+            logger.warning(
+                "live dashboard push forbidden (guild %s) - pausing %ss",
+                guild.id,
+                DASHBOARD_FAILURE_COOLDOWN_S,
+            )
         except Exception:
             logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)
