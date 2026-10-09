@@ -21,19 +21,25 @@ Chaque guilde provisionne ses canaux au démarrage (idempotent) :
 - **Salons par défaut** : `🛠-bot-logs` (journaux), `🛡-bot-admins`
   (panel admin épinglé), `🏛-home` (accueil — l'ancien
   `kingdoms-home` est renommé in-place au premier passage).
-- **Self-healing universel** : tout salon, forum ou post géré par le
-  bot se recrée s'il est supprimé. **Réactif** pour les salons gérés
-  (`on_guild_channel_delete` → re-résolution immédiate :
-  l'existence est vérifiée à chaque résolution, un salon supprimé
-  est recréé à l'instant) ; les forums et leurs posts via les syncs
-  horaires (le réactif par thread raterait le bookkeeping des
-  fingerprints) ; le dashboard live via son intervalle court. La
-  boucle horaire `_maintain_managed_channels` reste en filet de
-  sécurité (elle rattrape un event manqué).
-- **Catégorie `games`** : un forum par entité et par jeu accordé —
-  `aoe2-maps`, `aoe2-factions`, `aoe2-map-pools`. Gated sur les jeux
-  **accordés** (`granted_game_keys`), pas sur le contenu : un forum se
-  crée vide et se remplit aux syncs (horaires).
+- **Self-healing universel, événementiel** : tout salon géré par le
+  bot se recrée **à l'instant** de sa suppression
+  (`on_guild_channel_delete` → re-résolution : Redis → Mongo →
+  adoption → création), **et son pin revient avec lui** — le heal
+  appelle `heal_static_pins`, qui recrée chaque vue épinglée
+  statique dans le salon recréé. Les forums et leurs posts se
+  recréent via les syncs horaires (le réactif par thread raterait le
+  bookkeeping des fingerprints) ; le dashboard live via son
+  intervalle court. Bouton **Recreate all channels** (section Rôles)
+  pour forcer une recréation manuelle.
+- **Vues épinglées statiques — registre déclaratif**
+  (`static_pins.py`) : une pinned view statique s'enregistre une
+  fois au wiring via `register_static_pin(StaticPinnedView(key,
+  mark_suffix, resolve_channel, build_layout, registry))`. Le cycle
+  partagé (`ensure_static_pin`) possède tout : résolution du salon
+  (recréé au besoin), création du pin manquant, édition in-place du
+  pin vivant (id stable), re-pin si désépinglé, marque `fixe:`, heal
+  sur delete de salon. **Toute nouvelle pinned view statique passe
+  par ce registre** — jamais de cycle ad-hoc.
 - **Salons de mods** : provisionnés par chaque mod (ChannelService).
 
 ### Vues épinglées (pinned views)
