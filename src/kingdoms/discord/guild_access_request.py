@@ -196,6 +196,9 @@ async def _notify_bot_admins(
     admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
     guild_name = getattr(getattr(interaction, "guild", None), "name", guild_id)
     content = f"**Demande d'accès** — guilde {guild_name} (`{guild_id}`) : {', '.join(keys)}"
+    view = discord.ui.View(timeout=None)
+    view.add_item(GuildAccessApproveButton(guild_id, requested_at))
+    view.add_item(GuildAccessDenyButton(guild_id, requested_at))
     sent: list[tuple[str, str]] = []
     for admin_id in admins:
         if not str(admin_id).strip().isdigit():
@@ -203,11 +206,127 @@ async def _notify_bot_admins(
         try:
             user = bot.get_user(int(admin_id)) or await bot.fetch_user(int(admin_id))
             dm = await user.create_dm()
-            message = await dm.send(content)
+            message = await dm.send(content, view=view)
             sent.append((str(admin_id), str(message.id)))
         except Exception:
             logger.warning("ACCESS REQUEST admin DM failed (admin %s) — best-effort", admin_id)
     _PENDING_DMS[_dm_key(guild_id, requested_at)] = sent
+
+
+async def _guard_bot_admin_deferred(interaction: discord.Interaction) -> bool:
+    """Bot-admin guard for an already-deferred interaction (followup denial)."""
+    from kingdoms.discord.guards import is_bot_admin
+
+    bot = interaction.client
+    admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
+    if is_bot_admin(interaction.user.id, admins):
+        return True
+    await interaction.followup.send("Réservé aux bot admins.", ephemeral=True)
+    return False
+
+
+async def _answer_pending_request(
+    interaction: discord.Interaction,
+    guild_id: str,
+    requested_at: str,
+    *,
+    approve: bool,
+) -> None:
+    """Handle one admin's answer: mutate, clean every admin's DM copy, reply."""
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    if not await _guard_bot_admin_deferred(interaction):
+        return
+    service = await _access_service()
+    if service is None:
+        await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+        return
+    try:
+        if approve:
+            doc = await service.approve(guild_id, requested_at)
+        else:
+            doc = await service.deny(guild_id, requested_at)
+    except Exception:
+        logger.warning("ACCESS REQUEST answer failed (guild %s, approve=%s)", guild_id, approve)
+        await interaction.followup.send(
+            "Demande introuvable (déjà traitée ?).", ephemeral=True
+        )
+        return
+    await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
+    granted = ", ".join((doc.get("games") or []) + [f"mod:{m}" for m in doc.get("mods") or []])
+    if approve:
+        await interaction.followup.send(
+            f"Accès accordé à la guilde `{guild_id}` — actifs : {granted or 'aucun'}.", ephemeral=True
+        )
+    else:
+        await interaction.followup.send(f"Demande de `{guild_id}` refusée.", ephemeral=True)
+
+
+class GuildAccessApproveButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:approve:(?P<guild_id>\d+):(?P<requested_at>\d+)",
+):
+    """Bot-admin DM button: approve one guild's pending request."""
+
+    def __init__(self, guild_id: str, requested_at: str) -> None:
+        self.guild_id = guild_id
+        self.requested_at = requested_at
+        super().__init__(
+            discord.ui.Button(
+                label="Approuver",
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_NS}:approve:{guild_id}:{requested_at}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessApproveButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("guild_id"), match.group("requested_at"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Approve the request and clean the other admins' DM copies."""
+        await _answer_pending_request(interaction, self.guild_id, self.requested_at, approve=True)
+
+
+class GuildAccessDenyButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:deny:(?P<guild_id>\d+):(?P<requested_at>\d+)",
+):
+    """Bot-admin DM button: deny one guild's pending request."""
+
+    def __init__(self, guild_id: str, requested_at: str) -> None:
+        self.guild_id = guild_id
+        self.requested_at = requested_at
+        super().__init__(
+            discord.ui.Button(
+                label="Refuser",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:deny:{guild_id}:{requested_at}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessDenyButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("guild_id"), match.group("requested_at"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Deny the request and clean the other admins' DM copies."""
+        await _answer_pending_request(interaction, self.guild_id, self.requested_at, approve=False)
 
 
 async def _delete_pending_admin_dms(bot: Any, guild_id: str, requested_at: str) -> None:
@@ -231,3 +350,5 @@ def register_guild_access_request_items(bot: discord.Client) -> None:
     """Register the request surface's persistent dynamic items."""
     bot.add_dynamic_items(GuildAccessRequestSelect)
     bot.add_dynamic_items(GuildAccessRequestButton)
+    bot.add_dynamic_items(GuildAccessApproveButton)
+    bot.add_dynamic_items(GuildAccessDenyButton)
