@@ -30,7 +30,8 @@ GAMES_CATEGORY_NAME = "games"
 POOLS_FORUM_SUFFIX = "-map-pools"
 LEGACY_PREFIX = "map-pools-"
 SYNC_INTERVAL_S = 3600
-MAX_SECTIONS = 20
+MAX_SECTIONS = 10
+MAX_TEXT_CHUNKS = 4
 TEXT_CHUNK_MAPS = 20
 
 
@@ -62,8 +63,8 @@ def _pool_post_layout(pool: Any, maps: list[dict[str, Any]]) -> discord.ui.Layou
             )
         )
     overflow = maps[MAX_SECTIONS:]
-    for chunk_start in range(0, len(overflow), TEXT_CHUNK_MAPS):
-        chunk = overflow[chunk_start : chunk_start + TEXT_CHUNK_MAPS]
+    for chunk_start in range(0, len(overflow), TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS):
+        chunk = overflow[chunk_start : chunk_start + TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS]
         view.add_item(discord.ui.TextDisplay("\n".join(f"- {m['name']}" for m in chunk)))
     view.add_item(discord.ui.Separator())
     view.add_item(
