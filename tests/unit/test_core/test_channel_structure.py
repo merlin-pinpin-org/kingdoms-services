@@ -150,7 +150,7 @@ class TestStructuredProvisioning:
         service, platform, _db = make_service()
         report = await service.provision_mod_channels(GUILD, "example")
         assert set(platform.groups) == {"Général", "Admin"}
-        for channel_id, (name, kind, group_id) in platform.channels.items():
+        for _channel_id, (name, _kind, group_id) in platform.channels.items():
             assert group_id is not None, f"channel {name} provisioned outside a category"
             assert group_id in platform.groups.values()
         assert report.created and not report.adopted
@@ -174,7 +174,7 @@ class TestStructuredProvisioning:
         await service.provision_mod_channels(GUILD, "example")
         # Simulate an age switch: the epoch channel is renamed.
         epoch_id = db.channels[f"{GUILD}:example:epoch"].channel_id
-        old_name, kind, group_id = platform.channels[epoch_id]
+        _old_name, kind, group_id = platform.channels[epoch_id]
         platform.channels[epoch_id] = ("Âge féodal", kind, group_id)
         del db.channels[f"{GUILD}:example:epoch"]
         channel = await service.get_channel_for_category(GUILD, "example:epoch")
