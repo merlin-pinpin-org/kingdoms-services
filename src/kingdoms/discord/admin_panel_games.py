@@ -22,6 +22,7 @@ from typing import Any
 import discord
 
 from kingdoms.discord.admin_panel_mods import AdminModSection, register_admin_mod_section
+from kingdoms.discord.commands_i18n import reply
 from kingdoms.discord.view_origin import from_pin
 
 logger = logging.getLogger("kingdoms.games.admin_panel")
@@ -430,11 +431,15 @@ class GamesMapCreateModal(discord.ui.Modal):
         """
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         name = str(self.name.value or "").strip()
         if not name:
-            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.name_required"), ephemeral=True
+            )
             return
         from kingdoms.discord.guards import is_bot_admin
 
@@ -479,7 +484,9 @@ class GamesMapCreateModal(discord.ui.Modal):
                     )
         except Exception:
             logger.exception("GAMES ADMIN: map creation failed")
-            await interaction.response.send_message("Creation echouee (nom deja pris ? voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.import_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(
             f"Map **{entry.name}** creee - elle apparaitra dans le forum maps.", ephemeral=True
@@ -529,7 +536,9 @@ class GamesMapArchiveSelect(
         """Toggle the map's archived state, audit, re-render."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         chosen = (_selected_values(interaction) or [""])[0]
         if not chosen or chosen == "none":
@@ -537,7 +546,9 @@ class GamesMapArchiveSelect(
             return
         entry = await service.get_map(chosen)
         if entry is None:
-            await interaction.response.send_message("Map introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.map_not_found"), ephemeral=True
+            )
             return
         if entry.archived_at is not None:
             from kingdoms.core.services.game_data import MAPS_COLLECTION
@@ -631,7 +642,9 @@ class GamesPoolCreateModal(discord.ui.Modal):
         """Create the pool (with the optional first map), confirm."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         map_ids: tuple[str, ...] = ()
         map_name = str(self.map_name.value or "").strip()
@@ -647,7 +660,9 @@ class GamesPoolCreateModal(discord.ui.Modal):
             pool = await service.create_map_pool(self.game_key, str(self.name.value).strip(), map_ids=map_ids)
         except Exception:
             logger.exception("GAMES ADMIN: pool creation failed")
-            await interaction.response.send_message("Creation echouee (voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.creation_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(
             f"Pool **{pool.name}** créé - ajoute ses maps via la liste.", ephemeral=True
@@ -698,9 +713,7 @@ class GamesPoolEditSelect(
         )
 
 
-async def pool_editor_view(
-    pool_id: str, game_key: str, page: int = 0, from_pin: bool = False
-) -> discord.ui.LayoutView:
+async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin: bool = False) -> discord.ui.LayoutView:
     """One pool's editor: rename, add/remove maps (paged, 25 per select), archive."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -805,7 +818,9 @@ class GamesPoolRenameModal(discord.ui.Modal):
         """Rename the pool, audit, re-render the editor."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         try:
             pool = await service.update_map_pool(self.pool_id, name=str(self.name.value).strip())
@@ -849,11 +864,15 @@ class GamesPoolArchiveButton(
         """Archive the pool, then return to the pools list."""
         service = _games_wiring()
         if service is None or not self.pool_id:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         try:
             await service.archive_map_pool(self.pool_id)
@@ -924,13 +943,13 @@ class GamesPoolMapPageSelect(
         service = _games_wiring()
         pool = await service.get_map_pool(self.pool_id) if service is not None else None
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         page = int((self.item.values or ["0"])[0])
         await interaction.response.edit_message(
-            view=await pool_editor_view(
-                self.pool_id, pool.game_key, page, from_pin=from_pin(interaction)
-            )
+            view=await pool_editor_view(self.pool_id, pool.game_key, page, from_pin=from_pin(interaction))
         )
 
 
@@ -974,7 +993,9 @@ class GamesPoolMapToggle(
         """Toggle the chosen map in the pool, re-render the editor."""
         service = _games_wiring()
         if service is None or not self.pool_id:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         chosen = (_selected_values(interaction) or [""])[0]
         if not chosen or chosen == "none":
@@ -982,7 +1003,9 @@ class GamesPoolMapToggle(
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         current = list(pool.map_ids)
         if chosen in current:
@@ -995,12 +1018,12 @@ class GamesPoolMapToggle(
             await service.update_map_pool(self.pool_id, map_ids=tuple(current))
         except Exception:
             logger.exception("GAMES ADMIN: pool map toggle failed")
-            await interaction.response.send_message("Modification echouee (voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.edit_failed"), ephemeral=True
+            )
             return
         await interaction.response.edit_message(
-            view=await pool_editor_view(
-                self.pool_id, pool.game_key, self.page, from_pin=from_pin(interaction)
-            )
+            view=await pool_editor_view(self.pool_id, pool.game_key, self.page, from_pin=from_pin(interaction))
         )
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
 
@@ -1103,11 +1126,15 @@ class GamesPoolDuplicateButton(
         """Duplicate under a fresh name, then open the editable copy."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         await interaction.response.send_modal(GamesPoolDuplicateModal(pool.id, pool.name))
 
@@ -1127,7 +1154,9 @@ class GamesPoolDuplicateModal(discord.ui.Modal):
         """Duplicate the pool, then open the editable copy's editor."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         try:
@@ -1174,11 +1203,15 @@ class GamesPoolSendButton(
         """Open the send modal after resolving the pool."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         await interaction.response.send_modal(GamesPoolSendModal(pool.id, pool.name))
 
@@ -1202,7 +1235,9 @@ class GamesPoolSendModal(discord.ui.Modal):
         """Send the locked copy to the target guild, confirm."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         target = str(self.guild_id.value or "").strip()
         if not target.isdigit():
@@ -1273,11 +1308,15 @@ class GamesMapImportModal(discord.ui.Modal):
         """Import the map by name; Liquipedia fills the public content."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         name = str(self.name.value or "").strip()
         if not name:
-            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.name_required"), ephemeral=True
+            )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         from kingdoms.mapsdata.seed import fetch_map_seed
@@ -1301,7 +1340,9 @@ class GamesMapImportModal(discord.ui.Modal):
             )
         except Exception:
             logger.exception("GAMES ADMIN: map import failed")
-            await interaction.response.send_message("Import echoue (nom deja pris ? voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.import_failed"), ephemeral=True
+            )
             return
         if seed.image_url:
             from kingdoms.discord.content_posts import content_service
@@ -1380,12 +1421,16 @@ class GamesPoolImportModal(discord.ui.Modal):
         """Import the pool by id; only published pools are importable."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         source_id = str(self.pool_id.value or "").strip()
         source = await service.get_map_pool(source_id) if source_id else None
         if source is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         if guild_id is not None and source.owner_guild_id == guild_id:
@@ -1398,7 +1443,9 @@ class GamesPoolImportModal(discord.ui.Modal):
             copy = await service.send_map_pool_to_guild(source.id, guild_id or "unknown", f"{source.name} (importe)")
         except Exception:
             logger.exception("GAMES ADMIN: pool import failed")
-            await interaction.response.send_message("Import echoue (nom deja pris ? voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.import_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(
             f"Pool **{copy.name}** importe (verrouille, non modifiable).", ephemeral=True

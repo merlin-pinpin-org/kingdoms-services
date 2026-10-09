@@ -22,6 +22,8 @@ from typing import Any
 
 import discord
 
+from kingdoms.discord.commands_i18n import reply
+
 logger = logging.getLogger("kingdoms.games.pool_flow")
 
 _ADD_NS = "games:map:add"
@@ -138,25 +140,33 @@ class MapPoolPickerSelect(
         """Add the map to the chosen pool (or open the create branch)."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         chosen = (self.item.values or [""])[0]
         entry = await service.get_map(self.map_id)
         if entry is None:
-            await interaction.response.send_message("Map introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.map_not_found"), ephemeral=True
+            )
             return
         if chosen == "__new__":
             await interaction.response.send_modal(MapNewPoolModal(self.map_id, entry.game_key))
             return
         pool = await service.get_map_pool(chosen)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         try:
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, self.map_id))
         except Exception:
             logger.warning("POOL FLOW: add to existing pool failed", exc_info=True)
-            await interaction.response.send_message("Ajout impossible (voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.action_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True)
 
@@ -183,7 +193,9 @@ class MapNewPoolModal(discord.ui.Modal):
         """Create the pool (owned by this guild) and add the map."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         try:
@@ -196,7 +208,9 @@ class MapNewPoolModal(discord.ui.Modal):
             )
         except Exception:
             logger.warning("POOL FLOW: pool create failed", exc_info=True)
-            await interaction.response.send_message("Création impossible (nom déjà pris ?).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.creation_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(f"Pool **{pool.name}** créé — la map a été ajoutée.", ephemeral=True)
 
@@ -238,11 +252,15 @@ class PoolAddMapButton(
             return
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         maps = [m for m in await service.list_maps(pool.game_key) if m.id not in pool.map_ids]
         view = PoolMapPickerView(pool, maps, page=0)
@@ -295,7 +313,9 @@ class PoolMapPickerView(discord.ui.View):
         map_id = (children[0].values or [""])[0] if children else ""
         service = _games_wiring()
         if service is None or map_id in ("", "none"):
-            await interaction.response.edit_message(content="Sélection invalide.")
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.selection_invalid")
+            )
             return
         pool = await service.get_map_pool(self.pool.id)
         entry = await service.get_map(map_id)
@@ -306,7 +326,7 @@ class PoolMapPickerView(discord.ui.View):
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
         except Exception:
             logger.warning("POOL FLOW: add to pool failed", exc_info=True)
-            await interaction.response.edit_message(content="Ajout impossible (voir les logs).")
+            await interaction.response.edit_message(content=await reply(interaction, "replies_shared.action_failed"))
             return
         await interaction.response.edit_message(
             content=f"**{entry.name}** ajoutée à **{pool.name}** — la fiche du pool se met à jour à la prochaine sync."
@@ -348,15 +368,21 @@ class MapEditButton(
             return
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         entry = await service.get_map(self.map_id)
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         if entry is None:
-            await interaction.response.send_message("Map introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.map_not_found"), ephemeral=True
+            )
             return
         if entry.owner_guild_id != guild_id:
-            await interaction.response.send_message("Seules les maps de la guilde sont modifiables.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.guild_maps_only"), ephemeral=True
+            )
             return
         await interaction.response.send_modal(MapEditModal(self.map_id, entry.name))
 
@@ -384,7 +410,9 @@ class MapEditModal(discord.ui.Modal):
         """Persist the edits; the post refreshes at the next sync."""
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         try:
             entry = await service.update_map(
@@ -395,7 +423,9 @@ class MapEditModal(discord.ui.Modal):
             )
         except Exception:
             logger.warning("POOL FLOW: map edit failed", exc_info=True)
-            await interaction.response.send_message("Modification impossible (voir les logs).", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.edit_failed"), ephemeral=True
+            )
             return
         await interaction.response.send_message(
             f"Map **{entry.name}** mise à jour — la fiche se rafraîchit à la prochaine sync.",
@@ -447,7 +477,9 @@ class PoolTransitionButton(
             return
         service = _games_wiring()
         if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
             return
         from kingdoms.core.services.game_data import (
             POOL_STATE_LABELS,
@@ -456,7 +488,9 @@ class PoolTransitionButton(
 
         pool = await service.get_map_pool(self.pool_id)
         if pool is None:
-            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
             return
         targets = POOL_TRANSITIONS.get(pool.state, ())
         if not targets:
@@ -470,7 +504,9 @@ class PoolTransitionButton(
                 updated = await service.transition_map_pool(pool.id, targets[0])
             except Exception:
                 logger.warning("POOL FLOW: transition failed", exc_info=True)
-                await interaction.response.send_message("Transition impossible (voir les logs).", ephemeral=True)
+                await interaction.response.send_message(
+                    await reply(interaction, "replies_shared.transition_failed"), ephemeral=True
+                )
                 return
             await interaction.response.send_message(
                 f"Pool **{updated.name}** : {POOL_STATE_LABELS.get(updated.state, updated.state)} — "
@@ -512,7 +548,9 @@ class PoolTransitionSelectView(discord.ui.View):
         chosen = (children[0].values or [""])[0] if children else ""
         service = _games_wiring()
         if service is None or not chosen:
-            await interaction.response.edit_message(content="Sélection invalide.")
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.selection_invalid")
+            )
             return
         from kingdoms.core.services.game_data import POOL_STATE_LABELS
 
@@ -520,7 +558,9 @@ class PoolTransitionSelectView(discord.ui.View):
             updated = await service.transition_map_pool(self.pool_id, chosen)
         except Exception:
             logger.warning("POOL FLOW: transition failed", exc_info=True)
-            await interaction.response.edit_message(content="Transition impossible (voir les logs).")
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.transition_failed")
+            )
             return
         await interaction.response.edit_message(
             content=(

@@ -1,174 +1,178 @@
 en:
   common:
-    greeting: "Welcome to Kingdoms!"
-    error: "Something went wrong. Please try again."
-    cancel: "Cancel"
-    confirm: "Confirm"
+    greeting: Welcome to Kingdoms!
+    error: Something went wrong. Please try again.
+    cancel: Cancel
+    confirm: Confirm
   announce:
-    commands_label: "Commands (sync: {scope})"
-    sync_none_label: "none (DM)"
-    title: "Kingdoms — Deployment"
-    services_label: "Services"
-    infra_label: "Infra"
-    bot_label: "Bot"
-    version_label: "Version"
-    prerelease_label: "Pre-release"
-    branch_label: "Branch"
-    commit_label: "Commit"
-    tag_label: "Tag"
-    image_label: "Image"
-    job_ci_label: "Job CI"
-    job_deploy_label: "Job deployment"
-    deployment_label: "Deployment"
-    uptime_label: "Uptime"
-    admins_label: "Admins"
-    games_label: "Games"
-    mods_label: "Mods"
-    latency_label: "Latency"
-    none_label: "*(none configured)*"
-    files_label: "Files"
-    link_label: "Link"
-    ci_label: "Job"
-    deploy_label: "Job"
+    commands_label: 'Commands (sync: {scope})'
+    sync_none_label: none (DM)
+    title: Kingdoms — Deployment
+    services_label: Services
+    infra_label: Infra
+    bot_label: Bot
+    version_label: Version
+    prerelease_label: Pre-release
+    branch_label: Branch
+    commit_label: Commit
+    tag_label: Tag
+    image_label: Image
+    job_ci_label: Job CI
+    job_deploy_label: Job deployment
+    deployment_label: Deployment
+    uptime_label: Uptime
+    admins_label: Admins
+    games_label: Games
+    mods_label: Mods
+    latency_label: Latency
+    none_label: '*(none configured)*'
+    files_label: Files
+    link_label: Link
+    ci_label: Job
+    deploy_label: Job
   lifecycle:
-    stop: "Bot shutting down."
+    stop: Bot shutting down.
     policy:
-      grant: "Access policy updated: role <@&{role_id}> granted view, by <@{by}>."
-      reset: "Access policy reset to admin-only, by <@{by}>."
-      route: "Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>."
-      visibility: "Bot logs visibility set to {state}, by <@{by}>."
-      language: "Language set to {lang}, by <@{by}>."
+      grant: 'Access policy updated: role <@&{role_id}> granted view, by <@{by}>.'
+      reset: Access policy reset to admin-only, by <@{by}>.
+      route: Bot logs routed to <#{channel_id}>{previous_note}, by <@{by}>.
+      visibility: Bot logs visibility set to {state}, by <@{by}>.
+      language: Language set to {lang}, by <@{by}>.
   replies:
-    unavailable: "Registration is unavailable."
-    unavailable_deploy: "Registration is unavailable on this deployment."
-    not_configured: "Registration is not configured."
-    profile_required: "A profile id is required."
-    profile_linked: "Account linked."
-    profile_unlinked: "Account unlinked."
-    no_account: "No account to remove."
-    remove_failed: "Removal failed."
-    menu_unavailable: "Menu unavailable."
-    unknown_view: "Unknown view."
-    no_home_view: "This mod has no home view."
-
+    unavailable: Registration is unavailable.
+    unavailable_deploy: Registration is unavailable on this deployment.
+    not_configured: Registration is not configured.
+    profile_required: A profile id is required.
+    profile_linked: Account linked.
+    profile_unlinked: Account unlinked.
+    no_account: No account to remove.
+    remove_failed: Removal failed.
+    menu_unavailable: Menu unavailable.
+    unknown_view: Unknown view.
+    no_home_view: This mod has no home view.
   admin_replies:
-    panel_unavailable: "Admin panel unavailable."
-    language_changed: "Language updated."
-    language_change_failed: "Language change failed."
-
+    panel_unavailable: Admin panel unavailable.
+    language_changed: Language updated.
+    language_change_failed: Language change failed.
   commands:
-    status_name: "status"
-    staff_nominate_name: "Appoint staff"
-    staff_nominate_description: "Appoint this member to the staff (admin)"
-    status_description: "Bot status: uptime, mods, games, admins"
-    admin_name: "admin"
-    admin_description: "Admin panel (bot operators and guild admins only)"
-    register_name: "register"
-    register_description: "Link your AoE2 profile to your account (DM enrollment)"
-    live_name: "live"
-    live_description: "Live test dashboard: linked players, lobbies and games"
-    game_link_name: "game-link"
-    game_link_description: "Link your AoE2 profile id to your account (test scope)"
-    game_unlink_name: "game-unlink"
-    game_unlink_description: "Unlink your AoE2 profile from your account"
-    home_name: "home"
-    home_description: "The guild's home menu"
-    ladder_name: "ladder"
-    ladder_description: "Ladder: queue, matches, standings"
-  ladder:
-    queue_empty: "The queue is empty."
-    left_queue: "You left the queue."
-    leave_failed: "Could not leave: {reason}"
-    leaderboard_empty: "No players yet."
-    joined_queue: "You joined the queue."
-    join_failed: "Could not join: {reason}"
-    join_unconfigured: "Registration is not configured — profiles cannot be verified."
-    join_no_profile: "No AoE2 profile linked — use /register first."
-  errors:
-    validation: "Invalid input. Please check your values and try again."
-    configuration: "Configuration error. Please contact an administrator."
-    not_found: "The requested resource was not found."
-    permission: "You do not have permission to perform this action."
-    rate_limited: "You are being rate limited. Please try again later."
-    workflow: "An error occurred during the workflow. Please try again."
-    platform: "A platform error occurred. Please try again."
-    database: "A database error occurred. Please try again later."
-    unexpected: "An unexpected error occurred. Please try again."
-  permissions:
-    denied: "You are not allowed to do that — this action requires a role you do not have."
-  guards:
-    denied: "You are not allowed to do that — this action is reserved for bot admins."
-  admin:
-    title: "Kingdoms — Admin"
-    channel_bot_logs: "Bot logs"
-    channel_bot_admins: "Bot admins"
-    visibility_admin_label: "Admin-only"
-    visibility_admin_hint: "Guild admins and BOT_ADMINS only"
-    visibility_public_label: "Public"
-    visibility_public_hint: "Everyone may read the logs"
-    language: "Guild language"
-    language_hint: "Current: {value} — used for every channel message."
-    language_placeholder: "Guild language — {value}"
-    channels: "Channels"
-    channels_placeholder: "Manage a channel…"
-    roles_button: "View roles"
-    read_only_hint: "Pinned channels read-only (default: on)"
-    mods_placeholder: "A mod's section…"
-    back: "← Back"
-    channel: "Channel"
-    visibility: "Visibility"
-    visibility_public: "public 🔓"
-    visibility_admin_only: "admin-only 🔒"
-    visibility_placeholder: "Visibility…"
-    route_placeholder: "Route to a guild channel…"
-    not_provisioned: "not provisioned yet"
-    admin_channel_note: "The admin channel visibility is governed by the bot-admins role (transparency rule)."
-    dm_title: "Kingdoms — Admin (DM)"
-    dm_language: "DM language"
-    dm_language_hint: "This language applies to every DM the bot sends you: error reports, enrollment, match reports."
-    dm_placeholder: "Your DM language…"
-    dm_change_failed: "Language change failed — try again."
-    route_failed: "Routing failed — see the bot logs."
-    visibility_failed: "Visibility change failed — see the bot logs."
-    no_service: "Admin settings are unavailable (no LogService wired)."
-    panel_failed: "Bot logs management failed — `{detail}`"
-  channel_audit:
-    clean: "Channel audit: no drift detected."
-    header: "Channel audit — {count} drift finding(s):"
-    finding: "[{severity}] {category}: {kind} (expected {expected}, actual {actual})"
-
+    status_name: status
+    staff_nominate_name: Appoint staff
+    staff_nominate_description: Appoint this member to the staff (admin)
+    status_description: 'Bot status: uptime, mods, games, admins'
+    admin_name: admin
+    admin_description: Admin panel (bot operators and guild admins only)
+    register_name: register
+    register_description: Link your AoE2 profile to your account (DM enrollment)
+    live_name: live
+    live_description: 'Live test dashboard: linked players, lobbies and games'
+    game_link_name: game-link
+    game_link_description: Link your AoE2 profile id to your account (test scope)
+    game_unlink_name: game-unlink
+    game_unlink_description: Unlink your AoE2 profile from your account
+    home_name: home
+    home_description: The guild's home menu
+    ladder_name: ladder
+    ladder_description: 'Ladder: queue, matches, standings'
   ladder:
     season_state:
-      scheduled: "scheduled"
-      active: "active"
-      ended: "ended"
-    season_active: "Active season"
-    season_none: "none"
-    season_empty: "No season yet — create the first one."
-    season_list_hint: "Seasons are created, activated and ended here."
-    season_active_hint: "Active season: {name}"
-    enrollments_open: "open"
-    enrollments_closed: "closed"
-    admin_wiring_unavailable: "Ladder unavailable: Mongo/Redis are not configured."
-    admin_no_ladder: "No ladder yet — the core will create it on first use."
-    admin_no_ladder_action: "No ladder for this guild."
-    admin_season_created: "Season **{name}** created — activate it from the list."
-    admin_season_activated: "Season **{name}** activated."
-    admin_season_ended: "Season **{name}** ended."
-    admin_season_end_none: "No active season."
-    admin_season_create_failed: "Creation failed (name already taken?)."
-    admin_season_activate_failed: "Activation failed (see the logs)."
-    admin_season_bad_days: "Invalid duration (a number of days)."
-    admin_season_name_required: "The name is required."
-    admin_title_seasons: "Ladder admin — seasons"
-
-live:
-  title: "🎮 Live dashboard"
-  offline_separator: "— offline —"
-  no_players: "No linked players yet — link a profile with /game-link."
-  all_offline: "Everyone is offline for more than an hour."
-  unavailable: "Live dashboard unavailable: CORE_URI not configured."
-  linked: "Linked profile `{profile}` to <@{user}> — the dashboard will show it. Link more profiles by running /game-link again."
-  unlinked: "Profile `{profile}` unlinked."
-  no_link: "No link found for profile `{profile}`."
-  degraded: "⚠️ Providers unreachable — states may be stale, all shown offline."
+      scheduled: scheduled
+      active: active
+      ended: ended
+    season_active: Active season
+    season_none: none
+    season_empty: No season yet — create the first one.
+    season_list_hint: Seasons are created, activated and ended here.
+    season_active_hint: 'Active season: {name}'
+    enrollments_open: open
+    enrollments_closed: closed
+    admin_wiring_unavailable: 'Ladder unavailable: Mongo/Redis are not configured.'
+    admin_no_ladder: No ladder yet — the core will create it on first use.
+    admin_no_ladder_action: No ladder for this guild.
+    admin_season_created: Season **{name}** created — activate it from the list.
+    admin_season_activated: Season **{name}** activated.
+    admin_season_ended: Season **{name}** ended.
+    admin_season_end_none: No active season.
+    admin_season_create_failed: Creation failed (name already taken?).
+    admin_season_activate_failed: Activation failed (see the logs).
+    admin_season_bad_days: Invalid duration (a number of days).
+    admin_season_name_required: The name is required.
+    admin_title_seasons: Ladder admin — seasons
+  errors:
+    validation: Invalid input. Please check your values and try again.
+    configuration: Configuration error. Please contact an administrator.
+    not_found: The requested resource was not found.
+    permission: You do not have permission to perform this action.
+    rate_limited: You are being rate limited. Please try again later.
+    workflow: An error occurred during the workflow. Please try again.
+    platform: A platform error occurred. Please try again.
+    database: A database error occurred. Please try again later.
+    unexpected: An unexpected error occurred. Please try again.
+  permissions:
+    denied: You are not allowed to do that — this action requires a role you do not
+      have.
+  guards:
+    denied: You are not allowed to do that — this action is reserved for bot admins.
+  admin:
+    title: Kingdoms — Admin
+    channel_bot_logs: Bot logs
+    channel_bot_admins: Bot admins
+    visibility_admin_label: Admin-only
+    visibility_admin_hint: Guild admins and BOT_ADMINS only
+    visibility_public_label: Public
+    visibility_public_hint: Everyone may read the logs
+    language: Guild language
+    language_hint: 'Current: {value} — used for every channel message.'
+    language_placeholder: Guild language — {value}
+    channels: Channels
+    channels_placeholder: Manage a channel…
+    roles_button: View roles
+    read_only_hint: 'Pinned channels read-only (default: on)'
+    mods_placeholder: A mod's section…
+    back: ← Back
+    channel: Channel
+    visibility: Visibility
+    visibility_public: public 🔓
+    visibility_admin_only: admin-only 🔒
+    visibility_placeholder: Visibility…
+    route_placeholder: Route to a guild channel…
+    not_provisioned: not provisioned yet
+    admin_channel_note: The admin channel visibility is governed by the bot-admins
+      role (transparency rule).
+    dm_title: Kingdoms — Admin (DM)
+    dm_language: DM language
+    dm_language_hint: 'This language applies to every DM the bot sends you: error
+      reports, enrollment, match reports.'
+    dm_placeholder: Your DM language…
+    dm_change_failed: Language change failed — try again.
+    route_failed: Routing failed — see the bot logs.
+    visibility_failed: Visibility change failed — see the bot logs.
+    no_service: Admin settings are unavailable (no LogService wired).
+    panel_failed: Bot logs management failed — `{detail}`
+  channel_audit:
+    clean: 'Channel audit: no drift detected.'
+    header: 'Channel audit — {count} drift finding(s):'
+    finding: '[{severity}] {category}: {kind} (expected {expected}, actual {actual})'
+  live:
+    title: 🎮 Live dashboard
+    offline_separator: — offline —
+    no_players: No linked players yet — link a profile with /game-link.
+    all_offline: Everyone is offline for more than an hour.
+    unavailable: 'Live dashboard unavailable: CORE_URI not configured.'
+    linked: Linked profile `{profile}` to <@{user}> — the dashboard will show it.
+      Link more profiles by running /game-link again.
+    unlinked: Profile `{profile}` unlinked.
+    no_link: No link found for profile `{profile}`.
+    degraded: ⚠️ Providers unreachable — states may be stale, all shown offline.
+  replies_shared:
+    wiring_unavailable: Wiring unavailable.
+    map_not_found: Map not found.
+    pool_not_found: Map pool not found.
+    action_failed: Action failed (see the logs).
+    creation_failed: Creation failed (name already taken?).
+    edit_failed: Edit failed (see the logs).
+    import_failed: Import failed (name already taken? see the logs).
+    pool_locked: This pool is locked — duplicate it to edit.
+    guild_maps_only: Only guild-owned maps are editable.
+    transition_failed: State transition failed (see the logs).
+    name_required: The name is required.
+    selection_invalid: Invalid selection.
