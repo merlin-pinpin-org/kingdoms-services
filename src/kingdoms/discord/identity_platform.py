@@ -51,6 +51,4 @@ class MongoIdentityDatabase:
 
     async def upsert_user(self, user: UserModel) -> None:
         """Insert or replace the user document."""
-        await self._database[USERS_COLLECTION].replace_one(
-            {"_id": user.id}, user.to_mongo(), upsert=True
-        )
+        await self._database[USERS_COLLECTION].replace_one({"_id": user.id}, user.to_mongo(), upsert=True)

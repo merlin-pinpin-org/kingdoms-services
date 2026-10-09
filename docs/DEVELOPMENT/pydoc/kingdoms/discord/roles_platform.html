@@ -63,6 +63,8 @@ check&nbsp;BOT_ADMINS&nbsp;first,&nbsp;environment-sourced).<br>&nbsp;</span></t
 
 <dl><dt>async <a name="DiscordAdminChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="DiscordAdminChannelPlatform-edit_layout"><strong>edit_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', message_id: 'str', layout: 'Any') -&gt; 'None'</dt><dd><span class="code">Edit&nbsp;one&nbsp;delivered&nbsp;layout&nbsp;message&nbsp;in&nbsp;place.</span></dd></dl>
+
 <dl><dt>async <a name="DiscordAdminChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordAdminChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;UI&nbsp;SDK&nbsp;layout&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>

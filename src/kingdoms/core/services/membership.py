@@ -17,6 +17,7 @@ mod, without duplicated wiring.
 
 Reference: §0/§6 (the core never imports platform code), ADR-0020.
 """
+
 from __future__ import annotations
 
 import logging

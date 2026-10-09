@@ -59,15 +59,11 @@ class ChannelsPlatform(Protocol):
         """Whether the channel still exists on the platform."""
         ...
 
-    async def apply_access_policy(
-        self, guild_id: str, channel_id: str, policy: dict[str, object]
-    ) -> None:
+    async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, object]) -> None:
         """Apply a category's declared access policy as permission overwrites."""
         ...
 
-    async def get_channel_overwrites(
-        self, guild_id: str, channel_id: str
-    ) -> dict[str, dict[str, bool]] | None:
+    async def get_channel_overwrites(self, guild_id: str, channel_id: str) -> dict[str, dict[str, bool]] | None:
         """Actual permission overwrites: target id -> {permission: bool}."""
         ...
 
@@ -79,9 +75,7 @@ class ChannelsCache(Protocol):
         """Read one cached value; None on miss (store may be down)."""
         ...
 
-    async def set_state(
-        self, scope: str, key: str, value: dict[str, object], ttl: int | None = None
-    ) -> bool:
+    async def set_state(self, scope: str, key: str, value: dict[str, object], ttl: int | None = None) -> bool:
         """Write one cached value with a TTL (best-effort); True when written."""
         ...
 
@@ -200,9 +194,7 @@ class ChannelService:
             category = f"{mod_name}:{category_def.key}"
             channels[category] = await self.get_channel_for_category(guild_id, category)
             try:
-                await self._platform.apply_access_policy(
-                    guild_id, channels[category].id, category_def.access.to_dict()
-                )
+                await self._platform.apply_access_policy(guild_id, channels[category].id, category_def.access.to_dict())
             except Exception:
                 logger.warning(
                     "ACCESS POLICY application failed (guild %s, category %s) — best-effort",

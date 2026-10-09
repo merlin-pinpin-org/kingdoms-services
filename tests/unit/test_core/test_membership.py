@@ -4,6 +4,7 @@ The contract: the mod hooks own the registration business, the core
 orchestrates (hooks → season role sync), a seasonal mod syncs its
 player role on every change, a non-seasonal mod skips the role sync.
 """
+
 from __future__ import annotations
 
 import pytest

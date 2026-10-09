@@ -5,6 +5,7 @@ pinned menu's buttons answer ephemerally, guarded at click time), so
 unlike the admin channel its policy applies no visibility restriction —
 a read of the home grants nothing.
 """
+
 from __future__ import annotations
 
 import logging

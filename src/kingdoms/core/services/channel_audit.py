@@ -83,14 +83,10 @@ class ChannelAuditService:
         for mod_name, definition in self._registry.enabled().items():
             for category_def in definition.channel_categories:
                 category = f"{mod_name}:{category_def.key}"
-                findings.extend(
-                    await self._audit_category(guild_id, category, category_def.access.to_dict())
-                )
+                findings.extend(await self._audit_category(guild_id, category, category_def.access.to_dict()))
         return DriftReport(guild_id=guild_id, findings=tuple(findings))
 
-    async def _audit_category(
-        self, guild_id: str, category: str, policy: dict[str, Any]
-    ) -> list[DriftFinding]:
+    async def _audit_category(self, guild_id: str, category: str, policy: dict[str, Any]) -> list[DriftFinding]:
         """Audit one category: channel existence, then overwrites."""
         stored = await self._db.find_channel(guild_id, category)
         if stored is None:
@@ -184,9 +180,7 @@ class ChannelAuditService:
             try:
                 if report.clean:
                     return str(self._i18n.render("channel_audit.clean", self._locale))
-                header = str(self._i18n.render(
-                    "channel_audit.header", self._locale, count=len(report.findings)
-                ))
+                header = str(self._i18n.render("channel_audit.header", self._locale, count=len(report.findings)))
                 lines = [
                     self._i18n.render(
                         "channel_audit.finding",
@@ -205,8 +199,7 @@ class ChannelAuditService:
         if report.clean:
             return "Channel audit: no drift detected."
         lines = [
-            f"[{f.severity}] {f.category}: {f.kind} (expected {f.expected}, actual {f.actual})"
-            for f in report.findings
+            f"[{f.severity}] {f.category}: {f.kind} (expected {f.expected}, actual {f.actual})" for f in report.findings
         ]
         return "\n".join(["Channel audit — drift detected:", *lines])
 

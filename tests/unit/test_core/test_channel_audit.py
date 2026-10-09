@@ -70,9 +70,7 @@ class FakeChannelsPlatform:
     async def channel_exists(self, guild_id: str, channel_id: str) -> bool:
         return channel_id in self.live
 
-    async def apply_access_policy(
-        self, guild_id: str, channel_id: str, policy: dict[str, object]
-    ) -> None:
+    async def apply_access_policy(self, guild_id: str, channel_id: str, policy: dict[str, object]) -> None:
         self.applied[channel_id] = policy
         overwrites: dict[str, dict[str, bool]] = {"@everyone": {}}
         if policy.get("everyone_view", True):
@@ -90,9 +88,7 @@ class FakeChannelsPlatform:
             }
         self.overwrites[channel_id] = overwrites
 
-    async def get_channel_overwrites(
-        self, guild_id: str, channel_id: str
-    ) -> dict[str, dict[str, bool]] | None:
+    async def get_channel_overwrites(self, guild_id: str, channel_id: str) -> dict[str, dict[str, bool]] | None:
         return self.overwrites.get(channel_id)
 
 

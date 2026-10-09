@@ -15,10 +15,7 @@ DATASET_DIR = Path(__file__).resolve().parents[3] / "data" / "core" / "aoe2techt
 
 def _provider() -> TechtreeContentProvider:
     data_json = (DATASET_DIR / "data.json").read_text(encoding="utf-8")
-    locale_files = {
-        lng: (DATASET_DIR / f"strings-{lng}.json").read_text(encoding="utf-8")
-        for lng in SUPPORTED_LOCALES
-    }
+    locale_files = {lng: (DATASET_DIR / f"strings-{lng}.json").read_text(encoding="utf-8") for lng in SUPPORTED_LOCALES}
     return TechtreeContentProvider.from_files(data_json, locale_files)
 
 

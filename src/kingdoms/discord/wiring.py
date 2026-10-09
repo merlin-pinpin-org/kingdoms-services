@@ -108,9 +108,7 @@ async def guild_category(guild: discord.Guild, name: str, *, create_reason: str 
     category = discord.utils.get(guild.categories, name=name)
     if category is None:
         try:
-            category = await guild.create_category(
-                name, reason=create_reason or f"kingdoms: {name} category"
-            )
+            category = await guild.create_category(name, reason=create_reason or f"kingdoms: {name} category")
         except Exception:
             logger.warning("category creation failed (%s) — best-effort", name, exc_info=True)
             return None

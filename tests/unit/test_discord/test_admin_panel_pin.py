@@ -269,9 +269,7 @@ async def test_ensure_rebuilds_a_pin_predating_the_mods_select() -> None:
     register_admin_mod_section(AdminModSection(mod="testmod", label="Test", entry=_entry))
     try:
         channel = _FakeChannel("555")
-        old_pin = _pin_carrying(
-            [type("C", (), {"custom_id": PIN_LOCALE_SELECT_ID, "children": []})()]
-        )
+        old_pin = _pin_carrying([type("C", (), {"custom_id": PIN_LOCALE_SELECT_ID, "children": []})()])
         old_pin.id = 8001
         channel.pins_list = [old_pin]
         bot = _FakeBot(channel)

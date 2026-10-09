@@ -18,6 +18,7 @@ staff" through ``list_staff`` — a guard seam for mod actions.
 
 Reference: §0/§6 (the core never imports platform code), ADR-0020.
 """
+
 from __future__ import annotations
 
 import logging
@@ -67,9 +68,7 @@ class StaffService:
         """Build the staff document id: one per (guild, mod, user)."""
         return f"staff:{guild_id}:{mod}:{user_id}"
 
-    async def apply(
-        self, guild_id: str, mod: str, user_id: str, now: int, message: str = ""
-    ) -> dict[str, Any]:
+    async def apply(self, guild_id: str, mod: str, user_id: str, now: int, message: str = "") -> dict[str, Any]:
         """Record a staff application (idempotent while pending).
 
         An existing accepted staff re-applying is a no-op; a declined

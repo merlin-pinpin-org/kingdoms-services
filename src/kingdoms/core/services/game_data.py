@@ -38,6 +38,7 @@ logger = logging.getLogger("kingdoms.core.game_data")
 T = TypeVar("T")
 
 MAPS_COLLECTION = "maps"
+MAX_POOL_MAPS = 25
 MAP_POOLS_COLLECTION = "map_pools"
 MAP_PACKS_COLLECTION = "map_packs"
 MAP_POOL_HISTORY_COLLECTION = "map_pool_history"
@@ -298,6 +299,8 @@ class GameDataService:
                 raise ValueError(f"unknown map pack {pack_id!r}")
         if not map_ids and not map_pack_ids:
             raise ValueError("a map pool references at least one map or map pack")
+        if len(map_ids) > MAX_POOL_MAPS:
+            raise ValueError(f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}")
         pool = MapPoolModel(
             _id=f"map_pool:{game_key}:{name}",
             game_key=game_key,
@@ -347,6 +350,10 @@ class GameDataService:
             for map_id in map_ids:
                 if await self._db.find_entry(MAPS_COLLECTION, map_id) is None:
                     raise ValueError(f"unknown map {map_id!r}")
+            if len(map_ids) > MAX_POOL_MAPS:
+                raise ValueError(
+                    f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}"
+                )
         updates = self._pool_updates(
             pool,
             name=name,

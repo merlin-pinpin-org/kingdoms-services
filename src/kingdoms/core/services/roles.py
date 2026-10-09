@@ -50,9 +50,7 @@ class RolesCache(Protocol):
         """Read a hot-state entry; None when missing or expired."""
         ...
 
-    async def set_state(
-        self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None
-    ) -> bool:
+    async def set_state(self, scope: str, key: str, value: dict[str, Any], ttl: int | None = None) -> bool:
         """Write a hot-state entry with a TTL; True when the write landed."""
         ...
 
@@ -320,9 +318,7 @@ class ModRolesService:
             logger.warning("MOD-ROLE provisioning failed (%s:%s)", mod_name, role_def.key, exc_info=True)
             return None
 
-    async def assign_platform_role(
-        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
-    ) -> None:
+    async def assign_platform_role(self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str) -> None:
         """Assign one platform role id to a member (best-effort)."""
         try:
             await self._members.add_role_to_member(
@@ -333,9 +329,7 @@ class ModRolesService:
                 "MOD-ROLE assign failed (guild %s, user %s, role %s)", guild_id, user_id, role_id, exc_info=True
             )
 
-    async def remove_platform_role(
-        self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str
-    ) -> None:
+    async def remove_platform_role(self, guild_id: str, user_id: str, role_id: str, mod: str, role_key: str) -> None:
         """Remove one platform role id from a member (best-effort)."""
         try:
             await self._members.remove_role_from_member(

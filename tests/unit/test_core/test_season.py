@@ -133,6 +133,7 @@ async def test_create_blocked_while_a_season_is_live() -> None:
     with pytest.raises(SeasonActiveError, match="live season"):
         await svc.create_season(LADDER, "S2", pool_id, start_at=2000)
 
+
 @pytest.mark.asyncio
 async def test_delete_never_started_season() -> None:
     """A scheduled, never-activated season can be deleted and recreated."""
@@ -145,6 +146,7 @@ async def test_delete_never_started_season() -> None:
     assert await svc.get_season(season.id) is None
     fresh = await svc.create_season(LADDER, "S1 fixed", pool_id, start_at=1200)
     assert (fresh.index, fresh.id) == (1, f"{LADDER}:1")
+
 
 @pytest.mark.asyncio
 async def test_delete_started_season_rejected() -> None:
