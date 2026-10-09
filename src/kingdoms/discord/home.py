@@ -32,14 +32,13 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-from typing import Any, cast
+from typing import Any
 
 import discord
 from discord import app_commands
 
 from kingdoms.core.services.home import HomeService
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
 from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.home")
@@ -644,67 +643,38 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
     await builder(interaction)
 
 
-async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
-    """Ensure the guild's home channel holds its pinned menu, never rebuilt while it lives.
+def _home_static_pin_spec(bot: discord.Client) -> Any:
+    """Declare (and register) the home menu as a static pinned view."""
+    from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
 
-    The message id is resolved through the message registry (Mongo-backed,
-    restart-proof) or the bot's in-memory fallback store: as long as the
-    registered message exists it is merely re-pinned; only a gone message
-    (deleted or channel wiped) triggers a rebuild, whose id replaces the
-    registration.
-    """
     home_channel = getattr(bot, "home_channel_service", None)
     home = getattr(bot, "home_service", None)
     if home_channel is None or home is None:
-        return False
-    channel_id = await home_channel.resolve_channel(guild_id)
-    if channel_id is None:
-        return False
-    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
-    channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() and guild else None
-    if channel is None or not hasattr(channel, "fetch_message") or not hasattr(channel, "send"):
-        return False
-
-    if await _registered_menu_lives(bot, guild_id, channel):
-        return False
-
-    class _ChannelDelivery:
-        last_message_id: str | None = None
-
-        async def deliver(self, channel: Any, layout: Any) -> str:
-            """Send the layout and remember the delivered message id."""
-            message = await channel.send(view=layout)
-            self.last_message_id = str(message.id)
-            return self.last_message_id
-
-        async def update(self, channel: Any, message_id: str, layout: Any) -> bool:
-            """Edit an existing menu message to the new layout in place."""
-            try:
-                message = await channel.fetch_message(int(message_id))
-                await message.edit(view=layout)
-                return True
-            except Exception:
-                logger.warning(
-                    "PINNED HOME MENU in-place update failed (message %s) — will re-post",
-                    message_id,
-                    exc_info=True,
-                )
-                return False
-
-    delivery = _ChannelDelivery()
-    service = PinnedMenuService(delivery, delivery)
-    created = await service.ensure(
-        guild_id,
-        cast("PinnedMenuChannel", channel),
-        marker=HOME_MARKER,
+        return None
+    registry = getattr(bot, "message_registry", None)
+    spec = StaticPinnedView(
+        key="home-menu",
+        mark_suffix="home-menu",
+        resolve_channel=home_channel.resolve_channel,
         build_layout=_async_layout(home),
-        pin_reason="kingdoms: pinned home menu (guild front door)",
+        registry=registry,
     )
-    if not created:
+    register_static_pin(spec)
+    return spec
+
+
+async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
+    """Ensure the guild's home channel holds its pinned menu (registry cycle).
+
+    The static-pin cycle owns everything: channel resolution (recreated
+    on delete), pin creation/refresh/re-pin, and the ``fixe:`` mark.
+    """
+    from kingdoms.discord.static_pins import ensure_static_pin
+
+    spec = _home_static_pin_spec(bot)
+    if spec is None:
         return False
-    if delivery.last_message_id is not None:
-        await _register_menu_message(bot, guild_id, str(channel_id), delivery.last_message_id)
-    return True
+    return await ensure_static_pin(bot, spec, guild_id)
 
 
 async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:

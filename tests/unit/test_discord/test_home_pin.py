@@ -12,7 +12,15 @@ from typing import Any
 
 import pytest
 
+from kingdoms.discord.static_pins import reset_static_pins
+
 from kingdoms.discord.home import ensure_pinned_home_menu
+
+
+@pytest.fixture(autouse=True)
+def _clean_static_pins() -> None:
+    """Isolate the static-pin registry per test."""
+    reset_static_pins()
 
 
 class _FakeMessage:
@@ -26,6 +34,11 @@ class _FakeMessage:
 
     async def pin(self, reason: str = "") -> None:
         self.pin_calls += 1
+
+    async def edit(self, view: Any = None, **kwargs: Any) -> None:
+        """In-place edit (the refresh path of the static-pin cycle)."""
+        if view is not None:
+            self.view = view
 
 
 class _FakeChannel:

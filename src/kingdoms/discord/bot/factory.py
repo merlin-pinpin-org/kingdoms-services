@@ -471,6 +471,16 @@ class KingdomsBot(discord.Client):
                     guild_id,
                     exc_info=True,
                 )
+        try:
+            from kingdoms.discord.static_pins import heal_static_pins
+
+            healed = await heal_static_pins(self, guild_id)
+            if healed:
+                logger.info(
+                    "STATIC PINS healed after channel delete (guild %s, %d recreated)", guild_id, healed
+                )
+        except Exception:
+            logger.warning("STATIC PIN heal failed (guild %s) — best-effort", guild_id, exc_info=True)
 
     async def on_thread_delete(self, thread: discord.Thread) -> None:
         """Let the entity-forum syncs heal a deleted post (no-op here).

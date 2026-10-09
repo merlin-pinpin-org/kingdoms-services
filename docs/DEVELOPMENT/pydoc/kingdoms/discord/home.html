@@ -1559,13 +1559,10 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_home_menu"><strong>build_home_menu</strong></a>(home: 'HomeService') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;home&nbsp;menu&nbsp;layout:&nbsp;one&nbsp;button&nbsp;per&nbsp;home&nbsp;view.</span></dd></dl>
  <dl><dt><a name="-build_home_menu_view"><strong>build_home_menu_view</strong></a>(bot: 'Any', guild_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;home&nbsp;menu&nbsp;layout&nbsp;for&nbsp;a&nbsp;guild&nbsp;(refresher&nbsp;entry).</span></dd></dl>
- <dl><dt>async <a name="-ensure_pinned_home_menu"><strong>ensure_pinned_home_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;home&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;menu,&nbsp;never&nbsp;rebuilt&nbsp;while&nbsp;it&nbsp;lives.<br>
+ <dl><dt>async <a name="-ensure_pinned_home_menu"><strong>ensure_pinned_home_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;home&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;menu&nbsp;(registry&nbsp;cycle).<br>
 &nbsp;<br>
-The&nbsp;message&nbsp;id&nbsp;is&nbsp;resolved&nbsp;through&nbsp;the&nbsp;message&nbsp;registry&nbsp;(Mongo-backed,<br>
-restart-proof)&nbsp;or&nbsp;the&nbsp;bot's&nbsp;in-memory&nbsp;fallback&nbsp;store:&nbsp;as&nbsp;long&nbsp;as&nbsp;the<br>
-registered&nbsp;message&nbsp;exists&nbsp;it&nbsp;is&nbsp;merely&nbsp;re-pinned;&nbsp;only&nbsp;a&nbsp;gone&nbsp;message<br>
-(deleted&nbsp;or&nbsp;channel&nbsp;wiped)&nbsp;triggers&nbsp;a&nbsp;rebuild,&nbsp;whose&nbsp;id&nbsp;replaces&nbsp;the<br>
-registration.</span></dd></dl>
+The&nbsp;static-pin&nbsp;cycle&nbsp;owns&nbsp;everything:&nbsp;channel&nbsp;resolution&nbsp;(recreated<br>
+on&nbsp;delete),&nbsp;pin&nbsp;creation/refresh/re-pin,&nbsp;and&nbsp;the&nbsp;``fixe:``&nbsp;mark.</span></dd></dl>
  <dl><dt>async <a name="-open_home_menu"><strong>open_home_menu</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;home&nbsp;menu&nbsp;itself&nbsp;(the&nbsp;back&nbsp;target&nbsp;of&nbsp;mod&nbsp;views).</span></dd></dl>
  <dl><dt>async <a name="-open_home_view"><strong>open_home_view</strong></a>(interaction: 'discord.Interaction', view_key: 'str') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;home&nbsp;click&nbsp;with&nbsp;the&nbsp;matching&nbsp;ephemeral&nbsp;view.</span></dd></dl>
  <dl><dt>async <a name="-open_home_view_for_guild"><strong>open_home_view_for_guild</strong></a>(interaction: 'discord.Interaction', view_key: 'str', guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Re-dispatch&nbsp;a&nbsp;home&nbsp;view&nbsp;key&nbsp;with&nbsp;an&nbsp;explicit&nbsp;guild&nbsp;scope&nbsp;(DM&nbsp;pick).</span></dd></dl>
