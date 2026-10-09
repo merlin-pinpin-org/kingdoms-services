@@ -303,7 +303,7 @@ class GameDataService:
         if len(map_ids) > MAX_POOL_MAPS:
             raise ValueError(f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}")
         pool = MapPoolModel(
-            _id=f"map_pool:{game_key}:{name}",
+            _id=f"map_pool:{game_key}:{slug_id(name)}",
             game_key=game_key,
             name=name,
             description=description,

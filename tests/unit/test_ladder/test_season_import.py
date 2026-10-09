@@ -138,7 +138,7 @@ async def test_import_season_seeds_rotates_and_imports(tmp_path: Path) -> None:
 
     ladders = db.collections["ladders"].docs
     ladder = ladders["ladder:123456789:aoe2"]
-    assert ladder["active_map_pool_id"] == "map_pool:aoe2:Rotation 2"
+    assert ladder["active_map_pool_id"] == "map_pool:aoe2:rotation_2"
 
     seasons = db.collections["seasons"].docs
     season = seasons["ladder:123456789:aoe2:1"]

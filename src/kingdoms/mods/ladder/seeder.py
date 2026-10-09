@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from kingdoms.core.ids import ladder_id as ladder_id_for
+from kingdoms.core.ids import slug_id
 from kingdoms.core.services.game_data import GameDataService
 from kingdoms.core.services.season import SeasonService
 from kingdoms.mods.ladder.service import LadderService
@@ -37,7 +38,7 @@ async def seed_ladders(
             result["ladders"] += 1
         pool_name = spec.get("map_pool")
         if pool_name:
-            pool_id = f"map_pool:{game_key}:{pool_name}"
+            pool_id = f"map_pool:{game_key}:{slug_id(pool_name)}"
             ladder = await ladder_service.get_ladder(ladder_id)
             if ladder is not None and ladder.active_map_pool_id is None:
                 await ladder_service.set_active_pool(ladder_id, pool_id)
@@ -52,7 +53,7 @@ async def seed_ladders(
                 await season_service.create_season(
                     ladder_id,
                     season_name,
-                    f"map_pool:{game_key}:{season_spec.get('map_pool', spec.get('map_pool', pool_name))}",
+                    f"map_pool:{game_key}:{slug_id(str(season_spec.get('map_pool', spec.get('map_pool', pool_name))))}",
                     start,
                     end_at=end,
                     reset_ratings=bool(season_spec.get("reset_ratings", False)),
