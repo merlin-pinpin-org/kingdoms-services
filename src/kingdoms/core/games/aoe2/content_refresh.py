@@ -25,7 +25,7 @@ logger = logging.getLogger("kingdoms.core.content_refresh")
 DATASET_DIR = Path(__file__).resolve().parents[5] / "data" / "core" / "aoe2techtree"
 
 
-async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int]:
+async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int | list[str]]:
     """Reconcile the catalog and per-locale content with the dataset.
 
     Returns the per-section counts (``factions`` created, ``content_docs``
