@@ -2375,12 +2375,12 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-ladder_admin_entry"><strong>ladder_admin_entry</strong></a>(interaction: 'discord.Interaction | ModAdminPinInteraction', pinned: 'bool' = False) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;ladder&nbsp;admin&nbsp;section's&nbsp;view&nbsp;(snapshot&nbsp;+&nbsp;config&nbsp;actions).<br>
 &nbsp;<br>
-``pinned``&nbsp;renders&nbsp;the&nbsp;ladder-admin&nbsp;channel's&nbsp;entry:&nbsp;a&nbsp;pin&nbsp;lives&nbsp;in<br>
+``pinned``&nbsp;renders&nbsp;the&nbsp;ladder-admins&nbsp;channel's&nbsp;entry:&nbsp;a&nbsp;pin&nbsp;lives&nbsp;in<br>
 its&nbsp;own&nbsp;channel,&nbsp;so&nbsp;it&nbsp;carries&nbsp;no&nbsp;back&nbsp;button&nbsp;—&nbsp;every&nbsp;sub-view&nbsp;keeps<br>
 its&nbsp;return&nbsp;to&nbsp;this&nbsp;entry.</span></dd></dl>
  <dl><dt>async <a name="-ladder_mod_admin_view"><strong>ladder_mod_admin_view</strong></a>(interaction: 'discord.Interaction | ModAdminPinInteraction') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;mod-level&nbsp;admin&nbsp;view:&nbsp;the&nbsp;seasons'&nbsp;lifecycle&nbsp;(cross-season).<br>
 &nbsp;<br>
-The&nbsp;root&nbsp;🛡-ladder-admin&nbsp;channel&nbsp;hosts&nbsp;this&nbsp;pinned&nbsp;panel:&nbsp;it<br>
+The&nbsp;root&nbsp;🛡-ladder-admins&nbsp;channel&nbsp;hosts&nbsp;this&nbsp;pinned&nbsp;panel:&nbsp;it<br>
 creates&nbsp;seasons,&nbsp;activates&nbsp;one&nbsp;(the&nbsp;active&nbsp;season&nbsp;is&nbsp;defined&nbsp;here),<br>
 ends&nbsp;it,&nbsp;and&nbsp;toggles&nbsp;the&nbsp;enrollments.&nbsp;The&nbsp;per-season&nbsp;configuration<br>
 lives&nbsp;in&nbsp;the&nbsp;season's&nbsp;own&nbsp;admin&nbsp;salon;&nbsp;this&nbsp;panel&nbsp;owns&nbsp;the&nbsp;cycle.</span></dd></dl>

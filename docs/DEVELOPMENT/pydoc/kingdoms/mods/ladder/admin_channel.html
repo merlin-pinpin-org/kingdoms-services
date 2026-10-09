@@ -17,7 +17,7 @@ mods,&nbsp;a&nbsp;per-season&nbsp;admin&nbsp;salon&nbsp;inside&nbsp;the&nbsp;sea
 the&nbsp;pinned&nbsp;config&nbsp;panel):&nbsp;see&nbsp;:mod:`kingdoms.discord.mod_admin_channels`.<br>
 &nbsp;<br>
 The&nbsp;ladder&nbsp;only&nbsp;declares&nbsp;its&nbsp;:data:`LADDER_ADMIN_CHANNEL_SPEC`&nbsp;—&nbsp;the<br>
-🛡-ladder-admin&nbsp;channel&nbsp;(root,&nbsp;cross-season,&nbsp;staff&nbsp;+&nbsp;bot-admins)&nbsp;whose<br>
+🛡-ladder-admins&nbsp;channel&nbsp;(root,&nbsp;cross-season,&nbsp;staff&nbsp;+&nbsp;bot-admins)&nbsp;whose<br>
 pinned&nbsp;panel&nbsp;is&nbsp;the&nbsp;seasons'&nbsp;lifecycle&nbsp;(create&nbsp;/&nbsp;activate&nbsp;/&nbsp;end&nbsp;/<br>
 enrollments),&nbsp;and&nbsp;the&nbsp;per-season&nbsp;config&nbsp;panel&nbsp;rendered&nbsp;in&nbsp;the&nbsp;season's<br>
 own&nbsp;admin&nbsp;salon.&nbsp;Everything&nbsp;else&nbsp;(provisioning,&nbsp;visibility&nbsp;policy,<br>
@@ -36,8 +36,8 @@ self-healing&nbsp;pins,&nbsp;registry-backed&nbsp;message&nbsp;ids)&nbsp;is&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_ladder_admin_channel_service"><strong>build_ladder_admin_channel_service</strong></a>(bot: 'discord.Client', mongo_uri: 'str', redis_uri: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;🛡-ladder-admin&nbsp;managed&nbsp;channel;&nbsp;None&nbsp;when&nbsp;stores&nbsp;are&nbsp;absent.</span></dd></dl>
- <dl><dt>async <a name="-ensure_pinned_ladder_admin_menu"><strong>ensure_pinned_ladder_admin_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;ladder-admin&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;lifecycle&nbsp;panel.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_ladder_admin_channel_service"><strong>build_ladder_admin_channel_service</strong></a>(bot: 'discord.Client', mongo_uri: 'str', redis_uri: 'str') -&gt; 'Any | None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;🛡-ladder-admins&nbsp;managed&nbsp;channel;&nbsp;None&nbsp;when&nbsp;stores&nbsp;are&nbsp;absent.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_pinned_ladder_admin_menu"><strong>ensure_pinned_ladder_admin_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;ladder-admins&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;lifecycle&nbsp;panel.</span></dd></dl>
  <dl><dt>async <a name="-maintain_pinned_ladder_admin_menus"><strong>maintain_pinned_ladder_admin_menus</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;every&nbsp;registered&nbsp;mod's&nbsp;root&nbsp;admin&nbsp;menu&nbsp;alive&nbsp;(self-healing).</span></dd></dl>
  <dl><dt><a name="-register_ladder_mod_admin_channel"><strong>register_ladder_mod_admin_channel</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;ladder's&nbsp;admin&nbsp;surfaces&nbsp;on&nbsp;the&nbsp;core&nbsp;mechanism.</span></dd></dl>
 </td></tr></table><p>
@@ -46,7 +46,7 @@ self-healing&nbsp;pins,&nbsp;registry-backed&nbsp;message&nbsp;ids)&nbsp;is&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>LADDER_ADMIN_CHANNEL_NAME</strong> = '🛡-ladder-admin'<br>
+<td class="singlecolumn"><strong>LADDER_ADMIN_CHANNEL_NAME</strong> = '🛡-ladder-admins'<br>
 <strong>LADDER_ADMIN_CHANNEL_SPEC</strong> = ModAdminChannelSpec(mod='ladder', channel_name='...n:ladder:pin:', root_category='mod_ladder_admin')<br>
 <strong>LADDER_SEASON_ADMIN_CHANNEL_NAME</strong> = '🛡-season-admin'<br>
 <strong>LADDER_STAFF_ROLE_PREFIX</strong> = 'Staff ladder'<br>
