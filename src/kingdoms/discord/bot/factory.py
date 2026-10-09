@@ -206,9 +206,11 @@ class KingdomsBot(discord.Client):
         register_games_admin_items(self)
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
         from kingdoms.discord.guild_access_request import register_guild_access_request_items
+        from kingdoms.discord.guild_context import register_guild_context_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
 
         register_pool_flow_items(self)
+        register_guild_context_items(self)
         register_admin_dm_items(self)
         register_guild_access_request_items(self)
 

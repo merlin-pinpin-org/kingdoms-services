@@ -139,6 +139,10 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
         await _view_users(interaction)
     elif view_key == "admin":
         await _view_admin(interaction)
+    elif view_key.startswith("guild-admin:"):
+        await _view_admin_for_guild(interaction, view_key[len("guild-admin:") :])
+    elif view_key.startswith("guild-games:"):
+        await _view_games_for_guild(interaction, view_key[len("guild-games:") :])
     elif view_key.startswith("mod:"):
         await _view_mod(interaction, view_key[4:])
     else:
@@ -457,6 +461,16 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
 
 async def _view_games(interaction: discord.Interaction) -> None:
     """Render the known games, their catalog sizes and provider status."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-games:games")
+    if guild_id is None:
+        return
+    await _view_games_for_guild(interaction, guild_id)
+
+
+async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Render the guild's known games, catalog sizes and provider status."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.maps_forum import maps_forum_wiring_ready
 
@@ -562,6 +576,26 @@ async def _view_users(interaction: discord.Interaction) -> None:
 
 async def _view_admin(interaction: discord.Interaction) -> None:
     """Open the admin panel ephemerally, guarded at click time."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-admin:admin")
+    if guild_id is None:
+        return
+    await _view_admin_for_guild(interaction, guild_id)
+
+
+async def open_home_view_for_guild(interaction: discord.Interaction, view_key: str, guild_id: str) -> None:
+    """Re-dispatch a home view key with an explicit guild scope (DM pick)."""
+    if view_key.startswith("guild-admin:"):
+        await _view_admin_for_guild(interaction, guild_id)
+    elif view_key.startswith("guild-games:"):
+        await _view_games_for_guild(interaction, guild_id)
+    else:
+        await interaction.response.send_message("Vue inconnue.", ephemeral=True)
+
+
+async def _view_admin_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Open the admin panel for one guild (ephemeral, guarded at click time)."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.guards import require_admin
 

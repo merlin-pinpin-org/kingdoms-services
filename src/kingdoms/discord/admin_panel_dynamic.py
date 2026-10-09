@@ -437,6 +437,22 @@ class PinRolesButton(
         await _handle_roles(interaction)
 
 
+async def _granted_games(guild_id: str) -> tuple[str, ...]:
+    """List the games granted to the guild (access-first, catalog fallback)."""
+    from kingdoms.discord.wiring import granted_game_keys
+
+    if not guild_id:
+        return ()
+    try:
+        from kingdoms.discord.admin_panel_games import _games_wiring
+
+        service = _games_wiring()
+        catalog = tuple(await service.list_game_keys()) if service is not None else ()
+    except Exception:
+        catalog = ()
+    return await granted_game_keys(guild_id, catalog)
+
+
 def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
     """Build the access-request row (every guild admin may request)."""
     from kingdoms.discord.guild_access_request import GuildAccessRequestButton
@@ -497,9 +513,11 @@ async def build_pin_main_menu(
         container_blocks.append(_access_request_row(guild_id))
     from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
 
-    if registered_admin_core_sections():
+    granted_games = await _granted_games(guild_id)
+    if registered_admin_core_sections() and granted_games:
         container_blocks.append(discord.ui.Separator())
-        container_blocks.append(discord.ui.TextDisplay("## \ud83c\udfae Jeux"))
+        listed = ", ".join(f"`{key}`" for key in granted_games)
+        container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
         container_blocks.append(
             _select_row(
                 PinModRouteSelect.create(

@@ -55,7 +55,7 @@ async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.L
     """Render the bot-admin DM panel: pending requests, grants, refresh."""
     service = await _access_service()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# 🛡️ Panneau bot admin (cross-guild)")]
+    blocks: list[Any] = [discord.ui.TextDisplay("# 🛡️ Bot admin — cross-guild")]
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible (Mongo absent)."))
         view.add_item(discord.ui.Container(*blocks))

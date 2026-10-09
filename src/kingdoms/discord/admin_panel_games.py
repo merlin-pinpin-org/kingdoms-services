@@ -152,6 +152,10 @@ async def game_menu_view(game_key: str) -> discord.ui.LayoutView:
     actions.add_item(GamesMapsButton(game_key))
     actions.add_item(GamesPoolsButton(game_key))
     view.add_item(actions)
+    imports: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    imports.add_item(GamesMapImportButton(game_key))
+    imports.add_item(GamesPoolImportButton(game_key))
+    view.add_item(imports)
     view.add_item(_back_row())
     return view
 
@@ -1130,6 +1134,201 @@ class GamesPoolSendModal(discord.ui.Modal):
         )
 
 
+class GamesMapImportButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:maps:import:(?P<scope>global|guild):(?P<game_key>[a-z0-9_]+)",
+):
+    """Import one public map from Liquipedia by name."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Importer une map",
+                emoji="\U0001f4e5",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:maps:import:guild:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesMapImportButton:
+        """Rebuild the item from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the Liquipedia import modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.send_modal(GamesMapImportModal(self.game_key))
+
+
+class GamesMapImportModal(discord.ui.Modal):
+    """The Liquipedia map import form: the map's page name."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(title="Importer une map (Liquipedia)", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom de la map (page Liquipedia)", max_length=64, required=True
+        )
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Import the map by name; Liquipedia fills the public content."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        name = str(self.name.value or "").strip()
+        if not name:
+            await interaction.response.send_message("Le nom est obligatoire.", ephemeral=True)
+            return
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        from kingdoms.mapsdata.seed import fetch_map_seed
+
+        seed = await fetch_map_seed(name)
+        if seed is None:
+            await interaction.response.send_message(
+                f'Aucune page Liquipedia pour "{name}" \u2014 cr\u00e9e la map localement.',
+                ephemeral=True,
+            )
+            return
+        try:
+            entry = await service.create_map(
+                self.game_key,
+                seed.name,
+                filename=seed.name.replace(" ", "_").lower(),
+                description=seed.description,
+                resource_url=seed.resource_url,
+                owner_guild_id=guild_id,
+                map_type=seed.map_type,
+            )
+        except Exception:
+            logger.exception("GAMES ADMIN: map import failed")
+            await interaction.response.send_message(
+                "Import echoue (nom deja pris ? voir les logs).", ephemeral=True
+            )
+            return
+        if seed.image_url:
+            from kingdoms.discord.content_posts import content_service
+
+            content = content_service()
+            if content is not None:
+                await content.store(
+                    {
+                        "entity_id": entry.id,
+                        "locale": "en",
+                        "name": entry.name,
+                        "summary": seed.description,
+                        "source_url": seed.resource_url,
+                        "image_url": seed.image_url,
+                        "provider": "liquipedia",
+                    }
+                )
+        await interaction.response.send_message(
+            f"Map **{entry.name}** importee \u2014 son post apparaitra au prochain passage du forum.",
+            ephemeral=True,
+        )
+
+
+class GamesPoolImportButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pools:import:(?P<game_key>[a-z0-9_]+)",
+):
+    """Import one published pool by its unique id (from another guild)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Importer un map pool",
+                emoji="\U0001f4e5",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:pools:import:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolImportButton:
+        """Rebuild the item from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the pool import modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.send_modal(GamesPoolImportModal(self.game_key))
+
+
+class GamesPoolImportModal(discord.ui.Modal):
+    """The pool import form: the source pool's unique id."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(title="Importer un map pool", timeout=None)
+        self.pool_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Id du pool source (ex. map_pool:aoe2:ladder_cf_s1_r1)",
+            max_length=100,
+            required=True,
+        )
+        self.add_item(self.pool_id)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Import the pool by id; only published pools are importable."""
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
+            return
+        source_id = str(self.pool_id.value or "").strip()
+        source = await service.get_map_pool(source_id) if source_id else None
+        if source is None:
+            await interaction.response.send_message("Pool introuvable.", ephemeral=True)
+            return
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        if guild_id is not None and source.owner_guild_id == guild_id:
+            await interaction.response.send_message(
+                "Ce pool appartient deja a cette guilde.", ephemeral=True
+            )
+            return
+        if not source.is_public:
+            await interaction.response.send_message(
+                "Seuls les pools publies peuvent etre importes.", ephemeral=True
+            )
+            return
+        try:
+            copy = await service.send_map_pool_to_guild(
+                source.id, guild_id or "unknown", f"{source.name} (importe)"
+            )
+        except Exception:
+            logger.exception("GAMES ADMIN: pool import failed")
+            await interaction.response.send_message(
+                "Import echoue (nom deja pris ? voir les logs).", ephemeral=True
+            )
+            return
+        await interaction.response.send_message(
+            f"Pool **{copy.name}** importe (verrouille, non modifiable).", ephemeral=True
+        )
+
+
 def register_games_admin_section() -> None:
     """Register the games section into the /admin panel (idempotent)."""
     register_admin_mod_section(
@@ -1161,4 +1360,6 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolMapToggle,
         GamesPoolDuplicateButton,
         GamesPoolSendButton,
+        GamesMapImportButton,
+        GamesPoolImportButton,
     )

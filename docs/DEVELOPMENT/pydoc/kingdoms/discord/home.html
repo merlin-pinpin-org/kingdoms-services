@@ -1568,6 +1568,7 @@ registered&nbsp;message&nbsp;exists&nbsp;it&nbsp;is&nbsp;merely&nbsp;re-pinned;&
 registration.</span></dd></dl>
  <dl><dt>async <a name="-open_home_menu"><strong>open_home_menu</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;home&nbsp;menu&nbsp;itself&nbsp;(the&nbsp;back&nbsp;target&nbsp;of&nbsp;mod&nbsp;views).</span></dd></dl>
  <dl><dt>async <a name="-open_home_view"><strong>open_home_view</strong></a>(interaction: 'discord.Interaction', view_key: 'str') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;home&nbsp;click&nbsp;with&nbsp;the&nbsp;matching&nbsp;ephemeral&nbsp;view.</span></dd></dl>
+ <dl><dt>async <a name="-open_home_view_for_guild"><strong>open_home_view_for_guild</strong></a>(interaction: 'discord.Interaction', view_key: 'str', guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Re-dispatch&nbsp;a&nbsp;home&nbsp;view&nbsp;key&nbsp;with&nbsp;an&nbsp;explicit&nbsp;guild&nbsp;scope&nbsp;(DM&nbsp;pick).</span></dd></dl>
  <dl><dt><a name="-register_home_command"><strong>register_home_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', home: 'HomeService', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/home&nbsp;slash&nbsp;command&nbsp;and&nbsp;the&nbsp;persistent&nbsp;home&nbsp;buttons.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
