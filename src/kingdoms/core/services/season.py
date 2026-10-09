@@ -169,6 +169,31 @@ class SeasonService:
         await self._audit_record("season.activate", {"season_id": season.id, "ladder_id": season.ladder_id})
         return season
 
+    async def reopen_season(self, season_id: str, now: int) -> SeasonModel:
+        """Reopen an ended season: it becomes the ladder's active season again.
+
+        Allowed only when no other live (scheduled or active) season exists
+        on the ladder — creating a new season remains the alternative path.
+        The season returns to the active state, keeps its pool and history,
+        and the reopening is audited.
+        """
+        season = await self._require(season_id)
+        if season.state != SEASON_STATE_ENDED:
+            raise SeasonActiveError(
+                f"season {season_id!r} is not ended (state {season.state!r}) - it cannot be reopened"
+            )
+        existing = await self._db.find_ladder_seasons(season.ladder_id)
+        live = [d for d in existing if d.get("state") != SEASON_STATE_ENDED and d.get("_id") != season_id]
+        if live:
+            raise SeasonActiveError(
+                f"ladder {season.ladder_id!r} has a live season {live[0].get('_id')!r} "
+                "(end or delete it before reopening)"
+            )
+        season = season.model_copy(update={"state": SEASON_STATE_ACTIVE, "ended_at": None})
+        await self._db.upsert_season(season.to_mongo())
+        await self._audit_record("season.reopen", {"season_id": season.id, "ladder_id": season.ladder_id})
+        return season
+
     async def delete_season(self, season_id: str) -> SeasonModel:
         """Delete a season that never started (scheduled, never activated).
 

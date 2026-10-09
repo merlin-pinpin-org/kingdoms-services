@@ -219,3 +219,41 @@ async def test_unknown_season_rejected() -> None:
     svc, _, _, _, _ = _env()
     with pytest.raises(ValueError, match="unknown season"):
         await svc.activate_season("season:x:none", now=1)
+
+
+@pytest.mark.asyncio
+async def test_reopen_ended_season() -> None:
+    """An ended season can be reopened when no other season is live."""
+    svc, game_data, _, _, audit = _env()
+    pool_id = await _map_and_pool(game_data)
+    season = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    await svc.activate_season(season.id, now=1500)
+    await svc.end_season(season.id, now=2000)
+    reopened = await svc.reopen_season(season.id, now=2500)
+    assert reopened.state == SEASON_STATE_ACTIVE
+    assert reopened.ended_at is None
+    assert await svc.get_active_season(LADDER) is not None
+    assert ("season.reopen", {"season_id": season.id, "ladder_id": LADDER}) in audit.lines
+
+
+@pytest.mark.asyncio
+async def test_reopen_scheduled_season_rejected() -> None:
+    """Only ended seasons can be reopened."""
+    svc, game_data, _, _, _ = _env()
+    pool_id = await _map_and_pool(game_data)
+    season = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    with pytest.raises(SeasonActiveError, match="cannot be reopened"):
+        await svc.reopen_season(season.id, now=1200)
+
+
+@pytest.mark.asyncio
+async def test_reopen_blocked_while_another_season_is_live() -> None:
+    """Reopening refuses when a live (scheduled or active) season exists."""
+    svc, game_data, _, _, _ = _env()
+    pool_id = await _map_and_pool(game_data)
+    s1 = await svc.create_season(LADDER, "S1", pool_id, start_at=1000)
+    await svc.activate_season(s1.id, now=1500)
+    await svc.end_season(s1.id, now=2000)
+    await svc.create_season(LADDER, "S2", pool_id, start_at=3000)
+    with pytest.raises(SeasonActiveError, match="live season"):
+        await svc.reopen_season(s1.id, now=3500)

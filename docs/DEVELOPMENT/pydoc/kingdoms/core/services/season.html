@@ -403,6 +403,13 @@ recreate&nbsp;one&nbsp;with&nbsp;a&nbsp;corrected&nbsp;id.</span></dd></dl>
 
 <dl><dt>async <a name="SeasonService-list_seasons"><strong>list_seasons</strong></a>(self, ladder_id: 'str') -&gt; 'list[SeasonModel]'</dt><dd><span class="code">List&nbsp;the&nbsp;seasons&nbsp;of&nbsp;a&nbsp;ladder,&nbsp;ascending&nbsp;by&nbsp;start.</span></dd></dl>
 
+<dl><dt>async <a name="SeasonService-reopen_season"><strong>reopen_season</strong></a>(self, season_id: 'str', now: 'int') -&gt; 'SeasonModel'</dt><dd><span class="code">Reopen&nbsp;an&nbsp;ended&nbsp;season:&nbsp;it&nbsp;becomes&nbsp;the&nbsp;ladder's&nbsp;active&nbsp;season&nbsp;again.<br>
+&nbsp;<br>
+Allowed&nbsp;only&nbsp;when&nbsp;no&nbsp;other&nbsp;live&nbsp;(scheduled&nbsp;or&nbsp;active)&nbsp;season&nbsp;exists<br>
+on&nbsp;the&nbsp;ladder&nbsp;—&nbsp;creating&nbsp;a&nbsp;new&nbsp;season&nbsp;remains&nbsp;the&nbsp;alternative&nbsp;path.<br>
+The&nbsp;season&nbsp;returns&nbsp;to&nbsp;the&nbsp;active&nbsp;state,&nbsp;keeps&nbsp;its&nbsp;pool&nbsp;and&nbsp;history,<br>
+and&nbsp;the&nbsp;reopening&nbsp;is&nbsp;audited.</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__dict__</strong></dt>
