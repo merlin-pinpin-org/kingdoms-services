@@ -141,9 +141,7 @@ class LadderLeaveButton(
             await interaction.response.send_message("Le ladder n'est pas configuré ici.", ephemeral=True)
             return
         surface = LadderSurface(wiring.service)
-        result = await surface.execute(
-            ACTION_LEAVE_QUEUE, ladder_id, str(interaction.user.id), now=_now_ms()
-        )
+        result = await surface.execute(ACTION_LEAVE_QUEUE, ladder_id, str(interaction.user.id), now=_now_ms())
         if result.ok:
             await interaction.response.send_message("Tu as quitté la file.", ephemeral=True)
         else:
@@ -236,8 +234,7 @@ class LadderLeaderboardButton(
             body = "Aucun joueur pour l'instant."
         else:
             body = "\n".join(
-                f"{row.rank}. <@{row.user_id}> — {row.rating} ({row.wins}W/{row.losses}L)"
-                for row in rows[:10]
+                f"{row.rank}. <@{row.user_id}> — {row.rating} ({row.wins}W/{row.losses}L)" for row in rows[:10]
             )
         await interaction.response.send_message(body, ephemeral=True)
 
@@ -382,8 +379,6 @@ class LadderUnregisterButton(
     async def callback(self, interaction: discord.Interaction) -> None:
         """Unregister the clicker through the core membership."""
         await _run_membership(interaction, "unregister")
-
-
 
 
 class LadderPreferencesButton(
@@ -587,10 +582,7 @@ def build_ladder_menu_layout(
         status_bits.append("⚠️ Inscriptions fermées")
     if queue_paused:
         status_bits.append("⏸️ File en pause")
-    banner = (
-        "## 🏺 Ladder\n"
-        "Ladder saisonnier 1v1 (AoE2) — tout se fait ici, sans commande."
-    )
+    banner = "## 🏺 Ladder\nLadder saisonnier 1v1 (AoE2) — tout se fait ici, sans commande."
     if season_details:
         banner += "\n\n" + season_details
     if status_bits:

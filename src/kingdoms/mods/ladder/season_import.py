@@ -121,7 +121,6 @@ async def import_season(
             await ladder_service.set_active_pool(ladder_id, pool_id)
             rotations += 1
 
-
     links_report = await import_identity_links(database, users_csv, game_key)
     legacy_report = await import_legacy(database, ladder_id, matches_csv)
     enrolled = await _enroll_players(database, ladder_id, season_id)
@@ -174,9 +173,7 @@ def _provider_bridge() -> Any | None:
     from kingdoms.ext_librematch.adapter import LibrematchAdapter
     from kingdoms.mods.ladder.provider_bridge import LibrematchProviderBridge
 
-    return LibrematchProviderBridge(
-        LibrematchAdapter(base_url=uri, api_key=os.environ.get("AOE2_API_KEY", ""))
-    )
+    return LibrematchProviderBridge(LibrematchAdapter(base_url=uri, api_key=os.environ.get("AOE2_API_KEY", "")))
 
 
 async def _enrich_matches(database: Any, matches_csv: Path) -> int:

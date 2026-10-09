@@ -5,6 +5,7 @@ core ``MembershipService`` hooks: registering on the ladder, leaving
 the queue first, refusing a removal with a live match. The season
 label comes from the ladder's active season (SeasonService).
 """
+
 from __future__ import annotations
 
 import logging

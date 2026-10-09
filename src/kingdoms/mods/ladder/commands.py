@@ -326,6 +326,7 @@ __all__ = [
     "start_ladder_sweep",
 ]
 
+
 async def _locale(interaction: Any) -> str:
     """Resolve the answering locale: the guild's, or the user's in DM."""
     logs = getattr(interaction.client, "logs_service", None)

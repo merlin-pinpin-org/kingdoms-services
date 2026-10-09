@@ -341,9 +341,7 @@ class GameDataService:
         keeps the current value, use ``0`` to disable a kind explicitly.
         """
         pool = await self._require(MAP_POOLS_COLLECTION, entry_id, MapPoolModel.from_mongo)
-        name, map_ids, description = self._guard_pool_edition(
-            pool, name, map_ids, description, fav_quota, ban_quota
-        )
+        name, map_ids, description = self._guard_pool_edition(pool, name, map_ids, description, fav_quota, ban_quota)
         if name is not None and name != pool.name:
             taken = await self._db.find_by_name(MAP_POOLS_COLLECTION, pool.game_key, name)
             if taken is not None and taken["_id"] != entry_id:

@@ -60,6 +60,7 @@ def _t(catalog: Any, locale: str, key: str, **kwargs: Any) -> str:
     rendered: str = catalog.render(f"ladder.{key}", locale, **kwargs)
     return rendered
 
+
 LADDERS_COLLECTION = "ladders"
 
 
@@ -198,9 +199,7 @@ async def ladder_admin_entry(
     pick_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     pick_row.add_item(LadderPickStrategySelect())
     cycle: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    cycle.add_item(
-        LadderEnrollButton("open" if not ladder.get("enrollments_open", True) else "close")
-    )
+    cycle.add_item(LadderEnrollButton("open" if not ladder.get("enrollments_open", True) else "close"))
     paused = bool(ladder.get("queue_paused", False))
     start_state = "pause" if not paused else "resume"
     start_button = LadderPauseButton(start_state)
@@ -274,7 +273,7 @@ class LadderCreateModal(discord.ui.Modal):
             return
         owner_ref = str(getattr(interaction.client, "_ladder_id", "") or "")
         if owner_ref.startswith("ladder-aoe2-"):
-            owner_ref = owner_ref[len("ladder-aoe2-"):]
+            owner_ref = owner_ref[len("ladder-aoe2-") :]
         if not owner_ref:
             owner_ref = str(interaction.guild_id) if interaction.guild_id else ""
         try:
@@ -285,13 +284,9 @@ class LadderCreateModal(discord.ui.Modal):
             logger.exception("LADDER ADMIN: ladder creation failed")
             await interaction.response.send_message("Creation echouee (deja existant ?).", ephemeral=True)
             return
-        await wiring.service._audit_record(
-            "ladder.create", {"ladder_id": ladder.id, "name": ladder.name}
-        )
+        await wiring.service._audit_record("ladder.create", {"ladder_id": ladder.id, "name": ladder.name})
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
-        await interaction.followup.send(
-            f"Ladder **{ladder.name}** créé (`{ladder.id}`).", ephemeral=True
-        )
+        await interaction.followup.send(f"Ladder **{ladder.name}** créé (`{ladder.id}`).", ephemeral=True)
 
 
 class LadderSettingsButton(
@@ -392,8 +387,6 @@ class LadderSettingsModal(discord.ui.Modal):
         )
 
 
-
-
 class LadderPickStrategySelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_NS}:pick:set",
@@ -421,8 +414,7 @@ class LadderPickStrategySelect(
         from kingdoms.mods.ladder.pick_strategies import list_pick_strategies
 
         options = [
-            discord.SelectOption(label=strategy.label, value=strategy.key)
-            for strategy in list_pick_strategies()[:25]
+            discord.SelectOption(label=strategy.label, value=strategy.key) for strategy in list_pick_strategies()[:25]
         ]
         return cls(options)
 
@@ -451,7 +443,6 @@ class LadderPickStrategySelect(
         await interaction.response.send_message(
             f"Mode de pick : **{strategy.label}** (`{strategy.key}`).", ephemeral=True
         )
-
 
 
 class LadderEnrollButton(
@@ -500,9 +491,7 @@ class LadderEnrollButton(
             await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
             return
         await wiring.service.set_enrollments_open(ladder_id, opening)
-        await wiring.service._audit_record(
-            "ladder.enrollments", {"ladder_id": ladder_id, "open": opening}
-        )
+        await wiring.service._audit_record("ladder.enrollments", {"ladder_id": ladder_id, "open": opening})
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
         await interaction.followup.send(
             "Inscriptions **ouvertes**." if opening else "Inscriptions **fermées**.",
@@ -559,21 +548,16 @@ class LadderPauseButton(
             players = await wiring.service._db.find_ladder_players(ladder_id)
             pools = await wiring.game_data.list_map_pools(getattr(ladder, "game_key", GAME_KEY) or GAME_KEY)
             pool_ok = any(p.id == ladder.active_map_pool_id for p in pools)
-            active_season = (
-                await wiring.season_service.get_active_season(ladder_id) if wiring.season_service else None
-            )
+            active_season = await wiring.season_service.get_active_season(ladder_id) if wiring.season_service else None
             if len(players) < 2 or not pool_ok or active_season is None:
                 await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
                 await interaction.followup.send(
-                    "Demarrage bloque : il faut au moins 2 inscrits, un map pool actif "
-                    "et une saison en cours.",
+                    "Demarrage bloque : il faut au moins 2 inscrits, un map pool actif et une saison en cours.",
                     ephemeral=True,
                 )
                 return
         await wiring.service.set_queue_paused(ladder_id, pausing)
-        await wiring.service._audit_record(
-            "ladder.queue", {"ladder_id": ladder_id, "paused": pausing}
-        )
+        await wiring.service._audit_record("ladder.queue", {"ladder_id": ladder_id, "paused": pausing})
         await interaction.response.edit_message(view=await ladder_admin_entry(interaction))
         await interaction.followup.send(
             "Ladder **interrompu** (file en pause)." if pausing else "Ladder **démarré**.",
@@ -720,8 +704,7 @@ class LadderSeasonActivateSelect(
             if ladder is not None:
                 seasons = await wiring.season_service.list_seasons(str(ladder["_id"]))
                 options = [
-                    discord.SelectOption(label=f"{s.name} - {s.id} ({s.state})", value=s.id)
-                    for s in seasons[-25:]
+                    discord.SelectOption(label=f"{s.name} - {s.id} ({s.state})", value=s.id) for s in seasons[-25:]
                 ]
         return cls(options)
 
@@ -922,8 +905,6 @@ async def pools_view(ladder_id: str) -> discord.ui.LayoutView:
     view.add_item(select_row)
     view.add_item(_back_row())
     return view
-
-
 
 
 async def ladder_mod_admin_view(

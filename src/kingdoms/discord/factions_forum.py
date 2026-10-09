@@ -89,8 +89,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         name, summary, source, image = await entity_post_content(entry_id, fallback, guild_id, bot)
         sections = civ_section_lines(parse_civ_help(summary)) if summary else []
         flat = "\n".join(
-            "**" + label + "**\n" + "\n".join("\u2022 " + item for item in items)
-            for label, items in sections
+            "**" + label + "**\n" + "\n".join("\u2022 " + item for item in items) for label, items in sections
         )
         view = _civ_post_layout(name, flat or summary, image, source, entry_id)
         content = f"**{name}**\n{flat or summary}\n\n"

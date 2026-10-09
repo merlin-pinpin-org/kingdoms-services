@@ -97,7 +97,13 @@ class LadderRatingTools:
                 out.append(player)
                 continue
             await self._write_history(
-                ladder_id, "ratings_reset", player.user_id, before, after, admin_user_id, now,
+                ladder_id,
+                "ratings_reset",
+                player.user_id,
+                before,
+                after,
+                admin_user_id,
+                now,
                 reason_code=RATING_REASON_RESET,
             )
             player = player.model_copy(update={"rating": after})
@@ -127,9 +133,7 @@ class LadderRatingTools:
                 continue
             before = player.rating
             after = int(side.before)
-            await self._write_history(
-                match.ladder_id, match.id, user_id, before, after, admin_user_id, now
-            )
+            await self._write_history(match.ladder_id, match.id, user_id, before, after, admin_user_id, now)
             wins = player.wins - (1 if user_id == match.winner_user_id else 0)
             losses = player.losses - (1 if user_id == match.loser_user_id else 0)
             streak = 0 if (wins == 0 and losses == 0) else (player.streak if abs(player.streak) > 1 else 0)
@@ -283,12 +287,22 @@ class LadderRatingSwitchService:
             if winner_id not in ratings or loser_id not in ratings:
                 raise RatingSystemSwitchError("match history incomplete: unknown participant")
             w_delta, _w_k, w_state = system.apply(
-                settings, ratings[winner_id], state[winner_id],
-                ratings[loser_id], state[loser_id], True, counts[winner_id],
+                settings,
+                ratings[winner_id],
+                state[winner_id],
+                ratings[loser_id],
+                state[loser_id],
+                True,
+                counts[winner_id],
             )
             l_delta, _l_k, l_state = system.apply(
-                settings, ratings[loser_id], state[loser_id],
-                ratings[winner_id], state[winner_id], False, counts[loser_id],
+                settings,
+                ratings[loser_id],
+                state[loser_id],
+                ratings[winner_id],
+                state[winner_id],
+                False,
+                counts[loser_id],
             )
             ratings[winner_id] += w_delta
             ratings[loser_id] += l_delta
@@ -300,8 +314,15 @@ class LadderRatingSwitchService:
         for uid, player in players.items():
             new_rating = ratings[uid]
             await write_history_line(
-                self._svc, ladder_id, f"recalc:{ladder_id}", uid, player.rating, new_rating,
-                admin_user_id, now, reason_code="RECALCULATION",
+                self._svc,
+                ladder_id,
+                f"recalc:{ladder_id}",
+                uid,
+                player.rating,
+                new_rating,
+                admin_user_id,
+                now,
+                reason_code="RECALCULATION",
             )
             updated = player.model_copy(
                 update={"rating": int(new_rating), "rating_state": state[uid], "matches_count": counts[uid]}

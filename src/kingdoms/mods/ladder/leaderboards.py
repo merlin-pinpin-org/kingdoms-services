@@ -139,5 +139,3 @@ async def handle_leaderboards(interaction: discord.Interaction) -> None:
     except ValueError:
         return
     await refresh_registered_pins(guild_id)
-
-

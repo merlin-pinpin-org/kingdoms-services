@@ -92,10 +92,7 @@ async def _step_pool(interaction: discord.Interaction, state: WizardState) -> No
         interaction,
         placeholder="Map pool de la saison...",
         options=options,
-        content=(
-            f"Saison **{state.name}** — 2/6 : le map pool\n"
-            f"Les pools se gèrent dans `{pools_forum}` (forum)."
-        ),
+        content=(f"Saison **{state.name}** — 2/6 : le map pool\nLes pools se gèrent dans `{pools_forum}` (forum)."),
         on_pick=on_pick,
         empty_label=f"Aucun pool — à créer dans {pools_forum}",
     )
@@ -129,9 +126,7 @@ async def _step_rating(interaction: discord.Interaction, state: WizardState) -> 
     """Step 4: the ranking system (elo / glicko2)."""
     options = [
         discord.SelectOption(label="Elo", value="elo", description="Classique, simple à expliquer"),
-        discord.SelectOption(
-            label="Glicko2", value="glicko2", description="Plus précis, gère l'incertitude (RD)"
-        ),
+        discord.SelectOption(label="Glicko2", value="glicko2", description="Plus précis, gère l'incertitude (RD)"),
     ]
 
     async def on_pick(inner: discord.Interaction, chosen: str, label: str) -> None:
@@ -175,9 +170,7 @@ class QuotasModal(discord.ui.Modal):
         ban = parse_int(str(self.bans.value))
         random_ban = parse_int(str(self.random_bans.value))
         if fav is None or ban is None or random_ban is None:
-            await send_step(
-                interaction, "Comptes invalides : donne des nombres entiers.", discord.ui.View()
-            )
+            await send_step(interaction, "Comptes invalides : donne des nombres entiers.", discord.ui.View())
             return
         self.state.set("fav_count", fav)
         self.state.set("ban_count", ban)
@@ -207,9 +200,7 @@ class DurationModal(discord.ui.Modal):
         if raw:
             days = parse_int(raw)
             if days is None:
-                await send_step(
-                    interaction, "Durée invalide (un nombre de jours).", discord.ui.View()
-                )
+                await send_step(interaction, "Durée invalide (un nombre de jours).", discord.ui.View())
                 return
             self.state.set("days", days)
         await _step_recap(interaction, self.state)
@@ -281,9 +272,7 @@ async def _finish(interaction: discord.Interaction, state: WizardState) -> None:
     )
 
 
-async def _apply_wizard_settings(
-    interaction: discord.Interaction, state: WizardState, wiring: Any
-) -> None:
+async def _apply_wizard_settings(interaction: discord.Interaction, state: WizardState, wiring: Any) -> None:
     """Best-effort apply of the wizard's answers onto the ladder settings."""
     changes: dict[str, Any] = {}
     if state.get("pick_strategy"):
@@ -300,8 +289,6 @@ async def _apply_wizard_settings(
     if not changes:
         return
     try:
-        await wiring.service.admin.update_settings(
-            state.subject_id, str(interaction.user.id), changes
-        )
+        await wiring.service.admin.update_settings(state.subject_id, str(interaction.user.id), changes)
     except Exception:
         logger.exception("SEASON WIZARD: settings apply failed")

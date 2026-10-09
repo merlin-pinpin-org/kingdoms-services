@@ -125,8 +125,6 @@ async def sync_ladder_channels(guild: Any, bot: Any) -> None:
     await _sync_history(guild, channels, wiring, ladder_id, scope)
 
 
-
-
 class _SeasonChannels:
     """One season's salon ids, resolved by stored id — never by name."""
 
@@ -387,6 +385,7 @@ async def _ensure_pinned_home(guild: Any, scope: str, channels: _SeasonChannels)
         pin_reason="kingdoms: pinned ladder menu (ladder home salon)",
     )
 
+
 async def _pinned_seasons_details() -> str:
     """Build the pinned menu's seasons block: the ladder's seasons with their ids."""
     from kingdoms.mods.ladder.home import _seasons_details
@@ -477,14 +476,12 @@ async def _sync_history(guild: Any, channels: _SeasonChannels, wiring: Any, ladd
     from kingdoms.mods.ladder.models import MATCH_STATUS_COMPLETED
 
     docs = await wiring.service._db.find_ladder_matches(ladder_id, [MATCH_STATUS_COMPLETED])
-    lines = [
-        f"**{d.get('winner_user_id') or '?'}** bat {d.get('loser_user_id') or '?'}" for d in docs[:10]
-    ] or ["_Aucun match joué pour l'instant._"]
+    lines = [f"**{d.get('winner_user_id') or '?'}** bat {d.get('loser_user_id') or '?'}" for d in docs[:10]] or [
+        "_Aucun match joué pour l'instant._"
+    ]
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("## 📜 Derniers matchs\n" + "\n".join(lines))))
-    await _salon_message(
-        guild, _channel_by_id(guild, channels.history), _SALON_KEYS[HISTORY_CHANNEL_NAME], view, scope
-    )
+    await _salon_message(guild, _channel_by_id(guild, channels.history), _SALON_KEYS[HISTORY_CHANNEL_NAME], view, scope)
 
 
 def start_ladder_channels_sync(bot: Any) -> asyncio.Task[None]:
