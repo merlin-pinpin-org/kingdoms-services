@@ -189,10 +189,25 @@ async def _create_pool_post(
 async def _refresh_pool_post(
     guild: discord.Guild, guild_id: str, thread: Any, pool: Any, maps: list[dict[str, Any]]
 ) -> None:
-    """Keep an existing pool post's content and components in sync."""
+    """Edit one pool post, only when its content actually changed."""
+    import time
+
+    from kingdoms.core.services.entity_forum import _note_stale_edit, _stagger_stale_edit
+
+    now = time.monotonic()
+    if _stagger_stale_edit(str(thread.id), now):
+        return
+    content = _pool_post_content(pool, maps)
     try:
         starter = await thread.fetch_message(thread.id)
-        await starter.edit(content=_pool_post_content(pool, maps), view=_pool_post_layout(pool, maps))
+        if starter.content == content:
+            return
+        await starter.edit(content=content, view=_pool_post_layout(pool, maps))
+    except discord.HTTPException as exc:
+        if getattr(exc, "code", None) == 30046:
+            _note_stale_edit(str(thread.id), now)
+            return
+        logger.debug("pools forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
     except Exception:
         logger.debug("pools forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 

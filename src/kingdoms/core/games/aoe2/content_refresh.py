@@ -59,11 +59,14 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     mapping = mapping_doc.get("factions") or {}
     factions = 0
     content_docs = 0
-    for name in await source.list_factions():
+    new_factions: list[str] = []
+    known = await source.list_factions()
+    for name in known:
         existing = await game_data.get_faction(f"faction:aoe2:{name}")
         if existing is None:
             await game_data.create_faction("aoe2", name, faction_key=name.lower())
             factions += 1
+            new_factions.append(name)
         for locale in SUPPORTED_LOCALES:
             # The provider mapping (catalog name -> provider id) survives the
             # seam: refresh resolves it first, then asks the source (dataset
@@ -85,4 +88,9 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
             )
             content_docs += 1
     logger.info("CONTENT REFRESH: %d factions created, %d content docs upserted", factions, content_docs)
-    return {"factions": factions, "content_docs": content_docs}
+    return {
+        "factions": factions,
+        "new_factions": new_factions,
+        "total_factions": len(known),
+        "content_docs": content_docs,
+    }

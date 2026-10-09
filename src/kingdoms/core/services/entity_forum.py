@@ -17,6 +17,7 @@ builder changes over time.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -30,6 +31,30 @@ logger = logging.getLogger("kingdoms.core.entity_forum")
 
 GAMES_CATEGORY_NAME = "games"
 SYNC_INTERVAL_S = 3600
+EDIT_BACKOFF_S = 23 * 3600
+_STALE_EDITS: dict[str, float] = {}
+
+
+def _content_fingerprint(content: str) -> str:
+    """Hash one post's rendered content for change detection."""
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _stagger_stale_edit(thread_id: str, now: float) -> bool:
+    """Guard Discord's 'edits to messages older than 1 hour' rate limit.
+
+    Discord allows only a few edits per hour on old messages; editing every
+    sync cycle burns the quota instantly. A post whose last edit failed with
+    the stale-edit limit is skipped for EDIT_BACKOFF_S, so a full forum pass
+    stays far under the cap while genuine content changes still go through.
+    """
+    until = _STALE_EDITS.get(thread_id, 0.0)
+    return until > now
+
+
+def _note_stale_edit(thread_id: str, now: float) -> None:
+    """Record one stale-edit rejection; the post retries after the backoff."""
+    _STALE_EDITS[thread_id] = now + EDIT_BACKOFF_S
 
 
 @dataclass(frozen=True)
@@ -124,10 +149,29 @@ async def _sync_one_forum(
 
 
 async def _refresh_post(thread: Any, content: str, view: Any | None) -> None:
-    """Keep an existing post's content and components in sync (best-effort)."""
+    """Edit one existing post, only when its content actually changed.
+
+    The rendered content is hashed before editing: an unchanged post is left
+    alone (zero edits on a steady-state cycle), which keeps the sync far
+    under Discord's old-message edit quota. Rejected stale edits back off.
+    """
+    import time
+
+    now = time.monotonic()
+    if _stagger_stale_edit(str(thread.id), now):
+        return
+    fingerprint = _content_fingerprint(truncate_body(content))
     try:
         starter = await thread.fetch_message(thread.id)
+        if _content_fingerprint(starter.content or "") == fingerprint:
+            return
         await starter.edit(content=truncate_body(content), view=view)
+    except discord.HTTPException as exc:
+        if getattr(exc, "code", None) == 30046:
+            _note_stale_edit(str(thread.id), now)
+            logger.info("entity forum: stale-edit quota hit (thread %s) - backing off", thread.id)
+            return
+        logger.debug("entity forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
     except Exception:
         logger.debug("entity forum: post refresh skipped (thread %s)", thread.id, exc_info=True)
 

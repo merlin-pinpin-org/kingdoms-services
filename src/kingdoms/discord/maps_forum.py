@@ -166,9 +166,15 @@ async def _refresh_map_post(
     bot: Any, platform: Any, guild_id: str, entry: Any, service: Any
 ) -> None:
     """Keep an existing map post's content and layout in sync (best-effort)."""
+    import time
+
     from kingdoms.core.ids import footer
+    from kingdoms.core.services.entity_forum import _note_stale_edit, _stagger_stale_edit
     from kingdoms.discord.content_posts import entity_post_content
 
+    thread_id = str(entry.forum_message_id)
+    if _stagger_stale_edit(thread_id, time.monotonic()):
+        return
     try:
         _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
         description = summary or (entry.description or "_Aucune description._")
@@ -182,8 +188,13 @@ async def _refresh_map_post(
             content = f"{content}\n{entry.resource_url}"
         content = f"{content}\n\n{footer(entry.id)}"
         await platform.edit_forum_post(guild_id, entry.forum_message_id, content, view)
+    except discord.HTTPException as exc:
+        if getattr(exc, "code", None) == 30046:
+            _note_stale_edit(thread_id, time.monotonic())
+            return
+        logger.debug("maps forum: post refresh skipped (thread %s)", thread_id, exc_info=True)
     except Exception:
-        logger.debug("maps forum: post refresh skipped (thread %s)", entry.forum_message_id, exc_info=True)
+        logger.debug("maps forum: post refresh skipped (thread %s)", thread_id, exc_info=True)
 
 
 def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
