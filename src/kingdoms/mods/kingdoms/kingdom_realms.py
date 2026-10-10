@@ -60,6 +60,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "realms_rename_field": "New name",
         "realms_done": "Done.",
         "realms_failed": "Action failed: {error}",
+        "realms_delete_button": "🗑️ Delete",
+        "realms_delete_confirm_title": "Delete the kingdom?",
+        "realms_delete_confirm_hint": (
+            "This removes the kingdom, its members, its territories and its "
+            "Discord salons. The refusal trace does not survive a deletion."
+        ),
+        "realms_delete_confirm_button": "🗑️ Delete for good",
+        "realms_delete_cancel_button": "Cancel",
+        "realms_cancelled": "Cancelled.",
+        "realms_deleted": "Kingdom deleted.",
     },
     "fr": {
         "realms_title": "🏰 Validation des royaumes",
@@ -75,6 +85,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "realms_rename_field": "Nouveau nom",
         "realms_done": "C'est fait.",
         "realms_failed": "L'action a échoué : {error}",
+        "realms_delete_button": "🗑️ Supprimer",
+        "realms_delete_confirm_title": "Supprimer le royaume ?",
+        "realms_delete_confirm_hint": (
+            "Cela supprime le royaume, ses membres, ses territoires et ses "
+            "salons Discord. Aucune trace ne survit à une suppression."
+        ),
+        "realms_delete_confirm_button": "🗑️ Supprimer définitivement",
+        "realms_delete_cancel_button": "Annuler",
+        "realms_cancelled": "Annulé.",
+        "realms_deleted": "Royaume supprimé.",
     },
 }
 
@@ -117,7 +137,7 @@ def _validation_rows(
     non_gaia: list[Any],
     strings: dict[str, str],
 ) -> list[discord.ui.ActionRow[discord.ui.LayoutView]]:
-    """One button row per not-yet-approved kingdom (3 buttons, never empty)."""
+    """One button row per kingdom: validation buttons + 🗑️ delete (never empty)."""
     buttons = (
         ("approve", strings["realms_approve_button"], discord.ButtonStyle.success),
         ("refuse", strings["realms_refuse_button"], discord.ButtonStyle.danger),
@@ -125,18 +145,24 @@ def _validation_rows(
     )
     rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
     for kingdom in non_gaia:
-        if str(kingdom.validation) == "approved":
-            continue  # nothing to validate on an approved kingdom
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         kid = str(kingdom.id)[:90]
-        for action, label, style in buttons:
-            row.add_item(
-                discord.ui.Button(
-                    label=label[:80],
-                    style=style,
-                    custom_id=f"kingdoms:realm:{action}:{kid}",
+        if str(kingdom.validation) != "approved":
+            for action, label, style in buttons:
+                row.add_item(
+                    discord.ui.Button(
+                        label=label[:80],
+                        style=style,
+                        custom_id=f"kingdoms:realm:{action}:{kid}",
+                    )
                 )
+        row.add_item(
+            discord.ui.Button(
+                label=strings["realms_delete_button"][:80],
+                style=discord.ButtonStyle.danger,
+                custom_id=f"kingdoms:realm:delete:{kid}",
             )
+        )
         rows.append(row)
     return rows
 
@@ -144,8 +170,8 @@ def _validation_rows(
 def build_realms_panel(locale: str, kingdoms: list[Any], lords: list[Any]) -> discord.ui.LayoutView:
     """Build the Royaumes panel: every kingdom, its state, its people.
 
-    The buttons target pending/refused kingdoms only (an approved one
-    has its structure already; renaming stays available everywhere).
+    Pending/refused kingdoms get the validation buttons; every kingdom
+    gets the 🗑️ delete button (a hard delete, distinct from refuse).
     """
     strings = _strings(locale)
     non_gaia = [k for k in kingdoms if not k.is_gaia]
@@ -196,6 +222,31 @@ def _member_role(guild: discord.Guild, role_key: str) -> discord.Role | None:
     return None
 
 
+async def _lock_category_visibility(guild: discord.Guild, category: Any) -> None:
+    """Hide the realm category from everyone — except the bot itself.
+
+    The bot must stay able to read, write and manage its own realm
+    salons: without this grant the @everyone deny locks the bot out
+    (403 Missing Access, code 50001) and every state view deployment
+    fails silently (drasah live incident 2026-10-10).
+    """
+    everyone = getattr(guild, "default_role", None)
+    if everyone is not None:
+        await category.set_permissions(everyone, view_channel=False, read_message_history=False)
+    bot_member = getattr(guild, "me", None)
+    if bot_member is not None:
+        await category.set_permissions(
+            bot_member,
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_channels=True,
+            manage_messages=True,
+            embed_links=True,
+            attach_files=True,
+        )
+
+
 async def ensure_realm_structure(
     guild: discord.Guild,
     kingdom: Any,
@@ -213,10 +264,7 @@ async def ensure_realm_structure(
     if category is None:
         category = await guild.create_category(display)
         logger.info("KINGDOM REALMS: category %s created for %s", display, kingdom.id)
-
-    everyone = getattr(guild, "default_role", None)
-    if everyone is not None:
-        await category.set_permissions(everyone, view_channel=False, read_message_history=False)
+    await _lock_category_visibility(guild, category)
     admin_role = _member_role(guild, "kingdoms_admin")
     if admin_role is not None:
         await category.set_permissions(admin_role, view_channel=True, manage_channels=True)
@@ -250,6 +298,29 @@ async def ensure_realm_structure(
             await channel.set_permissions(lord_role, view_channel=True, send_messages=False)
 
     return category
+
+
+async def delete_orphan_realm_categories(guild: discord.Guild, kingdoms: Any) -> int:
+    """Delete every « Royaume … » category matching no kingdom of the set.
+
+    A season launch wipes the season data but never touches Discord: the
+    categories of kingdoms that no longer exist would pile up forever.
+    Called after every launch — a category is kept only when its slug
+    matches a current kingdom's name.
+    """
+    keep = {_slug(realm_category_name(k.name)) for k in kingdoms if not k.is_gaia}
+    deleted = 0
+    for category in list(getattr(guild, "categories", [])):
+        slug = _slug(getattr(category, "name", ""))
+        if not slug.startswith("royaume-") or slug in keep:
+            continue
+        try:
+            await category.delete()
+            deleted += 1
+            logger.info("KINGDOM REALMS: orphan category %s deleted", slug)
+        except Exception:
+            logger.warning("KINGDOM REALMS: orphan delete failed", exc_info=True)
+    return deleted
 
 
 async def delete_realm_structure(guild: discord.Guild, kingdom_name: str) -> bool:

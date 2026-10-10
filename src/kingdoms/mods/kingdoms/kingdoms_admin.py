@@ -278,43 +278,33 @@ def _register_launch(
             STRINGS[DEFAULT_LOCALE]["launch_description"],
         ),
     )
-    @app_commands.describe(
-        names=localized(
-            "commands.kingdoms_admin_launch_names_description",
-            STRINGS[DEFAULT_LOCALE]["launch_names_arg_description"],
-        )
-    )
-    async def launch(interaction: discord.Interaction, names: str | None = None) -> None:
-        """Launch a new season: wholesale reset, then the fresh state (D38)."""
+    async def launch(interaction: discord.Interaction) -> None:
+        """Launch a new season: wholesale reset, then the fresh state (D38).
+
+        A launch never creates kingdoms (Drasah's rule): kingdoms appear
+        through a lord's proposal or the admin « add a kingdom » action.
+        """
         strings = _strings_for(interaction.locale)
         svc = await _check(interaction, strings, service, guard)
         if svc is None:
             return
-        imposed = [part.strip() for part in (names or "").split(",") if part.strip()] or None
         try:
-            season = await svc.launch(imposed)
+            season = await svc.launch()
         except KingdomsModError as error:
             await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
-        await _answer_launch(interaction, strings, season, imposed)
+        await _answer_launch(interaction, strings, season)
 
 
 async def _answer_launch(
     interaction: discord.Interaction,
     strings: dict[str, str],
     season: SeasonState,
-    imposed: list[str] | None,
 ) -> None:
-    """Answer a launch with the free-founding or imposed mode message."""
-    if imposed:
-        await interaction.followup.send(
-            strings["launched_imposed"].format(season=season.id, kingdoms=", ".join(imposed)),
-            ephemeral=True,
-        )
-    else:
-        await interaction.followup.send(
-            strings["launched_free"].format(season=season.id), ephemeral=True
-        )
+    """Answer a launch with the free-founding mode message."""
+    await interaction.followup.send(
+        strings["launched_free"].format(season=season.id), ephemeral=True
+    )
     logger.info("kingdoms: season launched by %s", interaction.user.id)
     if interaction.guild is not None:
         from kingdoms.mods.kingdoms.kingdom_persistent import _ensure_realms_after_launch

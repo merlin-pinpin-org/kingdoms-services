@@ -18,6 +18,7 @@ TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
 ATTACKS_COLLECTION = "kingdoms_attacks"
 SHOWMATCH_COLLECTION = "kingdoms_showmatch"
+SEASON_ARCHIVES_COLLECTION = "kingdoms_season_archives"
 
 
 class KingdomsStore(Protocol):
@@ -87,6 +88,10 @@ class KingdomsStore(Protocol):
         """Return every technology document of the current data set."""
         ...
 
+    async def delete_technology(self, kingdom_id: str) -> None:
+        """Drop one technology document by ``_id``."""
+        ...
+
     async def upsert_showmatch(self, document: dict[str, Any]) -> None:
         """Insert or replace the ShowMatch document by ``_id``."""
         ...
@@ -97,6 +102,14 @@ class KingdomsStore(Protocol):
 
     async def wipe_season_data(self) -> None:
         """Reset the season data wholesale (D38): seasons, kingdoms, lords."""
+        ...
+
+    async def upsert_season_archive(self, document: dict[str, Any]) -> None:
+        """Insert one season archive document (backup before a wipe)."""
+        ...
+
+    async def find_season_archives(self) -> list[dict[str, Any]]:
+        """Return every archived season snapshot (ascending by date)."""
         ...
 
 
@@ -189,6 +202,10 @@ class MongoKingdomsStore:
         cursor = self._database[TECHNOLOGIES_COLLECTION].find({})
         return [dict(doc) async for doc in cursor]
 
+    async def delete_technology(self, document_id: str) -> None:
+        """Drop one technology document by ``_id``."""
+        await self._database[TECHNOLOGIES_COLLECTION].delete_one({"_id": document_id})
+
     async def upsert_showmatch(self, document: dict[str, Any]) -> None:
         """Insert or replace the ShowMatch document by ``_id``."""
         await self._database[SHOWMATCH_COLLECTION].replace_one(
@@ -216,3 +233,12 @@ class MongoKingdomsStore:
             SHOWMATCH_COLLECTION,
         ):
             await self._database[collection].delete_many({})
+
+    async def upsert_season_archive(self, document: dict[str, Any]) -> None:
+        """Insert one season archive document (never wiped by a reset)."""
+        await self._database[SEASON_ARCHIVES_COLLECTION].insert_one(dict(document))
+
+    async def find_season_archives(self) -> list[dict[str, Any]]:
+        """Return every archived season snapshot (ascending by archived_at)."""
+        cursor = self._database[SEASON_ARCHIVES_COLLECTION].find({}).sort("archived_at", 1)
+        return [dict(doc) async for doc in cursor]

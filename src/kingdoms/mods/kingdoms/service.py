@@ -16,7 +16,7 @@ import logging
 import random
 import re
 from datetime import UTC, datetime
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from kingdoms.core.exceptions import ErrorContext, KingdomsError
 from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
@@ -143,6 +143,7 @@ class KingdomsService:
             self._check_name(name)
         if len(names) > self._config.kingdoms_count:
             raise KingdomLimitError("more imposed kingdoms than the configured maximum")
+        await self._archive_current_data()
         await self._store.wipe_season_data()
         now = datetime.now(tz=UTC)
         season = SeasonState(
@@ -165,8 +166,91 @@ class KingdomsService:
 
     async def reset(self) -> None:
         """Reset the season data without launching anything (reference §3.3)."""
+        await self._archive_current_data()
         await self._store.wipe_season_data()
         logger.info("kingdoms: season data reset")
+
+    async def _find_all(self, finder: str) -> list[dict[str, Any]]:
+        """Read a store collection defensively (optional on minimal stores)."""
+        method = getattr(self._store, finder, None)
+        if method is None:
+            return []
+        try:
+            return list(await method())
+        except Exception:
+            logger.warning("kingdoms: archive read %s failed", finder, exc_info=True)
+            return []
+
+    async def _delete_one(self, deleter: str, document_id: str) -> None:
+        """Delete one document defensively (optional on minimal stores)."""
+        method = getattr(self._store, deleter, None)
+        if method is None:
+            return
+        await method(document_id)
+
+    async def _archive_current_data(self) -> None:
+        """Snapshot the whole current season data into season_archives.
+
+        Runs before every wipe (launch and reset): the data of the
+        season that is about to disappear is archived verbatim in the
+        ``kingdoms_season_archives`` collection (Drasah's backup rule).
+        """
+        previous = await self.current_season()
+        if previous is None and not await self._find_all("find_kingdoms"):
+            return  # nothing to archive: the data set is already empty
+        seasons = await self._find_all("find_seasons")
+        timestamp = datetime.now(tz=UTC)
+        label = previous.id if previous is not None else "orphaned"
+        archive: dict[str, Any] = {
+            "_id": f"archive-{label}-{timestamp:%Y%m%d-%H%M%S}",
+            "archived_at": timestamp,
+            "season_id": label,
+            "seasons": seasons,
+            "kingdoms": await self._find_all("find_kingdoms"),
+            "lords": await self._find_all("find_lords"),
+            "territories": await self._find_all("find_territories"),
+            "technologies": await self._find_all("find_technologies"),
+            "attacks": await self._find_all("find_attacks"),
+            "showmatches": await self._find_all("find_showmatches"),
+        }
+        try:
+            await self._store.upsert_season_archive(archive)
+            logger.info("kingdoms: season %s archived before wipe", label)
+        except Exception:
+            logger.warning("kingdoms: season archive failed — wiping anyway", exc_info=True)
+
+    async def season_archives(self) -> list[dict[str, Any]]:
+        """Return every archived season snapshot (oldest first)."""
+        return await self._find_all("find_season_archives")
+
+    async def delete_kingdom(self, kingdom_id: str) -> KingdomModel:
+        """Hard-delete one kingdom and all of its data (Drasah's rule).
+
+        Unlike ``refuse`` (which keeps the document for the record),
+        the deletion removes everything: the kingdom, its lords, its
+        territories, its technology state and its attacks. The Discord
+        structure is deleted by the surface after this call.
+        """
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise NotEnrollableError("Gaïa is never subject to deletion")
+        for lord in await self.lords():
+            if lord.kingdom_id == kingdom.id:
+                await self._store.delete_lord(lord.id)
+        for territory in await self._find_all("find_territories"):
+            if territory.get("owner_kingdom_id") == kingdom.id:
+                await self._delete_one("delete_territory", str(territory["_id"]))
+        for technology in await self._find_all("find_technologies"):
+            if technology.get("kingdom_id") == kingdom.id:
+                await self._delete_one("delete_technology", str(technology["_id"]))
+        for attack in await self._find_all("find_attacks"):
+            if attack.get("attacker_kingdom_id") == kingdom.id or attack.get(
+                "defender_kingdom_id"
+            ) == kingdom.id:
+                await self._delete_one("delete_attack", str(attack["_id"]))
+        await self._store.delete_kingdom(kingdom.id)
+        logger.info("kingdoms: kingdom %s deleted by an admin", kingdom.name)
+        return kingdom
 
     async def current_season(self) -> SeasonState | None:
         """Return the latest launched season; None before the first launch."""

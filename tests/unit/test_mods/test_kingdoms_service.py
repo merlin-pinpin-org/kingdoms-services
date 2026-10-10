@@ -34,6 +34,13 @@ class MemoryStore:
         self.seasons: dict[str, dict] = {}
         self.kingdoms: dict[str, dict] = {}
         self.lords: dict[str, dict] = {}
+        self.archives: dict[str, dict] = {}
+
+    async def upsert_season_archive(self, document: dict) -> None:
+        self.archives[document["_id"]] = document
+
+    async def find_season_archives(self) -> list[dict]:
+        return list(self.archives.values())
 
     async def upsert_season(self, document: dict) -> None:
         self.seasons[document["_id"]] = document
@@ -425,3 +432,47 @@ async def test_found_kingdom_can_then_be_approved() -> None:
     kingdom = await service.found_kingdom("p1", "Pictavie")
     approved = await service.approve_kingdom(kingdom.id)
     assert approved.validation is KingdomValidation.APPROVED
+
+
+async def test_launch_archives_the_previous_season() -> None:
+    """A launch wipes the data but archives it first (Drasah's backup rule)."""
+    service, store = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    await service.found_kingdom("p1", "Aquitaine")
+    store.archives.clear()  # the very first launch archived an empty set
+    await service.launch()
+    archives = await service.season_archives()
+    assert len(archives) == 1
+    archive = archives[0]
+    assert archive["kingdoms"], "the pre-wipe kingdoms are archived verbatim"
+    assert any(doc["_id"] == "p1" for doc in archive["lords"])
+    # and the live data set was wiped afterwards
+    assert all(kingdom.is_gaia for kingdom in await service.kingdoms())
+
+
+async def test_reset_archives_the_season_too() -> None:
+    service, store = _service()
+    await service.launch(["Aquitaine"])
+    store.archives.clear()
+    await service.reset()
+    assert len(store.archives) == 1
+    archive = next(iter(store.archives.values()))
+    assert any(doc.get("name") == "Aquitaine" for doc in archive["kingdoms"])
+
+
+async def test_delete_kingdom_removes_all_of_its_data() -> None:
+    """A hard delete drops the kingdom, its lords and its territories."""
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    kingdoms = await service.kingdoms()
+    aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
+    await service.delete_kingdom(aquitaine.id)
+    assert all(kingdom.name != "Aquitaine" for kingdom in await service.kingdoms())
+
+
+async def test_delete_kingdom_refuses_gaia() -> None:
+    service, _ = _service()
+    await service.launch()
+    with pytest.raises(NotEnrollableError):
+        await service.delete_kingdom(GAIA_KINGDOM_KEY)

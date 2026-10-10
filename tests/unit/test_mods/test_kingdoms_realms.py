@@ -12,6 +12,7 @@ import pytest
 from kingdoms.mods.kingdoms.kingdom_realms import (
     REALM_SALONS,
     build_realms_panel,
+    delete_orphan_realm_categories,
     delete_realm_structure,
     ensure_realm_structure,
     realm_category_name,
@@ -55,7 +56,7 @@ def _buttons(view):
     ]
 
 
-def test_panel_buttons_target_pending_and_refused_only() -> None:
+def test_panel_buttons_validation_and_delete() -> None:
     kingdoms = [
         _Kingdom("gaia", "gaia", "approved", is_gaia=True),
         _Kingdom("k-1", "Avalon", "pending"),
@@ -69,9 +70,13 @@ def test_panel_buttons_target_pending_and_refused_only() -> None:
         "kingdoms:realm:approve:k-1",
         "kingdoms:realm:refuse:k-1",
         "kingdoms:realm:rename:k-1",
+        "kingdoms:realm:delete:k-1",
+        # an approved kingdom has nothing to validate but stays deletable
+        "kingdoms:realm:delete:k-2",
         "kingdoms:realm:approve:k-3",
         "kingdoms:realm:refuse:k-3",
         "kingdoms:realm:rename:k-3",
+        "kingdoms:realm:delete:k-3",
     ]
 
 
@@ -137,6 +142,27 @@ async def test_ensure_realm_structure_grants_real_members_only() -> None:
     assert all(not isinstance(target, discord.Object) for target in ())
     overwrites = [(key, value) for key, value in category._overwrites.items()]
     assert (member.id, False) in [key for key, _ in overwrites]
+
+
+async def test_ensure_realm_structure_grants_the_bot_itself() -> None:
+    """Regression (drasah live incident): the bot must keep access to its
+    own realm categories — otherwise every state view deployment fails
+    with a silent 403 Missing Access and the salons stay empty."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await ensure_realm_structure(guild, kingdom, [])
+    assert category.permission_overwrite_for(guild.me) is not None
+
+
+async def test_delete_orphan_realm_categories_keeps_the_living_kingdoms() -> None:
+    guild = MockGuild()
+    living = _Kingdom("k-1", "Avalon", "approved")
+    orphan = _Kingdom("k-9", "Ouest", "approved")
+    await ensure_realm_structure(guild, living, [])
+    await ensure_realm_structure(guild, orphan, [])
+    deleted = await delete_orphan_realm_categories(guild, [living])
+    assert deleted == 1
+    assert [category.name for category in guild.categories] == [realm_category_name("Avalon")]
 
 
 class _StubService:

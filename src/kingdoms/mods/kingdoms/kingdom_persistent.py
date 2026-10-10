@@ -501,6 +501,7 @@ async def _market_action_select_view(
             strings["market_buy_ok_territory"].format(strings["market_action"][action], detail),
             ephemeral=True,
         )
+        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -551,6 +552,7 @@ def _market_patrouille_view(strings: dict[str, Any]) -> discord.ui.View:
             strings["market_patrouille_ok"].format(slot, slot + 2, wallet),
             ephemeral=True,
         )
+        await _refresh_realm_views_for_kingdom_safe(target.guild, king.kingdom_id or "")
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -667,6 +669,7 @@ async def _market_marry_civ_view(
             strings["market_mariage_ok"].format(chosen[0], wallet),
             ephemeral=True,
         )
+        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -734,6 +737,7 @@ class KingdomMarketTechButton(
         await interaction.followup.send(
             strings["market_buy_ok"].format(label, wallet), ephemeral=True
         )
+        await _refresh_realm_views_for_kingdom_safe(interaction.guild, king.kingdom_id or "")
 
 
 class KingdomMarketActionButton(
@@ -800,6 +804,7 @@ class KingdomMarketActionButton(
                 ),
                 ephemeral=True,
             )
+            await _refresh_realm_views_for_kingdom_safe(interaction.guild, king.kingdom_id or "")
             return
         if self.action == "patrouille":
             # D68: the King picks the daily 2h no-aggression slot.
@@ -920,6 +925,7 @@ class KingdomAssignPlayerModal(discord.ui.Modal):
             return
         mention = f"<@{user_id}>"
         await interaction.followup.send(strings["assign_done"].format(mention, lord.kingdom_id), ephemeral=True)
+        await _refresh_realm_views_for_kingdom_safe(interaction.guild, str(lord.kingdom_id or ""))
 
 
 class KingdomAddKingdomModal(discord.ui.Modal):
@@ -958,19 +964,16 @@ class KingdomAddKingdomModal(discord.ui.Modal):
 
 
 class KingdomLaunchModal(discord.ui.Modal):
-    """The admin form to launch a season (imposed kingdoms optional)."""
+    """The admin form to launch a season (no kingdom names — free mode).
 
-    names: discord.ui.TextInput[KingdomLaunchModal] = discord.ui.TextInput(
-        label="Kingdom names (comma-separated, empty = free)",
-        placeholder="Aquitaine, Francie, …",
-        max_length=200,
-        required=False,
-    )
+    Launching a season never creates kingdoms anymore (Drasah's rule):
+    kingdoms exist through a lord's proposal or the admin « add a
+    kingdom » button — nothing else.
+    """
 
     def __init__(self, locale: str) -> None:
         self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
         strings = _profile_strings(self.locale)
-        self.names.label = strings["launch_names_field"][:45]
         super().__init__(title=strings["launch_modal_title"][:45], timeout=300)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -979,15 +982,13 @@ class KingdomLaunchModal(discord.ui.Modal):
         if wiring.kingdoms_service is None:
             await interaction.response.send_message(strings["launch_failed"].format("no service"), ephemeral=True)
             return
-        raw = [name.strip() for name in (self.names.value or "").split(",") if name.strip()]
         await interaction.response.defer(ephemeral=True)
         try:
-            await wiring.kingdoms_service.launch(imposed_names=raw or None)
+            await wiring.kingdoms_service.launch()
         except Exception as exc:
             await interaction.followup.send(strings["launch_failed"].format(type(exc).__name__), ephemeral=True)
             return
-        note = strings["launch_done_imposed"].format(", ".join(raw)) if raw else strings["launch_done_free"]
-        await interaction.followup.send(note, ephemeral=True)
+        await interaction.followup.send(strings["launch_done_free"], ephemeral=True)
         if interaction.guild is not None:
             await _refresh_season_status_safe(interaction.guild, self.locale)
             await _ensure_realms_after_launch(interaction.guild, self.locale)
@@ -1510,6 +1511,26 @@ async def _deploy_realm_content_safe(guild: discord.Guild, kingdom: Any) -> None
         logger.warning("KINGDOM REALM CONTENT: deployment failed", exc_info=True)
 
 
+async def _refresh_realm_views_for_kingdom_safe(guild: discord.Guild | None, kingdom_id: str) -> None:
+    """Live-refresh one kingdom's state views after a state change (D70 v1).
+
+    Every action that changes a kingdom's state (purchase, marriage,
+    enrollment, corruption…) re-renders its salons in place — the state
+    views never go stale again.
+    """
+    wiring = _wiring()
+    if guild is None or wiring.kingdoms_service is None or not kingdom_id:
+        return
+    try:
+        kingdoms = await wiring.kingdoms_service.kingdoms()
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: kingdom list read failed", exc_info=True)
+        return
+    kingdom = next((k for k in kingdoms if str(k.id) == str(kingdom_id)), None)
+    if kingdom is not None and not kingdom.is_gaia:
+        await _deploy_realm_content_safe(guild, kingdom)
+
+
 async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
     """Best-effort per-kingdom draw after an approval (guarded, idempotent)."""
     wiring = _wiring()
@@ -1522,22 +1543,27 @@ async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
 
 
 async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None:
-    """Provision the approved (imposed/admin) kingdoms after a launch."""
+    """Provision the approved kingdoms, then purge the orphan categories."""
     wiring = _wiring()
-    try:
-        from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
-
-        await ensure_all_realm_structures(guild, wiring.kingdoms_service)
-    except Exception:
-        logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    kingdoms: list[Any] = []
     if wiring.kingdoms_service is not None:
         try:
             kingdoms = await wiring.kingdoms_service.kingdoms()
         except Exception:
-            kingdoms = []
-        for kingdom in kingdoms:
-            if not kingdom.is_gaia and str(kingdom.validation) == "approved":
-                await _deploy_realm_content_safe(guild, kingdom)
+            logger.warning("KINGDOM REALMS: kingdom list read failed", exc_info=True)
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            delete_orphan_realm_categories,
+            ensure_all_realm_structures,
+        )
+
+        await ensure_all_realm_structures(guild, wiring.kingdoms_service)
+        await delete_orphan_realm_categories(guild, kingdoms)
+    except Exception:
+        logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    for kingdom in kingdoms:
+        if not kingdom.is_gaia and str(kingdom.validation) == "approved":
+            await _deploy_realm_content_safe(guild, kingdom)
     await _draw_territories_after_launch_safe()
     await _refresh_realms_panel_safe(guild, locale)
 
@@ -1595,9 +1621,12 @@ class KingdomRealmRenameModal(discord.ui.Modal):
 
 class KingdomRealmButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"kingdoms:realm:(?P<action>approve|refuse|rename):(?P<kid>[a-zA-Z0-9_-]+)",
+    template=(
+        r"kingdoms:realm:(?P<action>approve|refuse|rename|delete"
+        r"|delete-confirm|delete-cancel):(?P<kid>[a-zA-Z0-9_-]+)"
+    ),
 ):
-    """The restart-proof validate/refuse/rename buttons of the Royaumes panel."""
+    """The restart-proof validate/refuse/rename/delete buttons of the panel."""
 
     def __init__(self, action: str, kingdom_id: str, label: str, style: discord.ButtonStyle) -> None:
         super().__init__(
@@ -1627,11 +1656,17 @@ class KingdomRealmButton(
             "approve": strings["realms_approve_button"],
             "refuse": strings["realms_refuse_button"],
             "rename": strings["realms_rename_button"],
+            "delete": strings["realms_delete_button"],
+            "delete-confirm": strings["realms_delete_confirm_button"],
+            "delete-cancel": strings["realms_delete_cancel_button"],
         }
         styles = {
             "approve": discord.ButtonStyle.success,
             "refuse": discord.ButtonStyle.danger,
             "rename": discord.ButtonStyle.secondary,
+            "delete": discord.ButtonStyle.danger,
+            "delete-confirm": discord.ButtonStyle.danger,
+            "delete-cancel": discord.ButtonStyle.secondary,
         }
         return cls(action, match.group("kid"), labels[action], styles[action])
 
@@ -1657,6 +1692,33 @@ class KingdomRealmButton(
         if self.action == "rename":
             await interaction.response.send_modal(KingdomRealmRenameModal(locale, self.kingdom_id))
             return
+        if self.action == "delete":
+            view = discord.ui.View(timeout=120)
+            view.add_item(
+                KingdomRealmButton(
+                    "delete-confirm",
+                    self.kingdom_id,
+                    strings["realms_delete_confirm_button"][:80],
+                    discord.ButtonStyle.danger,
+                )
+            )
+            view.add_item(
+                KingdomRealmButton(
+                    "delete-cancel",
+                    self.kingdom_id,
+                    strings["realms_delete_cancel_button"][:80],
+                    discord.ButtonStyle.secondary,
+                )
+            )
+            await interaction.response.send_message(
+                f"**{strings['realms_delete_confirm_title']}**\n{strings['realms_delete_confirm_hint']}",
+                view=view,
+                ephemeral=True,
+            )
+            return
+        if self.action == "delete-cancel":
+            await interaction.response.send_message(strings["realms_cancelled"], ephemeral=True)
+            return
         await interaction.response.defer(ephemeral=True)
         try:
             if self.action == "approve":
@@ -1670,13 +1732,19 @@ class KingdomRealmButton(
                 await ensure_realm_structure(interaction.guild, kingdom, member_ids)
                 await _draw_territories_for_kingdom_safe(kingdom.id)
                 await _deploy_realm_content_safe(interaction.guild, kingdom)
+            elif self.action == "delete-confirm":
+                kingdom = await wiring.kingdoms_service.delete_kingdom(self.kingdom_id)
+                await delete_realm_structure(interaction.guild, kingdom.name)
             else:
                 kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
         except Exception as exc:
             await interaction.followup.send(strings["realms_failed"].format(type(exc).__name__), ephemeral=True)
             return
-        await interaction.followup.send(strings["realms_done"], ephemeral=True)
+        if self.action == "delete-confirm":
+            await interaction.followup.send(strings["realms_deleted"], ephemeral=True)
+        else:
+            await interaction.followup.send(strings["realms_done"], ephemeral=True)
         await _refresh_realms_panel_safe(interaction.guild, locale)
 
 
