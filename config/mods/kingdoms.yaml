@@ -80,6 +80,10 @@ channels:
     display_name: Géopolitique
     description: Announcements, treaties and political rules
     group: kingdoms
+  - key: market
+    display_name: Marché
+    description: Kingdoms market (trades and resources)
+    group: kingdoms
   - key: epoch
     display_name: Âge sombre
     description: The current age (renamed at each age switch — adopt by group)
@@ -125,6 +129,10 @@ channels:
   - key: settings
     display_name: Paramètres
     description: Mod settings panel channel
+    group: admin
+  - key: season_management
+    display_name: Gestion saison
+    description: Season management (admin only)
     group: admin
   - key: requests
     display_name: Demandes
