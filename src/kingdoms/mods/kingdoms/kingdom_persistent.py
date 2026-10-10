@@ -1148,6 +1148,7 @@ async def _run_deploy(interaction: discord.Interaction, strings: dict[str, Any])
         logger.exception("KINGDOMS ADMIN: deployment failed for guild %s", guild.id)
         await interaction.followup.send(strings["reset_failed"], ephemeral=True)
         return
+    await _ensure_realms_after_launch(guild, str(interaction.locale) if interaction.locale else "en")
     await interaction.followup.send(
         strings["deploy_done"].format(len(created), len(adopted)) + f" ({', '.join(report) or '—'})",
         ephemeral=True,
@@ -1176,6 +1177,8 @@ async def _run_sync(interaction: discord.Interaction, strings: dict[str, Any]) -
         logger.exception("KINGDOMS ADMIN: panel resync failed for guild %s", guild.id)
         await interaction.followup.send(strings["reset_failed"], ephemeral=True)
         return
+    if interaction.guild is not None:
+        await _repin_realm_views_safe(interaction.guild)
     await interaction.followup.send(strings["sync_done"].format(len(report)), ephemeral=True)
 
 
@@ -1480,6 +1483,21 @@ async def _draw_territories_after_launch_safe() -> None:
         await wiring.territories_service.draw_initial()
     except Exception:
         logger.warning("KINGDOMS: initial territory draw failed", exc_info=True)
+
+
+async def _repin_realm_views_safe(guild: discord.Guild) -> None:
+    """Re-pin every approved kingdom's salon state views (salons untouched)."""
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return
+    try:
+        kingdoms = await wiring.kingdoms_service.kingdoms()
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: kingdom list read failed", exc_info=True)
+        return
+    for kingdom in kingdoms:
+        if not kingdom.is_gaia and str(kingdom.validation) == "approved":
+            await _deploy_realm_content_safe(guild, kingdom)
 
 
 async def _deploy_realm_content_safe(guild: discord.Guild, kingdom: Any) -> None:
