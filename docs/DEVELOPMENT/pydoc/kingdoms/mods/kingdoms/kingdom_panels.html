@@ -48,11 +48,16 @@ stores&nbsp;are&nbsp;not&nbsp;wired&nbsp;(local&nbsp;runs):&nbsp;the&nbsp;button
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;one&nbsp;Enroll&nbsp;button.</span></dd></dl>
+ <dl><dt>async <a name="-build_market_panel"><strong>build_market_panel</strong></a>(locale: 'str', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Marché&nbsp;panel:&nbsp;the&nbsp;King's&nbsp;technology&nbsp;&amp;&nbsp;action&nbsp;shop&nbsp;(§20).<br>
+&nbsp;<br>
+Buttons&nbsp;only&nbsp;—&nbsp;every&nbsp;purchase&nbsp;is&nbsp;confirmed&nbsp;through&nbsp;an&nbsp;ephemeral<br>
+answer&nbsp;at&nbsp;click&nbsp;time,&nbsp;so&nbsp;the&nbsp;panel&nbsp;itself&nbsp;carries&nbsp;no&nbsp;state&nbsp;and&nbsp;is<br>
+restart-proof&nbsp;(custom_id&nbsp;rebuild,&nbsp;§3b).</span></dd></dl>
  <dl><dt>async <a name="-build_settings_panel"><strong>build_settings_panel</strong></a>(logs_service: 'LogService | None', guild_id: 'str', by: 'str', bot_admins: 'tuple[str, ...]' = (), roles_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;the&nbsp;admin&nbsp;season&nbsp;actions.<br>
 &nbsp;<br>
 Language&nbsp;and&nbsp;timezone&nbsp;live&nbsp;in&nbsp;the&nbsp;platform&nbsp;core&nbsp;(bot-admin)&nbsp;—&nbsp;the&nbsp;mod<br>
 only&nbsp;exposes&nbsp;its&nbsp;own&nbsp;season&nbsp;actions&nbsp;here.</span></dd></dl>
- <dl><dt>async <a name="-deploy_panels"><strong>deploy_panels</strong></a>(guild: 'discord.Guild', logs_service: 'LogService | None', bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, kingdoms_service: 'Any' = None) -&gt; 'dict[str, str]'</dt><dd><span class="code">Deploy&nbsp;the&nbsp;pinned&nbsp;panels&nbsp;into&nbsp;Postuler&nbsp;and&nbsp;Paramètres.<br>
+ <dl><dt>async <a name="-deploy_panels"><strong>deploy_panels</strong></a>(guild: 'discord.Guild', logs_service: 'LogService | None', bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, kingdoms_service: 'Any' = None) -&gt; 'dict[str, str]'</dt><dd><span class="code">Deploy&nbsp;the&nbsp;pinned&nbsp;panels&nbsp;into&nbsp;Postuler,&nbsp;Paramètres&nbsp;and&nbsp;Marché.<br>
 &nbsp;<br>
 Returns&nbsp;a&nbsp;report&nbsp;dict&nbsp;{panel:&nbsp;status}.&nbsp;Idempotent&nbsp;in&nbsp;v1:&nbsp;each<br>
 deployment&nbsp;pins&nbsp;a&nbsp;fresh&nbsp;panel&nbsp;message&nbsp;(existing&nbsp;pins&nbsp;from&nbsp;previous<br>
@@ -80,6 +85,8 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
 <strong>INSIGHT_URL</strong> = re.compile('^https?://.+', re.IGNORECASE)<br>
 <strong>KINGDOM_MOD</strong> = 'kingdoms'<br>
 <strong>KINGDOM_SELECT_ID</strong> = 'kingdoms:apply:kingdom'<br>
+<strong>MARKET_CHANNEL</strong> = 'marche'<br>
+<strong>MARKET_PANEL_MARKER</strong> = 'kingdoms:panel:marche'<br>
 <strong>PANEL_MARKER</strong> = 'kingdoms:panel:postuler'<br>
 <strong>QUEUE_VALUE</strong> = '__queue__'<br>
 <strong>ROLE_KING</strong> = 'kingdoms_king'<br>
@@ -90,6 +97,6 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
 <strong>SETTINGS_PANEL_MARKER</strong> = 'kingdoms:panel:parametres'<br>
 <strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'cancel': 'Cancel', 'cancelled': 'Application cancelled.', 'candidature_game_id': 'Game ID', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Kingdom', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'cancel': 'Annuler', 'cancelled': 'Candidature annulée.', 'candidature_game_id': 'ID de jeu', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Royaume', ...}}<br>
 <strong>UPDATE_CHANNEL</strong> = 'update'<br>
-<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, Any]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom_panels (WARNING)&gt;</td></tr></table>
 </body></html>
