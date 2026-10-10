@@ -76,6 +76,11 @@ channels:
     description: Submitted applications (admin only)
     group: conscription
     admin_only: true
+  - key: realms
+    display_name: Royaumes
+    description: Kingdom validation panel (admin only)
+    group: conscription
+    admin_only: true
   - key: geopolitics
     display_name: Géopolitique
     description: Announcements, treaties and political rules

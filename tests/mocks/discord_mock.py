@@ -303,6 +303,8 @@ class MockTextChannel(discord.TextChannel):
         reason: str | None = None,
         **kwargs: Any,
     ) -> None:
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
         self._permissions[(target.id, isinstance(target, discord.Role))] = overwrite
 
     def permissions_for(self, member: discord.abc.User) -> discord.Permissions:
@@ -321,6 +323,9 @@ class MockTextChannel(discord.TextChannel):
 
     def permission_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
         return self._permissions.get((target.id, isinstance(target, discord.Role)))
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)
 
     def __repr__(self) -> str:
         return f"<MockTextChannel id={self.id} name={self.name!r}>"
@@ -381,8 +386,35 @@ class MockCategoryChannel(discord.CategoryChannel):
         self.position = position
         self.guild = guild or MockGuild()
         self._channels: list[MockChannel] = []
+        self._overwrites: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    async def set_permissions(
+        self,
+        target: discord.abc.User | discord.Role,
+        *,
+        overwrite: discord.PermissionOverwrite | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Record a permission overwrite on the category (in-memory)."""
+        is_role = isinstance(target, discord.Role)
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
+        self._overwrites[(target.id, is_role)] = overwrite
+
+    def permission_overwrite_for(self, target: discord.abc.User | discord.Role) -> discord.PermissionOverwrite | None:
+        """The recorded overwrite for one member/role, if any."""
+        is_role = isinstance(target, discord.Role)
+        return self._overwrites.get((target.id, is_role))
+
+    async def edit(self, **kwargs: Any) -> MockCategoryChannel:
+        if "name" in kwargs:
+            self.name = kwargs["name"]
+        return self
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)  # type: ignore[arg-type]
 
     @property
     def type(self) -> discord.ChannelType:
@@ -497,6 +529,10 @@ class MockGuild(discord.Guild):
     @property
     def channels(self) -> list[MockChannel]:
         return list(self._channels.values())
+
+    @property
+    def categories(self) -> list[MockCategoryChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockCategoryChannel)]
 
     @property
     def system_channel(self) -> MockTextChannel | None:

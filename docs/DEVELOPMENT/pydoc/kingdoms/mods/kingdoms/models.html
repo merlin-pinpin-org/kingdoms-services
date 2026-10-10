@@ -32,6 +32,7 @@ svc-core;&nbsp;the&nbsp;Discord&nbsp;surface&nbsp;reads&nbsp;them&nbsp;over&nbsp
 <dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#AttackKind">AttackKind</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#AttackState">AttackState</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#KingdomType">KingdomType</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#KingdomValidation">KingdomValidation</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.models.html#LordRole">LordRole</a>
 </dt></dl>
 </dd>
@@ -1762,7 +1763,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="KingdomModel">class <strong>KingdomModel</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomModel">KingdomModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;type:&nbsp;kingdoms.mods.kingdoms.models.<a href="#KingdomType">KingdomType</a>,&nbsp;name:&nbsp;str,&nbsp;marriage_capacity:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;name_approved:&nbsp;bool&nbsp;=&nbsp;True,&nbsp;civilizations:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;secured_civilizations:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;tech_points_bank:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomModel">KingdomModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;type:&nbsp;kingdoms.mods.kingdoms.models.<a href="#KingdomType">KingdomType</a>,&nbsp;name:&nbsp;str,&nbsp;marriage_capacity:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;name_approved:&nbsp;bool&nbsp;=&nbsp;True,&nbsp;validation:&nbsp;kingdoms.mods.kingdoms.models.<a href="#KingdomValidation">KingdomValidation</a>&nbsp;=&nbsp;&amp;lt;<a href="#KingdomValidation">KingdomValidation</a>.APPROVED:&nbsp;'approved'&amp;gt;,&nbsp;civilizations:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;secured_civilizations:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;tech_points_bank:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;kingdom&nbsp;of&nbsp;the&nbsp;current&nbsp;season&nbsp;(player&nbsp;or&nbsp;Gaïa).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -1793,7 +1794,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'civilizations': 'list[str]', 'id': 'str', 'marriage_capacity': 'int', 'name': 'str', 'name_approved': 'bool', 'season_id': 'str', 'secured_civilizations': 'list[str]', 'tech_points_bank': 'int', 'type': 'KingdomType'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'civilizations': 'list[str]', 'id': 'str', 'marriage_capacity': 'int', 'name': 'str', 'name_approved': 'bool', 'season_id': 'str', 'secured_civilizations': 'list[str]', 'tech_points_bank': 'int', 'type': 'KingdomType', 'validation': 'KingdomValidation'}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -1803,7 +1804,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.KingdomModel'&gt;, 'config': {'strict': True, 'title': 'KingdomModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ss 'kingdoms.mods.kingdoms.models.KingdomModel'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.KingdomModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'civilizations': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'marriage_capacity': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'name_approved': {'metadata': {}, 'schema': {'default': True, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'season_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'secured_civilizations': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'tech_points_bank': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'type': {'metadata': {}, 'schema': {'cls': &lt;enum 'KingdomType'&gt;, 'members': [&lt;KingdomType.PLAYER: 'player'&gt;, &lt;KingdomType.GAIA: 'gaia'&gt;], 'metadata': {'pydantic_js_functions': [...]}, 'ref': 'kingdoms.mods.kingdoms.models.KingdomType:MEMORY_ADDRESS', 'sub_type': 'str', 'type': 'enum'}, 'type': 'model-field'}}, 'model_name': 'KingdomModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.KingdomModel'&gt;, 'config': {'strict': True, 'title': 'KingdomModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ss 'kingdoms.mods.kingdoms.models.KingdomModel'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.KingdomModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'civilizations': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'marriage_capacity': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'name_approved': {'metadata': {}, 'schema': {'default': True, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'season_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'secured_civilizations': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'tech_points_bank': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'type': {'metadata': {}, 'schema': {'cls': &lt;enum 'KingdomType'&gt;, 'members': [&lt;KingdomType.PLAYER: 'player'&gt;, &lt;KingdomType.GAIA: 'gaia'&gt;], 'metadata': {'pydantic_js_functions': [...]}, 'ref': 'kingdoms.mods.kingdoms.models.KingdomType:MEMORY_ADDRESS', 'sub_type': 'str', 'type': 'enum'}, 'type': 'model-field'}, 'validation': {'metadata': {}, 'schema': {'default': &lt;KingdomValidation.APPROVED: 'approved'&gt;, 'schema': {'cls': &lt;enum 'KingdomValidation'&gt;, 'members': [...], 'metadata': {...}, 'ref': 'kingdoms.mods.kingdoms.models.KingdomValidation:MEMORY_ADDRESS', 'sub_type': 'str', 'type': 'enum'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'KingdomModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -1811,7 +1812,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'marriage_capacity': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'name': FieldInfo(annotation=str, required=True), 'name_approved': FieldInfo(annotation=bool, required=False, default=True), 'season_id': FieldInfo(annotation=str, required=True), 'secured_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'tech_points_bank': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'type': FieldInfo(annotation=KingdomType, required=True)}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'marriage_capacity': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'name': FieldInfo(annotation=str, required=True), 'name_approved': FieldInfo(annotation=bool, required=False, default=True), 'season_id': FieldInfo(annotation=str, required=True), 'secured_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'tech_points_bank': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'type': FieldInfo(annotation=KingdomType, required=True), 'validation': FieldInfo(annotation=KingdomValidation, required...default=&lt;KingdomValidation.APPROVED: 'approved'&gt;)}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -2214,7 +2215,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'marriage_capacity': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'name': FieldInfo(annotation=str, required=True), 'name_approved': FieldInfo(annotation=bool, required=False, default=True), 'season_id': FieldInfo(annotation=str, required=True), 'secured_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'tech_points_bank': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'type': FieldInfo(annotation=KingdomType, required=True)}</dl>
+<dl><dt><strong>model_fields</strong> = {'civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'marriage_capacity': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'name': FieldInfo(annotation=str, required=True), 'name_approved': FieldInfo(annotation=bool, required=False, default=True), 'season_id': FieldInfo(annotation=str, required=True), 'secured_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'tech_points_bank': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'type': FieldInfo(annotation=KingdomType, required=True), 'validation': FieldInfo(annotation=KingdomValidation, required...default=&lt;KingdomValidation.APPROVED: 'approved'&gt;)}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -2583,6 +2584,398 @@ Methods inherited from <a href="enum.html#Enum">enum.Enum</a>:<br>
 <dl><dt><a name="KingdomType-__init__"><strong>__init__</strong></a>(self, *args, **kwds)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="KingdomType-__reduce_ex__"><strong>__reduce_ex__</strong></a>(self, proto)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="enum.html#Enum">enum.Enum</a>:<br>
+<dl><dt><strong>name</strong></dt>
+<dd><span class="code">The&nbsp;name&nbsp;of&nbsp;the&nbsp;Enum&nbsp;member.</span></dd>
+</dl>
+<dl><dt><strong>value</strong></dt>
+<dd><span class="code">The&nbsp;value&nbsp;of&nbsp;the&nbsp;Enum&nbsp;member.</span></dd>
+</dl>
+<hr>
+Readonly properties inherited from <a href="enum.html#EnumType">enum.EnumType</a>:<br>
+<dl><dt><strong>__members__</strong></dt>
+<dd><span class="code">Returns&nbsp;a&nbsp;mapping&nbsp;of&nbsp;member&nbsp;name-&gt;value.<br>
+&nbsp;<br>
+This&nbsp;mapping&nbsp;lists&nbsp;all&nbsp;enum&nbsp;members,&nbsp;including&nbsp;aliases.&nbsp;Note&nbsp;that&nbsp;this<br>
+is&nbsp;a&nbsp;read-only&nbsp;view&nbsp;of&nbsp;the&nbsp;internal&nbsp;mapping.</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KingdomValidation">class <strong>KingdomValidation</strong></a>(<a href="enum.html#StrEnum">enum.StrEnum</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KingdomValidation">KingdomValidation</a>(*values)<br>
+&nbsp;<br>
+The&nbsp;admin-side&nbsp;validation&nbsp;state&nbsp;of&nbsp;a&nbsp;kingdom&nbsp;(rule&nbsp;35,&nbsp;D70).<br>
+&nbsp;<br>
+A&nbsp;founding&nbsp;King&nbsp;creates&nbsp;a&nbsp;PENDING&nbsp;kingdom:&nbsp;it&nbsp;exists&nbsp;as&nbsp;data&nbsp;(the<br>
+admin&nbsp;can&nbsp;inspect&nbsp;and&nbsp;rename&nbsp;it)&nbsp;but&nbsp;its&nbsp;Discord&nbsp;structure&nbsp;is&nbsp;only<br>
+provisioned&nbsp;once&nbsp;the&nbsp;admin&nbsp;APPROVES&nbsp;it.&nbsp;A&nbsp;REFUSED&nbsp;kingdom&nbsp;keeps&nbsp;its<br>
+document&nbsp;for&nbsp;the&nbsp;record;&nbsp;its&nbsp;members&nbsp;fall&nbsp;back&nbsp;to&nbsp;the&nbsp;waiting<br>
+queue&nbsp;and&nbsp;the&nbsp;admin&nbsp;may&nbsp;re-decide&nbsp;later&nbsp;(corrected&nbsp;name).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.models.html#KingdomValidation">KingdomValidation</a></dd>
+<dd><a href="enum.html#StrEnum">enum.StrEnum</a></dd>
+<dd><a href="builtins.html#str">builtins.str</a></dd>
+<dd><a href="enum.html#ReprEnum">enum.ReprEnum</a></dd>
+<dd><a href="enum.html#Enum">enum.Enum</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="KingdomValidation-__format__"><strong>__format__</strong></a>(self, format_spec, /)<span class="grey"><span class="heading-text"> from <a href="builtins.html#str">builtins.str</a></span></span></dt><dd><span class="code">Return&nbsp;a&nbsp;formatted&nbsp;version&nbsp;of&nbsp;the&nbsp;string&nbsp;as&nbsp;described&nbsp;by&nbsp;format_spec.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__new__"><strong>__new__</strong></a>(cls, value)<span class="grey"><span class="heading-text"> from enum.Enum</span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__str__"><strong>__str__</strong></a>(self, /)<span class="grey"><span class="heading-text"> from <a href="builtins.html#str">builtins.str</a></span></span></dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>APPROVED</strong> = &lt;KingdomValidation.APPROVED: 'approved'&gt;</dl>
+
+<dl><dt><strong>PENDING</strong> = &lt;KingdomValidation.PENDING: 'pending'&gt;</dl>
+
+<dl><dt><strong>REFUSED</strong> = &lt;KingdomValidation.REFUSED: 'refused'&gt;</dl>
+
+<hr>
+Methods inherited from <a href="enum.html#StrEnum">enum.StrEnum</a>:<br>
+<dl><dt><a name="KingdomValidation-__repr__"><strong>__repr__</strong></a>(self)<span class="grey"><span class="heading-text"> from enum.Enum</span></span></dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#str">builtins.str</a>:<br>
+<dl><dt><a name="KingdomValidation-__add__"><strong>__add__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self+value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__contains__"><strong>__contains__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;bool(key&nbsp;in&nbsp;self).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__eq__"><strong>__eq__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__ge__"><strong>__ge__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;=value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__getitem__"><strong>__getitem__</strong></a>(self, key, /)</dt><dd><span class="code">Return&nbsp;self[key].</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__getnewargs__"><strong>__getnewargs__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="KingdomValidation-__gt__"><strong>__gt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&gt;value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__hash__"><strong>__hash__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__iter__"><strong>__iter__</strong></a>(self, /)</dt><dd><span class="code">Implement&nbsp;iter(self).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__le__"><strong>__le__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;=value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__len__"><strong>__len__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;len(self).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__lt__"><strong>__lt__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__mod__"><strong>__mod__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self%value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__mul__"><strong>__mul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self*value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__ne__"><strong>__ne__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;self!=value.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__rmod__"><strong>__rmod__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;value%self.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__rmul__"><strong>__rmul__</strong></a>(self, value, /)</dt><dd><span class="code">Return&nbsp;value*self.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__sizeof__"><strong>__sizeof__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;the&nbsp;size&nbsp;of&nbsp;the&nbsp;string&nbsp;in&nbsp;memory,&nbsp;in&nbsp;bytes.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-capitalize"><strong>capitalize</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;capitalized&nbsp;version&nbsp;of&nbsp;the&nbsp;string.<br>
+&nbsp;<br>
+More&nbsp;specifically,&nbsp;make&nbsp;the&nbsp;first&nbsp;character&nbsp;have&nbsp;upper&nbsp;case&nbsp;and&nbsp;the&nbsp;rest&nbsp;lower<br>
+case.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-casefold"><strong>casefold</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;version&nbsp;of&nbsp;the&nbsp;string&nbsp;suitable&nbsp;for&nbsp;caseless&nbsp;comparisons.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-center"><strong>center</strong></a>(self, width, fillchar=' ', /)</dt><dd><span class="code">Return&nbsp;a&nbsp;centered&nbsp;string&nbsp;of&nbsp;length&nbsp;width.<br>
+&nbsp;<br>
+Padding&nbsp;is&nbsp;done&nbsp;using&nbsp;the&nbsp;specified&nbsp;fill&nbsp;character&nbsp;(default&nbsp;is&nbsp;a&nbsp;space).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-count"><strong>count</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-count">count</a>(sub[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;int<br>
+&nbsp;<br>
+Return&nbsp;the&nbsp;number&nbsp;of&nbsp;non-overlapping&nbsp;occurrences&nbsp;of&nbsp;substring&nbsp;sub&nbsp;in<br>
+string&nbsp;S[start:end].&nbsp;&nbsp;Optional&nbsp;arguments&nbsp;start&nbsp;and&nbsp;end&nbsp;are<br>
+interpreted&nbsp;as&nbsp;in&nbsp;slice&nbsp;notation.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-encode"><strong>encode</strong></a>(self, /, encoding='utf-8', errors='strict')</dt><dd><span class="code">Encode&nbsp;the&nbsp;string&nbsp;using&nbsp;the&nbsp;codec&nbsp;registered&nbsp;for&nbsp;encoding.<br>
+&nbsp;<br>
+encoding<br>
+&nbsp;&nbsp;The&nbsp;encoding&nbsp;in&nbsp;which&nbsp;to&nbsp;encode&nbsp;the&nbsp;string.<br>
+errors<br>
+&nbsp;&nbsp;The&nbsp;error&nbsp;handling&nbsp;scheme&nbsp;to&nbsp;use&nbsp;for&nbsp;encoding&nbsp;errors.<br>
+&nbsp;&nbsp;The&nbsp;default&nbsp;is&nbsp;'strict'&nbsp;meaning&nbsp;that&nbsp;encoding&nbsp;errors&nbsp;raise&nbsp;a<br>
+&nbsp;&nbsp;UnicodeEncodeError.&nbsp;&nbsp;Other&nbsp;possible&nbsp;values&nbsp;are&nbsp;'ignore',&nbsp;'replace'&nbsp;and<br>
+&nbsp;&nbsp;'xmlcharrefreplace'&nbsp;as&nbsp;well&nbsp;as&nbsp;any&nbsp;other&nbsp;name&nbsp;registered&nbsp;with<br>
+&nbsp;&nbsp;codecs.register_error&nbsp;that&nbsp;can&nbsp;handle&nbsp;UnicodeEncodeErrors.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-endswith"><strong>endswith</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-endswith">endswith</a>(suffix[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;bool<br>
+&nbsp;<br>
+Return&nbsp;True&nbsp;if&nbsp;S&nbsp;ends&nbsp;with&nbsp;the&nbsp;specified&nbsp;suffix,&nbsp;False&nbsp;otherwise.<br>
+With&nbsp;optional&nbsp;start,&nbsp;test&nbsp;S&nbsp;beginning&nbsp;at&nbsp;that&nbsp;position.<br>
+With&nbsp;optional&nbsp;end,&nbsp;stop&nbsp;comparing&nbsp;S&nbsp;at&nbsp;that&nbsp;position.<br>
+suffix&nbsp;can&nbsp;also&nbsp;be&nbsp;a&nbsp;tuple&nbsp;of&nbsp;strings&nbsp;to&nbsp;try.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-expandtabs"><strong>expandtabs</strong></a>(self, /, tabsize=8)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;where&nbsp;all&nbsp;tab&nbsp;characters&nbsp;are&nbsp;expanded&nbsp;using&nbsp;spaces.<br>
+&nbsp;<br>
+If&nbsp;tabsize&nbsp;is&nbsp;not&nbsp;given,&nbsp;a&nbsp;tab&nbsp;size&nbsp;of&nbsp;8&nbsp;characters&nbsp;is&nbsp;assumed.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-find"><strong>find</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-find">find</a>(sub[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;int<br>
+&nbsp;<br>
+Return&nbsp;the&nbsp;lowest&nbsp;index&nbsp;in&nbsp;S&nbsp;where&nbsp;substring&nbsp;sub&nbsp;is&nbsp;found,<br>
+such&nbsp;that&nbsp;sub&nbsp;is&nbsp;contained&nbsp;within&nbsp;S[start:end].&nbsp;&nbsp;Optional<br>
+arguments&nbsp;start&nbsp;and&nbsp;end&nbsp;are&nbsp;interpreted&nbsp;as&nbsp;in&nbsp;slice&nbsp;notation.<br>
+&nbsp;<br>
+Return&nbsp;-1&nbsp;on&nbsp;failure.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-format"><strong>format</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-format">format</a>(*args,&nbsp;**kwargs)&nbsp;-&gt;&nbsp;str<br>
+&nbsp;<br>
+Return&nbsp;a&nbsp;formatted&nbsp;version&nbsp;of&nbsp;S,&nbsp;using&nbsp;substitutions&nbsp;from&nbsp;args&nbsp;and&nbsp;kwargs.<br>
+The&nbsp;substitutions&nbsp;are&nbsp;identified&nbsp;by&nbsp;braces&nbsp;('{'&nbsp;and&nbsp;'}').</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-format_map"><strong>format_map</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-format_map">format_map</a>(mapping)&nbsp;-&gt;&nbsp;str<br>
+&nbsp;<br>
+Return&nbsp;a&nbsp;formatted&nbsp;version&nbsp;of&nbsp;S,&nbsp;using&nbsp;substitutions&nbsp;from&nbsp;mapping.<br>
+The&nbsp;substitutions&nbsp;are&nbsp;identified&nbsp;by&nbsp;braces&nbsp;('{'&nbsp;and&nbsp;'}').</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-index"><strong>index</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-index">index</a>(sub[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;int<br>
+&nbsp;<br>
+Return&nbsp;the&nbsp;lowest&nbsp;index&nbsp;in&nbsp;S&nbsp;where&nbsp;substring&nbsp;sub&nbsp;is&nbsp;found,<br>
+such&nbsp;that&nbsp;sub&nbsp;is&nbsp;contained&nbsp;within&nbsp;S[start:end].&nbsp;&nbsp;Optional<br>
+arguments&nbsp;start&nbsp;and&nbsp;end&nbsp;are&nbsp;interpreted&nbsp;as&nbsp;in&nbsp;slice&nbsp;notation.<br>
+&nbsp;<br>
+Raises&nbsp;ValueError&nbsp;when&nbsp;the&nbsp;substring&nbsp;is&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isalnum"><strong>isalnum</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;an&nbsp;alpha-numeric&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;alpha-numeric&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;alpha-numeric&nbsp;and<br>
+there&nbsp;is&nbsp;at&nbsp;least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isalpha"><strong>isalpha</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;an&nbsp;alphabetic&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;alphabetic&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;alphabetic&nbsp;and&nbsp;there<br>
+is&nbsp;at&nbsp;least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isascii"><strong>isascii</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;ASCII,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+ASCII&nbsp;characters&nbsp;have&nbsp;code&nbsp;points&nbsp;in&nbsp;the&nbsp;range&nbsp;U+0000-U+007F.<br>
+Empty&nbsp;string&nbsp;is&nbsp;ASCII&nbsp;too.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isdecimal"><strong>isdecimal</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;decimal&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;a&nbsp;decimal&nbsp;string&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;decimal&nbsp;and<br>
+there&nbsp;is&nbsp;at&nbsp;least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isdigit"><strong>isdigit</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;digit&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;a&nbsp;digit&nbsp;string&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;digits&nbsp;and&nbsp;there<br>
+is&nbsp;at&nbsp;least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isidentifier"><strong>isidentifier</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;valid&nbsp;Python&nbsp;identifier,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+Call&nbsp;keyword.iskeyword(s)&nbsp;to&nbsp;test&nbsp;whether&nbsp;string&nbsp;s&nbsp;is&nbsp;a&nbsp;reserved&nbsp;identifier,<br>
+such&nbsp;as&nbsp;"def"&nbsp;or&nbsp;"class".</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-islower"><strong>islower</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;lowercase&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;lowercase&nbsp;if&nbsp;all&nbsp;cased&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;lowercase&nbsp;and<br>
+there&nbsp;is&nbsp;at&nbsp;least&nbsp;one&nbsp;cased&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isnumeric"><strong>isnumeric</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;numeric&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;numeric&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;numeric&nbsp;and&nbsp;there&nbsp;is&nbsp;at<br>
+least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isprintable"><strong>isprintable</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;printable,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;character&nbsp;is&nbsp;printable&nbsp;if&nbsp;repr()&nbsp;may&nbsp;use&nbsp;it&nbsp;in&nbsp;its&nbsp;output.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isspace"><strong>isspace</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;whitespace&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;whitespace&nbsp;if&nbsp;all&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;whitespace&nbsp;and&nbsp;there<br>
+is&nbsp;at&nbsp;least&nbsp;one&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-istitle"><strong>istitle</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;a&nbsp;title-cased&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+In&nbsp;a&nbsp;title-cased&nbsp;string,&nbsp;upper-&nbsp;and&nbsp;title-case&nbsp;characters&nbsp;may&nbsp;only<br>
+follow&nbsp;uncased&nbsp;characters&nbsp;and&nbsp;lowercase&nbsp;characters&nbsp;only&nbsp;cased&nbsp;ones.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-isupper"><strong>isupper</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;True&nbsp;if&nbsp;the&nbsp;string&nbsp;is&nbsp;an&nbsp;uppercase&nbsp;string,&nbsp;False&nbsp;otherwise.<br>
+&nbsp;<br>
+A&nbsp;string&nbsp;is&nbsp;uppercase&nbsp;if&nbsp;all&nbsp;cased&nbsp;characters&nbsp;in&nbsp;the&nbsp;string&nbsp;are&nbsp;uppercase&nbsp;and<br>
+there&nbsp;is&nbsp;at&nbsp;least&nbsp;one&nbsp;cased&nbsp;character&nbsp;in&nbsp;the&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-join"><strong>join</strong></a>(self, iterable, /)</dt><dd><span class="code">Concatenate&nbsp;any&nbsp;number&nbsp;of&nbsp;strings.<br>
+&nbsp;<br>
+The&nbsp;string&nbsp;whose&nbsp;method&nbsp;is&nbsp;called&nbsp;is&nbsp;inserted&nbsp;in&nbsp;between&nbsp;each&nbsp;given&nbsp;string.<br>
+The&nbsp;result&nbsp;is&nbsp;returned&nbsp;as&nbsp;a&nbsp;new&nbsp;string.<br>
+&nbsp;<br>
+Example:&nbsp;'.'.<a href="#KingdomValidation-join">join</a>(['ab',&nbsp;'pq',&nbsp;'rs'])&nbsp;-&gt;&nbsp;'ab.pq.rs'</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-ljust"><strong>ljust</strong></a>(self, width, fillchar=' ', /)</dt><dd><span class="code">Return&nbsp;a&nbsp;left-justified&nbsp;string&nbsp;of&nbsp;length&nbsp;width.<br>
+&nbsp;<br>
+Padding&nbsp;is&nbsp;done&nbsp;using&nbsp;the&nbsp;specified&nbsp;fill&nbsp;character&nbsp;(default&nbsp;is&nbsp;a&nbsp;space).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-lower"><strong>lower</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;string&nbsp;converted&nbsp;to&nbsp;lowercase.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-lstrip"><strong>lstrip</strong></a>(self, chars=None, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;string&nbsp;with&nbsp;leading&nbsp;whitespace&nbsp;removed.<br>
+&nbsp;<br>
+If&nbsp;chars&nbsp;is&nbsp;given&nbsp;and&nbsp;not&nbsp;None,&nbsp;remove&nbsp;characters&nbsp;in&nbsp;chars&nbsp;instead.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-partition"><strong>partition</strong></a>(self, sep, /)</dt><dd><span class="code">Partition&nbsp;the&nbsp;string&nbsp;into&nbsp;three&nbsp;parts&nbsp;using&nbsp;the&nbsp;given&nbsp;separator.<br>
+&nbsp;<br>
+This&nbsp;will&nbsp;search&nbsp;for&nbsp;the&nbsp;separator&nbsp;in&nbsp;the&nbsp;string.&nbsp;&nbsp;If&nbsp;the&nbsp;separator&nbsp;is&nbsp;found,<br>
+returns&nbsp;a&nbsp;3-tuple&nbsp;containing&nbsp;the&nbsp;part&nbsp;before&nbsp;the&nbsp;separator,&nbsp;the&nbsp;separator<br>
+itself,&nbsp;and&nbsp;the&nbsp;part&nbsp;after&nbsp;it.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;separator&nbsp;is&nbsp;not&nbsp;found,&nbsp;returns&nbsp;a&nbsp;3-tuple&nbsp;containing&nbsp;the&nbsp;original&nbsp;string<br>
+and&nbsp;two&nbsp;empty&nbsp;strings.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-removeprefix"><strong>removeprefix</strong></a>(self, prefix, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;str&nbsp;with&nbsp;the&nbsp;given&nbsp;prefix&nbsp;string&nbsp;removed&nbsp;if&nbsp;present.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;string&nbsp;starts&nbsp;with&nbsp;the&nbsp;prefix&nbsp;string,&nbsp;return&nbsp;string[len(prefix):].<br>
+Otherwise,&nbsp;return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;original&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-removesuffix"><strong>removesuffix</strong></a>(self, suffix, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;str&nbsp;with&nbsp;the&nbsp;given&nbsp;suffix&nbsp;string&nbsp;removed&nbsp;if&nbsp;present.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;string&nbsp;ends&nbsp;with&nbsp;the&nbsp;suffix&nbsp;string&nbsp;and&nbsp;that&nbsp;suffix&nbsp;is&nbsp;not&nbsp;empty,<br>
+return&nbsp;string[:-len(suffix)].&nbsp;Otherwise,&nbsp;return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;original<br>
+string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-replace"><strong>replace</strong></a>(self, old, new, count=-1, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;with&nbsp;all&nbsp;occurrences&nbsp;of&nbsp;substring&nbsp;old&nbsp;replaced&nbsp;by&nbsp;new.<br>
+&nbsp;<br>
+&nbsp;&nbsp;count<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;occurrences&nbsp;to&nbsp;replace.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;(the&nbsp;default&nbsp;value)&nbsp;means&nbsp;replace&nbsp;all&nbsp;occurrences.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;optional&nbsp;argument&nbsp;count&nbsp;is&nbsp;given,&nbsp;only&nbsp;the&nbsp;first&nbsp;count&nbsp;occurrences&nbsp;are<br>
+replaced.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rfind"><strong>rfind</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-rfind">rfind</a>(sub[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;int<br>
+&nbsp;<br>
+Return&nbsp;the&nbsp;highest&nbsp;index&nbsp;in&nbsp;S&nbsp;where&nbsp;substring&nbsp;sub&nbsp;is&nbsp;found,<br>
+such&nbsp;that&nbsp;sub&nbsp;is&nbsp;contained&nbsp;within&nbsp;S[start:end].&nbsp;&nbsp;Optional<br>
+arguments&nbsp;start&nbsp;and&nbsp;end&nbsp;are&nbsp;interpreted&nbsp;as&nbsp;in&nbsp;slice&nbsp;notation.<br>
+&nbsp;<br>
+Return&nbsp;-1&nbsp;on&nbsp;failure.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rindex"><strong>rindex</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-rindex">rindex</a>(sub[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;int<br>
+&nbsp;<br>
+Return&nbsp;the&nbsp;highest&nbsp;index&nbsp;in&nbsp;S&nbsp;where&nbsp;substring&nbsp;sub&nbsp;is&nbsp;found,<br>
+such&nbsp;that&nbsp;sub&nbsp;is&nbsp;contained&nbsp;within&nbsp;S[start:end].&nbsp;&nbsp;Optional<br>
+arguments&nbsp;start&nbsp;and&nbsp;end&nbsp;are&nbsp;interpreted&nbsp;as&nbsp;in&nbsp;slice&nbsp;notation.<br>
+&nbsp;<br>
+Raises&nbsp;ValueError&nbsp;when&nbsp;the&nbsp;substring&nbsp;is&nbsp;not&nbsp;found.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rjust"><strong>rjust</strong></a>(self, width, fillchar=' ', /)</dt><dd><span class="code">Return&nbsp;a&nbsp;right-justified&nbsp;string&nbsp;of&nbsp;length&nbsp;width.<br>
+&nbsp;<br>
+Padding&nbsp;is&nbsp;done&nbsp;using&nbsp;the&nbsp;specified&nbsp;fill&nbsp;character&nbsp;(default&nbsp;is&nbsp;a&nbsp;space).</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rpartition"><strong>rpartition</strong></a>(self, sep, /)</dt><dd><span class="code">Partition&nbsp;the&nbsp;string&nbsp;into&nbsp;three&nbsp;parts&nbsp;using&nbsp;the&nbsp;given&nbsp;separator.<br>
+&nbsp;<br>
+This&nbsp;will&nbsp;search&nbsp;for&nbsp;the&nbsp;separator&nbsp;in&nbsp;the&nbsp;string,&nbsp;starting&nbsp;at&nbsp;the&nbsp;end.&nbsp;If<br>
+the&nbsp;separator&nbsp;is&nbsp;found,&nbsp;returns&nbsp;a&nbsp;3-tuple&nbsp;containing&nbsp;the&nbsp;part&nbsp;before&nbsp;the<br>
+separator,&nbsp;the&nbsp;separator&nbsp;itself,&nbsp;and&nbsp;the&nbsp;part&nbsp;after&nbsp;it.<br>
+&nbsp;<br>
+If&nbsp;the&nbsp;separator&nbsp;is&nbsp;not&nbsp;found,&nbsp;returns&nbsp;a&nbsp;3-tuple&nbsp;containing&nbsp;two&nbsp;empty&nbsp;strings<br>
+and&nbsp;the&nbsp;original&nbsp;string.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rsplit"><strong>rsplit</strong></a>(self, /, sep=None, maxsplit=-1)</dt><dd><span class="code">Return&nbsp;a&nbsp;list&nbsp;of&nbsp;the&nbsp;substrings&nbsp;in&nbsp;the&nbsp;string,&nbsp;using&nbsp;sep&nbsp;as&nbsp;the&nbsp;separator&nbsp;string.<br>
+&nbsp;<br>
+&nbsp;&nbsp;sep<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;separator&nbsp;used&nbsp;to&nbsp;split&nbsp;the&nbsp;string.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;When&nbsp;set&nbsp;to&nbsp;None&nbsp;(the&nbsp;default&nbsp;value),&nbsp;will&nbsp;split&nbsp;on&nbsp;any&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;character&nbsp;(including&nbsp;\n&nbsp;\r&nbsp;\t&nbsp;\f&nbsp;and&nbsp;spaces)&nbsp;and&nbsp;will&nbsp;discard<br>
+&nbsp;&nbsp;&nbsp;&nbsp;empty&nbsp;strings&nbsp;from&nbsp;the&nbsp;result.<br>
+&nbsp;&nbsp;maxsplit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;splits.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;(the&nbsp;default&nbsp;value)&nbsp;means&nbsp;no&nbsp;limit.<br>
+&nbsp;<br>
+Splitting&nbsp;starts&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;string&nbsp;and&nbsp;works&nbsp;to&nbsp;the&nbsp;front.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-rstrip"><strong>rstrip</strong></a>(self, chars=None, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;string&nbsp;with&nbsp;trailing&nbsp;whitespace&nbsp;removed.<br>
+&nbsp;<br>
+If&nbsp;chars&nbsp;is&nbsp;given&nbsp;and&nbsp;not&nbsp;None,&nbsp;remove&nbsp;characters&nbsp;in&nbsp;chars&nbsp;instead.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-split"><strong>split</strong></a>(self, /, sep=None, maxsplit=-1)</dt><dd><span class="code">Return&nbsp;a&nbsp;list&nbsp;of&nbsp;the&nbsp;substrings&nbsp;in&nbsp;the&nbsp;string,&nbsp;using&nbsp;sep&nbsp;as&nbsp;the&nbsp;separator&nbsp;string.<br>
+&nbsp;<br>
+&nbsp;&nbsp;sep<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;separator&nbsp;used&nbsp;to&nbsp;split&nbsp;the&nbsp;string.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;When&nbsp;set&nbsp;to&nbsp;None&nbsp;(the&nbsp;default&nbsp;value),&nbsp;will&nbsp;split&nbsp;on&nbsp;any&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;character&nbsp;(including&nbsp;\n&nbsp;\r&nbsp;\t&nbsp;\f&nbsp;and&nbsp;spaces)&nbsp;and&nbsp;will&nbsp;discard<br>
+&nbsp;&nbsp;&nbsp;&nbsp;empty&nbsp;strings&nbsp;from&nbsp;the&nbsp;result.<br>
+&nbsp;&nbsp;maxsplit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;number&nbsp;of&nbsp;splits.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;(the&nbsp;default&nbsp;value)&nbsp;means&nbsp;no&nbsp;limit.<br>
+&nbsp;<br>
+Splitting&nbsp;starts&nbsp;at&nbsp;the&nbsp;front&nbsp;of&nbsp;the&nbsp;string&nbsp;and&nbsp;works&nbsp;to&nbsp;the&nbsp;end.<br>
+&nbsp;<br>
+Note,&nbsp;str.<a href="#KingdomValidation-split">split</a>()&nbsp;is&nbsp;mainly&nbsp;useful&nbsp;for&nbsp;data&nbsp;that&nbsp;has&nbsp;been&nbsp;intentionally<br>
+delimited.&nbsp;&nbsp;With&nbsp;natural&nbsp;text&nbsp;that&nbsp;includes&nbsp;punctuation,&nbsp;consider&nbsp;using<br>
+the&nbsp;regular&nbsp;expression&nbsp;module.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-splitlines"><strong>splitlines</strong></a>(self, /, keepends=False)</dt><dd><span class="code">Return&nbsp;a&nbsp;list&nbsp;of&nbsp;the&nbsp;lines&nbsp;in&nbsp;the&nbsp;string,&nbsp;breaking&nbsp;at&nbsp;line&nbsp;boundaries.<br>
+&nbsp;<br>
+Line&nbsp;breaks&nbsp;are&nbsp;not&nbsp;included&nbsp;in&nbsp;the&nbsp;resulting&nbsp;list&nbsp;unless&nbsp;keepends&nbsp;is&nbsp;given&nbsp;and<br>
+true.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-startswith"><strong>startswith</strong></a>(...)</dt><dd><span class="code">S.<a href="#KingdomValidation-startswith">startswith</a>(prefix[,&nbsp;start[,&nbsp;end]])&nbsp;-&gt;&nbsp;bool<br>
+&nbsp;<br>
+Return&nbsp;True&nbsp;if&nbsp;S&nbsp;starts&nbsp;with&nbsp;the&nbsp;specified&nbsp;prefix,&nbsp;False&nbsp;otherwise.<br>
+With&nbsp;optional&nbsp;start,&nbsp;test&nbsp;S&nbsp;beginning&nbsp;at&nbsp;that&nbsp;position.<br>
+With&nbsp;optional&nbsp;end,&nbsp;stop&nbsp;comparing&nbsp;S&nbsp;at&nbsp;that&nbsp;position.<br>
+prefix&nbsp;can&nbsp;also&nbsp;be&nbsp;a&nbsp;tuple&nbsp;of&nbsp;strings&nbsp;to&nbsp;try.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-strip"><strong>strip</strong></a>(self, chars=None, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;string&nbsp;with&nbsp;leading&nbsp;and&nbsp;trailing&nbsp;whitespace&nbsp;removed.<br>
+&nbsp;<br>
+If&nbsp;chars&nbsp;is&nbsp;given&nbsp;and&nbsp;not&nbsp;None,&nbsp;remove&nbsp;characters&nbsp;in&nbsp;chars&nbsp;instead.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-swapcase"><strong>swapcase</strong></a>(self, /)</dt><dd><span class="code">Convert&nbsp;uppercase&nbsp;characters&nbsp;to&nbsp;lowercase&nbsp;and&nbsp;lowercase&nbsp;characters&nbsp;to&nbsp;uppercase.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-title"><strong>title</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;version&nbsp;of&nbsp;the&nbsp;string&nbsp;where&nbsp;each&nbsp;word&nbsp;is&nbsp;titlecased.<br>
+&nbsp;<br>
+More&nbsp;specifically,&nbsp;words&nbsp;start&nbsp;with&nbsp;uppercased&nbsp;characters&nbsp;and&nbsp;all&nbsp;remaining<br>
+cased&nbsp;characters&nbsp;have&nbsp;lower&nbsp;case.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-translate"><strong>translate</strong></a>(self, table, /)</dt><dd><span class="code">Replace&nbsp;each&nbsp;character&nbsp;in&nbsp;the&nbsp;string&nbsp;using&nbsp;the&nbsp;given&nbsp;translation&nbsp;table.<br>
+&nbsp;<br>
+&nbsp;&nbsp;table<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Translation&nbsp;table,&nbsp;which&nbsp;must&nbsp;be&nbsp;a&nbsp;mapping&nbsp;of&nbsp;Unicode&nbsp;ordinals&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Unicode&nbsp;ordinals,&nbsp;strings,&nbsp;or&nbsp;None.<br>
+&nbsp;<br>
+The&nbsp;table&nbsp;must&nbsp;implement&nbsp;lookup/indexing&nbsp;via&nbsp;__getitem__,&nbsp;for&nbsp;instance&nbsp;a<br>
+dictionary&nbsp;or&nbsp;list.&nbsp;&nbsp;If&nbsp;this&nbsp;operation&nbsp;raises&nbsp;LookupError,&nbsp;the&nbsp;character&nbsp;is<br>
+left&nbsp;untouched.&nbsp;&nbsp;Characters&nbsp;mapped&nbsp;to&nbsp;None&nbsp;are&nbsp;deleted.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-upper"><strong>upper</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;string&nbsp;converted&nbsp;to&nbsp;uppercase.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-zfill"><strong>zfill</strong></a>(self, width, /)</dt><dd><span class="code">Pad&nbsp;a&nbsp;numeric&nbsp;string&nbsp;with&nbsp;zeros&nbsp;on&nbsp;the&nbsp;left,&nbsp;to&nbsp;fill&nbsp;a&nbsp;field&nbsp;of&nbsp;the&nbsp;given&nbsp;width.<br>
+&nbsp;<br>
+The&nbsp;string&nbsp;is&nbsp;never&nbsp;truncated.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#str">builtins.str</a>:<br>
+<dl><dt><a name="KingdomValidation-maketrans"><strong>maketrans</strong></a>(...)</dt><dd><span class="code">Return&nbsp;a&nbsp;translation&nbsp;table&nbsp;usable&nbsp;for&nbsp;str.<a href="#KingdomValidation-translate">translate</a>().<br>
+&nbsp;<br>
+If&nbsp;there&nbsp;is&nbsp;only&nbsp;one&nbsp;argument,&nbsp;it&nbsp;must&nbsp;be&nbsp;a&nbsp;dictionary&nbsp;mapping&nbsp;Unicode<br>
+ordinals&nbsp;(integers)&nbsp;or&nbsp;characters&nbsp;to&nbsp;Unicode&nbsp;ordinals,&nbsp;strings&nbsp;or&nbsp;None.<br>
+Character&nbsp;keys&nbsp;will&nbsp;be&nbsp;then&nbsp;converted&nbsp;to&nbsp;ordinals.<br>
+If&nbsp;there&nbsp;are&nbsp;two&nbsp;arguments,&nbsp;they&nbsp;must&nbsp;be&nbsp;strings&nbsp;of&nbsp;equal&nbsp;length,&nbsp;and<br>
+in&nbsp;the&nbsp;resulting&nbsp;dictionary,&nbsp;each&nbsp;character&nbsp;in&nbsp;x&nbsp;will&nbsp;be&nbsp;mapped&nbsp;to&nbsp;the<br>
+character&nbsp;at&nbsp;the&nbsp;same&nbsp;position&nbsp;in&nbsp;y.&nbsp;If&nbsp;there&nbsp;is&nbsp;a&nbsp;third&nbsp;argument,&nbsp;it<br>
+must&nbsp;be&nbsp;a&nbsp;string,&nbsp;whose&nbsp;characters&nbsp;will&nbsp;be&nbsp;mapped&nbsp;to&nbsp;None&nbsp;in&nbsp;the&nbsp;result.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="enum.html#Enum">enum.Enum</a>:<br>
+<dl><dt><a name="KingdomValidation-__dir__"><strong>__dir__</strong></a>(self)</dt><dd><span class="code">Returns&nbsp;public&nbsp;methods&nbsp;and&nbsp;other&nbsp;interesting&nbsp;attributes.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__init__"><strong>__init__</strong></a>(self, *args, **kwds)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="KingdomValidation-__reduce_ex__"><strong>__reduce_ex__</strong></a>(self, proto)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <hr>
 Data descriptors inherited from <a href="enum.html#Enum">enum.Enum</a>:<br>

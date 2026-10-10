@@ -24,6 +24,7 @@ from kingdoms.mods.kingdoms.models import (
     GAIA_KINGDOM_KEY,
     KingdomModel,
     KingdomType,
+    KingdomValidation,
     LordModel,
     LordRole,
     SeasonState,
@@ -285,6 +286,63 @@ class KingdomsService:
         )
         return incoming
 
+    async def approve_kingdom(self, kingdom_id: str) -> KingdomModel:
+        """Validate a pending (or previously refused) kingdom (rule 35, D70).
+
+        The kingdom's Discord structure is provisioned by the surface
+        after this call — the service only flips the state.
+        """
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise NotEnrollableError("Gaïa is never subject to validation")
+        if kingdom.validation is KingdomValidation.APPROVED:
+            return kingdom  # idempotent: re-validating is a no-op
+        kingdom.validation = KingdomValidation.APPROVED
+        kingdom.name_approved = True
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info("kingdoms: kingdom %s approved by an admin", kingdom.id)
+        return kingdom
+
+    async def refuse_kingdom(self, kingdom_id: str) -> KingdomModel:
+        """Refuse a pending kingdom: its members fall back to the queue.
+
+        The document stays REFUSED for the record (the admin may later
+        re-validate it with a corrected name — D70); every lord and king
+        of the kingdom is moved to the waiting queue (kingdom_id None).
+        """
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise NotEnrollableError("Gaïa is never subject to validation")
+        kingdom.validation = KingdomValidation.REFUSED
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        for lord in await self.lords():
+            if lord.kingdom_id == kingdom.id and not lord.left:
+                lord.kingdom_id = None
+                lord.in_queue = True
+                await self._store.upsert_lord(lord.to_mongo())
+                logger.info("kingdoms: %s moved to the queue (kingdom refused)", lord.id)
+        logger.info("kingdoms: kingdom %s refused by an admin", kingdom.id)
+        return kingdom
+
+    async def rename_kingdom(self, kingdom_id: str, new_name: str) -> KingdomModel:
+        """Correct a kingdom's proposed name before/while validating (D70)."""
+        kingdom = await self._require_kingdom(kingdom_id)
+        self._check_name(new_name)
+        kingdoms = await self.kingdoms()
+        if any(k.id != kingdom.id and k.name.casefold() == new_name.casefold() for k in kingdoms):
+            raise KingdomNameInvalidError("a kingdom with this name already exists")
+        kingdom.name = new_name.strip()
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info("kingdoms: kingdom %s renamed to %s", kingdom.id, kingdom.name)
+        return kingdom
+
+    async def _require_kingdom(self, kingdom_id: str) -> KingdomModel:
+        """Fetch one kingdom by id or raise (admin validation path)."""
+        for kingdom in await self.kingdoms():
+            if kingdom.id == kingdom_id:
+                return kingdom
+        raise KingdomNotFoundError(f"no kingdom with id {kingdom_id}")
+
     async def decide_name(self, kingdom_name: str, approved: bool) -> KingdomModel:
         """Approve or refuse a proposed kingdom name (D21).
 
@@ -340,6 +398,7 @@ class KingdomsService:
             name=proposed_name,
             name_approved=False,
         )
+        kingdom.validation = KingdomValidation.PENDING
         await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         lord = LordModel(
@@ -375,6 +434,8 @@ class KingdomsService:
         kingdom = await self._find_kingdom_by_name(kingdom_name)
         if kingdom.is_gaia:
             raise NotEnrollableError("Gaïa kingdoms are never enrollable")
+        if kingdom.validation is KingdomValidation.REFUSED:
+            raise KingdomNotFoundError("this kingdom was refused and cannot be joined")
         await self._check_capacity(kingdom, LORD_ROLE)
         lord = LordModel(
             _id=player_id,

@@ -59,6 +59,7 @@ class TestModDeclaration:
             "patrol",
             "presentation",
             "question",
+            "realms",
             "requests",
             "rules",
             "season",

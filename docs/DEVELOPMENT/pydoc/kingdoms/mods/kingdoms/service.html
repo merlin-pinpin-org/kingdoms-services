@@ -653,6 +653,11 @@ Season&nbsp;lifecycle&nbsp;and&nbsp;enrollment&nbsp;rules&nbsp;over&nbsp;the&nbs
 &nbsp;<br>
 The&nbsp;kingdom&nbsp;is&nbsp;created&nbsp;approved,&nbsp;up&nbsp;to&nbsp;the&nbsp;configured&nbsp;maximum.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-approve_kingdom"><strong>approve_kingdom</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pending&nbsp;(or&nbsp;previously&nbsp;refused)&nbsp;kingdom&nbsp;(rule&nbsp;35,&nbsp;D70).<br>
+&nbsp;<br>
+The&nbsp;kingdom's&nbsp;Discord&nbsp;structure&nbsp;is&nbsp;provisioned&nbsp;by&nbsp;the&nbsp;surface<br>
+after&nbsp;this&nbsp;call&nbsp;—&nbsp;the&nbsp;service&nbsp;only&nbsp;flips&nbsp;the&nbsp;state.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-assign"><strong>assign</strong></a>(self, player_id: 'str', kingdom_name: 'str', role: 'LordRole') -&gt; 'LordModel'</dt><dd><span class="code">Assign&nbsp;a&nbsp;queued&nbsp;player&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;(admin&nbsp;action,&nbsp;D23).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-current_season"><strong>current_season</strong></a>(self) -&gt; 'SeasonState | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;latest&nbsp;launched&nbsp;season;&nbsp;None&nbsp;before&nbsp;the&nbsp;first&nbsp;launch.</span></dd></dl>
@@ -682,6 +687,14 @@ The&nbsp;budgets&nbsp;stay&nbsp;on&nbsp;the&nbsp;document&nbsp;until&nbsp;an&nbs
 player:&nbsp;a&nbsp;replacement&nbsp;inherits&nbsp;the&nbsp;weekly&nbsp;attack/defense&nbsp;state.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-lords"><strong>lords</strong></a>(self) -&gt; 'list[LordModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;lords&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsService-refuse_kingdom"><strong>refuse_kingdom</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Refuse&nbsp;a&nbsp;pending&nbsp;kingdom:&nbsp;its&nbsp;members&nbsp;fall&nbsp;back&nbsp;to&nbsp;the&nbsp;queue.<br>
+&nbsp;<br>
+The&nbsp;document&nbsp;stays&nbsp;REFUSED&nbsp;for&nbsp;the&nbsp;record&nbsp;(the&nbsp;admin&nbsp;may&nbsp;later<br>
+re-validate&nbsp;it&nbsp;with&nbsp;a&nbsp;corrected&nbsp;name&nbsp;—&nbsp;D70);&nbsp;every&nbsp;lord&nbsp;and&nbsp;king<br>
+of&nbsp;the&nbsp;kingdom&nbsp;is&nbsp;moved&nbsp;to&nbsp;the&nbsp;waiting&nbsp;queue&nbsp;(kingdom_id&nbsp;None).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsService-rename_kingdom"><strong>rename_kingdom</strong></a>(self, kingdom_id: 'str', new_name: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Correct&nbsp;a&nbsp;kingdom's&nbsp;proposed&nbsp;name&nbsp;before/while&nbsp;validating&nbsp;(D70).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-replace"><strong>replace</strong></a>(self, outgoing_player_id: 'str', incoming_player_id: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Replace&nbsp;a&nbsp;player&nbsp;who&nbsp;left&nbsp;with&nbsp;a&nbsp;queued&nbsp;player&nbsp;(D23/D25).<br>
 &nbsp;<br>

@@ -316,6 +316,10 @@ async def _answer_launch(
             strings["launched_free"].format(season=season.id), ephemeral=True
         )
     logger.info("kingdoms: season launched by %s", interaction.user.id)
+    if interaction.guild is not None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _ensure_realms_after_launch
+
+        await _ensure_realms_after_launch(interaction.guild, str(interaction.locale))
 
 
 def _register_reset(

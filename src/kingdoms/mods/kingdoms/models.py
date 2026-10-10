@@ -49,6 +49,21 @@ class LordRole(StrEnum):
     LORD = "lord"
 
 
+class KingdomValidation(StrEnum):
+    """The admin-side validation state of a kingdom (rule 35, D70).
+
+    A founding King creates a PENDING kingdom: it exists as data (the
+    admin can inspect and rename it) but its Discord structure is only
+    provisioned once the admin APPROVES it. A REFUSED kingdom keeps its
+    document for the record; its members fall back to the waiting
+    queue and the admin may re-decide later (corrected name).
+    """
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REFUSED = "refused"
+
+
 class KingdomModel(BaseModel):
     """A kingdom of the current season (player or Gaïa)."""
 
@@ -60,6 +75,7 @@ class KingdomModel(BaseModel):
     name: str
     marriage_capacity: int = Field(default=0, ge=0)
     name_approved: bool = True
+    validation: KingdomValidation = KingdomValidation.APPROVED
     civilizations: list[str] = Field(default_factory=list)
     secured_civilizations: list[str] = Field(default_factory=list)
     tech_points_bank: int = Field(default=0, ge=0)

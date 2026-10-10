@@ -1112,6 +1112,15 @@ async def _deploy_channel_panel(
     if slug == MARKET_CHANNEL:
         await _deploy_market_panel(channel, locale, kingdoms_service)
         return "marché"
+    if slug == "royaumes":
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            deploy_realms_panel,
+            ensure_all_realm_structures,
+        )
+
+        await ensure_all_realm_structures(channel.guild, kingdoms_service)
+        await deploy_realms_panel(channel.guild, locale, kingdoms_service)
+        return "royaumes"
     return None
 
 

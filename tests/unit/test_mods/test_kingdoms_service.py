@@ -11,7 +11,7 @@ import bson
 import pytest
 
 from kingdoms.mods.kingdoms.config import default_season_config
-from kingdoms.mods.kingdoms.models import GAIA_KINGDOM_KEY, LordRole
+from kingdoms.mods.kingdoms.models import GAIA_KINGDOM_KEY, KingdomValidation, LordRole
 from kingdoms.mods.kingdoms.service import (
     AlreadyEnrolledError,
     ImposedKingdomsError,
@@ -306,3 +306,63 @@ async def test_models_survive_the_mongo_wire_roundtrip() -> None:
     assert len(set(drawn)) == 16  # the draft stays duplicate-free over the wire
     lords = await service.lords()
     assert lords == []  # no lords yet, but the read must not crash either
+
+
+async def test_founding_creates_a_pending_kingdom() -> None:
+    service, _ = _service()
+    await service.launch()
+    lord = await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    assert kingdom.validation is KingdomValidation.PENDING
+    assert kingdom.name_approved is False
+    assert lord.kingdom_id == kingdom.id
+
+
+async def test_approve_kingdom_is_idempotent() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    first = await service.approve_kingdom(kingdom.id)
+    assert first.validation is KingdomValidation.APPROVED
+    assert first.name_approved is True
+    again = await service.approve_kingdom(kingdom.id)
+    assert again.validation is KingdomValidation.APPROVED
+
+
+async def test_refuse_kingdom_keeps_doc_and_queues_members() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    await service.enroll("p2", "Lancelot", LordRole.LORD, kingdom_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    refused = await service.refuse_kingdom(kingdom.id)
+    assert refused.validation is KingdomValidation.REFUSED
+    lords = {lord.id: lord for lord in await service.lords()}
+    assert lords["p1"].kingdom_id is None and lords["p1"].in_queue is True
+    assert lords["p2"].kingdom_id is None and lords["p2"].in_queue is True
+    # the document stays for the record and can be re-validated later
+    reapproved = await service.approve_kingdom(kingdom.id)
+    assert reapproved.validation is KingdomValidation.APPROVED
+
+
+async def test_joining_a_refused_kingdom_raises() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    await service.refuse_kingdom(kingdom.id)
+    with pytest.raises(KingdomNotFoundError):
+        await service.enroll("p2", "Lancelot", LordRole.LORD, kingdom_name="Avalon")
+
+
+async def test_rename_kingdom_and_duplicate_guard() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalone")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalone")
+    renamed = await service.rename_kingdom(kingdom.id, "Avalon")
+    assert renamed.name == "Avalon"
+    await service.enroll("p2", "Béatrice", LordRole.KING, proposed_name="Bourgogne")
+    with pytest.raises(KingdomNameInvalidError):
+        await service.rename_kingdom(kingdom.id, "bourgogne")

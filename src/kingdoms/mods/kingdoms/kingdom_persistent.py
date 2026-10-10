@@ -102,6 +102,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomAdminButton,
         KingdomMarketTechButton,
         KingdomMarketActionButton,
+        KingdomRealmButton,
     )
 
 
@@ -949,6 +950,8 @@ class KingdomAddKingdomModal(discord.ui.Modal):
             await interaction.followup.send(strings["add_kingdom_failed"].format(type(exc).__name__), ephemeral=True)
             return
         await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
+        if interaction.guild is not None:
+            await _ensure_realms_after_launch(interaction.guild, self.locale)
 
 
 class KingdomLaunchModal(discord.ui.Modal):
@@ -984,6 +987,7 @@ class KingdomLaunchModal(discord.ui.Modal):
         await interaction.followup.send(note, ephemeral=True)
         if interaction.guild is not None:
             await _refresh_season_status_safe(interaction.guild, self.locale)
+            await _ensure_realms_after_launch(interaction.guild, self.locale)
 
 
 class KingdomAdminButton(
@@ -1400,3 +1404,162 @@ async def _delete_matching_categories(guild: discord.Guild, structure_names: set
             except Exception:
                 logger.warning("KINGDOMS ADMIN: category delete failed", exc_info=True)
     return deleted
+
+
+async def _refresh_realms_panel_safe(guild: discord.Guild, locale: str) -> None:
+    """Best-effort refresh of the Royaumes panel (validation states)."""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import deploy_realms_panel
+
+        wiring = _wiring()
+        await deploy_realms_panel(guild, locale, wiring.kingdoms_service)
+    except Exception:
+        logger.warning("KINGDOM REALMS: panel refresh failed", exc_info=True)
+
+
+async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None:
+    """Provision the approved (imposed/admin) kingdoms after a launch."""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
+
+        wiring = _wiring()
+        await ensure_all_realm_structures(guild, wiring.kingdoms_service)
+    except Exception:
+        logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    await _refresh_realms_panel_safe(guild, locale)
+
+
+class KingdomRealmRenameModal(discord.ui.Modal):
+    """The admin form to correct a kingdom's name before validating."""
+
+    new_name: discord.ui.TextInput[KingdomRealmRenameModal] = discord.ui.TextInput(
+        label="New name",
+        placeholder="Aquitaine",
+        max_length=45,
+        required=True,
+    )
+
+    def __init__(self, locale: str, kingdom_id: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        self.kingdom_id = kingdom_id
+        from kingdoms.mods.kingdoms.kingdom_realms import _strings as realm_strings
+
+        strings = realm_strings(self.locale)
+        self.new_name.label = strings["realms_rename_field"][:45]
+        super().__init__(title=strings["realms_rename_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            _find_realm_category,
+            realm_category_name,
+        )
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            _strings as realm_strings,
+        )
+
+        strings = realm_strings(self.locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["realms_failed"].format("no service"), ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.rename_kingdom(self.kingdom_id, (self.new_name.value or "").strip())
+        except Exception as exc:
+            await interaction.followup.send(strings["realms_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        if interaction.guild is not None and str(kingdom.validation) == "approved":
+            category = _find_realm_category(interaction.guild, kingdom.name)
+            if category is not None:
+                try:
+                    await category.edit(name=realm_category_name(kingdom.name))
+                except Exception:
+                    logger.warning("KINGDOM REALMS: category rename failed", exc_info=True)
+        await interaction.followup.send(strings["realms_done"], ephemeral=True)
+        if interaction.guild is not None:
+            await _refresh_realms_panel_safe(interaction.guild, self.locale)
+
+
+class KingdomRealmButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:realm:(?P<action>approve|refuse|rename):(?P<kid>[a-zA-Z0-9_-]+)",
+):
+    """The restart-proof validate/refuse/rename buttons of the Royaumes panel."""
+
+    def __init__(self, action: str, kingdom_id: str, label: str, style: discord.ButtonStyle) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:realm:{action}:{kingdom_id[:90]}",
+            )
+        )
+        self.action = action
+        self.kingdom_id = kingdom_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRealmButton:
+        """Rebuild the realm button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        from kingdoms.mods.kingdoms.kingdom_realms import _strings as realm_strings
+
+        strings = realm_strings(locale)
+        action = match.group("action")
+        labels = {
+            "approve": strings["realms_approve_button"],
+            "refuse": strings["realms_refuse_button"],
+            "rename": strings["realms_rename_button"],
+        }
+        styles = {
+            "approve": discord.ButtonStyle.success,
+            "refuse": discord.ButtonStyle.danger,
+            "rename": discord.ButtonStyle.secondary,
+        }
+        return cls(action, match.group("kid"), labels[action], styles[action])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Run the kingdom validation chosen on the Royaumes panel."""
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            _strings as realm_strings,
+        )
+        from kingdoms.mods.kingdoms.kingdom_realms import (
+            delete_realm_structure,
+            ensure_realm_structure,
+        )
+
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = realm_strings(locale)
+        wiring = _wiring()
+        if not _is_admin(interaction, wiring.bot_admins):
+            await interaction.response.send_message("Only admins can validate kingdoms.", ephemeral=True)
+            return
+        if wiring.kingdoms_service is None or interaction.guild is None:
+            await interaction.response.send_message(strings["realms_failed"].format("no service"), ephemeral=True)
+            return
+        if self.action == "rename":
+            await interaction.response.send_modal(KingdomRealmRenameModal(locale, self.kingdom_id))
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            if self.action == "approve":
+                kingdom = await wiring.kingdoms_service.approve_kingdom(self.kingdom_id)
+                members = [
+                    lord
+                    for lord in await wiring.kingdoms_service.lords()
+                    if lord.kingdom_id == kingdom.id and not lord.left
+                ]
+                member_ids = [int(lord.id) for lord in members if str(lord.id).isdigit()]
+                await ensure_realm_structure(interaction.guild, kingdom, member_ids)
+            else:
+                kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
+                await delete_realm_structure(interaction.guild, kingdom.name)
+        except Exception as exc:
+            await interaction.followup.send(strings["realms_failed"].format(type(exc).__name__), ephemeral=True)
+            return
+        await interaction.followup.send(strings["realms_done"], ephemeral=True)
+        await _refresh_realms_panel_safe(interaction.guild, locale)
