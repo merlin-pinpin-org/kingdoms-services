@@ -71,6 +71,12 @@ Adopts&nbsp;the&nbsp;existing&nbsp;category/salons&nbsp;by&nbsp;slug,&nbsp;then&
 permission&nbsp;overwrites&nbsp;so&nbsp;member&nbsp;arrivals/departures&nbsp;always&nbsp;apply.<br>
 ``Territoire``/``Alliances``&nbsp;are&nbsp;readable&nbsp;by&nbsp;every&nbsp;kingdoms_lord;<br>
 the&nbsp;whole&nbsp;category&nbsp;is&nbsp;invisible&nbsp;to&nbsp;everyone&nbsp;else.</span></dd></dl>
+ <dl><dt>async <a name="-grant_bot_access_to_category"><strong>grant_bot_access_to_category</strong></a>(guild: 'discord.Guild', category: 'Any') -&gt; 'None'</dt><dd><span class="code">Best-effort&nbsp;grant&nbsp;of&nbsp;the&nbsp;bot's&nbsp;own&nbsp;access&nbsp;to&nbsp;a&nbsp;category.<br>
+&nbsp;<br>
+Categories&nbsp;created&nbsp;BEFORE&nbsp;the&nbsp;bot-access&nbsp;fix&nbsp;carry&nbsp;no&nbsp;bot&nbsp;overwrite:<br>
+the&nbsp;bot&nbsp;cannot&nbsp;even&nbsp;delete&nbsp;them&nbsp;(403&nbsp;Missing&nbsp;Access&nbsp;on&nbsp;every<br>
+category&nbsp;deletion&nbsp;—&nbsp;drasah&nbsp;live&nbsp;incident&nbsp;2026-10-10).&nbsp;Granting&nbsp;the<br>
+bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nbsp;path&nbsp;work&nbsp;again.</span></dd></dl>
  <dl><dt><a name="-realm_category_name"><strong>realm_category_name</strong></a>(kingdom_name: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;display&nbsp;name&nbsp;of&nbsp;a&nbsp;kingdom's&nbsp;category:&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;».</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
