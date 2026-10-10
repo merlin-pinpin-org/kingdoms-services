@@ -413,6 +413,7 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
     )
     from kingdoms.mods.kingdoms.economy import (
         EconomyLimitReachedError,
+        GuardAlreadyActiveError,
         InsufficientPointsError,
         TerritoryProtectedError,
     )
@@ -423,6 +424,8 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         return str(strings["market_err_limit"])
     if isinstance(exc, TerritoryProtectedError):
         return str(strings["market_err_protected"])
+    if isinstance(exc, GuardAlreadyActiveError):
+        return str(strings["market_err_guard_active"])
     logger.warning("KINGDOMS MARKET: purchase failed", exc_info=True)
     return str(strings["market_err_unknown"]).format(type(exc).__name__)
 
@@ -433,32 +436,22 @@ async def _market_action_select_view(
     action: str,
     strings: dict[str, Any],
 ) -> discord.ui.View | None:
-    """Build the ephemeral target select of one special action (None when empty)."""
+    """Build the ephemeral territory select of one special action (None when empty)."""
     if wiring.territories_service is None:
         return None
     kingdom_id = king.kingdom_id or ""
-    options: list[discord.SelectOption] = []
-    if action == "explorateur":
-        drawn = await wiring.territories_service.drawn_map_keys()
-        maps = getattr(getattr(wiring.kingdoms_service, "config", None), "maps", ()) or ()
-        options = [
-            discord.SelectOption(label=entry.key[:100], value=entry.key[:100])
-            for entry in maps
-            if entry.key not in drawn
-        ][:25]
-    else:
-        territories = await wiring.territories_service.territories()
-        owned = [t for t in territories if t.owner_kingdom_id == kingdom_id]
-        candidates = owned if action == "garde_royale" else [
-            t for t in territories if t.owner_kingdom_id != kingdom_id
-        ]
-        options = [
-            discord.SelectOption(
-                label=strings["market_territory_line"].format(t.map_key, t.owner_kingdom_id)[:100],
-                value=t.id[:100],
-            )
-            for t in candidates
-        ][:25]
+    territories = await wiring.territories_service.territories()
+    owned = [t for t in territories if t.owner_kingdom_id == kingdom_id]
+    candidates = owned if action == "garde_royale" else [
+        t for t in territories if t.owner_kingdom_id != kingdom_id
+    ]
+    options: list[discord.SelectOption] = [
+        discord.SelectOption(
+            label=strings["market_territory_line"].format(t.map_key, t.owner_kingdom_id)[:100],
+            value=t.id[:100],
+        )
+        for t in candidates
+    ][:25]
     if not options:
         return None
     select: discord.ui.Select[Any] = discord.ui.Select(
@@ -478,9 +471,7 @@ async def _market_action_select_view(
             await target.followup.send(strings["market_no_service"], ephemeral=True)
             return
         try:
-            if action == "explorateur":
-                territory = await economy.buy_explorateur(kingdom_id, chosen[0])
-            elif action == "corruption":
+            if action == "corruption":
                 territory = await economy.buy_corruption(kingdom_id, chosen[0])
             else:
                 territory = await economy.buy_royal_guard(kingdom_id, chosen[0])
@@ -594,7 +585,7 @@ class KingdomMarketActionButton(
         return cls(action, strings["market_action"][action], discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the ephemeral target select (map or territory) of the action."""
+        """Buy immediately (Explorateur) or open the territory select."""
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
@@ -605,12 +596,31 @@ class KingdomMarketActionButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
+        if self.action == "explorateur":
+            # D48: the Explorateur draws a random undrawn map, no menu.
+            await interaction.response.defer(ephemeral=True)
+            try:
+                territory = await wiring.economy_service.buy_explorateur(king.kingdom_id or "")
+            except Exception as exc:
+                await interaction.followup.send(
+                    _market_error_note(exc, strings), ephemeral=True
+                )
+                return
+            detail = strings["market_territory_line"].format(
+                territory.map_key, territory.owner_kingdom_id
+            )
+            await interaction.followup.send(
+                strings["market_buy_ok_territory"].format(
+                    strings["market_action"]["explorateur"], detail
+                ),
+                ephemeral=True,
+            )
+            return
         view = await _market_action_select_view(wiring, king, self.action, strings)
         if view is None:
             await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
             return
         prompt = {
-            "explorateur": strings["market_choose_map"],
             "corruption": strings["market_choose_corrupt"],
             "garde_royale": strings["market_choose_guard"],
         }[self.action]

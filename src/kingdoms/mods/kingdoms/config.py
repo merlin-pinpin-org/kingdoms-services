@@ -107,12 +107,14 @@ class TechnologyCosts(BaseModel):
             "patrouille": 2,
             "sabotage": 2,
             "explorateur": 1,
+            "corruption": 2,
         }
     )
-    """Per-season purchase limits (D36); 0 or absent = unlimited.
+    """Per-season purchase limits (D36/D58); 0 or absent = unlimited.
 
-    Sabotage is additionally capped per game (2 sniped civilizations,
-    D12) by the attack service, not by this counter."""
+    Corruption is capped at 2 purchases per season (D58). Sabotage is
+    additionally capped per game (2 sniped civilizations, D12) by the
+    attack service, not by this counter."""
 
 
 class AttackSettings(BaseModel):

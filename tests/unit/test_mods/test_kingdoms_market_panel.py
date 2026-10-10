@@ -89,7 +89,7 @@ class FakeEconomyService:
     def __init__(self, wallet: int = 5) -> None:
         self.wallet_balance = wallet
         self.tech_bought: list[tuple[str, str]] = []
-        self.explorateur_bought: list[tuple[str, str]] = []
+        self.explorateur_bought: list[str] = []
         self.corrupted: list[tuple[str, str]] = []
         self.guarded: list[tuple[str, str]] = []
 
@@ -100,9 +100,11 @@ class FakeEconomyService:
         self.tech_bought.append((kingdom_id, technology))
         return object()
 
-    async def buy_explorateur(self, kingdom_id: str, map_key: str) -> FakeTerritory:
-        self.explorateur_bought.append((kingdom_id, map_key))
-        return FakeTerritory(id=f"{kingdom_id}-t-{map_key}", map_key=map_key, owner_kingdom_id=kingdom_id)
+    async def buy_explorateur(self, kingdom_id: str) -> FakeTerritory:
+        self.explorateur_bought.append(kingdom_id)
+        return FakeTerritory(
+            id=f"{kingdom_id}-explored", map_key="islands", owner_kingdom_id=kingdom_id
+        )
 
     async def buy_corruption(self, kingdom_id: str, territory_id: str) -> FakeTerritory:
         self.corrupted.append((kingdom_id, territory_id))
@@ -224,26 +226,18 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
     assert "Purchased" in (choice.followup.messages[-1].content or "")
 
 
-async def test_explorateur_select_lists_only_undrawn_maps() -> None:
+async def test_explorateur_button_buys_a_random_map_directly() -> None:
+    """D48: the Explorateur needs no select - the map is drawn on click."""
     economy = FakeEconomyService()
-    territories = FakeTerritoryService(drawn={"arabia"})
     _wiring(
         lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
         economy=economy,
-        territories=territories,
-        maps=("arabia", "islands"),
     )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("explorateur", "Explorateur", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    message = interaction.response.message
-    assert message is not None and message.view is not None
-    select = next(iter(message.view.children))
-    assert [opt.value for opt in select.options] == ["islands"]  # arabia already drawn
-
-    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["islands"]}, locale="en-US")
-    await select.callback(choice)
-    assert economy.explorateur_bought == [("k1", "islands")]
+    assert economy.explorateur_bought == ["k1"]
+    assert "Purchased" in (interaction.followup.messages[-1].content or "")
 
 
 async def test_action_button_answers_no_options_when_empty() -> None:

@@ -1,17 +1,19 @@
 """Kingdoms mod special-action economy service (kingdoms-services#161, T7).
 
-Reference §20 and decisions D9/D15/D36/D37/D45/D47/D48: the kingdom
+Reference §20 and decisions D9/D15/D36/D47/D48/D58/D61: the kingdom
 tech-point wallet (``tech_points_bank`` fed by the epochs and the
 exploration rewards) and the three purchasable special actions built on
-it - Explorateur (buy one drawn territory), Corruption (steal any
-territory until the next Monday midnight) and the Garde Royale shield
-(24h, extendable). The wallet is single: every purchase debits the
+it - Explorateur (receive one random non-out territory, D48),
+Corruption (steal any territory, protected 48 real hours, D58) and the
+Garde Royale shield (24h, one active guard per kingdom, extendable at
+a rising cost, D61). The wallet is single: every purchase debits the
 kingdom bank, including combat technologies through the transfer seam
 toward the T4 technology state.
 """
 from __future__ import annotations
 
 import logging
+import random
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -20,7 +22,10 @@ from kingdoms.mods.kingdoms.service import (
     KingdomsModError,
     NoSeasonError,
 )
-from kingdoms.mods.kingdoms.territories import TerritoryNotFoundError
+from kingdoms.mods.kingdoms.territories import (
+    MapPoolExhaustedError,
+    TerritoryNotFoundError,
+)
 
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.attacks import AttackService
@@ -37,8 +42,10 @@ CORRUPTION = "corruption"
 GARDE_ROYALE = "garde_royale"
 ROYAL_GUARD_HOURS = 24
 ROYAL_GUARD_EXTENSION_HOURS = 3
-ROYAL_GUARD_EXTENSION_COST = 1
+CORRUPTION_PROTECTION_HOURS = 48
 CORRUPTION_COMPENSATION_TECH = 1
+GUARD_UNTIL_KEY = "garde_royale_until"
+GUARD_EXTENSIONS_KEY = "garde_royale_extensions"
 
 
 class EconomyError(KingdomsModError):
@@ -67,6 +74,13 @@ class TerritoryProtectedError(EconomyError):
 
     code = "KINGDOMS_TERRITORY_PROTECTED"
     message_key = "kingdoms.errors.territory_protected"
+
+
+class GuardAlreadyActiveError(EconomyError):
+    """Raised when a kingdom buys a second guard while one is active (D61)."""
+
+    code = "KINGDOMS_GUARD_ALREADY_ACTIVE"
+    message_key = "kingdoms.errors.guard_already_active"
 
 
 class EconomyService:
@@ -137,15 +151,21 @@ class EconomyService:
     # ------------------------------------------------------------------
     # Explorateur (D48)
     # ------------------------------------------------------------------
-    async def buy_explorateur(self, kingdom_id: str, map_key: str) -> TerritoryModel:
-        """Buy one allowed map as an immediate territory (D48).
+    async def buy_explorateur(self, kingdom_id: str) -> TerritoryModel:
+        """Receive one random non-out map as an immediate territory (D48).
 
-        Consumable: once per season per kingdom. The map must be in
-        the catalog and not out yet (§8) - the territory goes to the
-        buyer right away.
+        Consumable: once per season per kingdom. The map is drawn at
+        random among the allowed catalog entries not out yet (§8) - the
+        territory goes to the buyer right away.
         """
         await self._check_consumable(kingdom_id, EXPLORATEUR)
         await self.spend_points(kingdom_id, self._cost(EXPLORATEUR))
+        drawn = await self._territories.drawn_map_keys()
+        pool = [entry.key for entry in self._config.maps if entry.key not in drawn]
+        if not pool:
+            await self.grant_tech_points(kingdom_id, self._cost(EXPLORATEUR))
+            raise MapPoolExhaustedError("no allowed map remains to explore", missing=1)
+        map_key = random.choice(pool)  # noqa: S311 - game draw, not crypto
         try:
             territory = await self._territories.draw_map_for(kingdom_id, map_key)
         except KingdomsModError:
@@ -165,13 +185,15 @@ class EconomyService:
         *,
         now: datetime | None = None,
     ) -> TerritoryModel:
-        """Steal any territory from another kingdom (D15/D37).
+        """Steal any territory from another kingdom (D15/D58).
 
         The buyer takes ownership right away; the territory becomes
-        incorruptible (and unattackable) until the next Monday midnight,
-        and the former owner gains one tech point as compensation. A
-        territory already protected resists the corruption.
+        incorruptible (and unattackable) for 48 real hours, and the
+        former owner gains one tech point as compensation. A territory
+        already protected resists the corruption; the per-season
+        purchase limit applies (D58).
         """
+        await self._check_consumable(kingdom_id, CORRUPTION)
         timestamp = now or datetime.now(tz=UTC)
         territories = await self._territories.territories()
         territory = next(
@@ -192,7 +214,7 @@ class EconomyService:
         )
         if fresh is None:
             raise TerritoryNotFoundError("the territory vanished mid-corruption")
-        fresh.protected_until = self._next_monday_midnight(timestamp)
+        fresh.protected_until = timestamp + timedelta(hours=CORRUPTION_PROTECTION_HOURS)
         await self._store.upsert_territory(fresh.to_mongo())
         if former_owner != kingdom_id:
             await self.grant_tech_points(former_owner, CORRUPTION_COMPENSATION_TECH)
@@ -222,10 +244,16 @@ class EconomyService:
         """
         territory = await self._owned_territory(kingdom_id, territory_id)
         timestamp = now or datetime.now(tz=UTC)
+        state = await self._attacks.technology_state(kingdom_id)
+        active_until = state.purchases.get(GUARD_UNTIL_KEY, 0)
+        if active_until > int(timestamp.timestamp()):
+            raise GuardAlreadyActiveError("a royal guard already shields a kingdom territory")
         if territory.is_protected_at(timestamp):
             raise TerritoryProtectedError("the royal guard already shields this territory")
         await self.spend_points(kingdom_id, self._cost(GARDE_ROYALE))
         territory.protected_until = timestamp + timedelta(hours=ROYAL_GUARD_HOURS)
+        state.purchases[GUARD_UNTIL_KEY] = int(territory.protected_until.timestamp())
+        await self._store.upsert_technology(state.to_mongo())
         await self._store.upsert_territory(territory.to_mongo())
         await self._count_purchase(kingdom_id, GARDE_ROYALE)
         logger.info(
@@ -243,16 +271,28 @@ class EconomyService:
         *,
         now: datetime | None = None,
     ) -> TerritoryModel:
-        """Extend an active shield: one tech point buys three hours (D47)."""
+        """Extend the active guard: each prolongation costs one more (D61).
+
+        The first extension costs 1 tech point, the second 2, the third
+        3 - each buys three more hours. Only the territory carrying the
+        kingdom's active guard can be extended.
+        """
         territory = await self._owned_territory(kingdom_id, territory_id)
         timestamp = now or datetime.now(tz=UTC)
         until = territory.protected_until
         if until is None or until <= timestamp:
             raise TerritoryProtectedError("no royal guard shields this territory")
-        await self.spend_points(kingdom_id, ROYAL_GUARD_EXTENSION_COST)
+        state = await self._attacks.technology_state(kingdom_id)
+        if state.purchases.get(GUARD_UNTIL_KEY, 0) != int(until.timestamp()):
+            raise TerritoryProtectedError("no royal guard shields this territory")
+        extensions = state.purchases.get(GUARD_EXTENSIONS_KEY, 0)
+        await self.spend_points(kingdom_id, 1 + extensions)
         territory.protected_until = until + timedelta(
             hours=ROYAL_GUARD_EXTENSION_HOURS
         )
+        state.purchases[GUARD_UNTIL_KEY] = int(territory.protected_until.timestamp())
+        state.purchases[GUARD_EXTENSIONS_KEY] = extensions + 1
+        await self._store.upsert_technology(state.to_mongo())
         await self._store.upsert_territory(territory.to_mongo())
         logger.info(
             "kingdoms: %s extended the guard on %s until %s",
@@ -297,18 +337,6 @@ class EconomyService:
         if territory.owner_kingdom_id != kingdom_id:
             raise EconomyError("the kingdom does not own this territory")
         return territory
-
-    @staticmethod
-    def _next_monday_midnight(now: datetime) -> datetime:
-        """Return the next Monday 00:00 after ``now`` (corruption shield, D15)."""
-        timestamp = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
-        days_ahead = (7 - timestamp.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        midnight = (timestamp + timedelta(days=days_ahead)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        return midnight
 
     async def _kingdom_by_id(self, kingdom_id: str) -> KingdomModel:
         """Resolve a kingdom by id."""
