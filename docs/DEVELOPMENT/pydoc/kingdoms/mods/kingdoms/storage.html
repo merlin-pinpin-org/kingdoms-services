@@ -63,6 +63,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsStore-delete_lord"><strong>delete_lord</strong></a>(self, lord_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-delete_technology"><strong>delete_technology</strong></a>(self, kingdom_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;technology&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -70,6 +72,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="KingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-find_season_archives"><strong>find_season_archives</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;archived&nbsp;season&nbsp;snapshot&nbsp;(ascending&nbsp;by&nbsp;date).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
@@ -86,6 +90,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="KingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-upsert_season_archive"><strong>upsert_season_archive</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;one&nbsp;season&nbsp;archive&nbsp;document&nbsp;(backup&nbsp;before&nbsp;a&nbsp;wipe).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_showmatch"><strong>upsert_showmatch</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;ShowMatch&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -115,7 +121,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'delete_attack', 'delete_kingdom', 'delete_lord', 'delete_territory', 'find_attacks', 'find_kingdoms', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_attack', 'delete_kingdom', 'delete_lord', 'delete_technology', 'delete_territory', 'find_attacks', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -151,6 +157,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 
 <dl><dt>async <a name="MongoKingdomsStore-delete_lord"><strong>delete_lord</strong></a>(self, lord_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-delete_technology"><strong>delete_technology</strong></a>(self, document_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;technology&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-delete_territory"><strong>delete_territory</strong></a>(self, territory_id: 'str') -&gt; 'None'</dt><dd><span class="code">Drop&nbsp;one&nbsp;territory&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -158,6 +166,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 <dl><dt>async <a name="MongoKingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-find_season_archives"><strong>find_season_archives</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;archived&nbsp;season&nbsp;snapshot&nbsp;(ascending&nbsp;by&nbsp;archived_at).</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_seasons"><strong>find_seasons</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;season&nbsp;document&nbsp;(ascending&nbsp;by&nbsp;``started_at``).</span></dd></dl>
 
@@ -174,6 +184,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 <dl><dt>async <a name="MongoKingdomsStore-upsert_lord"><strong>upsert_lord</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;lord&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_season"><strong>upsert_season</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;season&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-upsert_season_archive"><strong>upsert_season_archive</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;one&nbsp;season&nbsp;archive&nbsp;document&nbsp;(never&nbsp;wiped&nbsp;by&nbsp;a&nbsp;reset).</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_showmatch"><strong>upsert_showmatch</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;the&nbsp;ShowMatch&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -204,6 +216,7 @@ Data descriptors defined here:<br>
 <strong>KINGDOMS_COLLECTION</strong> = 'kingdoms_kingdoms'<br>
 <strong>LORDS_COLLECTION</strong> = 'kingdoms_lords'<br>
 <strong>SEASONS_COLLECTION</strong> = 'kingdoms_seasons'<br>
+<strong>SEASON_ARCHIVES_COLLECTION</strong> = 'kingdoms_season_archives'<br>
 <strong>SHOWMATCH_COLLECTION</strong> = 'kingdoms_showmatch'<br>
 <strong>TECHNOLOGIES_COLLECTION</strong> = 'kingdoms_technologies'<br>
 <strong>TERRITORIES_COLLECTION</strong> = 'kingdoms_territories'</td></tr></table>

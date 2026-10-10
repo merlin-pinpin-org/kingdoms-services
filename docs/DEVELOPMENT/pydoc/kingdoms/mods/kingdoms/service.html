@@ -667,6 +667,13 @@ after&nbsp;this&nbsp;call&nbsp;—&nbsp;the&nbsp;service&nbsp;only&nbsp;flips&nb
 A&nbsp;refused&nbsp;name&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;neutral&nbsp;placeholder&nbsp;the&nbsp;admin&nbsp;can<br>
 live&nbsp;with&nbsp;—&nbsp;the&nbsp;kingdom&nbsp;exists&nbsp;and&nbsp;must&nbsp;remain&nbsp;addressable.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-delete_kingdom"><strong>delete_kingdom</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Hard-delete&nbsp;one&nbsp;kingdom&nbsp;and&nbsp;all&nbsp;of&nbsp;its&nbsp;data&nbsp;(Drasah's&nbsp;rule).<br>
+&nbsp;<br>
+Unlike&nbsp;``refuse``&nbsp;(which&nbsp;keeps&nbsp;the&nbsp;document&nbsp;for&nbsp;the&nbsp;record),<br>
+the&nbsp;deletion&nbsp;removes&nbsp;everything:&nbsp;the&nbsp;kingdom,&nbsp;its&nbsp;lords,&nbsp;its<br>
+territories,&nbsp;its&nbsp;technology&nbsp;state&nbsp;and&nbsp;its&nbsp;attacks.&nbsp;The&nbsp;Discord<br>
+structure&nbsp;is&nbsp;deleted&nbsp;by&nbsp;the&nbsp;surface&nbsp;after&nbsp;this&nbsp;call.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-enroll"><strong>enroll</strong></a>(self, player_id: 'str', display_name: 'str', role: 'LordRole', kingdom_name: 'str | None' = None, proposed_name: 'str | None' = None) -&gt; 'LordModel'</dt><dd><span class="code">Enroll&nbsp;a&nbsp;player&nbsp;as&nbsp;King&nbsp;or&nbsp;Lord&nbsp;(reference&nbsp;§5,&nbsp;D22).<br>
 &nbsp;<br>
 A&nbsp;King&nbsp;founds&nbsp;a&nbsp;kingdom&nbsp;with&nbsp;a&nbsp;name&nbsp;pending&nbsp;admin&nbsp;validation<br>
@@ -718,6 +725,8 @@ spent)&nbsp;but&nbsp;never&nbsp;their&nbsp;marriage&nbsp;(D25&nbsp;—&nbsp;pers
 <dl><dt>async <a name="KingdomsService-reset"><strong>reset</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;season&nbsp;data&nbsp;without&nbsp;launching&nbsp;anything&nbsp;(reference&nbsp;§3.3).</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-resolve_kingdom"><strong>resolve_kingdom</strong></a>(self, kingdom_name: 'str | None', player_id: 'str') -&gt; 'KingdomModel | None'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;kingdom&nbsp;to&nbsp;display:&nbsp;by&nbsp;name,&nbsp;else&nbsp;the&nbsp;player's&nbsp;own.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsService-season_archives"><strong>season_archives</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;archived&nbsp;season&nbsp;snapshot&nbsp;(oldest&nbsp;first).</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
