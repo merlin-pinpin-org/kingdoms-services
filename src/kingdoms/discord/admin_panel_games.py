@@ -47,12 +47,25 @@ def _games_wiring() -> Any | None:
 
 
 def _selected_values(interaction: discord.Interaction) -> list[str]:
-    """Read a select interaction's chosen values (payload-shape proof)."""
-    data = interaction.data
-    raw = getattr(data, "values", None) if data is not None else None
-    if raw is None and isinstance(data, dict):
+    """Read a select interaction's chosen values (payload-shape proof).
+
+    discord.py exposes the raw payload as a dict (``interaction.data``
+    is an ``InteractionData`` where ``values`` hides in the dict form
+    when the component type is a select) or as an object with a
+    ``values`` attribute; every known shape is handled, and the select
+    component itself is the final fallback (``self.item.values``).
+    """
+    data = getattr(interaction, "data", None)
+    raw: Any = None
+    if isinstance(data, dict):
         raw = data.get("values")
-    return list(raw) if isinstance(raw, (list, tuple)) else []
+    if raw is None and data is not None:
+        raw = getattr(data, "values", None)
+    if raw is None and isinstance(data, dict):
+        components = (data.get("data") or {}).get("values") or []
+        if components and isinstance(components[0], (list, tuple)):
+            raw = components[0]
+    return [str(v) for v in raw] if isinstance(raw, (list, tuple)) else []
 
 
 async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.LayoutView:
@@ -294,7 +307,7 @@ class GamesGrantedSelect(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the chosen game's sub-menu (visible failure, never silent)."""
-        chosen = (_selected_values(interaction) or [""])[0]
+        chosen = (_selected_values(interaction) or list(self.item.values or [""]))[0]
         logger.info("GAMES GRANTED SELECT clicked (guild %s, chosen %r)", interaction.guild_id, chosen)
         if not chosen or chosen == "none":
             await interaction.response.defer()
