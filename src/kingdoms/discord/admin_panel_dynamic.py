@@ -389,6 +389,11 @@ class PinReadOnlySelect(
 _CLIENT_REF: list[discord.Client] = []
 
 
+def _panel_client_ref() -> discord.Client | None:
+    """Resolve the running bot captured by the panel (None before the first boot)."""
+    return _CLIENT_REF[0] if _CLIENT_REF else None
+
+
 def set_panel_client(client: discord.Client) -> None:
     """Hold the running client (the mod-spec registry lives on it)."""
     _CLIENT_REF.clear()
@@ -514,7 +519,8 @@ async def build_pin_main_menu(
         container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
         from kingdoms.discord.admin_panel_games import GamesGrantedSelect
 
-        container_blocks.append(_select_row(GamesGrantedSelect()))
+        game_options = [discord.SelectOption(label=key, value=key) for key in granted_games[:25]]
+        container_blocks.append(_select_row(GamesGrantedSelect(game_options)))
     if registered_admin_game_sections():
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))
