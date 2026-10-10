@@ -56,6 +56,8 @@ DECISION_REFUSE_ID = "kingdoms:candidature:refuse"
 QUEUE_VALUE = "__queue__"
 PANEL_MARKER = "kingdoms:panel:postuler"
 SETTINGS_PANEL_MARKER = "kingdoms:panel:parametres"
+MARKET_PANEL_MARKER = "kingdoms:panel:marche"
+MARKET_CHANNEL = "marche"
 SEASON_STATUS_MARKER = "kingdoms:season:status"
 SEASON_STATUS_CHANNEL = "saison"
 UPDATE_CHANNEL = "update"
@@ -69,11 +71,15 @@ async def refresh_changelog(guild: discord.Guild, locale: str) -> bool:
         return False
     fr = str(locale).lower().startswith("fr")
     items = (
-        "🛠️ Panneau admin enrichi : déploiement des salons + panels, resynchronisation, "
+        "🛒 Le panneau Marché est en ligne : technologies de combat et actions spéciales"
+        " (Explorateur, Corruption, Garde Royale) achetables par le Roi du royaume."
+        "\n🛠️ Panneau admin enrichi : déploiement des salons + panels, resynchronisation, "
         "statut de la saison, affectation des joueurs en attente, ajout manuel de royaume — "
         "les actions sensibles demandent une confirmation."
         if fr
-        else "🛠️ Richer admin panel: deploy salons + panels, resync, season status, "
+        else "🛒 The Market panel is live: combat technologies and special actions"
+        " (Explorer, Corruption, Royal Guard) purchasable by the kingdom's King."
+        "\n🛠️ Richer admin panel: deploy salons + panels, resync, season status, "
         "assign waiting players, add a kingdom manually — sensitive actions ask for confirmation."
     )
     content = f"{items}\n{CHANGELOG_MARKER}"
@@ -108,7 +114,7 @@ async def post_update_note(guild: discord.Guild, locale: str, note: str) -> bool
 INSIGHT_URL = re.compile(r"^https?://.+", re.IGNORECASE)
 GAME_ID = re.compile(r"^\d{6,20}$")
 
-STRINGS: dict[str, dict[str, str]] = {
+STRINGS: dict[str, dict[str, Any]] = {
     "en": {
         "apply_button": "📋 Enroll",
         "apply_title": "Kingdoms enrollment",
@@ -170,6 +176,39 @@ STRINGS: dict[str, dict[str, str]] = {
         "season_status_queue": "⏳ Waiting players",
         "season_status_empty": "none yet",
         "season_status_hint": "This message is refreshed automatically by the bot.",
+        "market_title": "🛒 Kingdom Market",
+        "market_tech_section": "🧪 Combat technologies",
+        "market_actions_section": "⚔️ Special actions",
+        "market_hint": (
+            "Only the King of a kingdom can buy. Every purchase debits the"
+            " kingdom's tech-point treasury ({} 🔬 per purchase)."
+        ),
+        "market_not_king": "Only Kings can buy on the market.",
+        "market_no_service": "The market is not available right now.",
+        "market_buy_ok": "✅ Purchased: **{}** — treasury left: {} 🔬",
+        "market_buy_ok_territory": "✅ Purchased: **{}** — {}.",
+        "market_err_insufficient": "❌ Not enough tech points.",
+        "market_err_limit": "❌ The per-season purchase limit is reached.",
+        "market_err_protected": "❌ This territory is protected.",
+        "market_err_unknown": "❌ Purchase refused ({}).",
+        "market_choose_map": "🗺️ Choose the map to explore:",
+        "market_choose_corrupt": "🎯 Choose the territory to corrupt:",
+        "market_choose_guard": "🛡️ Choose the territory to shield:",
+        "market_no_options": "No option is available right now.",
+        "market_territory_line": "{} — owner {}",
+        "market_tech": {
+            "embuscade": "Ambush",
+            "traquenard": "Trap",
+            "patrouille": "Patrol",
+            "contre_espionnage": "Counter-espionage",
+            "sabotage": "Sabotage",
+            "jeu_d_armes": "Arms mastery",
+        },
+        "market_action": {
+            "explorateur": "Explorer",
+            "corruption": "Corruption",
+            "garde_royale": "Royal Guard",
+        },
     },
     "fr": {
         "apply_button": "📋 S'inscrire",
@@ -232,11 +271,44 @@ STRINGS: dict[str, dict[str, str]] = {
         "season_status_queue": "⏳ Joueurs en attente",
         "season_status_empty": "aucun pour le moment",
         "season_status_hint": "Ce message est mis à jour automatiquement par le bot.",
+        "market_title": "🛒 Marché du Royaume",
+        "market_tech_section": "🧪 Technologies de combat",
+        "market_actions_section": "⚔️ Actions spéciales",
+        "market_hint": (
+            "Seul le Roi d'un royaume peut acheter. Chaque achat débite le"
+            " trésor de points de tech du royaume ({} 🔬 par achat)."
+        ),
+        "market_not_king": "Seuls les Rois peuvent acheter au marché.",
+        "market_no_service": "Le marché n'est pas disponible pour le moment.",
+        "market_buy_ok": "✅ Achat effectué : **{}** — trésor restant : {} 🔬",
+        "market_buy_ok_territory": "✅ Achat effectué : **{}** — {}.",
+        "market_err_insufficient": "❌ Pas assez de points de tech.",
+        "market_err_limit": "❌ La limite d'achats pour cette saison est atteinte.",
+        "market_err_protected": "❌ Ce territoire est protégé.",
+        "market_err_unknown": "❌ Achat refusé ({}).",
+        "market_choose_map": "🗺️ Choisissez la carte à explorer :",
+        "market_choose_corrupt": "🎯 Choisissez le territoire à corrompre :",
+        "market_choose_guard": "🛡️ Choisissez le territoire à protéger :",
+        "market_no_options": "Aucune option disponible pour le moment.",
+        "market_territory_line": "{} — propriétaire {}",
+        "market_tech": {
+            "embuscade": "Embuscade",
+            "traquenard": "Traquenard",
+            "patrouille": "Patrouille",
+            "contre_espionnage": "Contre-espionnage",
+            "sabotage": "Sabotage",
+            "jeu_d_armes": "Jeu d'armes",
+        },
+        "market_action": {
+            "explorateur": "Explorateur",
+            "corruption": "Corruption",
+            "garde_royale": "Garde Royale",
+        },
     },
 }
 
 
-def _strings(locale: str) -> dict[str, str]:
+def _strings(locale: str) -> dict[str, Any]:
     return STRINGS["fr"] if str(locale).lower().startswith("fr") else STRINGS["en"]
 
 
@@ -787,6 +859,96 @@ async def build_settings_panel(
     return view
 
 
+async def build_market_panel(
+    locale: str,
+    kingdoms_service: Any = None,
+) -> discord.ui.LayoutView:
+    """Build the Marché panel: the King's technology & action shop (§20).
+
+    Buttons only — every purchase is confirmed through an ephemeral
+    answer at click time, so the panel itself carries no state and is
+    restart-proof (custom_id rebuild, §3b).
+    """
+    strings = _strings(locale)
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomMarketActionButton,
+        KingdomMarketTechButton,
+    )
+
+    technologies: Any = None
+    if kingdoms_service is not None:
+        technologies = getattr(kingdoms_service, "config", None)
+        technologies = getattr(technologies, "technologies", None)
+    if technologies is None:
+        from kingdoms.mods.kingdoms.config import TechnologyCosts
+
+        technologies = TechnologyCosts()
+
+    tech_rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = [
+        discord.ui.ActionRow(),
+        discord.ui.ActionRow(),
+    ]
+    tech_keys = (
+        "embuscade",
+        "traquenard",
+        "patrouille",
+        "contre_espionnage",
+        "sabotage",
+        "jeu_d_armes",
+    )
+    for index, key in enumerate(tech_keys):
+        cost = int(getattr(technologies, key))
+        tech_rows[index // 5].add_item(
+            KingdomMarketTechButton(
+                key,
+                f"{strings['market_tech'][key]} — {cost} 🔬",
+                discord.ButtonStyle.primary,
+            )
+        )
+    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for key in ("explorateur", "corruption", "garde_royale"):
+        cost = int(getattr(technologies, key))
+        action_row.add_item(
+            KingdomMarketActionButton(
+                key,
+                f"{strings['market_action'][key]} — {cost} 🔬",
+                discord.ButtonStyle.secondary,
+            )
+        )
+
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# {strings['market_title']}"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"## {strings['market_tech_section']}"),
+            *tech_rows,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"## {strings['market_actions_section']}"),
+            action_row,
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"-# {MARKET_PANEL_MARKER}"),
+            accent_colour=GOLD,
+        )
+    )
+    return view
+
+
+async def _deploy_market_panel(
+    channel: discord.TextChannel,
+    locale: str,
+    kingdoms_service: Any,
+) -> None:
+    """Remove the old market panel then pin a fresh one."""
+    for message in list(getattr(channel, "messages", [])):
+        if MARKET_PANEL_MARKER in (message.content or ""):
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM PANELS: old market panel removal failed", exc_info=True)
+    await channel.send(view=await build_market_panel(locale, kingdoms_service))
+
+
 async def refresh_season_status(
     guild: discord.Guild,
     locale: str,
@@ -889,6 +1051,35 @@ async def _deploy_apply_panel(
     )
 
 
+async def _deploy_channel_panel(
+    channel: discord.TextChannel,
+    *,
+    candidatures: discord.TextChannel | None,
+    locale: str,
+    logs_service: LogService | None,
+    guild_id: str,
+    bot_admins: tuple[str, ...],
+    mod_roles_service: ModRolesService | None,
+    kingdoms_service: Any,
+) -> str | None:
+    """Pin the panel matching one channel (its report key, None otherwise)."""
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    slug = _slug(channel.name)
+    if slug == "postuler":
+        await _deploy_apply_panel(
+            channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
+        )
+        return "postuler"
+    if slug == "parametres":
+        await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
+        return "paramètres"
+    if slug == MARKET_CHANNEL:
+        await _deploy_market_panel(channel, locale, kingdoms_service)
+        return "marché"
+    return None
+
+
 async def deploy_panels(
     guild: discord.Guild,
     logs_service: LogService | None,
@@ -896,7 +1087,7 @@ async def deploy_panels(
     mod_roles_service: ModRolesService | None = None,
     kingdoms_service: Any = None,
 ) -> dict[str, str]:
-    """Deploy the pinned panels into Postuler and Paramètres.
+    """Deploy the pinned panels into Postuler, Paramètres and Marché.
 
     Returns a report dict {panel: status}. Idempotent in v1: each
     deployment pins a fresh panel message (existing pins from previous
@@ -914,14 +1105,18 @@ async def deploy_panels(
 
     candidatures = next((c for c in guild.text_channels if _slug(c.name) == "candidatures"), None)
     for channel in guild.text_channels:
-        if _slug(channel.name) == "postuler":
-            await _deploy_apply_panel(
-                channel, candidatures, locale, bot_admins, mod_roles_service, guild_id, kingdoms_service
-            )
-            report["postuler"] = "deployed"
-        if _slug(channel.name) == "parametres":
-            await _deploy_settings_panel(channel, logs_service, guild_id, bot_admins)
-            report["paramètres"] = "deployed"
+        key = await _deploy_channel_panel(
+            channel,
+            candidatures=candidatures,
+            locale=locale,
+            logs_service=logs_service,
+            guild_id=guild_id,
+            bot_admins=bot_admins,
+            mod_roles_service=mod_roles_service,
+            kingdoms_service=kingdoms_service,
+        )
+        if key is not None:
+            report[key] = "deployed"
     context = _ApplicationContext(
         locale=locale,
         bot_admins=bot_admins,

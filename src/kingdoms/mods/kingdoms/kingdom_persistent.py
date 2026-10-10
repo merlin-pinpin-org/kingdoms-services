@@ -28,6 +28,8 @@ logger = logging.getLogger("kingdoms.kingdom_persistent")
 __all__ = [
     "KingdomApplyButton",
     "KingdomCandidatureButton",
+    "KingdomMarketActionButton",
+    "KingdomMarketTechButton",
     "KingdomProfileButton",
     "KingdomRequestButton",
     "KingdomsPanelWiring",
@@ -45,6 +47,9 @@ class KingdomsPanelWiring:
     kingdoms_service: Any = None
     channel_service: Any = None
     registry: Any = None
+    territories_service: Any = None
+    attacks_service: Any = None
+    economy_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -77,6 +82,9 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             kingdoms_service=getattr(bot, "kingdoms_service", None),
             channel_service=getattr(bot, "channel_service", None),
             registry=getattr(bot, "registry", None),
+            territories_service=getattr(bot, "kingdoms_territories_service", None),
+            attacks_service=getattr(bot, "kingdoms_attacks_service", None),
+            economy_service=getattr(bot, "kingdoms_economy_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -90,6 +98,8 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomProfileButton,
         KingdomRequestButton,
         KingdomAdminButton,
+        KingdomMarketTechButton,
+        KingdomMarketActionButton,
     )
 
 
@@ -101,7 +111,7 @@ def _is_admin(interaction: discord.Interaction, bot_admins: tuple[str, ...]) -> 
     return bool(permissions and permissions.administrator)
 
 
-def _strings(locale: str) -> dict[str, str]:
+def _strings(locale: str) -> dict[str, Any]:
     from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
 
     return panels_strings(locale)
@@ -370,6 +380,242 @@ class KingdomRequestButton(
         note = strings[f"{self.kind}_{'approved' if approved else 'refused'}"]
         content = interaction.message.content if interaction.message is not None else ""
         await interaction.response.edit_message(content=f"{content}\n\n**{note}**", view=None)
+
+async def _king_of(kingdoms_service: Any, user_id: str) -> Any | None:
+    """Return the active King lord record of the user (None otherwise)."""
+    if kingdoms_service is None:
+        return None
+    from kingdoms.mods.kingdoms.service import KING_ROLE
+
+    try:
+        lords = await kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOMS MARKET: lord lookup failed", exc_info=True)
+        return None
+    return next(
+        (
+            lord
+            for lord in lords
+            if lord.id == user_id
+            and lord.role == KING_ROLE
+            and not lord.left
+            and bool(lord.kingdom_id)
+        ),
+        None,
+    )
+
+
+def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
+    """Translate one economy/attack error into a localized market note."""
+    from kingdoms.mods.kingdoms.attacks import (
+        InsufficientTechPointsError,
+        TechnologyLimitReachedError,
+    )
+    from kingdoms.mods.kingdoms.economy import (
+        EconomyLimitReachedError,
+        InsufficientPointsError,
+        TerritoryProtectedError,
+    )
+
+    if isinstance(exc, (InsufficientPointsError, InsufficientTechPointsError)):
+        return str(strings["market_err_insufficient"])
+    if isinstance(exc, (EconomyLimitReachedError, TechnologyLimitReachedError)):
+        return str(strings["market_err_limit"])
+    if isinstance(exc, TerritoryProtectedError):
+        return str(strings["market_err_protected"])
+    logger.warning("KINGDOMS MARKET: purchase failed", exc_info=True)
+    return str(strings["market_err_unknown"]).format(type(exc).__name__)
+
+
+async def _market_action_select_view(
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    action: str,
+    strings: dict[str, Any],
+) -> discord.ui.View | None:
+    """Build the ephemeral target select of one special action (None when empty)."""
+    if wiring.territories_service is None:
+        return None
+    kingdom_id = king.kingdom_id or ""
+    options: list[discord.SelectOption] = []
+    if action == "explorateur":
+        drawn = await wiring.territories_service.drawn_map_keys()
+        maps = getattr(getattr(wiring.kingdoms_service, "config", None), "maps", ()) or ()
+        options = [
+            discord.SelectOption(label=entry.key[:100], value=entry.key[:100])
+            for entry in maps
+            if entry.key not in drawn
+        ][:25]
+    else:
+        territories = await wiring.territories_service.territories()
+        owned = [t for t in territories if t.owner_kingdom_id == kingdom_id]
+        candidates = owned if action == "garde_royale" else [
+            t for t in territories if t.owner_kingdom_id != kingdom_id
+        ]
+        options = [
+            discord.SelectOption(
+                label=strings["market_territory_line"].format(t.map_key, t.owner_kingdom_id)[:100],
+                value=t.id[:100],
+            )
+            for t in candidates
+        ][:25]
+    if not options:
+        return None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id=f"kingdoms:market:choose:{action}",
+        placeholder=strings["market_action"][action][:100],
+        options=options,
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+        economy = wiring.economy_service
+        if economy is None:
+            await target.followup.send(strings["market_no_service"], ephemeral=True)
+            return
+        try:
+            if action == "explorateur":
+                territory = await economy.buy_explorateur(kingdom_id, chosen[0])
+            elif action == "corruption":
+                territory = await economy.buy_corruption(kingdom_id, chosen[0])
+            else:
+                territory = await economy.buy_royal_guard(kingdom_id, chosen[0])
+        except Exception as exc:
+            await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        detail = strings["market_territory_line"].format(
+            territory.map_key, territory.owner_kingdom_id
+        )
+        await target.followup.send(
+            strings["market_buy_ok_territory"].format(strings["market_action"][action], detail),
+            ephemeral=True,
+        )
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
+class KingdomMarketTechButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=(
+        r"kingdoms:market:tech:(?P<tech>embuscade|traquenard|patrouille"
+        r"|contre_espionnage|sabotage|jeu_d_armes)"
+    ),
+):
+    """The restart-proof buy button of one combat technology (Marché)."""
+
+    def __init__(self, tech: str, label: str, style: discord.ButtonStyle) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:market:tech:{tech}",
+                style=style,
+            )
+        )
+        self.tech = tech
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketTechButton:
+        """Rebuild the technology button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        tech = match.group("tech")
+        label = f"{strings['market_tech'][tech]}"
+        return cls(tech, label, discord.ButtonStyle.primary)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Debit the kingdom treasury and buy the technology (D9/D36)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        label = strings["market_tech"][self.tech]
+        wiring = _wiring()
+        await interaction.response.defer(ephemeral=True)
+        if wiring.economy_service is None:
+            await interaction.followup.send(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.followup.send(strings["market_not_king"], ephemeral=True)
+            return
+        try:
+            await wiring.economy_service.buy_combat_technology(king.kingdom_id or "", self.tech)
+        except Exception as exc:
+            await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        try:
+            wallet = await wiring.economy_service.wallet(king.kingdom_id or "")
+        except Exception:
+            wallet = 0
+        await interaction.followup.send(
+            strings["market_buy_ok"].format(label, wallet), ephemeral=True
+        )
+
+
+class KingdomMarketActionButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:market:action:(?P<action>explorateur|corruption|garde_royale)",
+):
+    """The restart-proof button opening one special-action purchase flow."""
+
+    def __init__(self, action: str, label: str, style: discord.ButtonStyle) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:market:action:{action}",
+                style=style,
+            )
+        )
+        self.action = action
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomMarketActionButton:
+        """Rebuild the action button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        action = match.group("action")
+        return cls(action, strings["market_action"][action], discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral target select (map or territory) of the action."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.economy_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
+            return
+        view = await _market_action_select_view(wiring, king, self.action, strings)
+        if view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        prompt = {
+            "explorateur": strings["market_choose_map"],
+            "corruption": strings["market_choose_corrupt"],
+            "garde_royale": strings["market_choose_guard"],
+        }[self.action]
+        await interaction.response.send_message(prompt, view=view, ephemeral=True)
+
 
 class KingdomRemovePlayerModal(discord.ui.Modal):
     """The admin form to remove one enrolled player (by mention/id)."""
@@ -644,7 +890,7 @@ class KingdomAdminButton(
     def _confirm_button(verdict: str, label: str, style: discord.ButtonStyle) -> KingdomAdminButton:
         return KingdomAdminButton(verdict, label[:80], style)
 
-async def _ask_action_confirmation(interaction: discord.Interaction, strings: dict[str, str], action: str) -> None:
+async def _ask_action_confirmation(interaction: discord.Interaction, strings: dict[str, Any], action: str) -> None:
     """Ask the admin to confirm a destructive/heavy panel action."""
     view = discord.ui.View(timeout=120)
     for verdict, label_key, style in (
@@ -659,7 +905,7 @@ async def _ask_action_confirmation(interaction: discord.Interaction, strings: di
     )
 
 
-async def _run_deploy(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+async def _run_deploy(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Provision the salons structure then re-pin every panel."""
     from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
     from kingdoms.mods.kingdoms.kingdom_setup import provision_structure
@@ -689,7 +935,7 @@ async def _run_deploy(interaction: discord.Interaction, strings: dict[str, str])
     )
 
 
-async def _run_sync(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+async def _run_sync(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Re-pin every panel without touching the salons."""
     from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
 
@@ -714,7 +960,7 @@ async def _run_sync(interaction: discord.Interaction, strings: dict[str, str]) -
     await interaction.followup.send(strings["sync_done"].format(len(report)), ephemeral=True)
 
 
-async def _run_status(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+async def _run_status(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Answer with the current season status (kingdoms, queue, players)."""
     wiring = _wiring()
     kingdoms: list[str] = []
@@ -739,7 +985,7 @@ async def _run_status(interaction: discord.Interaction, strings: dict[str, str])
     await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
 
-def _candidature_kingdom_name(content: str, strings: dict[str, str]) -> str | None:
+def _candidature_kingdom_name(content: str, strings: dict[str, Any]) -> str | None:
     """Extract the kingdom name from a candidature message (None when queued)."""
     for line in content.splitlines():
         if strings["queue_value"] in line:
@@ -755,7 +1001,7 @@ async def _enroll_applicant(
     *,
     is_king: bool,
     kingdom_name: str | None,
-    strings: dict[str, str],
+    strings: dict[str, Any],
 ) -> tuple[str, bool]:
     """Enroll the approved applicant; answer with a note and a success flag."""
     from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
@@ -823,7 +1069,7 @@ async def _announce_enrollment_safe(
 async def _send_welcome(
     guild: discord.Guild,
     applicant_id: str,
-    strings: dict[str, str],
+    strings: dict[str, Any],
 ) -> None:
     """DM the validated player; fall back to the profile channel if DMs are closed."""
     member = guild.get_member(int(applicant_id))
@@ -846,7 +1092,7 @@ async def _send_welcome(
             await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
 
 
-async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Delete every kingdoms channel/category, then report."""
     guild = interaction.guild
     if guild is None:
