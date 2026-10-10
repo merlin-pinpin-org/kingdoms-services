@@ -393,8 +393,9 @@ class GamesMapsButton(
         return cls(match.group("game_key"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Render the maps sub-view."""
-        await interaction.response.edit_message(
+        """Render the maps sub-view (deferred: the render can exceed 3s)."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(
             view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
         )
 
@@ -426,8 +427,9 @@ class GamesPoolsButton(
         return cls(match.group("game_key"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Render the pools sub-view."""
-        await interaction.response.edit_message(
+        """Render the pools sub-view (deferred: the render can exceed 3s)."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(
             view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
         )
 
