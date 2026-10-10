@@ -11,15 +11,16 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/economy.py">SOURCE_ROOT/mods/kingdoms/economy.py</a></td></tr></table>
     <p><span class="code">Kingdoms&nbsp;mod&nbsp;special-action&nbsp;economy&nbsp;service&nbsp;(kingdoms-services#161,&nbsp;T7).<br>
 &nbsp;<br>
-Reference&nbsp;§20&nbsp;and&nbsp;decisions&nbsp;D9/D15/D36/D47/D48/D58/D61:&nbsp;the&nbsp;kingdom<br>
+Reference&nbsp;§20&nbsp;and&nbsp;decisions&nbsp;D9/D15/D36/D47/D48/D58/D61/D68:&nbsp;the&nbsp;kingdom<br>
 tech-point&nbsp;wallet&nbsp;(``tech_points_bank``&nbsp;fed&nbsp;by&nbsp;the&nbsp;epochs&nbsp;and&nbsp;the<br>
-exploration&nbsp;rewards)&nbsp;and&nbsp;the&nbsp;three&nbsp;purchasable&nbsp;special&nbsp;actions&nbsp;built&nbsp;on<br>
+exploration&nbsp;rewards)&nbsp;and&nbsp;the&nbsp;purchasable&nbsp;special&nbsp;actions&nbsp;built&nbsp;on<br>
 it&nbsp;-&nbsp;Explorateur&nbsp;(receive&nbsp;one&nbsp;random&nbsp;non-out&nbsp;territory,&nbsp;D48),<br>
-Corruption&nbsp;(steal&nbsp;any&nbsp;territory,&nbsp;protected&nbsp;48&nbsp;real&nbsp;hours,&nbsp;D58)&nbsp;and&nbsp;the<br>
+Corruption&nbsp;(steal&nbsp;any&nbsp;territory,&nbsp;protected&nbsp;48&nbsp;real&nbsp;hours,&nbsp;D58),&nbsp;the<br>
 Garde&nbsp;Royale&nbsp;shield&nbsp;(24h,&nbsp;one&nbsp;active&nbsp;guard&nbsp;per&nbsp;kingdom,&nbsp;extendable&nbsp;at<br>
-a&nbsp;rising&nbsp;cost,&nbsp;D61).&nbsp;The&nbsp;wallet&nbsp;is&nbsp;single:&nbsp;every&nbsp;purchase&nbsp;debits&nbsp;the<br>
-kingdom&nbsp;bank,&nbsp;including&nbsp;combat&nbsp;technologies&nbsp;through&nbsp;the&nbsp;transfer&nbsp;seam<br>
-toward&nbsp;the&nbsp;T4&nbsp;technology&nbsp;state.</span></p>
+a&nbsp;rising&nbsp;cost,&nbsp;D61)&nbsp;and&nbsp;Patrouille&nbsp;(a&nbsp;daily&nbsp;2h&nbsp;no-aggression&nbsp;slot,<br>
+D68).&nbsp;The&nbsp;wallet&nbsp;is&nbsp;single:&nbsp;every&nbsp;purchase&nbsp;debits&nbsp;the&nbsp;kingdom&nbsp;bank,<br>
+including&nbsp;combat&nbsp;technologies&nbsp;through&nbsp;the&nbsp;transfer&nbsp;seam&nbsp;toward&nbsp;the&nbsp;T4<br>
+technology&nbsp;state.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -253,6 +254,14 @@ purchase&nbsp;limit&nbsp;applies&nbsp;(D58).</span></dd></dl>
 Consumable:&nbsp;once&nbsp;per&nbsp;season&nbsp;per&nbsp;kingdom.&nbsp;The&nbsp;map&nbsp;is&nbsp;drawn&nbsp;at<br>
 random&nbsp;among&nbsp;the&nbsp;allowed&nbsp;catalog&nbsp;entries&nbsp;not&nbsp;out&nbsp;yet&nbsp;(§8)&nbsp;-&nbsp;the<br>
 territory&nbsp;goes&nbsp;to&nbsp;the&nbsp;buyer&nbsp;right&nbsp;away.</span></dd></dl>
+
+<dl><dt>async <a name="EconomyService-buy_patrouille"><strong>buy_patrouille</strong></a>(self, kingdom_id: 'str', slot_start: 'int') -&gt; 'int'</dt><dd><span class="code">Buy&nbsp;one&nbsp;daily&nbsp;2h&nbsp;no-aggression&nbsp;slot&nbsp;(D68).<br>
+&nbsp;<br>
+The&nbsp;slot&nbsp;covers&nbsp;every&nbsp;kingdom&nbsp;territory&nbsp;during&nbsp;the&nbsp;bought<br>
+tranche:&nbsp;no&nbsp;player&nbsp;attack,&nbsp;no&nbsp;Corruption&nbsp;(Gaïa&nbsp;never&nbsp;attacks,<br>
+so&nbsp;the&nbsp;patrol&nbsp;never&nbsp;binds&nbsp;it).&nbsp;Slots&nbsp;start&nbsp;on&nbsp;a&nbsp;2h&nbsp;grid;&nbsp;the<br>
+same&nbsp;tranche&nbsp;cannot&nbsp;be&nbsp;bought&nbsp;twice&nbsp;and&nbsp;the&nbsp;per-season&nbsp;limit<br>
+(2&nbsp;by&nbsp;default,&nbsp;admin-editable)&nbsp;bounds&nbsp;the&nbsp;purchases.</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-buy_royal_guard"><strong>buy_royal_guard</strong></a>(self, kingdom_id: 'str', territory_id: 'str', *, now: 'datetime | None' = None) -&gt; 'TerritoryModel'</dt><dd><span class="code">Shield&nbsp;one&nbsp;of&nbsp;the&nbsp;kingdom's&nbsp;territories&nbsp;for&nbsp;24&nbsp;hours&nbsp;(D47).<br>
 &nbsp;<br>
@@ -544,6 +553,9 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>GARDE_ROYALE</strong> = 'garde_royale'<br>
 <strong>GUARD_EXTENSIONS_KEY</strong> = 'garde_royale_extensions'<br>
 <strong>GUARD_UNTIL_KEY</strong> = 'garde_royale_until'<br>
+<strong>PATROUILLE</strong> = 'patrouille'<br>
+<strong>PATROUILLE_HOURS</strong> = 2<br>
+<strong>PATROUILLE_SLOT_KEYS</strong> = ('patrouille_slot_1', 'patrouille_slot_2')<br>
 <strong>ROYAL_GUARD_EXTENSION_HOURS</strong> = 3<br>
 <strong>ROYAL_GUARD_HOURS</strong> = 24<br>
 <strong>TYPE_CHECKING</strong> = False<br>
