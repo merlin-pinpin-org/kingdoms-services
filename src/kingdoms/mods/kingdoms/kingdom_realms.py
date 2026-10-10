@@ -221,10 +221,17 @@ async def ensure_realm_structure(
         await category.set_permissions(admin_role, view_channel=True, manage_channels=True)
     lord_role = _member_role(guild, "kingdoms_lord")
     for member_id in member_ids:
-        # discord.py accepts a raw Object here; the stubs only allow Member | Role
-        await category.set_permissions(  # type: ignore[call-overload]
-            discord.Object(id=member_id), view_channel=True
-        )
+        # the real API only accepts Member/Role overwrites (Object raises)
+        member = guild.get_member(member_id)
+        if member is None:
+            try:
+                member = await guild.fetch_member(member_id)
+            except Exception:
+                member = None
+        if member is None:
+            logger.warning("KINGDOM REALMS: member %s unavailable for overwrites", member_id)
+            continue
+        await category.set_permissions(member, view_channel=True)
 
     for key, name in REALM_SALONS:
         existing = next(
@@ -261,6 +268,38 @@ async def delete_realm_structure(guild: discord.Guild, kingdom_name: str) -> boo
     return True
 
 
+def _carries_panel_marker(message: Any) -> bool:
+    """Return True when a message carries the realms marker (content or components).
+
+    A Components V2 message has an empty ``content``: the marker rides a
+    ``TextDisplay`` inside the view, so the components tree is walked.
+    """
+    if REALMS_PANEL_MARKER in (getattr(message, "content", "") or ""):
+        return True
+    stack: list[Any] = list(getattr(message, "components", None) or [])
+    layout = getattr(message, "layout", None)
+    if layout is not None:
+        stack.append(layout)
+    while stack:
+        item = stack.pop()
+        if REALMS_PANEL_MARKER in str(getattr(item, "content", "") or ""):
+            return True
+        stack.extend(getattr(item, "children", None) or [])
+    return False
+
+
+async def _recent_channel_messages(channel: Any) -> list[Any]:
+    """Return the channel's recent messages — the mock cache, or real history.
+
+    A real :class:`discord.TextChannel` has no ``.messages`` attribute
+    (only the ``history()`` iterator); the in-memory mock keeps one.
+    """
+    cached = getattr(channel, "messages", None)
+    if cached is not None:
+        return list(cached)
+    return [message async for message in channel.history(limit=100)]
+
+
 async def deploy_realms_panel(
     guild: discord.Guild,
     locale: str,
@@ -275,8 +314,8 @@ async def deploy_realms_panel(
         return False
     kingdoms = await service.kingdoms()
     lords = await service.lords()
-    for message in list(getattr(channel, "messages", [])):
-        if REALMS_PANEL_MARKER in (message.content or ""):
+    for message in await _recent_channel_messages(channel):
+        if _carries_panel_marker(message):
             try:
                 await message.delete()
             except Exception:

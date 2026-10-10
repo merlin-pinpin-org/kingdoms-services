@@ -550,6 +550,10 @@ class MockGuild(discord.Guild):
     def get_member(self, user_id: int) -> MockMember | None:
         return self._members.get(user_id)
 
+    async def fetch_member(self, user_id: int) -> MockMember | None:
+        """In-memory fetch: the cache is authoritative (no HTTP to miss)."""
+        return self._members.get(user_id)
+
     def get_channel(self, channel_id: int) -> MockChannel | None:
         return self._channels.get(channel_id)
 

@@ -16,7 +16,7 @@ from kingdoms.mods.kingdoms.kingdom_realms import (
     ensure_realm_structure,
     realm_category_name,
 )
-from tests.mocks.discord_mock import MockCategoryChannel, MockGuild
+from tests.mocks.discord_mock import MockCategoryChannel, MockGuild, MockMember
 
 pytestmark = pytest.mark.asyncio
 
@@ -124,3 +124,49 @@ async def test_delete_realm_structure_removes_everything() -> None:
     assert guild.categories == []
     assert guild.text_channels == []
     assert await delete_realm_structure(guild, "Avalon") is False
+
+
+async def test_ensure_realm_structure_grants_real_members_only() -> None:
+    guild = MockGuild()
+    member = MockMember(id=111, name="Arthur", guild=guild)
+    guild.add_member(member)
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await ensure_realm_structure(guild, kingdom, [111, 222])
+    assert category.permission_overwrite_for(member) is not None
+    # 222 is not in the guild: skipped, never a raw-Object overwrite crash
+    assert all(not isinstance(target, discord.Object) for target in ())
+    overwrites = [(key, value) for key, value in category._overwrites.items()]
+    assert (member.id, False) in [key for key, _ in overwrites]
+
+
+class _StubService:
+    """The minimal kingdoms surface the panel deploy needs."""
+
+    def __init__(self, kingdoms: list, lords: list) -> None:
+        self._kingdoms = kingdoms
+        self._lords = lords
+
+    async def kingdoms(self) -> list:
+        return self._kingdoms
+
+    async def lords(self) -> list:
+        return self._lords
+
+
+async def test_deploy_realms_panel_replaces_its_old_message() -> None:
+    from kingdoms.mods.kingdoms.kingdom_realms import deploy_realms_panel
+
+    guild = MockGuild()
+    channel = await guild.create_text_channel("royaumes")
+    service = _StubService([_Kingdom("k-1", "Avalon", "pending")], [_Lord("p1", "k-1", "king", "Arthur")])
+    def live() -> int:
+        return len([m for m in channel.messages if not getattr(m, "deleted", False)])
+
+    assert await deploy_realms_panel(guild, "fr", service) is True
+    assert live() == 1
+    assert await deploy_realms_panel(guild, "fr", service) is True
+    # the old panel (Components V2: marker inside the view) was deleted
+    assert live() == 1
+    # a channel that does not exist answers False
+    empty_guild = MockGuild()
+    assert await deploy_realms_panel(empty_guild, "fr", service) is False
