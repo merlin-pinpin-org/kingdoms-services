@@ -293,15 +293,28 @@ class GamesGrantedSelect(
         return cls(options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the chosen game's sub-menu."""
+        """Open the chosen game's sub-menu (visible failure, never silent)."""
         chosen = (_selected_values(interaction) or [""])[0]
+        logger.info("GAMES GRANTED SELECT clicked (guild %s, chosen %r)", interaction.guild_id, chosen)
         if not chosen or chosen == "none":
             await interaction.response.defer()
             return
-        await interaction.response.send_message(
-            view=await game_menu_view(chosen, from_pin=from_pin(interaction)),
-            ephemeral=True,
-        )
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        try:
+            view = await game_menu_view(chosen, from_pin=from_pin(interaction), guild_id=guild_id)
+        except Exception:
+            logger.exception("GAMES GRANTED SELECT: game menu render failed")
+            await interaction.response.send_message(
+                "Le menu du jeu a echoue a s'ouvrir (voir les logs).", ephemeral=True
+            )
+            return
+        try:
+            await interaction.response.send_message(view=view, ephemeral=True)
+        except Exception:
+            logger.exception("GAMES GRANTED SELECT: answer failed")
+            await interaction.followup.send(
+                "Le menu du jeu n'a pas pu etre envoye (voir les logs).", ephemeral=True
+            )
 
 
 class GamesBackButton(
