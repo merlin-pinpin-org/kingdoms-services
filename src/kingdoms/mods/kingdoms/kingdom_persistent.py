@@ -862,7 +862,31 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, str]) 
         logger.exception("KINGDOMS ADMIN: salons reset failed for guild %s", guild.id)
         await interaction.followup.send(strings["reset_failed"], ephemeral=True)
         return
-    await interaction.followup.send(strings["reset_done"].format(deleted), ephemeral=True)
+    # The reset is not over until the concept is reachable again
+    # (kingdoms#138): the deleted channels carried the pinned panels,
+    # so the reset must re-provision the declared structure and re-pin
+    # every panel — one click leaves the guild in the fresh, working state.
+    reinstalled = False
+    try:
+        from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
+        from kingdoms.mods.kingdoms.kingdom_setup import provision_structure
+
+        await provision_structure(guild)
+        wiring = _wiring()
+        await deploy_panels(
+            guild,
+            wiring.logs_service,
+            wiring.bot_admins,
+            wiring.mod_roles_service,
+            wiring.kingdoms_service,
+        )
+        reinstalled = True
+    except Exception:
+        logger.exception("KINGDOMS ADMIN: reinstall after reset failed for guild %s", guild.id)
+    if reinstalled:
+        await interaction.followup.send(strings["reset_done"].format(deleted), ephemeral=True)
+    else:
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
 
 
 def _declared_structure_slugs(registry: Any) -> set[str]:

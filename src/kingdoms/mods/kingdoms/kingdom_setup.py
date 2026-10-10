@@ -173,6 +173,25 @@ def register_kingdom_command(
             logger.exception("KINGDOM SETUP: provisioning failed for guild %s", guild.id)
             await interaction.followup.send(f"❌ Setup failed: `{type(exc).__name__}: {exc}`"[:2000], ephemeral=True)
             return
+        # The panels are pinned messages inside the structure channels
+        # (kingdoms#138): provisioning the salons without re-pinning them
+        # leaves the guild with no reachable enrollment/admin UI — the
+        # setup must always end with functional panels.
+        try:
+            from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
+            from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+            wiring = _wiring()
+            await deploy_panels(
+                guild,
+                wiring.logs_service,
+                wiring.bot_admins,
+                wiring.mod_roles_service,
+                wiring.kingdoms_service,
+            )
+        except Exception:
+            logger.exception("KINGDOM SETUP: panel deploy failed for guild %s", guild.id)
+
         locale = str(interaction.locale) if interaction.locale else "en"
         view = build_setup_report_view(created, adopted, locale)
         await interaction.followup.send(view=view, ephemeral=True)
