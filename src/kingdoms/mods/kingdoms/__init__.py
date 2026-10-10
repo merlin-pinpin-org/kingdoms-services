@@ -60,7 +60,6 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
 def register(bot: Any, config: Any) -> None:
     """Wire the mod onto the bot: service, commands, panel wiring."""
     from kingdoms.mods.kingdoms.kingdom_persistent import (
-        register_kingdoms_dm_listener,
         register_kingdoms_panel_bot,
     )
     from kingdoms.mods.kingdoms.kingdom_setup import register_kingdom_command
@@ -84,7 +83,6 @@ def register(bot: Any, config: Any) -> None:
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)
-    register_kingdoms_dm_listener(bot)
     register_kingdom_command(bot.tree, bot_admins=bot_admins)
     register_kingdoms_command(bot.tree, bot.kingdoms_service)
     register_kingdoms_admin_command(
@@ -99,12 +97,10 @@ def register(bot: Any, config: Any) -> None:
 def setup_hook(bot: Any) -> None:
     """Re-register the persistent Kingdoms components after a restart."""
     from kingdoms.mods.kingdoms.kingdom_persistent import (
-        register_kingdoms_dm_listener,
         register_kingdoms_panel_bot,
         register_kingdoms_persistent_items,
     )
 
     register_kingdoms_panel_bot(bot)
     register_kingdoms_persistent_items(bot)
-    register_kingdoms_dm_listener(bot)
     logger.info("kingdoms mod persistent items re-registered")

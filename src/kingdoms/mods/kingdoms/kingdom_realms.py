@@ -222,21 +222,29 @@ def _member_role(guild: discord.Guild, role_key: str) -> discord.Role | None:
     return None
 
 
-async def _lock_category_visibility(guild: discord.Guild, category: Any) -> None:
-    """Hide the realm category from everyone — except the bot itself.
+async def _realm_overwrites(
+    guild: discord.Guild,
+    member_ids: list[int],
+) -> dict[Any, discord.PermissionOverwrite]:
+    """Build the full overwrite set of a realm category in one pass.
 
-    The bot must stay able to read, write and manage its own realm
-    salons: without this grant the @everyone deny locks the bot out
-    (403 Missing Access, code 50001) and every state view deployment
-    fails silently (drasah live incident 2026-10-10).
+    One single dict applied with ONE API call (at creation or on
+    re-sync): editing channel overwrites is heavily rate-limited on the
+    real API (drasah live incident 2026-10-10 — a category appeared
+    with no salons while the bot crawled through 4-6 separate
+    ``set_permissions`` PATCHes). The bot itself is granted access:
+    without it the @everyone deny below locks the bot out (403 Missing
+    Access, code 50001) and every state view deployment fails silently.
     """
+    overwrites: dict[Any, discord.PermissionOverwrite] = {}
     everyone = getattr(guild, "default_role", None)
     if everyone is not None:
-        await category.set_permissions(everyone, view_channel=False, read_message_history=False)
+        overwrites[everyone] = discord.PermissionOverwrite(
+            view_channel=False, read_message_history=False
+        )
     bot_member = getattr(guild, "me", None)
     if bot_member is not None:
-        await category.set_permissions(
-            bot_member,
+        overwrites[bot_member] = discord.PermissionOverwrite(
             view_channel=True,
             send_messages=True,
             read_message_history=True,
@@ -245,6 +253,61 @@ async def _lock_category_visibility(guild: discord.Guild, category: Any) -> None
             embed_links=True,
             attach_files=True,
         )
+    admin_role = _member_role(guild, "kingdoms_admin")
+    if admin_role is not None:
+        overwrites[admin_role] = discord.PermissionOverwrite(
+            view_channel=True, manage_channels=True
+        )
+    for member_id in member_ids:
+        member = guild.get_member(member_id)
+        if member is None:
+            try:
+                member = await guild.fetch_member(member_id)
+            except Exception:
+                member = None
+        if member is not None:
+            overwrites[member] = discord.PermissionOverwrite(view_channel=True)
+    return overwrites
+
+
+async def _apply_realm_overwrites(guild: discord.Guild, category: Any, member_ids: list[int]) -> None:
+    """Apply the realm overwrite set in a single API call (edit-or-create)."""
+    overwrites = await _realm_overwrites(guild, member_ids)
+    edit = getattr(category, "edit", None)
+    if edit is not None:
+        try:
+            await edit(overwrites=overwrites)
+        except TypeError:
+            # a mock without the overwrites kwarg: fall back per-target
+            for target, overwrite in overwrites.items():
+                await category.set_permissions(target, overwrite=overwrite)
+        return
+    for target, overwrite in overwrites.items():
+        await category.set_permissions(target, overwrite=overwrite)
+
+
+async def grant_bot_access_to_category(guild: discord.Guild, category: Any) -> None:
+    """Best-effort grant of the bot's own access to a category.
+
+    Categories created BEFORE the bot-access fix carry no bot overwrite:
+    the bot cannot even delete them (403 Missing Access on every
+    category deletion — drasah live incident 2026-10-10). Granting the
+    bot view + manage first makes every delete path work again.
+    """
+    bot_member = getattr(guild, "me", None)
+    if bot_member is None:
+        return
+    try:
+        await category.set_permissions(
+            bot_member,
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_channels=True,
+            manage_messages=True,
+        )
+    except Exception:
+        logger.warning("KINGDOM REALMS: bot access grant failed", exc_info=True)
 
 
 async def ensure_realm_structure(
@@ -262,25 +325,13 @@ async def ensure_realm_structure(
     display = realm_category_name(kingdom.name)
     category = _find_realm_category(guild, kingdom.name)
     if category is None:
-        category = await guild.create_category(display)
+        category = await guild.create_category(
+            display, overwrites=await _realm_overwrites(guild, member_ids)
+        )
         logger.info("KINGDOM REALMS: category %s created for %s", display, kingdom.id)
-    await _lock_category_visibility(guild, category)
-    admin_role = _member_role(guild, "kingdoms_admin")
-    if admin_role is not None:
-        await category.set_permissions(admin_role, view_channel=True, manage_channels=True)
+    else:
+        await _apply_realm_overwrites(guild, category, member_ids)
     lord_role = _member_role(guild, "kingdoms_lord")
-    for member_id in member_ids:
-        # the real API only accepts Member/Role overwrites (Object raises)
-        member = guild.get_member(member_id)
-        if member is None:
-            try:
-                member = await guild.fetch_member(member_id)
-            except Exception:
-                member = None
-        if member is None:
-            logger.warning("KINGDOM REALMS: member %s unavailable for overwrites", member_id)
-            continue
-        await category.set_permissions(member, view_channel=True)
 
     for key, name in REALM_SALONS:
         existing = next(
@@ -315,6 +366,7 @@ async def delete_orphan_realm_categories(guild: discord.Guild, kingdoms: Any) ->
         if not slug.startswith("royaume-") or slug in keep:
             continue
         try:
+            await grant_bot_access_to_category(guild, category)
             await category.delete()
             deleted += 1
             logger.info("KINGDOM REALMS: orphan category %s deleted", slug)
@@ -328,6 +380,7 @@ async def delete_realm_structure(guild: discord.Guild, kingdom_name: str) -> boo
     category = _find_realm_category(guild, kingdom_name)
     if category is None:
         return False
+    await grant_bot_access_to_category(guild, category)
     for channel in list(getattr(category, "channels", [])):
         try:
             await channel.delete()

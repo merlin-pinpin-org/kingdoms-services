@@ -28,6 +28,8 @@ logger = logging.getLogger("kingdoms.kingdom_persistent")
 __all__ = [
     "KingdomApplyButton",
     "KingdomCandidatureButton",
+    "KingdomKingNameButton",
+    "KingdomKingNameModal",
     "KingdomMarketActionButton",
     "KingdomMarketTechButton",
     "KingdomProfileButton",
@@ -103,6 +105,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomRealmButton,
+        KingdomKingNameButton,
     )
 
 
@@ -256,7 +259,7 @@ class KingdomCandidatureButton(
             if interaction.guild is not None and applicant is not None:
                 await _send_welcome(interaction.guild, applicant.group(1), strings)
                 if is_king and kingdom_name is None:
-                    await _send_king_name_request(interaction.guild, applicant.group(1), strings)
+                    await _send_king_name_request(interaction.guild, applicant.group(1), locale)
             if interaction.guild is not None:
                 await _refresh_season_status_safe(interaction.guild, locale)
                 if enrolled and applicant is not None:
@@ -881,6 +884,18 @@ def _profile_strings(locale: str) -> dict[str, str]:
     return ps(locale)
 
 
+def _king_name_strings(locale: str) -> dict[str, Any]:
+    """Return the king-name flow strings from the panels (kingdom_panels).
+
+    Regression (drasah live incident 2026-10-10): the flow first read
+    these keys from the profile strings — a silent ``KeyError`` on
+    ``king_name_dm_title`` meant the naming DM was never sent at all.
+    """
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings
+
+    return _strings(locale)
+
+
 class KingdomAssignPlayerModal(discord.ui.Modal):
     """The admin form to assign one waiting player to a kingdom."""
 
@@ -1325,7 +1340,7 @@ async def _send_welcome(
             await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
 
 
-async def _send_king_name_request(guild: discord.Guild, applicant_id: str, strings: dict[str, Any]) -> None:
+async def _send_king_name_request(guild: discord.Guild, applicant_id: str, locale: str) -> None:
     """DM the approved King asking for their kingdom's name (flow v2, D70)."""
     member = guild.get_member(int(applicant_id))
     if member is None:
@@ -1335,16 +1350,21 @@ async def _send_king_name_request(guild: discord.Guild, applicant_id: str, strin
             member = None
     if member is None:
         return
+    strings = _king_name_strings(locale)
     request = f"# {strings['king_name_dm_title']}\n{strings['king_name_dm_body']}"
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomKingNameButton(strings["king_name_button"][:80]))
     try:
-        await member.send(request)
+        await member.send(request, view=view)
     except Exception:
         logger.info("CANDIDATURES: kingdom-name DM failed, falling back to the profile channel")
         from kingdoms.mods.kingdoms.kingdom_profiles import ensure_profile_channel
 
         channel = await ensure_profile_channel(guild, member)
         if channel is not None:
-            await channel.send(f"{request}\n{strings['king_name_dm_fallback']}")
+            await channel.send(
+                f"{request}\n{strings['king_name_dm_fallback']}", view=view
+            )
 
 
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
@@ -1447,6 +1467,7 @@ async def _delete_matching_categories(guild: discord.Guild, structure_names: set
     the half-deleted slices and the guild ends up with leftovers. The
     approved kingdoms are re-provisioned by the post-reset panel deploy.
     """
+    from kingdoms.mods.kingdoms.kingdom_realms import grant_bot_access_to_category
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     deleted = 0
@@ -1454,6 +1475,7 @@ async def _delete_matching_categories(guild: discord.Guild, structure_names: set
         slug = _slug(category.name)
         if slug in structure_names or slug.startswith("royaume-"):
             try:
+                await grant_bot_access_to_category(guild, category)
                 await category.delete()
                 deleted += 1
             except Exception:
@@ -1619,6 +1641,115 @@ class KingdomRealmRenameModal(discord.ui.Modal):
             await _refresh_realms_panel_safe(interaction.guild, self.locale)
 
 
+class KingdomKingNameButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:king:name-request",
+):
+    """The restart-proof 🏷️ button a validated King clicks to name their kingdom.
+
+    Sent by DM (fallback: the member's profile channel) when the King
+    application is approved — the flow replaces the old free-text DM
+    reply (drasah 2026-10-10: a plain reply is silently ignored when
+    the state moved on; a button + modal always answers, with the
+    reason when something is off).
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                style=discord.ButtonStyle.primary,
+                custom_id="kingdoms:king:name-request",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomKingNameButton:
+        """Rebuild the name-request button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_king_name_strings(locale)["king_name_button"][:80])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Check the King state, then open the naming modal."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _king_name_strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(
+                strings["market_no_service"], ephemeral=True
+            )
+            return
+        player_id = str(getattr(interaction.user, "id", ""))
+        lord = await _king_of(wiring.kingdoms_service, player_id)
+        if lord is None:
+            try:
+                lord = next(
+                    (
+                        item
+                        for item in await wiring.kingdoms_service.lords()
+                        if str(item.id) == player_id and not item.left
+                    ),
+                    None,
+                )
+            except Exception:
+                lord = None
+        if lord is None or str(lord.role) != "king" or not lord.in_queue or lord.kingdom_id is not None:
+            await interaction.response.send_message(
+                strings["king_name_state_invalid"], ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(KingdomKingNameModal(locale))
+
+
+class KingdomKingNameModal(discord.ui.Modal):
+    """The validated King's form naming their kingdom (flow v2, D70)."""
+
+    name: discord.ui.TextInput[KingdomKingNameModal] = discord.ui.TextInput(
+        label="Kingdom name",
+        placeholder="Aquitaine",
+        max_length=40,
+        required=True,
+    )
+
+    def __init__(self, locale: str) -> None:
+        self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
+        strings = _king_name_strings(self.locale)
+        self.name.label = strings["king_name_field"][:45]
+        super().__init__(title=strings["king_name_modal_title"][:45], timeout=300)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Create the PENDING kingdom and answer with the outcome."""
+        strings = _king_name_strings(self.locale)
+        wiring = _wiring()
+        player_id = str(getattr(interaction.user, "id", ""))
+        kingdom_name = (self.name.value or "").strip()
+        if wiring.kingdoms_service is None or not kingdom_name:
+            await interaction.response.send_message(
+                strings["king_name_dm_error"].format("no service"), ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.found_kingdom(player_id, kingdom_name)
+        except Exception as exc:
+            await interaction.followup.send(
+                strings["king_name_dm_error"].format(type(exc).__name__), ephemeral=True
+            )
+            return
+        await interaction.followup.send(
+            strings["king_name_dm_received"].format(kingdom.name), ephemeral=True
+        )
+        client = getattr(interaction, "client", None)
+        for guild in getattr(client, "guilds", []) or []:
+            await _refresh_realms_panel_safe(guild, self.locale)
+
+
 class KingdomRealmButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
@@ -1748,64 +1879,3 @@ class KingdomRealmButton(
         await _refresh_realms_panel_safe(interaction.guild, locale)
 
 
-_DM_LISTENER_BOT: Any = None
-
-
-async def _on_kingdom_dm(message: discord.Message) -> None:
-    """Handle a DM from an approved King: the reply names their kingdom.
-
-    Flow v2 (D70): only a King enrolled and awaiting a kingdom name is
-    concerned — every other DM is ignored. The first line (max 40
-    characters) becomes the proposed name and lands the kingdom in the
-    admin validation queue (rule 35).
-    """
-    if message.guild is not None or getattr(message.author, "bot", False):
-        return
-    wiring = _wiring()
-    if wiring.kingdoms_service is None:
-        return
-    player_id = str(getattr(message.author, "id", ""))
-    if not player_id:
-        return
-    from kingdoms.mods.kingdoms.service import KING_ROLE
-
-    try:
-        lord = next(
-            (item for item in await wiring.kingdoms_service.lords() if item.id == player_id and not item.left),
-            None,
-        )
-    except Exception:
-        return
-    if lord is None or lord.role is not KING_ROLE or not lord.in_queue or lord.kingdom_id is not None:
-        return
-    content = (message.content or "").strip()
-    if not content:
-        return
-    name = content.splitlines()[0].strip()[:40]
-    strings = _strings("fr")
-    try:
-        kingdom = await wiring.kingdoms_service.found_kingdom(player_id, name)
-    except Exception as exc:
-        logger.info("KINGDOMS: kingdom founding DM failed for %s", player_id, exc_info=True)
-        await message.reply(strings["king_name_dm_error"].format(type(exc).__name__))
-        return
-    await message.reply(strings["king_name_dm_received"].format(kingdom.name))
-    bot = _DM_LISTENER_BOT
-    if bot is not None:
-        for guild in getattr(bot, "guilds", []):
-            await _refresh_realms_panel_safe(guild, "fr")
-
-
-def register_kingdoms_dm_listener(bot: Any) -> None:
-    """Register the DM listener exactly once (kingdom-name replies)."""
-    global _DM_LISTENER_BOT
-    _DM_LISTENER_BOT = bot
-    if getattr(bot, "_kingdoms_dm_listener", False):
-        return
-    bot._kingdoms_dm_listener = True
-    add_listener = getattr(bot, "add_listener", None)
-    if add_listener is None:
-        logger.debug("KINGDOMS: no add_listener on the bot — DM listener skipped")
-        return
-    add_listener(_on_kingdom_dm, "on_message")
-    logger.info("KINGDOMS: kingdom-name DM listener registered")

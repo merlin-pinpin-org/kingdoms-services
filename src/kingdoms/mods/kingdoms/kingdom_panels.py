@@ -129,11 +129,18 @@ STRINGS: dict[str, dict[str, Any]] = {
         "kingdom_after_validation": "to be chosen after your application is approved",
         "king_name_dm_title": "👑 Your kingdom's name",
         "king_name_dm_body": (
-            "Your King application has been accepted! Reply to this message "
-            "with the name of your kingdom (one line, max 40 characters). "
-            "It will then be submitted to the admins for validation."
+            "Your King application has been accepted! Click the button "
+            "below to choose your kingdom's name (max 40 characters). It "
+            "will then be submitted to the admins for validation."
         ),
-        "king_name_dm_fallback": "Reply to this message with your kingdom's name.",
+        "king_name_dm_fallback": "Click the button below to name your kingdom.",
+        "king_name_button": "🏷️ Name my kingdom",
+        "king_name_modal_title": "Your kingdom's name",
+        "king_name_field": "Kingdom name (max 40 characters)",
+        "king_name_state_invalid": (
+            "No pending King application found for you — apply again or "
+            "ask an admin (a season relaunch may have reset enrollments)."
+        ),
         "king_name_dm_received": (
             "Your kingdom **{0}** has been proposed — it now awaits admin validation."
         ),
@@ -255,11 +262,19 @@ STRINGS: dict[str, dict[str, Any]] = {
         "kingdom_after_validation": "à choisir après la validation de ta candidature",
         "king_name_dm_title": "👑 Nom de ton royaume",
         "king_name_dm_body": (
-            "Ta candidature de Roi a été acceptée ! Réponds à ce message avec le "
-            "nom de ton royaume (une seule ligne, max 40 caractères). Il sera "
-            "ensuite soumis à la validation des admins."
+            "Ta candidature de Roi a été acceptée ! Clique sur le bouton "
+            "ci-dessous pour choisir le nom de ton royaume (max 40 "
+            "caractères). Il sera ensuite soumis à la validation des admins."
         ),
-        "king_name_dm_fallback": "Réponds à ce message avec le nom de ton royaume.",
+        "king_name_dm_fallback": "Clique sur le bouton ci-dessous pour nommer ton royaume.",
+        "king_name_button": "🏷️ Nommer mon royaume",
+        "king_name_modal_title": "Nom de ton royaume",
+        "king_name_field": "Nom du royaume (max 40 caractères)",
+        "king_name_state_invalid": (
+            "Aucune candidature de Roi en attente pour toi — postule à nouveau "
+            "ou demande à un admin (un relancement de saison a pu réinitialiser "
+            "les inscriptions)."
+        ),
         "king_name_dm_received": (
             "Ton royaume **{0}** a été proposé — il est en attente de validation "
             "par les admins."

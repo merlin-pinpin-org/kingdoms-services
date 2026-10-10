@@ -196,3 +196,45 @@ async def test_deploy_realms_panel_replaces_its_old_message() -> None:
     # a channel that does not exist answers False
     empty_guild = MockGuild()
     assert await deploy_realms_panel(empty_guild, "fr", service) is False
+
+
+async def test_realm_category_is_created_with_overwrites_in_one_call() -> None:
+    """Regression (drasah live incident 2026-10-10): the category must be
+    created with its FULL overwrite set in the single create_category
+    call — not filled afterwards with 4-6 rate-limited set_permissions
+    PATCHes that left the category public/empty for minutes."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await ensure_realm_structure(guild, kingdom, [])
+    # the overwrites were applied at creation time: bot + @everyone are
+    # already present, and @everyone is denied
+    assert category.permission_overwrite_for(guild.me) is not None
+    assert category.permission_overwrite_for(guild.default_role) is not None
+    everyone = category.permission_overwrite_for(guild.default_role)
+    assert everyone is not None and everyone.view_channel is False
+
+
+async def test_ensure_realm_structure_resyncs_overwrites_via_edit() -> None:
+    """A pre-existing category (pre-fix, missing the bot overwrite) is
+    adopted and its overwrites re-synced with ONE edit() call."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    first = await ensure_realm_structure(guild, kingdom, [])
+    # simulate a pre-fix category: strip every overwrite
+    first._overwrites = {}
+    category = await ensure_realm_structure(guild, kingdom, [])
+    assert category is first
+    assert len(guild.categories) == 1
+    assert category.permission_overwrite_for(guild.me) is not None
+    assert category.permission_overwrite_for(guild.default_role) is not None
+
+
+async def test_delete_realm_structure_grants_bot_access_first() -> None:
+    """Regression (drasah live incident): a pre-fix category without a bot
+    overwrite (403 Missing Access on delete) must be deletable anyway."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await ensure_realm_structure(guild, kingdom, [])
+    category._overwrites = {}  # pre-fix state: bot is locked out
+    assert await delete_realm_structure(guild, "Avalon") is True
+    assert guild.categories == []
