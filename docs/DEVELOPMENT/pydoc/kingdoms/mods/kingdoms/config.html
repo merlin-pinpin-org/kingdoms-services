@@ -4558,9 +4558,11 @@ admin-editable&nbsp;data&nbsp;through&nbsp;``config/kingdoms/season.yaml``.</spa
  <dl><dt><a name="-default_season_config"><strong>default_season_config</strong></a>() -&gt; 'KingdomsSeasonConfig'</dt><dd><span class="code">Return&nbsp;the&nbsp;Season&nbsp;II&nbsp;default&nbsp;configuration&nbsp;(reference&nbsp;§15,&nbsp;D18).</span></dd></dl>
  <dl><dt><a name="-load_season_config"><strong>load_season_config</strong></a>(config_dir: 'Path') -&gt; 'KingdomsSeasonConfig'</dt><dd><span class="code">Load&nbsp;the&nbsp;season&nbsp;configuration&nbsp;from&nbsp;``&lt;config_dir&gt;/kingdoms/season.yaml``.<br>
 &nbsp;<br>
-Missing&nbsp;file&nbsp;or&nbsp;empty&nbsp;mapping&nbsp;→&nbsp;Season&nbsp;II&nbsp;defaults&nbsp;(the&nbsp;game&nbsp;must&nbsp;be<br>
-playable&nbsp;with&nbsp;no&nbsp;local&nbsp;overrides).&nbsp;An&nbsp;invalid&nbsp;override&nbsp;raises:&nbsp;a<br>
-broken&nbsp;config&nbsp;must&nbsp;fail&nbsp;loudly,&nbsp;never&nbsp;load&nbsp;half-validated.</span></dd></dl>
+The&nbsp;file&nbsp;is&nbsp;a&nbsp;partial&nbsp;override&nbsp;deep-merged&nbsp;onto&nbsp;the&nbsp;Season&nbsp;II<br>
+defaults:&nbsp;an&nbsp;admin&nbsp;may&nbsp;tune&nbsp;the&nbsp;civilizations&nbsp;without&nbsp;re-listing<br>
+the&nbsp;maps,&nbsp;and&nbsp;the&nbsp;game&nbsp;stays&nbsp;playable&nbsp;with&nbsp;no&nbsp;file&nbsp;at&nbsp;all.&nbsp;An<br>
+invalid&nbsp;override&nbsp;raises:&nbsp;a&nbsp;broken&nbsp;config&nbsp;must&nbsp;fail&nbsp;loudly,&nbsp;never<br>
+load&nbsp;half-validated.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

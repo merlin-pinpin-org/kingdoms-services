@@ -264,12 +264,39 @@ def default_season_config() -> KingdomsSeasonConfig:
     )
 
 
+def _tuples(value: Any) -> Any:
+    """Recursively turn the YAML lists into tuples (strict pydantic)."""
+    if isinstance(value, list):
+        return tuple(_tuples(item) for item in value)
+    if isinstance(value, dict):
+        return {key: _tuples(item) for key, item in value.items()}
+    return value
+
+
+def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Deep-merge a YAML override onto the defaults.
+
+    Dicts merge, the rest — tuples included — replaces. A partial
+    override must never wipe the defaults it does not mention
+    (maps, ages...).
+    """
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
     """Load the season configuration from ``<config_dir>/kingdoms/season.yaml``.
 
-    Missing file or empty mapping → Season II defaults (the game must be
-    playable with no local overrides). An invalid override raises: a
-    broken config must fail loudly, never load half-validated.
+    The file is a partial override deep-merged onto the Season II
+    defaults: an admin may tune the civilizations without re-listing
+    the maps, and the game stays playable with no file at all. An
+    invalid override raises: a broken config must fail loudly, never
+    load half-validated.
     """
     season_file = config_dir / "kingdoms" / SEASON_CONFIG_FILENAME
     if not season_file.is_file():
@@ -280,4 +307,5 @@ def load_season_config(config_dir: Path) -> KingdomsSeasonConfig:
         return default_season_config()
     if not isinstance(data, dict):
         raise ValueError(f"{season_file}: season config must be a mapping")
-    return KingdomsSeasonConfig.model_validate(data)
+    merged = _merge(default_season_config().model_dump(), _tuples(data))
+    return KingdomsSeasonConfig.model_validate(merged)

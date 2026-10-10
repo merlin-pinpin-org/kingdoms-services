@@ -261,12 +261,78 @@ async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:
     assert season.pending_marriage_losses == []
 
 
-async def test_starting_civilizations_seed_the_kingdoms() -> None:
-    """D32: the admin parameter seeds the first playable lists."""
-    config = _config()
-    config = config.model_copy(update={"starting_civilizations": 2})
+async def test_starting_draft_draws_random_civs_without_duplicates() -> None:
+    """The starting draft: every new kingdom draws civs at random and
+    no civilization is ever shared between two kingdoms."""
+    config = _config().model_copy(
+        update={
+            "starting_civilizations": 2,
+            "civilizations": (
+                *_config().civilizations,
+                CivilizationCondition(key="francs", display_name="Francs"),
+                CivilizationCondition(key="britanniques", display_name="Britanniques"),
+                CivilizationCondition(key="azteques", display_name="Aztèques"),
+                CivilizationCondition(key="perses", display_name="Perses"),
+            ),
+        }
+    )
     bundle = Bundle(config=config)
     await bundle.launch_season()
-    assigned = await bundle.diplomacy.assign_starting_civilizations()
-    assert assigned
-    assert all(len(civs) == 2 for civs in assigned.values())
+    kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
+    assert len(kingdoms) == 2
+    drawn: list[str] = []
+    for kingdom in kingdoms:
+        assert len(kingdom.civilizations) == 2
+        drawn.extend(kingdom.civilizations)
+    assert len(set(drawn)) == len(drawn)  # no duplicates between kingdoms
+    gaia = next(k for k in await bundle.kingdoms.kingdoms() if k.is_gaia)
+    assert gaia.civilizations == []  # Gaïa never draws
+
+
+async def test_imposed_launch_drafts_the_kingdoms_civs() -> None:
+    """The imposed mode drafts at launch too: 8 civs each, all distinct."""
+    catalog = tuple(
+        CivilizationCondition(key=f"civ-{index}", display_name=f"Civ {index}")
+        for index in range(20)
+    )
+    config = _config().model_copy(
+        update={"starting_civilizations": 8, "civilizations": catalog}
+    )
+    bundle = Bundle(config=config)
+    await bundle.kingdoms.launch(imposed_names=["Aquitaine", "Bourgogne"])
+    kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
+    assert len(kingdoms) == 2
+    drawn = [civ for kingdom in kingdoms for civ in kingdom.civilizations]
+    assert len(drawn) == 16
+    assert len(set(drawn)) == 16  # no duplicates between kingdoms
+
+
+async def test_recalculate_keeps_the_unconditioned_draft() -> None:
+    """A drafted civilization with no acquisition condition yet survives
+    the Lord's Day recalculation (conditions come later)."""
+    config = _config().model_copy(
+        update={
+            "starting_civilizations": 2,
+            "civilizations": (
+                CivilizationCondition(key="celtes", display_name="Celtes", requires_map_keys=("black-forest",)),
+                CivilizationCondition(key="francs", display_name="Francs"),
+                CivilizationCondition(key="britanniques", display_name="Britanniques"),
+                CivilizationCondition(key="azteques", display_name="Aztèques"),
+            ),
+        }
+    )
+    bundle = Bundle(config=config)
+    await bundle.launch_season()
+    before = {
+        k.id: list(k.civilizations)
+        for k in await bundle.kingdoms.kingdoms()
+        if not k.is_gaia
+    }
+    assert all(civs for civs in before.values())
+    reports = await bundle.diplomacy.recalculate()
+    unconditioned = {"francs", "britanniques", "azteques"}
+    for kingdom in [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]:
+        kept = set(before[kingdom.id]) & unconditioned
+        assert kept <= set(reports[kingdom.name])  # the draft without conditions persists
+        dropped = set(before[kingdom.id]) - unconditioned
+        assert not dropped & set(reports[kingdom.name])  # a conditioned civ follows its condition

@@ -163,11 +163,6 @@ combat&nbsp;for&nbsp;6&nbsp;real&nbsp;hours&nbsp;(D60).&nbsp;The&nbsp;caller&nbs
 ``spend_points``&nbsp;seam&nbsp;(the&nbsp;economy&nbsp;service)&nbsp;so&nbsp;the&nbsp;cost&nbsp;lands<br>
 in&nbsp;the&nbsp;same&nbsp;transaction&nbsp;scope.</span></dd></dl>
 
-<dl><dt>async <a name="DiplomacyService-assign_starting_civilizations"><strong>assign_starting_civilizations</strong></a>(self) -&gt; 'dict[str, list[str]]'</dt><dd><span class="code">Give&nbsp;``starting_civilizations``&nbsp;civs&nbsp;to&nbsp;every&nbsp;kingdom&nbsp;at&nbsp;launch.<br>
-&nbsp;<br>
-The&nbsp;admin&nbsp;parameter&nbsp;(0&nbsp;by&nbsp;default)&nbsp;seeds&nbsp;the&nbsp;first&nbsp;list;&nbsp;the<br>
-recomputation&nbsp;then&nbsp;keeps&nbsp;it&nbsp;current&nbsp;(D32).</span></dd></dl>
-
 <dl><dt>async <a name="DiplomacyService-marry"><strong>marry</strong></a>(self, player_id: 'str', civilization: 'str', *, now: 'datetime | None' = None) -&gt; 'str'</dt><dd><span class="code">Marry&nbsp;a&nbsp;lord&nbsp;to&nbsp;a&nbsp;civilization&nbsp;(D34:&nbsp;one&nbsp;marriage&nbsp;per&nbsp;lord).<br>
 &nbsp;<br>
 The&nbsp;kingdom's&nbsp;capacity&nbsp;(grown&nbsp;by&nbsp;the&nbsp;epochs,&nbsp;D53)&nbsp;bounds&nbsp;the<br>
@@ -182,6 +177,10 @@ lord&nbsp;out&nbsp;of&nbsp;combat&nbsp;for&nbsp;24&nbsp;real&nbsp;hours&nbsp;(D5
 Civs&nbsp;come&nbsp;from&nbsp;the&nbsp;owned&nbsp;territories'&nbsp;cadastre,&nbsp;the&nbsp;unlock<br>
 chains,&nbsp;the&nbsp;referential&nbsp;name&nbsp;rule&nbsp;and&nbsp;the&nbsp;marriages&nbsp;that&nbsp;secure<br>
 them;&nbsp;a&nbsp;lost&nbsp;territory&nbsp;drops&nbsp;its&nbsp;civ&nbsp;on&nbsp;the&nbsp;next&nbsp;pass&nbsp;(D32).<br>
+A&nbsp;civilization&nbsp;drawn&nbsp;by&nbsp;the&nbsp;starting&nbsp;draft&nbsp;that&nbsp;has&nbsp;NO<br>
+acquisition&nbsp;condition&nbsp;yet&nbsp;(CIVILIZATIONS.md&nbsp;conditions&nbsp;come<br>
+later)&nbsp;stays&nbsp;put&nbsp;—&nbsp;the&nbsp;draft&nbsp;survives&nbsp;the&nbsp;Lord's&nbsp;Day<br>
+recalculation&nbsp;until&nbsp;the&nbsp;conditions&nbsp;are&nbsp;authored.<br>
 Lords&nbsp;of&nbsp;a&nbsp;kingdom&nbsp;flagged&nbsp;for&nbsp;a&nbsp;combat&nbsp;loss&nbsp;lose&nbsp;their&nbsp;marriage<br>
 first&nbsp;(D34/D53).&nbsp;Returns&nbsp;the&nbsp;new&nbsp;lists&nbsp;for&nbsp;the&nbsp;diplomacy&nbsp;screen.</span></dd></dl>
 

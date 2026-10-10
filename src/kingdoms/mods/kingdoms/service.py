@@ -13,6 +13,7 @@ command resolves through its designer-authored FR/EN catalog.
 from __future__ import annotations
 
 import logging
+import random
 import re
 from datetime import UTC, datetime
 from typing import ClassVar
@@ -156,6 +157,7 @@ class KingdomsService:
         for index, name in enumerate(names):
             kingdoms.append(self._new_kingdom(f"k-{index + 1}", KingdomType.PLAYER, season.id, name=name))
         for kingdom in kingdoms:
+            await self._grant_starting_civilizations(kingdom)
             await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
         return season
@@ -248,6 +250,7 @@ class KingdomsService:
             name=name.strip(),
             name_approved=True,
         )
+        await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: kingdom %s added manually by an admin", kingdom.name)
         return kingdom
@@ -337,6 +340,7 @@ class KingdomsService:
             name=proposed_name,
             name_approved=False,
         )
+        await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         lord = LordModel(
             _id=player_id,
@@ -449,4 +453,31 @@ class KingdomsService:
             name=name if name is not None else GAIA_KINGDOM_KEY,
             name_approved=name_approved,
             marriage_capacity=0 if kind is KingdomType.GAIA else capacity,
+        )
+
+    async def _grant_starting_civilizations(self, kingdom: KingdomModel) -> None:
+        """Draw the season's starting civilizations for a fresh kingdom.
+
+        Every newly created player kingdom draws
+        ``starting_civilizations`` civilizations at random, without
+        duplicates between kingdoms: the pool shrinks as the other
+        kingdoms take theirs (draft decided with the game designer,
+        2026-10-10). The acquisition conditions (CIVILIZATIONS.md) come
+        later; until then the recalculation keeps a drawn civilization
+        that has no condition attached. Gaïa never draws.
+        """
+        count = self._config.starting_civilizations
+        if count <= 0 or kingdom.is_gaia:
+            return
+        taken = {civ for other in await self.kingdoms() for civ in other.civilizations}
+        pool = [civ.key for civ in self._config.civilizations if civ.key not in taken]
+        if len(pool) < count:
+            logger.warning(
+                "kingdoms: starting draft short - %s civilizations left for %s",
+                len(pool),
+                kingdom.id,
+            )
+        kingdom.civilizations = random.sample(pool, min(count, len(pool)))
+        logger.info(
+            "kingdoms: starting draft for %s - %s", kingdom.id, kingdom.civilizations
         )

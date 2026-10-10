@@ -90,31 +90,16 @@ class DiplomacyService:
     # ------------------------------------------------------------------
     # Conditions engine (D32/D33)
     # ------------------------------------------------------------------
-    async def assign_starting_civilizations(self) -> dict[str, list[str]]:
-        """Give ``starting_civilizations`` civs to every kingdom at launch.
-
-        The admin parameter (0 by default) seeds the first list; the
-        recomputation then keeps it current (D32).
-        """
-        count = self._config.starting_civilizations
-        assigned: dict[str, list[str]] = {}
-        if count <= 0:
-            return assigned
-        catalog = [civ.key for civ in self._config.civilizations]
-        for kingdom in await self._kingdoms.kingdoms():
-            if kingdom.is_gaia:
-                continue
-            kingdom.civilizations = catalog[:count]
-            await self._store.upsert_kingdom(kingdom.to_mongo())
-            assigned[kingdom.id] = kingdom.civilizations
-        return assigned
-
     async def recalculate(self) -> dict[str, list[str]]:
         """Recompute every kingdom's playable civilizations (cycle end).
 
         Civs come from the owned territories' cadastre, the unlock
         chains, the referential name rule and the marriages that secure
         them; a lost territory drops its civ on the next pass (D32).
+        A civilization drawn by the starting draft that has NO
+        acquisition condition yet (CIVILIZATIONS.md conditions come
+        later) stays put — the draft survives the Lord's Day
+        recalculation until the conditions are authored.
         Lords of a kingdom flagged for a combat loss lose their marriage
         first (D34/D53). Returns the new lists for the diplomacy screen.
         """
@@ -127,7 +112,11 @@ class DiplomacyService:
             if kingdom.is_gaia:
                 continue
             owned = await self._owned_map_keys(kingdom.id)
-            unlocked: list[str] = []
+            unlocked: list[str] = [
+                civ.key
+                for civ in self._config.civilizations
+                if civ.key in kingdom.civilizations and self._is_unconditioned(civ)
+            ]
             for civ in self._config.civilizations:
                 if self._condition_met(civ, kingdom, owned, unlocked):
                     if civ.key not in unlocked:
@@ -167,6 +156,15 @@ class DiplomacyService:
                 await self._store.upsert_lord(lord.to_mongo())
         season.pending_marriage_losses = []
         await self._store.upsert_season(season.to_mongo())
+
+    def _is_unconditioned(self, civ: CivilizationCondition) -> bool:
+        """Whether a catalog civ has no acquisition condition attached."""
+        return not (
+            civ.requires_map_keys
+            or civ.requires_map_types
+            or civ.requires_civilization is not None
+            or civ.requires_kingdom_name_pattern is not None
+        )
 
     def _condition_met(
         self,
