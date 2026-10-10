@@ -416,9 +416,11 @@ class KingdomsBot(discord.Client):
         )
 
         await asyncio.sleep(5)
+        logger.info("PINNED ADMIN MENU sweep started (guilds=%d)", len(self.guilds))
         while True:
             for guild in list(self.guilds):
                 if self.logs_service is None:
+                    logger.warning("PINNED ADMIN MENU sweep skipped: no logs service")
                     break
                 try:
                     await ensure_pinned_admin_menu(
