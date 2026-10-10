@@ -15,25 +15,16 @@ Every&nbsp;salon&nbsp;of&nbsp;a&nbsp;kingdom&nbsp;category&nbsp;is&nbsp;a&nbsp;*
 announcements&nbsp;go&nbsp;to&nbsp;géopolitique),&nbsp;except&nbsp;the&nbsp;Salle&nbsp;du&nbsp;Conseil&nbsp;—<br>
 the&nbsp;kingdom's&nbsp;only&nbsp;private&nbsp;discussion&nbsp;salon,&nbsp;which&nbsp;stays&nbsp;empty.<br>
 &nbsp;<br>
-Version&nbsp;1&nbsp;scope&nbsp;(first&nbsp;render,&nbsp;admin-reviewable):<br>
+Each&nbsp;view&nbsp;is&nbsp;a&nbsp;Components&nbsp;V2&nbsp;panel&nbsp;(Drasah's&nbsp;choice,&nbsp;2026-10-10:&nbsp;same<br>
+visual&nbsp;language&nbsp;as&nbsp;the&nbsp;admin&nbsp;panels&nbsp;—&nbsp;container,&nbsp;accent&nbsp;colour,<br>
+separators),&nbsp;marked&nbsp;and&nbsp;re-deployed&nbsp;in&nbsp;place&nbsp;(the&nbsp;``panel_messages``<br>
+contract):&nbsp;re-deploys,&nbsp;approvals&nbsp;and&nbsp;resets&nbsp;never&nbsp;duplicate.<br>
 &nbsp;<br>
--&nbsp;🏰&nbsp;Le-Royaume&nbsp;—&nbsp;the&nbsp;pinned&nbsp;kingdom&nbsp;sheet&nbsp;(effectif,&nbsp;trésorerie,<br>
-&nbsp;&nbsp;territoires,&nbsp;civilisations,&nbsp;mariages,&nbsp;patrouille,&nbsp;garde&nbsp;royale,<br>
-&nbsp;&nbsp;Paroisse&nbsp;placeholder);<br>
--&nbsp;🎖️&nbsp;Seigneurs&nbsp;—&nbsp;the&nbsp;private&nbsp;roster&nbsp;(one&nbsp;line&nbsp;per&nbsp;member,&nbsp;marriages,<br>
-&nbsp;&nbsp;attack/defense&nbsp;budgets,&nbsp;badges);<br>
--&nbsp;🛡️&nbsp;Patrouille&nbsp;—&nbsp;the&nbsp;bought&nbsp;2h&nbsp;slots,&nbsp;the&nbsp;purchases&nbsp;left,&nbsp;the<br>
-&nbsp;&nbsp;modification&nbsp;window&nbsp;(D68);<br>
--&nbsp;🗺️&nbsp;Territoire&nbsp;—&nbsp;the&nbsp;owned&nbsp;territories&nbsp;with&nbsp;display&nbsp;names;<br>
--&nbsp;⛪&nbsp;Église&nbsp;—&nbsp;the&nbsp;Paroisse&nbsp;placeholder&nbsp;(D64&nbsp;à&nbsp;venir),&nbsp;the&nbsp;marriage<br>
-&nbsp;&nbsp;stock,&nbsp;the&nbsp;active&nbsp;marriages&nbsp;with&nbsp;their&nbsp;💍&nbsp;badges&nbsp;(D74);<br>
--&nbsp;🕊️&nbsp;Pigeon-Voyageur&nbsp;—&nbsp;the&nbsp;D69&nbsp;catalogue&nbsp;placeholder.<br>
-&nbsp;<br>
-📜&nbsp;Alliances&nbsp;keeps&nbsp;its&nbsp;«&nbsp;🎲&nbsp;Draft&nbsp;starter&nbsp;»&nbsp;message&nbsp;(the&nbsp;civs&nbsp;ARE&nbsp;the<br>
-alliances&nbsp;view,&nbsp;D51);&nbsp;💬&nbsp;Salle&nbsp;du&nbsp;Conseil&nbsp;stays&nbsp;empty&nbsp;by&nbsp;design.<br>
-&nbsp;<br>
-Every&nbsp;view&nbsp;is&nbsp;marked&nbsp;and&nbsp;edited&nbsp;in&nbsp;place&nbsp;(the&nbsp;``panel_messages``<br>
-contract):&nbsp;re-deploys,&nbsp;approvals&nbsp;and&nbsp;resets&nbsp;never&nbsp;duplicate.</span></p>
+Phase&nbsp;rule&nbsp;(Drasah's&nbsp;game&nbsp;design,&nbsp;2026-10-10):&nbsp;while&nbsp;the&nbsp;season&nbsp;is&nbsp;in<br>
+``setup``,&nbsp;NOTHING&nbsp;random&nbsp;is&nbsp;revealed&nbsp;—&nbsp;the&nbsp;🗺️&nbsp;Territoire&nbsp;salon&nbsp;shows<br>
+a&nbsp;"distribution&nbsp;at&nbsp;season&nbsp;start"&nbsp;placeholder&nbsp;and&nbsp;the&nbsp;📜&nbsp;Alliances&nbsp;one<br>
+carries&nbsp;its&nbsp;own&nbsp;(in&nbsp;kingdom_realms).&nbsp;Once&nbsp;the&nbsp;admin&nbsp;starts&nbsp;the&nbsp;season<br>
+(``started``),&nbsp;the&nbsp;real&nbsp;content&nbsp;replaces&nbsp;the&nbsp;placeholders.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -51,7 +42,8 @@ contract):&nbsp;re-deploys,&nbsp;approvals&nbsp;and&nbsp;resets&nbsp;never&nbsp;
 &nbsp;<br>
 Returns&nbsp;the&nbsp;per-salon&nbsp;outcome;&nbsp;each&nbsp;view&nbsp;fails&nbsp;alone&nbsp;(best-effort,<br>
 like&nbsp;every&nbsp;provisioning&nbsp;path&nbsp;—&nbsp;a&nbsp;broken&nbsp;view&nbsp;never&nbsp;blocks&nbsp;the<br>
-others).</span></dd></dl>
+others).&nbsp;While&nbsp;the&nbsp;season&nbsp;is&nbsp;in&nbsp;``setup``,&nbsp;the&nbsp;Territoire&nbsp;salon<br>
+shows&nbsp;the&nbsp;distribution&nbsp;placeholder&nbsp;instead&nbsp;of&nbsp;the&nbsp;territories.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

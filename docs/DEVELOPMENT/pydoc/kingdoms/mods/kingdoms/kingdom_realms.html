@@ -42,7 +42,14 @@ case:&nbsp;the&nbsp;structure&nbsp;exists,&nbsp;the&nbsp;members&nbsp;list&nbsp;
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-announce_draft_starter"><strong>announce_draft_starter</strong></a>(guild: 'discord.Guild', kingdom: 'Any', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;kingdom's&nbsp;starter&nbsp;draft&nbsp;in&nbsp;its&nbsp;Alliances&nbsp;salon&nbsp;(idempotent).<br>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_alliances_placeholder"><strong>announce_alliances_placeholder</strong></a>(guild: 'discord.Guild', kingdom: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;setup-phase&nbsp;Alliances&nbsp;placeholder&nbsp;(idempotent).<br>
+&nbsp;<br>
+Drasah's&nbsp;phase&nbsp;rule:&nbsp;while&nbsp;the&nbsp;season&nbsp;is&nbsp;in&nbsp;``setup``,&nbsp;the<br>
+civilization&nbsp;draft&nbsp;must&nbsp;stay&nbsp;secret&nbsp;—&nbsp;the&nbsp;Alliances&nbsp;salon&nbsp;says&nbsp;so<br>
+instead&nbsp;of&nbsp;showing&nbsp;the&nbsp;opening&nbsp;hand.&nbsp;The&nbsp;message&nbsp;is&nbsp;marked&nbsp;and<br>
+edited&nbsp;in&nbsp;place;&nbsp;:func:`announce_draft_starter`&nbsp;deletes&nbsp;it&nbsp;at&nbsp;the<br>
+reveal.</span></dd></dl>
+ <dl><dt>async <a name="-announce_draft_starter"><strong>announce_draft_starter</strong></a>(guild: 'discord.Guild', kingdom: 'Any', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;kingdom's&nbsp;starter&nbsp;draft&nbsp;in&nbsp;its&nbsp;Alliances&nbsp;salon&nbsp;(idempotent).<br>
 &nbsp;<br>
 The&nbsp;8&nbsp;starting&nbsp;civilizations&nbsp;drawn&nbsp;at&nbsp;the&nbsp;kingdom's&nbsp;creation&nbsp;are&nbsp;the<br>
 season's&nbsp;opening&nbsp;hand:&nbsp;they&nbsp;belong&nbsp;in&nbsp;``Alliances``&nbsp;(D51&nbsp;—&nbsp;alliances<br>
@@ -84,7 +91,8 @@ bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nb
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DRAFT_STARTER_MARKER</strong> = 'kingdoms:realm:draft-starter'<br>
+<td class="singlecolumn"><strong>ALLIANCES_PENDING_MARKER</strong> = 'kingdoms:realm:alliances-pending'<br>
+<strong>DRAFT_STARTER_MARKER</strong> = 'kingdoms:realm:draft-starter'<br>
 <strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
 <strong>REALMS_CHANNEL</strong> = 'Royaumes'<br>
 <strong>REALMS_PANEL_MARKER</strong> = 'kingdoms:panel:royaumes'<br>

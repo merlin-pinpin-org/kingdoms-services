@@ -728,6 +728,23 @@ spent)&nbsp;but&nbsp;never&nbsp;their&nbsp;marriage&nbsp;(D25&nbsp;—&nbsp;pers
 
 <dl><dt>async <a name="KingdomsService-season_archives"><strong>season_archives</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;archived&nbsp;season&nbsp;snapshot&nbsp;(oldest&nbsp;first).</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-set_imposed_mode"><strong>set_imposed_mode</strong></a>(self, imposed: 'bool') -&gt; 'SeasonState'</dt><dd><span class="code">Flip&nbsp;the&nbsp;imposed-kingdoms&nbsp;mode&nbsp;mid-season&nbsp;(Drasah's&nbsp;rule).<br>
+&nbsp;<br>
+A&nbsp;mis-launched&nbsp;season&nbsp;must&nbsp;be&nbsp;fixable&nbsp;in&nbsp;one&nbsp;click&nbsp;without<br>
+wiping&nbsp;anything:&nbsp;imposed&nbsp;→&nbsp;free&nbsp;unblocks&nbsp;the&nbsp;King&nbsp;candidatures<br>
+(an&nbsp;imposed&nbsp;season&nbsp;refuses&nbsp;every&nbsp;king&nbsp;enrollment),&nbsp;free&nbsp;→<br>
+imposed&nbsp;freezes&nbsp;them.&nbsp;The&nbsp;kingdoms&nbsp;themselves&nbsp;never&nbsp;change&nbsp;—<br>
+the&nbsp;admin&nbsp;adds/removes&nbsp;them&nbsp;by&nbsp;hand&nbsp;if&nbsp;needed.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsService-start_season"><strong>start_season</strong></a>(self) -&gt; 'SeasonState'</dt><dd><span class="code">Start&nbsp;the&nbsp;game:&nbsp;reveal&nbsp;the&nbsp;random&nbsp;content&nbsp;to&nbsp;everyone&nbsp;(D70).<br>
+&nbsp;<br>
+The&nbsp;``setup``&nbsp;→&nbsp;``started``&nbsp;transition&nbsp;(Drasah's&nbsp;game-design<br>
+phase&nbsp;rule):&nbsp;every&nbsp;non-Gaïa&nbsp;kingdom&nbsp;draws&nbsp;its&nbsp;starting<br>
+civilizations&nbsp;at&nbsp;once&nbsp;(no&nbsp;duplicates&nbsp;between&nbsp;kingdoms),&nbsp;then<br>
+the&nbsp;season&nbsp;is&nbsp;marked&nbsp;started&nbsp;—&nbsp;the&nbsp;surface&nbsp;then&nbsp;distributes<br>
+the&nbsp;territories&nbsp;and&nbsp;reveals&nbsp;the&nbsp;Alliances/Territoire&nbsp;salons.<br>
+Idempotent:&nbsp;calling&nbsp;it&nbsp;on&nbsp;an&nbsp;already-started&nbsp;season&nbsp;is&nbsp;a&nbsp;no-op.</span></dd></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>config</strong></dt>
