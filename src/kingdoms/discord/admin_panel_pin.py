@@ -109,28 +109,31 @@ async def _edit_registered_pin_in_place(
     channel: Any,
     build_layout: Any,
 ) -> None:
-    """Edit the registered admin pin to the freshly built layout.
+    """Edit the pinned admin menu (marker-identified) to the fresh layout.
 
     ``PinnedMenuService.ensure`` returns early when the pin carries the
     marker and the required ids — an older **layout** (pre-i18n labels,
-    missing sections) would otherwise stay forever. The registered
-    message id (message registry, base-backed) is fetched directly and
-    edited in place when the layout fingerprint differs; a gone message
-    is left to the ensure cycle's recreation path.
+    missing sections) would otherwise stay forever. The current pin is
+    the channel's pinned message carrying the ``admin:pin:`` marker (the
+    same identification the ensure cycle uses); it is edited in place
+    when the layout fingerprint differs. The message id stays stable.
     """
+    from kingdoms.core.services.pinned_menu import _walk_custom_ids
     from kingdoms.discord.pinned_menu_fingerprint import layout_fingerprint
-    from kingdoms.discord.static_pins import registered_static_pins
 
     try:
-        spec = next((sp for sp in registered_static_pins() if sp.key == "admin-panel"), None)
-        message_id = await spec.resolve_message_id(guild_id) if spec else None
-        if not message_id or not message_id.isdigit():
-            return
-        message = await channel.fetch_message(int(message_id))
         layout = await build_layout(guild_id)
-        if layout_fingerprint(layout) == layout_fingerprint(getattr(message, "components", None)):
+        fresh = layout_fingerprint(layout)
+        for message in await channel.pins():
+            ids = set(_walk_custom_ids(message))
+            if not any(str(cid).startswith("admin:pin:") for cid in ids):
+                continue
+            if fresh == layout_fingerprint(getattr(message, "components", None)):
+                logger.info("PINNED ADMIN MENU already current (no edit)")
+                return
+            await message.edit(view=layout)
+            logger.info("PINNED ADMIN MENU edited in place (layout updated)")
             return
-        await message.edit(view=layout)
     except Exception:
         logger.warning("PINNED ADMIN MENU in-place refresh failed — best-effort", exc_info=True)
 
