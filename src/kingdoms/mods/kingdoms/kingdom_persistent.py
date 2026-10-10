@@ -1482,6 +1482,16 @@ async def _draw_territories_after_launch_safe() -> None:
         logger.warning("KINGDOMS: initial territory draw failed", exc_info=True)
 
 
+async def _deploy_realm_content_safe(guild: discord.Guild, kingdom: Any) -> None:
+    """Best-effort deployment of one kingdom's salon state views (v1)."""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_realm_content
+
+        await deploy_realm_content(guild, kingdom, _wiring())
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: deployment failed", exc_info=True)
+
+
 async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
     """Best-effort per-kingdom draw after an approval (guarded, idempotent)."""
     wiring = _wiring()
@@ -1495,13 +1505,21 @@ async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
 
 async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None:
     """Provision the approved (imposed/admin) kingdoms after a launch."""
+    wiring = _wiring()
     try:
         from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
 
-        wiring = _wiring()
         await ensure_all_realm_structures(guild, wiring.kingdoms_service)
     except Exception:
         logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    if wiring.kingdoms_service is not None:
+        try:
+            kingdoms = await wiring.kingdoms_service.kingdoms()
+        except Exception:
+            kingdoms = []
+        for kingdom in kingdoms:
+            if not kingdom.is_gaia and str(kingdom.validation) == "approved":
+                await _deploy_realm_content_safe(guild, kingdom)
     await _draw_territories_after_launch_safe()
     await _refresh_realms_panel_safe(guild, locale)
 
@@ -1633,6 +1651,7 @@ class KingdomRealmButton(
                 member_ids = [int(lord.id) for lord in members if str(lord.id).isdigit()]
                 await ensure_realm_structure(interaction.guild, kingdom, member_ids)
                 await _draw_territories_for_kingdom_safe(kingdom.id)
+                await _deploy_realm_content_safe(interaction.guild, kingdom)
             else:
                 kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
