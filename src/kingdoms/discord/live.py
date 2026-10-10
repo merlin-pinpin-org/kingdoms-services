@@ -659,11 +659,16 @@ _LAST_PUSH: dict[str, tuple[float, str]] = {}
 
 
 def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
-    """Build a stable fingerprint of the rendered-relevant snapshot fields."""
+    """Build a stable fingerprint of the rendered-relevant snapshot fields.
+
+    ``generated_at`` changes on every stream frame; it is excluded —
+    the fingerprint tracks the **player states** the dashboard renders,
+    so an unchanged roster never triggers an edit (#251).
+    """
     players = snapshot.get("players") or []
     return (
         "|".join(str(p.get("profile_id", "")) + ":" + str(p.get("state", "")) for p in players)
-        + f"|{snapshot.get('generated_at', '')}|degraded={snapshot.get('degraded', False)}"
+        + f"|degraded={snapshot.get('degraded', False)}"
     )
 
 
@@ -712,7 +717,9 @@ async def _push_snapshot(
     embeds = _dashboard_embeds(snapshot, body, bot)
     for guild in list(bot.guilds):
         last_at, last_fp = _LAST_PUSH.get(str(guild.id), (0.0, ""))
-        if last_fp == fingerprint and now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S * 4:
+        if fingerprint == last_fp:
+            continue
+        if now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S:
             continue
         _LAST_PUSH[str(guild.id)] = (now, fingerprint)
         channel = await ensure_live_dashboard_channel(guild)

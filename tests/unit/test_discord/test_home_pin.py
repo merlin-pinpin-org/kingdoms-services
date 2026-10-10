@@ -12,9 +12,8 @@ from typing import Any
 
 import pytest
 
-from kingdoms.discord.static_pins import reset_static_pins
-
 from kingdoms.discord.home import ensure_pinned_home_menu
+from kingdoms.discord.static_pins import reset_static_pins
 
 
 @pytest.fixture(autouse=True)
