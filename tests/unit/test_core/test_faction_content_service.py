@@ -7,7 +7,7 @@ from typing import Any
 from kingdoms.core.services.faction_content import CACHE_SCOPE, FactionContentService
 
 DOC = {
-    "entity_id": "faction:aoe2:Franks",
+    "entity_id": "faction:aoe2:franks",
     "locale": "fr",
     "name": "Francs",
     "summary": "Civilisation de cavalerie.",
@@ -66,7 +66,7 @@ async def test_store_then_get_roundtrip() -> None:
     db = FakeDatabase()
     service = FactionContentService(db)
     await service.store(DOC)
-    doc = await service.get("faction:aoe2:Franks", "fr")
+    doc = await service.get("faction:aoe2:franks", "fr")
     assert doc is not None
     assert doc["name"] == "Francs"
     assert doc["provider"] == "aoe2techtree"
@@ -74,7 +74,7 @@ async def test_store_then_get_roundtrip() -> None:
 
 async def test_get_misses_when_not_stored() -> None:
     service = FactionContentService(FakeDatabase())
-    assert await service.get("faction:aoe2:Franks", "fr") is None
+    assert await service.get("faction:aoe2:franks", "fr") is None
 
 
 async def test_get_populates_cache_then_hits_cache() -> None:
@@ -82,10 +82,10 @@ async def test_get_populates_cache_then_hits_cache() -> None:
     state = FakeState()
     service = FactionContentService(db, state)
     await service.store(DOC)
-    first = await service.get("faction:aoe2:Franks", "fr")
+    first = await service.get("faction:aoe2:franks", "fr")
     assert first is not None
     assert state.get_calls == 1
-    second = await service.get("faction:aoe2:Franks", "fr")
+    second = await service.get("faction:aoe2:franks", "fr")
     assert second is not None
     assert state.get_calls == 2
     assert db.collections["faction_content"].docs  # durable store untouched on the cache hit
@@ -95,11 +95,11 @@ async def test_store_invalidates_cached_entry() -> None:
     state = FakeState()
     service = FactionContentService(FakeDatabase(), state)
     await service.store(DOC)
-    await service.get("faction:aoe2:Franks", "fr")
+    await service.get("faction:aoe2:franks", "fr")
     updated = dict(DOC, name="Francs (maj)")
     await service.store(updated)
-    assert f"{CACHE_SCOPE}:faction:aoe2:Franks:fr" in state.deleted
-    doc = await service.get("faction:aoe2:Franks", "fr")
+    assert f"{CACHE_SCOPE}:faction:aoe2:franks:fr" in state.deleted
+    doc = await service.get("faction:aoe2:franks", "fr")
     assert doc is not None
     assert doc["name"] == "Francs (maj)"
 

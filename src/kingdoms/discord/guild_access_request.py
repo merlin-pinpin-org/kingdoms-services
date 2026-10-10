@@ -79,13 +79,16 @@ class GuildAccessRequestSelect(
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
             return
+        from kingdoms.core.services.guild_access import GuildAccessError
+
         try:
             doc = await service.request_access(self.guild_id, chosen)
+        except GuildAccessError as error:
+            await interaction.followup.send(f"Demande refusée : {error}", ephemeral=True)
+            return
         except Exception:
             logger.exception("ACCESS REQUEST failed (guild %s)", self.guild_id)
-            await interaction.followup.send(
-                "Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True
-            )
+            await interaction.followup.send("Demande échouée (voir les logs).", ephemeral=True)
             return
         pending = dict(doc.get("pending") or {})
         requested_at = max(pending, key=int) if pending else ""
@@ -105,7 +108,7 @@ class GuildAccessRequestButton(
         self.guild_id = guild_id
         super().__init__(
             discord.ui.Button(
-                label="Demander l'accès aux games/mods",
+                label="Request access to games/mods",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:open:{guild_id}"[:100],
             )
@@ -135,8 +138,7 @@ class GuildAccessRequestButton(
         options = _request_options()
         if all(option.value == "none" for option in options):
             await interaction.followup.send(
-                "Aucun game/mod actif sur la plateforme pour le moment — "
-                "demande a un bot admin d'en activer un.",
+                "Aucun game/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
                 ephemeral=True,
             )
             return
@@ -247,18 +249,35 @@ async def _answer_pending_request(
             doc = await service.deny(guild_id, requested_at)
     except Exception:
         logger.warning("ACCESS REQUEST answer failed (guild %s, approve=%s)", guild_id, approve)
-        await interaction.followup.send(
-            "Demande introuvable (déjà traitée ?).", ephemeral=True
-        )
+        await interaction.followup.send("Demande introuvable (déjà traitée ?).", ephemeral=True)
         return
     await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
     granted = ", ".join((doc.get("games") or []) + [f"mod:{m}" for m in doc.get("mods") or []])
     if approve:
+        await _refresh_guild_pins(interaction.client, guild_id)
         await interaction.followup.send(
             f"Accès accordé à la guilde `{guild_id}` — actifs : {granted or 'aucun'}.", ephemeral=True
         )
     else:
         await interaction.followup.send(f"Demande de `{guild_id}` refusée.", ephemeral=True)
+
+
+async def _refresh_guild_pins(client: discord.Client, guild_id: str) -> None:
+    """Re-render the guild's static pins after an access change (best-effort).
+
+    A grant changes what the pinned admin panel must show (the games
+    section appears); the static-pin cycle edits the live pin in place
+    — id stable, content current.
+    """
+    from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+    for spec in registered_static_pins():
+        if spec.key != "admin-panel":
+            continue
+        try:
+            await ensure_static_pin(client, spec, guild_id)
+        except Exception:
+            logger.warning("ACCESS REQUEST: admin pin refresh failed — best-effort", exc_info=True)
 
 
 class GuildAccessApproveButton(

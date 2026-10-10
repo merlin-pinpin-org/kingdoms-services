@@ -12,6 +12,7 @@ here — restart-proof, exactly one dispatch path.
 - ``staff:apply:<mod>:<user_id>``  — the application (menu/button payload);
 - ``staff:decide:<accept|decline>:<mod>:<user_id>`` — the decision buttons.
 """
+
 from __future__ import annotations
 
 import logging
@@ -29,6 +30,8 @@ logger = logging.getLogger("kingdoms.staff")
 
 STAFF_APPLY_MARKER = "staff:apply:"
 STAFF_DECIDE_MARKER = "staff:decide:"
+
+
 def _default_mod(bot: Any) -> str:
     """First enabled mod (roster order), best-effort."""
     registry = getattr(bot, "registry", None)
@@ -85,8 +88,8 @@ class StaffApplyModal(discord.ui.Modal):
         super().__init__(title=f"Candidature staff {mod}", timeout=None)
         self.mod = mod
         self.message: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Ton message de candidature",
-            placeholder="Pourquoi toi ? Dispo, experience, envies...",
+            label="Your application message",
+            placeholder="Why you? Availability, experience, wishes...",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=True,
@@ -192,16 +195,12 @@ async def _nominate(interaction: discord.Interaction, member: discord.User) -> N
     user_id = str(member.id)
     mod = _default_mod(bot)
     await staff.apply(guild_id, mod, user_id, now=_now_ms())
-    await staff.decide(
-        guild_id, mod, user_id, accept=True, decided_by=str(interaction.user.id), now=_now_ms()
-    )
+    await staff.decide(guild_id, mod, user_id, accept=True, decided_by=str(interaction.user.id), now=_now_ms())
     season_roles = bot.season_roles_service
     if season_roles is not None:
         season = await _active_season_label(bot, guild_id)
         await season_roles.sync_staff_role(guild_id, user_id, season, member=True)
-    await interaction.response.send_message(
-        f"<@{user_id}> est nommé staff {mod}.", ephemeral=True
-    )
+    await interaction.response.send_message(f"<@{user_id}> est nommé staff {mod}.", ephemeral=True)
 
 
 async def _decide(interaction: discord.Interaction, decision: str, mod: str, user_id: str) -> None:
@@ -269,10 +268,12 @@ def build_staff_notice(mod: str, user_id: str, message: str = "") -> discord.ui.
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(StaffDecideButton("accept", mod, user_id))
     row.add_item(StaffDecideButton("decline", mod, user_id))
-    view.add_item(discord.ui.Container(
-        discord.ui.TextDisplay(_notice_body(mod, user_id, message)),
-        row,
-    ))
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(_notice_body(mod, user_id, message)),
+            row,
+        )
+    )
     return view
 
 
@@ -287,11 +288,11 @@ def _notice_body(mod: str, user_id: str, message: str) -> str:
 def build_staff_resolved_notice(mod: str, user_id: str, verb: str, decided_by: str) -> discord.ui.LayoutView:
     """Build the post-decision notice: no interactive buttons left."""
     view = discord.ui.LayoutView(timeout=None)
-    view.add_item(discord.ui.Container(
-        discord.ui.TextDisplay(
-            f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> — **{verb}** par <@{decided_by}>."
-        ),
-    ))
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"## 🛡️ Candidature staff **{mod}**\n<@{user_id}> — **{verb}** par <@{decided_by}>."),
+        )
+    )
     return view
 
 

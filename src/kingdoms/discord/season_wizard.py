@@ -57,9 +57,7 @@ class WizardState:
         return self.answers.get(key, default)
 
 
-async def send_step(
-    interaction: discord.Interaction, content: str, view: discord.ui.View
-) -> None:
+async def send_step(interaction: discord.Interaction, content: str, view: discord.ui.View) -> None:
     """Send one step's ephemeral view, whatever the interaction state.
 
     A step can open from a fresh interaction (a button click in an
@@ -91,9 +89,7 @@ async def ask_select(
     if not options and empty_label is not None:
         options = [discord.SelectOption(label=empty_label, value="none")]
     view = discord.ui.View(timeout=WIZARD_TIMEOUT)
-    select: discord.ui.Select[Any] = discord.ui.Select(
-        placeholder=placeholder, options=options[:25]
-    )
+    select: discord.ui.Select[Any] = discord.ui.Select(placeholder=placeholder, options=options[:25])
 
     async def _pick(inner: discord.Interaction) -> None:
         chosen = (getattr(inner, "values", None) or [""])[0]

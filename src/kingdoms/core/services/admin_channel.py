@@ -64,6 +64,10 @@ class AdminChannelPlatform(Protocol):
         """Deliver a UI SDK layout to the channel; the message id."""
         ...
 
+    async def edit_layout(self, guild_id: str, channel_id: str, message_id: str, layout: Any) -> None:
+        """Edit a delivered layout message in place (best-effort)."""
+        ...
+
 
 class AdminChannelDatabase(Protocol):
     """Narrow persistence seam (the shared channels collection)."""
@@ -224,6 +228,16 @@ class AdminChannelService:
                 channel_id,
                 exc_info=True,
             )
+
+    async def edit_layout(self, guild_id: str, message_id: str, layout: Any) -> None:
+        """Edit one delivered admin message in place (best-effort).
+
+        A failed edit raises — the pin updater falls back to a re-post.
+        """
+        channel_id = await self.resolve_channel(guild_id)
+        if channel_id is None:
+            raise RuntimeError(f"admin channel not resolved (guild {guild_id})")
+        await self._platform.edit_layout(guild_id, channel_id, message_id, layout)
 
     async def deliver(self, guild_id: str, layout: Any, admin_ids: tuple[str, ...] = ()) -> str | None:
         """Deliver an admin message (a UI SDK layout) to the admin channel.

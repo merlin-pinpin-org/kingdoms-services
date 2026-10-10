@@ -37,15 +37,30 @@ class CatalogEntryModel(BaseModel):
 
 
 class MapModel(CatalogEntryModel):
-    """A map entry: ``filename`` is the opaque in-game reference (required).
+    """A map entry: ``filenames`` are the opaque in-game references.
 
     ``forum_message_id`` holds the id of the map's post in the guild's
     maps forum (the message is the map's public surface); ``None`` means
-    the post has not been provisioned yet.
+    the post has not been provisioned yet. ``map_type`` is the
+    designer-facing classification (open, closed, hybrid, nomad,
+    fortified, water...); ``is_public`` separates the Liquipedia-synced
+    catalog (public, every guild) from guild-created local maps.
     """
 
     filename: str = ""
+    filenames: tuple[str, ...] = ()
+    map_type: str = ""
+    is_public: bool = True
     forum_message_id: str | None = None
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document (tuples as lists)."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> MapModel:
+        """Build from a MongoDB document (tuples re-coerced from lists)."""
+        return cls.model_validate({**data, "filenames": tuple(data.get("filenames") or ())})
 
 
 class FactionModel(CatalogEntryModel):
@@ -108,6 +123,10 @@ class MapPoolModel(BaseModel):
     ban_quota: int | None = None
     owner_guild_id: str | None = None
     is_public: bool = False
+    edition_mode: bool = True
+    ever_activated: bool = False
+    state: str = "draft"
+    mod_link: str = ""
     archived_at: int | None = None
 
     def to_mongo(self) -> dict[str, Any]:

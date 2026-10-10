@@ -23,6 +23,7 @@ import logging
 from typing import Any
 
 from kingdoms.core.games.game_content import LocalizedContent
+from kingdoms.core.ids import slug_id
 
 logger = logging.getLogger("kingdoms.core.faction_content")
 
@@ -33,7 +34,17 @@ CREST_BASE_URL = "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/
 def _civ_crest_url(provider_key: str) -> str:
     """Build the civ's crest image URL from the aoe2techtree repository."""
     return f"{CREST_BASE_URL}/{provider_key.lower()}.png"
-SOURCE_URL = "https://github.com/SiegeEngineers/aoe2techtree"
+
+
+SOURCE_URL = "https://aoe2techtree.net"
+LIQUIPEDIA_MAP_URL = "https://liquipedia.net/ageofempires/"
+
+
+def _civ_page_url(provider_key: str) -> str:
+    """Build the civ's own page URL on aoe2techtree (the per-civ anchor)."""
+    return f"{SOURCE_URL}/#{provider_key}"
+
+
 SUPPORTED_LOCALES = ("en", "fr")
 
 
@@ -77,11 +88,11 @@ class TechtreeContentProvider:
         help_raw = str(table.get(str(civ.get("help_string_id")), ""))
         summary = help_raw.replace("<br>", "\n").strip()
         return LocalizedContent(
-            entity_id=f"faction:aoe2:{faction_name}",
+            entity_id=f"faction:aoe2:{slug_id(faction_name)}",
             locale=locale,
             name=localized,
             summary=summary,
-            source_url=SOURCE_URL,
+            source_url=_civ_page_url(provider_key),
             image_url=_civ_crest_url(provider_key),
         )
 
@@ -90,12 +101,16 @@ class TechtreeContentProvider:
         return list((self._dataset.get("civs") or {}).keys())
 
     def map_content(self, map_name: str, locale: str) -> LocalizedContent | None:
-        """Build one map's localized content descriptor (name only today)."""
+        """Build one map's localized content descriptor (name only today).
+
+        The map's source URL points to its Liquipedia page (the wiki's
+        per-map page), not the aoe2techtree home.
+        """
         del locale
         return LocalizedContent(
-            entity_id=f"map:aoe2:{map_name}",
+            entity_id=f"map:aoe2:{slug_id(map_name)}",
             locale="en",
             name=map_name,
             summary="",
-            source_url=SOURCE_URL,
+            source_url=LIQUIPEDIA_MAP_URL + map_name.replace(" ", "_"),
         )

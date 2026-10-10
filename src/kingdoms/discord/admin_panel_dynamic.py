@@ -207,18 +207,26 @@ class PinVisibilitySelect(
         )
 
     @classmethod
-    def create(cls, catalog: MessageCatalog | None, locale: str, placeholder: str = "") -> PinVisibilitySelect:
-        """Build the visibility options for the guild's locale."""
+    def create(
+        cls,
+        catalog: MessageCatalog | None,
+        locale: str,
+        placeholder: str = "",
+        current: str = VISIBILITY_ADMIN_ONLY,
+    ) -> PinVisibilitySelect:
+        """Build the visibility options, the current policy pre-selected."""
         options = [
             discord.SelectOption(
                 label=f"\U0001f512 {_t(catalog, locale, 'visibility_admin_label')}",
                 value=VISIBILITY_ADMIN_ONLY,
                 description=_t(catalog, locale, "visibility_admin_hint"),
+                default=current == VISIBILITY_ADMIN_ONLY,
             ),
             discord.SelectOption(
                 label=f"\U0001f513 {_t(catalog, locale, 'visibility_public_label')}",
                 value=VISIBILITY_PUBLIC,
                 description=_t(catalog, locale, "visibility_public_hint"),
+                default=current == VISIBILITY_PUBLIC,
             ),
         ]
         return cls(options, placeholder)
@@ -315,54 +323,40 @@ class PinBackButton(
 
 class PinReadOnlySelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=r"admin:pin:select:read-only",
+    template=r"admin:pin:select:read-only:(?P<category>[A-Za-z0-9_:-]+)",
 ):
-    """The pinned read-only toggle for one channel (default: read-only).
+    """The per-channel read-only toggle, shown in the channel's sub-menu.
 
-    The managed options cover the core pinned channels plus every
-    mod-registered admin surface (the mod hook), addressed by their
-    stored channel category.
+    Two options (lock / open), the current state pre-selected; the
+    channel category rides the custom_id so the rebuild is state-aware.
     """
 
-    def __init__(self, options: list[discord.SelectOption], placeholder: str = "") -> None:
+    def __init__(self, options: list[discord.SelectOption], category: str = "") -> None:
+        self.category = category
         super().__init__(
             discord.ui.Select(
-                custom_id=PIN_READ_ONLY_SELECT_ID,
+                custom_id=f"{PIN_READ_ONLY_SELECT_ID}:{category}"[:100],
                 options=options or [discord.SelectOption(label="-", value="none")],
-                placeholder=placeholder or None,
+                placeholder="Lecture seule du salon...",
             )
         )
 
     @classmethod
-    async def read_only_options(cls, guild_id: str = "") -> list[discord.SelectOption]:
-        """Build the options: per channel, lock or unlock, with the current state."""
-        from kingdoms.discord.pinned_views import get_pinned_read_only
-
-        channels: list[tuple[str, str]] = [
-            ("home", "Salon Kingdoms (accueil)"),
-            ("admin", "Salon admins du bot"),
+    def per_channel(cls, category: str, locked: bool) -> PinReadOnlySelect:
+        """Build the two lock/open options with the current state pre-selected."""
+        options = [
+            discord.SelectOption(
+                label="\U0001f512 Verrouiller (lecture seule)",
+                value=category,
+                default=locked,
+            ),
+            discord.SelectOption(
+                label="\u270f\ufe0f Ouvrir aux messages",
+                value=f"{category}:open",
+                default=not locked,
+            ),
         ]
-        seen: set[str] = set()
-        for spec in spec_registry_resolver().values():
-            key = f"mod:{spec.mod}:admin"
-            if key in seen:
-                continue
-            seen.add(key)
-            channels.append((key, f"Salon admin {spec.mod}"))
-        options: list[discord.SelectOption] = []
-        for key, label in channels[:12]:
-            locked = True
-            if guild_id:
-                try:
-                    locked = await get_pinned_read_only(guild_id, key)
-                except Exception:
-                    locked = True
-            state = "\U0001f512 lecture seule" if locked else "\u270f\ufe0f messages ouverts"
-            options.append(discord.SelectOption(label=f"Verrouiller {label}", value=key,
-                description=f"actuel : {state}"))
-            options.append(discord.SelectOption(label=f"Ouvrir {label}", value=f"{key}:open",
-                description=f"actuel : {state}"))
-        return options[:25]
+        return cls(options, category)
 
     @classmethod
     async def from_custom_id(
@@ -373,8 +367,17 @@ class PinReadOnlySelect(
         /,
     ) -> PinReadOnlySelect:
         """Rebuild the select from the wire (state-aware options)."""
+        from kingdoms.discord.pinned_views import get_pinned_read_only
+
+        category = match.group("category")
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-        return cls(await cls.read_only_options(guild_id))
+        locked = True
+        if guild_id:
+            try:
+                locked = await get_pinned_read_only(guild_id, category)
+            except Exception:
+                locked = True
+        return cls.per_channel(category, locked)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Apply the read-only intent through the persistent handler."""
@@ -383,8 +386,12 @@ class PinReadOnlySelect(
         await _handle_read_only(interaction)
 
 
-
 _CLIENT_REF: list[discord.Client] = []
+
+
+def _panel_client_ref() -> discord.Client | None:
+    """Resolve the running bot captured by the panel (None before the first boot)."""
+    return _CLIENT_REF[0] if _CLIENT_REF else None
 
 
 def set_panel_client(client: discord.Client) -> None:
@@ -436,6 +443,22 @@ class PinRolesButton(
         await _handle_roles(interaction)
 
 
+async def _granted_games(guild_id: str) -> tuple[str, ...]:
+    """List the games granted to the guild (access-first, catalog fallback)."""
+    from kingdoms.discord.wiring import granted_game_keys
+
+    if not guild_id:
+        return ()
+    try:
+        from kingdoms.discord.admin_panel_games import _games_wiring
+
+        service = _games_wiring()
+        catalog = tuple(await service.list_game_keys()) if service is not None else ()
+    except Exception:
+        catalog = ()
+    return await granted_game_keys(guild_id, catalog)
+
+
 def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
     """Build the access-request row (every guild admin may request)."""
     from kingdoms.discord.guild_access_request import GuildAccessRequestButton
@@ -463,9 +486,7 @@ async def build_pin_main_menu(
         discord.ui.TextDisplay(f"# \u2699\ufe0f {_t(catalog, locale, 'title')}"),
         discord.ui.Separator(),
         discord.ui.TextDisplay(f"## \ud83c\udf0d {_t(catalog, locale, 'language')}"),
-        discord.ui.TextDisplay(
-            _t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))
-        ),
+        discord.ui.TextDisplay(_t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))),
         _select_row(PinLocaleSelect(locale)),
         discord.ui.Separator(),
         discord.ui.TextDisplay(f"## \ud83d\udccb {_t(catalog, locale, 'channels')}"),
@@ -478,13 +499,6 @@ async def build_pin_main_menu(
             )
         ),
         discord.ui.Separator(),
-        discord.ui.TextDisplay(
-            "## \U0001f512 Lecture seule\n"
-            "Les salons \u00e9pingl\u00e9s sont en lecture seule par d\u00e9faut : personne ne peut y \u00e9crire, "
-            "seules les vues du bot s'y affichent. Choisis un salon pour le verrouiller ou l'ouvrir aux messages."
-        ),
-        _select_row(PinReadOnlySelect(await PinReadOnlySelect.read_only_options(guild_id))),
-        discord.ui.Separator(),
         discord.ui.TextDisplay("## \U0001f9e9 R\u00f4les"),
         _roles_row(_t(catalog, locale, "roles_button")),
         discord.ui.Separator(),
@@ -493,21 +507,20 @@ async def build_pin_main_menu(
             "Rien n'est actif par d\u00e9faut : la guilde doit demander l'acc\u00e8s aux "
             "games et mods ; un bot admin l'approuve depuis ses DMs."
         ),
-        _access_request_row(guild_id),
     ]
-    from kingdoms.discord.admin_panel_mods import registered_admin_core_sections, registered_admin_game_sections
+    if guild_id:
+        container_blocks.append(_access_request_row(guild_id))
+    from kingdoms.discord.admin_panel_mods import registered_admin_game_sections
 
-    if registered_admin_core_sections():
+    granted_games = await _granted_games(guild_id)
+    if granted_games:
         container_blocks.append(discord.ui.Separator())
-        container_blocks.append(discord.ui.TextDisplay("## \ud83c\udfae Jeux"))
-        container_blocks.append(
-            _select_row(
-                PinModRouteSelect.create(
-                    scope="games",
-                    placeholder="Gerer les jeux...",
-                )
-            )
-        )
+        listed = ", ".join(f"`{key}`" for key in granted_games)
+        container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
+        from kingdoms.discord.admin_panel_games import GamesGrantedSelect
+
+        game_options = [discord.SelectOption(label=key, value=key) for key in granted_games[:25]]
+        container_blocks.append(_select_row(GamesGrantedSelect(game_options)))
     if registered_admin_game_sections():
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))
@@ -539,9 +552,7 @@ async def build_pin_channel_menu(
     entry = next((e for e in MANAGED_CHANNELS if e[0] == category), None)
     if entry is None:
         view = discord.ui.LayoutView(timeout=None)
-        view.add_item(
-            discord.ui.Container(discord.ui.TextDisplay(f"Unknown channel category: `{category}`."))
-        )
+        view.add_item(discord.ui.Container(discord.ui.TextDisplay(f"Unknown channel category: `{category}`.")))
         return view
     _, icon, label_key = entry
     label = _t(catalog, locale, label_key)
@@ -563,24 +574,28 @@ async def build_pin_channel_menu(
         )
         blocks.append(discord.ui.TextDisplay(f"{_t(catalog, locale, 'visibility')}: {visibility_label}"))
         blocks.append(discord.ui.Separator())
-        blocks.append(
-            _select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder")))
-        )
+        blocks.append(_select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder"))))
         blocks.append(
             _select_row(
                 PinVisibilitySelect.create(
                     catalog,
                     locale,
                     placeholder=_t(catalog, locale, "visibility_placeholder"),
+                    current=visibility,
                 )
             )
         )
     else:
         blocks.append(discord.ui.Separator())
         blocks.append(discord.ui.TextDisplay(_t(catalog, locale, "admin_channel_note")))
-        blocks.append(
-            _select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder")))
-        )
+        blocks.append(_select_row(PinRouteSelect(category, placeholder=_t(catalog, locale, "route_placeholder"))))
+    from kingdoms.discord.pinned_views import get_pinned_read_only
+
+    locked = await get_pinned_read_only(guild_id, category)
+    state = "\U0001f512 lecture seule" if locked else "\u270f\ufe0f messages ouverts"
+    blocks.append(discord.ui.Separator())
+    blocks.append(discord.ui.TextDisplay(f"**Lecture seule** : {state}"))
+    blocks.append(_select_row(PinReadOnlySelect.per_channel(category, locked)))
     blocks.append(discord.ui.Separator())
     blocks.append(_select_row(PinBackButton(_t(catalog, locale, "back"))))
     view = discord.ui.LayoutView(timeout=None)

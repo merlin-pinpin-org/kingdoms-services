@@ -46,7 +46,9 @@ Invariants&nbsp;(legacy&nbsp;reference&nbsp;§2/§4):<br>
 <dl>
 <dt class="heading-text"><a href="kingdoms.core.services.game_data.html#ActivePoolArchiveError">ActivePoolArchiveError</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#ArchivedEntryError">ArchivedEntryError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#InvalidPoolStateError">InvalidPoolStateError</a>
 </dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#NameTakenError">NameTakenError</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.game_data.html#PoolNotEditableError">PoolNotEditableError</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
@@ -367,7 +369,7 @@ ladder&nbsp;link&nbsp;is&nbsp;queryable&nbsp;(the&nbsp;activations&nbsp;history)
 
 <dl><dt>async <a name="GameDataService-create_faction"><strong>create_faction</strong></a>(self, game_key: 'str', name: 'str', faction_key: 'str' = '', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None) -&gt; 'FactionModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;faction&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None) -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.<br>
+<dl><dt>async <a name="GameDataService-create_map"><strong>create_map</strong></a>(self, game_key: 'str', name: 'str', filename: 'str', description: 'str' = '', resource_url: 'str' = '', owner_guild_id: 'str | None' = None, map_type: 'str' = '', filenames: 'tuple[str, ...]' = (), is_public: 'bool' = True) -&gt; 'MapModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;map;&nbsp;the&nbsp;name&nbsp;must&nbsp;be&nbsp;unique&nbsp;among&nbsp;non-archived&nbsp;maps.<br>
 &nbsp;<br>
 ``owner_guild_id``&nbsp;scopes&nbsp;the&nbsp;map&nbsp;to&nbsp;one&nbsp;guild&nbsp;(guild-local<br>
 enrichment);&nbsp;None&nbsp;is&nbsp;the&nbsp;global&nbsp;catalog&nbsp;(config&nbsp;seed&nbsp;and&nbsp;bot<br>
@@ -384,7 +386,10 @@ its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_rule"><strong>create_rule</strong></a>(self, game_key: 'str', name: 'str', rule_key: 'str' = '', params: 'dict[str, str] | None' = None, description: 'str' = '') -&gt; 'RuleModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;game&nbsp;rule/format&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
 
-<dl><dt>async <a name="GameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name&nbsp;(a&nbsp;new&nbsp;stable&nbsp;id).</span></dd></dl>
+<dl><dt>async <a name="GameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name&nbsp;(a&nbsp;new&nbsp;stable&nbsp;id).<br>
+&nbsp;<br>
+The&nbsp;copy&nbsp;starts&nbsp;editable&nbsp;(a&nbsp;duplicate&nbsp;exists&nbsp;to&nbsp;be&nbsp;modified);&nbsp;the<br>
+duplicating&nbsp;guild&nbsp;owns&nbsp;it,&nbsp;whatever&nbsp;the&nbsp;source's&nbsp;owner.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-get_faction"><strong>get_faction</strong></a>(self, entry_id: 'str') -&gt; 'FactionModel | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;faction;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 
@@ -421,12 +426,31 @@ Sections&nbsp;``maps``,&nbsp;``factions``&nbsp;(YAML&nbsp;section&nbsp;``civs``)
 a&nbsp;``name``&nbsp;plus&nbsp;optional&nbsp;fields.&nbsp;Entries&nbsp;already&nbsp;present&nbsp;(same&nbsp;id)<br>
 are&nbsp;skipped,&nbsp;so&nbsp;seeding&nbsp;is&nbsp;safe&nbsp;to&nbsp;re-run.</span></dd></dl>
 
+<dl><dt>async <a name="GameDataService-send_map_pool_to_guild"><strong>send_map_pool_to_guild</strong></a>(self, entry_id: 'str', target_guild_id: 'str', new_name: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Send&nbsp;one&nbsp;pool&nbsp;to&nbsp;another&nbsp;guild:&nbsp;the&nbsp;received&nbsp;copy&nbsp;is&nbsp;locked.<br>
+&nbsp;<br>
+The&nbsp;receiving&nbsp;guild&nbsp;gets&nbsp;its&nbsp;own&nbsp;copy&nbsp;(own&nbsp;stable&nbsp;id,&nbsp;own&nbsp;forum<br>
+post)&nbsp;that&nbsp;it&nbsp;can&nbsp;use&nbsp;and&nbsp;activate&nbsp;but&nbsp;never&nbsp;modify:&nbsp;the&nbsp;copy&nbsp;is<br>
+created&nbsp;with&nbsp;``edition_mode=False``.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataService-set_map_forum_message"><strong>set_map_forum_message</strong></a>(self, entry_id: 'str', forum_message_id: 'str') -&gt; 'MapModel'</dt><dd><span class="code">Record&nbsp;the&nbsp;map's&nbsp;forum&nbsp;post&nbsp;id&nbsp;(the&nbsp;map-message&nbsp;link).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-set_map_pool_public"><strong>set_map_pool_public</strong></a>(self, entry_id: 'str', is_public: 'bool', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Share&nbsp;a&nbsp;pool&nbsp;with&nbsp;every&nbsp;guild&nbsp;(or&nbsp;make&nbsp;it&nbsp;private&nbsp;again).<br>
 &nbsp;<br>
 The&nbsp;pool&nbsp;keeps&nbsp;its&nbsp;owner;&nbsp;making&nbsp;it&nbsp;public&nbsp;shares&nbsp;it&nbsp;with&nbsp;every<br>
 guild's&nbsp;pool&nbsp;pickers&nbsp;and&nbsp;forums&nbsp;(#04fcb94c).</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-transition_map_pool"><strong>transition_map_pool</strong></a>(self, entry_id: 'str', new_state: 'str') -&gt; 'MapPoolModel'</dt><dd><span class="code">Move&nbsp;a&nbsp;pool&nbsp;along&nbsp;its&nbsp;lifecycle&nbsp;(draft-&gt;published-&gt;used-&gt;closed).<br>
+&nbsp;<br>
+A&nbsp;used&nbsp;pool&nbsp;is&nbsp;frozen:&nbsp;its&nbsp;composition&nbsp;never&nbsp;changes&nbsp;again.&nbsp;A<br>
+published&nbsp;pool&nbsp;may&nbsp;go&nbsp;back&nbsp;to&nbsp;draft&nbsp;(edition).&nbsp;The&nbsp;activation<br>
+path&nbsp;(a&nbsp;ladder&nbsp;using&nbsp;the&nbsp;pool)&nbsp;moves&nbsp;it&nbsp;to&nbsp;``used``&nbsp;and&nbsp;locks<br>
+it;&nbsp;closing&nbsp;is&nbsp;terminal.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-update_map"><strong>update_map</strong></a>(self, entry_id: 'str', name: 'str | None' = None, filename: 'str | None' = None, description: 'str | None' = None, resource_url: 'str | None' = None, map_type: 'str | None' = None, filenames: 'tuple[str, ...] | None' = None) -&gt; 'MapModel'</dt><dd><span class="code">Update&nbsp;a&nbsp;map's&nbsp;editable&nbsp;fields&nbsp;(guild-owned&nbsp;maps&nbsp;only&nbsp;change).<br>
+&nbsp;<br>
+The&nbsp;id&nbsp;stays&nbsp;stable&nbsp;(it&nbsp;is&nbsp;the&nbsp;pools'&nbsp;and&nbsp;posts'&nbsp;reference),&nbsp;so<br>
+only&nbsp;the&nbsp;descriptive&nbsp;fields&nbsp;move;&nbsp;the&nbsp;name&nbsp;check&nbsp;keeps&nbsp;the<br>
+game's&nbsp;taken&nbsp;names&nbsp;unique.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-update_map_pool"><strong>update_map_pool</strong></a>(self, entry_id: 'str', name: 'str | None' = None, map_ids: 'tuple[str, ...] | None' = None, description: 'str | None' = None, fav_quota: 'int | None' = None, ban_quota: 'int | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Update&nbsp;a&nbsp;pool's&nbsp;name,&nbsp;maps,&nbsp;description&nbsp;and/or&nbsp;quotas&nbsp;(validated).<br>
 &nbsp;<br>
@@ -443,6 +467,68 @@ Data descriptors defined here:<br>
 </dl>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="InvalidPoolStateError">class <strong>InvalidPoolStateError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;requested&nbsp;state&nbsp;transition&nbsp;is&nbsp;not&nbsp;allowed.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#InvalidPoolStateError">InvalidPoolStateError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="InvalidPoolStateError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="InvalidPoolStateError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="InvalidPoolStateError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="InvalidPoolStateError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="InvalidPoolStateError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="InvalidPoolStateError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="InvalidPoolStateError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="InvalidPoolStateError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#InvalidPoolStateError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="InvalidPoolStateError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#InvalidPoolStateError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
 </dl>
 </td></tr></table> <p>
 <table class="section">
@@ -506,6 +592,68 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </dl>
 <dl><dt><strong>args</strong></dt>
 </dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PoolNotEditableError">class <strong>PoolNotEditableError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">The&nbsp;pool&nbsp;is&nbsp;locked&nbsp;(activated&nbsp;once,&nbsp;or&nbsp;received&nbsp;from&nbsp;another&nbsp;guild).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.game_data.html#PoolNotEditableError">PoolNotEditableError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="PoolNotEditableError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="PoolNotEditableError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PoolNotEditableError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PoolNotEditableError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="PoolNotEditableError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PoolNotEditableError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="PoolNotEditableError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="PoolNotEditableError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PoolNotEditableError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="PoolNotEditableError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PoolNotEditableError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -518,7 +666,16 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>MAP_PACKS_COLLECTION</strong> = 'map_packs'<br>
 <strong>MAP_POOLS_COLLECTION</strong> = 'map_pools'<br>
 <strong>MAP_POOL_HISTORY_COLLECTION</strong> = 'map_pool_history'<br>
+<strong>MAX_POOL_MAPS</strong> = 25<br>
+<strong>POOL_STATES</strong> = ('draft', 'published', 'used', 'closed')<br>
+<strong>POOL_STATE_CLOSED</strong> = 'closed'<br>
+<strong>POOL_STATE_DRAFT</strong> = 'draft'<br>
+<strong>POOL_STATE_LABELS</strong> = {'closed': 'closed', 'draft': 'created', 'published': 'published', 'used': 'used'}<br>
+<strong>POOL_STATE_PUBLISHED</strong> = 'published'<br>
+<strong>POOL_STATE_USED</strong> = 'used'<br>
+<strong>POOL_TRANSITIONS</strong> = {'closed': (), 'draft': ('published',), 'published': ('draft', 'used'), 'used': ('closed',)}<br>
 <strong>RULES_COLLECTION</strong> = 'rules'<br>
 <strong>T</strong> = ~T<br>
+<strong>__annotations__</strong> = {'POOL_TRANSITIONS': 'dict[str, tuple[str, ...]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.core.game_data (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -60,9 +60,7 @@ async def answer_ephemeral(interaction: discord.Interaction, message: str) -> No
         logger.warning("ephemeral answer failed — best-effort", exc_info=True)
 
 
-async def answer_ephemeral_view(
-    interaction: discord.Interaction, view: discord.ui.LayoutView
-) -> None:
+async def answer_ephemeral_view(interaction: discord.Interaction, view: discord.ui.LayoutView) -> None:
     """Answer a click with an ephemeral view — a pinned view never moves."""
     try:
         await interaction.response.send_message(view=view, ephemeral=True)
@@ -170,8 +168,10 @@ async def apply_read_only_policy(
     (or immediately through the panel's refresher).
     """
     try:
-        read_only = await get_pinned_read_only(guild_id, category) if settings_db is None else bool(
-            (await _read_state(settings_db, guild_id) or {}).get(category, True)
+        read_only = (
+            await get_pinned_read_only(guild_id, category)
+            if settings_db is None
+            else bool((await _read_state(settings_db, guild_id) or {}).get(category, True))
         )
         overwrite = discord.PermissionOverwrite(
             view_channel=True,

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.guild_context</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.guild_context</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/guild_context.py">SOURCE_ROOT/discord/guild_context.py</a></td></tr></table>
+    <p><span class="code">Guild-context&nbsp;resolution&nbsp;for&nbsp;cross-guild&nbsp;admin&nbsp;surfaces&nbsp;(reusable).<br>
+&nbsp;<br>
+Home&nbsp;views&nbsp;and&nbsp;admin&nbsp;panels&nbsp;are&nbsp;guild-scoped:&nbsp;in&nbsp;a&nbsp;guild&nbsp;the&nbsp;scope&nbsp;is<br>
+the&nbsp;guild&nbsp;itself,&nbsp;in&nbsp;a&nbsp;bot&nbsp;admin's&nbsp;DM&nbsp;the&nbsp;user&nbsp;must&nbsp;pick&nbsp;which&nbsp;guild<br>
+the&nbsp;view&nbsp;targets.&nbsp;This&nbsp;module&nbsp;owns&nbsp;that&nbsp;flow&nbsp;once&nbsp;—&nbsp;every&nbsp;guild-scoped<br>
+entry&nbsp;point&nbsp;calls&nbsp;``require_guild_context``&nbsp;and&nbsp;receives&nbsp;either&nbsp;the<br>
+guild&nbsp;id,&nbsp;or&nbsp;None&nbsp;(the&nbsp;guild&nbsp;picker&nbsp;was&nbsp;answered,&nbsp;the&nbsp;caller&nbsp;returns).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.discord.guild_context.html#GuildContextPicker">GuildContextPicker</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GuildContextPicker">class <strong>GuildContextPicker</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GuildContextPicker">GuildContextPicker</a>(view_key:&nbsp;'str',&nbsp;options:&nbsp;'list[discord.SelectOption]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;DM-side&nbsp;guild&nbsp;picker:&nbsp;one&nbsp;option&nbsp;per&nbsp;shared&nbsp;guild,&nbsp;then&nbsp;re-dispatch.<br>
+&nbsp;<br>
+The&nbsp;target&nbsp;entry&nbsp;point&nbsp;rides&nbsp;the&nbsp;custom_id&nbsp;so&nbsp;the&nbsp;pick&nbsp;re-opens&nbsp;the<br>
+exact&nbsp;requested&nbsp;view&nbsp;for&nbsp;the&nbsp;chosen&nbsp;guild.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.guild_context.html#GuildContextPicker">GuildContextPicker</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="GuildContextPicker-__init__"><strong>__init__</strong></a>(self, view_key: 'str', options: 'list[discord.SelectOption]') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GuildContextPicker-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="GuildContextPicker-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Re-dispatch&nbsp;the&nbsp;requested&nbsp;entry&nbsp;point&nbsp;for&nbsp;the&nbsp;chosen&nbsp;guild.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="GuildContextPicker-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'GuildContextPicker'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;picker&nbsp;at&nbsp;click&nbsp;time&nbsp;(fresh&nbsp;guild&nbsp;options).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('guild:context:pick:(?P&lt;view_key&gt;[A-Za-z0-9:_-]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="GuildContextPicker-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="GuildContextPicker-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GuildContextPicker-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="GuildContextPicker-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="GuildContextPicker-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="GuildContextPicker-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="GuildContextPicker-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GuildContextPicker-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="GuildContextPicker-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-register_guild_context_items"><strong>register_guild_context_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;picker's&nbsp;<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
+ <dl><dt>async <a name="-require_guild_context"><strong>require_guild_context</strong></a>(interaction: 'discord.Interaction', view_key: 'str') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild&nbsp;scope&nbsp;for&nbsp;a&nbsp;guild-scoped&nbsp;view;&nbsp;None&nbsp;when&nbsp;answered.<br>
+&nbsp;<br>
+In&nbsp;a&nbsp;guild&nbsp;the&nbsp;interaction's&nbsp;guild&nbsp;is&nbsp;the&nbsp;scope.&nbsp;In&nbsp;a&nbsp;DM&nbsp;the&nbsp;user<br>
+gets&nbsp;the&nbsp;ephemeral&nbsp;guild&nbsp;picker&nbsp;and&nbsp;the&nbsp;caller&nbsp;returns&nbsp;—&nbsp;the&nbsp;pick<br>
+re-dispatches&nbsp;the&nbsp;same&nbsp;view&nbsp;key&nbsp;with&nbsp;the&nbsp;chosen&nbsp;guild.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.guild_context (WARNING)&gt;</td></tr></table>
+</body></html>

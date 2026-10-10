@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.pinned_marks</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.pinned_marks</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/pinned_marks.py">SOURCE_ROOT/discord/pinned_marks.py</a></td></tr></table>
+    <p><span class="code">Pinned-view&nbsp;marks:&nbsp;every&nbsp;pinned&nbsp;message&nbsp;carries&nbsp;a&nbsp;``fixe:``&nbsp;id.<br>
+&nbsp;<br>
+A&nbsp;pinned&nbsp;surface&nbsp;(admin&nbsp;panel,&nbsp;home&nbsp;menu,&nbsp;live&nbsp;dashboard,&nbsp;boot&nbsp;status)<br>
+is&nbsp;never&nbsp;a&nbsp;deletable&nbsp;message:&nbsp;any&nbsp;delete&nbsp;path&nbsp;checks&nbsp;the&nbsp;mark&nbsp;first.<br>
+The&nbsp;mark&nbsp;is&nbsp;a&nbsp;footer&nbsp;line&nbsp;``fixe:&lt;suffix&gt;``&nbsp;rendered&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the<br>
+pinned&nbsp;message's&nbsp;content&nbsp;—&nbsp;readable&nbsp;without&nbsp;fetching&nbsp;history.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-is_pinned_view"><strong>is_pinned_view</strong></a>(message: 'Any') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;message&nbsp;carries&nbsp;a&nbsp;pinned-view&nbsp;mark&nbsp;(never&nbsp;delete&nbsp;it).<br>
+&nbsp;<br>
+Reads&nbsp;the&nbsp;message's&nbsp;content&nbsp;—&nbsp;the&nbsp;mark&nbsp;is&nbsp;the&nbsp;last&nbsp;footer&nbsp;line;&nbsp;a<br>
+message&nbsp;without&nbsp;the&nbsp;``fixe:``&nbsp;prefix&nbsp;is&nbsp;free&nbsp;to&nbsp;delete.</span></dd></dl>
+ <dl><dt><a name="-pinned_mark"><strong>pinned_mark</strong></a>(suffix: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;pinned-view&nbsp;id&nbsp;footer&nbsp;(``fixe:&lt;suffix&gt;``).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PIN_MARK_PREFIX</strong> = 'fixe:'</td></tr></table>
+</body></html>

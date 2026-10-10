@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder.leaderboards</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.ladder.html" class="white">ladder</a>.leaderboards</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/leaderboards.py">SOURCE_ROOT/mods/ladder/leaderboards.py</a></td></tr></table>
+    <p><span class="code">Leaderboard&nbsp;selection:&nbsp;which&nbsp;provider&nbsp;boards&nbsp;a&nbsp;guild&nbsp;displays&nbsp;(#147).<br>
+&nbsp;<br>
+The&nbsp;provider&nbsp;serves&nbsp;every&nbsp;board&nbsp;it&nbsp;knows&nbsp;(ext-librematch:&nbsp;rm_1v1,<br>
+rm_team,&nbsp;unranked,&nbsp;dm_1v1,&nbsp;dm_team);&nbsp;a&nbsp;guild&nbsp;picks&nbsp;1&nbsp;to&nbsp;4&nbsp;of&nbsp;them.<br>
+The&nbsp;choice&nbsp;lives&nbsp;in&nbsp;the&nbsp;guild&nbsp;settings&nbsp;(``leaderboards``),&nbsp;defaulting<br>
+to&nbsp;RM&nbsp;1v1&nbsp;+&nbsp;TG&nbsp;RM.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>(<a href="discord.ui.item.html#Item">discord.ui.item.Item</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.ladder.leaderboards.html#PinLeaderboardsSelect">PinLeaderboardsSelect</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PinLeaderboardsSelect">class <strong>PinLeaderboardsSelect</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PinLeaderboardsSelect">PinLeaderboardsSelect</a>(options:&nbsp;'list[discord.SelectOption]',&nbsp;defaults:&nbsp;'list[str]',&nbsp;placeholder:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;guild's&nbsp;displayed&nbsp;leaderboards&nbsp;(1-4&nbsp;of&nbsp;the&nbsp;provider's&nbsp;boards).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.ladder.leaderboards.html#PinLeaderboardsSelect">PinLeaderboardsSelect</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PinLeaderboardsSelect-__init__"><strong>__init__</strong></a>(self, options: 'list[discord.SelectOption]', defaults: 'list[str]', placeholder: 'str' = '') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#PinLeaderboardsSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="PinLeaderboardsSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;boards&nbsp;choice&nbsp;through&nbsp;the&nbsp;persistent&nbsp;handler.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="PinLeaderboardsSelect-create"><strong>create</strong></a>(defaults: 'list[str]', placeholder: 'str' = '') -&gt; 'PinLeaderboardsSelect'</dt><dd><span class="code">Build&nbsp;the&nbsp;select&nbsp;with&nbsp;every&nbsp;available&nbsp;board.</span></dd></dl>
+
+<dl><dt>async <a name="PinLeaderboardsSelect-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'PinLeaderboardsSelect'</dt><dd><span class="code">Rebuild&nbsp;the&nbsp;select&nbsp;from&nbsp;the&nbsp;wire.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:pin:select:leaderboards')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.select.Select[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="PinLeaderboardsSelect-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="PinLeaderboardsSelect-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="PinLeaderboardsSelect-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="PinLeaderboardsSelect-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="PinLeaderboardsSelect-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="PinLeaderboardsSelect-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="PinLeaderboardsSelect-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PinLeaderboardsSelect-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PinLeaderboardsSelect-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-board_label"><strong>board_label</strong></a>(board_key: 'str') -&gt; 'str'</dt><dd><span class="code">Human&nbsp;label&nbsp;for&nbsp;a&nbsp;board&nbsp;key.</span></dd></dl>
+ <dl><dt>async <a name="-get_guild_boards"><strong>get_guild_boards</strong></a>(guild_id: 'str', db: 'Any') -&gt; 'list[str]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;chosen&nbsp;boards&nbsp;(ordered,&nbsp;validated,&nbsp;1-4).</span></dd></dl>
+ <dl><dt>async <a name="-handle_leaderboards"><strong>handle_leaderboards</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;displayed&nbsp;leaderboards&nbsp;(1-4&nbsp;boards).</span></dd></dl>
+ <dl><dt>async <a name="-set_guild_boards"><strong>set_guild_boards</strong></a>(guild_id: 'str', boards: 'list[str]', db: 'Any') -&gt; 'list[str]'</dt><dd><span class="code">Persist&nbsp;the&nbsp;guild's&nbsp;boards;&nbsp;returns&nbsp;the&nbsp;stored&nbsp;(validated)&nbsp;list.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>AVAILABLE_BOARDS</strong> = (('rm_1v1', 'RM 1v1'), ('rm_team', 'TG RM'), ('unranked', 'Unranked'), ('dm_1v1', 'DM 1v1'), ('dm_team', 'TG DM'))<br>
+<strong>DEFAULT_BOARDS</strong> = ('rm_1v1', 'rm_team')<br>
+<strong>MAX_BOARDS</strong> = 4<br>
+<strong>PIN_LEADERBOARDS_SELECT_ID</strong> = 'admin:pin:select:leaderboards'<br>
+<strong>__annotations__</strong> = {'AVAILABLE_BOARDS': 'tuple[tuple[str, str], ...]', 'DEFAULT_BOARDS': 'tuple[str, ...]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.leaderboards (WARNING)&gt;</td></tr></table>
+</body></html>

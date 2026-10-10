@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.ladder</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.ladder</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/ladder/__init__.py">SOURCE_ROOT/mods/ladder/__init__.py</a></td></tr></table>
+    <p><span class="code">Ladder&nbsp;mod&nbsp;entrypoint:&nbsp;the&nbsp;only&nbsp;surface&nbsp;the&nbsp;core&nbsp;calls.<br>
+&nbsp;<br>
+The&nbsp;core&nbsp;discovers&nbsp;this&nbsp;package&nbsp;through&nbsp;the&nbsp;mod&nbsp;entrypoint&nbsp;seam<br>
+(:mod:`kingdoms.core.services.mod_entrypoint`)&nbsp;—&nbsp;for&nbsp;the&nbsp;enabled<br>
+``ladder``&nbsp;mod&nbsp;it&nbsp;imports&nbsp;``kingdoms.mods.ladder``&nbsp;and&nbsp;calls&nbsp;these<br>
+hooks.&nbsp;Everything&nbsp;ladder-specific&nbsp;(commands&nbsp;wiring,&nbsp;home&nbsp;view,&nbsp;admin<br>
+panel&nbsp;section,&nbsp;channels&nbsp;sync,&nbsp;season&nbsp;roles)&nbsp;is&nbsp;registered&nbsp;here;&nbsp;the<br>
+core's&nbsp;factory&nbsp;contains&nbsp;no&nbsp;ladder&nbsp;reference.<br>
+&nbsp;<br>
+Hooks&nbsp;degrade&nbsp;quietly:&nbsp;without&nbsp;Mongo/Redis&nbsp;the&nbsp;wiring&nbsp;builders&nbsp;return<br>
+None&nbsp;and&nbsp;the&nbsp;mod&nbsp;stays&nbsp;inactive,&nbsp;exactly&nbsp;like&nbsp;the&nbsp;core&nbsp;services.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.mods.ladder.admin.html">admin</a><br>
+<a href="kingdoms.mods.ladder.admin_channel.html">admin_channel</a><br>
+<a href="kingdoms.mods.ladder.admin_panel.html">admin_panel</a><br>
+<a href="kingdoms.mods.ladder.admin_tools.html">admin_tools</a><br>
+<a href="kingdoms.mods.ladder.channels.html">channels</a><br>
+<a href="kingdoms.mods.ladder.commands.html">commands</a><br>
+<a href="kingdoms.mods.ladder.home.html">home</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.ladder.leaderboards.html">leaderboards</a><br>
+<a href="kingdoms.mods.ladder.legacy_export.html">legacy_export</a><br>
+<a href="kingdoms.mods.ladder.legacy_export_cli.html">legacy_export_cli</a><br>
+<a href="kingdoms.mods.ladder.legacy_import.html">legacy_import</a><br>
+<a href="kingdoms.mods.ladder.legacy_import_cli.html">legacy_import_cli</a><br>
+<a href="kingdoms.mods.ladder.live_bridge.html">live_bridge</a><br>
+<a href="kingdoms.mods.ladder.match_data.html">match_data</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.ladder.matchmaking.html">matchmaking</a><br>
+<a href="kingdoms.mods.ladder.membership.html">membership</a><br>
+<a href="kingdoms.mods.ladder.models.html">models</a><br>
+<a href="kingdoms.mods.ladder.pick_strategies.html">pick_strategies</a><br>
+<a href="kingdoms.mods.ladder.provider_bridge.html">provider_bridge</a><br>
+<a href="kingdoms.mods.ladder.rating.html">rating</a><br>
+<a href="kingdoms.mods.ladder.season_import.html">season_import</a><br>
+</td><td class="multicolumn"><a href="kingdoms.mods.ladder.season_import_cli.html">season_import_cli</a><br>
+<a href="kingdoms.mods.ladder.season_report.html">season_report</a><br>
+<a href="kingdoms.mods.ladder.season_report_cli.html">season_report_cli</a><br>
+<a href="kingdoms.mods.ladder.season_wizard.html">season_wizard</a><br>
+<a href="kingdoms.mods.ladder.seeder.html">seeder</a><br>
+<a href="kingdoms.mods.ladder.service.html">service</a><br>
+<a href="kingdoms.mods.ladder.surface.html">surface</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-close"><strong>close</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;ladder's&nbsp;background&nbsp;tasks.</span></dd></dl>
+ <dl><dt><a name="-register"><strong>register</strong></a>(bot: 'Any', config: 'Any') -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;ladder&nbsp;onto&nbsp;the&nbsp;bot:&nbsp;roles,&nbsp;commands,&nbsp;home,&nbsp;admin&nbsp;panel.</span></dd></dl>
+ <dl><dt><a name="-setup_hook"><strong>setup_hook</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Re-register&nbsp;the&nbsp;ladder's&nbsp;persistent&nbsp;UI&nbsp;after&nbsp;a&nbsp;restart.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.mods.ladder (WARNING)&gt;</td></tr></table>
+</body></html>

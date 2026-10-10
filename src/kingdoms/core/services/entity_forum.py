@@ -85,6 +85,7 @@ class EntityForumSpec:
     list_entities: Callable[[str], Awaitable[list[Any]]] | None = None
     forum_name_for: Callable[[Any], str] | None = None
     entity_name: Callable[[Any], str] = field(default=lambda entity: str(getattr(entity, "name", "")))
+    display_name_for: Callable[[Any, str], Awaitable[str]] | None = None
     build_post: Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None = None
 
 
@@ -144,7 +145,12 @@ async def _sync_one_forum(
             },
             reason=f"kingdoms: {forum_name} forum",
         )
-    wanted = {spec.entity_name(entity): entity for entity in entities}
+    wanted: dict[str, Any] = {}
+    for entity in entities:
+        key = spec.entity_name(entity)
+        if spec.display_name_for is not None:
+            key = await spec.display_name_for(entity, guild_id)
+        wanted[key] = entity
     existing = {thread.name: thread for thread in forum.threads}
     actions = 0
     for name, entity in wanted.items():

@@ -16,9 +16,12 @@ panel only displays the state here; the rebind flow is a follow-up).
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import discord
+
+from kingdoms.discord.commands_i18n import tr
 
 logger = logging.getLogger("kingdoms.admin_roles")
 
@@ -61,8 +64,33 @@ async def build_roles_view(interaction: discord.Interaction, wiring: Any) -> dis
     else:
         lines.append("_Aucun rôle déclaré par les mods._")
 
+    return await _roles_view_footer(lines, interaction)
+
+
+async def _roles_view_footer(
+    lines: list[str], interaction: discord.Interaction
+) -> discord.ui.LayoutView:
+    """Finish the roles view: function-mapping selects and the recreate button."""
+    lines.append("")
+    lines.append("## \U0001f511 Functions and roles")
+    lines.append(
+        "Map any guild role onto a bot function (bot-admins, staff) \u2014 "
+        "BOT_ADMINS and guild administrators always pass; the mapping adds on top."
+    )
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("\n".join(lines))))
+    from kingdoms.core.services.role_grants import FUNCTIONS
+
+    mapping_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for function in FUNCTIONS:
+        mapping_row.add_item(FunctionRolesSelect(function))
+    view.add_item(mapping_row)
+    from kingdoms.discord.wiring import guard_admin
+
+    if await guard_admin(interaction):
+        action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        action_row.add_item(RecreateChannelsButton("all"))
+        view.add_item(action_row)
     return view
 
 
@@ -89,3 +117,184 @@ def _bot_admins_role(guild: Any) -> Any | None:
         if role.name == "bot-admins":
             return role
     return None
+
+
+_ROLES_NS = "admin:roles"
+_FUNCTIONS_NS = "admin:functions"
+
+
+class FunctionRolesSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_FUNCTIONS_NS}:map:(?P<function>[a-z0-9_-]+)",
+):
+    """Map any guild role onto a bot function (bot-admins, staff...).
+
+    A multi-select of the guild's roles; the chosen roles replace the
+    function's mapping (empty selection resets to the default
+    provisioned role). BOT_ADMINS and guild administrators always
+    pass — the mapping adds on top, it never removes the baseline.
+    """
+
+    def __init__(self, function: str, options: list[discord.SelectOption] | None = None) -> None:
+        self.function = function
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_FUNCTIONS_NS}:map:{function}"[:100],
+                options=options or [discord.SelectOption(label="No role", value="none")],
+                placeholder=f"Roles for {function}...",
+                min_values=0,
+                max_values=25,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> FunctionRolesSelect:
+        """Rebuild the select at click time (the guild's roles, current mapping marked)."""
+        import re as _re
+
+        del item, _re
+        function = match.group("function")
+        guild = getattr(interaction, "guild", None)
+        options = []
+        if guild is not None:
+            grants = getattr(interaction.client, "role_grants_service", None)
+            current: tuple[str, ...] = ()
+            guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+            if grants is not None and guild_id:
+                try:
+                    current = await grants.function_roles(guild_id, function)
+                except Exception:
+                    current = ()
+            for role in sorted(guild.roles, key=lambda r: r.position, reverse=True)[1:26]:
+                options.append(
+                    discord.SelectOption(
+                        label=role.name,
+                        value=str(role.id),
+                        default=str(role.id) in current,
+                    )
+                )
+        return cls(function, options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Persist the chosen roles as the function's mapping."""
+        grants = getattr(interaction.client, "role_grants_service", None)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if grants is None or not guild_id:
+            await interaction.response.send_message(
+                await tr(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
+            return
+        chosen = tuple(self.item.values or ())
+        if chosen == ("none",):
+            chosen = ()
+        try:
+            await grants.set_function_roles(guild_id, self.function, chosen)
+        except Exception:
+            logger.warning("ROLE GRANTS mapping failed", exc_info=True)
+            await interaction.response.send_message(
+                await tr(interaction, "replies_shared.edit_failed"), ephemeral=True
+            )
+            return
+        listed = ", ".join(f"<@&{r}>" for r in chosen) or "default"
+        await interaction.response.send_message(
+            f"`{self.function}` -> {listed}", ephemeral=True
+        )
+
+
+class RecreateChannelsButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_ROLES_NS}:recreate:(?P<scope>all|home|admin|logs)",
+):
+    """Recreate a deleted managed channel now (guild admins).
+
+    The event-driven healing already recreates on delete; this button
+    forces a pass — the resolution re-checks existence and recreates
+    anything missing (useful after a permissions mishap or a missed
+    event).
+    """
+
+    def __init__(self, scope: str, label: str = "Recreate all channels") -> None:
+        self.scope = scope
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                emoji="\U0001f527",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_ROLES_NS}:recreate:{scope}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> RecreateChannelsButton:
+        """Rebuild the item from the wire."""
+        del interaction, item
+        return cls(match.group("scope"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Force the managed channels to exist (recreate the missing ones)."""
+        bot = interaction.client
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if not guild_id:
+            await interaction.response.defer()
+            return
+        from kingdoms.discord.wiring import guard_admin
+
+        if not await guard_admin(interaction):
+            return
+        recreated = await _recreate_channels(bot, guild_id, self.scope)
+        message = (
+            f"Recreated: {', '.join(recreated)}" if recreated else "Every managed channel already exists."
+        )
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+
+
+async def _recreate_channels(bot: Any, guild_id: str, scope: str) -> list[str]:
+    """Resolve the managed channels, recreating the missing ones."""
+    targets: dict[str, tuple[Any, tuple[str, ...]]] = {}
+    admin_service = getattr(bot, "admin_channel_service", None)
+    admin_ids = tuple(bot.status_service.bot_admins)
+    if scope in ("all", "home"):
+        targets["home"] = (getattr(bot, "home_channel_service", None), ())
+    if scope in ("all", "admin"):
+        targets["admin"] = (admin_service, admin_ids)
+    if scope in ("all", "logs"):
+        targets["logs"] = (getattr(bot, "logs_service", None), ())
+    recreated: list[str] = []
+    for name, (service, ids) in targets.items():
+        if service is None:
+            continue
+        try:
+            channel_id = (
+                await service.resolve_channel(guild_id, ids) if ids else await service.resolve_channel(guild_id)
+            )
+            stored = getattr(service, "_db", None)
+            before = None
+            if stored is not None:
+                existing = await stored.find_channel(guild_id, getattr(service, "_category", ""))
+                before = existing.channel_id if existing is not None else None
+            if channel_id and channel_id != before:
+                recreated.append(name)
+        except Exception:
+            logger.warning("CHANNEL RECREATE failed (%s, guild %s)", name, guild_id, exc_info=True)
+    return recreated
+
+
+def register_roles_admin_items(bot: discord.Client) -> None:
+    """Register the roles section's DynamicItems (called at every startup)."""
+    bot.add_dynamic_items(FunctionRolesSelect)
+    bot.add_dynamic_items(RecreateChannelsButton)

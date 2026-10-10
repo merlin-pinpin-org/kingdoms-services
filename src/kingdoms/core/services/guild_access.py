@@ -90,16 +90,26 @@ class GuildAccessService:
         games = set(doc.get("games") or ())
         mods = set(doc.get("mods") or ())
         fresh: list[str] = []
+        already_granted: list[str] = []
+        already_pending: list[str] = []
         for key in keys:
             if key.startswith("game:"):
                 granted = key[5:] in games
             else:
                 granted = key[4:] in mods
-            if granted or key in [k for ks in pending.values() for k in ks]:
+            if granted:
+                already_granted.append(key)
+                continue
+            if key in [k for ks in pending.values() for k in ks]:
+                already_pending.append(key)
                 continue
             fresh.append(key)
         if not fresh:
-            raise GuildAccessError("rien a demander : deja accorde ou deja en attente")
+            if already_granted:
+                raise GuildAccessError(
+                    "deja accorde : " + ", ".join(already_granted)
+                )
+            raise GuildAccessError("deja en attente : " + ", ".join(already_pending))
         pending[str(int(time.time()))] = fresh
         doc["pending"] = pending
         doc["updated_at"] = int(time.time())

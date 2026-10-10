@@ -216,6 +216,18 @@ class DiscordAdminChannelPlatform:
         message = await channel.send(view=layout)
         return str(message.id)
 
+    async def edit_layout(self, guild_id: str, channel_id: str, message_id: str, layout: Any) -> None:
+        """Edit one delivered layout message in place."""
+        guild = await self._guild(guild_id)
+        if guild is None:
+            raise RuntimeError(f"guild {guild_id} not reachable")
+        channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() else None
+        if not isinstance(channel, discord.TextChannel):
+            raise RuntimeError(f"channel {channel_id} is not a text channel")
+        if not message_id.isdigit():
+            raise RuntimeError(f"message id {message_id} is not numeric")
+        await channel.get_partial_message(int(message_id)).edit(view=layout)
+
 
 class MongoRolesDatabase:
     """Async MongoDB persistence for the mod-role mappings (#26)."""

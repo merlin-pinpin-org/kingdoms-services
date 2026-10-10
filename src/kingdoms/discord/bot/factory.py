@@ -159,6 +159,7 @@ class KingdomsBot(discord.Client):
         self._pools_forum_task: asyncio.Task[None] | None = None
         self._factions_forum_task: asyncio.Task[None] | None = None
         self.roles_service: RolesService | None = None
+        self.role_grants_service: Any | None = None
         self.registration_engine: WorkflowEngine | None = None
         self.registration_service: RegistrationService | None = None
         self.identity_service: IdentityService | None = None
@@ -206,8 +207,14 @@ class KingdomsBot(discord.Client):
         register_games_admin_items(self)
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
         from kingdoms.discord.guild_access_request import register_guild_access_request_items
+        from kingdoms.discord.guild_context import register_guild_context_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
+
         register_pool_flow_items(self)
+        register_guild_context_items(self)
+        from kingdoms.discord.admin_roles import register_roles_admin_items
+
+        register_roles_admin_items(self)
         register_admin_dm_items(self)
         register_guild_access_request_items(self)
 
@@ -267,9 +274,7 @@ class KingdomsBot(discord.Client):
             if maps_forum_wiring_ready():
                 self._maps_forum_task = start_maps_forum_sync(self)
                 self._pools_forum_task = start_pools_forum_sync(self)
-                self._factions_forum_task = start_entity_forum_sync(
-                    self, factions_forum_spec(self), startup_delay_s=20
-                )
+                self._factions_forum_task = start_entity_forum_sync(self, factions_forum_spec(self), startup_delay_s=20)
             from kingdoms.core.services.mod_entrypoint import run_mod_hook
 
             if self.registry is not None:
@@ -373,11 +378,49 @@ class KingdomsBot(discord.Client):
         remembering to type the command.
         """
         from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+        from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
+
+        async def _resolve_admin_channel(guild_id: str) -> str | None:
+            """Resolve (or recreate) the admin channel."""
+            service = self.admin_channel_service
+            if service is None:
+                return None
+            return await service.resolve_channel(guild_id, self.status_service.bot_admins)
+
+        async def _build_admin_panel(guild_id: str) -> Any:
+            """Build the admin panel layout for the static-pin registry."""
+            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+
+            if self.logs_service is None:
+                return discord.ui.LayoutView(timeout=None)
+            try:
+                locale = str(await self.logs_service.get_locale(guild_id) or "en")
+            except Exception:
+                locale = "en"
+            return await build_pin_main_menu(
+                self.logs_service,
+                guild_id,
+                self.messages,
+                locale,
+                self.admin_channel_service,
+            )
+
+        register_static_pin(
+            StaticPinnedView(
+                key="admin-panel",
+                mark_suffix="admin-panel",
+                resolve_channel=_resolve_admin_channel,
+                build_layout=_build_admin_panel,
+                registry=getattr(self, "message_registry", None),
+            )
+        )
 
         await asyncio.sleep(5)
+        logger.info("PINNED ADMIN MENU sweep started (guilds=%d)", len(self.guilds))
         while True:
             for guild in list(self.guilds):
                 if self.logs_service is None:
+                    logger.warning("PINNED ADMIN MENU sweep skipped: no logs service")
                     break
                 try:
                     await ensure_pinned_admin_menu(
@@ -433,6 +476,58 @@ class KingdomsBot(discord.Client):
                 )
             except Exception:
                 logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
+
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        """Recreate a deleted managed channel immediately (self-healing).
+
+        The managed-channel resolution is existence-checked (Redis ->
+        Mongo -> adoption -> creation), so re-resolving after a delete
+        recreates the channel now instead of waiting for the hourly
+        sweep. The pinned menus follow: their next ensure finds the
+        fresh channel. Only the bot's own channels react; anything
+        else is ignored.
+        """
+        guild = getattr(channel, "guild", None)
+        guild_id = str(guild.id) if guild is not None else ""
+        if not guild_id:
+            return
+        for service, admin_ids in (
+            (getattr(self, "home_channel_service", None), ()),
+            (getattr(self, "admin_channel_service", None), tuple(self.status_service.bot_admins)),
+            (getattr(self, "logs_service", None), ()),
+        ):
+            if service is None:
+                continue
+            try:
+                if admin_ids:
+                    await service.resolve_channel(guild_id, admin_ids)
+                else:
+                    await service.resolve_channel(guild_id)
+            except Exception:
+                logger.warning(
+                    "MANAGED CHANNEL recreation failed (guild %s) — best-effort",
+                    guild_id,
+                    exc_info=True,
+                )
+        try:
+            from kingdoms.discord.static_pins import heal_static_pins
+
+            healed = await heal_static_pins(self, guild_id)
+            if healed:
+                logger.info(
+                    "STATIC PINS healed after channel delete (guild %s, %d recreated)", guild_id, healed
+                )
+        except Exception:
+            logger.warning("STATIC PIN heal failed (guild %s) — best-effort", guild_id, exc_info=True)
+
+    async def on_thread_delete(self, thread: discord.Thread) -> None:
+        """Let the entity-forum syncs heal a deleted post (no-op here).
+
+        Forum posts are matched by name on the hourly syncs; reacting
+        per-delete would race the syncs' fingerprint bookkeeping. The
+        hourly pass recreates the missing post with its full layout.
+        """
+        return
 
     async def on_tree_error(
         self,
@@ -578,6 +673,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.logs_service = _build_log_service(resolved, bot, state=shared_state)
     roles_service = _build_roles_service(resolved, bot, state=shared_state)
     bot.roles_service = roles_service
+    bot.role_grants_service = _build_role_grants_service(resolved)
     admin_channel_service = _build_admin_channel_service(resolved, bot, roles_service, state=shared_state)
     bot.admin_channel_service = admin_channel_service
     channel_service, mod_roles_service = _build_mod_provisioning(resolved, bot, registry, state=shared_state)
@@ -607,7 +703,6 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     bot.message_registry = build_message_registry()
     from kingdoms.core.services.home import HomeService
     from kingdoms.discord.home import register_home_command
-
 
     class _DiscordModHomeViews:
         """Bridge the bot's mod home builders onto the HomeService seam."""
@@ -721,7 +816,7 @@ def _build_home_channel_service(
     config: BotConfig,
     bot: KingdomsBot,
 ) -> Any | None:
-    """Wire the 🏛-kingdoms-home managed channel (cache-aside like the admin channel).
+    """Wire the 🏛-home managed channel (cache-aside like the admin channel).
 
     Returns None when the stores are not configured: the home degrades
     to the /home command only.
@@ -739,7 +834,7 @@ def _build_home_channel_service(
             platform=DiscordHomeChannelPlatform(bot),
             database=MongoLogsDatabase(get_async_database()),
             category="bot_home",
-            name="🏛-kingdoms-home",
+            name="🏛-home",
             state=StateService(redis_uri=config.redis_uri),
         )
     except Exception:
@@ -891,6 +986,23 @@ def _build_shared_state(config: BotConfig) -> StateService | None:
     if not config.redis_uri:
         return None
     return StateService(redis_uri=config.redis_uri)
+
+
+def _build_role_grants_service(config: BotConfig) -> Any | None:
+    """Wire the per-guild role-grant mappings; None without Mongo."""
+    if not config.mongo_uri:
+        return None
+    try:
+        from kingdoms.core.models.db import get_async_database
+        from kingdoms.core.services.role_grants import (
+            MongoRoleGrantsDatabase,
+            RoleGrantsService,
+        )
+
+        return RoleGrantsService(MongoRoleGrantsDatabase(get_async_database()))
+    except Exception:
+        logger.exception("ROLE GRANTS SERVICE WIRING FAILED — role mapping disabled")
+        return None
 
 
 def _build_roles_service(config: BotConfig, bot: KingdomsBot, state: StateService | None = None) -> RolesService | None:

@@ -80,3 +80,38 @@ async def reply(interaction: discord.Interaction, key: str, **kwargs: object) ->
         return key
     rendered: str = catalog.render(f"replies.{key}", locale, **kwargs)
     return rendered
+
+
+async def tr(interaction: discord.Interaction, key: str, fallback: str = "") -> str:
+    """Render one UI label (buttons, selects, titles) in the guild's locale.
+
+    The ``ui.*`` keys carry every component label; the fallback is the
+    English wording, used when the catalog or the key is missing.
+    """
+    catalog = getattr(getattr(interaction, "client", None), "messages", None)
+    if catalog is None:
+        return fallback
+    locale = await reply_locale(interaction)
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else fallback
+
+
+async def tr_guild(guild_id: str, bot: object, key: str, fallback: str = "") -> str:
+    """Render one UI label in a guild's locale (background builds).
+
+    The forum syncs and pinned panels build components outside any
+    interaction: the guild's configured locale drives the render, the
+    English wording is the fallback.
+    """
+    catalog = getattr(bot, "messages", None)
+    if catalog is None or not guild_id:
+        return fallback
+    logs = getattr(bot, "logs_service", None)
+    locale = "en"
+    if logs is not None:
+        try:
+            locale = str(await logs.get_locale(guild_id) or "en")
+        except Exception:
+            locale = "en"
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else fallback

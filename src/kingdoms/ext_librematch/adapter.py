@@ -216,9 +216,7 @@ class LibrematchAdapter:
             slots.append(
                 Slot(
                     slot_index=int(str(entry.get("slot_index", entry.get("stationID", index)) or "0")),
-                    profile_id=str(
-                        entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))
-                    ),
+                    profile_id=str(entry.get("profile_id", entry.get("playerId", entry.get("profileInfo.id", "")))),
                     faction_key=str(civ),
                     team=int(str(entry.get("team", entry.get("teamID", 0)) or "0")),
                     filled=filled,

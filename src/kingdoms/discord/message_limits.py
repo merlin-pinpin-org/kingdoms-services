@@ -155,7 +155,11 @@ class MultiMessageRegistry:
             for page in pages[len(messages) :]:
                 messages.append(await channel.send(page))
         elif len(messages) > len(pages):  # shrank: delete the surplus
+            from kingdoms.discord.pinned_marks import is_pinned_view
+
             for message in messages[len(pages) :]:
+                if is_pinned_view(message):
+                    continue
                 await message.delete()
             messages = messages[: len(pages)]
         ids = [str(m.id) for m in messages]

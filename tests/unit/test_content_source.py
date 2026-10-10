@@ -35,9 +35,7 @@ def test_resolve_defaults_to_local_dataset() -> None:
 
 def test_resolve_env_overrides_to_rpc() -> None:
     """A set EXT_AOE2TECHTREE_URI routes content through the ext process."""
-    source = resolve_aoe2_content_source(
-        _provider(), env={"EXT_AOE2TECHTREE_URI": "kingdoms-ext-aoe2techtree:50063"}
-    )
+    source = resolve_aoe2_content_source(_provider(), env={"EXT_AOE2TECHTREE_URI": "kingdoms-ext-aoe2techtree:50063"})
     assert isinstance(source, RpcContentSource)
 
 

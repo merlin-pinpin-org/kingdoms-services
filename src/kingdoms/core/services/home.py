@@ -18,6 +18,7 @@ contributes its own) and stays platform-agnostic:
 
 Reference: §0/§6 (the core never imports platform code), ADR-0020.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

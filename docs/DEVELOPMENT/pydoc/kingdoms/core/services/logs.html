@@ -132,7 +132,10 @@ Resolve&nbsp;the&nbsp;bot&nbsp;logs&nbsp;channel&nbsp;and&nbsp;deliver&nbsp;life
 <dl><dt><a name="LogService-__init__"><strong>__init__</strong></a>(self, database: 'LogsDatabase', platform: 'LogsPlatform', state: 'Any', clock: 'Any' = &lt;built-in function monotonic&gt;, catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Wire&nbsp;the&nbsp;stores;&nbsp;``state``&nbsp;is&nbsp;a&nbsp;StateService&nbsp;(Redis&nbsp;cache-aside).<br>
 &nbsp;<br>
 ``catalog``&nbsp;localizes&nbsp;the&nbsp;audit&nbsp;events&nbsp;with&nbsp;the&nbsp;guild's&nbsp;locale;<br>
-None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.</span></dd></dl>
+None&nbsp;keeps&nbsp;the&nbsp;built-in&nbsp;English&nbsp;messages.&nbsp;The&nbsp;superseded<br>
+boot-status&nbsp;messages&nbsp;stay&nbsp;(unpinned,&nbsp;never&nbsp;deleted):&nbsp;the&nbsp;boot<br>
+status&nbsp;declares&nbsp;``delete_when_superseded=False``&nbsp;on&nbsp;the&nbsp;static<br>
+-pin&nbsp;registry&nbsp;—&nbsp;the&nbsp;log&nbsp;trail&nbsp;stays&nbsp;readable.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-get_access_policy"><strong>get_access_policy</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;guild's&nbsp;logs&nbsp;access&nbsp;policy&nbsp;(default:&nbsp;admin-only).</span></dd></dl>
 

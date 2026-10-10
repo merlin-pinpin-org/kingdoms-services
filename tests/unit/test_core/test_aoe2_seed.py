@@ -76,8 +76,8 @@ async def test_seed_creates_catalog_and_pools() -> None:
     assert result["map_pools"] == 1
     assert result["ladders"] == 0
     assert result["seasons"] == 0
-    assert "map:aoe2:Arabia" in db.collections["maps"]
-    assert "map_pool:aoe2:Season 1" in db.collections["map_pools"]
+    assert "map:aoe2:arabia" in db.collections["maps"]
+    assert "map_pool:aoe2:season_1" in db.collections["map_pools"]
 
 
 async def test_seed_is_idempotent() -> None:

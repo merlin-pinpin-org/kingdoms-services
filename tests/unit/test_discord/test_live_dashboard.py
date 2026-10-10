@@ -27,6 +27,12 @@ class _FakeMessage:
     content: str = ""
     edits: list[str] = field(default_factory=list)
     embeds: list[object] = field(default_factory=list)
+    author_id: int = 999
+    pinned: bool = False
+
+    async def pin(self, reason: str = "") -> None:
+        """Pin the message (fake)."""
+        self.pinned = True
 
 
 class _FakePartialMessage:
@@ -55,9 +61,14 @@ class _FakeChannel:
         self.name = "📡-live-dashboard"
         self.messages: dict[int, _FakeMessage] = {}
         self.sent: list[_FakeMessage] = []
+        self.guild = _FakeGuildRef(self)
 
     def get_partial_message(self, message_id: int) -> _FakePartialMessage:
         return _FakePartialMessage(self, message_id)
+
+    async def pins(self) -> list[_FakeMessage]:
+        """Return the channel's pinned messages (fake)."""
+        return [m for m in self.messages.values() if m.pinned]
 
     async def send(self, content: str = "", embed: object = None) -> _FakeMessage:
         message = _FakeMessage(id=1000 + len(self.sent), content=content)
@@ -66,6 +77,20 @@ class _FakeChannel:
         self.messages[message.id] = message
         self.sent.append(message)
         return message
+
+
+class _FakeGuildRef:
+    """Minimal guild reference for the channel (me, for author checks)."""
+
+    def __init__(self, channel: _FakeChannel) -> None:
+        self._channel = channel
+        self.me = _FakeMember()
+
+
+class _FakeMember:
+    """Guild.me stand-in (the bot's own member)."""
+
+    id = 999
 
 
 class _FakeGuild:
@@ -174,7 +199,7 @@ async def test_refresh_edits_in_place_without_spam() -> None:
     assert created is False
     assert len(channel.sent) == 1, "the refresh never adds a message"
     assert channel.sent[0].edits, "the existing message is edited in place"
-    assert "in_lobby" in channel.sent[0].edits[-1]
+    assert "<@10>" in channel.sent[0].edits[-1], "the user line is still rendered"
 
 
 @pytest.mark.asyncio

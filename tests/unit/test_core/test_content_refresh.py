@@ -45,11 +45,11 @@ async def test_refresh_creates_missing_factions_and_content(monkeypatch: Any) ->
     assert counts["factions"] == 56
     assert counts["content_docs"] == 112
     factions = database.collections["factions"].docs
-    assert "faction:aoe2:Franks" in factions
-    assert "faction:aoe2:Danes" in factions
+    assert "faction:aoe2:franks" in factions
+    assert "faction:aoe2:dravidians" in factions
     content = database.collections["faction_content"].docs
-    assert "faction:aoe2:Franks:fr" in content
-    assert content["faction:aoe2:Franks:fr"]["name"] == "Francs"
+    assert "faction:aoe2:franks:fr" in content
+    assert content["faction:aoe2:franks:fr"]["name"] == "Francs"
 
 
 async def test_refresh_is_idempotent(monkeypatch: Any) -> None:

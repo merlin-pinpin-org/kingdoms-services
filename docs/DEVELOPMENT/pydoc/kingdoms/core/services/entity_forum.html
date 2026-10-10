@@ -53,7 +53,7 @@ builder&nbsp;changes&nbsp;over&nbsp;time.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="EntityForumSpec">class <strong>EntityForumSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#EntityForumSpec">EntityForumSpec</a>(forum_name:&nbsp;'str',&nbsp;category_name:&nbsp;'str'&nbsp;=&nbsp;'games',&nbsp;list_entities:&nbsp;'Callable[[str],&nbsp;Awaitable[list[Any]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;forum_name_for:&nbsp;'Callable[[Any],&nbsp;str]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;entity_name:&nbsp;'Callable[[Any],&nbsp;str]'&nbsp;=&nbsp;&amp;lt;function&nbsp;<a href="#EntityForumSpec">EntityForumSpec</a>.&amp;lt;lambda&amp;gt;&nbsp;at&nbsp;0xMEMORY_ADDRESS&amp;gt;,&nbsp;build_post:&nbsp;'Callable[[Any,&nbsp;str],&nbsp;Awaitable[tuple[str,&nbsp;Any&nbsp;|&nbsp;None]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EntityForumSpec">EntityForumSpec</a>(forum_name:&nbsp;'str',&nbsp;category_name:&nbsp;'str'&nbsp;=&nbsp;'games',&nbsp;list_entities:&nbsp;'Callable[[str],&nbsp;Awaitable[list[Any]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;forum_name_for:&nbsp;'Callable[[Any],&nbsp;str]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;entity_name:&nbsp;'Callable[[Any],&nbsp;str]'&nbsp;=&nbsp;&amp;lt;function&nbsp;<a href="#EntityForumSpec">EntityForumSpec</a>.&amp;lt;lambda&amp;gt;&nbsp;at&nbsp;0xMEMORY_ADDRESS&amp;gt;,&nbsp;display_name_for:&nbsp;'Callable[[Any,&nbsp;str],&nbsp;Awaitable[str]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;build_post:&nbsp;'Callable[[Any,&nbsp;str],&nbsp;Awaitable[tuple[str,&nbsp;Any&nbsp;|&nbsp;None]]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Declarative&nbsp;description&nbsp;of&nbsp;one&nbsp;entity-post&nbsp;forum.<br>
 &nbsp;<br>
@@ -69,7 +69,7 @@ into&nbsp;their&nbsp;forum&nbsp;and&nbsp;each&nbsp;is&nbsp;synced&nbsp;there.<br
 
 <dl><dt><a name="EntityForumSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="EntityForumSpec-__init__"><strong>__init__</strong></a>(self, forum_name: 'str', category_name: 'str' = 'games', list_entities: 'Callable[[str], Awaitable[list[Any]]] | None' = None, forum_name_for: 'Callable[[Any], str] | None' = None, entity_name: 'Callable[[Any], str]' = &lt;function EntityForumSpec.&lt;lambda&gt; at 0xMEMORY_ADDRESS&gt;, build_post: 'Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="EntityForumSpec-__init__"><strong>__init__</strong></a>(self, forum_name: 'str', category_name: 'str' = 'games', list_entities: 'Callable[[str], Awaitable[list[Any]]] | None' = None, forum_name_for: 'Callable[[Any], str] | None' = None, entity_name: 'Callable[[Any], str]' = &lt;function EntityForumSpec.&lt;lambda&gt; at 0xMEMORY_ADDRESS&gt;, display_name_for: 'Callable[[Any, str], Awaitable[str]] | None' = None, build_post: 'Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="EntityForumSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -87,17 +87,19 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'build_post': 'Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None', 'category_name': 'str', 'entity_name': 'Callable[[Any], str]', 'forum_name': 'str', 'forum_name_for': 'Callable[[Any], str] | None', 'list_entities': 'Callable[[str], Awaitable[list[Any]]] | None'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'build_post': 'Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None', 'category_name': 'str', 'display_name_for': 'Callable[[Any, str], Awaitable[str]] | None', 'entity_name': 'Callable[[Any], str]', 'forum_name': 'str', 'forum_name_for': 'Callable[[Any], str] | None', 'list_entities': 'Callable[[str], Awaitable[list[Any]]] | None'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'build_post': Field(name='build_post',type='Callable[[Any, str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'category_name': Field(name='category_name',type='str',default='g...appingproxy({}),kw_only=False,_field_type=_FIELD), 'entity_name': Field(name='entity_name',type='Callable[[Any], s...appingproxy({}),kw_only=False,_field_type=_FIELD), 'forum_name': Field(name='forum_name',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'forum_name_for': Field(name='forum_name_for',type='Callable[[Any]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'list_entities': Field(name='list_entities',type='Callable[[str],...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'build_post': Field(name='build_post',type='Callable[[Any, str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'category_name': Field(name='category_name',type='str',default='g...appingproxy({}),kw_only=False,_field_type=_FIELD), 'display_name_for': Field(name='display_name_for',type='Callable[[An...appingproxy({}),kw_only=False,_field_type=_FIELD), 'entity_name': Field(name='entity_name',type='Callable[[Any], s...appingproxy({}),kw_only=False,_field_type=_FIELD), 'forum_name': Field(name='forum_name',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'forum_name_for': Field(name='forum_name_for',type='Callable[[Any]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'list_entities': Field(name='list_entities',type='Callable[[str],...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('forum_name', 'category_name', 'list_entities', 'forum_name_for', 'entity_name', 'build_post')</dl>
+<dl><dt><strong>__match_args__</strong> = ('forum_name', 'category_name', 'list_entities', 'forum_name_for', 'entity_name', 'display_name_for', 'build_post')</dl>
 
 <dl><dt><strong>build_post</strong> = None</dl>
 
 <dl><dt><strong>category_name</strong> = 'games'</dl>
+
+<dl><dt><strong>display_name_for</strong> = None</dl>
 
 <dl><dt><strong>forum_name_for</strong> = None</dl>
 

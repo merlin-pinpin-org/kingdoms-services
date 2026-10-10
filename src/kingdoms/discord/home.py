@@ -1,6 +1,6 @@
 """The home surface: /home + the pinned 🏛 menu, one ephemeral view per button.
 
-The home is the guild's front door: a pinned menu in the 🏛-kingdoms-home
+The home is the guild's front door: a pinned menu in the 🏛-home
 channel (provisioned like every managed channel), plus the /home command
 showing the same menu. Every button answers with an **ephemeral** view —
 the home is public, the answers are personal.
@@ -32,19 +32,18 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-from typing import Any, cast
+from typing import Any
 
 import discord
 from discord import app_commands
 
 from kingdoms.core.services.home import HomeService
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.core.services.pinned_menu import PinnedMenuChannel, PinnedMenuService
 from kingdoms.discord.commands_i18n import localized, reply
 
 logger = logging.getLogger("kingdoms.home")
 
-HOME_CHANNEL_NAME = "🏛-kingdoms-home"
+HOME_CHANNEL_NAME = "🏛-home"
 HOME_CHANNEL_CATEGORY = "bot_home"
 HOME_MARKER = "home:pin:"
 HOME_MESSAGE_KEY = "home-menu"
@@ -106,11 +105,14 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
             )
         )
     rows.append(row)
+    from kingdoms.discord.pinned_marks import pinned_mark
+
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay("## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."),
             *rows,
+            discord.ui.TextDisplay(pinned_mark("home-menu")),
         )
     )
     return view
@@ -139,6 +141,10 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
         await _view_users(interaction)
     elif view_key == "admin":
         await _view_admin(interaction)
+    elif view_key.startswith("guild-admin:"):
+        await _view_admin_for_guild(interaction, view_key[len("guild-admin:") :])
+    elif view_key.startswith("guild-games:"):
+        await _view_games_for_guild(interaction, view_key[len("guild-games:") :])
     elif view_key.startswith("mod:"):
         await _view_mod(interaction, view_key[4:])
     else:
@@ -220,7 +226,7 @@ class ProfileAddAccountButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Ajouter un compte", style=discord.ButtonStyle.success, custom_id="home:profile:add"
+                label="Add an account", style=discord.ButtonStyle.success, custom_id="home:profile:add"
             )
         )
 
@@ -245,9 +251,9 @@ class ProfileAddAccountModal(discord.ui.Modal):
     """The add-account form: game key + profile id."""
 
     def __init__(self) -> None:
-        super().__init__(title="Ajouter un compte", timeout=None)
+        super().__init__(title="Add an account", timeout=None)
         self.game: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Jeu (aoe2)", default="aoe2", max_length=16, required=True
+            label="Game (aoe2)", default="aoe2", max_length=16, required=True
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Profile id", max_length=64, required=True
@@ -274,7 +280,6 @@ class ProfileAddAccountModal(discord.ui.Modal):
         await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
 
 
-
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
     """Build the profile header: the user's chosen name when known."""
     identity = getattr(interaction.client, "identity_service", None)
@@ -299,7 +304,7 @@ class ProfileRenameButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Changer de pseudo", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+                label="Change nickname", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
             )
         )
 
@@ -324,9 +329,9 @@ class ProfileRenameModal(discord.ui.Modal):
     """The rename form: the user's chosen name (1-16 chars)."""
 
     def __init__(self) -> None:
-        super().__init__(title="Ton pseudo", timeout=None)
+        super().__init__(title="Your nickname", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Pseudo (16 caractères max)", max_length=16, min_length=1, required=True
+            label="Nickname (16 chars max)", max_length=16, min_length=1, required=True
         )
         self.add_item(self.name)
 
@@ -347,9 +352,7 @@ class ProfileRenameModal(discord.ui.Modal):
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
-            await interaction.response.send_message(
-                "Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True
-            )
+            await interaction.response.send_message("Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True)
             return
         except Exception:
             logger.warning("PROFILE RENAME failed", exc_info=True)
@@ -368,7 +371,7 @@ class ProfileRemoveAccountButton(
         self.profile_ids = profile_ids or []
         super().__init__(
             discord.ui.Button(
-                label="Retirer un compte", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label="Remove an account", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 
@@ -433,9 +436,7 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
     """The account picker of the remove flow."""
 
     def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(
-            custom_id="home:profile:remove:select", options=options, placeholder="Compte a retirer..."
-        )
+        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Account to remove...")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Unlink the chosen account, confirm."""
@@ -462,6 +463,16 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
 
 async def _view_games(interaction: discord.Interaction) -> None:
     """Render the known games, their catalog sizes and provider status."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-games:games")
+    if guild_id is None:
+        return
+    await _view_games_for_guild(interaction, guild_id)
+
+
+async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Render the guild's known games, catalog sizes and provider status."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.maps_forum import maps_forum_wiring_ready
 
@@ -479,9 +490,7 @@ async def _view_games(interaction: discord.Interaction) -> None:
                     pools = await service.list_map_pools(key)
                     provider = await _provider_status(bot, key)
                     active = sum(1 for m in maps if m.archived_at is None)
-                    lines.append(
-                        f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}"
-                    )
+                    lines.append(f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}")
         except Exception:
             logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
     if not lines:
@@ -502,7 +511,8 @@ async def _provider_status(bot: Any, game: str) -> str:
         return "❔ aucun provider configuré"
     try:
         maps = await asyncio.wait_for(adapter.list_maps(), timeout=5)
-        return f"✅ en ligne ({len(maps)} maps)" if maps else "⚠️ réponse vide"
+        del maps  # the probe checks reachability, not the lobby-scoped map list
+        return "✅ provider en ligne"
     except TimeoutError:
         return "⚠️ timeout"
     except Exception:
@@ -568,6 +578,26 @@ async def _view_users(interaction: discord.Interaction) -> None:
 
 async def _view_admin(interaction: discord.Interaction) -> None:
     """Open the admin panel ephemerally, guarded at click time."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-admin:admin")
+    if guild_id is None:
+        return
+    await _view_admin_for_guild(interaction, guild_id)
+
+
+async def open_home_view_for_guild(interaction: discord.Interaction, view_key: str, guild_id: str) -> None:
+    """Re-dispatch a home view key with an explicit guild scope (DM pick)."""
+    if view_key.startswith("guild-admin:"):
+        await _view_admin_for_guild(interaction, guild_id)
+    elif view_key.startswith("guild-games:"):
+        await _view_games_for_guild(interaction, guild_id)
+    else:
+        await interaction.response.send_message("Vue inconnue.", ephemeral=True)
+
+
+async def _view_admin_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Open the admin panel for one guild (ephemeral, guarded at click time)."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.guards import require_admin
 
@@ -613,71 +643,47 @@ async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
     await builder(interaction)
 
 
-async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
-    """Ensure the guild's home channel holds its pinned menu, never rebuilt while it lives.
+def _home_static_pin_spec(bot: discord.Client) -> Any:
+    """Declare (and register) the home menu as a static pinned view."""
+    from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
 
-    The message id is resolved through the message registry (Mongo-backed,
-    restart-proof) or the bot's in-memory fallback store: as long as the
-    registered message exists it is merely re-pinned; only a gone message
-    (deleted or channel wiped) triggers a rebuild, whose id replaces the
-    registration.
-    """
     home_channel = getattr(bot, "home_channel_service", None)
     home = getattr(bot, "home_service", None)
     if home_channel is None or home is None:
-        return False
-    channel_id = await home_channel.resolve_channel(guild_id)
-    if channel_id is None:
-        return False
-    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
-    channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() and guild else None
-    if channel is None or not hasattr(channel, "fetch_message") or not hasattr(channel, "send"):
-        return False
-
-    if await _registered_menu_lives(bot, guild_id, channel):
-        return False
-
-    class _ChannelDelivery:
-        last_message_id: str | None = None
-
-        async def deliver(self, channel: Any, layout: Any) -> str:
-            """Send the layout and remember the delivered message id."""
-            message = await channel.send(view=layout)
-            self.last_message_id = str(message.id)
-            return self.last_message_id
-
-        async def update(self, channel: Any, message_id: str, layout: Any) -> bool:
-            """Edit an existing menu message to the new layout in place."""
-            try:
-                message = await channel.fetch_message(int(message_id))
-                await message.edit(view=layout)
-                return True
-            except Exception:
-                logger.warning(
-                    "PINNED HOME MENU in-place update failed (message %s) — will re-post",
-                    message_id,
-                    exc_info=True,
-                )
-                return False
-
-    delivery = _ChannelDelivery()
-    service = PinnedMenuService(delivery, delivery)
-    created = await service.ensure(
-        guild_id,
-        cast("PinnedMenuChannel", channel),
-        marker=HOME_MARKER,
+        return None
+    registry = getattr(bot, "message_registry", None)
+    spec = StaticPinnedView(
+        key="home-menu",
+        mark_suffix="home-menu",
+        resolve_channel=home_channel.resolve_channel,
         build_layout=_async_layout(home),
-        pin_reason="kingdoms: pinned home menu (guild front door)",
+        registry=registry,
     )
-    if not created:
+    register_static_pin(spec)
+    return spec
+
+
+async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
+    """Ensure the guild's home channel holds its pinned menu (registry cycle).
+
+    The static-pin cycle owns everything: channel resolution (recreated
+    on delete), pin creation/refresh/re-pin, and the ``fixe:`` mark.
+    """
+    from kingdoms.discord.static_pins import ensure_static_pin
+
+    spec = _home_static_pin_spec(bot)
+    if spec is None:
         return False
-    if delivery.last_message_id is not None:
-        await _register_menu_message(bot, guild_id, str(channel_id), delivery.last_message_id)
-    return True
+    return await ensure_static_pin(bot, spec, guild_id)
 
 
 async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: Any) -> bool:
-    """Whether the registered menu message still exists; re-pin it if unpinned."""
+    """Whether the registered menu message exists **and is current**.
+
+    A live message is edited in place to the current layout revision —
+    a boot with a changed surface must update the pin, not keep the old
+    version. The message id stays stable. Re-pins best-effort.
+    """
     message_id = await _resolve_menu_message_id(bot, guild_id)
     if message_id is None:
         return False
@@ -685,6 +691,16 @@ async def _registered_menu_lives(bot: discord.Client, guild_id: str, channel: An
         message = await channel.fetch_message(int(message_id))
     except Exception:
         return False
+    try:
+        home = getattr(bot, "home_service", None)
+        if home is not None:
+            await message.edit(view=await _async_layout(home)(guild_id))
+    except Exception:
+        logger.warning(
+            "PINNED HOME MENU in-place update failed (message %s) — keeping the old pin",
+            message_id,
+            exc_info=True,
+        )
     try:
         await message.pin(reason="kingdoms: pinned home menu (guild front door)")
     except Exception:

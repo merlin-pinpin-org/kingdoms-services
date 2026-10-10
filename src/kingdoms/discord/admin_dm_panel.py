@@ -55,7 +55,7 @@ async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.L
     """Render the bot-admin DM panel: pending requests, grants, refresh."""
     service = await _access_service()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# 🛡️ Panneau bot admin (cross-guild)")]
+    blocks: list[Any] = [discord.ui.TextDisplay("# 🛡️ Bot admin — cross-guild")]
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible (Mongo absent)."))
         view.add_item(discord.ui.Container(*blocks))
@@ -81,9 +81,7 @@ async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.L
     if requests:
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         first = requests[0]
-        row.add_item(
-            AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests))
-        )
+        row.add_item(AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests)))
         row.add_item(AccessDenyButton(str(first["guild_id"]), str(first["requested_at"])))
         view.add_item(row)
     blocks.append(
@@ -156,9 +154,7 @@ class AccessApproveButton(
             return
         await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
         await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
-        await interaction.followup.send(
-            f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True
-        )
+        await interaction.followup.send(f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True)
 
 
 class AccessDenyButton(
@@ -172,7 +168,7 @@ class AccessDenyButton(
         self.requested_at = requested_at
         super().__init__(
             discord.ui.Button(
-                label="Refuser",
+                label="Deny",
                 style=discord.ButtonStyle.danger,
                 custom_id=f"{_NS}:deny:{guild_id}:{requested_at}"[:100],
             )
@@ -250,7 +246,8 @@ class ContentRefreshButton(
             logger.exception("DM PANEL: content refresh failed")
             await interaction.followup.send("Refresh échoué (voir les logs).", ephemeral=True)
             return
-        new_factions = list(counts.get("new_factions") or [])
+        raw_new_factions = counts.get("new_factions") or []
+        new_factions: list[str] = raw_new_factions if isinstance(raw_new_factions, list) else []
         new_line = f"Nouvelles civs : {', '.join(new_factions)}\n" if new_factions else ""
         await interaction.followup.send(
             f"Contenu rafraîchi : {counts.get('total_factions', 0)} civs "
@@ -286,7 +283,7 @@ class ProviderMappingSelect(
                     for p in PROVIDER_KEYS
                     for k in MAPPING_KINDS_LABELS
                 ],
-                placeholder="Editer un mapping de provider...",
+                placeholder="Edit a provider mapping...",
             )
         )
 
@@ -332,7 +329,7 @@ class ProviderMappingModal(discord.ui.Modal):
         self.kind = kind
         super().__init__(title=f"Mapping {provider} ({kind})", timeout=None)
         self.lines: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="catalog=provider (une par ligne)",
+            label="catalog=provider (one per line)",
             style=discord.TextStyle.paragraph,
             default=current,
             max_length=4000,

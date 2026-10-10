@@ -4,37 +4,34 @@
 # source: kingdoms/v1/status.proto
 # Protobuf Python Version: 7.35.1
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    7,
-    35,
-    1,
-    '',
-    'kingdoms/v1/status.proto'
+    _runtime_version.Domain.PUBLIC, 7, 35, 1, "", "kingdoms/v1/status.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18kingdoms/v1/status.proto\x12\x0bkingdoms.v1\"\x13\n\x11\x43oreStatusRequest\".\n\nCoreStatus\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x0f\n\x07process\x18\x02 \x01(\t2R\n\x06Status\x12H\n\rGetCoreStatus\x12\x1e.kingdoms.v1.CoreStatusRequest\x1a\x17.kingdoms.v1.CoreStatusb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x18kingdoms/v1/status.proto\x12\x0bkingdoms.v1"\x13\n\x11\x43oreStatusRequest".\n\nCoreStatus\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x0f\n\x07process\x18\x02 \x01(\t2R\n\x06Status\x12H\n\rGetCoreStatus\x12\x1e.kingdoms.v1.CoreStatusRequest\x1a\x17.kingdoms.v1.CoreStatusb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kingdoms.v1.status_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "kingdoms.v1.status_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_CORESTATUSREQUEST']._serialized_start=41
-  _globals['_CORESTATUSREQUEST']._serialized_end=60
-  _globals['_CORESTATUS']._serialized_start=62
-  _globals['_CORESTATUS']._serialized_end=108
-  _globals['_STATUS']._serialized_start=110
-  _globals['_STATUS']._serialized_end=192
+    DESCRIPTOR._loaded_options = None
+    _globals["_CORESTATUSREQUEST"]._serialized_start = 41
+    _globals["_CORESTATUSREQUEST"]._serialized_end = 60
+    _globals["_CORESTATUS"]._serialized_start = 62
+    _globals["_CORESTATUS"]._serialized_end = 108
+    _globals["_STATUS"]._serialized_start = 110
+    _globals["_STATUS"]._serialized_end = 192
 # @@protoc_insertion_point(module_scope)

@@ -75,7 +75,6 @@ class ProfileBoundError(ValueError):
     """The profile is already bound to another user."""
 
 
-
 class RegistrationService:
     """Bind platform users to validated game profiles (permanent registration)."""
 

@@ -35,6 +35,12 @@ code&nbsp;minimal,&nbsp;the&nbsp;shared&nbsp;machinery&nbsp;in&nbsp;core).</span
  <dl><dt><a name="-build_guild_access_service"><strong>build_guild_access_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;GuildAccessService;&nbsp;None&nbsp;when&nbsp;Mongo&nbsp;is&nbsp;absent.</span></dd></dl>
  <dl><dt><a name="-build_provider_mapping_service"><strong>build_provider_mapping_service</strong></a>() -&gt; 'Any | None'</dt><dd><span class="code">Build&nbsp;(and&nbsp;memoize)&nbsp;the&nbsp;ProviderMappingService;&nbsp;None&nbsp;without&nbsp;Mongo.</span></dd></dl>
  <dl><dt><a name="-games_wiring_ready"><strong>games_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;game-data&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+ <dl><dt>async <a name="-granted_game_keys"><strong>granted_game_keys</strong></a>(guild_id: 'str', catalog_keys: 'tuple[str, ...]' = ()) -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;game&nbsp;keys&nbsp;a&nbsp;guild&nbsp;may&nbsp;provision&nbsp;(access-first).<br>
+&nbsp;<br>
+The&nbsp;granted&nbsp;keys&nbsp;drive&nbsp;the&nbsp;channel&nbsp;provisioning:&nbsp;forums&nbsp;are&nbsp;created<br>
+on&nbsp;the&nbsp;grant&nbsp;even&nbsp;when&nbsp;the&nbsp;catalog&nbsp;is&nbsp;still&nbsp;empty,&nbsp;and&nbsp;fill&nbsp;up&nbsp;as<br>
+the&nbsp;content&nbsp;arrives.&nbsp;When&nbsp;the&nbsp;access&nbsp;service&nbsp;is&nbsp;unwired&nbsp;the<br>
+catalog's&nbsp;keys&nbsp;stand&nbsp;in&nbsp;(the&nbsp;open-degradation&nbsp;seam).</span></dd></dl>
  <dl><dt>async <a name="-guard_admin"><strong>guard_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.</span></dd></dl>
  <dl><dt><a name="-guild_access_platform"><strong>guild_access_platform</strong></a>() -&gt; 'tuple[tuple[str, ...], tuple[str, ...]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(for&nbsp;request&nbsp;pickers).</span></dd></dl>
  <dl><dt>async <a name="-guild_category"><strong>guild_category</strong></a>(guild: 'discord.Guild', name: 'str', *, create_reason: 'str' = '') -&gt; 'Any | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild&nbsp;category&nbsp;by&nbsp;name,&nbsp;creating&nbsp;it&nbsp;when&nbsp;missing.<br>

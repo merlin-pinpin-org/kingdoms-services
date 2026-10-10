@@ -158,9 +158,7 @@ class PinModRouteSelect(
         Discord rejects a select with zero options (1-25 required), which
         broke the panel with a silent 50035.
         """
-        sections = (
-            registered_admin_core_sections() if scope == "games" else registered_admin_game_sections()
-        )
+        sections = registered_admin_core_sections() if scope == "games" else registered_admin_game_sections()
         options = [
             discord.SelectOption(label=section.label, value=section.mod, description=section.description or None)
             for section in sections
@@ -235,6 +233,6 @@ class PinModRouteSelect(
                 await interaction.followup.send(message, ephemeral=True)
             return
         if not interaction.response.is_done():
-            await interaction.response.edit_message(view=view)
+            await interaction.response.send_message(view=view, ephemeral=True)
         else:
             await interaction.followup.send(view=view, ephemeral=True)

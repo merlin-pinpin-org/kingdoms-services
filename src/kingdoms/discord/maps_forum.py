@@ -27,6 +27,14 @@ import discord
 logger = logging.getLogger("kingdoms.games.maps_forum")
 
 GAMES_CATEGORY_NAME = "games"
+LIQUIPEDIA_MAP_URL = "https://liquipedia.net/ageofempires/"
+
+
+def liquipedia_map_url(name: str) -> str:
+    """Build the map's Liquipedia page URL (the post's default source link)."""
+    return LIQUIPEDIA_MAP_URL + name.strip().replace(" ", "_")
+
+
 FORUM_SUFFIX = "-maps"
 SYNC_INTERVAL_S = 3600
 
@@ -69,17 +77,27 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.archived_at is not None:
             continue
         if entry.forum_message_id and await platform.forum_thread_exists(guild_id, entry.forum_message_id):
-            await _refresh_map_post(
-                bot, platform, guild_id, entry, service
-            )
+            await _refresh_map_post(bot, platform, guild_id, entry, service)
             continue
         from kingdoms.core.ids import footer
         from kingdoms.discord.content_posts import entity_post_content
 
         _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
+        source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
-        view = _map_post_view(entry.id, entry.name, description, pools, source, image, entry.resource_url)
+        view = _map_post_view(
+            entry.id,
+            entry.name,
+            description,
+            pools,
+            source,
+            image,
+            entry.resource_url,
+            editable=entry.owner_guild_id == guild_id,
+            map_type=getattr(entry, "map_type", ""),
+            filenames=tuple(getattr(entry, "filenames", ()) or ()),
+        )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"
         if pools:
@@ -87,13 +105,10 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
         content = f"{content}\n\n{footer(entry.id)}"
-        thread_id = await platform.create_map_post(
-            guild_id, forum_id, entry.name, content, view=view
-        )
+        thread_id = await platform.create_map_post(guild_id, forum_id, entry.name, content, view=view)
         await service.set_map_forum_message(entry.id, thread_id)
         created += 1
     return created
-
 
 
 async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = None) -> list[str]:
@@ -119,12 +134,11 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
             continue
         thread_id = thread_ids.get(pool.name)
         if thread_id:
-            lines.append(
-                f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})"
-            )
+            lines.append(f"- [{pool.name}](https://discord.com/channels/{guild_id}/{thread_id}/{thread_id})")
         else:
             lines.append(f"- {pool.name}")
     return lines
+
 
 def _map_post_view(
     map_id: str,
@@ -134,37 +148,49 @@ def _map_post_view(
     source: str,
     image: str,
     resource_url: str | None,
+    editable: bool = False,
+    map_type: str = "",
+    filenames: tuple[str, ...] = (),
 ) -> discord.ui.LayoutView:
-    """Build the map post's layout: title, content, image, ids, pool flow."""
+    """Build the map post's layout: type, description, files, pools, image.
+
+    The order is designer-chosen and unordered by nature: pools' links,
+    description, associated filenames, map type, image, the id footer,
+    then the add-to-pool entry point (admins, pools in edition).
+    ``editable`` marks a guild-owned map: its post carries the edit
+    entry point too.
+    """
     from kingdoms.core.ids import footer
-    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton
+    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapEditButton
 
     view = discord.ui.LayoutView(timeout=None)
-    children: list[discord.ui.Item[discord.ui.LayoutView] | str] = [discord.ui.TextDisplay(description)]
+    blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(f"## {name}")]
+    if map_type:
+        blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
+    if description:
+        blocks.append(discord.ui.TextDisplay(description))
+    if filenames:
+        blocks.append(discord.ui.TextDisplay("**Fichiers**\n" + "\n".join(f"`{f}`" for f in filenames)))
     if pools:
-        children.append(discord.ui.TextDisplay("\n".join(pools)))
+        blocks.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
     media = resource_url or image
     if media:
-        children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
+        blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
+    blocks.append(discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)))
     view.add_item(
         discord.ui.Section(
-            *children,
+            *blocks,
             accessory=MapAddToPoolButton(map_id),
         )
     )
-    view.add_item(discord.ui.Separator())
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay(f"## {name}"),
-            discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)),
-        )
-    )
+    if editable:
+        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        row.add_item(MapEditButton(map_id))
+        view.add_item(row)
     return view
 
 
-async def _refresh_map_post(
-    bot: Any, platform: Any, guild_id: str, entry: Any, service: Any
-) -> None:
+async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, service: Any) -> None:
     """Keep an existing map post's content and layout in sync (best-effort)."""
     import time
 
@@ -183,9 +209,21 @@ async def _refresh_map_post(
         return
     try:
         _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
+        source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
-        view = _map_post_view(entry.id, entry.name, description, pools, source, image, entry.resource_url)
+        view = _map_post_view(
+            entry.id,
+            entry.name,
+            description,
+            pools,
+            source,
+            image,
+            entry.resource_url,
+            editable=entry.owner_guild_id == guild_id,
+            map_type=getattr(entry, "map_type", ""),
+            filenames=tuple(getattr(entry, "filenames", ()) or ()),
+        )
         tail = f"Source : {source}\n" if source else ""
         content = f"{tail}**{entry.name}**\n{description}"
         if pools:
@@ -215,17 +253,15 @@ def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
         while True:
             for guild in list(bot.guilds):
                 try:
-                    from kingdoms.discord.wiring import guild_has_game
+                    from kingdoms.discord.wiring import granted_game_keys, guild_has_game
 
                     service = _build_service()
-                    for game_key in await service.list_game_keys():
+                    for game_key in await granted_game_keys(str(guild.id), tuple(await service.list_game_keys())):
                         if not await guild_has_game(str(guild.id), game_key):
                             continue
                         created = await sync_maps_forum(str(guild.id), game_key, bot, service)
                         if created:
-                            logger.info(
-                                "maps forum: %d posts created (guild %s, game %s)", created, guild.id, game_key
-                            )
+                            logger.info("maps forum: %d posts created (guild %s, game %s)", created, guild.id, game_key)
                 except Exception:
                     logger.warning("maps forum sync failed (guild %s) — best-effort", guild.id, exc_info=True)
             await asyncio.sleep(SYNC_INTERVAL_S)

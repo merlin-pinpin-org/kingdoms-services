@@ -24,6 +24,7 @@ mandate on click-time guards.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import discord
 
@@ -84,11 +85,9 @@ async def ensure_pinned_admin_menu(
 
     from kingdoms.discord.admin_panel_mods import mod_section_route_id, registered_admin_mod_sections
 
-    required_ids = (
-        (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
-    )
+    required_ids = (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
     delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
-    service = PinnedMenuService(delivery)
+    service = PinnedMenuService(delivery, delivery)
     created = await service.ensure(
         str(guild_id),
         cast("PinnedMenuChannel", channel),
@@ -99,7 +98,44 @@ async def ensure_pinned_admin_menu(
     )
     for message in await _stale_pinned_menus(bot, guild_id, str(channel_id)):
         await _unpin_message(message)
+    if not created:
+        await _edit_registered_pin_in_place(bot, guild_id, channel, _build)
     return created
+
+
+async def _edit_registered_pin_in_place(
+    bot: discord.Client,
+    guild_id: str,
+    channel: Any,
+    build_layout: Any,
+) -> None:
+    """Edit the pinned admin menu (marker-identified) to the fresh layout.
+
+    ``PinnedMenuService.ensure`` returns early when the pin carries the
+    marker and the required ids — an older **layout** (pre-i18n labels,
+    missing sections) would otherwise stay forever. The current pin is
+    the channel's pinned message carrying the ``admin:pin:`` marker (the
+    same identification the ensure cycle uses); it is edited in place
+    when the layout fingerprint differs. The message id stays stable.
+    """
+    from kingdoms.core.services.pinned_menu import _walk_custom_ids
+    from kingdoms.discord.pinned_menu_fingerprint import layout_fingerprint
+
+    try:
+        layout = await build_layout(guild_id)
+        fresh = layout_fingerprint(layout)
+        for message in await channel.pins():
+            ids = set(_walk_custom_ids(message))
+            if not any(str(cid).startswith("admin:pin:") for cid in ids):
+                continue
+            if fresh == layout_fingerprint(getattr(message, "components", None)):
+                logger.info("PINNED ADMIN MENU already current (no edit)")
+                return
+            await message.edit(view=layout)
+            logger.info("PINNED ADMIN MENU edited in place (layout updated)")
+            return
+    except Exception:
+        logger.warning("PINNED ADMIN MENU in-place refresh failed — best-effort", exc_info=True)
 
 
 class _AdminPinDelivery:
@@ -115,6 +151,19 @@ class _AdminPinDelivery:
         del channel
         message_id = await self._service.deliver(self._guild_id, layout, self._admin_ids)
         return str(message_id or "")
+
+    async def update(self, channel: object, message_id: str, layout: object) -> bool:
+        """Edit an existing admin pin to the current layout revision."""
+        try:
+            await self._service.edit_layout(self._guild_id, message_id, layout)
+            return True
+        except Exception:
+            logger.warning(
+                "PINNED ADMIN MENU in-place update failed (message %s) — will re-post",
+                message_id,
+                exc_info=True,
+            )
+            return False
 
 
 async def _current_locale(logs_service: LogService, guild_id: str) -> str:
@@ -193,5 +242,3 @@ def _text_channel(bot: discord.Client, guild_id: str, channel_id: str) -> discor
         return None
     channel = guild.get_channel(int(channel_id))
     return channel if isinstance(channel, discord.TextChannel) else None
-
-
