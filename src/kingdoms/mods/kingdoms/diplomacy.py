@@ -1,9 +1,10 @@
 """Kingdoms mod diplomacy & marriages service (kingdoms-services#160, T6).
 
-Reference §18-§19 and decisions D32-D34, D45, D51, D53: the
-civilization-conditions engine (CIVILIZATIONS.md as admin data), the
-per-kingdom playable-civilization list recomputed at every cycle end,
-and the marriages (standard and arranged) that secure a civilization.
+Reference §18-§19 and decisions D32-D34, D45, D51, D53, D59-D60,
+D74: the civilization-conditions engine (CIVILIZATIONS.md as admin
+data), the per-kingdom playable-civilization list recomputed at every
+cycle end, and the marriages (standard and arranged) that secure a
+civilization.
 
 Alliances equal civilizations (D51): the recomputed list is what the
 diplomacy surface displays; this service owns the rules only.
@@ -13,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from kingdoms.mods.kingdoms.service import (
@@ -60,6 +62,13 @@ class UnknownCivilizationError(MarriageError):
 
     code = "KINGDOMS_UNKNOWN_CIVILIZATION"
     message_key = "kingdoms.errors.unknown_civilization"
+
+
+class MarriageExclusivityError(MarriageError):
+    """Raised when an active marriage already claims the civilization (D74)."""
+
+    code = "KINGDOMS_MARRIAGE_EXCLUSIVITY"
+    message_key = "kingdoms.errors.marriage_exclusivity"
 
 
 class DiplomacyService:
@@ -206,12 +215,23 @@ class DiplomacyService:
     # ------------------------------------------------------------------
     # Marriages (D34/D45/D53)
     # ------------------------------------------------------------------
-    async def marry(self, player_id: str, civilization: str) -> str:
+    async def marry(
+        self,
+        player_id: str,
+        civilization: str,
+        *,
+        now: datetime | None = None,
+    ) -> str:
         """Marry a lord to a civilization (D34: one marriage per lord).
 
         The kingdom's capacity (grown by the epochs, D53) bounds the
         marriages; the civilization becomes secured for the kingdom.
+        The exclusivity is common to every marriage (D74): a
+        civilization already claimed by an active marriage - any
+        kingdom - is never targeted twice. A fresh marriage locks the
+        lord out of combat for 24 real hours (D59).
         """
+        timestamp = now or datetime.now(tz=UTC)
         season = await self._require_season()
         del season
         self._check_civilization(civilization)
@@ -229,13 +249,8 @@ class DiplomacyService:
         married = await self._kingdom_marriages_async(kingdom.id)
         if married >= kingdom.marriage_capacity:
             raise MarriageCapacityError("the kingdom reached its marriage capacity")
-        lord.married_civilization = civilization
-        await self._store.upsert_lord(lord.to_mongo())
-        if civilization not in kingdom.secured_civilizations:
-            kingdom.secured_civilizations = [*kingdom.secured_civilizations, civilization]
-        if civilization not in kingdom.civilizations:
-            kingdom.civilizations = [*kingdom.civilizations, civilization]
-        await self._store.upsert_kingdom(kingdom.to_mongo())
+        await self._check_exclusivity(civilization)
+        await self._commit_marriage(lord, kingdom, civilization, hours=24, now=timestamp)
         logger.info("kingdoms: %s married %s", player_id, civilization)
         return civilization
 
@@ -244,20 +259,67 @@ class DiplomacyService:
         player_id: str,
         civilization: str,
         *,
+        now: datetime | None = None,
         spend_points: Callable[[str, int], Awaitable[None]] | None = None,
     ) -> str:
-        """Buy an arranged marriage (3 techs, D45): instant exclusivity.
+        """Buy an arranged marriage (3 techs, D60/D74): instant exclusivity.
 
         The exclusivity is instant - the civilization is reserved to
-        the kingdom right away - but the marriage capacity still binds
-        (D45: the limit is never bypassed). The caller passes the
+        the kingdom right away - and the marriage capacity does NOT
+        bind (D74: the stock is never consumed); the one-marriage-per-
+        lord rule still applies (D45: never bypassed). Every check
+        runs before the payment so a refused marriage never debits the
+        treasury. A fresh arranged marriage locks the lord out of
+        combat for 6 real hours (D60). The caller passes the
         ``spend_points`` seam (the economy service) so the cost lands
         in the same transaction scope.
         """
+        timestamp = now or datetime.now(tz=UTC)
         self._check_civilization(civilization)
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == player_id),
+            None,
+        )
+        if lord is None:
+            raise KingdomNotFoundError("the player is not enrolled in the current season")
+        if lord.married_civilization is not None:
+            raise AlreadyMarriedError("a lord weds once per season (D45: never bypassed)")
+        if lord.kingdom_id is None or lord.left:
+            raise MarriageCapacityError("the lord belongs to no kingdom")
+        kingdom = await self._kingdom_by_id(lord.kingdom_id)
+        await self._check_exclusivity(civilization)
         if spend_points is not None:
             await spend_points(player_id, self._config.technologies.mariage_arrange)
-        return await self.marry(player_id, civilization)
+        await self._commit_marriage(lord, kingdom, civilization, hours=6, now=timestamp)
+        logger.info("kingdoms: %s arranged-married %s", player_id, civilization)
+        return civilization
+
+    async def _check_exclusivity(self, civilization: str) -> None:
+        """Refuse a civilization claimed by an active marriage (D74)."""
+        for lord in await self._kingdoms.lords():
+            if lord.married_civilization == civilization:
+                raise MarriageExclusivityError(
+                    f"an active marriage already claims {civilization} (D74)"
+                )
+
+    async def _commit_marriage(
+        self,
+        lord: LordModel,
+        kingdom: KingdomModel,
+        civilization: str,
+        *,
+        hours: int,
+        now: datetime,
+    ) -> None:
+        """Persist one marriage: secured civ, playable list, combat lock."""
+        lord.married_civilization = civilization
+        lord.marriage_locked_until = int((now + timedelta(hours=hours)).timestamp())
+        await self._store.upsert_lord(lord.to_mongo())
+        if civilization not in kingdom.secured_civilizations:
+            kingdom.secured_civilizations = [*kingdom.secured_civilizations, civilization]
+        if civilization not in kingdom.civilizations:
+            kingdom.civilizations = [*kingdom.civilizations, civilization]
+        await self._store.upsert_kingdom(kingdom.to_mongo())
 
     async def record_defeat(self, kingdom_id: str) -> None:
         """Flag a combat defeat: the marriages drop at the next cycle (D34)."""

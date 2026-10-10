@@ -27,10 +27,10 @@ def _build_service(config: Any) -> Any | None:
 def _build_services(config: Any) -> tuple[Any, ...] | None:
     """Build the full service ecosystem (Mongo-backed); None when unwired.
 
-    KingdomsService plus the territory/attack/economy services the
-    market panel consumes (reference §20, D9/D15/D36/D47/D48): they
-    share the same store and season config, so they are built once,
-    together.
+    KingdomsService plus the territory/attack/economy/diplomacy
+    services the market panel consumes (reference §20, D9/D15/D36/
+    D47/D48/D60/D68/D74): they share the same store and season
+    config, so they are built once, together.
     """
     if not getattr(config, "mongo_uri", ""):
         return None
@@ -38,6 +38,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.core.models.db import get_async_database
         from kingdoms.mods.kingdoms.attacks import AttackService
         from kingdoms.mods.kingdoms.config import load_season_config
+        from kingdoms.mods.kingdoms.diplomacy import DiplomacyService
         from kingdoms.mods.kingdoms.economy import EconomyService
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
@@ -49,7 +50,8 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         territories = TerritoryService(store, season_config, kingdoms)
         attacks = AttackService(store, season_config, kingdoms, territories)
         economy = EconomyService(store, season_config, kingdoms, territories, attacks)
-        return kingdoms, territories, attacks, economy
+        diplomacy = DiplomacyService(store, season_config, kingdoms, territories)
+        return kingdoms, territories, attacks, economy, diplomacy
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
         return None
@@ -68,12 +70,14 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_territories_service = None
         bot.kingdoms_attacks_service = None
         bot.kingdoms_economy_service = None
+        bot.kingdoms_diplomacy_service = None
     else:
-        kingdoms, territories, attacks, economy = services
+        kingdoms, territories, attacks, economy, diplomacy = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
         bot.kingdoms_economy_service = economy
+        bot.kingdoms_diplomacy_service = diplomacy
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)

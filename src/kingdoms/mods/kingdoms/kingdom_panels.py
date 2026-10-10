@@ -191,6 +191,21 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_limit": "❌ The per-season purchase limit is reached.",
         "market_err_protected": "❌ This territory is protected.",
         "market_err_guard_active": "❌ A Royal Guard is already active.",
+        "market_err_already_married": "❌ This lord is already married.",
+        "market_err_civ_taken": "❌ This civilization is already claimed by an active marriage.",
+        "market_err_civ_unknown": "❌ Marriage refused.",
+        "market_choose_slot": "🛡️ Choose the daily patrol slot (2h, Paris time):",
+        "market_slot_line": "{:02d}:00 → {:02d}:00",
+        "market_patrouille_ok": (
+            "✅ Purchased: **Patrol** — daily slot {:02d}:00 → {:02d}:00"
+            " — treasury left: {} 🔬"
+        ),
+        "market_choose_lord": "💍 Choose the lord to wed:",
+        "market_choose_civ": "👰 Choose the civilization of the arranged marriage:",
+        "market_mariage_ok": (
+            "✅ Arranged marriage sealed: **{}** is exclusive to your kingdom"
+            " — treasury left: {} 🔬"
+        ),
         "market_err_unknown": "❌ Purchase refused ({}).",
         "market_choose_corrupt": "🎯 Choose the territory to corrupt:",
         "market_choose_guard": "🛡️ Choose the territory to shield:",
@@ -199,7 +214,6 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_tech": {
             "embuscade": "Ambush",
             "traquenard": "Trap",
-            "patrouille": "Patrol",
             "contre_espionnage": "Counter-espionage",
             "sabotage": "Sabotage",
             "jeu_d_armes": "Arms mastery",
@@ -208,6 +222,8 @@ STRINGS: dict[str, dict[str, Any]] = {
             "explorateur": "Explorer",
             "corruption": "Corruption",
             "garde_royale": "Royal Guard",
+            "patrouille": "Patrol",
+            "mariage_arrange": "Arranged marriage",
         },
     },
     "fr": {
@@ -286,6 +302,21 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_limit": "❌ La limite d'achats pour cette saison est atteinte.",
         "market_err_protected": "❌ Ce territoire est protégé.",
         "market_err_guard_active": "❌ Une Garde Royale est déjà active.",
+        "market_err_already_married": "❌ Ce seigneur est déjà marié.",
+        "market_err_civ_taken": "❌ Cette civilisation est déjà visée par un mariage actif.",
+        "market_err_civ_unknown": "❌ Mariage refusé.",
+        "market_choose_slot": "🛡️ Choisissez le créneau quotidien de patrouille (2h, heure de Paris) :",
+        "market_slot_line": "{:02d}h00 → {:02d}h00",
+        "market_patrouille_ok": (
+            "✅ Achat effectué : **Patrouille** — créneau quotidien {:02d}h00 → {:02d}h00"
+            " — trésor restant : {} 🔬"
+        ),
+        "market_choose_lord": "💍 Choisissez le seigneur à marier :",
+        "market_choose_civ": "👰 Choisissez la civilisation du mariage arrangé :",
+        "market_mariage_ok": (
+            "✅ Mariage arrangé scellé : **{}** est exclusive à votre royaume"
+            " — trésor restant : {} 🔬"
+        ),
         "market_err_unknown": "❌ Achat refusé ({}).",
         "market_choose_corrupt": "🎯 Choisissez le territoire à corrompre :",
         "market_choose_guard": "🛡️ Choisissez le territoire à protéger :",
@@ -294,7 +325,6 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_tech": {
             "embuscade": "Embuscade",
             "traquenard": "Traquenard",
-            "patrouille": "Patrouille",
             "contre_espionnage": "Contre-espionnage",
             "sabotage": "Sabotage",
             "jeu_d_armes": "Jeu d'armes",
@@ -303,6 +333,8 @@ STRINGS: dict[str, dict[str, Any]] = {
             "explorateur": "Explorateur",
             "corruption": "Corruption",
             "garde_royale": "Garde Royale",
+            "patrouille": "Patrouille",
+            "mariage_arrange": "Mariage arrangé",
         },
     },
 }
@@ -891,7 +923,6 @@ async def build_market_panel(
     tech_keys = (
         "embuscade",
         "traquenard",
-        "patrouille",
         "contre_espionnage",
         "sabotage",
         "jeu_d_armes",
@@ -906,7 +937,7 @@ async def build_market_panel(
             )
         )
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for key in ("explorateur", "corruption", "garde_royale"):
+    for key in ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange"):
         cost = int(getattr(technologies, key))
         action_row.add_item(
             KingdomMarketActionButton(

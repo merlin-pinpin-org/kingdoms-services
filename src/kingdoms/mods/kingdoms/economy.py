@@ -1,14 +1,15 @@
 """Kingdoms mod special-action economy service (kingdoms-services#161, T7).
 
-Reference §20 and decisions D9/D15/D36/D47/D48/D58/D61: the kingdom
+Reference §20 and decisions D9/D15/D36/D47/D48/D58/D61/D68: the kingdom
 tech-point wallet (``tech_points_bank`` fed by the epochs and the
-exploration rewards) and the three purchasable special actions built on
+exploration rewards) and the purchasable special actions built on
 it - Explorateur (receive one random non-out territory, D48),
-Corruption (steal any territory, protected 48 real hours, D58) and the
+Corruption (steal any territory, protected 48 real hours, D58), the
 Garde Royale shield (24h, one active guard per kingdom, extendable at
-a rising cost, D61). The wallet is single: every purchase debits the
-kingdom bank, including combat technologies through the transfer seam
-toward the T4 technology state.
+a rising cost, D61) and Patrouille (a daily 2h no-aggression slot,
+D68). The wallet is single: every purchase debits the kingdom bank,
+including combat technologies through the transfer seam toward the T4
+technology state.
 """
 from __future__ import annotations
 
@@ -17,6 +18,11 @@ import random
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.attacks import (
+    PATROUILLE_SLOT_KEYS,
+    patrouille_active_at,
+    patrouille_slots,
+)
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
     KingdomsModError,
@@ -40,6 +46,8 @@ logger = logging.getLogger("kingdoms.economy")
 EXPLORATEUR = "explorateur"
 CORRUPTION = "corruption"
 GARDE_ROYALE = "garde_royale"
+PATROUILLE = "patrouille"
+PATROUILLE_HOURS = 2
 ROYAL_GUARD_HOURS = 24
 ROYAL_GUARD_EXTENSION_HOURS = 3
 CORRUPTION_PROTECTION_HOURS = 48
@@ -205,6 +213,13 @@ class EconomyService:
             raise EconomyError("a kingdom cannot corrupt its own territory")
         if territory.is_protected_at(timestamp):
             raise TerritoryProtectedError("the territory is protected against corruption")
+        # D68: the target kingdom's daily patrol resists the steal.
+        if patrouille_active_at(
+            await self._attacks.technology_state(territory.owner_kingdom_id), timestamp
+        ):
+            raise TerritoryProtectedError(
+                "the target kingdom's patrol protects its territories (D68)"
+            )
         await self.spend_points(kingdom_id, self._cost(CORRUPTION))
         former_owner = territory.owner_kingdom_id
         await self._territories.transfer(territory_id, kingdom_id)
@@ -301,6 +316,36 @@ class EconomyService:
             territory.protected_until.isoformat(),
         )
         return territory
+
+    # ------------------------------------------------------------------
+    # Patrouille (D68)
+    # ------------------------------------------------------------------
+    async def buy_patrouille(self, kingdom_id: str, slot_start: int) -> int:
+        """Buy one daily 2h no-aggression slot (D68).
+
+        The slot covers every kingdom territory during the bought
+        tranche: no player attack, no Corruption (Gaïa never attacks,
+        so the patrol never binds it). Slots start on a 2h grid; the
+        same tranche cannot be bought twice and the per-season limit
+        (2 by default, admin-editable) bounds the purchases.
+        """
+        if slot_start not in range(0, 24, PATROUILLE_HOURS):
+            raise EconomyError("the patrol slot must start on the 2h grid (0, 2, … 22)")
+        await self._check_consumable(kingdom_id, PATROUILLE)
+        state = await self._attacks.technology_state(kingdom_id)
+        if slot_start in patrouille_slots(state):
+            raise EconomyError("this patrol slot is already bought")
+        await self.spend_points(kingdom_id, self._cost(PATROUILLE))
+        free = next(
+            (key for key in PATROUILLE_SLOT_KEYS if key not in state.purchases), None
+        )
+        if free is None:
+            raise EconomyError("this patrol slot is already bought")
+        state.purchases[free] = slot_start
+        await self._store.upsert_technology(state.to_mongo())
+        await self._count_purchase(kingdom_id, PATROUILLE)
+        logger.info("kingdoms: %s patrols the daily slot %sh", kingdom_id, slot_start)
+        return slot_start
 
     # ------------------------------------------------------------------
     # Internals

@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from kingdoms.mods.kingdoms.attacks import (
+    PatrolProtectedError,
     TechnologyLimitReachedError,
     TerritoryNotAttackableError,
 )
@@ -198,6 +199,49 @@ async def test_royal_guard_shields_extends_and_refuses_stacking() -> None:
     later = now + timedelta(hours=31)
     fresh = await bundle.economy.buy_royal_guard(aquitaine, owned[1].id, now=later)
     assert fresh.protected_until == later + timedelta(hours=24)
+
+
+async def test_patrouille_buys_daily_slots_and_blocks_aggression() -> None:
+    """D68: two daily 2h slots max; the slot blocks attacks and Corruption."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    aquitaine, bourgogne = await bundle.kingdom_id("Aquitaine"), await bundle.kingdom_id("Bourgogne")
+    await bundle.fund(aquitaine, 10)
+    assert await bundle.economy.buy_patrouille(aquitaine, 2) == 2
+    assert await bundle.economy.buy_patrouille(aquitaine, 22) == 22
+    assert await bundle.economy.wallet(aquitaine) == 6  # 2 techs per slot
+    # Limit: 2 purchases per season (D68).
+    with pytest.raises(EconomyLimitReachedError):
+        await bundle.economy.buy_patrouille(aquitaine, 4)
+    # The same tranche cannot be bought twice.
+    fresh = Bundle()
+    await fresh.launch_season()
+    king = await fresh.kingdom_id("Aquitaine")
+    await fresh.fund(king, 10)
+    await fresh.economy.buy_patrouille(king, 2)
+    with pytest.raises(EconomyError):
+        await fresh.economy.buy_patrouille(king, 2)
+    # Slots start on the 2h grid only.
+    with pytest.raises(EconomyError):
+        await fresh.economy.buy_patrouille(king, 3)
+    # During the slot (02:30 Paris = 01:30 UTC in January) the kingdom
+    # resists player attacks (D68) and Corruption.
+    await bundle.draw(1)
+    target = next(
+        t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine
+    )
+    in_slot = datetime(2026, 1, 15, 1, 30, tzinfo=UTC)
+    with pytest.raises(PatrolProtectedError):
+        await bundle.attacks.declare_attack("king-b", target.map_key, "aoe2de://x", now=in_slot)
+    await bundle.fund(bourgogne, 4)
+    with pytest.raises(TerritoryProtectedError):
+        await bundle.economy.buy_corruption(bourgogne, target.id, now=in_slot)
+    # Outside the slot (06:30 Paris) the aggression goes through.
+    out_of_slot = datetime(2026, 1, 15, 5, 30, tzinfo=UTC)
+    attack = await bundle.attacks.declare_attack(
+        "king-b", target.map_key, "aoe2de://x", now=out_of_slot
+    )
+    assert attack.map_key == target.map_key
 
 
 async def test_royal_guard_requires_ownership() -> None:

@@ -47,7 +47,6 @@ logger = logging.getLogger("kingdoms.attacks")
 COMBAT_TECHNOLOGIES = (
     "embuscade",
     "traquenard",
-    "patrouille",
     "contre_espionnage",
     "sabotage",
     "jeu_d_armes",
@@ -145,6 +144,51 @@ class SabotageError(TechnologyError):
     message_key = "kingdoms.errors.sabotage_error"
 
 
+class LordLockedError(AttackError):
+    """Raised when a fresh marriage locks a lord out of combat (D59/D60)."""
+
+    code = "KINGDOMS_LORD_LOCKED"
+    message_key = "kingdoms.errors.lord_locked"
+
+
+class PatrolProtectedError(AttackError):
+    """Raised when the target kingdom's patrol covers the moment (D68)."""
+
+    code = "KINGDOMS_PATROL_PROTECTED"
+    message_key = "kingdoms.errors.patrol_protected"
+
+
+PATROUILLE_SLOT_KEYS = ("patrouille_slot_1", "patrouille_slot_2")
+PATROUILLE_HOURS = 2
+PATROUILLE_TZ = "Europe/Paris"
+
+
+def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
+    """Return the kingdom's bought patrol slots (start hours, D68)."""
+    return tuple(
+        state.purchases[key]
+        for key in PATROUILLE_SLOT_KEYS
+        if key in state.purchases
+    )
+
+
+def patrouille_active_at(state: TechnologyState, now: datetime) -> bool:
+    """Whether a patrol slot covers ``now`` (daily 2h slot, D68).
+
+    The slot hours are expressed in the players' timezone (Europe/Paris,
+    the community's convention); an environment without tzdata falls
+    back to UTC so the rule keeps working everywhere.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+
+        local = now.astimezone(ZoneInfo(PATROUILLE_TZ))
+    except Exception:
+        local = now
+    hour = local.hour + local.minute / 60
+    return any(slot <= hour < slot + PATROUILLE_HOURS for slot in patrouille_slots(state))
+
+
 def _now() -> datetime:
     """Return the current UTC time (seam for deterministic tests)."""
     return datetime.now(tz=UTC)
@@ -200,6 +244,17 @@ class AttackService:
             raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
         if territory.is_protected_at(timestamp):
             raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+        # D68: the target kingdom's daily patrol covers all its
+        # territories during the bought 2h slot.
+        if patrouille_active_at(
+            await self.technology_state(territory.owner_kingdom_id), timestamp
+        ):
+            raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
+        # D59/D60: a fresh marriage locks the lord out of combat.
+        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         if await self._territory_busy(territory.id):
             raise TerritoryBusyError("the territory already has an ongoing attack")
         if lord.attack_used >= self._config.attacks.attacks_per_week:
@@ -241,6 +296,11 @@ class AttackService:
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
+        # D59/D60: a fresh marriage locks the lord out of combat.
+        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
+            _now().timestamp()
+        ):
+            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         if lord.defense_used >= self._config.attacks.defenses_per_week:
             raise NoBudgetError("the weekly defense budget is spent")
         lord.defense_used += 1

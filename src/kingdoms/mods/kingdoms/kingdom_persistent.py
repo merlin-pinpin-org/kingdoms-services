@@ -50,6 +50,7 @@ class KingdomsPanelWiring:
     territories_service: Any = None
     attacks_service: Any = None
     economy_service: Any = None
+    diplomacy_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -85,6 +86,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             territories_service=getattr(bot, "kingdoms_territories_service", None),
             attacks_service=getattr(bot, "kingdoms_attacks_service", None),
             economy_service=getattr(bot, "kingdoms_economy_service", None),
+            diplomacy_service=getattr(bot, "kingdoms_diplomacy_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -411,6 +413,11 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         InsufficientTechPointsError,
         TechnologyLimitReachedError,
     )
+    from kingdoms.mods.kingdoms.diplomacy import (
+        AlreadyMarriedError,
+        MarriageError,
+        MarriageExclusivityError,
+    )
     from kingdoms.mods.kingdoms.economy import (
         EconomyLimitReachedError,
         GuardAlreadyActiveError,
@@ -426,6 +433,12 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         return str(strings["market_err_protected"])
     if isinstance(exc, GuardAlreadyActiveError):
         return str(strings["market_err_guard_active"])
+    if isinstance(exc, AlreadyMarriedError):
+        return str(strings["market_err_already_married"])
+    if isinstance(exc, MarriageExclusivityError):
+        return str(strings["market_err_civ_taken"])
+    if isinstance(exc, MarriageError):
+        return str(strings["market_err_civ_unknown"])
     logger.warning("KINGDOMS MARKET: purchase failed", exc_info=True)
     return str(strings["market_err_unknown"]).format(type(exc).__name__)
 
@@ -492,10 +505,176 @@ async def _market_action_select_view(
     return view
 
 
+def _market_patrouille_view(strings: dict[str, Any]) -> discord.ui.View:
+    """Build the ephemeral patrol-slot select (D68: daily 2h tranches)."""
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:market:choose:patrouille",
+        placeholder=strings["market_action"]["patrouille"][:100],
+        options=[
+            discord.SelectOption(
+                label=strings["market_slot_line"].format(start, start + 2),
+                value=str(start),
+            )
+            for start in range(0, 24, 2)
+        ],
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+        wiring = _wiring()
+        economy = wiring.economy_service
+        if economy is None:
+            await target.followup.send(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(target.user.id))
+        if king is None:
+            await target.followup.send(strings["market_not_king"], ephemeral=True)
+            return
+        slot = int(chosen[0])
+        try:
+            await economy.buy_patrouille(king.kingdom_id or "", slot)
+        except Exception as exc:
+            await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        try:
+            wallet = await economy.wallet(king.kingdom_id or "")
+        except Exception:
+            wallet = 0
+        await target.followup.send(
+            strings["market_patrouille_ok"].format(slot, slot + 2, wallet),
+            ephemeral=True,
+        )
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
+async def _market_marry_lord_view(
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    strings: dict[str, Any],
+) -> discord.ui.View | None:
+    """Build the ephemeral lord select of the arranged marriage (D60/D74)."""
+    if wiring.kingdoms_service is None:
+        return None
+    kingdom_id = king.kingdom_id or ""
+    lords = [
+        lord
+        for lord in await wiring.kingdoms_service.lords()
+        if getattr(lord, "kingdom_id", None) == kingdom_id
+        and not getattr(lord, "left", False)
+        and getattr(lord, "married_civilization", None) is None
+    ][:25]
+    if not lords:
+        return None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:market:choose:mariage_arrange",
+        placeholder=strings["market_action"]["mariage_arrange"][:100],
+        options=[
+            discord.SelectOption(
+                label=str(getattr(lord, "display_name", lord.id))[:100],
+                value=str(lord.id)[:100],
+            )
+            for lord in lords
+        ],
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+        view = await _market_marry_civ_view(wiring, king, chosen[0], strings)
+        if view is None:
+            await target.followup.send(strings["market_no_options"], ephemeral=True)
+            return
+        await target.followup.send(
+            strings["market_choose_civ"], view=view, ephemeral=True
+        )
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
+async def _market_marry_civ_view(
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    lord_id: str,
+    strings: dict[str, Any],
+) -> discord.ui.View | None:
+    """Build the ephemeral civilization select (D74: any civ, exclusive)."""
+    if wiring.diplomacy_service is None or wiring.economy_service is None:
+        return None
+    if wiring.kingdoms_service is None:
+        return None
+    married = {
+        str(lord.married_civilization)
+        for lord in await wiring.kingdoms_service.lords()
+        if getattr(lord, "married_civilization", None) is not None
+    }
+    catalog = getattr(getattr(wiring.kingdoms_service, "config", None), "civilizations", ()) or ()
+    options = [
+        discord.SelectOption(
+            label=str(getattr(civ, "display_name", civ.key))[:100],
+            value=str(civ.key)[:100],
+        )
+        for civ in catalog
+        if str(civ.key) not in married
+    ][:25]
+    if not options:
+        return None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id=f"kingdoms:market:marryciv:{str(lord_id)[:80]}",
+        placeholder=strings["market_action"]["mariage_arrange"][:100],
+        options=options,
+    )
+    economy = wiring.economy_service
+    diplomacy = wiring.diplomacy_service
+    kingdom_id = king.kingdom_id or ""
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+
+        async def spend(_lord_id: str, cost: int) -> None:
+            await economy.spend_points(kingdom_id, cost)
+
+        try:
+            await diplomacy.arranged_marriage(lord_id, chosen[0], spend_points=spend)
+        except Exception as exc:
+            await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        try:
+            wallet = await economy.wallet(kingdom_id)
+        except Exception:
+            wallet = 0
+        await target.followup.send(
+            strings["market_mariage_ok"].format(chosen[0], wallet),
+            ephemeral=True,
+        )
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
 class KingdomMarketTechButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
-        r"kingdoms:market:tech:(?P<tech>embuscade|traquenard|patrouille"
+        r"kingdoms:market:tech:(?P<tech>embuscade|traquenard"
         r"|contre_espionnage|sabotage|jeu_d_armes)"
     ),
 ):
@@ -556,7 +735,10 @@ class KingdomMarketTechButton(
 
 class KingdomMarketActionButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"kingdoms:market:action:(?P<action>explorateur|corruption|garde_royale)",
+    template=(
+        r"kingdoms:market:action:(?P<action>explorateur|corruption|garde_royale"
+        r"|patrouille|mariage_arrange)"
+    ),
 ):
     """The restart-proof button opening one special-action purchase flow."""
 
@@ -614,6 +796,26 @@ class KingdomMarketActionButton(
                     strings["market_action"]["explorateur"], detail
                 ),
                 ephemeral=True,
+            )
+            return
+        if self.action == "patrouille":
+            # D68: the King picks the daily 2h no-aggression slot.
+            await interaction.response.send_message(
+                strings["market_choose_slot"],
+                view=_market_patrouille_view(strings),
+                ephemeral=True,
+            )
+            return
+        if self.action == "mariage_arrange":
+            # D60/D74: the King picks the lord, then the civilization.
+            marry_view = await _market_marry_lord_view(wiring, king, strings)
+            if marry_view is None:
+                await interaction.response.send_message(
+                    strings["market_no_options"], ephemeral=True
+                )
+                return
+            await interaction.response.send_message(
+                strings["market_choose_lord"], view=marry_view, ephemeral=True
             )
             return
         view = await _market_action_select_view(wiring, king, self.action, strings)

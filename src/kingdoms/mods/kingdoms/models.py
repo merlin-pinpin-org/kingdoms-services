@@ -67,6 +67,12 @@ class KingdomModel(BaseModel):
 class LordModel(BaseModel):
     """A player of the current season: king or lord of a kingdom.
 
+    ``married_civilization`` is the marriage target (one per lord,
+    D34); ``marriage_locked_until`` is the real-time combat lock of a
+    fresh marriage (D59: 24h standard, D60: 6h arranged) - a locked
+    lord can neither attack nor defend while the unix timestamp is in
+    the future.
+
     ``attack_used``/``defense_used`` are the weekly budgets consumed in
     the current cycle (1+1 per week — reference §11, recharge at the
     cycle switch, D1).
@@ -83,6 +89,7 @@ class LordModel(BaseModel):
     attack_used: int = Field(default=0, ge=0)
     defense_used: int = Field(default=0, ge=0)
     married_civilization: str | None = None
+    marriage_locked_until: int | None = None
     left: bool = False
     left_reason: str | None = None
 

@@ -37,11 +37,11 @@ from tests.mocks.discord_mock import (
 TECH_KEYS = (
     "embuscade",
     "traquenard",
-    "patrouille",
     "contre_espionnage",
     "sabotage",
     "jeu_d_armes",
 )
+ACTION_KEYS = ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange")
 
 
 @dataclass
@@ -50,6 +50,8 @@ class FakeLord:
     role: str
     kingdom_id: str | None = None
     left: bool = False
+    display_name: str = "Lord"
+    married_civilization: str | None = None
 
 
 @dataclass
@@ -68,7 +70,12 @@ class FakeMapEntry:
 class FakeKingdomsService:
     """KingdomsService stand-in: just the lord registry and the config."""
 
-    def __init__(self, lords: list[FakeLord] | None = None, maps: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        lords: list[FakeLord] | None = None,
+        maps: tuple[str, ...] = (),
+        civilizations: tuple[str, ...] = ("celtes", "shu"),
+    ) -> None:
         self._lords = lords or []
         self.config = type(
             "FakeSeasonConfig",
@@ -76,6 +83,7 @@ class FakeKingdomsService:
             {
                 "technologies": None,
                 "maps": tuple(FakeMapEntry(key) for key in maps) or (),
+                "civilizations": tuple(FakeMapEntry(key) for key in civilizations),
             },
         )()
 
@@ -92,9 +100,18 @@ class FakeEconomyService:
         self.explorateur_bought: list[str] = []
         self.corrupted: list[tuple[str, str]] = []
         self.guarded: list[tuple[str, str]] = []
+        self.patrols: list[tuple[str, int]] = []
+        self.spent: list[tuple[str, int]] = []
 
     async def wallet(self, kingdom_id: str) -> int:
         return self.wallet_balance
+
+    async def spend_points(self, kingdom_id: str, cost: int) -> None:
+        self.spent.append((kingdom_id, cost))
+
+    async def buy_patrouille(self, kingdom_id: str, slot_start: int) -> int:
+        self.patrols.append((kingdom_id, slot_start))
+        return slot_start
 
     async def buy_combat_technology(self, kingdom_id: str, technology: str) -> object:
         self.tech_bought.append((kingdom_id, technology))
@@ -113,6 +130,21 @@ class FakeEconomyService:
     async def buy_royal_guard(self, kingdom_id: str, territory_id: str) -> FakeTerritory:
         self.guarded.append((kingdom_id, territory_id))
         return FakeTerritory(id=territory_id, map_key="guarded", owner_kingdom_id=kingdom_id)
+
+
+class FakeDiplomacyService:
+    """DiplomacyService stand-in recording arranged marriages."""
+
+    def __init__(self) -> None:
+        self.arranged: list[tuple[str, str]] = []
+
+    async def arranged_marriage(
+        self, player_id: str, civilization: str, *, spend_points: Any = None
+    ) -> str:
+        if spend_points is not None:
+            await spend_points(player_id, 3)
+        self.arranged.append((player_id, civilization))
+        return civilization
 
 
 class FakeTerritoryService:
@@ -145,13 +177,16 @@ def _wiring(
     lords: list[FakeLord] | None = None,
     economy: FakeEconomyService | None = None,
     territories: FakeTerritoryService | None = None,
+    diplomacy: FakeDiplomacyService | None = None,
     maps: tuple[str, ...] = ("arabia", "islands"),
+    civilizations: tuple[str, ...] = ("celtes", "shu"),
 ) -> None:
     register_kingdoms_panel_wiring(
         KingdomsPanelWiring(
-            kingdoms_service=FakeKingdomsService(lords, maps),
+            kingdoms_service=FakeKingdomsService(lords, maps, civilizations),
             territories_service=territories,
             economy_service=economy,
+            diplomacy_service=diplomacy,
         )
     )
 
@@ -160,7 +195,7 @@ async def test_market_panel_pins_every_purchase_button() -> None:
     view = await build_market_panel("fr")
     ids = set(_custom_ids(view))
     expected = {f"kingdoms:market:tech:{key}" for key in TECH_KEYS}
-    expected |= {f"kingdoms:market:action:{key}" for key in ("explorateur", "corruption", "garde_royale")}
+    expected |= {f"kingdoms:market:action:{key}" for key in ACTION_KEYS}
     assert expected <= ids
     assert ids == expected  # no stray interactive component
 
@@ -240,6 +275,70 @@ async def test_explorateur_button_buys_a_random_map_directly() -> None:
     assert "Purchased" in (interaction.followup.messages[-1].content or "")
 
 
+async def test_patrouille_button_opens_the_slot_select_and_buys() -> None:
+    """D68: the patrol button sells one daily 2h slot through a select."""
+    economy = FakeEconomyService()
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+    )
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketActionButton("patrouille", "Patrol — 2 🔬", discord.ButtonStyle.secondary)
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    select = next(iter(message.view.children))
+    assert [opt.value for opt in select.options] == [str(h) for h in range(0, 24, 2)]
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["2"]}, locale="en-US")
+    await select.callback(choice)
+    assert economy.patrols == [("k1", 2)]
+    assert "02:00" in (choice.followup.messages[-1].content or "")
+
+
+async def test_mariage_button_flows_lord_then_civilization() -> None:
+    """D60/D74: the arranged marriage weds a chosen lord to a chosen civ."""
+    economy = FakeEconomyService()
+    diplomacy = FakeDiplomacyService()
+    _wiring(
+        lords=[
+            FakeLord(id="111", role="king", kingdom_id="k1"),
+            FakeLord(id="222", role="lord", kingdom_id="k1"),
+            FakeLord(id="333", role="lord", kingdom_id="k1", married_civilization="shu"),
+        ],
+        economy=economy,
+        diplomacy=diplomacy,
+        civilizations=("celtes", "shu"),
+    )
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketActionButton(
+        "mariage_arrange", "Arranged marriage — 3 🔬", discord.ButtonStyle.secondary
+    )
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    lord_select = next(iter(message.view.children))
+    # Only the unmarried lords of the kingdom are eligible (D45).
+    assert sorted(opt.value for opt in lord_select.options) == ["111", "222"]
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["222"]}, locale="en-US")
+    await lord_select.callback(choice)
+    civ_view = choice.followup.messages[-1].view
+    assert civ_view is not None
+    civ_select = next(iter(civ_view.children))
+    # A married civilization is never proposed again (D74 exclusivity).
+    assert [opt.value for opt in civ_select.options] == ["celtes"]
+
+    civ_choice: Any = MockInteraction(
+        user=MockUser(id=111), data={"values": ["celtes"]}, locale="en-US"
+    )
+    await civ_select.callback(civ_choice)
+    assert diplomacy.arranged == [("222", "celtes")]
+    # The 3 techs went through the kingdom treasury (D2).
+    assert economy.spent == [("k1", 3)]
+    assert "sealed" in (civ_choice.followup.messages[-1].content or "")
+
+
 async def test_action_button_answers_no_options_when_empty() -> None:
     economy = FakeEconomyService()
     _wiring(
@@ -285,6 +384,7 @@ def test_wiring_resolves_the_market_services_from_the_bot() -> None:
         kingdoms_territories_service = "territories"
         kingdoms_attacks_service = "attacks"
         kingdoms_economy_service = "economy"
+        kingdoms_diplomacy_service = "diplomacy"
 
     register_kingdoms_panel_bot(_Bot())
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
@@ -293,3 +393,4 @@ def test_wiring_resolves_the_market_services_from_the_bot() -> None:
     assert wiring.economy_service == "economy"
     assert wiring.territories_service == "territories"
     assert wiring.attacks_service == "attacks"
+    assert wiring.diplomacy_service == "diplomacy"
