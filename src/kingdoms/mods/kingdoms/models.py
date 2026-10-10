@@ -15,9 +15,24 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 GAIA_KINGDOM_KEY = "gaia"
+
+
+def _from_wire[ModelT: BaseModel](cls: type[ModelT], data: dict[str, Any]) -> ModelT:
+    """Rebuild a model from a MongoDB document (wire-tolerant).
+
+    MongoDB gives back plain strings for the StrEnum fields and lists
+    for the tuple/list fields; the models are ``strict=True`` so the
+    in-code constructor calls stay exact, but ``from_mongo`` must read
+    the wire leniently (``strict=False``) or every stored document
+    fails validation on the way back (first seen live: the starting
+    draft re-reading a freshly upserted kingdom, 2026-10-10).
+    """
+    return TypeAdapter(cls).validate_python(data, strict=False)
+
+
 
 
 class KingdomType(StrEnum):
@@ -56,7 +71,7 @@ class KingdomModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> KingdomModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
     @property
     def is_gaia(self) -> bool:
@@ -100,7 +115,7 @@ class LordModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> LordModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
 
 class TerritoryModel(BaseModel):
@@ -128,7 +143,7 @@ class TerritoryModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> TerritoryModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
     def is_protected_at(self, now: datetime) -> bool:
         """Whether the anti-attack/anti-corruption shield is active (D15/D37/D47)."""
@@ -161,7 +176,7 @@ class TechnologyState(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> TechnologyState:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
     def can_afford(self, cost: int) -> bool:
         """Whether the kingdom can spend ``cost`` tech points."""
@@ -248,7 +263,7 @@ class AttackModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> AttackModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
     @property
     def is_over(self) -> bool:
@@ -285,7 +300,7 @@ class SeasonState(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> SeasonState:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
 
 class DuelModel(BaseModel):
@@ -314,7 +329,7 @@ class DuelModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> DuelModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)
 
 
 class ShowMatchModel(BaseModel):
@@ -346,4 +361,4 @@ class ShowMatchModel(BaseModel):
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> ShowMatchModel:
         """Build from a MongoDB document."""
-        return cls.model_validate(data)
+        return _from_wire(cls, data)

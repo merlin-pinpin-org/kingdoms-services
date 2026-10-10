@@ -7,6 +7,7 @@ weekly budgets — plus the D21 name rules.
 """
 from __future__ import annotations
 
+import bson
 import pytest
 
 from kingdoms.mods.kingdoms.config import default_season_config
@@ -62,6 +63,37 @@ class MemoryStore:
         self.seasons.clear()
         self.kingdoms.clear()
         self.lords.clear()
+
+
+class MongoWireStore(MemoryStore):
+    """MemoryStore behind a BSON round-trip — what MongoDB really does.
+
+    BSON stringifies the StrEnum fields and returns plain lists, so
+    this store reproduces the production wire exactly: a strict
+    ``from_mongo`` that never saw a real document fails here.
+    """
+
+    @staticmethod
+    def _wire(document: dict) -> dict:
+        return bson.decode(bson.encode(document))
+
+    async def upsert_season(self, document: dict) -> None:
+        await super().upsert_season(self._wire(document))
+
+    async def find_seasons(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_seasons()]
+
+    async def upsert_kingdom(self, document: dict) -> None:
+        await super().upsert_kingdom(self._wire(document))
+
+    async def find_kingdoms(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_kingdoms()]
+
+    async def upsert_lord(self, document: dict) -> None:
+        await super().upsert_lord(self._wire(document))
+
+    async def find_lords(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_lords()]
 
 
 def _service() -> tuple[KingdomsService, MemoryStore]:
@@ -243,3 +275,34 @@ async def test_re_enroll_after_leave_is_allowed() -> None:
     await service.leave("p1", "RL")
     lord = await service.enroll("p1", "Rollon", LordRole.LORD)
     assert lord.in_queue is True
+
+
+async def test_models_survive_the_mongo_wire_roundtrip() -> None:
+    """Regression (live incident 2026-10-10): a strict ``from_mongo``
+    rejected every document read back from MongoDB — BSON gives plain
+    strings for the StrEnum fields, and the season launch crashed with
+    ``ValidationError: type — Input should be an instance of
+    KingdomType`` the moment the starting draft re-read a freshly
+    upserted kingdom. The wire store below reproduces the exact BSON
+    round-trip, so a regression fails here, not on the live env."""
+    from kingdoms.mods.kingdoms.config import (
+        CivilizationCondition,
+        KingdomsSeasonConfig,
+    )
+
+    config = KingdomsSeasonConfig(
+        starting_civilizations=8,
+        civilizations=tuple(
+            CivilizationCondition(key=f"civ-{index}", display_name=f"Civ {index}")
+            for index in range(20)
+        ),
+    )
+    service = KingdomsService(MongoWireStore(), config)  # type: ignore[arg-type]
+    await service.launch(imposed_names=["Aquitaine", "Bourgogne"])
+    kingdoms = await service.kingdoms()  # reads back through BSON
+    assert len(kingdoms) == 3  # gaia + the two imposed
+    drawn = [civ for k in kingdoms if not k.is_gaia for civ in k.civilizations]
+    assert len(drawn) == 16
+    assert len(set(drawn)) == 16  # the draft stays duplicate-free over the wire
+    lords = await service.lords()
+    assert lords == []  # no lords yet, but the read must not crash either
