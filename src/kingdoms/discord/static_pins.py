@@ -80,6 +80,39 @@ class StaticPinnedView:
 
 _SPEC_STORE: dict[str, StaticPinnedView] = {}
 _MEMORY_STORE: dict[tuple[str, str], str] = {}
+_LAST_RENDER: dict[tuple[str, str], str] = {}
+
+
+def _layout_fingerprint(layout: Any) -> str:
+    """Hash a layout's rendered payload (components' ids and labels)."""
+    import hashlib
+    import json
+
+    def walk(component: Any) -> Any:
+        if isinstance(component, (list, tuple)):
+            return [walk(c) for c in component]
+        if hasattr(component, "custom_id"):
+            return {
+                "id": getattr(component, "custom_id", None),
+                "label": getattr(component, "label", None),
+                "children": walk(getattr(component, "children", []) or []),
+            }
+        if hasattr(component, "options"):
+            return [str(getattr(o, "label", o)) for o in component.options]
+        if hasattr(component, "children"):
+            return walk(component.children)
+        return str(component)
+
+    payload = json.dumps(walk(layout), sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _safe_repin(message: Any, key: str) -> None:
+    """Re-pin a live pin, best-effort (Discord's edit quota stays cold)."""
+    try:
+        await message.pin(reason=f"kingdoms: pinned {key}")
+    except Exception:
+        logger.debug("%s re-pin skipped — best-effort", key, exc_info=True)
 
 
 def register_static_pin(spec: StaticPinnedView) -> StaticPinnedView:
@@ -100,6 +133,7 @@ def reset_static_pins() -> None:
     """Clear the registry (test isolation: each suite starts clean)."""
     _SPEC_STORE.clear()
     _MEMORY_STORE.clear()
+    _LAST_RENDER.clear()
 
 
 def registered_static_pins() -> tuple[StaticPinnedView, ...]:
@@ -127,8 +161,14 @@ async def ensure_static_pin(bot: discord.Client, spec: StaticPinnedView, guild_i
     if message_id:
         try:
             message = await channel.fetch_message(int(message_id))
-            await message.edit(view=await spec.build_layout(guild_id))
-            await message.pin(reason=f"kingdoms: pinned {spec.key}")
+            layout = await spec.build_layout(guild_id)
+            fingerprint = _layout_fingerprint(layout)
+            if _LAST_RENDER.get((spec.key, guild_id)) == fingerprint:
+                await _safe_repin(message, spec.key)
+                return False
+            await message.edit(view=layout)
+            _LAST_RENDER[(spec.key, guild_id)] = fingerprint
+            await _safe_repin(message, spec.key)
             return False
         except Exception:
             logger.info("%s pin is gone — recreating", spec.key, exc_info=True)
