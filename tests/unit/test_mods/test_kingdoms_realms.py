@@ -6,6 +6,8 @@ buttons, the structure is idempotent, and refused kingdoms lose theirs.
 """
 from __future__ import annotations
 
+from typing import ClassVar
+
 import discord
 import pytest
 
@@ -238,3 +240,79 @@ async def test_delete_realm_structure_grants_bot_access_first() -> None:
     category._overwrites = {}  # pre-fix state: bot is locked out
     assert await delete_realm_structure(guild, "Avalon") is True
     assert guild.categories == []
+
+
+class _PhaseKingdom:
+    """A minimal kingdom for the draft-gating tests."""
+
+    id = "k-1"
+    name = "Avalon"
+    validation = "approved"
+    is_gaia = False
+    civilizations: ClassVar[list[str]] = []
+
+
+class _PhaseSeason:
+    def __init__(self, phase: str) -> None:
+        self.phase = phase
+
+
+class _PhaseKingdomsService:
+    """Kingdoms service whose season phase is configurable."""
+
+    def __init__(self, phase: str) -> None:
+        self._season = _PhaseSeason(phase)
+
+    async def current_season(self) -> _PhaseSeason:
+        return self._season
+
+    async def kingdoms(self) -> list:
+        return [_PhaseKingdom()]
+
+    async def lords(self) -> list:
+        return []
+
+
+async def test_setup_phase_pins_the_alliances_placeholder_not_the_draft() -> None:
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        ALLIANCES_PENDING_MARKER,
+        DRAFT_STARTER_MARKER,
+        ensure_all_realm_structures,
+    )
+    from kingdoms.mods.kingdoms.panel_messages import message_text
+
+    guild = MockGuild()
+    await ensure_all_realm_structures(guild, _PhaseKingdomsService("setup"))
+    category = guild.categories[0]
+    alliances = next(c for c in category.channels if c.name == "Alliances")
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    text = message_text(live[0])
+    assert ALLIANCES_PENDING_MARKER in text
+    assert DRAFT_STARTER_MARKER not in text  # the draft stays secret
+
+
+async def test_started_phase_announces_the_draft_and_kills_the_placeholder() -> None:
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        ALLIANCES_PENDING_MARKER,
+        DRAFT_STARTER_MARKER,
+        ensure_all_realm_structures,
+    )
+    from kingdoms.mods.kingdoms.panel_messages import message_text
+
+    guild = MockGuild()
+    setup_service = _PhaseKingdomsService("setup")
+    await ensure_all_realm_structures(guild, setup_service)
+    # the game starts: the draft replaces the placeholder
+    _PhaseKingdom.civilizations = ["azteques"]
+    started_service = _PhaseKingdomsService("started")
+    await ensure_all_realm_structures(guild, started_service)
+    category = guild.categories[0]
+    alliances = next(c for c in category.channels if c.name == "Alliances")
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1  # the placeholder was deleted, the draft pinned
+    text = message_text(live[0])
+    assert DRAFT_STARTER_MARKER in text
+    assert ALLIANCES_PENDING_MARKER not in text
+    assert "Aztèques" not in text  # display names need the config catalog
+    _PhaseKingdom.civilizations = []

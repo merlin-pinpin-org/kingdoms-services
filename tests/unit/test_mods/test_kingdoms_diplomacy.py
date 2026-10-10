@@ -262,8 +262,9 @@ async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:
 
 
 async def test_starting_draft_draws_random_civs_without_duplicates() -> None:
-    """The starting draft: every new kingdom draws civs at random and
-    no civilization is ever shared between two kingdoms."""
+    """The starting draft happens at the season START (Drasah's phase
+    rule): nothing is drawn during setup, then every kingdom draws at
+    random and no civilization is ever shared between two kingdoms."""
     config = _config().model_copy(
         update={
             "starting_civilizations": 2,
@@ -280,6 +281,11 @@ async def test_starting_draft_draws_random_civs_without_duplicates() -> None:
     await bundle.launch_season()
     kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
     assert len(kingdoms) == 2
+    # setup phase: the draft is secret — NOTHING is drawn at creation
+    for kingdom in kingdoms:
+        assert kingdom.civilizations == []
+    await bundle.kingdoms.start_season()  # the admin starts the game
+    kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
     drawn: list[str] = []
     for kingdom in kingdoms:
         assert len(kingdom.civilizations) == 2
@@ -290,7 +296,8 @@ async def test_starting_draft_draws_random_civs_without_duplicates() -> None:
 
 
 async def test_imposed_launch_drafts_the_kingdoms_civs() -> None:
-    """The imposed mode drafts at launch too: 8 civs each, all distinct."""
+    """The imposed mode reveals its draft at the season start too: 8
+    civs each, all distinct — never at the launch itself (setup)."""
     catalog = tuple(
         CivilizationCondition(key=f"civ-{index}", display_name=f"Civ {index}")
         for index in range(20)
@@ -302,6 +309,9 @@ async def test_imposed_launch_drafts_the_kingdoms_civs() -> None:
     await bundle.kingdoms.launch(imposed_names=["Aquitaine", "Bourgogne"])
     kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
     assert len(kingdoms) == 2
+    assert all(not k.civilizations for k in kingdoms)  # setup: nothing revealed
+    await bundle.kingdoms.start_season()
+    kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
     drawn = [civ for kingdom in kingdoms for civ in kingdom.civilizations]
     assert len(drawn) == 16
     assert len(set(drawn)) == 16  # no duplicates between kingdoms
@@ -323,6 +333,7 @@ async def test_recalculate_keeps_the_unconditioned_draft() -> None:
     )
     bundle = Bundle(config=config)
     await bundle.launch_season()
+    await bundle.kingdoms.start_season()  # the draft only exists from here
     before = {
         k.id: list(k.civilizations)
         for k in await bundle.kingdoms.kingdoms()

@@ -899,12 +899,14 @@ async def build_settings_panel(
     admin_strings = profile_strings(locale)
     buttons = (
         ("launch", "launch_button", discord.ButtonStyle.success),
+        ("start-season", "start_season_button", discord.ButtonStyle.success),
         ("status", "status_button", discord.ButtonStyle.secondary),
         ("deploy", "deploy_button", discord.ButtonStyle.primary),
         ("sync", "sync_button", discord.ButtonStyle.secondary),
         ("reset", "reset_salons_button", discord.ButtonStyle.danger),
         ("assign", "assign_button", discord.ButtonStyle.primary),
         ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
+        ("season-mode", "season_mode_button", discord.ButtonStyle.secondary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
     )
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()

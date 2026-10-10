@@ -306,6 +306,8 @@ async def test_models_survive_the_mongo_wire_roundtrip() -> None:
     )
     service = KingdomsService(MongoWireStore(), config)  # type: ignore[arg-type]
     await service.launch(imposed_names=["Aquitaine", "Bourgogne"])
+    assert all(not k.civilizations for k in await service.kingdoms() if not k.is_gaia)
+    await service.start_season()  # the starting draft runs at the start
     kingdoms = await service.kingdoms()  # reads back through BSON
     assert len(kingdoms) == 3  # gaia + the two imposed
     drawn = [civ for k in kingdoms if not k.is_gaia for civ in k.civilizations]

@@ -1014,7 +1014,7 @@ class KingdomAdminButton(
     template=(
         r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
-        r"|status|assign|add-kingdom|launch)"
+        r"|status|assign|add-kingdom|launch|start-season|season-mode)"
     ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
@@ -1055,6 +1055,8 @@ class KingdomAdminButton(
             "status": strings["status_button"],
             "assign": strings["assign_button"],
             "add-kingdom": strings["add_kingdom_button"],
+            "start-season": strings["start_season_button"],
+            "season-mode": strings["season_mode_button"],
         }
         styles = {
             "launch": discord.ButtonStyle.success,
@@ -1071,6 +1073,8 @@ class KingdomAdminButton(
             "status": discord.ButtonStyle.secondary,
             "assign": discord.ButtonStyle.primary,
             "add-kingdom": discord.ButtonStyle.primary,
+            "start-season": discord.ButtonStyle.success,
+            "season-mode": discord.ButtonStyle.secondary,
         }
         return cls(action, labels[action][:80], styles[action])
 
@@ -1116,6 +1120,8 @@ class KingdomAdminButton(
             "deploy-confirm": lambda _i, _l: _run_deploy(interaction, strings),
             "sync-confirm": lambda _i, _l: _run_sync(interaction, strings),
             "reset-confirm": lambda _i, _l: _run_reset(interaction, strings),
+            "start-season": lambda _i, _l: _run_start_season(interaction, strings),
+            "season-mode": lambda _i, _l: _run_season_mode(interaction, strings),
         }
         handler = handlers.get(self.action)
         if handler is not None:
@@ -1198,12 +1204,59 @@ async def _run_sync(interaction: discord.Interaction, strings: dict[str, Any]) -
     await interaction.followup.send(strings["sync_done"].format(len(report)), ephemeral=True)
 
 
+async def _run_start_season(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Start the game: reveal the drafts and draw the territories."""
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        await interaction.followup.send(strings["start_season_failed"].format("no service"), ephemeral=True)
+        return
+    try:
+        await wiring.kingdoms_service.start_season()
+    except Exception as exc:
+        await interaction.followup.send(strings["start_season_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    locale = str(interaction.locale) if interaction.locale else "en"
+    # the reveal: draft starters, territory draw and the real salon views
+    await _ensure_realms_after_launch(guild, locale)
+    await _refresh_season_status_safe(guild, locale)
+    await interaction.followup.send(strings["start_season_done"], ephemeral=True)
+
+
+async def _run_season_mode(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Toggle the imposed/free mode of the running season (no data loss)."""
+    await interaction.response.defer(ephemeral=True)
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        await interaction.followup.send(strings["season_mode_failed"].format("no service"), ephemeral=True)
+        return
+    try:
+        season = await wiring.kingdoms_service.current_season()
+    except Exception as exc:
+        await interaction.followup.send(strings["season_mode_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    imposed = bool(getattr(season, "imposed_kingdoms", False)) if season is not None else False
+    try:
+        await wiring.kingdoms_service.set_imposed_mode(not imposed)
+    except Exception as exc:
+        await interaction.followup.send(strings["season_mode_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    note = strings["season_mode_imposed"] if not imposed else strings["season_mode_free"]
+    await interaction.followup.send(note, ephemeral=True)
+
+
 async def _run_status(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Answer with the current season status (kingdoms, queue, players)."""
     wiring = _wiring()
     kingdoms: list[str] = []
     queued = 0
     enrolled = 0
+    phase = strings["phase_unknown"]
+    mode = strings["mode_free"]
     if wiring.kingdoms_service is not None:
         try:
             all_kingdoms = await wiring.kingdoms_service.kingdoms()
@@ -1214,8 +1267,19 @@ async def _run_status(interaction: discord.Interaction, strings: dict[str, Any])
             enrolled = len(active) - queued
         except Exception:
             logger.warning("KINGDOMS ADMIN: status read failed", exc_info=True)
+        try:
+            season = await wiring.kingdoms_service.current_season()
+            if season is not None:
+                phase = strings.get(
+                    f"phase_{getattr(season, 'phase', 'started')}", strings["phase_unknown"]
+                )
+                mode = strings["mode_imposed"] if season.imposed_kingdoms else strings["mode_free"]
+        except Exception:
+            logger.warning("KINGDOMS ADMIN: season read failed", exc_info=True)
     lines = [
         f"# {strings['status_title']}",
+        f"**{strings['status_phase']}** : {phase}",
+        f"**{strings['status_mode']}** : {mode}",
         f"**{strings['status_kingdoms']}** : {', '.join(kingdoms) if kingdoms else strings['status_empty']}",
         f"**{strings['status_lords']}** : {enrolled or strings['status_empty']}",
         f"**{strings['status_queue']}** : {queued or strings['status_empty']}",
@@ -1405,6 +1469,18 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) 
     except Exception:
         logger.exception("KINGDOMS ADMIN: reinstall after reset failed for guild %s", guild.id)
     if reinstalled:
+        # the reset wiped the per-realm salon views with the salons:
+        # re-provision every approved kingdom's structure AND content
+        # (phase-aware: placeholders stay placeholders in setup) —
+        # Drasah's live incident 2026-10-10: the salons came back empty
+        # because nothing re-triggered the content deployments.
+        try:
+            await _ensure_realms_after_launch(
+                guild, str(interaction.locale) if interaction.locale else "en"
+            )
+        except Exception:
+            logger.exception("KINGDOMS ADMIN: realm content reinstall failed for guild %s", guild.id)
+    if reinstalled:
         await interaction.followup.send(strings["reset_done"].format(deleted), ephemeral=True)
     else:
         await interaction.followup.send(strings["reset_failed"], ephemeral=True)
@@ -1494,10 +1570,31 @@ async def _refresh_realms_panel_safe(guild: discord.Guild, locale: str) -> None:
         logger.warning("KINGDOM REALMS: panel refresh failed", exc_info=True)
 
 
+async def _season_phase_safe() -> str:
+    """Return the current season phase ('started' when unknown/legacy)."""
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return "started"
+    try:
+        season = await wiring.kingdoms_service.current_season()
+    except Exception:
+        return "started"
+    if season is None:
+        return "started"
+    return str(getattr(season, "phase", "started") or "started")
+
+
 async def _draw_territories_after_launch_safe() -> None:
-    """Best-effort season initial draw (guarded, never duplicates)."""
+    """Best-effort season initial draw (guarded, never duplicates).
+
+    Skipped while the season is in ``setup`` (Drasah's phase rule): the
+    territory distribution only happens when the game starts.
+    """
     wiring = _wiring()
     if wiring.territories_service is None:
+        return
+    if await _season_phase_safe() == "setup":
+        logger.info("KINGDOMS: territory draw deferred — season is in setup phase")
         return
     try:
         if await wiring.territories_service.territories():
@@ -1554,9 +1651,15 @@ async def _refresh_realm_views_for_kingdom_safe(guild: discord.Guild | None, kin
 
 
 async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
-    """Best-effort per-kingdom draw after an approval (guarded, idempotent)."""
+    """Best-effort per-kingdom draw after an approval (guarded, idempotent).
+
+    Deferred while the season is in ``setup``: the territories are
+    distributed for everyone when the admin starts the game.
+    """
     wiring = _wiring()
     if wiring.territories_service is None:
+        return
+    if await _season_phase_safe() == "setup":
         return
     try:
         await wiring.territories_service.draw_initial_for(kingdom_id)

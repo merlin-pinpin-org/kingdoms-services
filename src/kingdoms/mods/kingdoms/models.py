@@ -302,6 +302,18 @@ class SeasonState(BaseModel):
     current_cycle: int = Field(default=0, ge=0)
     current_age_key: str
     imposed_kingdoms: bool = False
+    phase: str = "started"
+    """Where the season stands (Drasah's game-design phases):
+
+    ``setup`` — the season is launched, kingdoms form and players
+    enroll, but NO random content exists (no civilization draft, no
+    territory distribution — nothing is revealed before the game
+    actually starts); ``started`` — the admin started the game: the
+    civilization draft and the territory distribution happened;
+    ``age`` / ``cycling`` / ``ended`` — future lots (epoch progression,
+    weekly cycles, season end). Legacy documents without the field
+    default to ``started`` so nothing changes for running seasons.
+    """
     out_maps: list[str] = Field(default_factory=list)
     finished: bool = False
     winner_kingdom_id: str | None = None

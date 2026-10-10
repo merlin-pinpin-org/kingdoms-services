@@ -153,15 +153,57 @@ class KingdomsService:
             current_cycle=0,
             current_age_key=self._config.ages[0].key if self._config.ages else "dark_age",
             imposed_kingdoms=bool(names),
+            phase="setup",
         )
         await self._store.upsert_season(season.to_mongo())
         kingdoms = [self._new_kingdom(GAIA_KINGDOM_KEY, KingdomType.GAIA, season.id, name_approved=True)]
         for index, name in enumerate(names):
             kingdoms.append(self._new_kingdom(f"k-{index + 1}", KingdomType.PLAYER, season.id, name=name))
         for kingdom in kingdoms:
-            await self._grant_starting_civilizations(kingdom)
+            # setup phase: NO starting draft — the civilizations are
+            # drawn for everyone at once by start_season() (Drasah's
+            # game-design rule: nothing random is revealed before the
+            # admin actually starts the game).
             await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: season %s launched (imposed=%s)", season.id, bool(names))
+        return season
+
+    async def start_season(self) -> SeasonState:
+        """Start the game: reveal the random content to everyone (D70).
+
+        The ``setup`` → ``started`` transition (Drasah's game-design
+        phase rule): every non-Gaïa kingdom draws its starting
+        civilizations at once (no duplicates between kingdoms), then
+        the season is marked started — the surface then distributes
+        the territories and reveals the Alliances/Territoire salons.
+        Idempotent: calling it on an already-started season is a no-op.
+        """
+        season = await self._require_season()
+        if season.phase != "setup":
+            return season
+        for kingdom in await self.kingdoms():
+            if kingdom.is_gaia or kingdom.civilizations:
+                continue
+            await self._grant_starting_civilizations(kingdom)
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+        season.phase = "started"
+        await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: season %s started by an admin", season.id)
+        return season
+
+    async def set_imposed_mode(self, imposed: bool) -> SeasonState:
+        """Flip the imposed-kingdoms mode mid-season (Drasah's rule).
+
+        A mis-launched season must be fixable in one click without
+        wiping anything: imposed → free unblocks the King candidatures
+        (an imposed season refuses every king enrollment), free →
+        imposed freezes them. The kingdoms themselves never change —
+        the admin adds/removes them by hand if needed.
+        """
+        season = await self._require_season()
+        season.imposed_kingdoms = bool(imposed)
+        await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: season %s imposed mode set to %s", season.id, bool(imposed))
         return season
 
     async def reset(self) -> None:
@@ -335,7 +377,10 @@ class KingdomsService:
             name=name.strip(),
             name_approved=True,
         )
-        await self._grant_starting_civilizations(kingdom)
+        if season.phase != "setup":
+            # once the game is started there is no secret left to keep:
+            # a kingdom added afterwards draws its hand immediately
+            await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: kingdom %s added manually by an admin", kingdom.name)
         return kingdom
@@ -483,7 +528,9 @@ class KingdomsService:
             name_approved=False,
         )
         kingdom.validation = KingdomValidation.PENDING
-        await self._grant_starting_civilizations(kingdom)
+        if season.phase != "setup":
+            # started game: reveal at once (nothing to hide anymore)
+            await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         lord = LordModel(
             _id=player_id,
@@ -548,7 +595,9 @@ class KingdomsService:
             name_approved=False,
         )
         kingdom.validation = KingdomValidation.PENDING
-        await self._grant_starting_civilizations(kingdom)
+        if season.phase != "setup":
+            # started game: reveal at once (nothing to hide anymore)
+            await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         lord.kingdom_id = kingdom.id
         lord.in_queue = False

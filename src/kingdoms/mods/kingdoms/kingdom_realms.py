@@ -436,6 +436,12 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
     """
     if kingdoms_service is None:
         return
+    season: Any = None
+    try:
+        season = await kingdoms_service.current_season()
+    except Exception:
+        logger.warning("KINGDOM REALMS: season read failed", exc_info=True)
+    phase = str(getattr(season, "phase", "started") or "started") if season is not None else "started"
     for kingdom in await kingdoms_service.kingdoms():
         if kingdom.is_gaia or str(kingdom.validation) != "approved":
             continue
@@ -450,12 +456,19 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
         except Exception:
             logger.warning("KINGDOM REALMS: structure failed for %s", kingdom.id, exc_info=True)
         try:
-            await announce_draft_starter(guild, kingdom, kingdoms_service)
+            if phase == "setup":
+                # nothing random is revealed before the admin starts
+                # the game (Drasah's phase rule): the Alliances salon
+                # carries a "revealed at season start" placeholder
+                await announce_alliances_placeholder(guild, kingdom)
+            else:
+                await announce_draft_starter(guild, kingdom, kingdoms_service)
         except Exception:
             logger.warning("KINGDOM REALMS: draft announce failed for %s", kingdom.id, exc_info=True)
 
 
 DRAFT_STARTER_MARKER = "kingdoms:realm:draft-starter"
+ALLIANCES_PENDING_MARKER = "kingdoms:realm:alliances-pending"
 
 
 async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_service: Any) -> bool:
@@ -488,6 +501,56 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
                 await message.edit(content=content)
             except Exception:
                 logger.warning("KINGDOM REALMS: draft refresh failed", exc_info=True)
+            return True
+        if ALLIANCES_PENDING_MARKER in message_text(message):
+            # the placeholder of the setup phase dies at the reveal
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM REALMS: placeholder removal failed", exc_info=True)
+    await channel.send(content)
+    return True
+
+
+async def announce_alliances_placeholder(guild: discord.Guild, kingdom: Any) -> bool:
+    """Pin the setup-phase Alliances placeholder (idempotent).
+
+    Drasah's phase rule: while the season is in ``setup``, the
+    civilization draft must stay secret — the Alliances salon says so
+    instead of showing the opening hand. The message is marked and
+    edited in place; :func:`announce_draft_starter` deletes it at the
+    reveal.
+    """
+    category = _find_realm_category(guild, kingdom.name)
+    if category is None:
+        return False
+    channel = next(
+        (c for c in getattr(category, "channels", []) if _slug(getattr(c, "name", "")) == _slug("Alliances")),
+        None,
+    )
+    if channel is None:
+        return False
+    content = "\n".join(
+        [
+            f"# 📜 Alliances — {kingdom.name}",
+            "",
+            "Les alliances seront révélées au démarrage de la saison :",
+            "chaque royaume tirera ses civilisations au sort, sans doublon",
+            "entre royaumes.",
+            "",
+            f"-# {ALLIANCES_PENDING_MARKER}",
+        ]
+    )
+    for message in await channel_messages(channel):
+        if ALLIANCES_PENDING_MARKER in message_text(message):
+            try:
+                await message.edit(content=content)
+            except Exception:
+                logger.warning("KINGDOM REALMS: placeholder refresh failed", exc_info=True)
+            return True
+        if DRAFT_STARTER_MARKER in message_text(message):
+            # the draft was already revealed (e.g. the phase moved back
+            # or a legacy message): leave it alone, never hide content
             return True
     await channel.send(content)
     return True

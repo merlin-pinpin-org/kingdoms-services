@@ -17,6 +17,7 @@ from kingdoms.mods.kingdoms.kingdom_realm_content import (
     deploy_realm_content,
 )
 from kingdoms.mods.kingdoms.kingdom_realms import ensure_realm_structure
+from kingdoms.mods.kingdoms.panel_messages import message_text
 from tests.mocks.discord_mock import MockGuild
 
 pytestmark = pytest.mark.asyncio
@@ -125,6 +126,11 @@ def _live(channel) -> list:
     return [m for m in channel.messages if not getattr(m, "deleted", False)]
 
 
+def _text(message) -> str:
+    """The full text of a message (Components V2 views carry the text)."""
+    return message_text(message)
+
+
 async def test_all_six_views_land_in_their_salons() -> None:
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
@@ -151,7 +157,7 @@ async def test_overview_renders_the_live_data() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _live(_channel(guild, "Le-Royaume"))[0].content
+    content = _text(_live(_channel(guild, "Le-Royaume"))[0])
     assert "Avalon" in content
     assert "Arthur + **1** seigneur" in content
     assert "7 🔬" in content
@@ -163,7 +169,7 @@ async def test_roster_lists_members_with_marriages_and_budgets() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _live(_channel(guild, "Seigneurs"))[0].content
+    content = _text(_live(_channel(guild, "Seigneurs"))[0])
     assert "👑 **Arthur**" in content
     assert "🎖️ **Luc**" in content
     assert "💍 Aztèques" in content
@@ -175,7 +181,7 @@ async def test_patrol_view_shows_bought_slots_and_remaining() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _live(_channel(guild, "Patrouille"))[0].content
+    content = _text(_live(_channel(guild, "Patrouille"))[0])
     assert "02h00 → 04h00" in content  # slot 2 from patrouille_slot_1
     assert "1/2" in content  # one slot bought, limit 2
 
@@ -185,7 +191,7 @@ async def test_territory_view_lists_owned_maps_with_display_names() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _live(_channel(guild, "Territoire"))[0].content
+    content = _text(_live(_channel(guild, "Territoire"))[0])
     assert "**Arabie**" in content
     assert "1 territoire" in content
 
@@ -195,7 +201,7 @@ async def test_church_view_shows_stock_and_active_marriages() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _live(_channel(guild, "Église"))[0].content
+    content = _text(_live(_channel(guild, "Église"))[0])
     assert "Chapelle" in content  # D64 placeholder, palier 1/3
     assert "3" in content  # marriage stock
     assert "💍 Luc — Aztèques" in content
@@ -226,7 +232,7 @@ async def test_deploy_survives_missing_services() -> None:
     results = await deploy_realm_content(guild, _Kingdom(), _BareWiring())
 
     assert all(results.values())
-    overview = _live(_channel(guild, "Le-Royaume"))[0].content
+    overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
     assert "Avalon" in overview  # the sheet renders from the kingdom alone
     assert "5 🔬" in overview  # wallet falls back to tech_points_bank
 
@@ -234,3 +240,34 @@ async def test_deploy_survives_missing_services() -> None:
 async def test_deploy_without_category_is_a_no_op() -> None:
     guild = MockGuild()  # no realm category provisioned
     assert await deploy_realm_content(guild, _Kingdom(), _Wiring()) == {}
+
+
+class _SetupSeason:
+    phase = "setup"
+
+
+class _SetupKingdomsService(_KingdomsService):
+    async def current_season(self) -> _SetupSeason:
+        return _SetupSeason()
+
+
+class _SetupWiring(_Wiring):
+    kingdoms_service = _SetupKingdomsService()
+
+
+async def test_setup_phase_hides_the_territories() -> None:
+    """Drasah's phase rule: while the season is in setup, the
+    Territoire salon shows the distribution placeholder — the owned
+    maps stay secret until the admin starts the game."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+
+    results = await deploy_realm_content(guild, _Kingdom(), _SetupWiring())
+
+    assert results["territoire"] is True
+    content = _text(_live(_channel(guild, "Territoire"))[0])
+    assert "tirage aléatoire" in content
+    assert "Arabie" not in content  # the owned map is NOT revealed
+    # the other salons render normally
+    overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
+    assert "Avalon" in overview

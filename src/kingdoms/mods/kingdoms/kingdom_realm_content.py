@@ -4,25 +4,16 @@ Every salon of a kingdom category is a **silent state view** (all
 announcements go to géopolitique), except the Salle du Conseil —
 the kingdom's only private discussion salon, which stays empty.
 
-Version 1 scope (first render, admin-reviewable):
-
-- 🏰 Le-Royaume — the pinned kingdom sheet (effectif, trésorerie,
-  territoires, civilisations, mariages, patrouille, garde royale,
-  Paroisse placeholder);
-- 🎖️ Seigneurs — the private roster (one line per member, marriages,
-  attack/defense budgets, badges);
-- 🛡️ Patrouille — the bought 2h slots, the purchases left, the
-  modification window (D68);
-- 🗺️ Territoire — the owned territories with display names;
-- ⛪ Église — the Paroisse placeholder (D64 à venir), the marriage
-  stock, the active marriages with their 💍 badges (D74);
-- 🕊️ Pigeon-Voyageur — the D69 catalogue placeholder.
-
-📜 Alliances keeps its « 🎲 Draft starter » message (the civs ARE the
-alliances view, D51); 💬 Salle du Conseil stays empty by design.
-
-Every view is marked and edited in place (the ``panel_messages``
+Each view is a Components V2 panel (Drasah's choice, 2026-10-10: same
+visual language as the admin panels — container, accent colour,
+separators), marked and re-deployed in place (the ``panel_messages``
 contract): re-deploys, approvals and resets never duplicate.
+
+Phase rule (Drasah's game design, 2026-10-10): while the season is in
+``setup``, NOTHING random is revealed — the 🗺️ Territoire salon shows
+a "distribution at season start" placeholder and the 📜 Alliances one
+carries its own (in kingdom_realms). Once the admin starts the season
+(``started``), the real content replaces the placeholders.
 """
 from __future__ import annotations
 
@@ -72,6 +63,11 @@ def _strings(locale: str) -> dict[str, str]:
             "territory_count": "{0} territoire(s)",
             "territory_empty": "Aucun territoire pour le moment.",
             "territory_note": "La Corruption transfère le territoire de salon (D58).",
+            "territory_pending_body": (
+                "La carte reste secrète pour l'instant.\n"
+                "Au démarrage de la saison, chaque royaume recevra ses "
+                "territoires par tirage aléatoire."
+            ),
             "church_title": "⛪ Église — {0}",
             "church_stock": "Stock mariages",
             "church_active": "Mariages actifs",
@@ -115,6 +111,11 @@ def _strings(locale: str) -> dict[str, str]:
         "territory_count": "{0} territor(y|ies)",
         "territory_empty": "No territory yet.",
         "territory_note": "Corruption moves the territory across salons (D58).",
+        "territory_pending_body": (
+            "The map stays secret for now.\n"
+            "At the season start, each kingdom will receive its "
+            "territories through a random draw."
+        ),
         "church_title": "⛪ Church — {0}",
         "church_stock": "Marriage stock",
         "church_active": "Active marriages",
@@ -130,6 +131,20 @@ def _strings(locale: str) -> dict[str, str]:
     }
 
 
+async def _season_phase(kingdoms_service: Any) -> str:
+    """Return the season phase ('started' when unknown/legacy/no service)."""
+    if kingdoms_service is None:
+        return "started"
+    try:
+        season = await kingdoms_service.current_season()
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: season read failed", exc_info=True)
+        return "started"
+    if season is None:
+        return "started"
+    return str(getattr(season, "phase", "started") or "started")
+
+
 async def deploy_realm_content(
     guild: discord.Guild,
     kingdom: Any,
@@ -140,7 +155,8 @@ async def deploy_realm_content(
 
     Returns the per-salon outcome; each view fails alone (best-effort,
     like every provisioning path — a broken view never blocks the
-    others).
+    others). While the season is in ``setup``, the Territoire salon
+    shows the distribution placeholder instead of the territories.
     """
     from kingdoms.mods.kingdoms.kingdom_realms import _find_realm_category
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
@@ -152,13 +168,14 @@ async def deploy_realm_content(
     for channel in getattr(category, "channels", []):
         channels[_slug(getattr(channel, "name", ""))] = channel
 
+    phase = await _season_phase(getattr(wiring, "kingdoms_service", None))
     state = await _gather_state(kingdom, wiring)
     strings = _strings(locale)
     builders: dict[str, Any] = {
         "le-royaume": _build_overview,
         "seigneurs": _build_roster,
         "patrouille": _build_patrol,
-        "territoire": _build_territory,
+        "territoire": _build_territory if phase != "setup" else _build_territory_pending,
         "eglise": _build_church,
         "pigeon-voyageur": _build_carrier,
     }
@@ -169,8 +186,8 @@ async def deploy_realm_content(
             results[key] = False
             continue
         try:
-            content = builder(strings, kingdom, state)
-            results[key] = await _upsert_view(channel, key, content)
+            view = builder(strings, kingdom, state)
+            results[key] = await _upsert_view(channel, key, view)
         except Exception:
             logger.warning("KINGDOM REALM CONTENT: view %s failed", key, exc_info=True)
             results[key] = False
@@ -188,6 +205,8 @@ def _catalog_names(service: Any, attribute: str) -> dict[str, str]:
 
 async def _read_members(service: Any, kid: str) -> list[Any]:
     """Return the kingdom's active members (empty on failure)."""
+    if service is None:
+        return []
     try:
         lords = await service.lords()
     except Exception:
@@ -237,17 +256,24 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
     service = getattr(wiring, "kingdoms_service", None)
     kid = str(getattr(kingdom, "id", ""))
     bank = int(getattr(kingdom, "tech_points_bank", 0) or 0)
+    territories_service = getattr(wiring, "territories_service", None)
+    economy_service = getattr(wiring, "economy_service", None)
+    attacks_service = getattr(wiring, "attacks_service", None)
     state: dict[str, Any] = {
-        "members": await _read_members(service, kid) if service is not None else [],
-        "territories": await _read_territories(getattr(wiring, "territories_service", None), kid)
-        if getattr(wiring, "territories_service", None) is not None
-        else [],
-        "wallet": await _read_wallet(getattr(wiring, "economy_service", None), kid, bank)
-        if getattr(wiring, "economy_service", None) is not None
-        else bank,
-        "purchases": await _read_purchases(getattr(wiring, "attacks_service", None), kid)
-        if getattr(wiring, "attacks_service", None) is not None
-        else {},
+        "members": await _read_members(service, kid),
+        "territories": (
+            await _read_territories(territories_service, kid)
+            if territories_service is not None
+            else []
+        ),
+        "wallet": (
+            await _read_wallet(economy_service, kid, bank)
+            if economy_service is not None
+            else bank
+        ),
+        "purchases": (
+            await _read_purchases(attacks_service, kid) if attacks_service is not None else {}
+        ),
         "civ_names": _catalog_names(service, "civilizations") if service is not None else {},
         "map_names": _catalog_names(service, "maps") if service is not None else {},
         "patrol_limit": _patrol_limit(service),
@@ -266,61 +292,103 @@ def _patrol_limit(service: Any) -> int:
         return 2
 
 
+def _panel_view(
+    title: str,
+    body: str,
+    marker: str,
+    accent: discord.Colour,
+) -> discord.ui.LayoutView:
+    """Build one Components V2 state panel (title / body / marker)."""
+    import discord
+
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(f"# {title}"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(body),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(f"-# {marker}"),
+            accent_colour=accent,
+        )
+    )
+    return view
+
+
 def _build_overview(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the 🏰 Le-Royaume pinned sheet."""
+    import discord
+
     members = state["members"]
     king = next((m for m in members if str(getattr(m, "role", "")) == "king"), None)
     king_name = getattr(king, "display_name", None) or strings["no_king"]
     subjects = [m for m in members if m is not king]
     slots = _patrol_slots(state)
     married = [m for m in members if getattr(m, "married_civilization", None)]
-    lines = [
-        f"# {strings['overview_title'].format(getattr(kingdom, 'name', ''))}",
-        f"**{strings['members']}** : {strings['members_line'].format(king_name, len(subjects), len(members))}",
-        f"**{strings['treasury']}** : {state['wallet']} 🔬",
-        f"**{strings['territories']}** : {len(state['territories'])}",
-        f"**{strings['civilizations']}** : {len(getattr(kingdom, 'civilizations', []) or [])}",
-        f"**{strings['marriages']}** : {len(married)}",
-        f"**{strings['patrol']}** : "
-        f"{', '.join(strings['patrol_slot'].format(s, s + 2) for s in slots) if slots else strings['none_f']}",
-        f"**{strings['royal_guard']}** : "
-        f"{strings['yes'] if state['purchases'].get('garde_royale') else strings['no']}",
-        f"**{strings['parish']}** : {strings['parish_placeholder']}",
-        f"-# {VIEW_MARKER_PREFIX}:le-royaume",
-    ]
-    return "\n".join(lines)
+    patrol = (
+        ", ".join(strings["patrol_slot"].format(s, s + 2) for s in slots)
+        if slots
+        else strings["none_f"]
+    )
+    body = "\n".join(
+        [
+            f"**{strings['members']}** : "
+            f"{strings['members_line'].format(king_name, len(subjects), len(members))}",
+            f"**{strings['treasury']}** : {state['wallet']} 🔬",
+            f"**{strings['territories']}** : {len(state['territories'])}",
+            f"**{strings['civilizations']}** : {len(getattr(kingdom, 'civilizations', []) or [])}",
+            f"**{strings['marriages']}** : {len(married)}",
+            f"**{strings['patrol']}** : {patrol}",
+            f"**{strings['royal_guard']}** : "
+            f"{strings['yes'] if state['purchases'].get('garde_royale') else strings['no']}",
+            f"**{strings['parish']}** : {strings['parish_placeholder']}",
+        ]
+    )
+    return _panel_view(
+        strings["overview_title"].format(getattr(kingdom, "name", "")),
+        body,
+        f"{VIEW_MARKER_PREFIX}:le-royaume",
+        discord.Colour.gold(),
+    )
 
 
 def _build_roster(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the 🎖️ Seigneurs private roster."""
-    lines = [f"# {strings['roster_title'].format(getattr(kingdom, 'name', ''))}"]
+    import discord
+
     members = state["members"]
     if not members:
-        lines.append(strings["roster_empty"])
-    for member in members:
-        role = str(getattr(member, "role", ""))
-        icon = "👑" if role == "king" else "🎖️"
-        line = f"• {icon} **{getattr(member, 'display_name', strings['unknown'])}**"
-        civ = getattr(member, "married_civilization", None)
-        if civ:
-            line += f" — 💍 {state['civ_names'].get(str(civ), str(civ))}"
-        line += (
-            f" — ⚔️ {int(getattr(member, 'attack_used', 0) or 0)}"
-            f" · 🛡️ {int(getattr(member, 'defense_used', 0) or 0)}"
-        )
-        if getattr(member, "left", False):
-            line += f" {strings['left_badge']}"
-        lines.append(line)
-    lines.append(f"-# {VIEW_MARKER_PREFIX}:seigneurs")
-    return "\n".join(lines)
+        lines = [strings["roster_empty"]]
+    else:
+        lines = []
+        for member in members:
+            role = str(getattr(member, "role", ""))
+            icon = "👑" if role == "king" else "🎖️"
+            line = f"• {icon} **{getattr(member, 'display_name', strings['unknown'])}**"
+            civ = getattr(member, "married_civilization", None)
+            if civ:
+                line += f" — 💍 {state['civ_names'].get(str(civ), str(civ))}"
+            line += (
+                f" — ⚔️ {int(getattr(member, 'attack_used', 0) or 0)}"
+                f" · 🛡️ {int(getattr(member, 'defense_used', 0) or 0)}"
+            )
+            if getattr(member, "left", False):
+                line += f" {strings['left_badge']}"
+            lines.append(line)
+    return _panel_view(
+        strings["roster_title"].format(getattr(kingdom, "name", "")),
+        "\n".join(lines),
+        f"{VIEW_MARKER_PREFIX}:seigneurs",
+        discord.Colour.blue(),
+    )
 
 
 def _patrol_slots(state: dict[str, Any]) -> list[int]:
@@ -339,50 +407,78 @@ def _build_patrol(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the 🛡️ Patrouille state view (D68)."""
+    import discord
+
     slots = _patrol_slots(state)
     bought = ", ".join(
         strings["patrol_slot"].format(slot, slot + 2) for slot in slots
     ) or strings["none_f"]
     remaining = max(0, int(state["patrol_limit"]) - len(slots))
-    lines = [
-        f"# {strings['patrol_title'].format(getattr(kingdom, 'name', ''))}",
-        f"**{strings['patrol_bought']}** : {bought}",
-        f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
-        strings["patrol_window"],
-        f"-# {VIEW_MARKER_PREFIX}:patrouille",
-    ]
-    return "\n".join(lines)
+    body = "\n".join(
+        [
+            f"**{strings['patrol_bought']}** : {bought}",
+            f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
+            strings["patrol_window"],
+        ]
+    )
+    return _panel_view(
+        strings["patrol_title"].format(getattr(kingdom, "name", "")),
+        body,
+        f"{VIEW_MARKER_PREFIX}:patrouille",
+        discord.Colour.teal(),
+    )
 
 
 def _build_territory(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the 🗺️ Territoire state view."""
-    lines = [
-        f"# {strings['territory_title'].format(getattr(kingdom, 'name', ''))}",
-        strings["territory_count"].format(len(state["territories"])),
-    ]
+    import discord
+
+    lines = [strings["territory_count"].format(len(state["territories"]))]
     if not state["territories"]:
         lines.append(strings["territory_empty"])
     for territory in state["territories"]:
         key = str(getattr(territory, "map_key", ""))
         lines.append(f"• **{state['map_names'].get(key, key)}**")
-    lines += [strings["territory_note"], f"-# {VIEW_MARKER_PREFIX}:territoire"]
-    return "\n".join(lines)
+    lines.append(strings["territory_note"])
+    return _panel_view(
+        strings["territory_title"].format(getattr(kingdom, "name", "")),
+        "\n".join(lines),
+        f"{VIEW_MARKER_PREFIX}:territoire",
+        discord.Colour.green(),
+    )
+
+
+def _build_territory_pending(
+    strings: dict[str, str],
+    kingdom: Any,
+    state: dict[str, Any],
+) -> Any:
+    """Build the 🗺️ setup-phase placeholder (nothing revealed yet)."""
+    import discord
+
+    return _panel_view(
+        strings["territory_title"].format(getattr(kingdom, "name", "")),
+        strings["territory_pending_body"],
+        f"{VIEW_MARKER_PREFIX}:territoire",
+        discord.Colour.dark_grey(),
+    )
 
 
 def _build_church(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the ⛪ Église state view (D64 placeholder + marriages)."""
+    import discord
+
     lines = [
-        f"# {strings['church_title'].format(getattr(kingdom, 'name', ''))}",
         f"**{strings['parish']}** : {strings['parish_placeholder']}",
         f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_capacity', 0) or 0)}",
         f"**{strings['church_active']}** :",
@@ -399,34 +495,39 @@ def _build_church(
                 state["civ_names"].get(civ, civ),
             )
         )
-    lines += [strings["church_actions"], f"-# {VIEW_MARKER_PREFIX}:eglise"]
-    return "\n".join(lines)
+    lines.append(strings["church_actions"])
+    return _panel_view(
+        strings["church_title"].format(getattr(kingdom, "name", "")),
+        "\n".join(lines),
+        f"{VIEW_MARKER_PREFIX}:eglise",
+        discord.Colour.purple(),
+    )
 
 
 def _build_carrier(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
-) -> str:
+) -> Any:
     """Build the 🕊️ Pigeon-Voyageur placeholder (D69 catalogue à venir)."""
-    return "\n".join(
-        [
-            f"# {strings['carrier_title'].format(getattr(kingdom, 'name', ''))}",
-            strings["carrier_body"],
-            f"-# {VIEW_MARKER_PREFIX}:pigeon-voyageur",
-        ]
+    import discord
+
+    return _panel_view(
+        strings["carrier_title"].format(getattr(kingdom, "name", "")),
+        strings["carrier_body"],
+        f"{VIEW_MARKER_PREFIX}:pigeon-voyageur",
+        discord.Colour.light_grey(),
     )
 
 
-async def _upsert_view(channel: Any, key: str, content: str) -> bool:
-    """Edit the marked view in place, or send it once (never duplicate)."""
+async def _upsert_view(channel: Any, key: str, view: Any) -> bool:
+    """Replace the marked panel in place, or send it once (never duplicate)."""
     marker = f"{VIEW_MARKER_PREFIX}:{key}"
     for message in await channel_messages(channel):
         if marker in message_text(message):
             try:
-                await message.edit(content=content)
+                await message.delete()
             except Exception:
-                logger.warning("KINGDOM REALM CONTENT: view %s refresh failed", key, exc_info=True)
-            return True
-    await channel.send(content)
+                logger.warning("KINGDOM REALM CONTENT: view %s removal failed", key, exc_info=True)
+    await channel.send(view=view)
     return True
