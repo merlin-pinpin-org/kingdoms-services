@@ -412,6 +412,66 @@ class KingdomsService:
         logger.info("kingdoms: %s founded %s as King", player_id, kingdom.name)
         return lord
 
+    async def enroll_king_awaiting_name(self, player_id: str, display_name: str) -> LordModel:
+        """Enroll an approved King without a kingdom yet (D70, flow v2).
+
+        The validated King waits in the queue until they reply with
+        their kingdom's name — :meth:`found_kingdom` then creates the
+        PENDING kingdom (rule 35).
+        """
+        season = await self._require_season()
+        if season.imposed_kingdoms:
+            raise ImposedKingdomsError("kingdoms are imposed for this season")
+        existing = await self._find_lord(player_id)
+        if existing is not None and not existing.left:
+            raise AlreadyEnrolledError("player already enrolled in the current season")
+        lord = LordModel(
+            _id=player_id,
+            season_id=season.id,
+            role=KING_ROLE,
+            display_name=display_name,
+            in_queue=True,
+        )
+        await self._store.upsert_lord(lord.to_mongo())
+        logger.info("kingdoms: %s enrolled as King awaiting a kingdom name", player_id)
+        return lord
+
+    async def found_kingdom(self, player_id: str, name: str) -> KingdomModel:
+        """Create the PENDING kingdom of a King who replied with its name.
+
+        Flow v2 (D70): the King was approved without a name, then sent
+        the name back to the bot — the kingdom lands in the admin
+        validation queue (rule 35), exactly like a proposed name at
+        enrollment.
+        """
+        season = await self._require_season()
+        if season.imposed_kingdoms:
+            raise ImposedKingdomsError("kingdoms are imposed for this season")
+        self._check_name(name)
+        lord = await self._require_lord(player_id)
+        if lord.role is not KING_ROLE or not lord.in_queue or lord.kingdom_id is not None:
+            raise NotQueuedError("only a King awaiting a kingdom name can found one")
+        kingdoms = await self.kingdoms()
+        if len([k for k in kingdoms if not k.is_gaia]) >= self._config.kingdoms_count:
+            raise KingdomLimitError("the season already counts its maximum of kingdoms")
+        if any(k.name.casefold() == name.casefold() for k in kingdoms):
+            raise KingdomNameInvalidError("a kingdom with this name already exists")
+        kingdom = self._new_kingdom(
+            f"k-{len(kingdoms)}",
+            KingdomType.PLAYER,
+            season.id,
+            name=name,
+            name_approved=False,
+        )
+        kingdom.validation = KingdomValidation.PENDING
+        await self._grant_starting_civilizations(kingdom)
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        lord.kingdom_id = kingdom.id
+        lord.in_queue = False
+        await self._store.upsert_lord(lord.to_mongo())
+        logger.info("kingdoms: %s founded %s as King (DM reply)", player_id, kingdom.name)
+        return kingdom
+
     async def _enroll_lord(
         self,
         season: SeasonState,

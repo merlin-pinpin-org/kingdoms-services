@@ -27,6 +27,7 @@ from typing import Any
 import discord
 
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
+from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 
 logger = logging.getLogger("kingdoms.kingdom_realms")
 
@@ -269,35 +270,13 @@ async def delete_realm_structure(guild: discord.Guild, kingdom_name: str) -> boo
 
 
 def _carries_panel_marker(message: Any) -> bool:
-    """Return True when a message carries the realms marker (content or components).
-
-    A Components V2 message has an empty ``content``: the marker rides a
-    ``TextDisplay`` inside the view, so the components tree is walked.
-    """
-    if REALMS_PANEL_MARKER in (getattr(message, "content", "") or ""):
-        return True
-    stack: list[Any] = list(getattr(message, "components", None) or [])
-    layout = getattr(message, "layout", None)
-    if layout is not None:
-        stack.append(layout)
-    while stack:
-        item = stack.pop()
-        if REALMS_PANEL_MARKER in str(getattr(item, "content", "") or ""):
-            return True
-        stack.extend(getattr(item, "children", None) or [])
-    return False
+    """Return True when a message carries the realms marker (any surface)."""
+    return REALMS_PANEL_MARKER in message_text(message)
 
 
 async def _recent_channel_messages(channel: Any) -> list[Any]:
-    """Return the channel's recent messages — the mock cache, or real history.
-
-    A real :class:`discord.TextChannel` has no ``.messages`` attribute
-    (only the ``history()`` iterator); the in-memory mock keeps one.
-    """
-    cached = getattr(channel, "messages", None)
-    if cached is not None:
-        return list(cached)
-    return [message async for message in channel.history(limit=100)]
+    """Return the channel's recent messages (mock cache or real history)."""
+    return await channel_messages(channel)
 
 
 async def deploy_realms_panel(
@@ -346,3 +325,45 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
             await ensure_realm_structure(guild, kingdom, member_ids)
         except Exception:
             logger.warning("KINGDOM REALMS: structure failed for %s", kingdom.id, exc_info=True)
+        try:
+            await announce_draft_starter(guild, kingdom, kingdoms_service)
+        except Exception:
+            logger.warning("KINGDOM REALMS: draft announce failed for %s", kingdom.id, exc_info=True)
+
+
+DRAFT_STARTER_MARKER = "kingdoms:realm:draft-starter"
+
+
+async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_service: Any) -> bool:
+    """Pin the kingdom's starter draft in its Alliances salon (idempotent).
+
+    The 8 starting civilizations drawn at the kingdom's creation are the
+    season's opening hand: they belong in ``Alliances`` (D51 — alliances
+    equal civilizations), titled « 🎲 Draft starter ». The message is
+    marked and edited in place, never duplicated.
+    """
+    category = _find_realm_category(guild, kingdom.name)
+    if category is None:
+        return False
+    channel = next(
+        (c for c in getattr(category, "channels", []) if _slug(getattr(c, "name", "")) == _slug("Alliances")),
+        None,
+    )
+    if channel is None:
+        return False
+    catalog = getattr(getattr(kingdoms_service, "config", None), "civilizations", ()) or ()
+    names = {str(civ.key): str(getattr(civ, "display_name", civ.key)) for civ in catalog}
+    lines = [f"# 🎲 Draft starter — {kingdom.name}", ""]
+    for civ_key in kingdom.civilizations:
+        lines.append(f"• **{names.get(str(civ_key), str(civ_key))}**")
+    lines += ["", f"-# {DRAFT_STARTER_MARKER}"]
+    content = "\n".join(lines)
+    for message in await channel_messages(channel):
+        if DRAFT_STARTER_MARKER in message_text(message):
+            try:
+                await message.edit(content=content)
+            except Exception:
+                logger.warning("KINGDOM REALMS: draft refresh failed", exc_info=True)
+            return True
+    await channel.send(content)
+    return True

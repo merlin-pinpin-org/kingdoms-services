@@ -232,3 +232,61 @@ async def test_gaia_initial_draw_targets_gaia_kingdom() -> None:
     gaia = next(kingdom for kingdom in kingdoms_list if kingdom.name == GAIA_KINGDOM_KEY)
     counts = await service.territory_count_by_kingdom()
     assert counts.get(gaia.id) == default_season_config().gaia_territories
+
+
+async def test_draw_initial_for_one_kingdom_after_approval() -> None:
+    """Approval flow: drawing for one kingdom gives it its N territories."""
+    service, kingdoms, _ = _services()
+    await kingdoms.launch(["Aquitaine", "Bourgogne"])
+    season = await kingdoms.current_season()
+    assert season is not None
+    kingdoms_list = await kingdoms.kingdoms()
+    aquitaine = next(kingdom for kingdom in kingdoms_list if kingdom.name == "Aquitaine")
+    created = await service.draw_initial_for(aquitaine.id, seed=3)
+    config = default_season_config()
+    assert len(created) == config.territories_per_kingdom
+    keys = {territory.map_key for territory in created}
+    assert len(keys) == len(created)  # no duplicates
+
+
+async def test_draw_initial_for_is_idempotent() -> None:
+    """Approving twice never duplicates territories."""
+    service, kingdoms, store = _services()
+    await kingdoms.launch(["Aquitaine"])
+    kingdoms_list = await kingdoms.kingdoms()
+    aquitaine = next(kingdom for kingdom in kingdoms_list if kingdom.name == "Aquitaine")
+    first = await service.draw_initial_for(aquitaine.id, seed=5)
+    second = await service.draw_initial_for(aquitaine.id, seed=9)
+    assert [territory.id for territory in second] == [territory.id for territory in first]
+    assert len(store.territories) == len(first)
+
+
+async def test_draw_initial_for_gaia_uses_gaia_count() -> None:
+    service, kingdoms, _ = _services()
+    await kingdoms.launch(["Aquitaine"])
+    kingdoms_list = await kingdoms.kingdoms()
+    gaia = next(kingdom for kingdom in kingdoms_list if kingdom.is_gaia)
+    created = await service.draw_initial_for(gaia.id, seed=6)
+    assert len(created) == default_season_config().gaia_territories
+
+
+async def test_draw_initial_for_unknown_kingdom_raises() -> None:
+    service, kingdoms, _ = _services()
+    await kingdoms.launch(["Aquitaine"])
+    with pytest.raises(KingdomNotFoundError):
+        await service.draw_initial_for("nope")
+
+
+async def test_draw_initial_for_fails_atomically_when_pool_too_small() -> None:
+    config = KingdomsSeasonConfig(
+        territories_per_kingdom=2,
+        gaia_territories=1,
+        maps=(MapEntry(key="arabia", display_name="arabia"),),
+    )
+    service, kingdoms, store = _services(config)
+    await kingdoms.launch(["Aquitaine"])
+    kingdoms_list = await kingdoms.kingdoms()
+    aquitaine = next(kingdom for kingdom in kingdoms_list if kingdom.name == "Aquitaine")
+    with pytest.raises(MapPoolExhaustedError):
+        await service.draw_initial_for(aquitaine.id)
+    assert not store.territories

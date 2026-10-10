@@ -366,3 +366,62 @@ async def test_rename_kingdom_and_duplicate_guard() -> None:
     await service.enroll("p2", "Béatrice", LordRole.KING, proposed_name="Bourgogne")
     with pytest.raises(KingdomNameInvalidError):
         await service.rename_kingdom(kingdom.id, "bourgogne")
+
+
+async def test_king_awaiting_name_flow_v2() -> None:
+    """Flow v2 (D70): approved King waits, then names the kingdom by DM."""
+    service, _ = _service()
+    await service.launch(None)
+    lord = await service.enroll_king_awaiting_name("p1", "Arthur")
+    assert lord.role is LordRole.KING and lord.in_queue and lord.kingdom_id is None
+    kingdom = await service.found_kingdom("p1", "Aquitaine")
+    assert kingdom.validation is KingdomValidation.PENDING
+    lords = await service.lords()
+    king = next(item for item in lords if item.id == "p1")
+    assert king.kingdom_id == kingdom.id and not king.in_queue
+
+
+async def test_king_awaiting_name_rejects_double_enrollment() -> None:
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    with pytest.raises(AlreadyEnrolledError):
+        await service.enroll_king_awaiting_name("p1", "Arthur")
+
+
+async def test_king_awaiting_name_refused_in_imposed_mode() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    with pytest.raises(ImposedKingdomsError):
+        await service.enroll_king_awaiting_name("p1", "Arthur")
+
+
+async def test_found_kingdom_validates_the_caller() -> None:
+    """Only a King awaiting a name can found; a Lord cannot."""
+    service, _ = _service()
+    await service.launch(None)
+    with pytest.raises(KingdomNotFoundError):
+        await service.found_kingdom("unknown", "Aquitaine")
+    await service.enroll("p1", "Luc", LordRole.LORD)  # queued lord
+    with pytest.raises(NotQueuedError):
+        await service.found_kingdom("p1", "Aquitaine")
+
+
+async def test_found_kingdom_rejects_duplicate_names() -> None:
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    await service.found_kingdom("p1", "Aquitaine")
+    await service.enroll_king_awaiting_name("p2", "Béatrice")
+    with pytest.raises(KingdomNameInvalidError):
+        await service.found_kingdom("p2", "aquitaine")
+
+
+async def test_found_kingdom_can_then_be_approved() -> None:
+    """The DM-founded kingdom follows the normal validation queue."""
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    kingdom = await service.found_kingdom("p1", "Pictavie")
+    approved = await service.approve_kingdom(kingdom.id)
+    assert approved.validation is KingdomValidation.APPROVED

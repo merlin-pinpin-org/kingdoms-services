@@ -38,6 +38,7 @@ from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.ui import (
     GREEN,
 )
+from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 from kingdoms.mods.kingdoms.snapshot import season_label
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
@@ -83,8 +84,8 @@ async def refresh_changelog(guild: discord.Guild, locale: str) -> bool:
         "assign waiting players, add a kingdom manually — sensitive actions ask for confirmation."
     )
     content = f"{items}\n{CHANGELOG_MARKER}"
-    for message in list(getattr(channel, "messages", [])):
-        if CHANGELOG_MARKER in (message.content or ""):
+    for message in await channel_messages(channel):
+        if CHANGELOG_MARKER in message_text(message):
             try:
                 await message.edit(content=content)
             except Exception:
@@ -125,8 +126,24 @@ STRINGS: dict[str, dict[str, Any]] = {
         "no_kingdoms_hint": "No kingdom exists yet — you can wait in the queue.",
         "role_king": "👑 King",
         "role_lord": "🎖️ Lord",
-        "kingdom_field": "Kingdom name",
-        "kingdom_placeholder": "My Kingdom",
+        "kingdom_after_validation": "to be chosen after your application is approved",
+        "king_name_dm_title": "👑 Your kingdom's name",
+        "king_name_dm_body": (
+            "Your King application has been accepted! Reply to this message "
+            "with the name of your kingdom (one line, max 40 characters). "
+            "It will then be submitted to the admins for validation."
+        ),
+        "king_name_dm_fallback": "Reply to this message with your kingdom's name.",
+        "king_name_dm_received": (
+            "Your kingdom **{0}** has been proposed — it now awaits admin validation."
+        ),
+        "king_name_dm_error": (
+            "The kingdom could not be created: {0}.\nTry again with another name "
+            "(one line, max 40 characters)."
+        ),
+        "enroll_king_awaiting_name": (
+            "👑 King enrolled — they will receive a DM to name their kingdom."
+        ),
         "insight_field": "AoE II Insight link",
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "Game ID",
@@ -146,7 +163,6 @@ STRINGS: dict[str, dict[str, Any]] = {
         "cancel": "Cancel",
         "bad_insight": "The AoE II Insight link must be a valid URL.",
         "bad_game_id": "The game ID must be 6 to 20 digits.",
-        "king_needs_name": "A King must suggest a kingdom name.",
         "cancelled": "Application cancelled.",
         "sent": "Your application has been sent — an admin will review it.",
         "candidature_title": "📋 New enrollment application",
@@ -236,8 +252,25 @@ STRINGS: dict[str, dict[str, Any]] = {
         "no_kingdoms_hint": "Aucun royaume n'existe encore — vous pouvez vous mettre en attente.",
         "role_king": "👑 Roi",
         "role_lord": "🎖️ Seigneur",
-        "kingdom_field": "Nom du royaume",
-        "kingdom_placeholder": "Mon Royaume",
+        "kingdom_after_validation": "à choisir après la validation de ta candidature",
+        "king_name_dm_title": "👑 Nom de ton royaume",
+        "king_name_dm_body": (
+            "Ta candidature de Roi a été acceptée ! Réponds à ce message avec le "
+            "nom de ton royaume (une seule ligne, max 40 caractères). Il sera "
+            "ensuite soumis à la validation des admins."
+        ),
+        "king_name_dm_fallback": "Réponds à ce message avec le nom de ton royaume.",
+        "king_name_dm_received": (
+            "Ton royaume **{0}** a été proposé — il est en attente de validation "
+            "par les admins."
+        ),
+        "king_name_dm_error": (
+            "Impossible de créer le royaume : {0}.\nRéessaie avec un autre nom "
+            "(une seule ligne, max 40 caractères)."
+        ),
+        "enroll_king_awaiting_name": (
+            "👑 Roi inscrit — il va recevoir un MP pour nommer son royaume."
+        ),
         "insight_field": "Lien AoE II Insight",
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "ID de jeu",
@@ -257,7 +290,6 @@ STRINGS: dict[str, dict[str, Any]] = {
         "cancel": "Annuler",
         "bad_insight": "Le lien AoE II Insight doit être une URL valide.",
         "bad_game_id": "L'ID de jeu doit contenir 6 à 20 chiffres.",
-        "king_needs_name": "Un Roi doit suggérer un nom de royaume.",
         "cancelled": "Candidature annulée.",
         "sent": "Votre candidature a été envoyée — un admin l'examinera.",
         "candidature_title": "📋 Nouvelle candidature",
@@ -385,14 +417,8 @@ class _ApplicationContext:
 
 
 class _KingApplicationModal(discord.ui.Modal):
-    """The King form: kingdom name + Insight link + game ID."""
+    """The King form: Insight link + game ID (name comes after approval)."""
 
-    kingdom_name: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
-        label="Kingdom name",
-        placeholder="My Kingdom",
-        max_length=40,
-        required=True,
-    )
     insight_link: discord.ui.TextInput[_KingApplicationModal] = discord.ui.TextInput(
         label="AoE II Insight link",
         placeholder="https://www.aoe2insight.com/…",
@@ -416,8 +442,6 @@ class _KingApplicationModal(discord.ui.Modal):
     def __init__(self, context: _ApplicationContext) -> None:
         self.context = context
         strings = _strings(context.locale)
-        self.kingdom_name.label = strings["kingdom_field"][:45]
-        self.kingdom_name.placeholder = strings["kingdom_placeholder"][:100]
         self.insight_link.label = strings["insight_field"][:45]
         self.insight_link.placeholder = strings["insight_placeholder"][:100]
         self.game_id.label = strings["game_id_field"][:45]
@@ -431,7 +455,7 @@ class _KingApplicationModal(discord.ui.Modal):
             interaction,
             self.context,
             is_king=True,
-            kingdom_name=(self.kingdom_name.value or "").strip(),
+            kingdom_name="",
             queued=False,
             insight=(self.insight_link.value or "").strip(),
             game_id=(self.game_id.value or "").strip(),
@@ -510,9 +534,6 @@ async def _send_summary(
 ) -> None:
     """Validate the form, then show the review + rules-acceptance step."""
     strings = _strings(context.locale)
-    if is_king and not kingdom_name:
-        await interaction.response.send_message(strings["king_needs_name"], ephemeral=True)
-        return
     if not INSIGHT_URL.match(insight):
         await interaction.response.send_message(strings["bad_insight"], ephemeral=True)
         return
@@ -523,7 +544,7 @@ async def _send_summary(
     role_label = strings["role_king"] if is_king else strings["role_lord"]
     lines = [f"# {strings['summary_title']}", f"**{strings['summary_role']}** : {role_label}"]
     if is_king:
-        lines.append(f"**{strings['summary_kingdom']}** : {kingdom_name}")
+        lines.append(f"**{strings['summary_kingdom']}** : {strings['kingdom_after_validation']}")
     elif queued:
         lines.append(f"**{strings['summary_queue']}** : {strings['queue_value']}")
     else:
@@ -572,7 +593,9 @@ def _summary_view(
             f"# 📋 {applicant_name}",
             f"**{strings['candidature_role']}** : {role_label}",
         ]
-        if is_king or not queued:
+        if is_king:
+            lines.append(f"**{strings['candidature_kingdom']}** : {strings['kingdom_after_validation']}")
+        elif not queued:
             lines.append(f"**{strings['candidature_kingdom']}** : {kingdom_name}")
         else:
             lines.append(f"**{strings['candidature_queue']}** : {strings['queue_value']}")
@@ -975,8 +998,8 @@ async def _deploy_market_panel(
     kingdoms_service: Any,
 ) -> None:
     """Remove the old market panel then pin a fresh one."""
-    for message in list(getattr(channel, "messages", [])):
-        if MARKET_PANEL_MARKER in (message.content or ""):
+    for message in await channel_messages(channel):
+        if MARKET_PANEL_MARKER in message_text(message):
             try:
                 await message.delete()
             except Exception:
@@ -1017,8 +1040,8 @@ async def refresh_season_status(
         ]
     )
     content = "\n".join(lines)
-    for message in list(getattr(channel, "messages", [])):
-        if SEASON_STATUS_MARKER in (message.content or ""):
+    for message in await channel_messages(channel):
+        if SEASON_STATUS_MARKER in message_text(message):
             try:
                 await message.edit(content=content)
             except Exception:
@@ -1036,14 +1059,18 @@ async def _deploy_settings_panel(
     bot_admins: tuple[str, ...],
 ) -> None:
     """Remove every stale settings message (old locale/timezone panel included), then pin the fresh one."""
-    for message in list(getattr(channel, "messages", [])):
+    for message in await channel_messages(channel):
+        text = message_text(message)
         stale = (
-            SETTINGS_PANEL_MARKER in (message.content or "")
-            or "kingdoms:settings:" in (message.content or "")
+            SETTINGS_PANEL_MARKER in text
+            or "kingdoms:settings:" in text
             or (
                 getattr(message, "author", None) is not None
                 and bool(getattr(message.author, "bot", False))
-                and getattr(message, "view", None) is not None
+                and (
+                    getattr(message, "view", None) is not None
+                    or bool(getattr(message, "components", None))
+                )
             )
         )
         if stale:
@@ -1064,8 +1091,8 @@ async def _deploy_apply_panel(
     kingdoms_service: Any,
 ) -> None:
     """Remove the old apply panel then pin a fresh one."""
-    for message in list(getattr(channel, "messages", [])):
-        if PANEL_MARKER in (message.content or ""):
+    for message in await channel_messages(channel):
+        if PANEL_MARKER in message_text(message):
             try:
                 await message.delete()
             except Exception:

@@ -255,6 +255,8 @@ class KingdomCandidatureButton(
                     note += " " + strings["no_service"]
             if interaction.guild is not None and applicant is not None:
                 await _send_welcome(interaction.guild, applicant.group(1), strings)
+                if is_king and kingdom_name is None:
+                    await _send_king_name_request(interaction.guild, applicant.group(1), strings)
             if interaction.guild is not None:
                 await _refresh_season_status_safe(interaction.guild, locale)
                 if enrolled and applicant is not None:
@@ -950,6 +952,7 @@ class KingdomAddKingdomModal(discord.ui.Modal):
             await interaction.followup.send(strings["add_kingdom_failed"].format(type(exc).__name__), ephemeral=True)
             return
         await interaction.followup.send(strings["add_kingdom_done"].format(kingdom.name), ephemeral=True)
+        await _draw_territories_for_kingdom_safe(kingdom.id)
         if interaction.guild is not None:
             await _ensure_realms_after_launch(interaction.guild, self.locale)
 
@@ -1207,7 +1210,10 @@ def _candidature_kingdom_name(content: str, strings: dict[str, Any]) -> str | No
         if strings["queue_value"] in line:
             return None
         if line.startswith(f"**{strings['candidature_kingdom']}** : "):
-            return line.split("** : ", 1)[1].strip() or None
+            value = line.split("** : ", 1)[1].strip() or None
+            if value is not None and value == strings["kingdom_after_validation"]:
+                return None  # flow v2: the King names the kingdom after approval
+            return value
     return None
 
 
@@ -1223,6 +1229,13 @@ async def _enroll_applicant(
     from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
 
     display_name = f"<@{player_id}>"
+    if is_king and not kingdom_name:
+        try:
+            await kingdoms_service.enroll_king_awaiting_name(player_id, display_name)
+        except Exception as exc:
+            logger.warning("CANDIDATURES: king enrollment failed for %s", player_id, exc_info=True)
+            return strings["enroll_failed"].format(type(exc).__name__), False
+        return strings["enroll_king_awaiting_name"], True
     try:
         if is_king:
             lord = await kingdoms_service.enroll(
@@ -1308,6 +1321,28 @@ async def _send_welcome(
             await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
 
 
+async def _send_king_name_request(guild: discord.Guild, applicant_id: str, strings: dict[str, Any]) -> None:
+    """DM the approved King asking for their kingdom's name (flow v2, D70)."""
+    member = guild.get_member(int(applicant_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(applicant_id))
+        except Exception:
+            member = None
+    if member is None:
+        return
+    request = f"# {strings['king_name_dm_title']}\n{strings['king_name_dm_body']}"
+    try:
+        await member.send(request)
+    except Exception:
+        logger.info("CANDIDATURES: kingdom-name DM failed, falling back to the profile channel")
+        from kingdoms.mods.kingdoms.kingdom_profiles import ensure_profile_channel
+
+        channel = await ensure_profile_channel(guild, member)
+        if channel is not None:
+            await channel.send(f"{request}\n{strings['king_name_dm_fallback']}")
+
+
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Delete every kingdoms channel/category, then report."""
     guild = interaction.guild
@@ -1371,7 +1406,12 @@ def _declared_structure_slugs(registry: Any) -> set[str]:
 
 
 async def _delete_matching_channels(guild: discord.Guild, structure_names: set[str]) -> int:
-    """Delete the structure channels, the profile channels and the epoch members."""
+    """Delete the structure channels, the profile channels and the epoch members.
+
+    The salons living under a per-kingdom ``Royaume …`` category are
+    skipped: they are not declared structure (they belong to their
+    realm) and die with their category in :func:`_delete_matching_categories`.
+    """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     deleted = 0
@@ -1381,8 +1421,12 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
         in_epoch = (
             category is not None and _slug(getattr(category, "name", "")) == _slug("Époque")
         )
+        in_realm = (
+            category is not None
+            and _slug(getattr(category, "name", "")).startswith("royaume-")
+        )
         name = _slug(channel.name)
-        if in_epoch or name in structure_names or name.startswith("profil-"):
+        if in_epoch or (not in_realm and (name in structure_names or name.startswith("profil-"))):
             try:
                 await channel.delete()
                 deleted += 1
@@ -1392,12 +1436,19 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
 
 
 async def _delete_matching_categories(guild: discord.Guild, structure_names: set[str]) -> int:
-    """Delete the declared structure categories."""
+    """Delete the declared structure categories and the per-kingdom realms.
+
+    The per-kingdom ``Royaume [Nom]`` categories are not declared in the
+    YAML — a reset must still purge them, otherwise the reinstall adopts
+    the half-deleted slices and the guild ends up with leftovers. The
+    approved kingdoms are re-provisioned by the post-reset panel deploy.
+    """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     deleted = 0
     for category in list(getattr(guild, "categories", [])):
-        if _slug(category.name) in structure_names:
+        slug = _slug(category.name)
+        if slug in structure_names or slug.startswith("royaume-"):
             try:
                 await category.delete()
                 deleted += 1
@@ -1417,6 +1468,31 @@ async def _refresh_realms_panel_safe(guild: discord.Guild, locale: str) -> None:
         logger.warning("KINGDOM REALMS: panel refresh failed", exc_info=True)
 
 
+async def _draw_territories_after_launch_safe() -> None:
+    """Best-effort season initial draw (guarded, never duplicates)."""
+    wiring = _wiring()
+    if wiring.territories_service is None:
+        return
+    try:
+        if await wiring.territories_service.territories():
+            logger.info("KINGDOMS: initial territory draw skipped — territories exist")
+            return
+        await wiring.territories_service.draw_initial()
+    except Exception:
+        logger.warning("KINGDOMS: initial territory draw failed", exc_info=True)
+
+
+async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
+    """Best-effort per-kingdom draw after an approval (guarded, idempotent)."""
+    wiring = _wiring()
+    if wiring.territories_service is None:
+        return
+    try:
+        await wiring.territories_service.draw_initial_for(kingdom_id)
+    except Exception:
+        logger.warning("KINGDOMS: territory draw for kingdom %s failed", kingdom_id, exc_info=True)
+
+
 async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None:
     """Provision the approved (imposed/admin) kingdoms after a launch."""
     try:
@@ -1426,6 +1502,7 @@ async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None
         await ensure_all_realm_structures(guild, wiring.kingdoms_service)
     except Exception:
         logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    await _draw_territories_after_launch_safe()
     await _refresh_realms_panel_safe(guild, locale)
 
 
@@ -1555,6 +1632,7 @@ class KingdomRealmButton(
                 ]
                 member_ids = [int(lord.id) for lord in members if str(lord.id).isdigit()]
                 await ensure_realm_structure(interaction.guild, kingdom, member_ids)
+                await _draw_territories_for_kingdom_safe(kingdom.id)
             else:
                 kingdom = await wiring.kingdoms_service.refuse_kingdom(self.kingdom_id)
                 await delete_realm_structure(interaction.guild, kingdom.name)
@@ -1563,3 +1641,66 @@ class KingdomRealmButton(
             return
         await interaction.followup.send(strings["realms_done"], ephemeral=True)
         await _refresh_realms_panel_safe(interaction.guild, locale)
+
+
+_DM_LISTENER_BOT: Any = None
+
+
+async def _on_kingdom_dm(message: discord.Message) -> None:
+    """Handle a DM from an approved King: the reply names their kingdom.
+
+    Flow v2 (D70): only a King enrolled and awaiting a kingdom name is
+    concerned — every other DM is ignored. The first line (max 40
+    characters) becomes the proposed name and lands the kingdom in the
+    admin validation queue (rule 35).
+    """
+    if message.guild is not None or getattr(message.author, "bot", False):
+        return
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return
+    player_id = str(getattr(message.author, "id", ""))
+    if not player_id:
+        return
+    from kingdoms.mods.kingdoms.service import KING_ROLE
+
+    try:
+        lord = next(
+            (item for item in await wiring.kingdoms_service.lords() if item.id == player_id and not item.left),
+            None,
+        )
+    except Exception:
+        return
+    if lord is None or lord.role is not KING_ROLE or not lord.in_queue or lord.kingdom_id is not None:
+        return
+    content = (message.content or "").strip()
+    if not content:
+        return
+    name = content.splitlines()[0].strip()[:40]
+    strings = _strings("fr")
+    try:
+        kingdom = await wiring.kingdoms_service.found_kingdom(player_id, name)
+    except Exception as exc:
+        logger.info("KINGDOMS: kingdom founding DM failed for %s", player_id, exc_info=True)
+        await message.reply(strings["king_name_dm_error"].format(type(exc).__name__))
+        return
+    await message.reply(strings["king_name_dm_received"].format(kingdom.name))
+    bot = _DM_LISTENER_BOT
+    if bot is not None:
+        for guild in getattr(bot, "guilds", []):
+            await _refresh_realms_panel_safe(guild, "fr")
+
+
+def register_kingdoms_dm_listener(bot: Any) -> None:
+    """Register the DM listener exactly once (kingdom-name replies)."""
+    global _DM_LISTENER_BOT
+    _DM_LISTENER_BOT = bot
+    if getattr(bot, "_kingdoms_dm_listener", False):
+        return
+    bot._kingdoms_dm_listener = True
+    add_listener = getattr(bot, "add_listener", None)
+    if add_listener is None:
+        logger.debug("KINGDOMS: no add_listener on the bot — DM listener skipped")
+        return
+    add_listener(_on_kingdom_dm, "on_message")
+    logger.info("KINGDOMS: kingdom-name DM listener registered")

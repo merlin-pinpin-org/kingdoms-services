@@ -141,6 +141,53 @@ class TerritoryService:
         logger.info("kingdoms: map %s drawn for %s", map_key, owner_kingdom_id)
         return territory
 
+    async def draw_initial_for(
+        self,
+        owner_kingdom_id: str,
+        *,
+        seed: int | None = None,
+    ) -> list[TerritoryModel]:
+        """Draw the initial territories for ONE kingdom (§6.3, approval flow).
+
+        Same pool rules as :meth:`draw_initial` — the per-kingdom count
+        (``territories_per_kingdom``, or ``gaia_territories`` for Gaïa),
+        random, without duplicates, atomic on catalog exhaustion.
+
+        Idempotent guard: when the kingdom already owns territories, the
+        call is a no-op returning them — approving twice never duplicates.
+        """
+        season = await self._require_season()
+        kingdoms = await self._kingdoms.kingdoms()
+        kingdom = next((item for item in kingdoms if item.id == owner_kingdom_id), None)
+        if kingdom is None:
+            raise KingdomNotFoundError("no kingdom with this id in the current season")
+        existing = [
+            territory
+            for territory in await self.territories()
+            if territory.owner_kingdom_id == owner_kingdom_id
+        ]
+        if existing:
+            return existing
+        wanted = self._config.gaia_territories if kingdom.is_gaia else self._config.territories_per_kingdom
+        catalog = [entry.key for entry in self._config.maps]
+        already = await self.drawn_map_keys()
+        pool = [key for key in catalog if key not in already]
+        if len(pool) < wanted:
+            raise MapPoolExhaustedError(
+                "the allowed-map catalog cannot cover this kingdom's draw",
+                missing=wanted - len(pool),
+            )
+        rng = random.Random(seed)  # noqa: S311 - game draw, not crypto
+        rng.shuffle(pool)
+        created = [
+            self._new_territory(season, pool[cursor], owner_kingdom_id)
+            for cursor in range(wanted)
+        ]
+        for territory in created:
+            await self._store.upsert_territory(territory.to_mongo())
+        logger.info("kingdoms: initial draw for %s — %s territories", owner_kingdom_id, wanted)
+        return created
+
     async def transfer(self, territory_id: str, new_owner_kingdom_id: str) -> TerritoryModel:
         """Idempotent ownership transfer (§9, primitive for T4/T5/T7).
 

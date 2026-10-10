@@ -42,7 +42,13 @@ case:&nbsp;the&nbsp;structure&nbsp;exists,&nbsp;the&nbsp;members&nbsp;list&nbsp;
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_realms_panel"><strong>build_realms_panel</strong></a>(locale: 'str', kingdoms: 'list[Any]', lords: 'list[Any]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Royaumes&nbsp;panel:&nbsp;every&nbsp;kingdom,&nbsp;its&nbsp;state,&nbsp;its&nbsp;people.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_draft_starter"><strong>announce_draft_starter</strong></a>(guild: 'discord.Guild', kingdom: 'Any', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;kingdom's&nbsp;starter&nbsp;draft&nbsp;in&nbsp;its&nbsp;Alliances&nbsp;salon&nbsp;(idempotent).<br>
+&nbsp;<br>
+The&nbsp;8&nbsp;starting&nbsp;civilizations&nbsp;drawn&nbsp;at&nbsp;the&nbsp;kingdom's&nbsp;creation&nbsp;are&nbsp;the<br>
+season's&nbsp;opening&nbsp;hand:&nbsp;they&nbsp;belong&nbsp;in&nbsp;``Alliances``&nbsp;(D51&nbsp;—&nbsp;alliances<br>
+equal&nbsp;civilizations),&nbsp;titled&nbsp;«&nbsp;🎲&nbsp;Draft&nbsp;starter&nbsp;».&nbsp;The&nbsp;message&nbsp;is<br>
+marked&nbsp;and&nbsp;edited&nbsp;in&nbsp;place,&nbsp;never&nbsp;duplicated.</span></dd></dl>
+ <dl><dt><a name="-build_realms_panel"><strong>build_realms_panel</strong></a>(locale: 'str', kingdoms: 'list[Any]', lords: 'list[Any]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Royaumes&nbsp;panel:&nbsp;every&nbsp;kingdom,&nbsp;its&nbsp;state,&nbsp;its&nbsp;people.<br>
 &nbsp;<br>
 The&nbsp;buttons&nbsp;target&nbsp;pending/refused&nbsp;kingdoms&nbsp;only&nbsp;(an&nbsp;approved&nbsp;one<br>
 has&nbsp;its&nbsp;structure&nbsp;already;&nbsp;renaming&nbsp;stays&nbsp;available&nbsp;everywhere).</span></dd></dl>
@@ -66,7 +72,8 @@ the&nbsp;whole&nbsp;category&nbsp;is&nbsp;invisible&nbsp;to&nbsp;everyone&nbsp;e
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
+<td class="singlecolumn"><strong>DRAFT_STARTER_MARKER</strong> = 'kingdoms:realm:draft-starter'<br>
+<strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
 <strong>REALMS_CHANNEL</strong> = 'Royaumes'<br>
 <strong>REALMS_PANEL_MARKER</strong> = 'kingdoms:panel:royaumes'<br>
 <strong>REALM_SALONS</strong> = (('salle-du-conseil', 'Salle du Conseil'), ('patrouille', 'Patrouille'), ('seigneurs', 'Seigneurs'), ('le-royaume', 'Le-Royaume'), ('territoire', 'Territoire'), ('alliances', 'Alliances'), ('eglise', 'Église'), ('pigeon-voyageur', 'Pigeon-Voyageur'))<br>

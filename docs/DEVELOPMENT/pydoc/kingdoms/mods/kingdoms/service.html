@@ -673,6 +673,19 @@ A&nbsp;King&nbsp;founds&nbsp;a&nbsp;kingdom&nbsp;with&nbsp;a&nbsp;name&nbsp;pend
 (D21)&nbsp;—&nbsp;refused&nbsp;in&nbsp;the&nbsp;imposed&nbsp;mode.&nbsp;A&nbsp;Lord&nbsp;joins&nbsp;the&nbsp;named<br>
 kingdom,&nbsp;or&nbsp;waits&nbsp;in&nbsp;the&nbsp;queue&nbsp;when&nbsp;no&nbsp;kingdom&nbsp;is&nbsp;given&nbsp;(D23).</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-enroll_king_awaiting_name"><strong>enroll_king_awaiting_name</strong></a>(self, player_id: 'str', display_name: 'str') -&gt; 'LordModel'</dt><dd><span class="code">Enroll&nbsp;an&nbsp;approved&nbsp;King&nbsp;without&nbsp;a&nbsp;kingdom&nbsp;yet&nbsp;(D70,&nbsp;flow&nbsp;v2).<br>
+&nbsp;<br>
+The&nbsp;validated&nbsp;King&nbsp;waits&nbsp;in&nbsp;the&nbsp;queue&nbsp;until&nbsp;they&nbsp;reply&nbsp;with<br>
+their&nbsp;kingdom's&nbsp;name&nbsp;—&nbsp;:meth:`found_kingdom`&nbsp;then&nbsp;creates&nbsp;the<br>
+PENDING&nbsp;kingdom&nbsp;(rule&nbsp;35).</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsService-found_kingdom"><strong>found_kingdom</strong></a>(self, player_id: 'str', name: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Create&nbsp;the&nbsp;PENDING&nbsp;kingdom&nbsp;of&nbsp;a&nbsp;King&nbsp;who&nbsp;replied&nbsp;with&nbsp;its&nbsp;name.<br>
+&nbsp;<br>
+Flow&nbsp;v2&nbsp;(D70):&nbsp;the&nbsp;King&nbsp;was&nbsp;approved&nbsp;without&nbsp;a&nbsp;name,&nbsp;then&nbsp;sent<br>
+the&nbsp;name&nbsp;back&nbsp;to&nbsp;the&nbsp;bot&nbsp;—&nbsp;the&nbsp;kingdom&nbsp;lands&nbsp;in&nbsp;the&nbsp;admin<br>
+validation&nbsp;queue&nbsp;(rule&nbsp;35),&nbsp;exactly&nbsp;like&nbsp;a&nbsp;proposed&nbsp;name&nbsp;at<br>
+enrollment.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-kingdoms"><strong>kingdoms</strong></a>(self) -&gt; 'list[KingdomModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdoms&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsService-launch"><strong>launch</strong></a>(self, imposed_names: 'list[str] | None' = None) -&gt; 'SeasonState'</dt><dd><span class="code">Launch&nbsp;a&nbsp;new&nbsp;season:&nbsp;wholesale&nbsp;reset,&nbsp;then&nbsp;the&nbsp;fresh&nbsp;state&nbsp;(D38).<br>

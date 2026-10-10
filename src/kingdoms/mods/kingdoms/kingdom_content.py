@@ -164,8 +164,10 @@ async def _epoch_channel(guild: discord.Guild) -> Any:
 
 async def _upsert_marked(channel: Any, content: str, marker: str) -> bool:
     """Edit the marked message of one channel, or post it when missing."""
-    for message in list(getattr(channel, "messages", [])):
-        if marker in (message.content or ""):
+    from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
+
+    for message in await channel_messages(channel):
+        if marker in message_text(message):
             try:
                 await message.edit(content=content)
             except Exception:

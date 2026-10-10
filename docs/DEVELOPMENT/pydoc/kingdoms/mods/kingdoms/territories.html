@@ -236,6 +236,15 @@ Fails&nbsp;atomically&nbsp;with&nbsp;an&nbsp;admin-actionable&nbsp;error&nbsp;wh
 is&nbsp;too&nbsp;small&nbsp;(§7)&nbsp;—&nbsp;nothing&nbsp;is&nbsp;persisted&nbsp;then.&nbsp;``seed``&nbsp;exists&nbsp;for<br>
 deterministic&nbsp;tests&nbsp;only.</span></dd></dl>
 
+<dl><dt>async <a name="TerritoryService-draw_initial_for"><strong>draw_initial_for</strong></a>(self, owner_kingdom_id: 'str', *, seed: 'int | None' = None) -&gt; 'list[TerritoryModel]'</dt><dd><span class="code">Draw&nbsp;the&nbsp;initial&nbsp;territories&nbsp;for&nbsp;ONE&nbsp;kingdom&nbsp;(§6.3,&nbsp;approval&nbsp;flow).<br>
+&nbsp;<br>
+Same&nbsp;pool&nbsp;rules&nbsp;as&nbsp;:meth:`draw_initial`&nbsp;—&nbsp;the&nbsp;per-kingdom&nbsp;count<br>
+(``territories_per_kingdom``,&nbsp;or&nbsp;``gaia_territories``&nbsp;for&nbsp;Gaïa),<br>
+random,&nbsp;without&nbsp;duplicates,&nbsp;atomic&nbsp;on&nbsp;catalog&nbsp;exhaustion.<br>
+&nbsp;<br>
+Idempotent&nbsp;guard:&nbsp;when&nbsp;the&nbsp;kingdom&nbsp;already&nbsp;owns&nbsp;territories,&nbsp;the<br>
+call&nbsp;is&nbsp;a&nbsp;no-op&nbsp;returning&nbsp;them&nbsp;—&nbsp;approving&nbsp;twice&nbsp;never&nbsp;duplicates.</span></dd></dl>
+
 <dl><dt>async <a name="TerritoryService-draw_map_for"><strong>draw_map_for</strong></a>(self, owner_kingdom_id: 'str', map_key: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Draw&nbsp;one&nbsp;specific&nbsp;allowed&nbsp;map&nbsp;as&nbsp;a&nbsp;territory&nbsp;(T5/T7&nbsp;helper).<br>
 &nbsp;<br>
 Refuses&nbsp;out&nbsp;maps&nbsp;(§8)&nbsp;and&nbsp;maps&nbsp;outside&nbsp;the&nbsp;admin&nbsp;catalog;&nbsp;used<br>
