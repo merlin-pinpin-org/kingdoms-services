@@ -408,6 +408,7 @@ async def ensure_live_dashboard(
     registered = await registry.resolve(PLATFORM, _page_key(1), guild_id)
     if await _edit_registered(channel, registered, embeds[0]):
         await _sync_extra_pages(guild_id, channel, registry, embeds)
+        await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
         return False
     reused = await _reuse_pinned_dashboard(channel, embeds[0])
     if reused is not None:
@@ -656,6 +657,47 @@ PLATFORM = "discord"
 DASHBOARD_REFRESH_INTERVAL_S = 15
 DASHBOARD_MIN_EDIT_INTERVAL_S = 60
 _LAST_PUSH: dict[str, tuple[float, str]] = {}
+LIVE_STATE_SCOPE = "live-dashboard"
+
+
+async def _remember_sent_fingerprint(guild_id: str, fingerprint: str) -> None:
+    """Persist the last-sent dashboard state (the bot knows, no re-read).
+
+    The state store (Redis cache-aside) holds the fingerprint of the
+    last snapshot each guild's dashboard shows; after a restart the
+    comparison continues without fetching the message content.
+    """
+    import os
+
+    redis_uri = os.environ.get("REDIS_URI", "")
+    if not redis_uri:
+        return
+    try:
+        from redis.asyncio import Redis
+
+        client = Redis.from_url(redis_uri, decode_responses=True)
+        await client.set(f"{LIVE_STATE_SCOPE}:{guild_id}", fingerprint)
+        await client.close()
+    except Exception:
+        logger.debug("live dashboard state persist skipped — best-effort", exc_info=True)
+
+
+async def _last_sent_fingerprint(guild_id: str) -> str | None:
+    """Read the persisted last-sent fingerprint; None when never sent."""
+    import os
+
+    redis_uri = os.environ.get("REDIS_URI", "")
+    if not redis_uri:
+        return None
+    try:
+        from redis.asyncio import Redis
+
+        client = Redis.from_url(redis_uri, decode_responses=True)
+        value = await client.get(f"{LIVE_STATE_SCOPE}:{guild_id}")
+        await client.close()
+        return str(value) if value else None
+    except Exception:
+        return None
 
 
 def _snapshot_fingerprint(snapshot: dict[str, Any]) -> str:
@@ -716,18 +758,25 @@ async def _push_snapshot(
     body = render_dashboard(snapshot, stats=stats)
     embeds = _dashboard_embeds(snapshot, body, bot)
     for guild in list(bot.guilds):
-        last_at, last_fp = _LAST_PUSH.get(str(guild.id), (0.0, ""))
+        guild_id = str(guild.id)
+        last_at, last_fp = _LAST_PUSH.get(guild_id, (0.0, ""))
         if fingerprint == last_fp:
             continue
+        if not last_fp:
+            persisted = await _last_sent_fingerprint(guild_id)
+            if persisted == fingerprint:
+                _LAST_PUSH[guild_id] = (now, fingerprint)
+                continue
         if now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S:
             continue
-        _LAST_PUSH[str(guild.id)] = (now, fingerprint)
+        _LAST_PUSH[guild_id] = (now, fingerprint)
         channel = await ensure_live_dashboard_channel(guild)
         registered = await registry.resolve(PLATFORM, _page_key(1), str(guild.id))
         try:
             if not await _edit_registered(channel, registered, embeds[0]):
-                await ensure_live_dashboard(bot, str(guild.id), client, registry)
+                await ensure_live_dashboard(bot, guild_id, client, registry)
             else:
-                await _sync_extra_pages(str(guild.id), channel, registry, embeds)
+                await _sync_extra_pages(guild_id, channel, registry, embeds)
+            await _remember_sent_fingerprint(guild_id, fingerprint)
         except Exception:
             logger.warning("live dashboard push failed (guild %s) — best-effort", guild.id, exc_info=True)

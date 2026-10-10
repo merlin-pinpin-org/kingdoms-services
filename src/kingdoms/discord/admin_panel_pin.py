@@ -99,40 +99,38 @@ async def ensure_pinned_admin_menu(
     for message in await _stale_pinned_menus(bot, guild_id, str(channel_id)):
         await _unpin_message(message)
     if not created:
-        await _edit_pin_in_place(bot, guild_id, channel, channel_id, _build)
+        await _edit_registered_pin_in_place(bot, guild_id, channel, _build)
     return created
 
 
-async def _edit_pin_in_place(
+async def _edit_registered_pin_in_place(
     bot: discord.Client,
     guild_id: str,
     channel: Any,
-    channel_id: str | None,
     build_layout: Any,
 ) -> None:
-    """Edit the current admin pin to the freshly built layout.
+    """Edit the registered admin pin to the freshly built layout.
 
     ``PinnedMenuService.ensure`` returns early when the pin carries the
     marker and the required ids — an older **layout** (pre-i18n labels,
-    missing sections) would otherwise stay forever. This step renders
-    the current layout and edits the pinned message in place when the
-    content differs; the message id stays stable.
+    missing sections) would otherwise stay forever. The registered
+    message id (message registry, base-backed) is fetched directly and
+    edited in place when the layout fingerprint differs; a gone message
+    is left to the ensure cycle's recreation path.
     """
-    from kingdoms.core.services.pinned_menu import _walk_custom_ids as _walk_ids
     from kingdoms.discord.pinned_menu_fingerprint import layout_fingerprint
+    from kingdoms.discord.static_pins import registered_static_pins
 
     try:
+        spec = next((sp for sp in registered_static_pins() if sp.key == "admin-panel"), None)
+        message_id = await spec.resolve_message_id(guild_id) if spec else None
+        if not message_id or not message_id.isdigit():
+            return
+        message = await channel.fetch_message(int(message_id))
         layout = await build_layout(guild_id)
-        for message in await channel.pins():
-            if "admin:pin:" not in str(getattr(message, "content", "")) and not any(
-                "admin:pin:" in str(cid)
-                for cid in _walk_ids(message)
-            ):
-                continue
-            if layout_fingerprint(layout) == layout_fingerprint(getattr(message, "components", None)):
-                continue
-            await message.edit(view=layout)
-            break
+        if layout_fingerprint(layout) == layout_fingerprint(getattr(message, "components", None)):
+            return
+        await message.edit(view=layout)
     except Exception:
         logger.warning("PINNED ADMIN MENU in-place refresh failed — best-effort", exc_info=True)
 
