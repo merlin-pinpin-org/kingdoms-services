@@ -916,10 +916,11 @@ async def build_market_panel(
 
         technologies = TechnologyCosts()
 
-    tech_rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = [
-        discord.ui.ActionRow(),
-        discord.ui.ActionRow(),
-    ]
+    # Rows are packed dynamically in chunks of 5: a preallocated spare
+    # row would serialize as an EMPTY ActionRow, which Discord rejects
+    # ("Must be between 1 and 5 in length") — the whole panel send
+    # failed that way when the tech count dropped from 6 to 5 (D68).
+    tech_rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
     tech_keys = (
         "embuscade",
         "traquenard",
@@ -928,8 +929,11 @@ async def build_market_panel(
         "jeu_d_armes",
     )
     for index, key in enumerate(tech_keys):
+        if index % 5 == 0:
+            tech_rows.append(discord.ui.ActionRow())
+        row = tech_rows[index // 5]
         cost = int(getattr(technologies, key))
-        tech_rows[index // 5].add_item(
+        row.add_item(
             KingdomMarketTechButton(
                 key,
                 f"{strings['market_tech'][key]} — {cost} 🔬",

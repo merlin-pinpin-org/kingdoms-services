@@ -206,6 +206,28 @@ async def test_market_panel_serializes_with_the_marker() -> None:
     assert MARKET_PANEL_MARKER in str(payload)
 
 
+def _action_rows(view: discord.ui.LayoutView) -> list[discord.ui.ActionRow[discord.ui.LayoutView]]:
+    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
+    for container in view.children:
+        if isinstance(container, discord.ui.Container):
+            for child in container.children:
+                if isinstance(child, discord.ui.ActionRow):
+                    rows.append(child)
+    return rows
+
+
+async def test_market_panel_never_serializes_an_empty_action_row() -> None:
+    """Regression (D68): a preallocated spare tech row serialized as an
+    EMPTY ActionRow, which Discord rejects with code 50035 ("Must be
+    between 1 and 5 in length") — the whole panel send failed and the
+    Marché channel was left without its panel."""
+    view = await build_market_panel("fr")
+    rows = _action_rows(view)
+    assert rows, "market panel must contain at least one action row"
+    for row in rows:
+        assert len(row.children) >= 1
+
+
 async def test_tech_button_buys_through_the_economy_for_kings() -> None:
     economy = FakeEconomyService()
     _wiring(
