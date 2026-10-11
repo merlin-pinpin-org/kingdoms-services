@@ -84,6 +84,17 @@ class NoArrangedTokenError(MarriageError):
     message_key = "kingdoms.errors.no_arranged_token"
 
 
+class CivilizationNotInHandError(MarriageError):
+    """Raised when a standard marriage targets an unheld civilization.
+
+    The kingdom must hold the civilization in its Alliances hand
+    (Drasah 2026-10-11); the arranged marriage carries no such rule.
+    """
+
+    code = "KINGDOMS_CIV_NOT_IN_HAND"
+    message_key = "kingdoms.errors.civ_not_in_hand"
+
+
 class DiplomacyService:
     """Civilization conditions and marriage rules (reference §18-§19)."""
 
@@ -109,10 +120,10 @@ class DiplomacyService:
         Civs come from the owned territories' cadastre, the unlock
         chains, the referential name rule and the marriages that secure
         them; a lost territory drops its civ on the next pass (D32).
-        A civilization drawn by the starting draft that has NO
-        acquisition condition yet (CIVILIZATIONS.md conditions come
-        later) stays put — the draft survives the Lord's Day
-        recalculation until the conditions are authored.
+        Drasah's 2026-10-11 Lord's Day rule: an un-wed drafted
+        civilization is LOST at the recalculation — only a marriage
+        keeps it; the cycle switch then draws a fresh draft per kingdom
+        (:meth:`KingdomsService.redraw_lords_day_draft`).
         Lords of a kingdom flagged for a combat loss lose their marriage
         first (D34/D53). Returns the new lists for the diplomacy screen.
         """
@@ -125,11 +136,9 @@ class DiplomacyService:
             if kingdom.is_gaia:
                 continue
             owned = await self._owned_map_keys(kingdom.id)
-            unlocked: list[str] = [
-                civ.key
-                for civ in self._config.civilizations
-                if civ.key in kingdom.civilizations and self._is_unconditioned(civ)
-            ]
+            # the un-wed draft drops at the Lord's Day (Drasah's rule);
+            # only condition-met and married civilizations survive here
+            unlocked: list[str] = []
             for civ in self._config.civilizations:
                 if self._condition_met(civ, kingdom, owned, unlocked):
                     if civ.key not in unlocked:
@@ -259,6 +268,12 @@ class DiplomacyService:
         if lord.kingdom_id is None:
             raise MarriageCapacityError("the lord belongs to no kingdom")
         kingdom = await self._kingdom_by_id(lord.kingdom_id)
+        if civilization not in kingdom.civilizations:
+            # Drasah's 2026-10-11 rule: a standard marriage only weds a
+            # civilization the kingdom currently holds in Alliances.
+            raise CivilizationNotInHandError(
+                f"{civilization} is not in the kingdom's hand (Alliances)"
+            )
         if kingdom.marriage_points < 1:
             raise NoMarriagePointsError("the kingdom holds no marriage point (D59)")
         await self._check_exclusivity(civilization)

@@ -83,6 +83,17 @@ def _strings(locale: str) -> dict[str, str]:
             "church_arrange_button": "💒 Mariage arrangé ({0})",
             "church_upgrade_button": "⛪ Améliorer → {0} ({1} 🔬)",
             "church_upgrade_max": "⛪ Cathédrale — palier maximal",
+            "church_household_palier": "✨ Notre {0}",
+            "church_household": "💒 La Maisonnée",
+            "church_bachelor": "🎖️ {0} — célibataire · prêt à se marier 💍",
+            "church_help": (
+                "-# 💍 Un point de mariage = un mariage classique disponible ·"
+                " 🎟️ un jeton = un mariage arrangé disponible (acheté au Marché)"
+            ),
+            "church_ladder_title": "🔭 Aperçu des paliers",
+            "church_ladder_current": "●",
+            "church_ladder_other": "▸",
+            "church_ladder_line": "{0} {1} — {2} 🔬 · verrou {3}h · offrande +{4} 🔬",
             "carrier_title": "🕊️ Pigeon-Voyageur — {0}",
             "carrier_body": (
                 "Ce salon recevra les rappels du Roi (D69) : achat de patrouille,"
@@ -140,6 +151,17 @@ def _strings(locale: str) -> dict[str, str]:
         "church_arrange_button": "💒 Arranged marriage ({0})",
         "church_upgrade_button": "⛪ Upgrade → {0} ({1} 🔬)",
         "church_upgrade_max": "⛪ Cathedral — top tier",
+        "church_household_palier": "✨ Our {0}",
+        "church_household": "💒 The Household",
+        "church_bachelor": "🎖️ {0} — bachelor · ready to marry 💍",
+        "church_help": (
+            "-# 💍 One marriage point = one standard marriage available ·"
+            " 🎟️ one token = one arranged marriage available (bought at the Market)"
+        ),
+        "church_ladder_title": "🔭 Tier ladder",
+        "church_ladder_current": "●",
+        "church_ladder_other": "▸",
+        "church_ladder_line": "{0} {1} — {2} 🔬 · lock {3}h · offering +{4} 🔬",
         "carrier_title": "🕊️ Carrier Pigeon — {0}",
         "carrier_body": (
             "This salon will carry the King's reminders (D69): patrol purchase,"
@@ -310,18 +332,43 @@ def _parish_state(kingdom: Any, service: Any) -> dict[str, Any]:
     tier = max(1, int(getattr(kingdom, "parish_tier", 1) or 1))
     if settings is None:
         # defensive default: the config seam is unavailable (tests)
+        fallback = (
+            ("Chapelle", 0, 24, 0),
+            ("Église", 2, 12, 1),
+            ("Cathédrale", 4, 6, 2),
+        )
+        ladder = [
+            {
+                "name": name,
+                "cost": cost,
+                "lock_hours": lock,
+                "offering": offering,
+            }
+            for name, cost, lock, offering in fallback
+        ]
+        entry = ladder[tier - 1]
         return {
             "tier": tier,
-            "name": {1: "Chapelle", 2: "Église", 3: "Cathédrale"}.get(tier, "Chapelle"),
-            "cost": {2: 2, 3: 4}.get(tier + 1, 0),
-            "next_name": {2: "Église", 3: "Cathédrale"}.get(tier + 1, ""),
-            "offering": {1: 0, 2: 1, 3: 2}.get(tier, 0),
-            "lock_hours": {1: 24, 2: 12, 3: 6}.get(tier, 24),
-            "max_tier": 3,
+            "name": entry["name"],
+            "cost": ladder[tier]["cost"] if tier < len(ladder) else 0,
+            "next_name": ladder[tier]["name"] if tier < len(ladder) else "",
+            "offering": entry["offering"],
+            "lock_hours": entry["lock_hours"],
+            "max_tier": len(ladder),
+            "ladder": ladder,
         }
     tiers = settings.tiers
     entry = settings.tier(tier)
     next_entry = tiers[tier] if tier < len(tiers) else None
+    ladder = [
+        {
+            "name": str(item.display_name),
+            "cost": int(item.cost),
+            "lock_hours": int(item.marriage_lock_hours),
+            "offering": int(item.offering),
+        }
+        for item in tiers
+    ]
     return {
         "tier": tier,
         "name": str(entry.display_name),
@@ -330,6 +377,7 @@ def _parish_state(kingdom: Any, service: Any) -> dict[str, Any]:
         "offering": int(entry.offering),
         "lock_hours": int(entry.marriage_lock_hours),
         "max_tier": len(tiers),
+        "ladder": ladder,
     }
 
 
@@ -540,41 +588,64 @@ def _build_church(
     import discord
 
     parish = state["parish"]
+    members = [m for m in state["members"] if not getattr(m, "left", False)]
+    now = int(_time.time())
+    married = [m for m in members if getattr(m, "married_civilization", None)]
+    singles = [
+        m for m in members if getattr(m, "married_civilization", None) is None
+    ]
+
+    # ✨ Palier block
     lines = [
+        f"## {strings['church_household_palier'].format(parish['name'])}",
         strings["church_tier_line"].format(
             parish["name"], parish["tier"], parish["max_tier"], parish["offering"]
         ),
         strings["church_lock_line"].format(parish["lock_hours"]),
-        f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_points', 0) or 0)}",
-        f"**{strings['church_arranged']}** : {int(getattr(kingdom, 'arranged_marriage_stock', 0) or 0)}",
-        f"**{strings['church_active']}** :",
+        "",
+        # 💒 La Maisonnée — one line per member with their state
+        f"## {strings['church_household']}",
     ]
-    now = int(_time.time())
-    married = [m for m in state["members"] if getattr(m, "married_civilization", None)]
-    if not married:
+    if not members:
         lines.append(strings["church_none"])
     for member in married:
         civ = str(getattr(member, "married_civilization", ""))
         until = int(getattr(member, "marriage_locked_until", 0) or 0)
         left = max(0, -(-(until - now) // 3600)) if until > now else 0
         lines.append(
-            "• "
-            + strings["church_badge"].format(
+            strings["church_badge"].format(
                 getattr(member, "display_name", strings["unknown"]),
                 state["civ_names"].get(civ, civ),
                 strings["church_lock_hours"].format(left),
             )
         )
-    singles = [
-        m
-        for m in state["members"]
-        if getattr(m, "married_civilization", None) is None and not getattr(m, "left", False)
+    for member in singles:
+        lines.append(
+            strings["church_bachelor"].format(
+                getattr(member, "display_name", member.id)
+            )
+        )
+    # 💰 Stocks — one marriage point = one standard marriage available
+    lines += [
+        "",
+        f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_points', 0) or 0)}",
+        f"**{strings['church_arranged']}** : {int(getattr(kingdom, 'arranged_marriage_stock', 0) or 0)}",
+        strings["church_help"],
+        "",
+        # 🔭 Aperçu des paliers — every tier visible with cost and perks
+        f"## {strings['church_ladder_title']}",
     ]
-    if singles:
-        names = ", ".join(str(getattr(m, "display_name", m.id)) for m in singles)
-        lines.append(f"**{strings['church_singles']}** : {names}")
-    else:
-        lines.append(f"**{strings['church_singles']}** : {strings['church_singles_none']}")
+    for index, step in enumerate(parish.get("ladder") or [], start=1):
+        marker = strings["church_ladder_current"] if index == parish["tier"] else strings["church_ladder_other"]
+        lines.append(
+            strings["church_ladder_line"].format(
+                marker,
+                step["name"],
+                step["cost"],
+                step["lock_hours"],
+                step["offering"],
+            )
+        )
     body = "\n".join(lines)
 
     buttons = _church_buttons(strings, kingdom, state)

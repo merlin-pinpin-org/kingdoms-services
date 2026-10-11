@@ -840,6 +840,38 @@ class KingdomsService:
             marriage_capacity=0 if kind is KingdomType.GAIA else capacity,
         )
 
+    async def redraw_lords_day_draft(self, *, seed: int | None = None) -> dict[str, list[str]]:
+        """Draw the fresh Lord's Day draft of every kingdom (Drasah's rule).
+
+        Called by the cycle switch AFTER the alliance recalculation
+        dropped the un-wed civilizations (2026-10-11): each player
+        kingdom draws ``starting_civilizations`` fresh civilizations —
+        never a civilization another kingdom holds (married or in
+        hand), never Gaïa. The married civilizations stay; the new
+        draft joins the hand. Returns the drawn list per kingdom name.
+        """
+        import random as _random
+
+        rng = _random.Random(seed)  # noqa: S311 - game draw, not crypto
+        kingdoms = [k for k in await self.kingdoms() if not k.is_gaia]
+        taken = {civ for other in kingdoms for civ in other.civilizations}
+        pool = [civ.key for civ in self._config.civilizations]
+        drawn_report: dict[str, list[str]] = {}
+        count = self._config.starting_civilizations
+        for kingdom in kingdoms:
+            free = [key for key in pool if key not in taken]
+            drawn = rng.sample(free, min(count, len(free))) if count > 0 and free else []
+            if drawn:
+                kingdom.civilizations = [*kingdom.civilizations, *drawn]
+                taken |= set(drawn)
+                await self._store.upsert_kingdom(kingdom.to_mongo())
+            drawn_report[kingdom.name] = drawn
+            if drawn:
+                logger.info(
+                    "kingdoms: Lord's Day draft for %s - %s", kingdom.id, drawn
+                )
+        return drawn_report
+
     async def _grant_starting_civilizations(self, kingdom: KingdomModel) -> None:
         """Draw the season's starting civilizations for a fresh kingdom.
 

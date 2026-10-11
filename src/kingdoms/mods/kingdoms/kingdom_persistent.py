@@ -477,6 +477,7 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
     )
     from kingdoms.mods.kingdoms.diplomacy import (
         AlreadyMarriedError,
+        CivilizationNotInHandError,
         MarriageError,
         MarriageExclusivityError,
         NoArrangedTokenError,
@@ -509,6 +510,7 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         ((MarriageExclusivityError,), "market_err_civ_taken"),
         ((NoMarriagePointsError,), "market_err_no_points"),
         ((NoArrangedTokenError,), "market_err_no_token"),
+        ((CivilizationNotInHandError,), "church_err_not_in_hand"),
         ((ParishMaxTierError,), "church_upgrade_max"),
         ((MarriageError,), "market_err_civ_unknown"),
     )
@@ -1081,7 +1083,16 @@ class KingdomChurchMarryButton(
             return
         view = await _church_marry_civ_view(wiring, lord, kingdom, strings)
         if view is None:
-            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            # Drasah's 2026-10-11 feedback: a bare "no options" note was
+            # cryptic — say WHY: an empty Alliances hand waits for the
+            # next Lord's Day draft, a fully-married hand just has no
+            # free civilization left.
+            note = (
+                strings["church_err_no_hand"]
+                if not list(getattr(kingdom, "civilizations", []) or [])
+                else strings["market_no_options"]
+            )
+            await interaction.response.send_message(note, ephemeral=True)
             return
         await interaction.response.send_message(
             strings["church_marry_intro"], view=view, ephemeral=True

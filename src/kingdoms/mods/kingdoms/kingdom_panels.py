@@ -298,6 +298,13 @@ STRINGS: dict[str, dict[str, Any]] = {
             "⛪ Parish upgraded: **{0}** (tier {1}/{2}) — treasury left: {3} 🔬"
         ),
         "church_upgrade_max": "❌ The Parish already sits at the top tier.",
+        "church_err_not_in_hand": (
+            "❌ This civilization is not in your Alliances hand."
+        ),
+        "church_err_no_hand": (
+            "❌ Your kingdom holds no free civilization — the hand is"
+            " redrawn at the next Lord's Day."
+        ),
         "market_choose_corrupt": "🎯 Choose the territory to corrupt:",
         "market_choose_guard": "🛡️ Choose the territory to shield:",
         "market_no_options": "No option is available right now.",
@@ -470,6 +477,13 @@ STRINGS: dict[str, dict[str, Any]] = {
             "⛪ Paroisse améliorée : **{0}** (palier {1}/{2}) — trésorerie restante : {3} 🔬"
         ),
         "church_upgrade_max": "❌ La Paroisse est déjà au palier maximal.",
+        "church_err_not_in_hand": (
+            "❌ Cette civilisation n'est pas dans votre main d'Alliances."
+        ),
+        "church_err_no_hand": (
+            "❌ Votre royaume ne détient aucune civilisation libre — la main est"
+            " renouvelée au prochain Jour du Seigneur."
+        ),
         "market_choose_corrupt": "🎯 Choisissez le territoire à corrompre :",
         "market_choose_guard": "🛡️ Choisissez le territoire à protéger :",
         "market_no_options": "Aucune option disponible pour le moment.",
