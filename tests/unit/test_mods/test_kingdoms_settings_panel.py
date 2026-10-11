@@ -1,6 +1,8 @@
 """The Paramètres panel — the admin season buttons (phases lot)."""
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from kingdoms.mods.kingdoms.kingdom_panels import SETTINGS_PANEL_MARKER, build_settings_panel
@@ -88,3 +90,84 @@ async def test_remove_flow_roster_empty_when_service_gone() -> None:
 
     register_kingdoms_panel_wiring(KingdomsPanelWiring())
     assert await _active_lord_options(_strings("fr")) is None
+
+
+class _FakeGuildMembers:
+    """A guild resolving member ids to display names."""
+
+    def get_member(self, user_id: int) -> Any:
+        return _FakeMember(user_id, f"Pseudo {user_id}")
+
+
+class _FakeMember:
+    def __init__(self, id: int, display_name: str) -> None:
+        self.id = id
+        self.display_name = display_name
+
+
+async def test_eject_roster_shows_pseudos_not_mentions() -> None:
+    """Drasah's rule (2026-10-11): legacy enrollments stored a raw
+    ``<@id>`` mention as display_name — the roster select showed a long
+    number. The live member lookup must win."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        _active_lord_options,
+        register_kingdoms_panel_wiring,
+    )
+    from kingdoms.mods.kingdoms.kingdom_profiles import _strings
+    from kingdoms.mods.kingdoms.service import KING_ROLE, KingdomsService
+
+    from .test_kingdoms_events import MemoryStore, _config
+
+    king_id = "242421489536729100"
+    service = KingdomsService(MemoryStore(), _config())
+    await service.launch(["Aquitaine"])
+    await service.enroll_king_awaiting_kingdom(king_id, f"<@{king_id}>")
+    await service.assign(king_id, "Aquitaine", KING_ROLE)
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(kingdoms_service=service))
+
+    strings = _strings("fr")
+    with_guild = await _active_lord_options(strings, _FakeGuildMembers())
+    assert with_guild is not None
+    assert with_guild[0].label == f"Pseudo {king_id}"
+    without_guild = await _active_lord_options(strings)
+    assert without_guild is not None
+    # the mention-shaped legacy name is unreadable — fall back to the id
+    assert without_guild[0].label == king_id
+
+
+async def test_postuler_confirmation_strings_are_distinct() -> None:
+    """The confirmation used to print 'sent' twice (profile note = sent)."""
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panel_strings
+
+    for locale in ("fr", "en"):
+        strings = panel_strings(locale)
+        assert strings["profile_created"] != strings["sent"]
+        assert strings["sent_ttl"]
+
+
+async def test_ephemeral_confirmation_self_deletes() -> None:
+    """The Postuler ephemeral confirmation auto-deletes (~15 min)."""
+    import asyncio
+
+    from kingdoms.mods.kingdoms.kingdom_panels import _schedule_ephemeral_delete
+
+    deleted: list[int] = []
+
+    class _Followup:
+        async def delete_message(self, message_id: int) -> None:
+            deleted.append(message_id)
+
+    class _Interaction:
+        followup = _Followup()
+
+    class _Message:
+        id = 42
+
+    _schedule_ephemeral_delete(_Interaction(), _Message(), seconds=0)  # type: ignore[arg-type]
+    for _ in range(20):
+        await asyncio.sleep(0)
+        if deleted:
+            break
+    await asyncio.sleep(0.05)
+    assert deleted == [42]
