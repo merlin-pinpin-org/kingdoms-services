@@ -20,6 +20,7 @@ from kingdoms.mods.kingdoms.config import (
 )
 from kingdoms.mods.kingdoms.diplomacy import (
     AlreadyMarriedError,
+    CivilizationNotInHandError,
     DiplomacyService,
     MarriageExclusivityError,
     NoArrangedTokenError,
@@ -74,6 +75,12 @@ class Bundle(_AttackBundle):
         """Return the fresh kingdom record of a lord."""
         lord = next(item for item in await self.kingdoms.lords() if item.id == player_id)
         return next(k for k in await self.kingdoms.kingdoms() if k.id == lord.kingdom_id)
+
+    async def give(self, kingdom_name: str, *civs: str) -> None:
+        """Hand civilizations to a kingdom (Drasah 2026-10-11 rule)."""
+        kingdom = next(k for k in await self.kingdoms.kingdoms() if k.name == kingdom_name)
+        kingdom.civilizations = [*kingdom.civilizations, *civs]
+        await self.store.upsert_kingdom(kingdom.to_mongo())
 
 
 async def test_map_key_condition_unlocks_celtes() -> None:
@@ -152,6 +159,7 @@ async def test_marry_respects_the_capacity() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.give("Aquitaine", "celtes", "shu")
     kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
     kingdom.marriage_points = 1
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
@@ -167,6 +175,19 @@ async def test_marry_refuses_unknown_civilizations() -> None:
     await bundle.launch_season()
     with pytest.raises(UnknownCivilizationError):
         await bundle.diplomacy.marry("king-a", "mayas")
+
+
+async def test_marry_requires_the_civilization_in_hand() -> None:
+    """Drasah 2026-10-11: a standard marriage weds ONLY a civilization
+    the kingdom holds in Alliances; the arranged path ignores the rule."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    with pytest.raises(CivilizationNotInHandError):
+        await bundle.diplomacy.marry("king-a", "chinois")  # not in the hand
+    # The arranged marriage carries no hand constraint (D60): any
+    # catalog civilization weds against one bought token.
+    await bundle.patch_kingdom_of("king-b", arranged_marriage_stock=1)
+    assert await bundle.diplomacy.arranged_marriage("king-b", "chinois") == "chinois"
 
 
 async def test_arranged_marriage_consumes_one_token() -> None:
@@ -186,6 +207,8 @@ async def test_marry_refuses_a_civilization_claimed_elsewhere() -> None:
     """D74: an active marriage claims its civilization for everyone."""
     bundle = Bundle()
     await bundle.launch_season()
+    await bundle.give("Aquitaine", "celtes")
+    await bundle.give("Bourgogne", "celtes")
     await bundle.diplomacy.marry("king-a", "celtes")
     await bundle.patch_kingdom_of("king-b", arranged_marriage_stock=1)
     with pytest.raises(MarriageExclusivityError):
@@ -217,6 +240,7 @@ async def test_standard_marriage_locks_twenty_four_hours() -> None:
     """D59: a standard marriage locks the lord for 24 real hours."""
     bundle = Bundle()
     await bundle.launch_season()
+    await bundle.give("Aquitaine", "celtes")
     now = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
     await bundle.diplomacy.marry("king-a", "celtes", now=now)
     lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
@@ -280,6 +304,7 @@ async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.give("Aquitaine", "celtes")
     await bundle.diplomacy.marry("king-a", "celtes")
     await bundle.diplomacy.record_defeat(aquitaine)
     reports = await bundle.diplomacy.recalculate()
@@ -347,9 +372,9 @@ async def test_imposed_launch_drafts_the_kingdoms_civs() -> None:
     assert len(set(drawn)) == 16  # no duplicates between kingdoms
 
 
-async def test_recalculate_keeps_the_unconditioned_draft() -> None:
-    """A drafted civilization with no acquisition condition yet survives
-    the Lord's Day recalculation (conditions come later)."""
+async def test_lords_day_drops_the_un_wed_draft() -> None:
+    """Drasah 2026-10-11: the Lord's Day recalculation drops every
+    drafted civilization EXCEPT the ones bound to an active marriage."""
     config = _config().model_copy(
         update={
             "starting_civilizations": 2,
@@ -365,15 +390,19 @@ async def test_recalculate_keeps_the_unconditioned_draft() -> None:
     await bundle.launch_season()
     await bundle.kingdoms.start_season()  # the draft only exists from here
     before = {
-        k.id: list(k.civilizations)
+        k.name: list(k.civilizations)
         for k in await bundle.kingdoms.kingdoms()
         if not k.is_gaia
     }
     assert all(civs for civs in before.values())
+    # Aquitaine weds its first drafted civilization: the marriage
+    # secures it through the Lord's Day; the rest of the hand drops.
+    wed = before["Aquitaine"][0]
+    await bundle.give("Aquitaine", wed)  # ensure the wed civ is in hand
+    await bundle.diplomacy.marry("king-a", wed)
     reports = await bundle.diplomacy.recalculate()
-    unconditioned = {"francs", "britanniques", "azteques"}
-    for kingdom in [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]:
-        kept = set(before[kingdom.id]) & unconditioned
-        assert kept <= set(reports[kingdom.name])  # the draft without conditions persists
-        dropped = set(before[kingdom.id]) - unconditioned
-        assert not dropped & set(reports[kingdom.name])  # a conditioned civ follows its condition
+    assert reports["Aquitaine"] == [wed]  # only the marriage survives
+    for name, _civs in before.items():
+        if name == "Aquitaine":
+            continue
+        assert reports[name] == []  # no marriage: the whole hand drops

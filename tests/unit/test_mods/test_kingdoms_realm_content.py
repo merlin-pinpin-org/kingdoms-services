@@ -199,18 +199,31 @@ async def test_territory_view_lists_owned_maps_with_display_names() -> None:
     assert "1 territoire" in content
 
 
-async def test_church_view_shows_stock_and_active_marriages() -> None:
+async def test_church_view_shows_the_household_and_the_palier_ladder() -> None:
+    """The Paroisse v2 (Drasah 2026-10-11): the palier block, the
+    Maisonnée (one line per member, married or single), the stocks
+    with their meaning, and the full palier ladder for everyone."""
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
     content = _text(_live(_channel(guild, "Paroisse"))[0])
-    assert "Paroisse" in content
-    assert "Chapelle" in content  # D64 palier 1/3
+    # ✨ the palier block — every kingdom sees its current tier
+    assert "Notre Chapelle" in content
+    assert "Palier : Chapelle (1/3) — Offrande : 0 🔬" in content
+    assert "Verrou mariage classique : 24h" in content
+    # 💒 the Maisonnée — one line per member with their state
+    assert "La Maisonnée" in content
+    assert "💍 Luc — Aztèques (verrou" in content  # married, lock remaining
+    assert "🎖️ Arthur — célibataire · prêt à se marier 💍" in content
+    # 💰 the stocks and their semantics
     assert "Points de mariage** : 3" in content
     assert "Mariages arrangés en stock** : 1" in content
-    assert "💍 Luc — Aztèques" in content
-    assert "Célibataires" in content
+    # 🔭 the ladder — every palier visible with cost and perks
+    assert "Aperçu des paliers" in content
+    assert "● Chapelle — 0 🔬 · verrou 24h · offrande +0 🔬" in content
+    assert "▸ Église — 2 🔬 · verrou 12h · offrande +1 🔬" in content
+    assert "▸ Cathédrale — 4 🔬 · verrou 6h · offrande +2 🔬" in content
 
 
 async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:

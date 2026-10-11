@@ -47,11 +47,18 @@ class Bundle(_AttackBundle):
         kid = await self.kingdom_id(name)
         return next(k for k in await self.kingdoms.kingdoms() if k.id == kid)
 
+    async def give(self, kingdom_name: str, *civs: str) -> None:
+        """Hand civilizations to a kingdom (Drasah 2026-10-11 rule)."""
+        kingdom = next(k for k in await self.kingdoms.kingdoms() if k.name == kingdom_name)
+        kingdom.civilizations = [*kingdom.civilizations, *civs]
+        await self.store.upsert_kingdom(kingdom.to_mongo())
+
 
 async def test_marry_consumes_one_point_and_refuses_at_zero() -> None:
     """D59: the points de mariage are a currency — one per marriage."""
     bundle = Bundle()
     await bundle.launch_season()
+    await bundle.give("Aquitaine", "celtes")
     kingdom = await bundle.kingdom_of("Aquitaine")
     kingdom.marriage_points = 0
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
@@ -69,6 +76,7 @@ async def test_palier_drives_the_lock_and_the_offrande() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.give("Aquitaine", "celtes", "shu")
     await bundle.economy.grant_tech_points(aquitaine, 6)
 
     await bundle.kingdoms.upgrade_parish(aquitaine)  # → Église, -2 🔬
