@@ -55,12 +55,17 @@ tech-point&nbsp;economics&nbsp;they&nbsp;carry.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="EventService">class <strong>EventService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#EventService">EventService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms_service:&nbsp;'KingdomsService',&nbsp;territory_service:&nbsp;'TerritoryService',&nbsp;attacks_service:&nbsp;'AttackService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EventService">EventService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms_service:&nbsp;'KingdomsService',&nbsp;territory_service:&nbsp;'TerritoryService',&nbsp;attacks_service:&nbsp;'AttackService',&nbsp;diplomacy_service:&nbsp;'DiplomacyService&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;weekly&nbsp;event&nbsp;orchestrator&nbsp;(reference&nbsp;§15-§17).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="EventService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms_service: 'KingdomsService', territory_service: 'TerritoryService', attacks_service: 'AttackService') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams&nbsp;of&nbsp;the&nbsp;orchestrated&nbsp;services.</span></dd></dl>
+<dl><dt><a name="EventService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms_service: 'KingdomsService', territory_service: 'TerritoryService', attacks_service: 'AttackService', diplomacy_service: 'DiplomacyService | None' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams&nbsp;of&nbsp;the&nbsp;orchestrated&nbsp;services.<br>
+&nbsp;<br>
+``diplomacy_service``&nbsp;powers&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;alliance<br>
+recomputation&nbsp;(D51):&nbsp;every&nbsp;cycle&nbsp;switch&nbsp;recomputes&nbsp;the&nbsp;playable<br>
+civilizations&nbsp;from&nbsp;the&nbsp;territories&nbsp;and&nbsp;marriages.&nbsp;It&nbsp;stays<br>
+optional&nbsp;so&nbsp;older&nbsp;wirings&nbsp;(and&nbsp;the&nbsp;tests)&nbsp;keep&nbsp;working.</span></dd></dl>
 
 <dl><dt>async <a name="EventService-run_age_switch"><strong>run_age_switch</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">Advance&nbsp;to&nbsp;the&nbsp;next&nbsp;age&nbsp;and&nbsp;distribute&nbsp;the&nbsp;epoch&nbsp;bonuses.<br>
 &nbsp;<br>
@@ -77,9 +82,13 @@ automatically.&nbsp;Returns&nbsp;the&nbsp;cycle&nbsp;report&nbsp;for&nbsp;the&nb
 
 <dl><dt>async <a name="EventService-run_due"><strong>run_due</strong></a>(self, now: 'datetime') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">Replay&nbsp;every&nbsp;event&nbsp;slot&nbsp;missed&nbsp;since&nbsp;the&nbsp;season&nbsp;start&nbsp;(D1).<br>
 &nbsp;<br>
-The&nbsp;cadence&nbsp;is&nbsp;recomputed&nbsp;from&nbsp;``started_at``&nbsp;(one&nbsp;cycle&nbsp;per<br>
-week);&nbsp;a&nbsp;bot&nbsp;restart&nbsp;never&nbsp;skips&nbsp;a&nbsp;switch:&nbsp;this&nbsp;call&nbsp;walks&nbsp;the<br>
-missing&nbsp;weeks&nbsp;and&nbsp;runs&nbsp;one&nbsp;cycle&nbsp;switch&nbsp;per&nbsp;week.</span></dd></dl>
+The&nbsp;cadence&nbsp;is&nbsp;CALENDAR-based&nbsp;(Drasah's&nbsp;rule,&nbsp;2026-10-11):&nbsp;the<br>
+first&nbsp;cycle&nbsp;lands&nbsp;on&nbsp;the&nbsp;first&nbsp;Sunday&nbsp;23:30&nbsp;after&nbsp;the&nbsp;season<br>
+start,&nbsp;the&nbsp;first&nbsp;age&nbsp;on&nbsp;the&nbsp;first&nbsp;Wednesday&nbsp;midnight&nbsp;after&nbsp;it<br>
+(Tuesday→Wednesday),&nbsp;then&nbsp;weekly.&nbsp;A&nbsp;restart&nbsp;never&nbsp;skips&nbsp;a<br>
+switch:&nbsp;this&nbsp;call&nbsp;walks&nbsp;the&nbsp;missed&nbsp;slots&nbsp;and&nbsp;replays&nbsp;them&nbsp;in<br>
+chronological&nbsp;order&nbsp;(a&nbsp;cycle&nbsp;and&nbsp;an&nbsp;age&nbsp;are&nbsp;interleaved&nbsp;the<br>
+way&nbsp;the&nbsp;calendar&nbsp;ordered&nbsp;them).</span></dd></dl>
 
 <dl><dt>async <a name="EventService-run_exploration"><strong>run_exploration</strong></a>(self, ranking: 'list[str]', *, seed: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Run&nbsp;the&nbsp;Saturday&nbsp;exploration&nbsp;FFA&nbsp;(optional,&nbsp;1&nbsp;lord/kingdom).<br>
 &nbsp;<br>
@@ -186,6 +195,27 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </dl>
 </td></tr></table></td></tr></table><p>
 <table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-cron_slots_between"><strong>cron_slots_between</strong></a>(cron: 'str', after: 'datetime', before: 'datetime', tz: 'ZoneInfo') -&gt; 'list[datetime]'</dt><dd><span class="code">Return&nbsp;every&nbsp;UTC&nbsp;slot&nbsp;of&nbsp;the&nbsp;weekly&nbsp;cron&nbsp;in&nbsp;``(after,&nbsp;before]``.<br>
+&nbsp;<br>
+Drasah's&nbsp;cadence&nbsp;rule&nbsp;(2026-10-11):&nbsp;the&nbsp;first&nbsp;switch&nbsp;lands&nbsp;on&nbsp;the<br>
+FIRST&nbsp;calendar&nbsp;occurrence&nbsp;of&nbsp;the&nbsp;cron&nbsp;day&nbsp;after&nbsp;the&nbsp;season&nbsp;start&nbsp;—<br>
+a&nbsp;season&nbsp;started&nbsp;Saturday&nbsp;gets&nbsp;its&nbsp;first&nbsp;cycle&nbsp;the&nbsp;very&nbsp;next<br>
+Sunday&nbsp;23:30,&nbsp;no&nbsp;full&nbsp;week&nbsp;of&nbsp;dead&nbsp;time.</span></dd></dl>
+ <dl><dt><a name="-lords_day_window"><strong>lords_day_window</strong></a>(config: 'KingdomsSeasonConfig', now: 'datetime') -&gt; 'tuple[datetime, datetime] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;active&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;around&nbsp;``now``,&nbsp;if&nbsp;any.<br>
+&nbsp;<br>
+The&nbsp;window&nbsp;opens&nbsp;at&nbsp;the&nbsp;weekly&nbsp;cycle&nbsp;slot&nbsp;(Sunday&nbsp;23:30&nbsp;by&nbsp;default,<br>
+``events.cycle_cron``)&nbsp;and&nbsp;closes&nbsp;the&nbsp;NEXT&nbsp;day&nbsp;at<br>
+``events.lords_day_end_hour``&nbsp;(Monday&nbsp;10:00)&nbsp;in&nbsp;the&nbsp;schedule<br>
+timezone.&nbsp;Inside&nbsp;the&nbsp;window&nbsp;an&nbsp;attack&nbsp;cannot&nbsp;be&nbsp;PLAYED:&nbsp;the&nbsp;attack<br>
+service&nbsp;uses&nbsp;this&nbsp;helper&nbsp;to&nbsp;block&nbsp;executions&nbsp;while&nbsp;still&nbsp;accepting<br>
+a&nbsp;declaration&nbsp;whose&nbsp;execution&nbsp;lands&nbsp;after&nbsp;the&nbsp;window&nbsp;(Drasah's<br>
+attack-vs-declaration&nbsp;distinction).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
@@ -193,5 +223,6 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
 <strong>WEEK</strong> = datetime.timedelta(days=7)<br>
+<strong>__annotations__</strong> = {'_CRON_DAYS': 'dict[str, int]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.events (WARNING)&gt;</td></tr></table>
 </body></html>

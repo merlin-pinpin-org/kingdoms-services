@@ -8,6 +8,7 @@ the epoch bonuses (D18/D51/D53), the Saturday exploration FFA rewards
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import ClassVar
 
 import pytest
 
@@ -16,7 +17,7 @@ from kingdoms.mods.kingdoms.config import (
     KingdomsSeasonConfig,
     default_map_catalog,
 )
-from kingdoms.mods.kingdoms.events import EventService, SeasonExhaustedError
+from kingdoms.mods.kingdoms.events import EventService, SeasonExhaustedError, lords_day_window
 
 from .test_kingdoms_attacks import Bundle as _AttackBundle
 from .test_kingdoms_service import MemoryStore as _BaseStore
@@ -82,6 +83,13 @@ class Bundle(_AttackBundle):
     def __init__(self, config=None) -> None:
         super().__init__(config or _config())
         self.events = EventService(self.store, self.config, self.kingdoms, self.territories, self.attacks)  # type: ignore[arg-type]
+
+    async def set_started_at(self, started_at: datetime) -> None:
+        """Pin the season start (calendar cadence tests)."""
+        season = await self.kingdoms.current_season()
+        assert season is not None
+        season.started_at = started_at
+        await self.store.upsert_season(season.to_mongo())
 
     async def rewind_season(self, weeks: int) -> None:
         """Move the season start ``weeks`` weeks back (restart simulation)."""
@@ -163,14 +171,82 @@ async def test_exploration_without_participant_leaves_the_map_to_gaia() -> None:
 
 
 async def test_run_due_catches_up_after_a_restart() -> None:
-    """D1: a restart replays every missed cycle from the season state."""
+    """D1: a restart replays every missed slot in calendar order.
+
+    Started Monday 2026-10-05 12:00 UTC, "now" Monday 2026-10-19
+    13:00 UTC: the missed slots are the age switches Wed 7 and Wed 14
+    (00:00 Paris = Tue 22:00 UTC) and the cycle switches Sun 11 and
+    Sun 18 (23:30 Paris = 21:30 UTC) — interleaved chronologically.
+    """
     bundle = Bundle()
     await bundle.launch_season()
-    await bundle.rewind_season(2)
-    reports = await bundle.events.run_due(datetime.now(tz=UTC))
-    assert [r["cycle"] for r in reports] == [1, 2]
+    await bundle.set_started_at(datetime(2026, 10, 5, 12, 0, tzinfo=UTC))
+    reports = await bundle.events.run_due(datetime(2026, 10, 19, 13, 0, tzinfo=UTC))
+    assert [r["kind"] for r in reports] == ["age", "cycle", "age", "cycle"]
+    assert [r["cycle"] for r in reports if r["kind"] == "cycle"] == [1, 2]
     season = await bundle.kingdoms.current_season()
     assert season is not None
     assert season.current_cycle == 2
+    assert season.current_age_key == "castle_age"
     # Catching up again is a no-op: the state is already current.
-    assert await bundle.events.run_due(datetime.now(tz=UTC)) == []
+    assert await bundle.events.run_due(datetime(2026, 10, 19, 13, 0, tzinfo=UTC)) == []
+
+
+async def test_first_cycle_is_the_first_sunday_after_start() -> None:
+    """Drasah's cadence: cycle 1 = the first Sunday 23:30 after the start."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.set_started_at(datetime(2026, 10, 10, 12, 0, tzinfo=UTC))  # Saturday
+    reports = await bundle.events.run_due(datetime(2026, 10, 12, 12, 0, tzinfo=UTC))
+    assert [r["kind"] for r in reports] == ["cycle"]
+    assert reports[0]["cycle"] == 1
+
+
+async def test_first_age_is_the_first_wednesday_after_start() -> None:
+    """The age switch lands on the first Tuesday→Wednesday midnight."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.set_started_at(datetime(2026, 10, 6, 12, 0, tzinfo=UTC))  # Tuesday
+    reports = await bundle.events.run_due(datetime(2026, 10, 7, 23, 0, tzinfo=UTC))
+    assert [r["kind"] for r in reports] == ["age"]
+    assert reports[0]["age"] == "feudal_age"
+
+
+async def test_cycle_switch_recomputes_the_alliances() -> None:
+    """D51: every cycle switch recomputes the diplomacy alliances."""
+    bundle = Bundle()
+    await bundle.launch_season()
+
+    class _CountingDiplomacy:
+        calls: ClassVar[int] = 0
+
+        async def recalculate(self) -> dict[str, list[str]]:
+            _CountingDiplomacy.calls += 1
+            return {}
+
+    bundle.events = EventService(  # type: ignore[arg-type]
+        bundle.store,
+        bundle.config,
+        bundle.kingdoms,
+        bundle.territories,
+        bundle.attacks,
+        _CountingDiplomacy(),
+    )
+    report = await bundle.events.run_cycle_switch(seed=1)
+    assert report["alliances_recomputed"] is True
+    assert _CountingDiplomacy.calls == 1
+
+
+async def test_lords_day_window_is_the_cycle_slot_to_monday_morning() -> None:
+    """The window opens Sunday 23:30 Paris and closes Monday 10:00."""
+    config = _config()
+    start = datetime(2026, 10, 11, 21, 30, tzinfo=UTC)  # Sun 23:30 Paris (CEST)
+    end = datetime(2026, 10, 12, 8, 0, tzinfo=UTC)  # Mon 10:00 Paris
+    assert lords_day_window(config, start) == (start, end)
+    inside = datetime(2026, 10, 12, 7, 0, tzinfo=UTC)
+    assert lords_day_window(config, inside) == (start, end)
+    # After Monday 10:00 Paris the window is closed.
+    after = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
+    assert lords_day_window(config, after) is None
+    # A plain Tuesday afternoon is outside the window too.
+    assert lords_day_window(config, datetime(2026, 10, 13, 12, 0, tzinfo=UTC)) is None

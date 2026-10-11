@@ -40,6 +40,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.config import load_season_config
         from kingdoms.mods.kingdoms.diplomacy import DiplomacyService
         from kingdoms.mods.kingdoms.economy import EconomyService
+        from kingdoms.mods.kingdoms.events import EventService
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
         from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -51,7 +52,8 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         attacks = AttackService(store, season_config, kingdoms, territories)
         economy = EconomyService(store, season_config, kingdoms, territories, attacks)
         diplomacy = DiplomacyService(store, season_config, kingdoms, territories)
-        return kingdoms, territories, attacks, economy, diplomacy
+        events = EventService(store, season_config, kingdoms, territories, attacks, diplomacy)
+        return kingdoms, territories, attacks, economy, diplomacy, events
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
         return None
@@ -73,13 +75,15 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_attacks_service = None
         bot.kingdoms_economy_service = None
         bot.kingdoms_diplomacy_service = None
+        bot.kingdoms_events_service = None
     else:
-        kingdoms, territories, attacks, economy, diplomacy = services
+        kingdoms, territories, attacks, economy, diplomacy, events = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
         bot.kingdoms_economy_service = economy
         bot.kingdoms_diplomacy_service = diplomacy
+        bot.kingdoms_events_service = events
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)
@@ -103,4 +107,10 @@ def setup_hook(bot: Any) -> None:
 
     register_kingdoms_panel_bot(bot)
     register_kingdoms_persistent_items(bot)
-    logger.info("kingdoms mod persistent items re-registered")
+    from kingdoms.mods.kingdoms.kingdom_events_loop import start_kingdoms_event_scheduler
+
+    started = start_kingdoms_event_scheduler(bot)
+    logger.info(
+        "kingdoms mod persistent items re-registered (scheduler=%s)",
+        "started" if started else "skipped",
+    )

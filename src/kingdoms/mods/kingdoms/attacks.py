@@ -17,6 +17,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.events import lords_day_window
 from kingdoms.mods.kingdoms.models import (
     GAIA_KINGDOM_KEY,
     AttackKind,
@@ -151,6 +152,19 @@ class LordLockedError(AttackError):
     message_key = "kingdoms.errors.lord_locked"
 
 
+class LordsDayAttackError(AttackError):
+    """Raised when an attack would be played inside the Lord's Day window.
+
+    Drasah's window rule (2026-10-11): between the weekly switch
+    (Sunday 23:30) and Monday 10:00 an attack cannot be PLAYED — but a
+    DECLARATION is accepted when the execution lands after the window
+    closes (the attack's expiry sits past Monday 10:00).
+    """
+
+    code = "KINGDOMS_LORDS_DAY"
+    message_key = "kingdoms.errors.lords_day"
+
+
 class PatrolProtectedError(AttackError):
     """Raised when the target kingdom's patrol covers the moment (D68)."""
 
@@ -192,6 +206,28 @@ def patrouille_active_at(state: TechnologyState, now: datetime) -> bool:
 def _now() -> datetime:
     """Return the current UTC time (seam for deterministic tests)."""
     return datetime.now(tz=UTC)
+
+
+def _refuse_lords_day_execution(
+    config: KingdomsSeasonConfig, timestamp: datetime, delay_hours: int
+) -> None:
+    """Raise when an attack declared at ``timestamp`` would play inside the window.
+
+    Drasah's declare-vs-play rule: declaring during the Lord's Day
+    window stays possible, but only when the execution (the expiry
+    deadline, ``delay_hours`` after the declaration) lands after the
+    window closes (Monday 10:00) — a game that would be played inside
+    the window is refused.
+    """
+    window = lords_day_window(config, timestamp)
+    if window is None:
+        return
+    expires = timestamp + timedelta(hours=delay_hours)
+    if expires <= window[1]:
+        raise LordsDayAttackError(
+            "the attack would be played inside the Lord's Day window "
+            "(declare only if the execution lands after it closes)"
+        )
 
 
 class AttackService:
@@ -261,6 +297,13 @@ class AttackService:
             raise NoBudgetError("the weekly attack budget is spent")
         if not lobby_url.strip():
             raise AttackError("the attacker must provide the game lobby link")
+        # Drasah's Lord's Day window: declaring inside the window is
+        # fine ONLY when the execution (the attack's expiry deadline)
+        # lands after the window closes (Monday 10:00) — a game that
+        # would be played inside the window is refused.
+        _refuse_lords_day_execution(
+            self._config, timestamp, self._config.attacks.player_attack_delay_hours
+        )
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
         attack = AttackModel(
@@ -320,6 +363,11 @@ class AttackService:
         step then decides the capture.
         """
         timestamp = now or _now()
+        # Lord's Day window: the automatic no-defense outcome is an
+        # execution too — it is deferred until the window closes (the
+        # stale attacks are simply picked up on the next call).
+        if lords_day_window(self._config, timestamp) is not None:
+            return []
         expired: list[AttackModel] = []
         for attack in await self.attacks():
             if attack.state is not AttackState.DECLARED or attack.expires_at > timestamp:
@@ -343,6 +391,11 @@ class AttackService:
         (conservation); Gaïa can also keep its territory in a
         free-for-all nobody won.
         """
+        if lords_day_window(self._config, _now()) is not None:
+            raise LordsDayAttackError(
+                "the attack cannot be played inside the Lord's Day window "
+                "(resolve it after the window closes)"
+            )
         attack = await self._find_attack(attack_id)
         if attack.state is AttackState.RESOLVED:
             if attack.winner_kingdom_id == winner_kingdom_id:
@@ -443,6 +496,13 @@ class AttackService:
             None,
         )
         if attack is None:
+            # Lord's Day window: the Gaïa free-for-all follows the same
+            # declare-vs-play rule as the player attacks (D44's "no
+            # time limit" stays — the window only refuses an execution
+            # that would land inside it).
+            _refuse_lords_day_execution(
+                self._config, timestamp, self._config.attacks.gaia_attack_delay_hours
+            )
             lord.attack_used += 1
             await self._store.upsert_lord(lord.to_mongo())
             attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp)

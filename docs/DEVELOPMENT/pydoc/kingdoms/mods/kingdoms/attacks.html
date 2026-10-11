@@ -51,6 +51,7 @@ territory&nbsp;transfer&nbsp;on&nbsp;capture.</span></p>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#GaiaAttackFullError">GaiaAttackFullError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#LordLockedError">LordLockedError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#LordsDayAttackError">LordsDayAttackError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NoBudgetError">NoBudgetError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NotEnrolledError">NotEnrolledError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PatrolProtectedError">PatrolProtectedError</a>
@@ -629,6 +630,94 @@ Methods inherited from <a href="builtins.html#BaseException">builtins.BaseExcept
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
 <dl><dt><a name="LordLockedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LordLockedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LordsDayAttackError">class <strong>LordsDayAttackError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LordsDayAttackError">LordsDayAttackError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;attack&nbsp;would&nbsp;be&nbsp;played&nbsp;inside&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;window.<br>
+&nbsp;<br>
+Drasah's&nbsp;window&nbsp;rule&nbsp;(2026-10-11):&nbsp;between&nbsp;the&nbsp;weekly&nbsp;switch<br>
+(Sunday&nbsp;23:30)&nbsp;and&nbsp;Monday&nbsp;10:00&nbsp;an&nbsp;attack&nbsp;cannot&nbsp;be&nbsp;PLAYED&nbsp;—&nbsp;but&nbsp;a<br>
+DECLARATION&nbsp;is&nbsp;accepted&nbsp;when&nbsp;the&nbsp;execution&nbsp;lands&nbsp;after&nbsp;the&nbsp;window<br>
+closes&nbsp;(the&nbsp;attack's&nbsp;expiry&nbsp;sits&nbsp;past&nbsp;Monday&nbsp;10:00).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#LordsDayAttackError">LordsDayAttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_LORDS_DAY'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.lords_day'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="LordsDayAttackError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="LordsDayAttackError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="LordsDayAttackError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LordsDayAttackError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="LordsDayAttackError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LordsDayAttackError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LordsDayAttackError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>

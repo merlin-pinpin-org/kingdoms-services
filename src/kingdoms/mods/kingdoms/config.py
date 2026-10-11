@@ -150,6 +150,15 @@ class EventSettings(BaseModel):
     age_cron: str = "0 0 * * WED"
     exploration_cron: str = "0 14 * * SAT"
     lords_day_new_maps: int = Field(default=8, ge=0)
+    # Drasah's Lord's Day window (2026-10-11): the weekly switch on
+    # Sunday 23:30 opens a protected window until the NEXT day at
+    # ``lords_day_end_hour`` (Monday 10:00) — an attack cannot be
+    # PLAYED inside the window, but declaring one is allowed when the
+    # execution lands after the window closes.
+    lords_day_end_hour: int = Field(default=10, ge=0, le=23)
+    # The weekly crons are interpreted in this timezone (the players'
+    # wall clock), not in UTC: Sunday 23:30 means 23:30 in Paris.
+    schedule_timezone: str = "Europe/Paris"
     exploration_first_tech: int = Field(default=1, ge=0)
     exploration_second_tech: int = Field(default=3, ge=0)
     exploration_third_tech: int = Field(default=2, ge=0)

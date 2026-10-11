@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from kingdoms.mods.kingdoms.territories import (
     MapPoolExhaustedError,
@@ -26,6 +27,7 @@ from kingdoms.mods.kingdoms.territories import (
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.attacks import AttackService
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
+    from kingdoms.mods.kingdoms.diplomacy import DiplomacyService
     from kingdoms.mods.kingdoms.models import KingdomModel, SeasonState
     from kingdoms.mods.kingdoms.service import KingdomsService
     from kingdoms.mods.kingdoms.storage import KingdomsStore
@@ -33,6 +35,110 @@ if TYPE_CHECKING:
 logger = logging.getLogger("kingdoms.events")
 
 WEEK = timedelta(weeks=1)
+
+_CRON_DAYS: dict[str, int] = {
+    "MON": 0,
+    "TUE": 1,
+    "WED": 2,
+    "THU": 3,
+    "FRI": 4,
+    "SAT": 5,
+    "SUN": 6,
+}
+
+
+def _parse_weekly_cron(cron: str) -> tuple[int, int, int]:
+    """Parse a weekly ``m h * * DAY`` cron into (minute, hour, weekday).
+
+    Only the weekly shape is supported (the Season II schedules are
+    weekly): anything else is a configuration error and fails loudly
+    rather than silently skipping the events.
+    """
+    parts = cron.split()
+    if len(parts) != 5 or parts[2] != "*" or parts[3] != "*":
+        raise ValueError(f"only weekly crons (m h * * DAY) are supported: {cron!r}")
+    day = _CRON_DAYS.get(parts[4].upper())
+    if day is None or not parts[0].isdigit() or not parts[1].isdigit():
+        raise ValueError(f"invalid weekly cron: {cron!r}")
+    minute, hour = int(parts[0]), int(parts[1])
+    if minute > 59 or hour > 23:
+        raise ValueError(f"invalid weekly cron time: {cron!r}")
+    return minute, hour, day
+
+
+def _schedule_timezone(config: KingdomsSeasonConfig) -> ZoneInfo:
+    """Resolve the scheduling timezone, UTC as the safe fallback."""
+    try:
+        return ZoneInfo(config.events.schedule_timezone)
+    except Exception:
+        logger.warning(
+            "kingdoms: unknown schedule timezone %r - falling back to UTC",
+            config.events.schedule_timezone,
+        )
+        return ZoneInfo("UTC")
+
+
+def cron_slots_between(
+    cron: str,
+    after: datetime,
+    before: datetime,
+    tz: ZoneInfo,
+) -> list[datetime]:
+    """Return every UTC slot of the weekly cron in ``(after, before]``.
+
+    Drasah's cadence rule (2026-10-11): the first switch lands on the
+    FIRST calendar occurrence of the cron day after the season start —
+    a season started Saturday gets its first cycle the very next
+    Sunday 23:30, no full week of dead time.
+    """
+    minute, hour, weekday = _parse_weekly_cron(cron)
+    if after.tzinfo is None:
+        after = after.replace(tzinfo=UTC)
+    if before.tzinfo is None:
+        before = before.replace(tzinfo=UTC)
+    slots: list[datetime] = []
+    day = after.astimezone(tz).date()
+    last = before.astimezone(tz).date()
+    while day <= last:
+        if day.weekday() == weekday:
+            slot = datetime.combine(day, time(hour, minute), tzinfo=tz).astimezone(UTC)
+            if after < slot <= before:
+                slots.append(slot)
+        day += timedelta(days=1)
+    return slots
+
+
+def lords_day_window(
+    config: KingdomsSeasonConfig,
+    now: datetime,
+) -> tuple[datetime, datetime] | None:
+    """Return the active Lord's Day window around ``now``, if any.
+
+    The window opens at the weekly cycle slot (Sunday 23:30 by default,
+    ``events.cycle_cron``) and closes the NEXT day at
+    ``events.lords_day_end_hour`` (Monday 10:00) in the schedule
+    timezone. Inside the window an attack cannot be PLAYED: the attack
+    service uses this helper to block executions while still accepting
+    a declaration whose execution lands after the window (Drasah's
+    attack-vs-declaration distinction).
+    """
+    tz = _schedule_timezone(config)
+    minute, hour, weekday = _parse_weekly_cron(config.events.cycle_cron)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+    local = now.astimezone(tz)
+    for back in range(7):
+        day = local.date() - timedelta(days=back)
+        if day.weekday() != weekday:
+            continue
+        start = datetime.combine(day, time(hour, minute), tzinfo=tz).astimezone(UTC)
+        if start > now:
+            continue
+        end = datetime.combine(
+            day + timedelta(days=1), time(config.events.lords_day_end_hour, 0), tzinfo=tz
+        ).astimezone(UTC)
+        return (start, end) if now < end else None
+    return None
 
 
 class SeasonExhaustedError(MapPoolExhaustedError):
@@ -56,13 +162,21 @@ class EventService:
         kingdoms_service: KingdomsService,
         territory_service: TerritoryService,
         attacks_service: AttackService,
+        diplomacy_service: DiplomacyService | None = None,
     ) -> None:
-        """Store the seams of the orchestrated services."""
+        """Store the seams of the orchestrated services.
+
+        ``diplomacy_service`` powers the Lord's Day alliance
+        recomputation (D51): every cycle switch recomputes the playable
+        civilizations from the territories and marriages. It stays
+        optional so older wirings (and the tests) keep working.
+        """
         self._store = store
         self._config = config
         self._kingdoms = kingdoms_service
         self._territories = territory_service
         self._attacks = attacks_service
+        self._diplomacy = diplomacy_service
 
     # ------------------------------------------------------------------
     # Cycle switch + Lord's Day (§16, D1/D31)
@@ -91,11 +205,19 @@ class EventService:
             recharged,
             len(added),
         )
+        alliances = False
+        if self._diplomacy is not None:
+            try:
+                await self._diplomacy.recalculate()
+                alliances = True
+            except Exception:
+                logger.warning("kingdoms: alliance recomputation failed", exc_info=True)
         return {
             "cycle": season.current_cycle,
             "recharged_budgets": recharged,
             "gaia_new_maps": added,
             "gaia_kingdom_id": gaia.id if gaia is not None else None,
+            "alliances_recomputed": alliances,
         }
 
     # ------------------------------------------------------------------
@@ -195,25 +317,48 @@ class EventService:
     async def run_due(self, now: datetime) -> list[dict[str, object]]:
         """Replay every event slot missed since the season start (D1).
 
-        The cadence is recomputed from ``started_at`` (one cycle per
-        week); a bot restart never skips a switch: this call walks the
-        missing weeks and runs one cycle switch per week.
+        The cadence is CALENDAR-based (Drasah's rule, 2026-10-11): the
+        first cycle lands on the first Sunday 23:30 after the season
+        start, the first age on the first Wednesday midnight after it
+        (Tuesday→Wednesday), then weekly. A restart never skips a
+        switch: this call walks the missed slots and replays them in
+        chronological order (a cycle and an age are interleaved the
+        way the calendar ordered them).
         """
         season = await self._require_season()
-        missed = self._missed_weeks(season, now)
-        reports: list[dict[str, object]] = []
-        for _ in range(missed):
-            reports.append(await self.run_cycle_switch())
-        return reports
-
-    def _missed_weeks(self, season: SeasonState, now: datetime) -> int:
-        """How many weekly switches sit between the state and ``now``."""
+        tz = _schedule_timezone(self._config)
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
-        elapsed = now - season.started_at
-        if elapsed <= WEEK:
-            return 0
-        return max(0, int(elapsed // WEEK) - season.current_cycle)
+        cycle_slots = cron_slots_between(
+            self._config.events.cycle_cron, season.started_at, now, tz
+        )
+        age_slots = cron_slots_between(
+            self._config.events.age_cron, season.started_at, now, tz
+        )
+        keys = [age.key for age in self._config.ages]
+        age_index = keys.index(season.current_age_key) if season.current_age_key in keys else None
+        if age_index is None:
+            logger.warning(
+                "kingdoms: unknown age key %r - age catch-up disabled",
+                season.current_age_key,
+            )
+        due: list[tuple[datetime, str]] = [
+            *[(slot, "cycle") for slot in cycle_slots[season.current_cycle :]],
+            *(
+                [(slot, "age") for slot in age_slots[age_index :]]
+                if age_index is not None
+                else []
+            ),
+        ]
+        due.sort(key=lambda item: item[0])
+        reports: list[dict[str, object]] = []
+        for _slot, kind in due:
+            report: dict[str, object] = dict(
+                await (self.run_cycle_switch() if kind == "cycle" else self.run_age_switch())
+            )
+            report["kind"] = kind
+            reports.append(report)
+        return reports
 
     # ------------------------------------------------------------------
     # Internals

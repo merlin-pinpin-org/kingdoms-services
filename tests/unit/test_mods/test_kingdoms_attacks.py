@@ -17,6 +17,7 @@ from kingdoms.mods.kingdoms.attacks import (
     AttackService,
     GaiaAttackFullError,
     InsufficientTechPointsError,
+    LordsDayAttackError,
     NoBudgetError,
     SabotageError,
     TechnologyLimitReachedError,
@@ -358,3 +359,67 @@ def test_attack_states_are_final_states() -> None:
     assert attack.is_over is False
     attack.state = AttackState.RESOLVED
     assert attack.is_over is True
+
+
+async def test_declare_inside_lords_day_with_early_expiry_is_refused() -> None:
+    """The Lord's Day window: a declaration landing inside is refused."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # Sunday 2026-10-11 23:40 Paris (21:40 UTC): the window is open and
+    # a 6-hour execution lands at 03:40 UTC — before Monday 10:00.
+    now = datetime(2026, 10, 11, 21, 40, tzinfo=UTC)
+    with pytest.raises(LordsDayAttackError):
+        await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby", now=now)
+
+
+async def test_declare_inside_lords_day_with_late_expiry_is_allowed() -> None:
+    """A declaration inside the window is fine when it plays after it."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # Monday 2026-10-12 07:00 Paris (05:00 UTC): the window is open but
+    # the 6-hour execution lands at 11:00 UTC — after Monday 10:00.
+    now = datetime(2026, 10, 12, 5, 0, tzinfo=UTC)
+    attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby", now=now)
+    assert attack.state is AttackState.DECLARED
+
+
+async def test_expire_stale_is_deferred_during_lords_day() -> None:
+    """The auto no-defense resolution waits until the window closes."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # Declared before the window: expires Monday 02:00 UTC, inside it.
+    await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://lobby", now=datetime(2026, 10, 11, 20, 0, tzinfo=UTC)
+    )
+    inside = datetime(2026, 10, 12, 7, 0, tzinfo=UTC)
+    assert await bundle.attacks.expire_stale(now=inside) == []
+    after = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
+    assert await bundle.attacks.expire_stale(now=after) != []
+
+
+async def test_resolve_is_blocked_during_lords_day(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A game result cannot be applied inside the window."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://lobby", now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+    )
+    await bundle.attacks.respond_defense(attack.id, "lord-b")
+    inside = datetime(2026, 10, 12, 7, 0, tzinfo=UTC)
+    monkeypatch.setattr(attacks_module, "_now", lambda: inside)
+    with pytest.raises(LordsDayAttackError):
+        await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
