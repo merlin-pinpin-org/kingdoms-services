@@ -28,6 +28,7 @@ logger = logging.getLogger("kingdoms.kingdom_persistent")
 __all__ = [
     "KingdomApplyButton",
     "KingdomCandidatureButton",
+    "KingdomKingClaimSelect",
     "KingdomKingNameButton",
     "KingdomKingNameModal",
     "KingdomMarketActionButton",
@@ -106,6 +107,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketActionButton,
         KingdomRealmButton,
         KingdomKingNameButton,
+        KingdomKingClaimSelect,
     )
 
 
@@ -259,7 +261,7 @@ class KingdomCandidatureButton(
             if interaction.guild is not None and applicant is not None:
                 await _send_welcome(interaction.guild, applicant.group(1), strings)
                 if is_king and kingdom_name is None:
-                    await _send_king_name_request(interaction.guild, applicant.group(1), locale)
+                    await _send_king_kingdom_request(interaction.guild, applicant.group(1), locale)
             if interaction.guild is not None:
                 await _refresh_season_status_safe(interaction.guild, locale)
                 if enrolled and applicant is not None:
@@ -1314,10 +1316,17 @@ async def _enroll_applicant(
     display_name = f"<@{player_id}>"
     if is_king and not kingdom_name:
         try:
-            await kingdoms_service.enroll_king_awaiting_name(player_id, display_name)
+            await kingdoms_service.enroll_king_awaiting_kingdom(player_id, display_name)
         except Exception as exc:
             logger.warning("CANDIDATURES: king enrollment failed for %s", player_id, exc_info=True)
             return strings["enroll_failed"].format(type(exc).__name__), False
+        season = None
+        try:
+            season = await kingdoms_service.current_season()
+        except Exception:
+            season = None
+        if season is not None and season.imposed_kingdoms:
+            return strings["enroll_king_awaiting_kingdom"], True
         return strings["enroll_king_awaiting_name"], True
     try:
         if is_king:
@@ -1429,6 +1438,98 @@ async def _send_king_name_request(guild: discord.Guild, applicant_id: str, local
             await channel.send(
                 f"{request}\n{strings['king_name_dm_fallback']}", view=view
             )
+
+
+async def _send_king_kingdom_request(guild: discord.Guild, applicant_id: str, locale: str) -> None:
+    """Route the approved King to the right follow-up flow.
+
+    Drasah's rule (2026-10-11): in imposed mode the naming DM makes no
+    sense — the King picks an existing throne instead (a claim select
+    when one is available, an awaiting-kingdom notice otherwise).
+    """
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return
+    season = None
+    try:
+        season = await wiring.kingdoms_service.current_season()
+    except Exception:
+        season = None
+    if season is not None and season.imposed_kingdoms:
+        try:
+            available = await wiring.kingdoms_service.available_kingdoms()
+        except Exception:
+            logger.info("CANDIDATURES: available kingdoms lookup failed", exc_info=True)
+            available = []
+        if available:
+            await _send_king_claim_request(guild, applicant_id, locale, available)
+        else:
+            await _send_king_awaiting_kingdom(guild, applicant_id, locale)
+        return
+    await _send_king_name_request(guild, applicant_id, locale)
+
+
+async def _send_king_claim_request(
+    guild: discord.Guild,
+    applicant_id: str,
+    locale: str,
+    kingdoms: list[Any],
+) -> None:
+    """DM the approved King a select of the available imposed thrones."""
+    member = guild.get_member(int(applicant_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(applicant_id))
+        except Exception:
+            member = None
+    if member is None:
+        return
+    strings = _king_name_strings(locale)
+    request = f"# {strings['king_claim_dm_title']}\n{strings['king_claim_dm_body']}"
+    view = discord.ui.View(timeout=None)
+    view.add_item(
+        KingdomKingClaimSelect(
+            [
+                discord.SelectOption(label=str(k.name)[:100], value=str(k.id))
+                for k in kingdoms[:25]
+            ],
+            strings["king_claim_placeholder"][:100],
+        )
+    )
+    try:
+        await member.send(request, view=view)
+    except Exception:
+        logger.info("CANDIDATURES: kingdom-claim DM failed, falling back to the profile channel")
+        from kingdoms.mods.kingdoms import kingdom_profiles as _kingdom_profiles
+
+        channel = await _kingdom_profiles.ensure_profile_channel(guild, member)
+        if channel is not None:
+            await channel.send(
+                f"{request}\n{strings['king_name_dm_fallback']}", view=view
+            )
+
+
+async def _send_king_awaiting_kingdom(guild: discord.Guild, applicant_id: str, locale: str) -> None:
+    """DM the approved King that no throne is available yet."""
+    member = guild.get_member(int(applicant_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(applicant_id))
+        except Exception:
+            member = None
+    if member is None:
+        return
+    strings = _king_name_strings(locale)
+    notice = f"# {strings['king_awaiting_kingdom_title']}\n{strings['king_awaiting_kingdom_body']}"
+    try:
+        await member.send(notice)
+    except Exception:
+        logger.info("CANDIDATURES: awaiting-kingdom DM failed, falling back to the profile channel")
+        from kingdoms.mods.kingdoms import kingdom_profiles as _kingdom_profiles
+
+        channel = await _kingdom_profiles.ensure_profile_channel(guild, member)
+        if channel is not None:
+            await channel.send(notice)
 
 
 async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
@@ -1808,6 +1909,79 @@ class KingdomKingNameButton(
             )
             return
         await interaction.response.send_modal(KingdomKingNameModal(locale))
+
+
+class KingdomKingClaimSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=r"kingdoms:king:claim-select",
+):
+    """The restart-proof throne select a validated King picks from.
+
+    Drasah's rule (2026-10-11): imposed seasons never offer the naming
+    DM — the King claims one of the existing kingdoms instead, and the
+    bot answers with the outcome (claimed / already taken / no pending
+    application).
+    """
+
+    def __init__(self, options: list[discord.SelectOption], placeholder: str) -> None:
+        super().__init__(
+            discord.ui.Select(
+                placeholder=placeholder,
+                options=options or [discord.SelectOption(label="—", value="none")],
+                custom_id="kingdoms:king:claim-select",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomKingClaimSelect:
+        """Rebuild the select from the wire, options fresh from the service."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _king_name_strings(locale)
+        options: list[discord.SelectOption] = []
+        wiring = _wiring()
+        if wiring.kingdoms_service is not None:
+            try:
+                for kingdom in await wiring.kingdoms_service.available_kingdoms():
+                    options.append(
+                        discord.SelectOption(label=str(kingdom.name)[:100], value=str(kingdom.id))
+                    )
+            except Exception:
+                logger.info("CANDIDATURES: claim select rebuild failed", exc_info=True)
+        return cls(options, strings["king_claim_placeholder"][:100])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Claim the picked throne and answer with the outcome."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _king_name_strings(locale)
+        wiring = _wiring()
+        player_id = str(getattr(interaction.user, "id", ""))
+        kingdom_id = self.item.values[0] if self.item.values else ""
+        if wiring.kingdoms_service is None or not kingdom_id or kingdom_id == "none":
+            await interaction.response.send_message(
+                strings["king_claim_failed"].format("no service"), ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.claim_kingdom(player_id, kingdom_id)
+        except Exception as exc:
+            logger.info("CANDIDATURES: kingdom claim failed for %s", player_id, exc_info=True)
+            await interaction.followup.send(
+                strings["king_claim_failed"].format(type(exc).__name__), ephemeral=True
+            )
+            return
+        await interaction.followup.send(
+            strings["king_claim_done"].format(kingdom.name), ephemeral=True
+        )
+        client = getattr(interaction, "client", None)
+        for guild in getattr(client, "guilds", []) or []:
+            await _refresh_realms_panel_safe(guild, locale)
 
 
 class KingdomKingNameModal(discord.ui.Modal):

@@ -151,6 +151,23 @@ STRINGS: dict[str, dict[str, Any]] = {
         "enroll_king_awaiting_name": (
             "👑 King enrolled — they will receive a DM to name their kingdom."
         ),
+        "enroll_king_awaiting_kingdom": (
+            "👑 King validated — they will receive a DM to choose their kingdom."
+        ),
+        "king_claim_dm_title": "👑 Choose your kingdom",
+        "king_claim_dm_body": (
+            "Your King application has been accepted! The kingdoms are "
+            "imposed this season — pick your throne below."
+        ),
+        "king_claim_placeholder": "Choose your kingdom",
+        "king_claim_done": "You now reign over **{0}**!",
+        "king_claim_failed": "The claim failed — {0}.",
+        "king_awaiting_kingdom_title": "👑 King without a kingdom yet",
+        "king_awaiting_kingdom_body": (
+            "Your King application has been accepted! No kingdom is "
+            "available yet — you will be able to claim a throne as soon "
+            "as one opens."
+        ),
         "insight_field": "AoE II Insight link",
         "insight_placeholder": "https://www.aoe2insight.com/…",
         "game_id_field": "Game ID",
@@ -285,6 +302,23 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "enroll_king_awaiting_name": (
             "👑 Roi inscrit — il va recevoir un MP pour nommer son royaume."
+        ),
+        "enroll_king_awaiting_kingdom": (
+            "👑 Roi validé — il va recevoir un MP pour choisir son royaume."
+        ),
+        "king_claim_dm_title": "👑 Choisis ton royaume",
+        "king_claim_dm_body": (
+            "Ta candidature de Roi a été acceptée ! Les royaumes sont "
+            "imposés cette saison — choisis ton trône ci-dessous."
+        ),
+        "king_claim_placeholder": "Choisis ton royaume",
+        "king_claim_done": "Tu règnes désormais sur **{0}** !",
+        "king_claim_failed": "La réclamation a échoué — {0}.",
+        "king_awaiting_kingdom_title": "👑 Roi sans royaume pour l'instant",
+        "king_awaiting_kingdom_body": (
+            "Ta candidature de Roi a été acceptée ! Aucun royaume n'est "
+            "encore disponible — tu pourras réclamer un trône dès qu'un "
+            "royaume sera libre."
         ),
         "insight_field": "Lien AoE II Insight",
         "insight_placeholder": "https://www.aoe2insight.com/…",

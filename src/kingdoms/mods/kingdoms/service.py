@@ -543,12 +543,77 @@ class KingdomsService:
         logger.info("kingdoms: %s founded %s as King", player_id, kingdom.name)
         return lord
 
+    async def enroll_king_awaiting_kingdom(self, player_id: str, display_name: str) -> LordModel:
+        """Queue an approved King without a kingdom yet — any season mode.
+
+        Drasah's rule (2026-10-11): in imposed mode a validated King
+        cannot found a kingdom, so they wait for an available throne
+        (the claim flow) instead of being rejected outright. In free
+        mode this behaves exactly like :meth:`enroll_king_awaiting_name`.
+        """
+        season = await self._require_season()
+        existing = await self._find_lord(player_id)
+        if existing is not None and not existing.left:
+            raise AlreadyEnrolledError("player already enrolled in the current season")
+        lord = LordModel(
+            _id=player_id,
+            season_id=season.id,
+            role=KING_ROLE,
+            display_name=display_name,
+            in_queue=True,
+        )
+        await self._store.upsert_lord(lord.to_mongo())
+        logger.info("kingdoms: %s enrolled as King awaiting a kingdom", player_id)
+        return lord
+
+    async def available_kingdoms(self) -> list[KingdomModel]:
+        """Kingdoms a queued King may claim: no Gaïa, not refused, kingless."""
+        kingdoms = await self.kingdoms()
+        lords = await self.lords()
+        taken = {
+            lord.kingdom_id
+            for lord in lords
+            if not lord.left and lord.role is KING_ROLE and lord.kingdom_id is not None
+        }
+        return [
+            kingdom
+            for kingdom in kingdoms
+            if not kingdom.is_gaia
+            and kingdom.validation is not KingdomValidation.REFUSED
+            and kingdom.id not in taken
+        ]
+
+    async def claim_kingdom(self, player_id: str, kingdom_id: str) -> KingdomModel:
+        """Claim an available throne (Héritiers du trône) as a queued King.
+
+        Drasah's rule (2026-10-11): the King picks an existing kingdom
+        instead of founding one (imposed mode, or a kingdom created
+        after their validation). Returns the claimed kingdom.
+        """
+        await self._require_season()
+        lord = await self._require_lord(player_id)
+        if lord.role is not KING_ROLE or not lord.in_queue or lord.kingdom_id is not None:
+            raise NotQueuedError("only a King awaiting a kingdom can claim one")
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise NotEnrollableError("Gaïa kingdoms are never claimable")
+        if kingdom.validation is KingdomValidation.REFUSED:
+            raise KingdomNotFoundError("this kingdom was refused and cannot be claimed")
+        if all(item.id != kingdom.id for item in await self.available_kingdoms()):
+            raise KingdomFullError("this kingdom already has a King")
+        lord.kingdom_id = kingdom.id
+        lord.in_queue = False
+        await self._store.upsert_lord(lord.to_mongo())
+        logger.info("kingdoms: %s claimed the throne of %s", player_id, kingdom.name)
+        return kingdom
+
     async def enroll_king_awaiting_name(self, player_id: str, display_name: str) -> LordModel:
         """Enroll an approved King without a kingdom yet (D70, flow v2).
 
         The validated King waits in the queue until they reply with
         their kingdom's name — :meth:`found_kingdom` then creates the
-        PENDING kingdom (rule 35).
+        PENDING kingdom (rule 35). Free mode only: imposed seasons use
+        :meth:`enroll_king_awaiting_kingdom` + :meth:`claim_kingdom`.
         """
         season = await self._require_season()
         if season.imposed_kingdoms:
