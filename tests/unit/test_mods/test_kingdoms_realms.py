@@ -105,7 +105,7 @@ async def test_ensure_realm_structure_creates_category_and_salons() -> None:
     assert category.name == realm_category_name("Avalon")
     assert len(category.channels) == len(REALM_SALONS)
     names = {channel.name for channel in category.channels}
-    assert {"Territoire", "Alliances", "Église"} <= names
+    assert {"Territoire", "Alliances", "Paroisse"} <= names
     # the public salons are readable by every kingdoms_lord, the private ones are not
     territoire = next(c for c in category.channels if c.name == "Territoire")
     assert territoire.permission_overwrite_for(lord_role) is not None
@@ -329,3 +329,19 @@ async def test_started_phase_announces_the_draft_and_kills_the_placeholder() -> 
     assert ALLIANCES_PENDING_MARKER not in text
     assert "Aztèques" not in text  # display names need the config catalog
     _PhaseKingdom.civilizations = []
+
+
+async def test_ensure_realm_structure_renames_the_legacy_eglise_salon() -> None:
+    """Drasah 2026-10-11: a pre-rename « Église » salon is adopted and
+    renamed « Paroisse » — never duplicated."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await guild.create_category(realm_category_name("Avalon"))
+    await guild.create_text_channel("Église", category=category)
+
+    await ensure_realm_structure(guild, kingdom, [])
+
+    names = [channel.name for channel in category.channels]
+    assert names.count("Paroisse") == 1
+    assert "Église" not in names  # renamed in place, not duplicated
+    assert len(names) == len(REALM_SALONS)

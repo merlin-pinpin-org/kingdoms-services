@@ -110,6 +110,9 @@ class _Kingdom:
     civilizations: ClassVar[list[str]] = ["azteques"]
     secured_civilizations: ClassVar[list[str]] = []
     marriage_capacity: ClassVar[int] = 3
+    marriage_points: ClassVar[int] = 3
+    arranged_marriage_stock: ClassVar[int] = 1
+    parish_tier: ClassVar[int] = 1
     tech_points_bank: ClassVar[int] = 5
 
 
@@ -145,7 +148,7 @@ async def test_all_six_views_land_in_their_salons() -> None:
         "eglise": True,
         "pigeon-voyageur": True,
     }
-    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Église", "Pigeon-Voyageur"):
+    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Paroisse", "Pigeon-Voyageur"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
     # the Salle du Conseil stays empty (the kingdom's discussion salon)
@@ -201,10 +204,13 @@ async def test_church_view_shows_stock_and_active_marriages() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _text(_live(_channel(guild, "Église"))[0])
-    assert "Chapelle" in content  # D64 placeholder, palier 1/3
-    assert "3" in content  # marriage stock
+    content = _text(_live(_channel(guild, "Paroisse"))[0])
+    assert "Paroisse" in content
+    assert "Chapelle" in content  # D64 palier 1/3
+    assert "Points de mariage** : 3" in content
+    assert "Mariages arrangés en stock** : 1" in content
     assert "💍 Luc — Aztèques" in content
+    assert "Célibataires" in content
 
 
 async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
@@ -214,7 +220,7 @@ async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
     await _deploy(guild)
     await _deploy(guild)
 
-    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Église", "Pigeon-Voyageur"):
+    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Paroisse", "Pigeon-Voyageur"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
 

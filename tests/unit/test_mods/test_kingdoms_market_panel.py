@@ -22,6 +22,7 @@ from kingdoms.mods.kingdoms.kingdom_panels import (
     deploy_panels,
 )
 from kingdoms.mods.kingdoms.kingdom_persistent import (
+    KingdomChurchArrangeButton,
     KingdomMarketActionButton,
     KingdomMarketTechButton,
     KingdomsPanelWiring,
@@ -109,6 +110,10 @@ class FakeEconomyService:
     async def spend_points(self, kingdom_id: str, cost: int) -> None:
         self.spent.append((kingdom_id, cost))
 
+    async def buy_arranged_marriage_token(self, kingdom_id: str) -> object:
+        self.spent.append((kingdom_id, 3))
+        return object()
+
     async def buy_patrouille(self, kingdom_id: str, slot_start: int) -> int:
         self.patrols.append((kingdom_id, slot_start))
         return slot_start
@@ -138,11 +143,7 @@ class FakeDiplomacyService:
     def __init__(self) -> None:
         self.arranged: list[tuple[str, str]] = []
 
-    async def arranged_marriage(
-        self, player_id: str, civilization: str, *, spend_points: Any = None
-    ) -> str:
-        if spend_points is not None:
-            await spend_points(player_id, 3)
+    async def arranged_marriage(self, player_id: str, civilization: str) -> str:
         self.arranged.append((player_id, civilization))
         return civilization
 
@@ -318,8 +319,29 @@ async def test_patrouille_button_opens_the_slot_select_and_buys() -> None:
     assert "02:00" in (choice.followup.messages[-1].content or "")
 
 
-async def test_mariage_button_flows_lord_then_civilization() -> None:
-    """D60/D74: the arranged marriage weds a chosen lord to a chosen civ."""
+async def test_mariage_button_sells_an_arranged_marriage_token() -> None:
+    """D60 (2026-10-11): the Marché SELLS the token — no marriage here."""
+    economy = FakeEconomyService()
+    diplomacy = FakeDiplomacyService()
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        diplomacy=diplomacy,
+        civilizations=("celtes", "shu"),
+    )
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomMarketActionButton(
+        "mariage_arrange", "Arranged marriage — 3 🔬", discord.ButtonStyle.secondary
+    )
+    await button.callback(interaction)
+    # The 3 techs went through the kingdom treasury (D2), no marriage yet.
+    assert economy.spent == [("k1", 3)]
+    assert diplomacy.arranged == []
+    assert interaction.followup.messages  # the confirmation note was sent
+
+
+async def test_church_arrange_button_flows_lord_then_civilization() -> None:
+    """D60/D74: the Paroisse arranged marriage consumes the token."""
     economy = FakeEconomyService()
     diplomacy = FakeDiplomacyService()
     _wiring(
@@ -333,9 +355,7 @@ async def test_mariage_button_flows_lord_then_civilization() -> None:
         civilizations=("celtes", "shu"),
     )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    button = KingdomMarketActionButton(
-        "mariage_arrange", "Arranged marriage — 3 🔬", discord.ButtonStyle.secondary
-    )
+    button = KingdomChurchArrangeButton({"church_arrange_button": "💒 ({0})"}, 1)
     await button.callback(interaction)
     message = interaction.response.message
     assert message is not None and message.view is not None
@@ -356,8 +376,8 @@ async def test_mariage_button_flows_lord_then_civilization() -> None:
     )
     await civ_select.callback(civ_choice)
     assert diplomacy.arranged == [("222", "celtes")]
-    # The 3 techs went through the kingdom treasury (D2).
-    assert economy.spent == [("k1", 3)]
+    # The token was consumed at the Paroisse — no payment here.
+    assert economy.spent == []
     assert "sealed" in (civ_choice.followup.messages[-1].content or "")
 
 
