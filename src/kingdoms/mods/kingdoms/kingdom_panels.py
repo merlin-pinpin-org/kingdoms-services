@@ -942,11 +942,14 @@ async def build_settings_panel(
         ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
         ("season-mode", "season_mode_button", discord.ButtonStyle.secondary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
+        ("back-setup", "back_setup_button", discord.ButtonStyle.danger),
+        ("end-season", "end_season_button", discord.ButtonStyle.danger),
     )
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    phase_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 5 else maintenance_row
+        target = season_row if index < 5 else maintenance_row if index < 10 else phase_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
@@ -957,6 +960,7 @@ async def build_settings_panel(
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
             season_row,
             maintenance_row,
+            phase_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
             accent_colour=GREEN,

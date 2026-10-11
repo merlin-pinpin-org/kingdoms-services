@@ -206,6 +206,22 @@ class KingdomsService:
         logger.info("kingdoms: season %s imposed mode set to %s", season.id, bool(imposed))
         return season
 
+    async def set_phase(self, phase: str) -> SeasonState:
+        """Move the season to an arbitrary phase (Drasah's test rule).
+
+        The admin needs to walk the phase machine without waiting for
+        the real calendar: ``setup`` (placeholders), ``started`` (draws
+        revealed), ``ended`` (season closed). Only the phase field
+        moves — nothing else is touched, so going back to ``setup``
+        hides nothing by itself (use the reset/relaunch flow to wipe
+        the draws).
+        """
+        season = await self._require_season()
+        season.phase = phase
+        await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: season %s phase set to %s", season.id, phase)
+        return season
+
     async def reset(self) -> None:
         """Reset the season data without launching anything (reference §3.3)."""
         await self._archive_current_data()

@@ -1016,7 +1016,9 @@ class KingdomAdminButton(
     template=(
         r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
-        r"|status|assign|add-kingdom|launch|start-season|season-mode)"
+        r"|status|assign|add-kingdom|launch|start-season|season-mode"
+        r"|back-setup|back-setup-confirm|back-setup-cancel"
+        r"|end-season|end-season-confirm|end-season-cancel)"
     ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
@@ -1059,6 +1061,12 @@ class KingdomAdminButton(
             "add-kingdom": strings["add_kingdom_button"],
             "start-season": strings["start_season_button"],
             "season-mode": strings["season_mode_button"],
+            "back-setup": strings["back_setup_button"],
+            "back-setup-confirm": strings["back_setup_confirm_button"],
+            "back-setup-cancel": strings["back_setup_cancel_button"],
+            "end-season": strings["end_season_button"],
+            "end-season-confirm": strings["end_season_confirm_button"],
+            "end-season-cancel": strings["end_season_cancel_button"],
         }
         styles = {
             "launch": discord.ButtonStyle.success,
@@ -1077,6 +1085,12 @@ class KingdomAdminButton(
             "add-kingdom": discord.ButtonStyle.primary,
             "start-season": discord.ButtonStyle.success,
             "season-mode": discord.ButtonStyle.secondary,
+            "back-setup": discord.ButtonStyle.danger,
+            "back-setup-confirm": discord.ButtonStyle.success,
+            "back-setup-cancel": discord.ButtonStyle.secondary,
+            "end-season": discord.ButtonStyle.danger,
+            "end-season-confirm": discord.ButtonStyle.success,
+            "end-season-cancel": discord.ButtonStyle.secondary,
         }
         return cls(action, labels[action][:80], styles[action])
 
@@ -1124,6 +1138,16 @@ class KingdomAdminButton(
             "reset-confirm": lambda _i, _l: _run_reset(interaction, strings),
             "start-season": lambda _i, _l: _run_start_season(interaction, strings),
             "season-mode": lambda _i, _l: _run_season_mode(interaction, strings),
+            "back-setup": lambda _i, _l: _ask_action_confirmation(interaction, strings, "back-setup"),
+            "back-setup-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["back_setup_cancelled"], view=None
+            ),
+            "back-setup-confirm": lambda _i, _l: _run_back_to_setup(interaction, strings),
+            "end-season": lambda _i, _l: _ask_action_confirmation(interaction, strings, "end-season"),
+            "end-season-cancel": lambda _i, _l: interaction.response.edit_message(
+                content=strings["end_season_cancelled"], view=None
+            ),
+            "end-season-confirm": lambda _i, _l: _run_end_season(interaction, strings),
         }
         handler = handlers.get(self.action)
         if handler is not None:
@@ -1532,13 +1556,15 @@ async def _send_king_awaiting_kingdom(guild: discord.Guild, applicant_id: str, l
             await channel.send(notice)
 
 
-async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
-    """Delete every kingdoms channel/category, then report."""
-    guild = interaction.guild
-    if guild is None:
-        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
+async def _purge_and_reinstall(guild: discord.Guild) -> tuple[bool, int]:
+    """Purge every kingdoms salon/category, then re-provision the structure.
+
+    Shared by the salons reset and the Back-to-setup flow: the deleted
+    channels carried the pinned panels, so the reinstall re-provisions
+    the declared structure and re-pins every panel (kingdoms#138) —
+    one click leaves the guild in the fresh, working state.
+    """
+    deleted = 0
     try:
         wiring = _wiring()
         structure_names = _declared_structure_slugs(getattr(wiring, "registry", None))
@@ -1546,12 +1572,7 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) 
         deleted += await _delete_matching_categories(guild, structure_names)
     except Exception:
         logger.exception("KINGDOMS ADMIN: salons reset failed for guild %s", guild.id)
-        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
-        return
-    # The reset is not over until the concept is reachable again
-    # (kingdoms#138): the deleted channels carried the pinned panels,
-    # so the reset must re-provision the declared structure and re-pin
-    # every panel — one click leaves the guild in the fresh, working state.
+        return False, deleted
     reinstalled = False
     try:
         from kingdoms.mods.kingdoms.kingdom_panels import deploy_panels
@@ -1569,6 +1590,100 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) 
         reinstalled = True
     except Exception:
         logger.exception("KINGDOMS ADMIN: reinstall after reset failed for guild %s", guild.id)
+    return reinstalled, deleted
+
+
+async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Full test reset: wipe + fresh season in setup, salons rebuilt.
+
+    Drasah's test loop (2026-10-11): the salons-only reset left the
+    season data alive, so the reinstalled views reposted the old
+    draws. Back-to-setup archives and wipes the season data, relaunches
+    a fresh season in ``setup`` (free mode), then rebuilds the salons —
+    placeholders back, ready to test again from the beginning.
+    """
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        await interaction.followup.send(strings["back_setup_failed"].format("no service"), ephemeral=True)
+        return
+    try:
+        await wiring.kingdoms_service.reset()
+        await wiring.kingdoms_service.launch()
+    except Exception as exc:
+        logger.exception("KINGDOMS ADMIN: back-to-setup data wipe failed for guild %s", guild.id)
+        await interaction.followup.send(
+            strings["back_setup_failed"].format(type(exc).__name__), ephemeral=True
+        )
+        return
+    reinstalled, deleted = await _purge_and_reinstall(guild)
+    if reinstalled:
+        await interaction.followup.send(
+            strings["back_setup_done"].format(deleted), ephemeral=True
+        )
+        await _refresh_season_status_safe(guild, str(interaction.locale) if interaction.locale else "en")
+    else:
+        await interaction.followup.send(strings["reset_failed"], ephemeral=True)
+
+
+async def _run_end_season(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Close the season: territory counts decide, the phase moves to ended.
+
+    Drasah's phase-test rule (2026-10-11): the admin walks the phase
+    machine without waiting for the real calendar end — the closing
+    runs the Conquest verdict (winner by territory counts, ShowMatch
+    PA2 on a tie) and the season lands in ``ended``.
+    """
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        await interaction.followup.send(strings["end_season_failed"].format("no service"), ephemeral=True)
+        return
+    winner: str | None = None
+    try:
+        territories = wiring.territories_service
+        if territories is not None:
+            from kingdoms.mods.kingdoms.season_end import SeasonEndService
+
+            end_service = SeasonEndService(
+                wiring.kingdoms_service._store,
+                wiring.kingdoms_service.config,
+                wiring.kingdoms_service,
+                territories,
+            )
+            report = await end_service.close_season()
+            raw_winner = report.get("winner_name") if isinstance(report, dict) else None
+            winner = str(raw_winner) if raw_winner else None
+        await wiring.kingdoms_service.set_phase("ended")
+    except Exception as exc:
+        logger.exception("KINGDOMS ADMIN: end-season failed for guild %s", guild.id)
+        await interaction.followup.send(
+            strings["end_season_failed"].format(type(exc).__name__), ephemeral=True
+        )
+        return
+    if winner:
+        await interaction.followup.send(strings["end_season_done"].format(winner), ephemeral=True)
+    else:
+        await interaction.followup.send(strings["end_season_done_no_winner"], ephemeral=True)
+    await _refresh_season_status_safe(guild, str(interaction.locale) if interaction.locale else "en")
+
+
+async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Delete every kingdoms channel/category, then report."""
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    reinstalled, deleted = await _purge_and_reinstall(guild)
     if reinstalled:
         # the reset wiped the per-realm salon views with the salons:
         # re-provision every approved kingdom's structure AND content
@@ -1581,7 +1696,6 @@ async def _run_reset(interaction: discord.Interaction, strings: dict[str, Any]) 
             )
         except Exception:
             logger.exception("KINGDOMS ADMIN: realm content reinstall failed for guild %s", guild.id)
-    if reinstalled:
         await interaction.followup.send(strings["reset_done"].format(deleted), ephemeral=True)
     else:
         await interaction.followup.send(strings["reset_failed"], ephemeral=True)
@@ -1609,12 +1723,17 @@ def _declared_structure_slugs(registry: Any) -> set[str]:
 async def _delete_matching_channels(guild: discord.Guild, structure_names: set[str]) -> int:
     """Delete the structure channels, the profile channels and the epoch members.
 
-    The salons living under a per-kingdom ``Royaume …`` category are
-    skipped: they are not declared structure (they belong to their
-    realm) and die with their category in :func:`_delete_matching_categories`.
+    Drasah's live incident (2026-10-11): deleting a category on Discord
+    does NOT delete its channels — they become orphan top-level salons
+    and the reinstall then duplicates them. The per-kingdom realm
+    salons are therefore deleted HERE, before their category goes, and
+    the root-level leftovers of older resets are swept too (their slug
+    matches a realm salon name and they live outside any category).
     """
+    from kingdoms.mods.kingdoms.kingdom_realms import REALM_SALONS
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
+    realm_slugs = {_slug(name) for _key, name in REALM_SALONS}
     deleted = 0
     channels = [*list(guild.text_channels), *list(getattr(guild, "forums", []))]
     for channel in channels:
@@ -1626,8 +1745,18 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
             category is not None
             and _slug(getattr(category, "name", "")).startswith("royaume-")
         )
+        # realm salons die with their kingdom; orphans at the guild root
+        # (leftovers of an older reset) match a realm salon slug
+        realm_leftover = (
+            category is None and _slug(channel.name) in realm_slugs
+        )
         name = _slug(channel.name)
-        if in_epoch or (not in_realm and (name in structure_names or name.startswith("profil-"))):
+        if (
+            in_epoch
+            or in_realm
+            or realm_leftover
+            or (not in_realm and (name in structure_names or name.startswith("profil-")))
+        ):
             try:
                 await channel.delete()
                 deleted += 1
@@ -1653,6 +1782,15 @@ async def _delete_matching_categories(guild: discord.Guild, structure_names: set
         if slug in structure_names or slug.startswith("royaume-"):
             try:
                 await grant_bot_access_to_category(guild, category)
+                # deleting a category leaves its channels orphaned at the
+                # guild root (they are NOT deleted with it) — remove them
+                # first so nothing survives to be duplicated
+                for channel in list(getattr(category, "channels", [])):
+                    try:
+                        await channel.delete()
+                        deleted += 1
+                    except Exception:
+                        logger.warning("KINGDOMS ADMIN: realm salon delete failed", exc_info=True)
                 await category.delete()
                 deleted += 1
             except Exception:
@@ -1981,7 +2119,29 @@ class KingdomKingClaimSelect(
         )
         client = getattr(interaction, "client", None)
         for guild in getattr(client, "guilds", []) or []:
-            await _refresh_realms_panel_safe(guild, locale)
+            await _after_claim_refresh(guild, locale, kingdom, player_id)
+
+
+async def _after_claim_refresh(guild: discord.Guild, locale: str, kingdom: Any, player_id: str) -> None:
+    """Refresh everything the claim touched (Drasah's stale-view bug).
+
+    The claim changes the realm membership (a new King) — the category
+    overwrites must re-sync (the King sees their kingdom), the kingdom's
+    state views re-render (le-royaume/seigneurs show the new King), the
+    roster/status refresh and the enrollment is announced. Every step
+    is best-effort: one failed refresh never blocks the others.
+    """
+    wiring = _wiring()
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
+
+        await ensure_all_realm_structures(guild, wiring.kingdoms_service)
+    except Exception:
+        logger.warning("CANDIDATURES: realm overwrites re-sync failed after claim", exc_info=True)
+    await _refresh_realm_views_for_kingdom_safe(guild, str(kingdom.id))
+    await _refresh_season_status_safe(guild, locale)
+    await _refresh_realms_panel_safe(guild, locale)
+    await _announce_enrollment_safe(guild, locale, f"<@{player_id}>", str(kingdom.name), True)
 
 
 class KingdomKingNameModal(discord.ui.Modal):

@@ -29,33 +29,41 @@ pytestmark = pytest.mark.asyncio
 STRUCTURE = {"patrouille", "territoire", "seigneurs", "taverne", "conscription"}
 
 
-async def test_reset_sweep_skips_realm_salons_but_hits_top_level() -> None:
+async def test_reset_sweep_deletes_realm_salons_too() -> None:
+    """Drasah's duplicates incident (2026-10-11): on real Discord a
+    deleted category leaves its channels orphaned at the guild root —
+    the reinstall then recreates them and the guild fills with
+    duplicates. The sweep must therefore delete the realm salons too,
+    plus the root-level leftovers of older resets."""
     guild = MockGuild()
     conscription = await guild.create_category("Conscription")
     realm = await guild.create_category("Royaume Avalon")
-    await guild.create_text_channel("Patrouille", category=realm)  # realm salon, same name
+    await guild.create_text_channel("Patrouille", category=realm)  # realm salon, declared name
     await guild.create_text_channel("Territoire", category=realm)
     await guild.create_text_channel("Patrouille", category=conscription)  # declared salon
     await guild.create_text_channel("Patrouille")  # top-level, declared name
+    await guild.create_text_channel("Le-Royaume")  # root-level realm-salon leftover
 
     deleted = await _delete_matching_channels(guild, STRUCTURE)
 
-    assert deleted == 2  # the declared + orphan ones, never the realm's
-    realm_names = {c.name for c in realm.channels}
-    assert realm_names == {"Patrouille", "Territoire"}
+    assert deleted == 5  # declared + realm salons + root leftovers
+    assert [c.name for c in realm.channels] == []
     assert [c.name for c in conscription.channels] == []
 
 
 async def test_reset_purges_realm_categories_too() -> None:
     guild = MockGuild()
     await guild.create_category("Conscription")
-    await guild.create_category("Royaume Avalon")
+    realm = await guild.create_category("Royaume Avalon")
+    await guild.create_text_channel("Seigneurs", category=realm)
     await guild.create_category("Royaume Gaïa")
     untouched = await guild.create_category("Champs de Bataille")
 
     deleted = await _delete_matching_categories(guild, {"conscription", "royaume-gaia"})
 
-    assert deleted == 3  # declared + realm slice + declared Gaïa
+    # category deletes do NOT cascade on real Discord — the salons die first
+    assert [c.name for c in realm.channels] == []
+    assert deleted == 4  # declared + realm slice + its salon + declared Gaïa
     assert guild.categories == [untouched]
 
 

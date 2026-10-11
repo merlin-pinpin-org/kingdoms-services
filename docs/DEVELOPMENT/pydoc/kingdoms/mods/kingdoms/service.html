@@ -752,6 +752,15 @@ wiping&nbsp;anything:&nbsp;imposed&nbsp;→&nbsp;free&nbsp;unblocks&nbsp;the&nbs
 imposed&nbsp;freezes&nbsp;them.&nbsp;The&nbsp;kingdoms&nbsp;themselves&nbsp;never&nbsp;change&nbsp;—<br>
 the&nbsp;admin&nbsp;adds/removes&nbsp;them&nbsp;by&nbsp;hand&nbsp;if&nbsp;needed.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-set_phase"><strong>set_phase</strong></a>(self, phase: 'str') -&gt; 'SeasonState'</dt><dd><span class="code">Move&nbsp;the&nbsp;season&nbsp;to&nbsp;an&nbsp;arbitrary&nbsp;phase&nbsp;(Drasah's&nbsp;test&nbsp;rule).<br>
+&nbsp;<br>
+The&nbsp;admin&nbsp;needs&nbsp;to&nbsp;walk&nbsp;the&nbsp;phase&nbsp;machine&nbsp;without&nbsp;waiting&nbsp;for<br>
+the&nbsp;real&nbsp;calendar:&nbsp;``setup``&nbsp;(placeholders),&nbsp;``started``&nbsp;(draws<br>
+revealed),&nbsp;``ended``&nbsp;(season&nbsp;closed).&nbsp;Only&nbsp;the&nbsp;phase&nbsp;field<br>
+moves&nbsp;—&nbsp;nothing&nbsp;else&nbsp;is&nbsp;touched,&nbsp;so&nbsp;going&nbsp;back&nbsp;to&nbsp;``setup``<br>
+hides&nbsp;nothing&nbsp;by&nbsp;itself&nbsp;(use&nbsp;the&nbsp;reset/relaunch&nbsp;flow&nbsp;to&nbsp;wipe<br>
+the&nbsp;draws).</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-start_season"><strong>start_season</strong></a>(self) -&gt; 'SeasonState'</dt><dd><span class="code">Start&nbsp;the&nbsp;game:&nbsp;reveal&nbsp;the&nbsp;random&nbsp;content&nbsp;to&nbsp;everyone&nbsp;(D70).<br>
 &nbsp;<br>
 The&nbsp;``setup``&nbsp;→&nbsp;``started``&nbsp;transition&nbsp;(Drasah's&nbsp;game-design<br>

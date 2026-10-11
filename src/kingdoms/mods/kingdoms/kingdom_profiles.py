@@ -139,6 +139,37 @@ STRINGS: dict[str, dict[str, str]] = {
         "season_mode_failed": "The mode change failed — {}",
         "season_mode_free": "Season mode: **free** — Kings may found their kingdoms.",
         "season_mode_imposed": "Season mode: **imposed** — Kings can no longer found kingdoms.",
+        "back_setup_button": "⏪ Back to setup",
+        "back_setup_confirm_title": "Back to the setup phase?",
+        "back_setup_confirm_hint": (
+            "Archives then WIPES the season data (kingdoms, lords, "
+            "civilizations, territories) and relaunches a fresh season "
+            "in setup (free mode). The salons are rebuilt. This is the "
+            "full test reset — nothing is kept."
+        ),
+        "back_setup_confirm_button": "✅ Yes, back to setup",
+        "back_setup_cancel_button": "❌ Cancel",
+        "back_setup_cancelled": "Back-to-setup cancelled.",
+        "back_setup_done": (
+            "Fresh season in setup ({} salons rebuilt) — placeholders "
+            "are back, ready to test again."
+        ),
+        "back_setup_failed": "The back-to-setup failed — {}",
+        "end_season_button": "⏹ End the season",
+        "end_season_confirm_title": "End the season now?",
+        "end_season_confirm_hint": (
+            "Closes the season: territory counts decide the winner "
+            "(ShowMatch on a tie) and the season moves to the ended "
+            "phase."
+        ),
+        "end_season_confirm_button": "✅ Yes, end the season",
+        "end_season_cancel_button": "❌ Cancel",
+        "end_season_cancelled": "Season end cancelled.",
+        "end_season_done": "Season ended — the winner is **{}**!",
+        "end_season_done_no_winner": (
+            "Season ended — the winner is not decided yet (ShowMatch pending)."
+        ),
+        "end_season_failed": "The season end failed — {}",
         "status_phase": "Phase",
         "status_mode": "Mode",
         "mode_free": "free",
@@ -259,6 +290,38 @@ STRINGS: dict[str, dict[str, str]] = {
         "season_mode_failed": "Le changement de mode a échoué — {}",
         "season_mode_free": "Mode de saison : **libre** — les Rois peuvent fonder leurs royaumes.",
         "season_mode_imposed": "Mode de saison : **imposé** — les Rois ne peuvent plus fonder de royaume.",
+        "back_setup_button": "⏪ Repasser en setup",
+        "back_setup_confirm_title": "Repasser en phase de setup ?",
+        "back_setup_confirm_hint": (
+            "Archive puis EFFACE les données de la saison (royaumes, "
+            "seigneurs, civilisations, territoires) et relance une "
+            "saison fraîche en setup (mode libre). Les salons sont "
+            "reconstruits. C'est le reset complet de test — rien n'est "
+            "conservé."
+        ),
+        "back_setup_confirm_button": "✅ Oui, repasser en setup",
+        "back_setup_cancel_button": "❌ Annuler",
+        "back_setup_cancelled": "Retour en setup annulé.",
+        "back_setup_done": (
+            "Saison fraîche en setup ({} salons reconstruits) — les "
+            "placeholders sont de retour, prêt à re-tester."
+        ),
+        "back_setup_failed": "Le retour en setup a échoué — {}",
+        "end_season_button": "⏹ Fin de saison",
+        "end_season_confirm_title": "Terminer la saison maintenant ?",
+        "end_season_confirm_hint": (
+            "Clôture la saison : les comptages de territoires "
+            "désignent le vainqueur (ShowMatch en cas d'égalité) et la "
+            "saison passe en phase terminée."
+        ),
+        "end_season_confirm_button": "✅ Oui, terminer la saison",
+        "end_season_cancel_button": "❌ Annuler",
+        "end_season_cancelled": "Fin de saison annulée.",
+        "end_season_done": "Saison terminée — le vainqueur est **{}** !",
+        "end_season_done_no_winner": (
+            "Saison terminée — le vainqueur n'est pas encore décidé (ShowMatch en attente)."
+        ),
+        "end_season_failed": "La fin de saison a échoué — {}",
         "status_phase": "Phase",
         "status_mode": "Mode",
         "mode_free": "libre",
