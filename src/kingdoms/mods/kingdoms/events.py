@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -431,7 +432,12 @@ class EventService:
     # ------------------------------------------------------------------
     # Restart-safe scheduling (D1)
     # ------------------------------------------------------------------
-    async def run_due(self, now: datetime) -> list[dict[str, object]]:
+    async def run_due(
+        self,
+        now: datetime,
+        *,
+        snapshotter: Callable[[str], Awaitable[None]] | None = None,
+    ) -> list[dict[str, object]]:
         """Replay every event slot missed since the season start (D1).
 
         The cadence is CALENDAR-based (Drasah's rule, 2026-10-11): the
@@ -448,6 +454,11 @@ class EventService:
         applies at 23:59 (the slot plus 29 minutes): the ongoing
         attacks are cancelled, the closing counts the territories and
         the phase moves to ``ended``. Nothing replays afterwards.
+
+        ``snapshotter`` (the time machine's hook, 2026-10-11): awaited
+        with the slot kind right BEFORE each slot is applied — the
+        caller photographs the exact pre-switch state, so the rewind
+        can land on the exact moment a cycle or age switched.
         """
         season = await self._require_season()
         tz = _schedule_timezone(self._config)
@@ -458,6 +469,8 @@ class EventService:
         due = self._due_slots(season, now, tz)
         reports: list[dict[str, object]] = []
         for _slot, kind in due:
+            if snapshotter is not None:
+                await snapshotter(kind)
             if kind == "end":
                 report: dict[str, object] = dict(await self._apply_season_end())
             elif kind == "cycle":

@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import UTC, datetime
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
 
 logger = logging.getLogger("kingdoms.events_loop")
@@ -149,6 +151,70 @@ async def stop_kingdoms_event_scheduler() -> None:
         _EVENT_SCHEDULER_TASK = None
 
 
+def _auto_snapshotter(time_service: Any) -> Callable[[str], Awaitable[None]] | None:
+    """Build the per-slot snapshot hook when the time service is wired."""
+    if time_service is None:
+        return None
+
+    async def _snapshot(kind: str) -> None:
+        await time_service.create_snapshot(f"avant {kind}", moment=kind)
+
+    return _snapshot
+
+
+async def _season_pause_state(bot: Any) -> str | None:
+    """Return why the game clock must NOT advance now, None otherwise.
+
+    Drasah's rules (2026-10-11): a FROZEN season replays no slot (the
+    time machine's pause), and a season still in its ``setup`` phase
+    replays no slot either — no random content exists before the game
+    starts, so a cycle switch must not draw Gaia maps into a setup.
+    """
+    kingdoms = getattr(bot, "kingdoms_service", None)
+    if kingdoms is None:
+        return None
+    try:
+        season = await kingdoms.current_season()
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: season read failed", exc_info=True)
+        return None
+    if season is None:
+        return None
+    if season.frozen:
+        return "frozen"
+    if season.phase == "setup":
+        return "setup"
+    return None
+
+
+async def _snapshot_lords_day_closure_safe(bot: Any, tick_seconds: int) -> None:
+    """Snapshot the exact moment the Lord's Day window closes.
+
+    Drasah's rewind rule (2026-10-11): the window that opens at the
+    Sunday 23:30 cycle switch closes Monday 10:00 — the state AT that
+    exact moment is snapshot (``moment: lords_day_end``) so the
+    "return to the Lord's Day end" button lands there.
+    """
+    kingdoms = getattr(bot, "kingdoms_service", None)
+    time_service = getattr(bot, "kingdoms_time_service", None)
+    if kingdoms is None or time_service is None:
+        return
+    try:
+        season = await kingdoms.current_season()
+        if season is None:
+            return
+        now = datetime.now(tz=UTC)
+        window_now = active_lords_day_window(kingdoms.config, season, now)
+        window_before = active_lords_day_window(
+            kingdoms.config, season, now - timedelta(seconds=tick_seconds)
+        )
+        if window_before is not None and window_now is None:
+            await time_service.create_snapshot("fin jour du seigneur", moment="lords_day_end")
+            logger.info("KINGDOMS EVENTS: Lord's Day window closed — snapshot saved")
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: Lord's Day closure snapshot failed", exc_info=True)
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -156,11 +222,16 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         events = getattr(bot, "kingdoms_events_service", None)
         if events is None:
             continue
+        pause_reason = await _season_pause_state(bot)
+        if pause_reason is not None:
+            continue
+        snapshotter = _auto_snapshotter(getattr(bot, "kingdoms_time_service", None))
         try:
-            reports = await events.run_due(datetime.now(tz=UTC))
+            reports = await events.run_due(datetime.now(tz=UTC), snapshotter=snapshotter)
         except Exception:
             logger.warning("KINGDOMS EVENTS: due-slot replay failed", exc_info=True)
             continue
+        await _snapshot_lords_day_closure_safe(bot, tick_seconds)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

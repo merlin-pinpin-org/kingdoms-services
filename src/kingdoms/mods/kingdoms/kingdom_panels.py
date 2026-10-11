@@ -931,6 +931,11 @@ async def build_settings_panel(
     from kingdoms.mods.kingdoms.kingdom_profiles import _strings as profile_strings
 
     admin_strings = profile_strings(locale)
+    # The time seams moved to the Machine à temps salon (Drasah's
+    # deduplication rule, 2026-10-11): age-next/age-prev, the forced
+    # Lord's Day window, end-season and back-to-setup now live in the
+    # kingdom_time_panel — Paramètres keeps only the season bootstrap
+    # and the server maintenance.
     buttons = (
         ("launch", "launch_button", discord.ButtonStyle.success),
         ("start-season", "start_season_button", discord.ButtonStyle.success),
@@ -942,23 +947,12 @@ async def build_settings_panel(
         ("add-kingdom", "add_kingdom_button", discord.ButtonStyle.primary),
         ("season-mode", "season_mode_button", discord.ButtonStyle.secondary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
-        ("back-setup", "back_setup_button", discord.ButtonStyle.danger),
-        ("end-season", "end_season_button", discord.ButtonStyle.danger),
     )
     season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    phase_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    debug_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 5 else maintenance_row if index < 10 else phase_row
+        target = season_row if index < 5 else maintenance_row
         target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
-    for action, key, style in (
-        ("age-next", "age_next_button", discord.ButtonStyle.success),
-        ("age-prev", "age_prev_button", discord.ButtonStyle.secondary),
-        ("lords-day-enter", "lords_day_enter_button", discord.ButtonStyle.primary),
-        ("lords-day-exit", "lords_day_exit_button", discord.ButtonStyle.secondary),
-    ):
-        debug_row.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
@@ -968,10 +962,6 @@ async def build_settings_panel(
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
             season_row,
             maintenance_row,
-            phase_row,
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(f"## 🧪 {admin_strings['debug_section']}"),
-            debug_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
             accent_colour=GREEN,

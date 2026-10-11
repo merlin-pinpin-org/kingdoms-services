@@ -316,6 +316,15 @@ class SeasonState(BaseModel):
     """
     out_maps: list[str] = Field(default_factory=list)
     finished: bool = False
+    frozen: bool = False
+    """The game-clock PAUSE (Drasah's time machine, 2026-10-11): when
+    True the weekly scheduler replays NO slot — the season stands
+    still until an admin resumes it. Manual time-machine jumps still
+    work while frozen (Drasah keeps testing while paused). Set
+    automatically by every snapshot RESTORE: a rewind must not be
+    instantly re-advanced by the real clock. Legacy documents without
+    the field default to False (the game never pauses on its own).
+    """
     winner_kingdom_id: str | None = None
     lords_day_forced_start: datetime | None = None
     """Manual test override: when set (with ``lords_day_forced_end``),

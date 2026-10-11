@@ -27,6 +27,9 @@ from typing import TYPE_CHECKING, Any
 from kingdoms.mods.kingdoms.events import _schedule_timezone, cron_slots_between
 
 if TYPE_CHECKING:
+    from kingdoms.mods.kingdoms.models import SeasonState
+
+if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
     from kingdoms.mods.kingdoms.events import EventService
     from kingdoms.mods.kingdoms.service import KingdomsService
@@ -44,6 +47,9 @@ _HORIZON = timedelta(days=60)
 """How far ahead the slot lookups search (a season never spans this)."""
 
 _MOMENTS = ("next_cycle", "next_age", "season_end")
+
+_SNAPSHOT_MOMENTS = ("cycle", "age", "end", "lords_day_end")
+"""The key moments a snapshot can be tagged with (the rewind targets)."""
 
 
 def _slugify(label: str) -> str:
@@ -100,6 +106,10 @@ class TimeMachineService:
             self._config.events.age_cron, season.started_at, timestamp + _HORIZON, tz
         )
         next_age = next((slot for slot in age_slots if slot > timestamp), None)
+        age_display = next(
+            (age.display_name for age in self._config.ages if age.key == season.current_age_key),
+            season.current_age_key,
+        )
         return {
             "season": season.id,
             "now": timestamp,
@@ -107,24 +117,36 @@ class TimeMachineService:
             "cycle": season.current_cycle,
             "weeks": season.weeks,
             "age": season.current_age_key,
+            "age_display": age_display,
             "phase": season.phase,
             "finished": season.finished,
+            "frozen": season.frozen,
             "next_cycle_at": next_cycle,
             "next_age_at": next_age,
             "season_end_at": end_slot,
+            "timezone": str(tz),
             "snapshot_count": len(await self.snapshots()),
         }
 
     # ------------------------------------------------------------------
     # Snapshots — the reversible side (Drasah's "vrai retour arrière")
     # ------------------------------------------------------------------
-    async def create_snapshot(self, label: str, *, now: datetime | None = None) -> dict[str, Any]:
-        """Snapshot the full season data under ``label`` (never wiped)."""
+    async def create_snapshot(
+        self, label: str, *, now: datetime | None = None, moment: str | None = None
+    ) -> dict[str, Any]:
+        """Snapshot the full season data under ``label`` (never wiped).
+
+        ``moment`` tags the KEY moment the snapshot sits on
+        (``cycle``, ``age``, ``end``, ``lords_day_end``): the
+        one-click rewind buttons restore the latest snapshot of a
+        given moment. Manual snapshots carry ``None``.
+        """
         timestamp = now or datetime.now(tz=UTC)
         snapshot: dict[str, Any] = {
             "_id": f"tm-{timestamp:%Y%m%d-%H%M%S-%f}-{_slugify(label)}",
             "kind": TIME_MACHINE_KIND,
             "label": label,
+            "moment": moment,
             "created_at": timestamp,
             "seasons": await self._find_all("find_seasons"),
             "kingdoms": await self._find_all("find_kingdoms"),
@@ -135,15 +157,20 @@ class TimeMachineService:
             "showmatches": await self._find_all("find_showmatches"),
         }
         await self._store.upsert_season_archive(snapshot)
-        logger.info("kingdoms: time-machine snapshot %r saved", label)
+        logger.info("kingdoms: time-machine snapshot %r saved (moment=%r)", label, moment)
         return snapshot
 
-    async def snapshots(self) -> list[dict[str, Any]]:
-        """Return the time-machine snapshots, most recent first."""
+    async def snapshots(self, moment: str | None = None) -> list[dict[str, Any]]:
+        """Return the time-machine snapshots, most recent first.
+
+        ``moment`` filters to one key moment's snapshots (None lists
+        every snapshot, tagged or not).
+        """
         archived = [
             dict(doc)
             for doc in await self._find_all("find_season_archives")
             if doc.get("kind") == TIME_MACHINE_KIND
+            and (moment is None or doc.get("moment") == moment)
         ]
         archived.sort(key=lambda doc: str(doc.get("created_at", "")), reverse=True)
         return archived
@@ -153,6 +180,10 @@ class TimeMachineService:
 
         The CURRENT state is snapshotted first (``avant restauration``):
         a restore is itself restorable, the time line is never lost.
+        The restored season comes back FROZEN (Drasah's rule,
+        2026-10-11): the real scheduler would otherwise re-advance the
+        clock to now within one tick and undo the rewind — the admin
+        resumes deliberately (the freeze toggle) when the test is done.
         """
         timestamp = now or datetime.now(tz=UTC)
         snapshot = next(
@@ -176,8 +207,65 @@ class TimeMachineService:
             await self._store.upsert_attack(document)
         for document in snapshot.get("showmatches", []):
             await self._store.upsert_showmatch(document)
-        logger.info("kingdoms: time-machine snapshot %r restored", snapshot_id)
+        restored_frozen = await self._set_frozen(True)
+        logger.info(
+            "kingdoms: time-machine snapshot %r restored (frozen=%s)", snapshot_id, restored_frozen
+        )
         return {"restored": snapshot_id, "label": snapshot.get("label"), "backup": backup["_id"]}
+
+    async def restore_last(self, moment: str, *, now: datetime | None = None) -> dict[str, Any]:
+        """One-click rewind to the latest snapshot of one key moment.
+
+        ``moment`` is the tag ``create_snapshot`` stored: ``cycle``
+        (the state right before the last cycle switch), ``age`` (the
+        last age switch), ``lords_day_end`` (the Monday-10h window
+        close), ``end`` (the season verdict).
+        """
+        if moment not in _SNAPSHOT_MOMENTS:
+            raise TimeMachineError(f"unknown moment {moment!r}")
+        candidates = await self.snapshots(moment)
+        if not candidates:
+            raise TimeMachineError(f"no snapshot tagged {moment!r} exists yet")
+        return await self.restore(candidates[0]["_id"], now=now)
+
+    # ------------------------------------------------------------------
+    # Freeze — the pause (Drasah's "faire pause sur la partie")
+    # ------------------------------------------------------------------
+    async def freeze(self) -> bool:
+        """Pause the game clock: the scheduler replays no slot."""
+        return await self._set_frozen(True)
+
+    async def unfreeze(self) -> bool:
+        """Resume the game clock (the scheduler catches up on its next tick)."""
+        return await self._set_frozen(False)
+
+    async def _set_frozen(self, frozen: bool) -> bool:
+        """Flip the season's frozen flag and persist it."""
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise TimeMachineError("no season is running")
+        season.frozen = frozen
+        await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: game clock %s", "frozen" if frozen else "resumed")
+        return frozen
+
+    # ------------------------------------------------------------------
+    # Back to setup — the fresh-start button (Drasah's test loop)
+    # ------------------------------------------------------------------
+    async def back_to_setup(self) -> dict[str, Any]:
+        """Wipe the season data (NO archive) and relaunch in setup.
+
+        Drasah's rules (2026-10-11): the players are sent back to the
+        waiting queue (everything wiped, they re-apply via Postuler),
+        the player kingdom salons are deleted by the caller, and the
+        season ARCHIVE only happens at a real season end — this wipe
+        archives nothing. The time-machine snapshots survive (they
+        live in the archive collection, never wiped).
+        """
+        await self._store.wipe_season_data()
+        season = await self._kingdoms.launch()
+        logger.info("kingdoms: time-machine back-to-setup (fresh season %s)", season.id)
+        return {"season": season.id, "phase": season.phase}
 
     # ------------------------------------------------------------------
     # Fast-forward — advance and jump (Drasah's "accélérer le temps")
@@ -187,6 +275,7 @@ class TimeMachineService:
         if days <= 0:
             raise TimeMachineError("the fast-forward needs a positive number of days")
         timestamp = now or datetime.now(tz=UTC)
+        await self._require_started_season()
         return await self._advance_to(timestamp + timedelta(days=days), f"avant +{days}j", timestamp)
 
     async def jump_to(self, moment: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -194,9 +283,7 @@ class TimeMachineService:
         if moment not in _MOMENTS:
             raise TimeMachineError(f"unknown moment {moment!r}")
         timestamp = now or datetime.now(tz=UTC)
-        season = await self._kingdoms.current_season()
-        if season is None:
-            raise TimeMachineError("no season is running")
+        season = await self._require_started_season()
         labels = {
             "next_cycle": "avant saut cycle",
             "next_age": "avant saut âge",
@@ -216,15 +303,40 @@ class TimeMachineService:
             raise TimeMachineError("this key moment already passed (or sits too far)")
         return await self._advance_to(target, labels[moment], timestamp)
 
+    async def _require_started_season(self) -> SeasonState:
+        """Refuse time travel while the game sits in its setup phase.
+
+        Drasah's rule (2026-10-11): in ``setup`` no random content
+        exists — the time buttons must answer "no season is running"
+        instead of silently advancing a game that has not started.
+        """
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise TimeMachineError("no season is running")
+        if season.phase == "setup":
+            raise TimeMachineError("the game has not started yet (setup phase)")
+        return season
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
     async def _advance_to(
         self, target: datetime, label: str, timestamp: datetime
     ) -> dict[str, Any]:
-        """Snapshot the state, then replay every slot up to ``target``."""
+        """Snapshot the state, then replay every slot up to ``target``.
+
+        Each replayed slot is preceded by its OWN key-moment snapshot
+        (``run_due``'s snapshotter hook): a "+7 days" leaves tagged
+        ``cycle``/``age`` snapshots behind, so the one-click rewind
+        buttons land on the exact switch moments even after a manual
+        fast-forward.
+        """
+
+        async def _slot_snapshotter(kind: str) -> None:
+            await self.create_snapshot(f"auto avant {kind}", now=timestamp, moment=kind)
+
         backup = await self.create_snapshot(label, now=timestamp)
-        reports = await self._events.run_due(target)
+        reports = await self._events.run_due(target, snapshotter=_slot_snapshotter)
         return {"backup": backup["_id"], "reports": reports, "target": target}
 
     def _next_slot(self, cron: str, started_at: datetime, timestamp: datetime) -> datetime | None:
