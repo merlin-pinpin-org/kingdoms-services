@@ -44,6 +44,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
         from kingdoms.mods.kingdoms.territories import TerritoryService
+        from kingdoms.mods.kingdoms.time_machine import TimeMachineService
 
         season_config = load_season_config(config.config_dir)
         store = MongoKingdomsStore(get_async_database())
@@ -53,7 +54,8 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         economy = EconomyService(store, season_config, kingdoms, territories, attacks)
         diplomacy = DiplomacyService(store, season_config, kingdoms, territories)
         events = EventService(store, season_config, kingdoms, territories, attacks, diplomacy)
-        return kingdoms, territories, attacks, economy, diplomacy, events
+        time_machine = TimeMachineService(store, season_config, kingdoms, events)
+        return kingdoms, territories, attacks, economy, diplomacy, events, time_machine
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
         return None
@@ -76,14 +78,16 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_economy_service = None
         bot.kingdoms_diplomacy_service = None
         bot.kingdoms_events_service = None
+        bot.kingdoms_time_service = None
     else:
-        kingdoms, territories, attacks, economy, diplomacy, events = services
+        kingdoms, territories, attacks, economy, diplomacy, events, time_machine = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
         bot.kingdoms_economy_service = economy
         bot.kingdoms_diplomacy_service = diplomacy
         bot.kingdoms_events_service = events
+        bot.kingdoms_time_service = time_machine
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)

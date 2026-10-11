@@ -55,6 +55,7 @@ class KingdomsPanelWiring:
     economy_service: Any = None
     diplomacy_service: Any = None
     events_service: Any = None
+    time_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -92,6 +93,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             economy_service=getattr(bot, "kingdoms_economy_service", None),
             diplomacy_service=getattr(bot, "kingdoms_diplomacy_service", None),
             events_service=getattr(bot, "kingdoms_events_service", None),
+            time_service=getattr(bot, "kingdoms_time_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -99,6 +101,8 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
 
 def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     """Re-register every persistent Kingdoms component class on the bot."""
+    from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
+
     bot.add_dynamic_items(
         KingdomApplyButton,
         KingdomCandidatureButton,
@@ -110,6 +114,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomRealmButton,
         KingdomKingNameButton,
         KingdomKingClaimSelect,
+        KingdomTimeButton,
     )
 
 

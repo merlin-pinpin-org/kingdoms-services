@@ -139,6 +139,11 @@ channels:
     display_name: Gestion saison
     description: Season management (admin only)
     group: admin
+  - key: time_machine
+    display_name: Machine à temps
+    description: Game-clock test panel — fast-forward and snapshots (admin only)
+    group: admin
+    admin_only: true
   - key: requests
     display_name: Demandes
     description: Edit/leave requests (admin only)

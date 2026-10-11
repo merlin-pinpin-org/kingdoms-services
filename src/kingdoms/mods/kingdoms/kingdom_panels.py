@@ -1214,6 +1214,11 @@ async def _deploy_channel_panel(
         await ensure_all_realm_structures(channel.guild, kingdoms_service)
         await deploy_realms_panel(channel.guild, locale, kingdoms_service)
         return "royaumes"
+    if slug == "machine-a-temps":
+        from kingdoms.mods.kingdoms.kingdom_time_panel import deploy_time_panel
+
+        await deploy_time_panel(channel, locale)
+        return "machine à temps"
     return None
 
 
