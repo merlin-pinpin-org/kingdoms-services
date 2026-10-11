@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.panel_messages</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.panel_messages</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/panel_messages.py">SOURCE_ROOT/mods/kingdoms/panel_messages.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;helpers&nbsp;to&nbsp;find&nbsp;a&nbsp;bot's&nbsp;own&nbsp;recent&nbsp;messages&nbsp;in&nbsp;a&nbsp;channel.<br>
+&nbsp;<br>
+A&nbsp;real&nbsp;:class:`discord.TextChannel`&nbsp;exposes&nbsp;no&nbsp;``.messages``&nbsp;cache&nbsp;—&nbsp;only<br>
+the&nbsp;in-memory&nbsp;test&nbsp;mock&nbsp;does&nbsp;—&nbsp;so&nbsp;the&nbsp;live&nbsp;messages&nbsp;come&nbsp;from&nbsp;the<br>
+``history()``&nbsp;iterator.&nbsp;Every&nbsp;panel/content&nbsp;refresh&nbsp;must&nbsp;go&nbsp;through<br>
+these&nbsp;helpers,&nbsp;otherwise&nbsp;the&nbsp;old&nbsp;message&nbsp;is&nbsp;never&nbsp;found&nbsp;on&nbsp;the&nbsp;real&nbsp;API<br>
+and&nbsp;each&nbsp;re-deployment&nbsp;duplicates&nbsp;the&nbsp;pinned&nbsp;message&nbsp;(kingdoms#244).</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-channel_messages"><strong>channel_messages</strong></a>(channel: 'Any') -&gt; 'list[Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;mock&nbsp;cache&nbsp;when&nbsp;present,&nbsp;else&nbsp;the&nbsp;last&nbsp;100&nbsp;real&nbsp;messages.<br>
+&nbsp;<br>
+The&nbsp;``.messages``&nbsp;attribute&nbsp;only&nbsp;exists&nbsp;on&nbsp;the&nbsp;test&nbsp;mock;&nbsp;a&nbsp;real<br>
+channel&nbsp;is&nbsp;read&nbsp;through&nbsp;``history()``&nbsp;(100&nbsp;messages&nbsp;cover&nbsp;the&nbsp;pinned<br>
+panels&nbsp;of&nbsp;every&nbsp;kingdoms&nbsp;channel&nbsp;with&nbsp;room&nbsp;to&nbsp;spare).</span></dd></dl>
+ <dl><dt><a name="-message_text"><strong>message_text</strong></a>(message: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;message&nbsp;content&nbsp;plus&nbsp;every&nbsp;text&nbsp;of&nbsp;the&nbsp;components&nbsp;tree.<br>
+&nbsp;<br>
+A&nbsp;Components&nbsp;V2&nbsp;message&nbsp;carries&nbsp;an&nbsp;empty&nbsp;``content``:&nbsp;its&nbsp;text&nbsp;lives<br>
+inside&nbsp;the&nbsp;view's&nbsp;``TextDisplay``&nbsp;items,&nbsp;so&nbsp;the&nbsp;tree&nbsp;is&nbsp;walked&nbsp;to<br>
+collect&nbsp;every&nbsp;string&nbsp;(markers&nbsp;ride&nbsp;there).</span></dd></dl>
+</td></tr></table>
+</body></html>

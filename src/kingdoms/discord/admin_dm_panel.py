@@ -250,7 +250,8 @@ class ContentRefreshButton(
             logger.exception("DM PANEL: content refresh failed")
             await interaction.followup.send("Refresh échoué (voir les logs).", ephemeral=True)
             return
-        new_factions = list(counts.get("new_factions") or [])
+        raw_factions = counts.get("new_factions")
+        new_factions: list[str] = list(raw_factions) if isinstance(raw_factions, list) else []
         new_line = f"Nouvelles civs : {', '.join(new_factions)}\n" if new_factions else ""
         await interaction.followup.send(
             f"Contenu rafraîchi : {counts.get('total_factions', 0)} civs "

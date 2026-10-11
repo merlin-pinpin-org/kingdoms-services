@@ -1,0 +1,121 @@
+# Kingdoms season configuration override (admin data).
+#
+# The civilizations catalog (CIVILIZATIONS.md): acquisition conditions are
+# NOT defined yet - for now every newly created player kingdom draws
+# `starting_civilizations` civilizations at random, without duplicates
+# between kingdoms (draft decided with Drasah, 2026-10-10). Keys match
+# data/kingdoms/princesses.yaml so the marriage workflow can later pick
+# the bride names per civilization.
+
+starting_civilizations: 8
+civilizations:
+  - key: armeniens
+    display_name: "Arméniens"
+  - key: azteques
+    display_name: "Aztèques"
+  - key: bengalis
+    display_name: "Bengalis"
+  - key: berberes
+    display_name: "Berbères"
+  - key: birmans
+    display_name: "Birmans"
+  - key: bohemiens
+    display_name: "Bohémiens"
+  - key: bourguignons
+    display_name: "Bourguignons"
+  - key: britanniques
+    display_name: "Britanniques"
+  - key: bulgares
+    display_name: "Bulgares"
+  - key: byzantins
+    display_name: "Byzantins"
+  - key: celtes
+    display_name: "Celtes"
+  - key: chinois
+    display_name: "Chinois"
+  - key: coreens
+    display_name: "Coréens"
+  - key: coumans
+    display_name: "Coumans"
+  - key: danois
+    display_name: "Danois"
+  - key: dravidiens
+    display_name: "Dravidiens"
+  - key: espagnols
+    display_name: "Espagnols"
+  - key: ethiopiens
+    display_name: "Éthiopiens"
+  - key: francs
+    display_name: "Francs"
+  - key: georgiens
+    display_name: "Géorgiens"
+  - key: goths
+    display_name: "Goths"
+  - key: gurjaras
+    display_name: "Gurjaras"
+  - key: hindoustanis
+    display_name: "Hindoustanis"
+  - key: huns
+    display_name: "Huns"
+  - key: incas
+    display_name: "Incas"
+  - key: italiens
+    display_name: "Italiens"
+  - key: japonais
+    display_name: "Japonais"
+  - key: jurchen
+    display_name: "Jürchen"
+  - key: khitan
+    display_name: "Khitan"
+  - key: khmers
+    display_name: "Khmers"
+  - key: lituaniens
+    display_name: "Lituaniens"
+  - key: magyars
+    display_name: "Magyars"
+  - key: malais
+    display_name: "Malais"
+  - key: maliens
+    display_name: "Maliens"
+  - key: mapuche
+    display_name: "Mapuche"
+  - key: mayas
+    display_name: "Mayas"
+  - key: mongols
+    display_name: "Mongols"
+  - key: muisca
+    display_name: "Muisca"
+  - key: perses
+    display_name: "Perses"
+  - key: polonais
+    display_name: "Polonais"
+  - key: portugais
+    display_name: "Portugais"
+  - key: romains
+    display_name: "Romains"
+  - key: sarrasins
+    display_name: "Sarrasins"
+  - key: saxons
+    display_name: "Saxons"
+  - key: shu
+    display_name: "Shu"
+  - key: siciliens
+    display_name: "Siciliens"
+  - key: slaves
+    display_name: "Slaves"
+  - key: tatars
+    display_name: "Tatars"
+  - key: teutons
+    display_name: "Teutons"
+  - key: tupi
+    display_name: "Tupi"
+  - key: turcs
+    display_name: "Turcs"
+  - key: varegues
+    display_name: "Varègues"
+  - key: vikings
+    display_name: "Vikings"
+  - key: wei
+    display_name: "Wei"
+  - key: wu
+    display_name: "Wu"

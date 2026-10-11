@@ -213,7 +213,10 @@ keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp
 <dl><dt>async <a name="GuildAccessService-request_access"><strong>request_access</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Record&nbsp;a&nbsp;guild's&nbsp;request&nbsp;for&nbsp;games/mods&nbsp;(pending&nbsp;approval).<br>
 &nbsp;<br>
 Keys&nbsp;carry&nbsp;their&nbsp;kind:&nbsp;``game:&lt;key&gt;``&nbsp;or&nbsp;``mod:&lt;key&gt;``.&nbsp;Unknown<br>
-or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.</span></dd></dl>
+or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.&nbsp;Keys&nbsp;already&nbsp;pending<br>
+are&nbsp;idempotent:&nbsp;the&nbsp;request&nbsp;is&nbsp;not&nbsp;duplicated,&nbsp;the&nbsp;existing<br>
+pending&nbsp;entry&nbsp;is&nbsp;returned&nbsp;so&nbsp;the&nbsp;caller&nbsp;can&nbsp;re-notify&nbsp;the&nbsp;bot<br>
+admins&nbsp;(a&nbsp;lost&nbsp;DM&nbsp;must&nbsp;never&nbsp;lock&nbsp;the&nbsp;guild&nbsp;out).</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-revoke"><strong>revoke</strong></a>(self, guild_id: 'str', key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;one&nbsp;granted&nbsp;game&nbsp;or&nbsp;mod&nbsp;from&nbsp;a&nbsp;guild.</span></dd></dl>
 

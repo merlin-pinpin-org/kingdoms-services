@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdom_realm_content</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdom_realm_content</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdom_realm_content.py">SOURCE_ROOT/mods/kingdoms/kingdom_realm_content.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;per-realm&nbsp;salon&nbsp;state&nbsp;views&nbsp;(v1,&nbsp;reference&nbsp;D70).<br>
+&nbsp;<br>
+Every&nbsp;salon&nbsp;of&nbsp;a&nbsp;kingdom&nbsp;category&nbsp;is&nbsp;a&nbsp;**silent&nbsp;state&nbsp;view**&nbsp;(all<br>
+announcements&nbsp;go&nbsp;to&nbsp;géopolitique),&nbsp;except&nbsp;the&nbsp;Salle&nbsp;du&nbsp;Conseil&nbsp;—<br>
+the&nbsp;kingdom's&nbsp;only&nbsp;private&nbsp;discussion&nbsp;salon,&nbsp;which&nbsp;stays&nbsp;empty.<br>
+&nbsp;<br>
+Each&nbsp;view&nbsp;is&nbsp;a&nbsp;Components&nbsp;V2&nbsp;panel&nbsp;(Drasah's&nbsp;choice,&nbsp;2026-10-10:&nbsp;same<br>
+visual&nbsp;language&nbsp;as&nbsp;the&nbsp;admin&nbsp;panels&nbsp;—&nbsp;container,&nbsp;accent&nbsp;colour,<br>
+separators),&nbsp;marked&nbsp;and&nbsp;re-deployed&nbsp;in&nbsp;place&nbsp;(the&nbsp;``panel_messages``<br>
+contract):&nbsp;re-deploys,&nbsp;approvals&nbsp;and&nbsp;resets&nbsp;never&nbsp;duplicate.<br>
+&nbsp;<br>
+Phase&nbsp;rule&nbsp;(Drasah's&nbsp;game&nbsp;design,&nbsp;2026-10-10):&nbsp;while&nbsp;the&nbsp;season&nbsp;is&nbsp;in<br>
+``setup``,&nbsp;NOTHING&nbsp;random&nbsp;is&nbsp;revealed&nbsp;—&nbsp;the&nbsp;🗺️&nbsp;Territoire&nbsp;salon&nbsp;shows<br>
+a&nbsp;"distribution&nbsp;at&nbsp;season&nbsp;start"&nbsp;placeholder&nbsp;and&nbsp;the&nbsp;📜&nbsp;Alliances&nbsp;one<br>
+carries&nbsp;its&nbsp;own&nbsp;(in&nbsp;kingdom_realms).&nbsp;Once&nbsp;the&nbsp;admin&nbsp;starts&nbsp;the&nbsp;season<br>
+(``started``),&nbsp;the&nbsp;real&nbsp;content&nbsp;replaces&nbsp;the&nbsp;placeholders.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-deploy_realm_content"><strong>deploy_realm_content</strong></a>(guild: 'discord.Guild', kingdom: 'Any', wiring: 'Any', locale: 'str' = 'fr') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Deploy&nbsp;every&nbsp;realm&nbsp;state&nbsp;view&nbsp;of&nbsp;one&nbsp;kingdom&nbsp;(idempotent).<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;per-salon&nbsp;outcome;&nbsp;each&nbsp;view&nbsp;fails&nbsp;alone&nbsp;(best-effort,<br>
+like&nbsp;every&nbsp;provisioning&nbsp;path&nbsp;—&nbsp;a&nbsp;broken&nbsp;view&nbsp;never&nbsp;blocks&nbsp;the<br>
+others).&nbsp;While&nbsp;the&nbsp;season&nbsp;is&nbsp;in&nbsp;``setup``,&nbsp;the&nbsp;Territoire&nbsp;salon<br>
+shows&nbsp;the&nbsp;distribution&nbsp;placeholder&nbsp;instead&nbsp;of&nbsp;the&nbsp;territories.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False<br>
+<strong>VIEW_MARKER_PREFIX</strong> = 'kingdoms:realm:view'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_realm_content (WARNING)&gt;</td></tr></table>
+</body></html>

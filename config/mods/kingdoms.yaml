@@ -1,0 +1,170 @@
+# Kingdoms mod (Season II territory-conquest AoE2).
+# Design: kingdoms repo docs/MODS/kingdoms/ (reference Season II + DECISIONS.md D1-D54).
+# Enabled with T2 (enrollment); the declaration is validated at startup.
+#
+# Single source of truth of the salons-first structure (kingdoms#138,
+# kingdoms-services#175): the startup provisioning and the /kingdom
+# bootstrap both provision from this declaration — channel groups
+# (categories), kinds (text/forum/announce) and admin-only flags are
+# data here, never code in the mod.
+id: kingdoms
+enabled: true
+seasonal: true
+settings: {}
+channel_groups:
+  - key: profiles
+    display_name: Profils
+  - key: general
+    display_name: Général
+  - key: conscription
+    display_name: Conscription
+  - key: kingdoms
+    display_name: Kingdoms
+  - key: epoch
+    display_name: Époque
+  - key: gaia
+    display_name: Royaume Gaïa
+  - key: battlefield
+    display_name: Champs de Bataille
+  - key: scriptorium
+    display_name: Scriptorium
+  - key: admin
+    display_name: Admin
+    admin_only: true
+  - key: support
+    display_name: Support
+channels:
+  - key: presentation
+    display_name: Présentation
+    description: Server presentation (admin-written)
+    group: general
+    kind: announce
+  - key: announce
+    display_name: Annonce
+    description: Announcements (admin-written)
+    group: general
+    kind: announce
+  - key: rules
+    display_name: Règles
+    description: The game rules
+    group: general
+    kind: forum
+  - key: season
+    display_name: Saison
+    description: Season talk
+    group: general
+  - key: update
+    display_name: Update
+    description: Patch notes (admin-written)
+    group: general
+    kind: announce
+  - key: tavern
+    display_name: Taverne
+    description: Off-topic
+    group: general
+  - key: suggestions
+    display_name: Suggestion
+    description: Player suggestions
+    group: general
+    kind: forum
+  - key: apply
+    display_name: Postuler
+    description: The enrollment panel channel
+    group: conscription
+  - key: applications
+    display_name: Candidatures
+    description: Submitted applications (admin only)
+    group: conscription
+    admin_only: true
+  - key: realms
+    display_name: Royaumes
+    description: Kingdom validation panel (admin only)
+    group: conscription
+    admin_only: true
+  - key: geopolitics
+    display_name: Géopolitique
+    description: Announcements, treaties and political rules
+    group: kingdoms
+  - key: market
+    display_name: Marché
+    description: Kingdoms market (trades and resources)
+    group: kingdoms
+  - key: epoch
+    display_name: Âge sombre
+    description: The current age (renamed at each age switch — adopt by group)
+    group: epoch
+    kind: announce
+    adopt: group_single
+  - key: patrol
+    display_name: Patrouille
+    description: Gaia patrol reports
+    group: gaia
+  - key: territory
+    display_name: Territoire
+    description: Territories and their cadastre effects
+    group: gaia
+  - key: exploration
+    display_name: Exploration
+    description: Exploration reports
+    group: gaia
+  - key: attack_delays
+    display_name: Délais-attaque
+    description: Attack delay tracking
+    group: battlefield
+  - key: attack
+    display_name: Attaquer
+    description: Attack declarations
+    group: battlefield
+  - key: talks
+    display_name: Pourparlers
+    description: War negotiations
+    group: battlefield
+  - key: lords
+    display_name: Seigneurs
+    description: Lord profiles and orders
+    group: scriptorium
+  - key: diplomacy
+    display_name: Diplomatie
+    description: Alliances and civilizations
+    group: scriptorium
+  - key: cadastre
+    display_name: Cadastre
+    description: Territories and their cadastre effects
+    group: scriptorium
+  - key: settings
+    display_name: Paramètres
+    description: Mod settings panel channel
+    group: admin
+  - key: season_management
+    display_name: Gestion saison
+    description: Season management (admin only)
+    group: admin
+  - key: requests
+    display_name: Demandes
+    description: Edit/leave requests (admin only)
+    group: admin
+  - key: question
+    display_name: Question
+    description: Player questions
+    group: support
+    kind: forum
+  - key: bug
+    display_name: Signaler un Bug
+    description: Bug reports
+    group: support
+    kind: forum
+roles:
+  - key: kingdoms_king
+    display_name: Kingdoms King
+    color: 0xE6B800
+    hoisted: true
+  - key: kingdoms_lord
+    display_name: Kingdoms Lord
+    color: 0x3498DB
+  - key: kingdoms_admin
+    display_name: Kingdoms Admin
+    color: 0xE74C3C
+    hoisted: true
+workflows: []
+commands: []
+dependencies: []

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdom_events_loop</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdom_events_loop</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdom_events_loop.py">SOURCE_ROOT/mods/kingdoms/kingdom_events_loop.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;weekly&nbsp;event&nbsp;scheduler:&nbsp;the&nbsp;heartbeat&nbsp;behind&nbsp;the&nbsp;cron&nbsp;switches.<br>
+&nbsp;<br>
+``EventService.run_due``&nbsp;replays&nbsp;every&nbsp;missed&nbsp;weekly&nbsp;slot&nbsp;(cycle&nbsp;switch<br>
+Sunday&nbsp;23:30,&nbsp;age&nbsp;switch&nbsp;Wednesday&nbsp;midnight&nbsp;—&nbsp;Drasah's&nbsp;cadence,<br>
+2026-10-11),&nbsp;but&nbsp;nothing&nbsp;called&nbsp;it:&nbsp;the&nbsp;crons&nbsp;sat&nbsp;in&nbsp;the&nbsp;configuration<br>
+while&nbsp;no&nbsp;switch&nbsp;ever&nbsp;ran.&nbsp;This&nbsp;module&nbsp;owns&nbsp;the&nbsp;background&nbsp;loop&nbsp;that<br>
+ticks&nbsp;on&nbsp;the&nbsp;live&nbsp;bot:&nbsp;every&nbsp;few&nbsp;minutes&nbsp;it&nbsp;replays&nbsp;the&nbsp;due&nbsp;slots<br>
+(idempotent&nbsp;—&nbsp;the&nbsp;season&nbsp;state&nbsp;consumes&nbsp;the&nbsp;slots)&nbsp;and&nbsp;announces&nbsp;the<br>
+reports&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;salon,&nbsp;best&nbsp;effort.<br>
+&nbsp;<br>
+Restart-safe&nbsp;by&nbsp;design:&nbsp;the&nbsp;loop&nbsp;starts&nbsp;once&nbsp;per&nbsp;bot&nbsp;process&nbsp;from&nbsp;the<br>
+mod's&nbsp;``setup_hook``&nbsp;and&nbsp;the&nbsp;state&nbsp;does&nbsp;the&nbsp;rest&nbsp;—&nbsp;a&nbsp;restart&nbsp;replays<br>
+the&nbsp;missed&nbsp;slots&nbsp;on&nbsp;the&nbsp;first&nbsp;tick.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="asyncio.html">asyncio</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-start_kingdoms_event_scheduler"><strong>start_kingdoms_event_scheduler</strong></a>(bot: 'Any', *, tick_seconds: 'int' = 300) -&gt; 'bool'</dt><dd><span class="code">Start&nbsp;the&nbsp;background&nbsp;event&nbsp;loop&nbsp;once&nbsp;per&nbsp;bot&nbsp;process.<br>
+&nbsp;<br>
+Called&nbsp;from&nbsp;the&nbsp;mod's&nbsp;``setup_hook``&nbsp;(an&nbsp;async&nbsp;context):&nbsp;the&nbsp;loop<br>
+is&nbsp;a&nbsp;single&nbsp;:mod:`asyncio`&nbsp;task&nbsp;guarded&nbsp;against&nbsp;double&nbsp;starts&nbsp;—<br>
+reconnects&nbsp;and&nbsp;repeated&nbsp;hooks&nbsp;never&nbsp;spawn&nbsp;a&nbsp;second&nbsp;heartbeat.</span></dd></dl>
+ <dl><dt>async <a name="-stop_kingdoms_event_scheduler"><strong>stop_kingdoms_event_scheduler</strong></a>() -&gt; 'None'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;heartbeat&nbsp;(tests&nbsp;and&nbsp;clean&nbsp;shutdowns).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>UTC</strong> = datetime.timezone.utc<br>
+<strong>__annotations__</strong> = {'_ANNOUNCE_STRINGS': 'dict[str, dict[str, str]]', '_EVENT_SCHEDULER_TASK': 'asyncio.Task[None] | None'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.events_loop (WARNING)&gt;</td></tr></table>
+</body></html>

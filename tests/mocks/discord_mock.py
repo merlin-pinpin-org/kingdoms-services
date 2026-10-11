@@ -127,6 +127,7 @@ class MockMember(discord.Member):
         self._mock_name = name
         self._mock_bot = bot
         self._roles: list[MockRole] = list(roles or [])
+        self.dm_messages: list[MockMessage] = []
         self.guild = guild or MockGuild()
         self.joined_at = None
         self.premium_since = None
@@ -135,6 +136,13 @@ class MockMember(discord.Member):
         self.timed_out_until = None
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    def __hash__(self) -> int:
+        """A member is hashable by id — overwrite dicts key on it."""
+        return hash(self._mock_id)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, MockMember) and other._mock_id == self._mock_id
 
     @property
     def id(self) -> int:
@@ -169,6 +177,19 @@ class MockMember(discord.Member):
         for role in roles:
             if role in self._roles:
                 self._roles.remove(role)  # type: ignore[arg-type]
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """In-memory DM: the message lands in ``dm_messages``."""
+        message = MockMessage(content=content, embed=embed, view=view)
+        self.dm_messages.append(message)
+        return message
 
     def __repr__(self) -> str:
         return f"<MockMember id={self.id} name={self.name!r}>"
@@ -303,6 +324,8 @@ class MockTextChannel(discord.TextChannel):
         reason: str | None = None,
         **kwargs: Any,
     ) -> None:
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
         self._permissions[(target.id, isinstance(target, discord.Role))] = overwrite
 
     def permissions_for(self, member: discord.abc.User) -> discord.Permissions:
@@ -321,6 +344,9 @@ class MockTextChannel(discord.TextChannel):
 
     def permission_overwrite_for(self, target: discord.Member | discord.Role) -> discord.PermissionOverwrite | None:
         return self._permissions.get((target.id, isinstance(target, discord.Role)))
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)
 
     def __repr__(self) -> str:
         return f"<MockTextChannel id={self.id} name={self.name!r}>"
@@ -381,8 +407,42 @@ class MockCategoryChannel(discord.CategoryChannel):
         self.position = position
         self.guild = guild or MockGuild()
         self._channels: list[MockChannel] = []
+        self._overwrites: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    async def set_permissions(
+        self,
+        target: discord.abc.User | discord.Role,
+        *,
+        overwrite: discord.PermissionOverwrite | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Record a permission overwrite on the category (in-memory)."""
+        is_role = isinstance(target, discord.Role)
+        if overwrite is None and kwargs:
+            overwrite = discord.PermissionOverwrite(**kwargs)
+        self._overwrites[(target.id, is_role)] = overwrite
+
+    def permission_overwrite_for(self, target: discord.abc.User | discord.Role) -> discord.PermissionOverwrite | None:
+        """The recorded overwrite for one member/role, if any."""
+        is_role = isinstance(target, discord.Role)
+        return self._overwrites.get((target.id, is_role))
+
+    async def edit(self, **kwargs: Any) -> MockCategoryChannel:
+        """Apply the edit fields the realm provisioning uses (in-memory)."""
+        if "name" in kwargs:
+            self.name = kwargs["name"]
+        overwrites = kwargs.get("overwrites")
+        if overwrites is not None:
+            self._overwrites = {}
+            for target, overwrite in overwrites.items():
+                is_role = isinstance(target, discord.Role)
+                self._overwrites[(target.id, is_role)] = overwrite
+        return self
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        await self.guild.delete_channel(self)  # type: ignore[arg-type]
 
     @property
     def type(self) -> discord.ChannelType:
@@ -499,6 +559,10 @@ class MockGuild(discord.Guild):
         return list(self._channels.values())
 
     @property
+    def categories(self) -> list[MockCategoryChannel]:
+        return [ch for ch in self._channels.values() if isinstance(ch, MockCategoryChannel)]
+
+    @property
     def system_channel(self) -> MockTextChannel | None:
         """The guild's system channel (overridden in-memory for tests)."""
         channel = self.__dict__.get("_system_channel")
@@ -508,10 +572,23 @@ class MockGuild(discord.Guild):
     def system_channel(self, value: MockTextChannel | None) -> None:
         self.__dict__["_system_channel"] = value
 
+    @property
+    def default_role(self) -> MockRole:
+        """The @everyone role: same id as the guild, like the real API."""
+        everyone = self._roles.get(self.id)
+        if everyone is None:
+            everyone = MockRole(id=self.id, name="@everyone")
+            self._roles[self.id] = everyone
+        return everyone
+
     def get_role(self, role_id: int) -> MockRole | None:
         return self._roles.get(role_id)
 
     def get_member(self, user_id: int) -> MockMember | None:
+        return self._members.get(user_id)
+
+    async def fetch_member(self, user_id: int) -> MockMember | None:
+        """In-memory fetch: the cache is authoritative (no HTTP to miss)."""
         return self._members.get(user_id)
 
     def get_channel(self, channel_id: int) -> MockChannel | None:
@@ -544,7 +621,13 @@ class MockGuild(discord.Guild):
         return channel
 
     async def create_category(self, name: str, **kwargs: Any) -> MockCategoryChannel:
+        overwrites = kwargs.pop("overwrites", None)
         channel = MockCategoryChannel(name=name, guild=self, **kwargs)
+        if overwrites:
+            channel._overwrites = {}
+            for target, overwrite in overwrites.items():
+                is_role = isinstance(target, discord.Role)
+                channel._overwrites[(target.id, is_role)] = overwrite
         self._channels[channel.id] = channel
         return channel
 
@@ -633,6 +716,7 @@ class MockResponse:
         self.deferred = False
         self.ephemeral = False
         self.message: MockMessage | None = None
+        self.modal: discord.ui.Modal | None = None
 
     async def send_message(
         self,
@@ -661,6 +745,11 @@ class MockResponse:
             self.message = MockMessage(content=content, embed=embed, view=view)
             return self.message
         return await self.message.edit(content=content, embed=embed, view=view)
+
+    async def send_modal(self, modal: discord.ui.Modal) -> None:
+        """Record a modal response (drasah king-name flow D70)."""
+        self.sent = True
+        self.modal = modal
 
     async def defer(self, *, ephemeral: bool = False, thinking: bool = False) -> None:
         self.deferred = True

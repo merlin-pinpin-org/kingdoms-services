@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdom_realms</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdom_realms</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdom_realms.py">SOURCE_ROOT/mods/kingdoms/kingdom_realms.py</a></td></tr></table>
+    <p><span class="code">Per-kingdom&nbsp;Discord&nbsp;structures:&nbsp;the&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;»&nbsp;slices&nbsp;(rule&nbsp;35,&nbsp;D70).<br>
+&nbsp;<br>
+Two&nbsp;halves:<br>
+&nbsp;<br>
+-&nbsp;The&nbsp;**Royaumes&nbsp;panel**&nbsp;(pinned&nbsp;in&nbsp;the&nbsp;admin&nbsp;``royaumes``&nbsp;channel):<br>
+&nbsp;&nbsp;every&nbsp;kingdom&nbsp;of&nbsp;the&nbsp;season&nbsp;with&nbsp;its&nbsp;validation&nbsp;state&nbsp;(✅&nbsp;validé&nbsp;/<br>
+&nbsp;&nbsp;⏳&nbsp;en&nbsp;attente&nbsp;/&nbsp;❌&nbsp;refusé),&nbsp;its&nbsp;King&nbsp;and&nbsp;its&nbsp;Lords,&nbsp;plus&nbsp;the&nbsp;admin<br>
+&nbsp;&nbsp;action&nbsp;buttons&nbsp;(validate&nbsp;/&nbsp;refuse&nbsp;/&nbsp;rename).&nbsp;Restart-proof&nbsp;through<br>
+&nbsp;&nbsp;DynamicItem&nbsp;custom_ids,&nbsp;like&nbsp;every&nbsp;other&nbsp;panel.<br>
+-&nbsp;The&nbsp;**realm&nbsp;structure&nbsp;provisioning**:&nbsp;an&nbsp;APPROVED&nbsp;kingdom&nbsp;gets&nbsp;a<br>
+&nbsp;&nbsp;private&nbsp;category&nbsp;``Royaume&nbsp;[Nom]``&nbsp;with&nbsp;its&nbsp;8&nbsp;salons.&nbsp;The&nbsp;YAML<br>
+&nbsp;&nbsp;structure&nbsp;is&nbsp;static&nbsp;data&nbsp;—&nbsp;a&nbsp;per-kingdom&nbsp;category&nbsp;cannot&nbsp;be,&nbsp;so&nbsp;this<br>
+&nbsp;&nbsp;module&nbsp;provisions&nbsp;it&nbsp;directly,&nbsp;idempotently&nbsp;(adopt-by-slug,&nbsp;never&nbsp;a<br>
+&nbsp;&nbsp;duplicate).&nbsp;``Territoire``&nbsp;and&nbsp;``Alliances``&nbsp;stay&nbsp;readable&nbsp;by&nbsp;every<br>
+&nbsp;&nbsp;lord&nbsp;(the&nbsp;civilizations/map&nbsp;overview&nbsp;is&nbsp;public&nbsp;to&nbsp;players);&nbsp;the&nbsp;rest<br>
+&nbsp;&nbsp;is&nbsp;visible&nbsp;only&nbsp;to&nbsp;the&nbsp;kingdom's&nbsp;members&nbsp;and&nbsp;the&nbsp;admins.<br>
+&nbsp;<br>
+A&nbsp;kingdom&nbsp;without&nbsp;a&nbsp;King&nbsp;(admin-created,&nbsp;imposed)&nbsp;is&nbsp;a&nbsp;first-class<br>
+case:&nbsp;the&nbsp;structure&nbsp;exists,&nbsp;the&nbsp;members&nbsp;list&nbsp;may&nbsp;grow&nbsp;later.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-announce_alliances_placeholder"><strong>announce_alliances_placeholder</strong></a>(guild: 'discord.Guild', kingdom: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;setup-phase&nbsp;Alliances&nbsp;placeholder&nbsp;(idempotent).<br>
+&nbsp;<br>
+Drasah's&nbsp;phase&nbsp;rule:&nbsp;while&nbsp;the&nbsp;season&nbsp;is&nbsp;in&nbsp;``setup``,&nbsp;the<br>
+civilization&nbsp;draft&nbsp;must&nbsp;stay&nbsp;secret&nbsp;—&nbsp;the&nbsp;Alliances&nbsp;salon&nbsp;says&nbsp;so<br>
+instead&nbsp;of&nbsp;showing&nbsp;the&nbsp;opening&nbsp;hand.&nbsp;The&nbsp;message&nbsp;is&nbsp;marked&nbsp;and<br>
+edited&nbsp;in&nbsp;place;&nbsp;:func:`announce_draft_starter`&nbsp;deletes&nbsp;it&nbsp;at&nbsp;the<br>
+reveal.</span></dd></dl>
+ <dl><dt>async <a name="-announce_draft_starter"><strong>announce_draft_starter</strong></a>(guild: 'discord.Guild', kingdom: 'Any', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;kingdom's&nbsp;starter&nbsp;draft&nbsp;in&nbsp;its&nbsp;Alliances&nbsp;salon&nbsp;(idempotent).<br>
+&nbsp;<br>
+The&nbsp;8&nbsp;starting&nbsp;civilizations&nbsp;drawn&nbsp;at&nbsp;the&nbsp;kingdom's&nbsp;creation&nbsp;are&nbsp;the<br>
+season's&nbsp;opening&nbsp;hand:&nbsp;they&nbsp;belong&nbsp;in&nbsp;``Alliances``&nbsp;(D51&nbsp;—&nbsp;alliances<br>
+equal&nbsp;civilizations),&nbsp;titled&nbsp;«&nbsp;🎲&nbsp;Draft&nbsp;starter&nbsp;».&nbsp;The&nbsp;message&nbsp;is<br>
+marked&nbsp;and&nbsp;edited&nbsp;in&nbsp;place,&nbsp;never&nbsp;duplicated.</span></dd></dl>
+ <dl><dt><a name="-build_realms_panel"><strong>build_realms_panel</strong></a>(locale: 'str', kingdoms: 'list[Any]', lords: 'list[Any]') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Royaumes&nbsp;panel:&nbsp;every&nbsp;kingdom,&nbsp;its&nbsp;state,&nbsp;its&nbsp;people.<br>
+&nbsp;<br>
+Pending/refused&nbsp;kingdoms&nbsp;get&nbsp;the&nbsp;validation&nbsp;buttons;&nbsp;every&nbsp;kingdom<br>
+gets&nbsp;the&nbsp;🗑️&nbsp;delete&nbsp;button&nbsp;(a&nbsp;hard&nbsp;delete,&nbsp;distinct&nbsp;from&nbsp;refuse).</span></dd></dl>
+ <dl><dt>async <a name="-delete_orphan_realm_categories"><strong>delete_orphan_realm_categories</strong></a>(guild: 'discord.Guild', kingdoms: 'Any') -&gt; 'int'</dt><dd><span class="code">Delete&nbsp;every&nbsp;«&nbsp;Royaume&nbsp;…&nbsp;»&nbsp;category&nbsp;matching&nbsp;no&nbsp;kingdom&nbsp;of&nbsp;the&nbsp;set.<br>
+&nbsp;<br>
+A&nbsp;season&nbsp;launch&nbsp;wipes&nbsp;the&nbsp;season&nbsp;data&nbsp;but&nbsp;never&nbsp;touches&nbsp;Discord:&nbsp;the<br>
+categories&nbsp;of&nbsp;kingdoms&nbsp;that&nbsp;no&nbsp;longer&nbsp;exist&nbsp;would&nbsp;pile&nbsp;up&nbsp;forever.<br>
+Called&nbsp;after&nbsp;every&nbsp;launch&nbsp;—&nbsp;a&nbsp;category&nbsp;is&nbsp;kept&nbsp;only&nbsp;when&nbsp;its&nbsp;slug<br>
+matches&nbsp;a&nbsp;current&nbsp;kingdom's&nbsp;name,&nbsp;or&nbsp;when&nbsp;it&nbsp;is&nbsp;Gaïa's&nbsp;own&nbsp;declared<br>
+structure&nbsp;(«&nbsp;Royaume&nbsp;Gaïa&nbsp;»,&nbsp;kept&nbsp;unconditionally).</span></dd></dl>
+ <dl><dt>async <a name="-delete_realm_structure"><strong>delete_realm_structure</strong></a>(guild: 'discord.Guild', kingdom_name: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;a&nbsp;refused&nbsp;kingdom's&nbsp;structure&nbsp;(category&nbsp;+&nbsp;salons).</span></dd></dl>
+ <dl><dt>async <a name="-deploy_realms_panel"><strong>deploy_realms_panel</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">(Re)pin&nbsp;the&nbsp;Royaumes&nbsp;panel&nbsp;in&nbsp;its&nbsp;channel;&nbsp;False&nbsp;when&nbsp;absent.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_all_realm_structures"><strong>ensure_all_realm_structures</strong></a>(guild: 'discord.Guild', kingdoms_service: 'Any') -&gt; 'None'</dt><dd><span class="code">Provision&nbsp;the&nbsp;structure&nbsp;of&nbsp;every&nbsp;APPROVED&nbsp;kingdom&nbsp;(idempotent).<br>
+&nbsp;<br>
+Called&nbsp;after&nbsp;a&nbsp;season&nbsp;launch&nbsp;(imposed&nbsp;kingdoms&nbsp;are&nbsp;approved&nbsp;up<br>
+front),&nbsp;after&nbsp;an&nbsp;admin&nbsp;creates&nbsp;a&nbsp;kingdom,&nbsp;and&nbsp;at&nbsp;panel&nbsp;deployment<br>
+so&nbsp;a&nbsp;re-install&nbsp;heals&nbsp;any&nbsp;missing&nbsp;category.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_realm_structure"><strong>ensure_realm_structure</strong></a>(guild: 'discord.Guild', kingdom: 'Any', member_ids: 'list[int]') -&gt; 'discord.CategoryChannel'</dt><dd><span class="code">Provision&nbsp;(idempotently)&nbsp;the&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;»&nbsp;category&nbsp;and&nbsp;salons.<br>
+&nbsp;<br>
+Adopts&nbsp;the&nbsp;existing&nbsp;category/salons&nbsp;by&nbsp;slug,&nbsp;then&nbsp;re-syncs&nbsp;the<br>
+permission&nbsp;overwrites&nbsp;so&nbsp;member&nbsp;arrivals/departures&nbsp;always&nbsp;apply.<br>
+``Territoire``/``Alliances``&nbsp;are&nbsp;readable&nbsp;by&nbsp;every&nbsp;kingdoms_lord;<br>
+the&nbsp;whole&nbsp;category&nbsp;is&nbsp;invisible&nbsp;to&nbsp;everyone&nbsp;else.</span></dd></dl>
+ <dl><dt>async <a name="-grant_bot_access_to_category"><strong>grant_bot_access_to_category</strong></a>(guild: 'discord.Guild', category: 'Any') -&gt; 'None'</dt><dd><span class="code">Best-effort&nbsp;grant&nbsp;of&nbsp;the&nbsp;bot's&nbsp;own&nbsp;access&nbsp;to&nbsp;a&nbsp;category.<br>
+&nbsp;<br>
+Categories&nbsp;created&nbsp;BEFORE&nbsp;the&nbsp;bot-access&nbsp;fix&nbsp;carry&nbsp;no&nbsp;bot&nbsp;overwrite:<br>
+the&nbsp;bot&nbsp;cannot&nbsp;even&nbsp;delete&nbsp;them&nbsp;(403&nbsp;Missing&nbsp;Access&nbsp;on&nbsp;every<br>
+category&nbsp;deletion&nbsp;—&nbsp;drasah&nbsp;live&nbsp;incident&nbsp;2026-10-10).&nbsp;Granting&nbsp;the<br>
+bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nbsp;path&nbsp;work&nbsp;again.</span></dd></dl>
+ <dl><dt><a name="-realm_category_name"><strong>realm_category_name</strong></a>(kingdom_name: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;display&nbsp;name&nbsp;of&nbsp;a&nbsp;kingdom's&nbsp;category:&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;».</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ALLIANCES_PENDING_MARKER</strong> = 'kingdoms:realm:alliances-pending'<br>
+<strong>DRAFT_STARTER_MARKER</strong> = 'kingdoms:realm:draft-starter'<br>
+<strong>GAIA_KINGDOM_DISPLAY</strong> = 'Gaïa'<br>
+<strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
+<strong>REALMS_CHANNEL</strong> = 'Royaumes'<br>
+<strong>REALMS_PANEL_MARKER</strong> = 'kingdoms:panel:royaumes'<br>
+<strong>REALM_SALONS</strong> = (('salle-du-conseil', 'Salle du Conseil'), ('patrouille', 'Patrouille'), ('seigneurs', 'Seigneurs'), ('le-royaume', 'Le-Royaume'), ('territoire', 'Territoire'), ('alliances', 'Alliances'), ('eglise', 'Église'), ('pigeon-voyageur', 'Pigeon-Voyageur'))<br>
+<strong>STATUS_EMOJI</strong> = {'approved': '✅', 'pending': '⏳', 'refused': '❌'}<br>
+<strong>STRINGS</strong> = {'en': {'realms_approve_button': '✅ Validate', 'realms_approved': 'Validated', 'realms_cancelled': 'Cancelled.', 'realms_delete_button': '🗑️ Delete', 'realms_delete_cancel_button': 'Cancel', 'realms_delete_confirm_button': '🗑️ Delete for good', 'realms_delete_confirm_hint': 'This removes the kingdom, its members, its terri...s. The refusal trace does not survive a deletion.', 'realms_delete_confirm_title': 'Delete the kingdom?', 'realms_deleted': 'Kingdom deleted.', 'realms_done': 'Done.', ...}, 'fr': {'realms_approve_button': '✅ Valider', 'realms_approved': 'Validé', 'realms_cancelled': 'Annulé.', 'realms_delete_button': '🗑️ Supprimer', 'realms_delete_cancel_button': 'Annuler', 'realms_delete_confirm_button': '🗑️ Supprimer définitivement', 'realms_delete_confirm_hint': 'Cela supprime le royaume, ses membres, ses terri...iscord. Aucune trace ne survit à une suppression.', 'realms_delete_confirm_title': 'Supprimer le royaume ?', 'realms_deleted': 'Royaume supprimé.', 'realms_done': "C'est fait.", ...}}<br>
+<strong>__annotations__</strong> = {'REALM_SALONS': 'tuple[tuple[str, str], ...]', 'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_realms (WARNING)&gt;</td></tr></table>
+</body></html>
