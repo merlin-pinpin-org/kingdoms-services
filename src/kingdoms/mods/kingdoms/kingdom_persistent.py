@@ -397,6 +397,19 @@ class KingdomRequestButton(
         note = strings[f"{self.kind}_{'approved' if approved else 'refused'}"]
         content = interaction.message.content if interaction.message is not None else ""
         await interaction.response.edit_message(content=f"{content}\n\n**{note}**", view=None)
+        if self.kind == "leave" and approved:
+            # the approval used to be cosmetic — the season data never
+            # recorded the departure (throne stayed taken, heirs stuck).
+            match = re.search(r"<@!?(\d+)>", content)
+            player_id = match.group(1) if match is not None else ""
+            applied = await _apply_player_leave_safe(
+                interaction.guild, player_id, "leave approved by an admin", locale
+            )
+            if applied:
+                try:
+                    await interaction.followup.send(strings["leave_applied"], ephemeral=True)
+                except Exception:
+                    logger.info("KINGDOMS: leave-applied note failed", exc_info=True)
 
 async def _king_of(kingdoms_service: Any, user_id: str) -> Any | None:
     """Return the active King lord record of the user (None otherwise)."""
@@ -918,6 +931,9 @@ class KingdomRemovePlayerView(discord.ui.View):
                 return
             await target.response.defer(ephemeral=True)
             await _revoke_kingdoms_roles(target.guild, user_id)
+            # also free the throne/place in the season data (the
+            # heirs cannot claim a seat the store still sees as taken)
+            await _apply_player_leave_safe(target.guild, user_id, "admin eject", "fr")
             note = strings["remove_player_done"].format(f"<@{user_id}>")
             await target.followup.send(note, ephemeral=True)
 
@@ -950,6 +966,7 @@ class KingdomRemovePlayerModal(discord.ui.Modal):
             return
         user_id = match.group(1)
         await _revoke_kingdoms_roles(interaction.guild, user_id)
+        await _apply_player_leave_safe(interaction.guild, user_id, "admin eject", self.locale)
         note = strings["remove_player_done"].format(f"<@{user_id}>")
         await interaction.response.send_message(note, ephemeral=True)
 
@@ -2101,6 +2118,90 @@ async def _refresh_realm_views_for_kingdom_safe(guild: discord.Guild | None, kin
         await _deploy_realm_content_safe(guild, kingdom)
 
 
+async def _refresh_all_realm_views_safe(guild: discord.Guild | None, locale: str) -> None:
+    """Re-render every state view: realm salons, Royaumes panel, season status.
+
+    Drasah's rule (2026-10-11): no view may go stale — after any state
+    change the surface shows the live documents. Used by the scheduler
+    (cycle/age switches move wallets, territories and budgets without
+    any click) and after a leave/eject.
+    """
+    if guild is None:
+        return
+    await _repin_realm_views_safe(guild)
+    await _refresh_realms_panel_safe(guild, locale)
+    await _refresh_season_status_safe(guild, locale)
+
+
+async def _notify_heirs_safe(guild: discord.Guild | None, locale: str) -> None:
+    """DM the queued Kings a claim select when thrones open (Héritiers du trône).
+
+    The claim DM was only sent at the King's validation — a throne
+    freed later (leave, eject) never re-triggered it, so the feature
+    looked dead. Now any throne opening pings the waiting heirs.
+    """
+    if guild is None:
+        return
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return
+    try:
+        available = await wiring.kingdoms_service.available_kingdoms()
+    except Exception:
+        logger.warning("CANDIDATURES: available kingdoms lookup failed", exc_info=True)
+        return
+    if not available:
+        return
+    try:
+        lords = await wiring.kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOMS: lord list read failed", exc_info=True)
+        return
+    heirs = [
+        lord
+        for lord in lords
+        if not lord.left and lord.in_queue and lord.kingdom_id is None and str(lord.role) == "king"
+    ]
+    for heir in heirs:
+        await _send_king_claim_request(guild, str(heir.id), locale, available)
+
+
+async def _apply_player_leave_safe(
+    guild: discord.Guild | None, user_id: str, reason: str, locale: str
+) -> bool:
+    """Mark the player as left in the season data, refresh the views, ping heirs.
+
+    The leave request flow only annotated the admin message — the data
+    never recorded the departure, so the throne stayed taken and the
+    heirs could never claim it (Drasah's 2026-10-11 report). Returns
+    True when the leave was applied.
+    """
+    if guild is None or not user_id:
+        return False
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return False
+    kingdom_id = ""
+    try:
+        lord = next(
+            (item for item in await wiring.kingdoms_service.lords() if str(item.id) == str(user_id)),
+            None,
+        )
+        kingdom_id = str(getattr(lord, "kingdom_id", "") or "")
+    except Exception:
+        logger.warning("KINGDOMS: lord lookup before leave failed", exc_info=True)
+    try:
+        await wiring.kingdoms_service.leave(str(user_id), reason)
+    except Exception:
+        logger.info("KINGDOMS: leave not applied for %s", user_id, exc_info=True)
+        return False
+    if kingdom_id:
+        await _refresh_realm_views_for_kingdom_safe(guild, kingdom_id)
+    await _refresh_realms_panel_safe(guild, locale)
+    await _notify_heirs_safe(guild, locale)
+    return True
+
+
 async def _draw_territories_for_kingdom_safe(kingdom_id: str) -> None:
     """Best-effort per-kingdom draw after an approval (guarded, idempotent).
 
@@ -2137,10 +2238,14 @@ async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None
         await delete_orphan_realm_categories(guild, kingdoms)
     except Exception:
         logger.warning("KINGDOM REALMS: post-launch provisioning failed", exc_info=True)
+    # draw the territories BEFORE the salon views read the state — the
+    # Territoire panel is built from the live documents (Drasah's
+    # 2026-10-11 regression report: the maps never showed up because
+    # the views were rendered from the pre-draw store).
+    await _draw_territories_after_launch_safe()
     for kingdom in kingdoms:
         if not kingdom.is_gaia and str(kingdom.validation) == "approved":
             await _deploy_realm_content_safe(guild, kingdom)
-    await _draw_territories_after_launch_safe()
     await _refresh_realms_panel_safe(guild, locale)
 
 

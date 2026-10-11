@@ -239,3 +239,18 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
             await _announce_due_reports_safe(bot, reports)
         except Exception:
             logger.warning("KINGDOMS EVENTS: announcement failed", exc_info=True)
+        # a replayed slot moves wallets, territories and budgets with no
+        # click — re-render every salon state view so nothing goes stale
+        try:
+            await _refresh_views_after_due_safe(bot)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: view refresh failed", exc_info=True)
+
+
+async def _refresh_views_after_due_safe(bot: Any) -> None:
+    """Re-render the state views of each guild after the scheduler ran."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _refresh_all_realm_views_safe
+
+    for guild in list(getattr(bot, "guilds", [])):
+        locale = await _guild_locale(bot, str(guild.id))
+        await _refresh_all_realm_views_safe(guild, locale)
