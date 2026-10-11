@@ -225,8 +225,6 @@ class KingdomCandidatureButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Apply the decision through the live wiring (roles, enrollment, notes)."""
-        from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
-
         wiring = _wiring()
         if not _is_admin(interaction, wiring.bot_admins):
             await interaction.response.send_message("Only admins can decide on applications.", ephemeral=True)
@@ -244,42 +242,74 @@ class KingdomCandidatureButton(
         if self.decision == "approve":
             applicant = re.search(r"<@!?(\d+)>", content)
             is_king = strings["role_king"] in content
-            role_key = ROLE_KING if is_king else ROLE_LORD
             kingdom_name = _candidature_kingdom_name(content, strings)
-            enrolled = False
-            if applicant is not None and wiring.kingdoms_service is not None and interaction.guild is not None:
-                enrollment_note, enrolled = await _enroll_applicant(
-                    wiring.kingdoms_service,
-                    applicant.group(1),
-                    is_king=is_king,
-                    kingdom_name=kingdom_name,
-                    strings=strings,
-                )
-                note += " " + enrollment_note
-            if wiring.mod_roles_service is not None and applicant is not None and interaction.guild is not None:
-                try:
-                    await wiring.mod_roles_service.assign_mod_role(
-                        str(interaction.guild.id), applicant.group(1), KINGDOM_MOD, role_key
-                    )
-                    note += " " + strings["role_assigned"].format(role_key)
-                except Exception:
-                    logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
-                    note += " " + strings["no_service"]
-            if interaction.guild is not None and applicant is not None:
-                await _send_welcome(interaction.guild, applicant.group(1), strings)
-                if is_king and kingdom_name is None:
-                    await _send_king_kingdom_request(interaction.guild, applicant.group(1), locale)
-            if interaction.guild is not None:
-                await _refresh_season_status_safe(interaction.guild, locale)
-                if enrolled and applicant is not None:
-                    await _announce_enrollment_safe(
-                        interaction.guild,
-                        locale,
-                        f"<@{applicant.group(1)}>",
-                        kingdom_name,
-                        is_king,
-                    )
+            note += await _apply_candidature_approval(
+                interaction,
+                wiring,
+                strings,
+                locale,
+                applicant_id=applicant.group(1) if applicant is not None else "",
+                is_king=is_king,
+                kingdom_name=kingdom_name,
+            )
         await interaction.followup.send(note, ephemeral=True)
+
+
+async def _apply_candidature_approval(
+    interaction: discord.Interaction,
+    wiring: KingdomsPanelWiring,
+    strings: dict[str, Any],
+    locale: str,
+    *,
+    applicant_id: str,
+    is_king: bool,
+    kingdom_name: str | None,
+) -> str:
+    """Enroll, grant the mod role and announce one approved candidature.
+
+    The enrollment stores the member's live display name — a raw
+    ``<@id>`` mention used to leak into every select label (Drasah's
+    2026-10-11 report).
+    """
+    from kingdoms.mods.kingdoms.kingdom_panels import KINGDOM_MOD, ROLE_KING, ROLE_LORD
+
+    guild = interaction.guild
+    role_key = ROLE_KING if is_king else ROLE_LORD
+    extra = ""
+    enrolled = False
+    applicant_display: str | None = None
+    if applicant_id and guild is not None:
+        applicant_display = await _member_display_name_safe(guild, applicant_id)
+    if applicant_id and wiring.kingdoms_service is not None and guild is not None:
+        enrollment_note, enrolled = await _enroll_applicant(
+            wiring.kingdoms_service,
+            applicant_id,
+            is_king=is_king,
+            kingdom_name=kingdom_name,
+            strings=strings,
+            display_name=applicant_display,
+        )
+        extra += " " + enrollment_note
+    if wiring.mod_roles_service is not None and applicant_id and guild is not None:
+        try:
+            await wiring.mod_roles_service.assign_mod_role(
+                str(guild.id), applicant_id, KINGDOM_MOD, role_key
+            )
+            extra += " " + strings["role_assigned"].format(role_key)
+        except Exception:
+            logger.warning("CANDIDATURES: role assignment failed", exc_info=True)
+            extra += " " + strings["no_service"]
+    if guild is not None and applicant_id:
+        await _send_welcome(guild, applicant_id, strings)
+        if is_king and kingdom_name is None:
+            await _send_king_kingdom_request(guild, applicant_id, locale)
+    if guild is not None:
+        await _refresh_season_status_safe(guild, locale)
+        if enrolled:
+            await _announce_enrollment_safe(
+                guild, locale, f"<@{applicant_id}>", kingdom_name, is_king
+            )
+    return extra
 
 
 class KingdomProfileButton(
@@ -878,7 +908,37 @@ class _ActiveLordsReadError(Exception):
     """The lords list could not be read (wiring or storage failure)."""
 
 
-async def _active_lord_options(strings: dict[str, str]) -> list[discord.SelectOption] | None:
+async def _member_display_name_safe(guild: discord.Guild | None, user_id: str) -> str | None:
+    """Return the member's live display name (None when unresolvable).
+
+    Drasah's rule (2026-10-11): the lord documents used to store a raw
+    ``<@id>`` mention as ``display_name`` — every select built from it
+    showed a long number instead of a readable pseudo. The live member
+    lookup is the reliable source; legacy mention-shaped names are
+    rejected by the callers.
+    """
+    if guild is None or not user_id.isdigit():
+        return None
+    member = guild.get_member(int(user_id))
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(user_id))
+        except Exception:
+            return None
+    return getattr(member, "display_name", None) or getattr(member, "name", None)
+
+
+def _lord_label(lord: Any) -> str:
+    """One readable select label: live pseudo, else stored, else id."""
+    stored = str(getattr(lord, "display_name", "") or "")
+    if re.fullmatch(r"<@!?\d+>", stored.strip()):
+        stored = ""  # legacy mention-stored name — unreadable in a select
+    return (stored or str(lord.id))[:100]
+
+
+async def _active_lord_options(
+    strings: dict[str, str], guild: discord.Guild | None = None
+) -> list[discord.SelectOption] | None:
     """List the season's active lords (assigned or waiting) as select options.
 
     Drasah's rule (2026-10-11): ejecting a player must not require
@@ -901,9 +961,11 @@ async def _active_lord_options(strings: dict[str, str]) -> list[discord.SelectOp
         kingdom_name = kingdoms.get(lord.kingdom_id or "", None) if lord.kingdom_id else None
         description = kingdom_name or strings["remove_queue_desc"]
         emoji = "👑" if str(lord.role) == "king" else None
+        live_name = await _member_display_name_safe(guild, str(lord.id))
+        label = (live_name or _lord_label(lord))[:100]
         options.append(
             discord.SelectOption(
-                label=str(lord.display_name or lord.id)[:100],
+                label=label,
                 value=str(lord.id)[:100],
                 description=str(description)[:100],
                 emoji=emoji,
@@ -929,13 +991,38 @@ class KingdomRemovePlayerView(discord.ui.View):
             user_id = (select.values or [""])[0]
             if not user_id:
                 return
-            await target.response.defer(ephemeral=True)
-            await _revoke_kingdoms_roles(target.guild, user_id)
-            # also free the throne/place in the season data (the
-            # heirs cannot claim a seat the store still sees as taken)
-            await _apply_player_leave_safe(target.guild, user_id, "admin eject", "fr")
-            note = strings["remove_player_done"].format(f"<@{user_id}>")
-            await target.followup.send(note, ephemeral=True)
+            # Drasah's rule (2026-10-11): an ejection is destructive —
+            # ask for a confirmation before touching anything.
+            confirm = discord.ui.View(timeout=300)
+            yes: discord.ui.Button[Any] = discord.ui.Button(
+                label=strings["remove_confirm_yes"][:80],
+                style=discord.ButtonStyle.danger,
+                custom_id="kingdoms:remove:confirm",
+            )
+            no: discord.ui.Button[Any] = discord.ui.Button(
+                label=strings["remove_confirm_no"][:80],
+                style=discord.ButtonStyle.secondary,
+                custom_id="kingdoms:remove:cancel",
+            )
+
+            async def on_yes(target_yes: discord.Interaction[Any]) -> None:
+                await target_yes.response.defer(ephemeral=True)
+                await _revoke_kingdoms_roles(target_yes.guild, user_id)
+                await _apply_player_leave_safe(target_yes.guild, user_id, "admin eject", "fr")
+                await target_yes.followup.send(
+                    strings["remove_player_done"].format(f"<@{user_id}>"), ephemeral=True
+                )
+
+            async def on_no(target_no: discord.Interaction[Any]) -> None:
+                await target_no.response.edit_message(content=strings["remove_cancelled"], view=None)
+
+            yes.callback = on_yes  # type: ignore[method-assign, assignment]
+            no.callback = on_no  # type: ignore[method-assign, assignment]
+            confirm.add_item(yes)
+            confirm.add_item(no)
+            await target.response.edit_message(
+                content=strings["remove_confirm_line"].format(f"<@{user_id}>"), view=confirm
+            )
 
         select.callback = on_choose  # type: ignore[method-assign, assignment]
         self.add_item(select)
@@ -1201,7 +1288,7 @@ class KingdomAdminButton(
             """Eject flow: pick from the active roster first, modal as fallback."""
             strings_local = _profile_strings(locale)
             try:
-                options = await _active_lord_options(strings_local)
+                options = await _active_lord_options(strings_local, interaction.guild)
             except _ActiveLordsReadError as exc:
                 await interaction.response.send_message(
                     strings_local["remove_select_failed"].format(str(exc)), ephemeral=True
@@ -1562,14 +1649,20 @@ async def _enroll_applicant(
     is_king: bool,
     kingdom_name: str | None,
     strings: dict[str, Any],
+    display_name: str | None = None,
 ) -> tuple[str, bool]:
-    """Enroll the approved applicant; answer with a note and a success flag."""
+    """Enroll the approved applicant; answer with a note and a success flag.
+
+    ``display_name`` is the live member pseudo (the select menus and the
+    announcements read it) — the legacy fallback keeps a mention for the
+    announcement rendering, never for a select label.
+    """
     from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
 
-    display_name = f"<@{player_id}>"
+    stored_name = display_name or f"<@{player_id}>"
     if is_king and not kingdom_name:
         try:
-            await kingdoms_service.enroll_king_awaiting_kingdom(player_id, display_name)
+            await kingdoms_service.enroll_king_awaiting_kingdom(player_id, stored_name)
         except Exception as exc:
             logger.warning("CANDIDATURES: king enrollment failed for %s", player_id, exc_info=True)
             return strings["enroll_failed"].format(type(exc).__name__), False
@@ -1584,11 +1677,11 @@ async def _enroll_applicant(
     try:
         if is_king:
             lord = await kingdoms_service.enroll(
-                player_id, display_name, KING_ROLE, proposed_name=kingdom_name
+                player_id, stored_name, KING_ROLE, proposed_name=kingdom_name
             )
         else:
             lord = await kingdoms_service.enroll(
-                player_id, display_name, LORD_ROLE, kingdom_name=kingdom_name
+                player_id, stored_name, LORD_ROLE, kingdom_name=kingdom_name
             )
     except Exception as exc:
         logger.warning("CANDIDATURES: enrollment failed for %s", player_id, exc_info=True)

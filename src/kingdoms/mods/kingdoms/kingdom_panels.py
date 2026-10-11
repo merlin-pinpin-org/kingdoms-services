@@ -24,6 +24,7 @@ stores are not wired (local runs): the buttons answer with a note.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -42,6 +43,36 @@ from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 from kingdoms.mods.kingdoms.snapshot import season_label
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
+
+# Discord auto-hides ephemeral messages after 15 minutes, but they stay
+# on the user's screen until dismissed — Drasah asked for a real
+# auto-cleanup of the Postuler confirmations (2026-10-11). The
+# interaction webhook token lives 15 minutes: a deletion scheduled
+# before that boundary succeeds, later ones fail silently.
+_EPHEMERAL_TTL_SECONDS = 840
+_EPHEMERAL_TASKS: set[asyncio.Task[None]] = set()
+
+
+def _schedule_ephemeral_delete(
+    interaction: discord.Interaction, message: Any, seconds: int = _EPHEMERAL_TTL_SECONDS
+) -> None:
+    """Best-effort auto-delete of one ephemeral followup (~14 minutes)."""
+
+    async def _delete() -> None:
+        await asyncio.sleep(seconds)
+        try:
+            message_id = int(getattr(message, "id", 0) or 0)
+            if message_id:
+                await interaction.followup.delete_message(message_id)
+        except Exception:
+            logger.info("KINGDOM PANELS: ephemeral confirmation already gone")
+
+    try:
+        task = asyncio.create_task(_delete())
+        _EPHEMERAL_TASKS.add(task)
+        task.add_done_callback(_EPHEMERAL_TASKS.discard)
+    except Exception:
+        logger.info("KINGDOM PANELS: ephemeral TTL task not scheduled")
 
 KINGDOM_MOD = "kingdoms"
 ROLE_LORD = "kingdoms_lord"
@@ -189,6 +220,8 @@ STRINGS: dict[str, dict[str, Any]] = {
         "bad_game_id": "The game ID must be 6 to 20 digits.",
         "cancelled": "Application cancelled.",
         "sent": "Your application has been sent — an admin will review it.",
+        "sent_ttl": "*This message disappears by itself in ~15 minutes.*",
+        "profile_created": "Your profile has been created in your profile salon.",
         "candidature_title": "📋 New enrollment application",
         "candidature_role": "Requested role",
         "candidature_kingdom": "Kingdom",
@@ -341,6 +374,8 @@ STRINGS: dict[str, dict[str, Any]] = {
         "bad_game_id": "L'ID de jeu doit contenir 6 à 20 chiffres.",
         "cancelled": "Candidature annulée.",
         "sent": "Votre candidature a été envoyée — un admin l'examinera.",
+        "sent_ttl": "*Ce message disparaît de lui-même dans ~15 minutes.*",
+        "profile_created": "Votre profil a été créé dans votre salon de profil.",
         "candidature_title": "📋 Nouvelle candidature",
         "candidature_role": "Rôle demandé",
         "candidature_kingdom": "Royaume",
@@ -693,13 +728,13 @@ def _summary_view(
                         smurfs=smurfs,
                     )
                     await profile_channel.send(content, view=profile_view)
-                    profile_note = strings["sent"]
+                    profile_note = strings["profile_created"]
             except Exception:
                 logger.warning("KINGDOM PANELS: profile provisioning failed", exc_info=True)
-        await interaction.followup.send(
-            f"{strings['sent']}\n{profile_note}" if profile_note else strings["sent"],
-            ephemeral=True,
-        )
+        confirmation = strings["sent"] if not profile_note else f"{strings['sent']}\n{profile_note}"
+        confirmation = f"{confirmation}\n{strings['sent_ttl']}"
+        message = await interaction.followup.send(confirmation, ephemeral=True)  # type: ignore[func-returns-value]
+        _schedule_ephemeral_delete(interaction, message)
 
     async def cancel(interaction: discord.Interaction) -> None:
         await interaction.response.edit_message(content=strings["cancelled"], view=None)
