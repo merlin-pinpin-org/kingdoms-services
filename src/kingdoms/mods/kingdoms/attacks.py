@@ -278,9 +278,7 @@ class AttackService:
         attack (D42), the attacker must have an attack budget left, and
         the declared territory owner must be another player kingdom.
         """
-        season = await self._require_season()
-        if season.finished:
-            raise SeasonClosedError("the season is over — no attack is possible")
+        season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
@@ -346,9 +344,7 @@ class AttackService:
 
     async def respond_defense(self, attack_id: str, player_id: str) -> AttackModel:
         """Answer an attack: any lord of the defending kingdom (D7)."""
-        season = await self._require_season()
-        if season.finished:
-            raise SeasonClosedError("the season is over — no defense is possible")
+        await self._require_running_season()
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
             raise AttackStateError("a Gaïa free-for-all has no defending side")
@@ -430,9 +426,7 @@ class AttackService:
         (conservation); Gaïa can also keep its territory in a
         free-for-all nobody won.
         """
-        season = await self._require_season()
-        if season.finished:
-            raise SeasonClosedError("the season is over — no attack can be played")
+        await self._require_running_season()
         if await self._active_lords_day_window(_now()) is not None:
             raise LordsDayAttackError(
                 "the attack cannot be played inside the Lord's Day window "
@@ -514,9 +508,7 @@ class AttackService:
         maximum participants, everyone for himself (D6), no time limit
         (D44 — the result comes through the game contract).
         """
-        season = await self._require_season()
-        if season.finished:
-            raise SeasonClosedError("the season is over — no attack is possible")
+        season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
@@ -785,6 +777,18 @@ class AttackService:
         season = await self._kingdoms.current_season()
         if season is None:
             raise NoSeasonError("no season is running")
+        return season
+
+    async def _require_running_season(self) -> SeasonState:
+        """Return the running season, refusing a finished one.
+
+        Drasah's endcycle rule (2026-10-11): after the 23:59 verdict the
+        season stays frozen — every combat action raises until the next
+        launch.
+        """
+        season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("the season is over — no combat action is possible")
         return season
 
     async def _require_lord(self, player_id: str) -> LordModel:

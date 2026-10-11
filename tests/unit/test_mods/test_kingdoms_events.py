@@ -313,7 +313,12 @@ async def test_the_season_ends_on_the_last_sunday_at_2359() -> None:
     window — at 23:59 the ongoing attacks are cancelled and the
     verdict counts the territories (a tie opens the ShowMatch).
     """
-    config = _config().model_copy(update={"weeks": 2})
+    # The full 26-map catalog: the launch draws 18, the cycle switch
+    # draws 8 more for Gaïa — a small catalog would end the season
+    # loudly instead of reaching the verdict.
+    config = _config().model_copy(
+        update={"weeks": 2, "maps": default_map_catalog()}
+    )
     bundle = Bundle(config)
     await bundle.launch_season()
     await bundle.draw(1)
