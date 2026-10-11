@@ -54,6 +54,27 @@ class Bundle(_AttackBundle):
         await self.store.upsert_kingdom(kingdom.to_mongo())
 
 
+def test_church_buttons_rebuild_from_the_wire_in_both_locales() -> None:
+    """Regression (Drasah 2026-10-11): the three Paroisse buttons are
+    DynamicItems rebuilt from the wire on every click - their labels
+    must exist in BOTH locales or the rebuild crashes with a silent
+    KeyError and the bot answers nothing at all."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomChurchArrangeButton,
+        KingdomChurchMarryButton,
+        KingdomChurchUpgradeButton,
+        _strings,
+    )
+
+    for locale in ("fr", "en"):
+        strings = _strings(locale)
+        # The button constructors raise KeyError when a label is absent.
+        KingdomChurchMarryButton(strings)
+        KingdomChurchArrangeButton(strings, 1)
+        KingdomChurchUpgradeButton(strings, "Église", 2)
+        KingdomChurchUpgradeButton(strings, "", 0)  # top palier: disabled
+
+
 async def test_marry_consumes_one_point_and_refuses_at_zero() -> None:
     """D59: the points de mariage are a currency — one per marriage."""
     bundle = Bundle()

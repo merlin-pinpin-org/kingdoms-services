@@ -131,9 +131,19 @@ def _is_admin(interaction: discord.Interaction, bot_admins: tuple[str, ...]) -> 
 
 
 def _strings(locale: str) -> dict[str, Any]:
-    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
+    """Merge the panel strings with the realm-content view strings.
 
-    return panels_strings(locale)
+    The church buttons are rebuilt from the wire (from_custom_id) with
+    THESE strings - their labels (church_marry_button & co) live in the
+    realm-content catalog, not in the panels one. A missing key crashed
+    the rebuild with a silent KeyError (Drasah 2026-10-11 feedback).
+    """
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
+    from kingdoms.mods.kingdoms.kingdom_realm_content import _strings as realm_strings
+
+    merged: dict[str, Any] = dict(realm_strings(locale))
+    merged.update(panels_strings(locale))
+    return merged
 
 
 class KingdomApplyButton(
