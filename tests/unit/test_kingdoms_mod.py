@@ -69,6 +69,7 @@ class TestModDeclaration:
             "talks",
             "tavern",
             "territory",
+            "time_machine",
             "update",
         }
         assert {r.key for r in kingdoms.roles} == {
