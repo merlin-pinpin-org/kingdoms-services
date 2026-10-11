@@ -372,7 +372,7 @@ def _register_status(
         await interaction.followup.send(
             strings["status_line"].format(
                 season=season.id,
-                cycle=season.current_cycle + 1,
+                cycle=season.current_cycle,
                 weeks=season.weeks,
                 kingdoms=len(kingdoms),
                 queue=len(queue),

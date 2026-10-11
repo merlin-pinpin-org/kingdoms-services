@@ -17,7 +17,13 @@ from kingdoms.mods.kingdoms.config import (
     KingdomsSeasonConfig,
     default_map_catalog,
 )
-from kingdoms.mods.kingdoms.events import EventService, SeasonExhaustedError, lords_day_window
+from kingdoms.mods.kingdoms.attacks import SeasonClosedError
+from kingdoms.mods.kingdoms.events import (
+    EventService,
+    SeasonExhaustedError,
+    active_lords_day_window,
+    lords_day_window,
+)
 
 from .test_kingdoms_attacks import Bundle as _AttackBundle
 from .test_kingdoms_service import MemoryStore as _BaseStore
@@ -105,7 +111,7 @@ async def test_cycle_switch_recharges_budgets_and_adds_gaia_maps() -> None:
     await bundle.launch_season()
     gaia_id = next(k.id for k in await bundle.kingdoms.kingdoms() if k.is_gaia)
     report = await bundle.events.run_cycle_switch(seed=1)
-    assert report["cycle"] == 1
+    assert report["cycle"] == 2
     gaia_maps = [
         t.map_key
         for t in await bundle.territories.territories()
@@ -183,23 +189,24 @@ async def test_run_due_catches_up_after_a_restart() -> None:
     await bundle.set_started_at(datetime(2026, 10, 5, 12, 0, tzinfo=UTC))
     reports = await bundle.events.run_due(datetime(2026, 10, 19, 13, 0, tzinfo=UTC))
     assert [r["kind"] for r in reports] == ["age", "cycle", "age", "cycle"]
-    assert [r["cycle"] for r in reports if r["kind"] == "cycle"] == [1, 2]
+    assert [r["cycle"] for r in reports if r["kind"] == "cycle"] == [2, 3]
     season = await bundle.kingdoms.current_season()
     assert season is not None
-    assert season.current_cycle == 2
+    assert season.current_cycle == 3
     assert season.current_age_key == "castle_age"
     # Catching up again is a no-op: the state is already current.
     assert await bundle.events.run_due(datetime(2026, 10, 19, 13, 0, tzinfo=UTC)) == []
 
 
 async def test_first_cycle_is_the_first_sunday_after_start() -> None:
-    """Drasah's cadence: cycle 1 = the first Sunday 23:30 after the start."""
+    """Drasah's cadence: the launch IS cycle 1; the first Sunday switch
+    lands on cycle 2."""
     bundle = Bundle()
     await bundle.launch_season()
     await bundle.set_started_at(datetime(2026, 10, 10, 12, 0, tzinfo=UTC))  # Saturday
     reports = await bundle.events.run_due(datetime(2026, 10, 12, 12, 0, tzinfo=UTC))
     assert [r["kind"] for r in reports] == ["cycle"]
-    assert reports[0]["cycle"] == 1
+    assert reports[0]["cycle"] == 2
 
 
 async def test_first_age_is_the_first_wednesday_after_start() -> None:
@@ -284,7 +291,7 @@ async def test_enter_lords_day_phase_runs_the_switch_and_forces_the_window() -> 
     await bundle.launch_season()
     now = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)  # a Saturday, no calendar window
     report = await bundle.events.enter_lords_day_phase(now=now, seed=1)
-    assert report["cycle"] == 1
+    assert report["cycle"] == 2
     assert report["alliances_recomputed"] is False  # no diplomacy service wired
     assert report["lords_day_forced"] is True
     # The forced window has the same shape as the real one: 10.5 hours.
@@ -299,3 +306,63 @@ async def test_enter_lords_day_phase_runs_the_switch_and_forces_the_window() -> 
     assert season is not None
     assert season.lords_day_forced_start is None
     assert season.lords_day_forced_end is None
+
+
+async def test_the_season_ends_on_the_last_sunday_at_2359() -> None:
+    """Drasah's endcycle rule: the last Sunday carries NO Lord's Day
+    window — at 23:59 the ongoing attacks are cancelled and the
+    verdict counts the territories (a tie opens the ShowMatch).
+    """
+    config = _config().model_copy(update={"weeks": 2})
+    bundle = Bundle(config)
+    await bundle.launch_season()
+    await bundle.draw(1)
+    await bundle.set_started_at(datetime(2026, 10, 5, 12, 0, tzinfo=UTC))
+    # One attack declared in the past, still waiting for a defender.
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://lobby", now=datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
+    )
+    # Monday 2026-10-19 13:00 UTC: the end slot (Sun 18/10 23:59 Paris
+    # = 21:59 UTC) has passed — the catch-up replays everything.
+    reports = await bundle.events.run_due(datetime(2026, 10, 19, 13, 0, tzinfo=UTC))
+    assert [r["kind"] for r in reports] == ["age", "cycle", "age", "end"]
+    assert [r["cycle"] for r in reports if r["kind"] == "cycle"] == [2]
+    end = reports[-1]
+    assert end["cancelled_attacks"] == 1
+    assert end["phase"] == "ended"
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.finished is True
+    assert season.phase == "ended"
+    assert season.current_cycle == 2
+    assert season.current_age_key == "castle_age"
+    # 5 territories each: the tie opens the ShowMatch (D50).
+    assert end["showmatch"] is True
+    assert season.winner_kingdom_id is None
+    # The ongoing attack was cancelled before the verdict.
+    attacks = await bundle.attacks.attacks()
+    assert next(a for a in attacks if a.id == attack.id).state.value == "expired"
+    # A finished season replays nothing and refuses new attacks.
+    assert await bundle.events.run_due(datetime(2026, 10, 26, 13, 0, tzinfo=UTC)) == []
+    with pytest.raises(SeasonClosedError):
+        await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby2")
+
+
+async def test_no_lords_day_window_on_the_end_sunday() -> None:
+    """The end Sunday opens NO window — the 23:59 verdict replaces it."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.set_started_at(datetime(2026, 10, 5, 12, 0, tzinfo=UTC))
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    # Sunday 2026-10-18 23:40 Paris (21:40 UTC): the second cycle slot.
+    end_sunday = datetime(2026, 10, 18, 21, 40, tzinfo=UTC)
+    assert active_lords_day_window(_config().model_copy(update={"weeks": 2}), season, end_sunday) is None
+    # With four weeks the same moment is a normal Lord's Day.
+    window = active_lords_day_window(_config(), season, end_sunday)
+    assert window == (
+        datetime(2026, 10, 18, 21, 30, tzinfo=UTC),
+        datetime(2026, 10, 19, 8, 0, tzinfo=UTC),
+    )

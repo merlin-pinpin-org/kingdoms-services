@@ -17,7 +17,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from kingdoms.mods.kingdoms.events import lords_day_window
+from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.models import (
     GAIA_KINGDOM_KEY,
     AttackKind,
@@ -165,6 +165,18 @@ class LordsDayAttackError(AttackError):
     message_key = "kingdoms.errors.lords_day"
 
 
+class SeasonClosedError(AttackError):
+    """Raised when an attack action targets a finished season.
+
+    Drasah's endcycle rule (2026-10-11): the verdict lands on the
+    endcycle's Sunday at 23:59 — every attack is cancelled then and
+    nothing combat-related may happen until the next season launch.
+    """
+
+    code = "KINGDOMS_SEASON_CLOSED"
+    message_key = "kingdoms.errors.season_closed"
+
+
 class PatrolProtectedError(AttackError):
     """Raised when the target kingdom's patrol covers the moment (D68)."""
 
@@ -267,6 +279,8 @@ class AttackService:
         the declared territory owner must be another player kingdom.
         """
         season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("the season is over — no attack is possible")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
@@ -332,6 +346,9 @@ class AttackService:
 
     async def respond_defense(self, attack_id: str, player_id: str) -> AttackModel:
         """Answer an attack: any lord of the defending kingdom (D7)."""
+        season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("the season is over — no defense is possible")
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
             raise AttackStateError("a Gaïa free-for-all has no defending side")
@@ -364,6 +381,9 @@ class AttackService:
         step then decides the capture.
         """
         timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
         # Lord's Day window: the automatic no-defense outcome is an
         # execution too — it is deferred until the window closes (the
         # stale attacks are simply picked up on the next call).
@@ -385,6 +405,24 @@ class AttackService:
             logger.info("kingdoms: attack on %s expired (%s)", attack.map_key, attack.state)
         return expired
 
+    async def cancel_ongoing(self) -> list[AttackModel]:
+        """Cancel every ongoing attack before the season verdict.
+
+        Drasah's endcycle rule (2026-10-11): at the endcycle's Sunday
+        23:59 the ongoing attacks (declared or defended) are CANCELLED
+        so the verdict counts a clean board — they move to ``expired``
+        and never resolve afterwards.
+        """
+        cancelled: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.state not in (AttackState.DECLARED, AttackState.DEFENDED):
+                continue
+            attack.state = AttackState.EXPIRED
+            await self._store.upsert_attack(attack.to_mongo())
+            cancelled.append(attack)
+            logger.info("kingdoms: attack on %s cancelled (season end)", attack.map_key)
+        return cancelled
+
     async def resolve(self, attack_id: str, winner_kingdom_id: str) -> AttackModel:
         """Apply the game result (D20) and transfer on capture, idempotently.
 
@@ -392,6 +430,9 @@ class AttackService:
         (conservation); Gaïa can also keep its territory in a
         free-for-all nobody won.
         """
+        season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("the season is over — no attack can be played")
         if await self._active_lords_day_window(_now()) is not None:
             raise LordsDayAttackError(
                 "the attack cannot be played inside the Lord's Day window "
@@ -474,6 +515,8 @@ class AttackService:
         (D44 — the result comes through the game contract).
         """
         season = await self._require_season()
+        if season.finished:
+            raise SeasonClosedError("the season is over — no attack is possible")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
@@ -711,19 +754,23 @@ class AttackService:
         """Return the Lord's Day window at ``timestamp``, calendar or forced.
 
         The real calendar window (Sunday 23:30 → Monday 10:00) applies
-        first; the manual test override stored on the season
+        first — but NEVER on the season's end Sunday (no window before
+        the 23:59 verdict) nor on a finished season; the manual test
+        override stored on the season
         (``lords_day_forced_start``/``lords_day_forced_end``, Drasah's
         Paramètres seam) acts as a second window when the timestamp
-        falls inside it.
+        falls inside it (unless the season is finished).
         """
-        calendar = lords_day_window(self._config, timestamp)
-        if calendar is not None:
-            return calendar
         try:
             season = await self._kingdoms.current_season()
         except Exception:
             return None
         if season is None:
+            return None
+        calendar = active_lords_day_window(self._config, season, timestamp)
+        if calendar is not None:
+            return calendar
+        if season.finished:
             return None
         start = season.lords_day_forced_start
         end = season.lords_day_forced_end

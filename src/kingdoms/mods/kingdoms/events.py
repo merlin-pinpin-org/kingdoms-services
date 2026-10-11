@@ -147,6 +147,35 @@ def lords_day_window(
     return None
 
 
+def active_lords_day_window(
+    config: KingdomsSeasonConfig,
+    season: SeasonState,
+    now: datetime,
+) -> tuple[datetime, datetime] | None:
+    """Return the calendar Lord's Day window, suppressed on the end slot.
+
+    Drasah's endcycle rule (2026-10-11): the endcycle's own Sunday is a
+    NORMAL switch (budgets, maps, alliances), but the season's LAST
+    Sunday carries NO Lord's Day window — the verdict applies at 23:59
+    instead. A finished season never reopens a calendar window either.
+    The forced test window is handled separately by the attack service.
+    """
+    if season.finished:
+        return None
+    window = lords_day_window(config, now)
+    if window is None:
+        return None
+    tz = _schedule_timezone(config)
+    # The window's opening slot is the last cycle slot before ``now``
+    # (the next one sits a week later, past the window's end); when the
+    # season already consumed its ``weeks`` slots the opening slot was
+    # the END one — no window before the 23:59 verdict.
+    slots = cron_slots_between(config.events.cycle_cron, season.started_at, now, tz)
+    if len(slots) >= config.weeks:
+        return None
+    return window
+
+
 class SeasonExhaustedError(MapPoolExhaustedError):
     """Raised when Gaia cannot receive the Lord's Day maps (D31).
 
@@ -406,17 +435,51 @@ class EventService:
         """Replay every event slot missed since the season start (D1).
 
         The cadence is CALENDAR-based (Drasah's rule, 2026-10-11): the
-        first cycle lands on the first Sunday 23:30 after the season
-        start, the first age on the first Wednesday midnight after it
-        (Tuesday→Wednesday), then weekly. A restart never skips a
-        switch: this call walks the missed slots and replays them in
-        chronological order (a cycle and an age are interleaved the
-        way the calendar ordered them).
+        season launch IS cycle 1 (startcycle), the first Sunday 23:30
+        switch moves to cycle 2, and the first Wednesday midnight
+        switches the first age. A restart never skips a switch: this
+        call walks the missed slots and replays them in chronological
+        order (a cycle and an age are interleaved the way the calendar
+        ordered them).
+
+        Drasah's endcycle rule (2026-10-11): the cycle slots up to the
+        last-but-one are NORMAL switches; the season's LAST Sunday slot
+        is the END slot — no Lord's Day window opens, and the verdict
+        applies at 23:59 (the slot plus 29 minutes): the ongoing
+        attacks are cancelled, the closing counts the territories and
+        the phase moves to ``ended``. Nothing replays afterwards.
         """
         season = await self._require_season()
         tz = _schedule_timezone(self._config)
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
+        if season.finished:
+            return []
+        due = self._due_slots(season, now, tz)
+        reports: list[dict[str, object]] = []
+        for _slot, kind in due:
+            if kind == "end":
+                report: dict[str, object] = dict(await self._apply_season_end())
+            elif kind == "cycle":
+                report = dict(await self.run_cycle_switch())
+            else:
+                report = dict(await self.run_age_switch())
+            report["kind"] = kind
+            reports.append(report)
+            if kind == "end":
+                break  # the season is over — nothing replays after the verdict
+        return reports
+
+    def _due_slots(
+        self, season: SeasonState, now: datetime, tz: ZoneInfo
+    ) -> list[tuple[datetime, str]]:
+        """Return every due slot between the season start and ``now``.
+
+        The cycle slots up to the last-but-one are normal switches;
+        the LAST one is the END slot whose verdict applies at 23:59
+        (the slot plus 29 minutes). The age slots after the last age
+        are consumed silently — the last age switch is a no-op.
+        """
         cycle_slots = cron_slots_between(
             self._config.events.cycle_cron, season.started_at, now, tz
         )
@@ -424,29 +487,54 @@ class EventService:
             self._config.events.age_cron, season.started_at, now, tz
         )
         keys = [age.key for age in self._config.ages]
+        last_age = len(keys) - 1
         age_index = keys.index(season.current_age_key) if season.current_age_key in keys else None
         if age_index is None:
             logger.warning(
                 "kingdoms: unknown age key %r - age catch-up disabled",
                 season.current_age_key,
             )
-        due: list[tuple[datetime, str]] = [
-            *[(slot, "cycle") for slot in cycle_slots[season.current_cycle :]],
-            *(
-                [(slot, "age") for slot in age_slots[age_index :]]
-                if age_index is not None
-                else []
-            ),
-        ]
+        due: list[tuple[datetime, str]] = []
+        for index, slot in enumerate(cycle_slots):
+            if index < season.current_cycle - 1:
+                continue  # the switch already ran
+            if index < self._config.weeks - 1:
+                due.append((slot, "cycle"))
+            else:
+                # The end slot: the verdict applies at 23:59.
+                end_at = slot + timedelta(minutes=29)
+                if now >= end_at:
+                    due.append((end_at, "end"))
+        if age_index is not None and age_index < last_age:
+            due.extend((slot, "age") for slot in age_slots[age_index:])
         due.sort(key=lambda item: item[0])
-        reports: list[dict[str, object]] = []
-        for _slot, kind in due:
-            report: dict[str, object] = dict(
-                await (self.run_cycle_switch() if kind == "cycle" else self.run_age_switch())
-            )
-            report["kind"] = kind
-            reports.append(report)
-        return reports
+        return due
+
+    async def _apply_season_end(self) -> dict[str, object]:
+        """Apply the endcycle verdict at 23:59 (Drasah's end rule).
+
+        Every ongoing attack is cancelled first, then the closing
+        counts the territories (ShowMatch on a tie) and the phase moves
+        to ``ended`` — the season stays frozen until the next launch.
+        """
+        cancelled = await self._attacks.cancel_ongoing()
+        season = await self._require_season()
+        season.lords_day_forced_start = None
+        season.lords_day_forced_end = None
+        await self._store.upsert_season(season.to_mongo())
+        from kingdoms.mods.kingdoms.season_end import SeasonEndService
+
+        closer = SeasonEndService(self._store, self._config, self._kingdoms, self._territories)
+        report = dict(await closer.close_season())
+        await self._kingdoms.set_phase("ended")
+        report["cancelled_attacks"] = len(cancelled)
+        report["phase"] = "ended"
+        logger.info(
+            "kingdoms: season ended - %s ongoing attack(s) cancelled, winner %s",
+            len(cancelled),
+            report.get("winner_name"),
+        )
+        return report
 
     # ------------------------------------------------------------------
     # Internals

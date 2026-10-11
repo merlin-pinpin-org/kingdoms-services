@@ -120,3 +120,20 @@ async def test_scheduler_survives_a_run_due_failure() -> None:
     assert events.calls >= 2
     assert channel.sent and "**Cycle 2**" in channel.sent[0]
     await stop_kingdoms_event_scheduler()
+
+
+def test_report_text_renders_the_season_end() -> None:
+    """The end report announces the verdict (or the ShowMatch tie)."""
+    from kingdoms.mods.kingdoms.kingdom_events_loop import _report_text, _strings
+
+    fr = _strings("fr")
+    end = {
+        "kind": "end",
+        "winner_name": "Aquitaine",
+        "showmatch": False,
+        "cancelled_attacks": 1,
+    }
+    assert "Fin de saison" in _report_text(fr, end)
+    assert "Aquitaine" in _report_text(fr, end)
+    tie = dict(end, winner_name=None, showmatch=True)
+    assert "ShowMatch" in _report_text(fr, tie)

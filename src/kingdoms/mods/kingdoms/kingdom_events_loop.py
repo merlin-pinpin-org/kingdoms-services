@@ -38,6 +38,14 @@ _ANNOUNCE_STRINGS: dict[str, dict[str, str]] = {
             "🏺 **{age}** — every kingdom gains {tech} tech point(s) "
             "and {marriages} marriage slot(s)."
         ),
+        "end": (
+            "🏁 **End of the season** — the attacks are cancelled and "
+            "the verdict is in: {winner}."
+        ),
+        "end_showmatch": (
+            "🏁 **End of the season** — the attacks are cancelled and "
+            "the top kingdoms are tied: the ShowMatch decides!"
+        ),
     },
     "fr": {
         "cycle": (
@@ -47,6 +55,15 @@ _ANNOUNCE_STRINGS: dict[str, dict[str, str]] = {
         "age": (
             "🏺 **{age}** — chaque royaume gagne {tech} point(s) tech "
             "et {marriages} emplacement(s) de mariage."
+        ),
+        "end": (
+            "🏁 **Fin de saison** — les attaques en cours sont annulées "
+            "et le verdict est tombé : {winner}."
+        ),
+        "end_showmatch": (
+            "🏁 **Fin de saison** — les attaques en cours sont annulées, "
+            "les deux royaumes de tête sont à égalité : le ShowMatch "
+            "décide du vainqueur !"
         ),
     },
 }
@@ -65,6 +82,10 @@ def _report_text(strings: dict[str, str], report: dict[str, object]) -> str:
             tech=report.get("tech_points", 0),
             marriages=report.get("extra_marriages", 0),
         )
+    if kind == "end":
+        if report.get("showmatch"):
+            return strings["end_showmatch"]
+        return strings["end"].format(winner=str(report.get("winner_name") or "?"))
     return strings["cycle"].format(
         cycle=report.get("cycle", "?"),
         maps=len(report.get("gaia_new_maps", []) or []),  # type: ignore[arg-type]

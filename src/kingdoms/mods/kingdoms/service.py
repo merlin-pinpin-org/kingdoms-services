@@ -150,7 +150,7 @@ class KingdomsService:
             _id=_season_id(now),
             started_at=now,
             weeks=self._config.weeks,
-            current_cycle=0,
+            current_cycle=1,
             current_age_key=self._config.ages[0].key if self._config.ages else "dark_age",
             imposed_kingdoms=bool(names),
             phase="setup",

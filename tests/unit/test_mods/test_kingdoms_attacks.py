@@ -20,6 +20,7 @@ from kingdoms.mods.kingdoms.attacks import (
     LordsDayAttackError,
     NoBudgetError,
     SabotageError,
+    SeasonClosedError,
     TechnologyLimitReachedError,
     TerritoryBusyError,
     TerritoryNotAttackableError,
@@ -476,3 +477,46 @@ async def test_forced_lords_day_window_blocks_executions() -> None:
     # Once the forced window is over, the stale expiry is picked up again.
     expired = await bundle.attacks.expire_stale(now=datetime(2026, 10, 10, 23, 0, tzinfo=UTC))
     assert [item.id for item in expired] == [early.id]
+
+
+async def test_a_finished_season_refuses_every_combat_action() -> None:
+    """Drasah's endcycle rule: after the 23:59 verdict nothing combat
+    related happens until the next season launch."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby")
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    season.finished = True
+    await bundle.store.upsert_season(season.to_mongo())
+    with pytest.raises(SeasonClosedError):
+        await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby2")
+    with pytest.raises(SeasonClosedError):
+        await bundle.attacks.respond_defense(attack.id, "lord-b")
+    with pytest.raises(SeasonClosedError):
+        await bundle.attacks.resolve(attack.id, aquitaine)
+    # The stale expiry quietly does nothing on a finished season.
+    assert await bundle.attacks.expire_stale() == []
+
+
+async def test_cancel_ongoing_expires_the_ongoing_attacks() -> None:
+    """The season end cancels every declared/defended attack first."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    maps = await bundle.owner_maps(bourgogne)
+    first = await bundle.attacks.declare_attack("king-a", maps[0], "aoe2de://lobby")
+    second = await bundle.attacks.declare_attack("lord-a", maps[1], "aoe2de://lobby")
+    await bundle.attacks.respond_defense(first.id, "lord-b")
+    cancelled = await bundle.attacks.cancel_ongoing()
+    assert {item.id for item in cancelled} == {first.id, second.id}
+    states = {a.id: a.state for a in await bundle.attacks.attacks()}
+    assert states[first.id] is AttackState.EXPIRED
+    assert states[second.id] is AttackState.EXPIRED
+    # Idempotent: a second pass finds nothing ongoing.
+    assert await bundle.attacks.cancel_ongoing() == []
