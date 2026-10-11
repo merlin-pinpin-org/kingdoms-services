@@ -12,7 +12,7 @@ from typing import ClassVar
 
 import pytest
 
-from kingdoms.mods.kingdoms.attacks import SeasonClosedError
+from kingdoms.mods.kingdoms.attacks import AttackService, SeasonClosedError
 from kingdoms.mods.kingdoms.config import (
     Epoch,
     KingdomsSeasonConfig,
@@ -24,6 +24,8 @@ from kingdoms.mods.kingdoms.events import (
     active_lords_day_window,
     lords_day_window,
 )
+from kingdoms.mods.kingdoms.service import KingdomsService
+from kingdoms.mods.kingdoms.territories import TerritoryService
 
 from .test_kingdoms_attacks import Bundle as _AttackBundle
 from .test_kingdoms_service import MemoryStore as _BaseStore
@@ -88,6 +90,12 @@ class Bundle(_AttackBundle):
 
     def __init__(self, config=None) -> None:
         super().__init__(config or _config())
+        # The season end stores its ShowMatch: rebuild the services over
+        # the events MemoryStore, which carries the showmatch collection.
+        self.store = MemoryStore()
+        self.kingdoms = KingdomsService(self.store, self.config)  # type: ignore[arg-type]
+        self.territories = TerritoryService(self.store, self.config, self.kingdoms)  # type: ignore[arg-type]
+        self.attacks = AttackService(self.store, self.config, self.kingdoms, self.territories)  # type: ignore[arg-type]
         self.events = EventService(self.store, self.config, self.kingdoms, self.territories, self.attacks)  # type: ignore[arg-type]
 
     async def set_started_at(self, started_at: datetime) -> None:
