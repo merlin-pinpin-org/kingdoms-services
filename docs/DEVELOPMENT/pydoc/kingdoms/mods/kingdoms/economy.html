@@ -235,6 +235,14 @@ The&nbsp;tech-point&nbsp;wallet&nbsp;and&nbsp;the&nbsp;purchasable&nbsp;special&
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="EconomyService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms_service: 'KingdomsService', territory_service: 'TerritoryService', attacks_service: 'AttackService') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;persistence,&nbsp;config,&nbsp;kingdoms,&nbsp;territories,&nbsp;attacks.</span></dd></dl>
 
+<dl><dt>async <a name="EconomyService-buy_arranged_marriage_token"><strong>buy_arranged_marriage_token</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Buy&nbsp;one&nbsp;arranged-marriage&nbsp;token&nbsp;for&nbsp;the&nbsp;Paroisse&nbsp;(D60,&nbsp;2026-10-11).<br>
+&nbsp;<br>
+The&nbsp;Marché&nbsp;no&nbsp;longer&nbsp;celebrates&nbsp;the&nbsp;marriage&nbsp;itself:&nbsp;the&nbsp;King<br>
+buys&nbsp;a&nbsp;token&nbsp;here&nbsp;(cost&nbsp;=&nbsp;``technologies.mariage_arrange``,&nbsp;3<br>
+🔬),&nbsp;the&nbsp;kingdom's&nbsp;``arranged_marriage_stock``&nbsp;grows&nbsp;by&nbsp;one&nbsp;and<br>
+the&nbsp;token&nbsp;is&nbsp;consumed&nbsp;at&nbsp;the&nbsp;Paroisse&nbsp;button.&nbsp;Payment&nbsp;first,<br>
+token&nbsp;second&nbsp;—&nbsp;a&nbsp;refused&nbsp;purchase&nbsp;never&nbsp;grants&nbsp;a&nbsp;token.</span></dd></dl>
+
 <dl><dt>async <a name="EconomyService-buy_combat_technology"><strong>buy_combat_technology</strong></a>(self, kingdom_id: 'str', technology: 'str') -&gt; 'object'</dt><dd><span class="code">Buy&nbsp;a&nbsp;combat&nbsp;technology&nbsp;through&nbsp;the&nbsp;single&nbsp;wallet&nbsp;(D9/D36).<br>
 &nbsp;<br>
 The&nbsp;cost&nbsp;moves&nbsp;from&nbsp;the&nbsp;kingdom&nbsp;bank&nbsp;into&nbsp;the&nbsp;T4&nbsp;technology<br>
