@@ -103,12 +103,19 @@ automatically.&nbsp;Returns&nbsp;the&nbsp;cycle&nbsp;report&nbsp;for&nbsp;the&nb
 <dl><dt>async <a name="EventService-run_due"><strong>run_due</strong></a>(self, now: 'datetime') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">Replay&nbsp;every&nbsp;event&nbsp;slot&nbsp;missed&nbsp;since&nbsp;the&nbsp;season&nbsp;start&nbsp;(D1).<br>
 &nbsp;<br>
 The&nbsp;cadence&nbsp;is&nbsp;CALENDAR-based&nbsp;(Drasah's&nbsp;rule,&nbsp;2026-10-11):&nbsp;the<br>
-first&nbsp;cycle&nbsp;lands&nbsp;on&nbsp;the&nbsp;first&nbsp;Sunday&nbsp;23:30&nbsp;after&nbsp;the&nbsp;season<br>
-start,&nbsp;the&nbsp;first&nbsp;age&nbsp;on&nbsp;the&nbsp;first&nbsp;Wednesday&nbsp;midnight&nbsp;after&nbsp;it<br>
-(Tuesday→Wednesday),&nbsp;then&nbsp;weekly.&nbsp;A&nbsp;restart&nbsp;never&nbsp;skips&nbsp;a<br>
-switch:&nbsp;this&nbsp;call&nbsp;walks&nbsp;the&nbsp;missed&nbsp;slots&nbsp;and&nbsp;replays&nbsp;them&nbsp;in<br>
-chronological&nbsp;order&nbsp;(a&nbsp;cycle&nbsp;and&nbsp;an&nbsp;age&nbsp;are&nbsp;interleaved&nbsp;the<br>
-way&nbsp;the&nbsp;calendar&nbsp;ordered&nbsp;them).</span></dd></dl>
+season&nbsp;launch&nbsp;IS&nbsp;cycle&nbsp;1&nbsp;(startcycle),&nbsp;the&nbsp;first&nbsp;Sunday&nbsp;23:30<br>
+switch&nbsp;moves&nbsp;to&nbsp;cycle&nbsp;2,&nbsp;and&nbsp;the&nbsp;first&nbsp;Wednesday&nbsp;midnight<br>
+switches&nbsp;the&nbsp;first&nbsp;age.&nbsp;A&nbsp;restart&nbsp;never&nbsp;skips&nbsp;a&nbsp;switch:&nbsp;this<br>
+call&nbsp;walks&nbsp;the&nbsp;missed&nbsp;slots&nbsp;and&nbsp;replays&nbsp;them&nbsp;in&nbsp;chronological<br>
+order&nbsp;(a&nbsp;cycle&nbsp;and&nbsp;an&nbsp;age&nbsp;are&nbsp;interleaved&nbsp;the&nbsp;way&nbsp;the&nbsp;calendar<br>
+ordered&nbsp;them).<br>
+&nbsp;<br>
+Drasah's&nbsp;endcycle&nbsp;rule&nbsp;(2026-10-11):&nbsp;the&nbsp;cycle&nbsp;slots&nbsp;up&nbsp;to&nbsp;the<br>
+last-but-one&nbsp;are&nbsp;NORMAL&nbsp;switches;&nbsp;the&nbsp;season's&nbsp;LAST&nbsp;Sunday&nbsp;slot<br>
+is&nbsp;the&nbsp;END&nbsp;slot&nbsp;—&nbsp;no&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;opens,&nbsp;and&nbsp;the&nbsp;verdict<br>
+applies&nbsp;at&nbsp;23:59&nbsp;(the&nbsp;slot&nbsp;plus&nbsp;29&nbsp;minutes):&nbsp;the&nbsp;ongoing<br>
+attacks&nbsp;are&nbsp;cancelled,&nbsp;the&nbsp;closing&nbsp;counts&nbsp;the&nbsp;territories&nbsp;and<br>
+the&nbsp;phase&nbsp;moves&nbsp;to&nbsp;``ended``.&nbsp;Nothing&nbsp;replays&nbsp;afterwards.</span></dd></dl>
 
 <dl><dt>async <a name="EventService-run_exploration"><strong>run_exploration</strong></a>(self, ranking: 'list[str]', *, seed: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Run&nbsp;the&nbsp;Saturday&nbsp;exploration&nbsp;FFA&nbsp;(optional,&nbsp;1&nbsp;lord/kingdom).<br>
 &nbsp;<br>
@@ -219,7 +226,14 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-cron_slots_between"><strong>cron_slots_between</strong></a>(cron: 'str', after: 'datetime', before: 'datetime', tz: 'ZoneInfo') -&gt; 'list[datetime]'</dt><dd><span class="code">Return&nbsp;every&nbsp;UTC&nbsp;slot&nbsp;of&nbsp;the&nbsp;weekly&nbsp;cron&nbsp;in&nbsp;``(after,&nbsp;before]``.<br>
+<td class="singlecolumn"><dl><dt><a name="-active_lords_day_window"><strong>active_lords_day_window</strong></a>(config: 'KingdomsSeasonConfig', season: 'SeasonState', now: 'datetime') -&gt; 'tuple[datetime, datetime] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;calendar&nbsp;Lord's&nbsp;Day&nbsp;window,&nbsp;suppressed&nbsp;on&nbsp;the&nbsp;end&nbsp;slot.<br>
+&nbsp;<br>
+Drasah's&nbsp;endcycle&nbsp;rule&nbsp;(2026-10-11):&nbsp;the&nbsp;endcycle's&nbsp;own&nbsp;Sunday&nbsp;is&nbsp;a<br>
+NORMAL&nbsp;switch&nbsp;(budgets,&nbsp;maps,&nbsp;alliances),&nbsp;but&nbsp;the&nbsp;season's&nbsp;LAST<br>
+Sunday&nbsp;carries&nbsp;NO&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;—&nbsp;the&nbsp;verdict&nbsp;applies&nbsp;at&nbsp;23:59<br>
+instead.&nbsp;A&nbsp;finished&nbsp;season&nbsp;never&nbsp;reopens&nbsp;a&nbsp;calendar&nbsp;window&nbsp;either.<br>
+The&nbsp;forced&nbsp;test&nbsp;window&nbsp;is&nbsp;handled&nbsp;separately&nbsp;by&nbsp;the&nbsp;attack&nbsp;service.</span></dd></dl>
+ <dl><dt><a name="-cron_slots_between"><strong>cron_slots_between</strong></a>(cron: 'str', after: 'datetime', before: 'datetime', tz: 'ZoneInfo') -&gt; 'list[datetime]'</dt><dd><span class="code">Return&nbsp;every&nbsp;UTC&nbsp;slot&nbsp;of&nbsp;the&nbsp;weekly&nbsp;cron&nbsp;in&nbsp;``(after,&nbsp;before]``.<br>
 &nbsp;<br>
 Drasah's&nbsp;cadence&nbsp;rule&nbsp;(2026-10-11):&nbsp;the&nbsp;first&nbsp;switch&nbsp;lands&nbsp;on&nbsp;the<br>
 FIRST&nbsp;calendar&nbsp;occurrence&nbsp;of&nbsp;the&nbsp;cron&nbsp;day&nbsp;after&nbsp;the&nbsp;season&nbsp;start&nbsp;—<br>

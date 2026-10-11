@@ -55,6 +55,7 @@ territory&nbsp;transfer&nbsp;on&nbsp;capture.</span></p>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NoBudgetError">NoBudgetError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NotEnrolledError">NotEnrolledError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PatrolProtectedError">PatrolProtectedError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#SeasonClosedError">SeasonClosedError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#TechnologyError">TechnologyError</a>
 </dt><dd>
 <dl>
@@ -252,6 +253,13 @@ The&nbsp;attack/defense&nbsp;state&nbsp;machine&nbsp;and&nbsp;combat&nbsp;econom
 <dl><dt>async <a name="AttackService-attacks"><strong>attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-buy_technology"><strong>buy_technology</strong></a>(self, kingdom_id: 'str', technology: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Buy&nbsp;one&nbsp;combat&nbsp;technology&nbsp;with&nbsp;tech&nbsp;points&nbsp;(D9/D36).</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-cancel_ongoing"><strong>cancel_ongoing</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Cancel&nbsp;every&nbsp;ongoing&nbsp;attack&nbsp;before&nbsp;the&nbsp;season&nbsp;verdict.<br>
+&nbsp;<br>
+Drasah's&nbsp;endcycle&nbsp;rule&nbsp;(2026-10-11):&nbsp;at&nbsp;the&nbsp;endcycle's&nbsp;Sunday<br>
+23:59&nbsp;the&nbsp;ongoing&nbsp;attacks&nbsp;(declared&nbsp;or&nbsp;defended)&nbsp;are&nbsp;CANCELLED<br>
+so&nbsp;the&nbsp;verdict&nbsp;counts&nbsp;a&nbsp;clean&nbsp;board&nbsp;—&nbsp;they&nbsp;move&nbsp;to&nbsp;``expired``<br>
+and&nbsp;never&nbsp;resolve&nbsp;afterwards.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-counter_espionage"><strong>counter_espionage</strong></a>(self, attack_id: 'str', defender_kingdom_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;sabotage&nbsp;of&nbsp;an&nbsp;incoming&nbsp;attack&nbsp;(D11/D28).</span></dd></dl>
 
@@ -1051,6 +1059,93 @@ Methods inherited from <a href="builtins.html#BaseException">builtins.BaseExcept
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
 <dl><dt><a name="SabotageError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#SabotageError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SeasonClosedError">class <strong>SeasonClosedError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonClosedError">SeasonClosedError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;an&nbsp;attack&nbsp;action&nbsp;targets&nbsp;a&nbsp;finished&nbsp;season.<br>
+&nbsp;<br>
+Drasah's&nbsp;endcycle&nbsp;rule&nbsp;(2026-10-11):&nbsp;the&nbsp;verdict&nbsp;lands&nbsp;on&nbsp;the<br>
+endcycle's&nbsp;Sunday&nbsp;at&nbsp;23:59&nbsp;—&nbsp;every&nbsp;attack&nbsp;is&nbsp;cancelled&nbsp;then&nbsp;and<br>
+nothing&nbsp;combat-related&nbsp;may&nbsp;happen&nbsp;until&nbsp;the&nbsp;next&nbsp;season&nbsp;launch.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#SeasonClosedError">SeasonClosedError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_SEASON_CLOSED'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.season_closed'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="SeasonClosedError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="SeasonClosedError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="SeasonClosedError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="SeasonClosedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="SeasonClosedError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#SeasonClosedError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#SeasonClosedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
