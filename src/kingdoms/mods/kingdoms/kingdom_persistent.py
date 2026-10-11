@@ -1156,6 +1156,10 @@ class KingdomAddKingdomModal(discord.ui.Modal):
         await _draw_territories_for_kingdom_safe(kingdom.id)
         if interaction.guild is not None:
             await _ensure_realms_after_launch(interaction.guild, self.locale)
+            # a kingdom created after the fact opens a throne: the Kings
+            # enrolled while nothing existed were stuck (Drasah's
+            # 2026-10-11 report) — ping them now with the claim DM.
+            await _notify_heirs_safe(interaction.guild, self.locale)
 
 
 class KingdomLaunchModal(discord.ui.Modal):
@@ -2177,7 +2181,9 @@ async def _repin_realm_views_safe(guild: discord.Guild) -> None:
         logger.warning("KINGDOM REALM CONTENT: kingdom list read failed", exc_info=True)
         return
     for kingdom in kingdoms:
-        if not kingdom.is_gaia and str(kingdom.validation) == "approved":
+        # Gaïa included: its Patrouille/Territoire state views are part
+        # of the anti-stale refresh (no Alliances view — no civs, ever).
+        if str(kingdom.validation) == "approved":
             await _deploy_realm_content_safe(guild, kingdom)
 
 
@@ -2207,7 +2213,7 @@ async def _refresh_realm_views_for_kingdom_safe(guild: discord.Guild | None, kin
         logger.warning("KINGDOM REALM CONTENT: kingdom list read failed", exc_info=True)
         return
     kingdom = next((k for k in kingdoms if str(k.id) == str(kingdom_id)), None)
-    if kingdom is not None and not kingdom.is_gaia:
+    if kingdom is not None:
         await _deploy_realm_content_safe(guild, kingdom)
 
 
@@ -2337,7 +2343,11 @@ async def _ensure_realms_after_launch(guild: discord.Guild, locale: str) -> None
     # the views were rendered from the pre-draw store).
     await _draw_territories_after_launch_safe()
     for kingdom in kingdoms:
-        if not kingdom.is_gaia and str(kingdom.validation) == "approved":
+        # Gaïa deploys its content too (Drasah's 2026-10-11 report: the
+        # AI kingdom drew its 8 territories but the Territoire/Patrouille
+        # salon views were never pinned — Gaïa has no civs, its slice
+        # only carries the territory/patrol state views).
+        if str(kingdom.validation) == "approved":
             await _deploy_realm_content_safe(guild, kingdom)
     await _refresh_realms_panel_safe(guild, locale)
 
