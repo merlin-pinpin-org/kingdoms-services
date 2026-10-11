@@ -280,6 +280,24 @@ STRINGS: dict[str, dict[str, Any]] = {
             " — treasury left: {} 🔬"
         ),
         "market_err_unknown": "❌ Purchase refused ({}).",
+        "market_arranged_token_ok": (
+            "💒 Arranged-marriage token bought — stock: {}. Consume it at the Parish."
+        ),
+        "market_err_no_points": "❌ The kingdom holds no marriage point.",
+        "market_err_no_token": (
+            "❌ No arranged marriage in stock — buy a token at the Market."
+        ),
+        "church_marry_intro": "👰 Choose the civilization of your marriage:",
+        "church_marry_ok": (
+            "💍 Marriage sealed: **{0}** — lock {1}h, Offrande +{2} 🔬."
+        ),
+        "church_marry_kingdom_none": "You belong to no kingdom of the season.",
+        "church_arrange_king_only": "Only the King consumes an arranged marriage.",
+        "church_upgrade_king_only": "Only the King upgrades the Parish.",
+        "church_upgrade_ok": (
+            "⛪ Parish upgraded: **{0}** (tier {1}/{2}) — treasury left: {3} 🔬"
+        ),
+        "church_upgrade_max": "❌ The Parish already sits at the top tier.",
         "market_choose_corrupt": "🎯 Choose the territory to corrupt:",
         "market_choose_guard": "🛡️ Choose the territory to shield:",
         "market_no_options": "No option is available right now.",
@@ -434,6 +452,24 @@ STRINGS: dict[str, dict[str, Any]] = {
             " — trésor restant : {} 🔬"
         ),
         "market_err_unknown": "❌ Achat refusé ({}).",
+        "market_arranged_token_ok": (
+            "💒 Mariage arrangé acheté — stock : {}. Consommez-le à la Paroisse."
+        ),
+        "market_err_no_points": "❌ Le royaume ne détient plus de point de mariage.",
+        "market_err_no_token": (
+            "❌ Aucun mariage arrangé en stock — achetez un jeton au Marché."
+        ),
+        "church_marry_intro": "👰 Choisissez la civilisation de votre mariage :",
+        "church_marry_ok": (
+            "💍 Mariage scellé : **{0}** — verrou {1}h, Offrande +{2} 🔬."
+        ),
+        "church_marry_kingdom_none": "Tu n'appartiens à aucun royaume de la saison.",
+        "church_arrange_king_only": "Seul le Roi consomme un mariage arrangé.",
+        "church_upgrade_king_only": "Seul le Roi améliore la Paroisse.",
+        "church_upgrade_ok": (
+            "⛪ Paroisse améliorée : **{0}** (palier {1}/{2}) — trésorerie restante : {3} 🔬"
+        ),
+        "church_upgrade_max": "❌ La Paroisse est déjà au palier maximal.",
         "market_choose_corrupt": "🎯 Choisissez le territoire à corrompre :",
         "market_choose_guard": "🛡️ Choisissez le territoire à protéger :",
         "market_no_options": "Aucune option disponible pour le moment.",

@@ -19,6 +19,7 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import Any
 
 import discord
@@ -115,6 +116,9 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomKingNameButton,
         KingdomKingClaimSelect,
         KingdomTimeButton,
+        KingdomChurchMarryButton,
+        KingdomChurchArrangeButton,
+        KingdomChurchUpgradeButton,
     )
 
 
@@ -475,6 +479,8 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         AlreadyMarriedError,
         MarriageError,
         MarriageExclusivityError,
+        NoArrangedTokenError,
+        NoMarriagePointsError,
     )
     from kingdoms.mods.kingdoms.economy import (
         EconomyLimitReachedError,
@@ -482,21 +488,33 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         InsufficientPointsError,
         TerritoryProtectedError,
     )
+    from kingdoms.mods.kingdoms.service import (
+        ParishInsufficientTechError,
+        ParishMaxTierError,
+    )
 
-    if isinstance(exc, (InsufficientPointsError, InsufficientTechPointsError)):
-        return str(strings["market_err_insufficient"])
-    if isinstance(exc, (EconomyLimitReachedError, TechnologyLimitReachedError)):
-        return str(strings["market_err_limit"])
-    if isinstance(exc, TerritoryProtectedError):
-        return str(strings["market_err_protected"])
-    if isinstance(exc, GuardAlreadyActiveError):
-        return str(strings["market_err_guard_active"])
-    if isinstance(exc, AlreadyMarriedError):
-        return str(strings["market_err_already_married"])
-    if isinstance(exc, MarriageExclusivityError):
-        return str(strings["market_err_civ_taken"])
-    if isinstance(exc, MarriageError):
-        return str(strings["market_err_civ_unknown"])
+    cases: tuple[tuple[tuple[type[Exception], ...], str], ...] = (
+        (
+            (
+                InsufficientPointsError,
+                InsufficientTechPointsError,
+                ParishInsufficientTechError,
+            ),
+            "market_err_insufficient",
+        ),
+        ((EconomyLimitReachedError, TechnologyLimitReachedError), "market_err_limit"),
+        ((TerritoryProtectedError,), "market_err_protected"),
+        ((GuardAlreadyActiveError,), "market_err_guard_active"),
+        ((AlreadyMarriedError,), "market_err_already_married"),
+        ((MarriageExclusivityError,), "market_err_civ_taken"),
+        ((NoMarriagePointsError,), "market_err_no_points"),
+        ((NoArrangedTokenError,), "market_err_no_token"),
+        ((ParishMaxTierError,), "church_upgrade_max"),
+        ((MarriageError,), "market_err_civ_unknown"),
+    )
+    for errors, key in cases:
+        if isinstance(exc, errors):
+            return str(strings[key])
     logger.warning("KINGDOMS MARKET: purchase failed", exc_info=True)
     return str(strings["market_err_unknown"]).format(type(exc).__name__)
 
@@ -707,12 +725,10 @@ async def _market_marry_civ_view(
         if not chosen:
             return
         await target.response.defer(ephemeral=True)
-
-        async def spend(_lord_id: str, cost: int) -> None:
-            await economy.spend_points(kingdom_id, cost)
-
         try:
-            await diplomacy.arranged_marriage(lord_id, chosen[0], spend_points=spend)
+            # D60/D74: consumes ONE token of the kingdom's stock — the
+            # token was bought at the Marché; no payment happens here.
+            await diplomacy.arranged_marriage(lord_id, chosen[0])
         except Exception as exc:
             await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
             return
@@ -870,15 +886,26 @@ class KingdomMarketActionButton(
             )
             return
         if self.action == "mariage_arrange":
-            # D60/D74: the King picks the lord, then the civilization.
-            marry_view = await _market_marry_lord_view(wiring, king, strings)
-            if marry_view is None:
-                await interaction.response.send_message(
-                    strings["market_no_options"], ephemeral=True
+            # D60 (2026-10-11): the Marché SELLS the token (3 🔬) — the
+            # marriage itself is consumed at the Paroisse button.
+            await interaction.response.defer(ephemeral=True)
+            try:
+                kingdom = await wiring.economy_service.buy_arranged_marriage_token(
+                    king.kingdom_id or ""
+                )
+            except Exception as exc:
+                await interaction.followup.send(
+                    _market_error_note(exc, strings), ephemeral=True
                 )
                 return
-            await interaction.response.send_message(
-                strings["market_choose_lord"], view=marry_view, ephemeral=True
+            await interaction.followup.send(
+                strings["market_arranged_token_ok"].format(
+                    int(getattr(kingdom, "arranged_marriage_stock", 0) or 0)
+                ),
+                ephemeral=True,
+            )
+            await _refresh_realm_views_for_kingdom_safe(
+                interaction.guild, king.kingdom_id or ""
             )
             return
         view = await _market_action_select_view(wiring, king, self.action, strings)
@@ -890,6 +917,337 @@ class KingdomMarketActionButton(
             "garde_royale": strings["market_choose_guard"],
         }[self.action]
         await interaction.response.send_message(prompt, view=view, ephemeral=True)
+
+
+async def _lord_of(kingdoms_service: Any, user_id: str) -> Any | None:
+    """Return the active lord record of the user (any role, None otherwise)."""
+    if kingdoms_service is None:
+        return None
+    try:
+        lords = await kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOMS PARISH: lord lookup failed", exc_info=True)
+        return None
+    return next(
+        (item for item in lords if str(item.id) == str(user_id) and not item.left),
+        None,
+    )
+
+
+async def _kingdom_by_id_safe(kingdoms_service: Any, kingdom_id: str) -> Any | None:
+    """Return the kingdom document behind a defensive lookup (None on failure)."""
+    if kingdoms_service is None or not kingdom_id:
+        return None
+    try:
+        return next(
+            (k for k in await kingdoms_service.kingdoms() if str(k.id) == str(kingdom_id)),
+            None,
+        )
+    except Exception:
+        logger.warning("KINGDOMS PARISH: kingdom lookup failed", exc_info=True)
+        return None
+
+
+def _parish_tier_of(kingdoms_service: Any, kingdom: Any) -> Any:
+    """Return the parish palier entry of a kingdom (defensive default)."""
+    settings = getattr(getattr(kingdoms_service, "config", None), "parish", None)
+    if settings is None:
+        return SimpleNamespace(marriage_lock_hours=24, offering=0, display_name="Chapelle")
+    return settings.tier(getattr(kingdom, "parish_tier", 1))
+
+
+async def _church_marry_civ_view(
+    wiring: KingdomsPanelWiring,
+    lord: Any,
+    kingdom: Any,
+    strings: dict[str, Any],
+) -> discord.ui.View | None:
+    """Build the ephemeral civilization select of the standard marriage (D59).
+
+    Every bachelor lord of the kingdom marries THEMSELVES (Drasah's
+    2026-10-11 rule): the options are the kingdom's playable hand
+    minus every civilization already claimed by an active marriage
+    (exclusivity D74, all kingdoms).
+    """
+    if wiring.diplomacy_service is None or wiring.kingdoms_service is None:
+        return None
+    married = {
+        str(item.married_civilization)
+        for item in await wiring.kingdoms_service.lords()
+        if getattr(item, "married_civilization", None) is not None
+    }
+    catalog = getattr(getattr(wiring.kingdoms_service, "config", None), "civilizations", ()) or ()
+    options = [
+        discord.SelectOption(
+            label=str(getattr(civ, "display_name", civ.key))[:100],
+            value=str(civ.key)[:100],
+        )
+        for civ in catalog
+        if str(civ.key) in {str(c) for c in kingdom.civilizations}
+        and str(civ.key) not in married
+    ][:25]
+    if not options:
+        return None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id=f"kingdoms:church:marryciv:{str(lord.id)[:80]}",
+        placeholder=strings["church_marry_intro"][:100],
+        options=options,
+    )
+    diplomacy = wiring.diplomacy_service
+    kingdoms_service = wiring.kingdoms_service
+    kingdom_id = str(kingdom.id)
+    tier = _parish_tier_of(kingdoms_service, kingdom)
+    civ_names = {str(civ.key): str(getattr(civ, "display_name", civ.key)) for civ in catalog}
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await target.response.defer(ephemeral=True)
+        try:
+            await diplomacy.marry(str(lord.id), chosen[0])
+        except Exception as exc:
+            await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        await target.followup.send(
+            strings["church_marry_ok"].format(
+                civ_names.get(chosen[0], chosen[0]),
+                int(tier.marriage_lock_hours),
+                int(tier.offering),
+            ),
+            ephemeral=True,
+        )
+        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
+class KingdomChurchMarryButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:church:marry",
+):
+    """The restart-proof 💍 Se marier button of the pinned Paroisse view.
+
+    Every bachelor lord marries themselves (Drasah's rule): the button
+    opens the civilization select of the kingdom's available hand.
+    Consumes one point de mariage (D59) and credits the Offrande of
+    the current palier (D64).
+    """
+
+    def __init__(self, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["church_marry_button"])[:80],
+                custom_id="kingdoms:church:marry",
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomChurchMarryButton:
+        """Rebuild the marry button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the civilization select for the clicking bachelor lord."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None or wiring.diplomacy_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or lord.kingdom_id is None:
+            await interaction.response.send_message(
+                strings["church_marry_kingdom_none"], ephemeral=True
+            )
+            return
+        kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, str(lord.kingdom_id))
+        if kingdom is None:
+            await interaction.response.send_message(
+                strings["church_marry_kingdom_none"], ephemeral=True
+            )
+            return
+        view = await _church_marry_civ_view(wiring, lord, kingdom, strings)
+        if view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        await interaction.response.send_message(
+            strings["church_marry_intro"], view=view, ephemeral=True
+        )
+
+
+class KingdomChurchArrangeButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:church:arrange",
+):
+    """The restart-proof 💒 Mariage arrangé button of the Paroisse view.
+
+    Shown from the Église palier (2/3): the King consumes ONE token of
+    the kingdom's arranged-marriage stock (bought at the Marché, D60)
+    — pick the bachelor lord, then the civilization.
+    """
+
+    def __init__(self, strings: dict[str, Any], stock: int) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["church_arrange_button"]).format(stock)[:80],
+                custom_id="kingdoms:church:arrange",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomChurchArrangeButton:
+        """Rebuild the arrange button (stock looked up best-effort)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        stock = 0
+        wiring = _wiring()
+        if wiring.kingdoms_service is not None:
+            king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+            if king is not None and king.kingdom_id:
+                kingdom = await _kingdom_by_id_safe(
+                    wiring.kingdoms_service, str(king.kingdom_id)
+                )
+                if kingdom is not None:
+                    stock = int(getattr(kingdom, "arranged_marriage_stock", 0) or 0)
+        return cls(strings, stock)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the lord select of the arranged marriage (King only)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None or wiring.diplomacy_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(
+                strings["church_arrange_king_only"], ephemeral=True
+            )
+            return
+        marry_view = await _market_marry_lord_view(wiring, king, strings)
+        if marry_view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        await interaction.response.send_message(
+            strings["market_choose_lord"], view=marry_view, ephemeral=True
+        )
+
+
+class KingdomChurchUpgradeButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:church:upgrade",
+):
+    """The restart-proof ⛪ Améliorer button of the Paroisse view.
+
+    Direct always-succeeds buy (D64): pays the next palier's cost from
+    the treasury — Chapelle → Église (2 🔬) → Cathédrale (4 🔬, Drasah
+    2026-10-11 values). King only.
+    """
+
+    def __init__(self, strings: dict[str, Any], next_name: str, cost: int) -> None:
+        if next_name:
+            label = str(strings["church_upgrade_button"]).format(next_name, cost)[:80]
+            disabled = False
+        else:
+            label = str(strings["church_upgrade_max"])[:80]
+            disabled = True
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                custom_id="kingdoms:church:upgrade",
+                style=discord.ButtonStyle.success,
+                disabled=disabled,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomChurchUpgradeButton:
+        """Rebuild the upgrade button (palier looked up best-effort)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        next_name, cost = "", 0
+        if wiring.kingdoms_service is not None:
+            king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+            if king is not None and king.kingdom_id:
+                kingdom = await _kingdom_by_id_safe(
+                    wiring.kingdoms_service, str(king.kingdom_id)
+                )
+                if kingdom is not None:
+                    settings = getattr(
+                        getattr(wiring.kingdoms_service, "config", None), "parish", None
+                    )
+                    if settings is not None:
+                        tier = int(getattr(kingdom, "parish_tier", 1) or 1)
+                        tiers = settings.tiers
+                        if tier < len(tiers):
+                            next_name = str(tiers[tier].display_name)
+                            cost = int(tiers[tier].cost)
+        return cls(strings, next_name, cost)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Pay the next palier and re-render the Paroisse view."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(
+                strings["church_upgrade_king_only"], ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            kingdom = await wiring.kingdoms_service.upgrade_parish(str(king.kingdom_id))
+        except Exception as exc:
+            await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        wallet = int(getattr(kingdom, "tech_points_bank", 0) or 0)
+        tier = _parish_tier_of(wiring.kingdoms_service, kingdom)
+        tiers = getattr(
+            getattr(wiring.kingdoms_service, "config", None), "parish", SimpleNamespace(tiers=())
+        ).tiers
+        max_tier = len(tiers)
+        await interaction.followup.send(
+            strings["church_upgrade_ok"].format(
+                str(getattr(tier, "display_name", "")),
+                int(getattr(kingdom, "parish_tier", 1) or 1),
+                max_tier or 3,
+                wallet,
+            ),
+            ephemeral=True,
+        )
+        await _refresh_realm_views_for_kingdom_safe(interaction.guild, str(kingdom.id))
 
 
 async def _revoke_kingdoms_roles(guild: discord.Guild | None, user_id: str) -> None:
