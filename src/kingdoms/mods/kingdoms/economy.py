@@ -136,6 +136,29 @@ class EconomyService:
         """Return the kingdom's current tech-point balance."""
         return (await self._kingdom_by_id(kingdom_id)).tech_points_bank
 
+    async def buy_arranged_marriage_token(self, kingdom_id: str) -> KingdomModel:
+        """Buy one arranged-marriage token for the Paroisse (D60, 2026-10-11).
+
+        The Marché no longer celebrates the marriage itself: the King
+        buys a token here (cost = ``technologies.mariage_arrange``, 3
+        🔬), the kingdom's ``arranged_marriage_stock`` grows by one and
+        the token is consumed at the Paroisse button. Payment first,
+        token second — a refused purchase never grants a token.
+        """
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        cost = self._cost("mariage_arrange")
+        await self.spend_points(kingdom_id, cost)
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        kingdom.arranged_marriage_stock += 1
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info(
+            "kingdoms: %s bought an arranged-marriage token (%s techs, stock=%s)",
+            kingdom_id,
+            cost,
+            kingdom.arranged_marriage_stock,
+        )
+        return kingdom
+
     async def buy_combat_technology(self, kingdom_id: str, technology: str) -> object:
         """Buy a combat technology through the single wallet (D9/D36).
 

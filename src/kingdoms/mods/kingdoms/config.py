@@ -193,6 +193,44 @@ class ShowMatchSettings(BaseModel):
     wins_needed: int = Field(default=2, ge=1)
 
 
+class ParishTier(BaseModel):
+    """One Paroisse palier (D64, Drasah's 2026-10-11 values).
+
+    ``cost`` is the tech-point price of the upgrade TO this palier (0
+    for the starting Chapelle), ``marriage_lock_hours`` the combat lock
+    of a fresh standard marriage at this palier, ``offering`` the
+    Offrande — tech points credited to the treasury at every marriage
+    celebrated at this palier or above.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    key: str
+    display_name: str
+    cost: int = Field(default=0, ge=0)
+    marriage_lock_hours: int = Field(default=24, ge=0)
+    offering: int = Field(default=0, ge=0)
+
+
+class ParishSettings(BaseModel):
+    """The three-palier Paroisse ladder + its refill knobs (D64/D59)."""
+
+    model_config = ConfigDict(strict=True)
+
+    tiers: tuple[ParishTier, ...] = (
+        ParishTier(key="chapelle", display_name="Chapelle", cost=0, marriage_lock_hours=24, offering=0),
+        ParishTier(key="eglise", display_name="Église", cost=2, marriage_lock_hours=12, offering=1),
+        ParishTier(key="cathedrale", display_name="Cathédrale", cost=4, marriage_lock_hours=6, offering=2),
+    )
+    lords_day_points: int = Field(default=1, ge=0)
+    """Marriage points granted at every Lord's Day (Chapelle bonus, D64)."""
+
+    def tier(self, level: int) -> ParishTier:
+        """Return the palier entry of a level (1-3, clamped)."""
+        index = min(max(int(level), 1), len(self.tiers)) - 1
+        return self.tiers[index]
+
+
 class KingdomsSeasonConfig(BaseModel):
     """Full season configuration.
 
@@ -216,6 +254,7 @@ class KingdomsSeasonConfig(BaseModel):
     showmatch: ShowMatchSettings = Field(default_factory=ShowMatchSettings)
     names: NameRules = Field(default_factory=NameRules)
     technologies: TechnologyCosts = Field(default_factory=TechnologyCosts)
+    parish: ParishSettings = Field(default_factory=ParishSettings)
     attacks: AttackSettings = Field(default_factory=AttackSettings)
     events: EventSettings = Field(default_factory=EventSettings)
 

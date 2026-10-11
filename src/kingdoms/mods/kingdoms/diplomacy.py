@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -69,6 +68,20 @@ class MarriageExclusivityError(MarriageError):
 
     code = "KINGDOMS_MARRIAGE_EXCLUSIVITY"
     message_key = "kingdoms.errors.marriage_exclusivity"
+
+
+class NoMarriagePointsError(MarriageError):
+    """Raised when the kingdom holds no marriage point (D59)."""
+
+    code = "KINGDOMS_NO_MARRIAGE_POINTS"
+    message_key = "kingdoms.errors.no_marriage_points"
+
+
+class NoArrangedTokenError(MarriageError):
+    """Raised when the kingdom holds no arranged-marriage token (D60)."""
+
+    code = "KINGDOMS_NO_ARRANGED_TOKEN"
+    message_key = "kingdoms.errors.no_arranged_token"
 
 
 class DiplomacyService:
@@ -222,12 +235,14 @@ class DiplomacyService:
     ) -> str:
         """Marry a lord to a civilization (D34: one marriage per lord).
 
-        The kingdom's capacity (grown by the epochs, D53) bounds the
-        marriages; the civilization becomes secured for the kingdom.
-        The exclusivity is common to every marriage (D74): a
-        civilization already claimed by an active marriage - any
-        kingdom - is never targeted twice. A fresh marriage locks the
-        lord out of combat for 24 real hours (D59).
+        The marriage costs ONE point de mariage of the kingdom's
+        consumable stock (D59 — a currency, not a slot); the combat
+        lock follows the Paroisse palier (24h Chapelle / 12h Église /
+        6h Cathédrale, D64) and the Offrande of the palier credits the
+        treasury at the celebration (Drasah 2026-10-11: +1 🔬 Église,
+        +2 🔬 Cathédrale). The exclusivity is common to every marriage
+        (D74): a civilization already claimed by an active marriage -
+        any kingdom - is never targeted twice.
         """
         timestamp = now or datetime.now(tz=UTC)
         season = await self._require_season()
@@ -244,11 +259,10 @@ class DiplomacyService:
         if lord.kingdom_id is None:
             raise MarriageCapacityError("the lord belongs to no kingdom")
         kingdom = await self._kingdom_by_id(lord.kingdom_id)
-        married = await self._kingdom_marriages_async(kingdom.id)
-        if married >= kingdom.marriage_capacity:
-            raise MarriageCapacityError("the kingdom reached its marriage capacity")
+        if kingdom.marriage_points < 1:
+            raise NoMarriagePointsError("the kingdom holds no marriage point (D59)")
         await self._check_exclusivity(civilization)
-        await self._commit_marriage(lord, kingdom, civilization, hours=24, now=timestamp)
+        await self._commit_marriage(lord, kingdom, civilization, now=timestamp)
         logger.info("kingdoms: %s married %s", player_id, civilization)
         return civilization
 
@@ -258,19 +272,18 @@ class DiplomacyService:
         civilization: str,
         *,
         now: datetime | None = None,
-        spend_points: Callable[[str, int], Awaitable[None]] | None = None,
     ) -> str:
-        """Buy an arranged marriage (3 techs, D60/D74): instant exclusivity.
+        """Consume an arranged-marriage token (D60/D74): instant exclusivity.
 
-        The exclusivity is instant - the civilization is reserved to
-        the kingdom right away - and the marriage capacity does NOT
-        bind (D74: the stock is never consumed); the one-marriage-per-
-        lord rule still applies (D45: never bypassed). Every check
-        runs before the payment so a refused marriage never debits the
-        treasury. A fresh arranged marriage locks the lord out of
-        combat for 6 real hours (D60). The caller passes the
-        ``spend_points`` seam (the economy service) so the cost lands
-        in the same transaction scope.
+        The token was bought at the Marché (3 techs, D60) and lives in
+        the kingdom's ``arranged_marriage_stock``; this call consumes
+        ONE token. The exclusivity is instant - the civilization is
+        reserved to the kingdom right away - and the marriage points
+        do NOT bind (D74: the stock is never consumed); the
+        one-marriage-per-lord rule still applies (D45: never
+        bypassed). Every check runs before the token is spent. A fresh
+        arranged marriage locks the lord out of combat for 6 real
+        hours (D60).
         """
         timestamp = now or datetime.now(tz=UTC)
         self._check_civilization(civilization)
@@ -285,9 +298,10 @@ class DiplomacyService:
         if lord.kingdom_id is None or lord.left:
             raise MarriageCapacityError("the lord belongs to no kingdom")
         kingdom = await self._kingdom_by_id(lord.kingdom_id)
+        if kingdom.arranged_marriage_stock < 1:
+            raise NoArrangedTokenError("the kingdom holds no arranged-marriage token")
         await self._check_exclusivity(civilization)
-        if spend_points is not None:
-            await spend_points(player_id, self._config.technologies.mariage_arrange)
+        kingdom.arranged_marriage_stock -= 1
         await self._commit_marriage(lord, kingdom, civilization, hours=6, now=timestamp)
         logger.info("kingdoms: %s arranged-married %s", player_id, civilization)
         return civilization
@@ -306,12 +320,30 @@ class DiplomacyService:
         kingdom: KingdomModel,
         civilization: str,
         *,
-        hours: int,
+        hours: int | None = None,
         now: datetime,
     ) -> None:
-        """Persist one marriage: secured civ, playable list, combat lock."""
+        """Persist one marriage: point consumed, Offrande, secured civ, lock.
+
+        ``hours=None`` means a standard marriage: the lock follows the
+        Paroisse palier (D64) and ONE marriage point is consumed plus
+        the palier's Offrande credited to the treasury. ``hours`` set
+        (arranged) never touches the marriage points nor the Offrande.
+        """
+        tier = self._config.parish.tier(getattr(kingdom, "parish_tier", 1))
+        lock_hours = tier.marriage_lock_hours if hours is None else hours
+        if hours is None:
+            kingdom.marriage_points -= 1
+            if tier.offering > 0:
+                kingdom.tech_points_bank += tier.offering
+                logger.info(
+                    "kingdoms: Offrande - %s +%s tech (marriage of %s)",
+                    kingdom.id,
+                    tier.offering,
+                    lord.id,
+                )
         lord.married_civilization = civilization
-        lord.marriage_locked_until = int((now + timedelta(hours=hours)).timestamp())
+        lord.marriage_locked_until = int((now + timedelta(hours=lock_hours)).timestamp())
         await self._store.upsert_lord(lord.to_mongo())
         if civilization not in kingdom.secured_civilizations:
             kingdom.secured_civilizations = [*kingdom.secured_civilizations, civilization]

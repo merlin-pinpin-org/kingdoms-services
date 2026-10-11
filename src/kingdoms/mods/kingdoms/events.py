@@ -229,6 +229,15 @@ class EventService:
         recharged = await self._attacks.recharge_weekly_budgets()
         season.current_cycle += 1
         await self._store.upsert_season(season.to_mongo())
+        marriage_points = 0
+        for kingdom in await self._kingdoms.kingdoms():
+            if kingdom.is_gaia:
+                continue
+            # D59/D64: every Lord's Day the Chapelle grants marriage points.
+            granted = self._config.parish.lords_day_points
+            kingdom.marriage_points += granted
+            marriage_points += granted
+            await self._store.upsert_kingdom(kingdom.to_mongo())
         gaia = next((k for k in await self._kingdoms.kingdoms() if k.is_gaia), None)
         added: list[str] = []
         if gaia is not None and self._config.events.lords_day_new_maps > 0:
@@ -251,6 +260,7 @@ class EventService:
         return {
             "cycle": season.current_cycle,
             "recharged_budgets": recharged,
+            "marriage_points": marriage_points,
             "gaia_new_maps": added,
             "gaia_kingdom_id": gaia.id if gaia is not None else None,
             "alliances_recomputed": alliances,
@@ -282,6 +292,8 @@ class EventService:
                 continue
             kingdom.tech_points_bank += epoch.tech_points
             kingdom.marriage_capacity += epoch.extra_marriages
+            # D59: « +1 mariage » per epoch = a marriage point (currency).
+            kingdom.marriage_points += epoch.extra_marriages
             await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info(
             "kingdoms: age switched to %s (+%s tech, +%s marriages)",
@@ -324,6 +336,7 @@ class EventService:
             kingdom.marriage_capacity = max(
                 0, kingdom.marriage_capacity - granted.extra_marriages
             )
+            kingdom.marriage_points = max(0, kingdom.marriage_points - granted.extra_marriages)
             await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info(
             "kingdoms: age rolled back to %s (-%s tech, -%s marriages)",

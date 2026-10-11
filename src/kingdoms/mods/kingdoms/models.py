@@ -79,6 +79,17 @@ class KingdomModel(BaseModel):
     civilizations: list[str] = Field(default_factory=list)
     secured_civilizations: list[str] = Field(default_factory=list)
     tech_points_bank: int = Field(default=0, ge=0)
+    parish_tier: int = Field(default=1, ge=1, le=3)
+    """The Paroisse palier (D64): 1 Chapelle, 2 Église, 3 Cathédrale."""
+    marriage_points: int = Field(default=1, ge=0)
+    """Points de mariage (D59): consumable stock — one per standard marriage.
+
+    Refilled +1 at every epoch switch and at every Lord's Day (Chapelle
+    bonus, D64); the arranged marriage never consumes any (D74).
+    """
+    arranged_marriage_stock: int = Field(default=0, ge=0)
+    """Jeton(s) de mariage arrangé bought at the Marché (3 🔬 each, D60),
+    consumed at the Paroisse button — never from the marriage points."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
