@@ -497,8 +497,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'attacker_kingdom_id': FieldInfo(annotation=str, required=True), 'attacker_lord_id': FieldInfo(annotation=str, required=True), 'declared_at': FieldInfo(annotation=datetime, required=True), 'defender_kingdom_id': FieldInfo(annotation=str, required=True), 'defender_lord_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'effects': FieldInfo(annotation=dict[str, Any], required=False, default_factory=dict), 'expires_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'kind': FieldInfo(annotation=AttackKind, required=True), 'lobby_url': FieldInfo(annotation=str, required=False, default=''), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -507,7 +505,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...   name: "AttackModel",
     },
 ), definitions=[])</dl>
 
@@ -611,7 +610,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="AttackModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -636,12 +635,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="AttackModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -666,7 +664,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -1350,8 +1347,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'civilizations': FieldInfo(annotation=dict[str, str], required=False, default_factory=dict), 'format': FieldInfo(annotation=str, required=False, default='1v1'), 'index': FieldInfo(annotation=int, required=True), 'map_key': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'side_a': FieldInfo(annotation=list[str], required=False, default_factory=list), 'side_b': FieldInfo(annotation=list[str], required=False, default_factory=list), 'winner_side': FieldInfo(annotation=Union[str, NoneType], required=False, default=None)}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -1360,7 +1355,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...     name: "DuelModel",
     },
 ), definitions=[])</dl>
 
@@ -1464,7 +1460,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="DuelModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -1489,12 +1485,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="DuelModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -1519,7 +1514,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -1810,8 +1804,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'marriage_capacity': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'name': FieldInfo(annotation=str, required=True), 'name_approved': FieldInfo(annotation=bool, required=False, default=True), 'season_id': FieldInfo(annotation=str, required=True), 'secured_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'tech_points_bank': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'type': FieldInfo(annotation=KingdomType, required=True), 'validation': FieldInfo(annotation=KingdomValidation, required...default=&lt;KingdomValidation.APPROVED: 'approved'&gt;)}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -1820,7 +1812,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...  name: "KingdomModel",
     },
 ), definitions=[])</dl>
 
@@ -1924,7 +1917,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="KingdomModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -1949,12 +1942,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="KingdomModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -1979,7 +1971,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -3051,8 +3042,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'attack_used': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'defense_used': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'display_name': FieldInfo(annotation=str, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'in_queue': FieldInfo(annotation=bool, required=False, default=False), 'kingdom_id': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'left': FieldInfo(annotation=bool, required=False, default=False), 'left_reason': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'marriage_locked_until': FieldInfo(annotation=Union[int, NoneType], required=False, default=None), 'married_civilization': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -3061,7 +3050,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...     name: "LordModel",
     },
 ), definitions=[])</dl>
 
@@ -3165,7 +3155,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="LordModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="LordModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -3190,12 +3180,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="LordModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="LordModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -3220,7 +3209,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -3848,7 +3836,7 @@ is&nbsp;a&nbsp;read-only&nbsp;view&nbsp;of&nbsp;the&nbsp;internal&nbsp;mapping.<
 <td class="section-title" colspan=3>&nbsp;<br><a name="SeasonState">class <strong>SeasonState</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonState">SeasonState</a>(*,&nbsp;_id:&nbsp;str,&nbsp;started_at:&nbsp;datetime.datetime,&nbsp;weeks:&nbsp;Annotated[int,&nbsp;Ge(ge=1)],&nbsp;current_cycle:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;current_age_key:&nbsp;str,&nbsp;imposed_kingdoms:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;phase:&nbsp;str&nbsp;=&nbsp;'started',&nbsp;out_maps:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;finished:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;winner_kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;pending_marriage_losses:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SeasonState">SeasonState</a>(*,&nbsp;_id:&nbsp;str,&nbsp;started_at:&nbsp;datetime.datetime,&nbsp;weeks:&nbsp;Annotated[int,&nbsp;Ge(ge=1)],&nbsp;current_cycle:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;current_age_key:&nbsp;str,&nbsp;imposed_kingdoms:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;phase:&nbsp;str&nbsp;=&nbsp;'started',&nbsp;out_maps:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;finished:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;winner_kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;lords_day_forced_start:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;lords_day_forced_end:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;pending_marriage_losses:&nbsp;list[str]&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 The&nbsp;current&nbsp;season:&nbsp;its&nbsp;schedule&nbsp;and&nbsp;progression&nbsp;(D1,&nbsp;D38,&nbsp;D52).<br>
 &nbsp;<br>
@@ -3877,7 +3865,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'current_age_key': 'str', 'current_cycle': 'int', 'finished': 'bool', 'id': 'str', 'imposed_kingdoms': 'bool', 'out_maps': 'list[str]', 'pending_marriage_losses': 'list[str]', 'phase': 'str', 'started_at': 'datetime', 'weeks': 'int', ...}</dl>
+<dl><dt><strong>__annotations__</strong> = {'current_age_key': 'str', 'current_cycle': 'int', 'finished': 'bool', 'id': 'str', 'imposed_kingdoms': 'bool', 'lords_day_forced_end': 'datetime | None', 'lords_day_forced_start': 'datetime | None', 'out_maps': 'list[str]', 'pending_marriage_losses': 'list[str]', 'phase': 'str', ...}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -3887,15 +3875,13 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.SeasonState'&gt;, 'config': {'strict': True, 'title': 'SeasonState'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ass 'kingdoms.mods.kingdoms.models.SeasonState'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.SeasonState:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'current_age_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'current_cycle': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'finished': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'imposed_kingdoms': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'out_maps': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'pending_marriage_losses': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'phase': {'metadata': {}, 'schema': {'default': 'started', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, 'started_at': {'metadata': {}, 'schema': {'microseconds_precision': 'truncate', 'type': 'datetime'}, 'type': 'model-field'}, 'weeks': {'metadata': {}, 'schema': {'ge': 1, 'type': 'int'}, 'type': 'model-field'}, ...}, 'model_name': 'SeasonState', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.SeasonState'&gt;, 'config': {'strict': True, 'title': 'SeasonState'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...ass 'kingdoms.mods.kingdoms.models.SeasonState'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.SeasonState:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'current_age_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'current_cycle': {'metadata': {}, 'schema': {'default': 0, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'finished': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'imposed_kingdoms': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'lords_day_forced_end': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'lords_day_forced_start': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'out_maps': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'pending_marriage_losses': {'metadata': {}, 'schema': {'default_factory': &lt;class 'list'&gt;, 'default_factory_takes_data': False, 'schema': {'items_schema': {...}, 'type': 'list'}, 'type': 'default'}, 'type': 'model-field'}, 'phase': {'metadata': {}, 'schema': {'default': 'started', 'schema': {'type': 'str'}, 'type': 'default'}, 'type': 'model-field'}, ...}, 'model_name': 'SeasonState', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
-<dl><dt><strong>__pydantic_fields__</strong> = {'current_age_key': FieldInfo(annotation=str, required=True), 'current_cycle': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'finished': FieldInfo(annotation=bool, required=False, default=False), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'imposed_kingdoms': FieldInfo(annotation=bool, required=False, default=False), 'out_maps': FieldInfo(annotation=list[str], required=False, default_factory=list), 'pending_marriage_losses': FieldInfo(annotation=list[str], required=False, default_factory=list), 'phase': FieldInfo(annotation=str, required=False, default='started'), 'started_at': FieldInfo(annotation=datetime, required=True), 'weeks': FieldInfo(annotation=int, required=True, metadata=[Ge(ge=1)]), ...}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'current_age_key': FieldInfo(annotation=str, required=True), 'current_cycle': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'finished': FieldInfo(annotation=bool, required=False, default=False), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'imposed_kingdoms': FieldInfo(annotation=bool, required=False, default=False), 'lords_day_forced_end': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'lords_day_forced_start': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'out_maps': FieldInfo(annotation=list[str], required=False, default_factory=list), 'pending_marriage_losses': FieldInfo(annotation=list[str], required=False, default_factory=list), 'phase': FieldInfo(annotation=str, required=False, default='started'), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -3903,7 +3889,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...   name: "SeasonState",
     },
 ), definitions=[])</dl>
 
@@ -4007,7 +3994,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="SeasonState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -4032,12 +4019,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="SeasonState-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -4062,7 +4048,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -4298,7 +4283,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'current_age_key': FieldInfo(annotation=str, required=True), 'current_cycle': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'finished': FieldInfo(annotation=bool, required=False, default=False), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'imposed_kingdoms': FieldInfo(annotation=bool, required=False, default=False), 'out_maps': FieldInfo(annotation=list[str], required=False, default_factory=list), 'pending_marriage_losses': FieldInfo(annotation=list[str], required=False, default_factory=list), 'phase': FieldInfo(annotation=str, required=False, default='started'), 'started_at': FieldInfo(annotation=datetime, required=True), 'weeks': FieldInfo(annotation=int, required=True, metadata=[Ge(ge=1)]), ...}</dl>
+<dl><dt><strong>model_fields</strong> = {'current_age_key': FieldInfo(annotation=str, required=True), 'current_cycle': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'finished': FieldInfo(annotation=bool, required=False, default=False), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'imposed_kingdoms': FieldInfo(annotation=bool, required=False, default=False), 'lords_day_forced_end': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'lords_day_forced_start': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'out_maps': FieldInfo(annotation=list[str], required=False, default_factory=list), 'pending_marriage_losses': FieldInfo(annotation=list[str], required=False, default_factory=list), 'phase': FieldInfo(annotation=str, required=False, default='started'), ...}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -4352,8 +4337,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'duels': FieldInfo(annotation=list[DuelModel], required=False, default_factory=list), 'finished': FieldInfo(annotation=bool, required=False, default=False), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'kingdom_a': FieldInfo(annotation=str, required=True), 'kingdom_b': FieldInfo(annotation=str, required=True), 'score_a': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'score_b': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)]), 'season_id': FieldInfo(annotation=str, required=True), 'used_civilizations': FieldInfo(annotation=list[str], required=False, default_factory=list), 'used_map_keys': FieldInfo(annotation=list[str], required=False, default_factory=list), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -4362,7 +4345,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...name: "ShowMatchModel",
     },
 ), definitions=[])</dl>
 
@@ -4466,7 +4450,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="ShowMatchModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -4491,12 +4475,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="ShowMatchModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -4521,7 +4504,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -4818,8 +4800,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'kingdom_id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'purchases': FieldInfo(annotation=dict[str, int], required=False, default_factory=dict), 'season_id': FieldInfo(annotation=str, required=True), 'tech_points': FieldInfo(annotation=int, required=False, default=0, metadata=[Ge(ge=0)])}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -4828,7 +4808,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...ame: "TechnologyState",
     },
 ), definitions=[])</dl>
 
@@ -4932,7 +4913,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TechnologyState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -4957,12 +4938,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TechnologyState-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -4987,7 +4967,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
@@ -5278,8 +5257,6 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_decorators__</strong> = DecoratorInfos(validators={}, field_validators={...zers={}, model_validators={}, computed_fields={})</dl>
 
-<dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
-
 <dl><dt><strong>__pydantic_fields__</strong> = {'drawn_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'map_key': FieldInfo(annotation=str, required=True), 'owner_kingdom_id': FieldInfo(annotation=str, required=True), 'protected_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'season_id': FieldInfo(annotation=str, required=True)}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
@@ -5288,7 +5265,8 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_post_init__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=PolymorphismTrampoli...led_from_config: false,
+<dl><dt><strong>__pydantic_serializer__</strong> = SchemaSerializer(serializer=Model(
+    ModelSeri...name: "TerritoryModel",
     },
 ), definitions=[])</dl>
 
@@ -5392,7 +5370,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TerritoryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -5417,12 +5395,11 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TerritoryModel-model_dump_json"><strong>model_dump_json</strong></a>(self, *, indent: 'int | None' = None, ensure_ascii: 'bool' = False, include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False) -&gt; 'str'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump_json`](../concepts/serialization.md#json-mode)<br>
 &nbsp;<br>
 Generates&nbsp;a&nbsp;JSON&nbsp;representation&nbsp;of&nbsp;the&nbsp;model&nbsp;using&nbsp;Pydantic's&nbsp;`to_json`&nbsp;method.<br>
@@ -5447,7 +5424,6 @@ Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fallback:&nbsp;A&nbsp;function&nbsp;to&nbsp;call&nbsp;when&nbsp;an&nbsp;unknown&nbsp;value&nbsp;is&nbsp;encountered.&nbsp;If&nbsp;not&nbsp;provided,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;[`PydanticSerializationError`][pydantic_core.PydanticSerializationError]&nbsp;error&nbsp;is&nbsp;raised.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;serialize_as_any:&nbsp;Whether&nbsp;to&nbsp;serialize&nbsp;fields&nbsp;with&nbsp;duck-typing&nbsp;serialization&nbsp;behavior.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;polymorphic_serialization:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;model&nbsp;and&nbsp;dataclass&nbsp;polymorphic&nbsp;serialization&nbsp;for&nbsp;this&nbsp;call.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;JSON&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>

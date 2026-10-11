@@ -209,7 +209,7 @@ def _now() -> datetime:
 
 
 def _refuse_lords_day_execution(
-    config: KingdomsSeasonConfig, timestamp: datetime, delay_hours: int
+    window: tuple[datetime, datetime] | None, timestamp: datetime, delay_hours: int
 ) -> None:
     """Raise when an attack declared at ``timestamp`` would play inside the window.
 
@@ -219,7 +219,6 @@ def _refuse_lords_day_execution(
     window closes (Monday 10:00) — a game that would be played inside
     the window is refused.
     """
-    window = lords_day_window(config, timestamp)
     if window is None:
         return
     expires = timestamp + timedelta(hours=delay_hours)
@@ -302,7 +301,9 @@ class AttackService:
         # lands after the window closes (Monday 10:00) — a game that
         # would be played inside the window is refused.
         _refuse_lords_day_execution(
-            self._config, timestamp, self._config.attacks.player_attack_delay_hours
+            await self._active_lords_day_window(timestamp),
+            timestamp,
+            self._config.attacks.player_attack_delay_hours,
         )
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
@@ -366,7 +367,7 @@ class AttackService:
         # Lord's Day window: the automatic no-defense outcome is an
         # execution too — it is deferred until the window closes (the
         # stale attacks are simply picked up on the next call).
-        if lords_day_window(self._config, timestamp) is not None:
+        if await self._active_lords_day_window(timestamp) is not None:
             return []
         expired: list[AttackModel] = []
         for attack in await self.attacks():
@@ -391,7 +392,7 @@ class AttackService:
         (conservation); Gaïa can also keep its territory in a
         free-for-all nobody won.
         """
-        if lords_day_window(self._config, _now()) is not None:
+        if await self._active_lords_day_window(_now()) is not None:
             raise LordsDayAttackError(
                 "the attack cannot be played inside the Lord's Day window "
                 "(resolve it after the window closes)"
@@ -501,7 +502,9 @@ class AttackService:
             # time limit" stays — the window only refuses an execution
             # that would land inside it).
             _refuse_lords_day_execution(
-                self._config, timestamp, self._config.attacks.gaia_attack_delay_hours
+                await self._active_lords_day_window(timestamp),
+                timestamp,
+                self._config.attacks.gaia_attack_delay_hours,
             )
             lord.attack_used += 1
             await self._store.upsert_lord(lord.to_mongo())
@@ -701,6 +704,34 @@ class AttackService:
         if kingdom is None:
             raise KingdomNotFoundError("no kingdom with this id")
         return kingdom
+
+    async def _active_lords_day_window(
+        self, timestamp: datetime
+    ) -> tuple[datetime, datetime] | None:
+        """Return the Lord's Day window at ``timestamp``, calendar or forced.
+
+        The real calendar window (Sunday 23:30 → Monday 10:00) applies
+        first; the manual test override stored on the season
+        (``lords_day_forced_start``/``lords_day_forced_end``, Drasah's
+        Paramètres seam) acts as a second window when the timestamp
+        falls inside it.
+        """
+        calendar = lords_day_window(self._config, timestamp)
+        if calendar is not None:
+            return calendar
+        try:
+            season = await self._kingdoms.current_season()
+        except Exception:
+            return None
+        if season is None:
+            return None
+        start = season.lords_day_forced_start
+        end = season.lords_day_forced_end
+        if start is None or end is None:
+            return None
+        if start <= timestamp < end:
+            return (start, end)
+        return None
 
     async def _require_season(self) -> SeasonState:
         """Return the running season or raise the no-season error."""

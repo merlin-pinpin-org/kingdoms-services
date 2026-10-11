@@ -423,3 +423,56 @@ async def test_resolve_is_blocked_during_lords_day(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(attacks_module, "_now", lambda: inside)
     with pytest.raises(LordsDayAttackError):
         await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
+
+
+def _real_now() -> datetime:
+    return datetime.now(tz=UTC)
+
+
+async def test_forced_lords_day_window_blocks_executions() -> None:
+    """The manual test window behaves like the calendar one."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(1)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # A forced window on a Saturday afternoon (no calendar window).
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    season.lords_day_forced_start = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
+    season.lords_day_forced_end = datetime(2026, 10, 10, 22, 30, tzinfo=UTC)
+    await bundle.store.upsert_season(season.to_mongo())
+    # A declaration whose execution lands inside the forced window is refused.
+    now = datetime(2026, 10, 10, 13, 0, tzinfo=UTC)
+    with pytest.raises(LordsDayAttackError):
+        await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby", now=now)
+    # A declaration that plays after the forced window closes is accepted.
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://lobby", now=datetime(2026, 10, 10, 17, 0, tzinfo=UTC)
+    )
+    assert attack.state is AttackState.DECLARED
+    # An attack declared BEFORE the window and expiring INSIDE it keeps
+    # its resolution deferred until the forced window closes.
+    early = await bundle.attacks.declare_attack(
+        "lord-a", (await bundle.owner_maps(bourgogne))[1], "aoe2de://lobby",
+        now=datetime(2026, 10, 10, 11, 0, tzinfo=UTC),
+    )
+    assert early.expires_at == datetime(2026, 10, 10, 17, 0, tzinfo=UTC)
+    assert await bundle.attacks.expire_stale(now=datetime(2026, 10, 10, 20, 0, tzinfo=UTC)) == []
+    # Resolve is blocked while the window is open, then works after it.
+    await bundle.attacks.respond_defense(attack.id, "lord-b")
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
+    attacks_module._now = lambda: now  # type: ignore[assignment]
+    try:
+        with pytest.raises(LordsDayAttackError):
+            await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
+    finally:
+        attacks_module._now = _real_now
+    resolved = await bundle.attacks.resolve(
+        attack.id, await bundle.kingdom_id("Aquitaine")
+    )
+    assert resolved.state is AttackState.RESOLVED
+    # Once the forced window is over, the stale expiry is picked up again.
+    expired = await bundle.attacks.expire_stale(now=datetime(2026, 10, 10, 23, 0, tzinfo=UTC))
+    assert [item.id for item in expired] == [early.id]

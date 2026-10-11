@@ -108,6 +108,12 @@ def cron_slots_between(
     return slots
 
 
+def _cycle_slot_offset(config: KingdomsSeasonConfig) -> timedelta:
+    """Return the cycle slot's offset within its day (23h30 by default)."""
+    minute, hour, _weekday = _parse_weekly_cron(config.events.cycle_cron)
+    return timedelta(hours=hour, minutes=minute)
+
+
 def lords_day_window(
     config: KingdomsSeasonConfig,
     now: datetime,
@@ -260,6 +266,88 @@ class EventService:
             "tech_points": epoch.tech_points,
             "extra_marriages": epoch.extra_marriages,
         }
+
+    async def rollback_age(self) -> dict[str, object]:
+        """Undo the last age switch (Drasah's manual test seam).
+
+        Moves the age pointer back one epoch and removes the bonuses
+        the epoch granted (tech points, marriage capacity). Points
+        already SPENT on technologies cannot be reclaimed — the bank
+        simply floors at zero. The first age cannot be rolled back
+        further (ValueError).
+        """
+        season = await self._require_season()
+        keys = [age.key for age in self._config.ages]
+        if season.current_age_key not in keys:
+            raise ValueError(f"unknown age key in season: {season.current_age_key}")
+        index = keys.index(season.current_age_key)
+        if index == 0:
+            raise ValueError("the season already sits in its first age")
+        granted = self._config.ages[index]
+        previous = self._config.ages[index - 1]
+        season.current_age_key = previous.key
+        await self._store.upsert_season(season.to_mongo())
+        for kingdom in await self._kingdoms.kingdoms():
+            if kingdom.is_gaia:
+                continue
+            kingdom.tech_points_bank = max(0, kingdom.tech_points_bank - granted.tech_points)
+            kingdom.marriage_capacity = max(
+                0, kingdom.marriage_capacity - granted.extra_marriages
+            )
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info(
+            "kingdoms: age rolled back to %s (-%s tech, -%s marriages)",
+            previous.display_name,
+            granted.tech_points,
+            granted.extra_marriages,
+        )
+        return {
+            "age": previous.key,
+            "display_name": previous.display_name,
+            "tech_points": -granted.tech_points,
+            "extra_marriages": -granted.extra_marriages,
+        }
+
+    # ------------------------------------------------------------------
+    # Manual Lord's Day phase (Drasah's test seam, 2026-10-11)
+    # ------------------------------------------------------------------
+    async def enter_lords_day_phase(
+        self, *, now: datetime | None = None, seed: int | None = None
+    ) -> dict[str, object]:
+        """Force the Lord's Day phase open and run its cycle switch.
+
+        Drasah's manual test seam on the Paramètres panel: entering
+        the phase runs the FULL Sunday switch (budgets recharged, Gaïa
+        maps drawn, alliances recomputed) and forces the attack window
+        open with the same shape as the real one (cycle slot → the
+        next day at ``lords_day_end_hour``, 10.5h by default). The
+        window stays open until ``exit_lords_day_phase`` closes it or
+        the forced range ends on its own.
+        """
+        timestamp = now or datetime.now(tz=UTC)
+        report: dict[str, object] = dict(await self.run_cycle_switch(seed=seed))
+        season = await self._require_season()
+        duration = timedelta(days=1) - _cycle_slot_offset(self._config) + timedelta(
+            hours=self._config.events.lords_day_end_hour
+        )
+        season.lords_day_forced_start = timestamp
+        season.lords_day_forced_end = timestamp + duration
+        await self._store.upsert_season(season.to_mongo())
+        report["lords_day_forced"] = True
+        report["lords_day_forced_until"] = season.lords_day_forced_end
+        logger.info(
+            "kingdoms: manual Lord's Day phase opened until %s",
+            season.lords_day_forced_end.isoformat(),
+        )
+        return report
+
+    async def exit_lords_day_phase(self) -> None:
+        """Close the manually forced Lord's Day window."""
+        season = await self._require_season()
+        season.lords_day_forced_start = None
+        season.lords_day_forced_end = None
+        await self._store.upsert_season(season.to_mongo())
+        logger.info("kingdoms: manual Lord's Day phase closed")
 
     # ------------------------------------------------------------------
     # Exploration (§17, D29/D30/D44)

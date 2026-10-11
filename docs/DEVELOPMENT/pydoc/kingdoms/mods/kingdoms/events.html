@@ -67,6 +67,26 @@ recomputation&nbsp;(D51):&nbsp;every&nbsp;cycle&nbsp;switch&nbsp;recomputes&nbsp
 civilizations&nbsp;from&nbsp;the&nbsp;territories&nbsp;and&nbsp;marriages.&nbsp;It&nbsp;stays<br>
 optional&nbsp;so&nbsp;older&nbsp;wirings&nbsp;(and&nbsp;the&nbsp;tests)&nbsp;keep&nbsp;working.</span></dd></dl>
 
+<dl><dt>async <a name="EventService-enter_lords_day_phase"><strong>enter_lords_day_phase</strong></a>(self, *, now: 'datetime | None' = None, seed: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Force&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;phase&nbsp;open&nbsp;and&nbsp;run&nbsp;its&nbsp;cycle&nbsp;switch.<br>
+&nbsp;<br>
+Drasah's&nbsp;manual&nbsp;test&nbsp;seam&nbsp;on&nbsp;the&nbsp;Paramètres&nbsp;panel:&nbsp;entering<br>
+the&nbsp;phase&nbsp;runs&nbsp;the&nbsp;FULL&nbsp;Sunday&nbsp;switch&nbsp;(budgets&nbsp;recharged,&nbsp;Gaïa<br>
+maps&nbsp;drawn,&nbsp;alliances&nbsp;recomputed)&nbsp;and&nbsp;forces&nbsp;the&nbsp;attack&nbsp;window<br>
+open&nbsp;with&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;the&nbsp;real&nbsp;one&nbsp;(cycle&nbsp;slot&nbsp;→&nbsp;the<br>
+next&nbsp;day&nbsp;at&nbsp;``lords_day_end_hour``,&nbsp;10.5h&nbsp;by&nbsp;default).&nbsp;The<br>
+window&nbsp;stays&nbsp;open&nbsp;until&nbsp;``exit_lords_day_phase``&nbsp;closes&nbsp;it&nbsp;or<br>
+the&nbsp;forced&nbsp;range&nbsp;ends&nbsp;on&nbsp;its&nbsp;own.</span></dd></dl>
+
+<dl><dt>async <a name="EventService-exit_lords_day_phase"><strong>exit_lords_day_phase</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Close&nbsp;the&nbsp;manually&nbsp;forced&nbsp;Lord's&nbsp;Day&nbsp;window.</span></dd></dl>
+
+<dl><dt>async <a name="EventService-rollback_age"><strong>rollback_age</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">Undo&nbsp;the&nbsp;last&nbsp;age&nbsp;switch&nbsp;(Drasah's&nbsp;manual&nbsp;test&nbsp;seam).<br>
+&nbsp;<br>
+Moves&nbsp;the&nbsp;age&nbsp;pointer&nbsp;back&nbsp;one&nbsp;epoch&nbsp;and&nbsp;removes&nbsp;the&nbsp;bonuses<br>
+the&nbsp;epoch&nbsp;granted&nbsp;(tech&nbsp;points,&nbsp;marriage&nbsp;capacity).&nbsp;Points<br>
+already&nbsp;SPENT&nbsp;on&nbsp;technologies&nbsp;cannot&nbsp;be&nbsp;reclaimed&nbsp;—&nbsp;the&nbsp;bank<br>
+simply&nbsp;floors&nbsp;at&nbsp;zero.&nbsp;The&nbsp;first&nbsp;age&nbsp;cannot&nbsp;be&nbsp;rolled&nbsp;back<br>
+further&nbsp;(ValueError).</span></dd></dl>
+
 <dl><dt>async <a name="EventService-run_age_switch"><strong>run_age_switch</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">Advance&nbsp;to&nbsp;the&nbsp;next&nbsp;age&nbsp;and&nbsp;distribute&nbsp;the&nbsp;epoch&nbsp;bonuses.<br>
 &nbsp;<br>
 Gaia's&nbsp;AI&nbsp;level&nbsp;follows&nbsp;the&nbsp;epoch&nbsp;scale&nbsp;(D18),&nbsp;each&nbsp;kingdom<br>

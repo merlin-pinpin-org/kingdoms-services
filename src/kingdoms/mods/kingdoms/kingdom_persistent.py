@@ -54,6 +54,7 @@ class KingdomsPanelWiring:
     attacks_service: Any = None
     economy_service: Any = None
     diplomacy_service: Any = None
+    events_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -90,6 +91,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             attacks_service=getattr(bot, "kingdoms_attacks_service", None),
             economy_service=getattr(bot, "kingdoms_economy_service", None),
             diplomacy_service=getattr(bot, "kingdoms_diplomacy_service", None),
+            events_service=getattr(bot, "kingdoms_events_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -1018,7 +1020,8 @@ class KingdomAdminButton(
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
         r"|status|assign|add-kingdom|launch|start-season|season-mode"
         r"|back-setup|back-setup-confirm|back-setup-cancel"
-        r"|end-season|end-season-confirm|end-season-cancel)"
+        r"|end-season|end-season-confirm|end-season-cancel"
+        r"|age-next|age-prev|lords-day-enter|lords-day-exit)"
     ),
 ):
     """The restart-proof admin buttons of the Param\u00e8tres panel."""
@@ -1067,6 +1070,10 @@ class KingdomAdminButton(
             "end-season": strings["end_season_button"],
             "end-season-confirm": strings["end_season_confirm_button"],
             "end-season-cancel": strings["end_season_cancel_button"],
+            "age-next": strings["age_next_button"],
+            "age-prev": strings["age_prev_button"],
+            "lords-day-enter": strings["lords_day_enter_button"],
+            "lords-day-exit": strings["lords_day_exit_button"],
         }
         styles = {
             "launch": discord.ButtonStyle.success,
@@ -1091,6 +1098,10 @@ class KingdomAdminButton(
             "end-season": discord.ButtonStyle.danger,
             "end-season-confirm": discord.ButtonStyle.success,
             "end-season-cancel": discord.ButtonStyle.secondary,
+            "age-next": discord.ButtonStyle.success,
+            "age-prev": discord.ButtonStyle.secondary,
+            "lords-day-enter": discord.ButtonStyle.primary,
+            "lords-day-exit": discord.ButtonStyle.secondary,
         }
         return cls(action, labels[action][:80], styles[action])
 
@@ -1148,6 +1159,10 @@ class KingdomAdminButton(
                 content=strings["end_season_cancelled"], view=None
             ),
             "end-season-confirm": lambda _i, _l: _run_end_season(interaction, strings),
+            "age-next": lambda _i, _l: _run_age_next(interaction, strings),
+            "age-prev": lambda _i, _l: _run_age_prev(interaction, strings),
+            "lords-day-enter": lambda _i, _l: _run_lords_day_enter(interaction, strings),
+            "lords-day-exit": lambda _i, _l: _run_lords_day_exit(interaction, strings),
         }
         handler = handlers.get(self.action)
         if handler is not None:
@@ -1273,6 +1288,115 @@ async def _run_season_mode(interaction: discord.Interaction, strings: dict[str, 
         return
     note = strings["season_mode_imposed"] if not imposed else strings["season_mode_free"]
     await interaction.followup.send(note, ephemeral=True)
+
+
+async def _announce_event_report_safe(guild: discord.Guild, locale: str, report: dict[str, Any]) -> None:
+    """Best-effort announcement of one event report in Géopolitique."""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
+        from kingdoms.mods.kingdoms.kingdom_events_loop import _report_text, _strings
+
+        await announce_geopolitics(guild, locale, _report_text(_strings(locale), report))
+    except Exception:
+        logger.info("KINGDOMS ADMIN: event announcement skipped", exc_info=True)
+
+
+def _events_service_or_fail() -> Any | None:
+    """Resolve the event service from the panel wiring."""
+    return _wiring().events_service
+
+
+async def _run_age_next(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Manually run the age switch (Drasah's test seam)."""
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    events = _events_service_or_fail()
+    if events is None:
+        await interaction.followup.send(strings["age_failed"].format("no service"), ephemeral=True)
+        return
+    locale = str(interaction.locale) if interaction.locale else "en"
+    try:
+        report = dict(await events.run_age_switch())
+    except Exception as exc:
+        await interaction.followup.send(strings["age_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    report["kind"] = "age"
+    await _announce_event_report_safe(guild, locale, report)
+    await _refresh_season_status_safe(guild, locale)
+    await interaction.followup.send(
+        strings["age_next_done"].format(report.get("display_name", report.get("age", "?"))),
+        ephemeral=True,
+    )
+
+
+async def _run_age_prev(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Manually roll back the last age switch (Drasah's test seam)."""
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    events = _events_service_or_fail()
+    if events is None:
+        await interaction.followup.send(strings["age_failed"].format("no service"), ephemeral=True)
+        return
+    locale = str(interaction.locale) if interaction.locale else "en"
+    try:
+        report = dict(await events.rollback_age())
+    except Exception as exc:
+        await interaction.followup.send(strings["age_prev_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    await _refresh_season_status_safe(guild, locale)
+    await interaction.followup.send(
+        strings["age_prev_done"].format(report.get("display_name", report.get("age", "?"))),
+        ephemeral=True,
+    )
+
+
+async def _run_lords_day_enter(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Enter the Lord's Day phase manually: full cycle switch + forced window."""
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(strings["no_channel"], ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    events = _events_service_or_fail()
+    if events is None:
+        await interaction.followup.send(strings["lords_day_failed"].format("no service"), ephemeral=True)
+        return
+    locale = str(interaction.locale) if interaction.locale else "en"
+    try:
+        report = dict(await events.enter_lords_day_phase())
+    except Exception as exc:
+        await interaction.followup.send(strings["lords_day_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    report["kind"] = "cycle"
+    await _announce_event_report_safe(guild, locale, report)
+    await _refresh_season_status_safe(guild, locale)
+    await interaction.followup.send(
+        strings["lords_day_enter_done"].format(
+            report.get("cycle", "?"), report.get("lords_day_forced_until", "?")
+        ),
+        ephemeral=True,
+    )
+
+
+async def _run_lords_day_exit(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Close the manually forced Lord's Day window."""
+    await interaction.response.defer(ephemeral=True)
+    events = _events_service_or_fail()
+    if events is None:
+        await interaction.followup.send(strings["lords_day_failed"].format("no service"), ephemeral=True)
+        return
+    try:
+        await events.exit_lords_day_phase()
+    except Exception as exc:
+        await interaction.followup.send(strings["lords_day_failed"].format(type(exc).__name__), ephemeral=True)
+        return
+    await interaction.followup.send(strings["lords_day_exit_done"], ephemeral=True)
 
 
 async def _run_status(interaction: discord.Interaction, strings: dict[str, Any]) -> None:

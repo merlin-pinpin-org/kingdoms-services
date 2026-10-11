@@ -170,6 +170,20 @@ STRINGS: dict[str, dict[str, str]] = {
             "Season ended — the winner is not decided yet (ShowMatch pending)."
         ),
         "end_season_failed": "The season end failed — {}",
+        "age_next_button": "🏺 Age forward",
+        "debug_section": "Manual tests",
+        "age_prev_button": "🏺⏪ Age back",
+        "age_failed": "The age switch failed — {}",
+        "age_next_done": "Age switched — now in **{}**.",
+        "age_prev_failed": "The age rollback failed — {}",
+        "age_prev_done": "Age rolled back — now in **{}**.",
+        "lords_day_enter_button": "⛪ Enter Lord's Day",
+        "lords_day_exit_button": "⛪✅ Close the window",
+        "lords_day_failed": "The Lord's Day action failed — {}",
+        "lords_day_enter_done": (
+            "Cycle **{}** switched and the Lord's Day window is open until **{}**."
+        ),
+        "lords_day_exit_done": "The Lord's Day window is closed — attacks are open again.",
         "status_phase": "Phase",
         "status_mode": "Mode",
         "mode_free": "free",
@@ -322,6 +336,22 @@ STRINGS: dict[str, dict[str, str]] = {
             "Saison terminée — le vainqueur n'est pas encore décidé (ShowMatch en attente)."
         ),
         "end_season_failed": "La fin de saison a échoué — {}",
+        "age_next_button": "🏺 Âge suivant",
+        "debug_section": "Tests manuels",
+        "age_prev_button": "🏺⏪ Âge précédent",
+        "age_failed": "Le passage d'âge a échoué — {}",
+        "age_next_done": "Âge changé — la saison est maintenant en **{}**.",
+        "age_prev_failed": "Le retour d'âge a échoué — {}",
+        "age_prev_done": "Âge annulé — la saison est retournée en **{}**.",
+        "lords_day_enter_button": "⛪ Jour du seigneur",
+        "lords_day_exit_button": "⛪✅ Fermer la fenêtre",
+        "lords_day_failed": "L'action Jour du seigneur a échoué — {}",
+        "lords_day_enter_done": (
+            "Cycle **{}** basculé et fenêtre du Jour du seigneur ouverte jusqu'à **{}**."
+        ),
+        "lords_day_exit_done": (
+            "Fenêtre du Jour du seigneur fermée — les attaques sont de nouveau possibles."
+        ),
         "status_phase": "Phase",
         "status_mode": "Mode",
         "mode_free": "libre",

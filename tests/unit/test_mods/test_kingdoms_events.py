@@ -250,3 +250,52 @@ async def test_lords_day_window_is_the_cycle_slot_to_monday_morning() -> None:
     assert lords_day_window(config, after) is None
     # A plain Tuesday afternoon is outside the window too.
     assert lords_day_window(config, datetime(2026, 10, 13, 12, 0, tzinfo=UTC)) is None
+
+
+async def test_rollback_age_removes_the_last_epoch_bonuses() -> None:
+    """The manual age-back seam undoes the tech and marriage bonuses."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.events.run_age_switch()  # dark_age -> feudal_age
+    kingdoms = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
+    assert all(k.marriage_capacity == 2 for k in kingdoms)  # 1 + 1 extra
+    report = await bundle.events.rollback_age()
+    assert report["age"] == "dark_age"
+    assert report["tech_points"] == -1
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.current_age_key == "dark_age"
+    rolled = [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia]
+    assert all(k.marriage_capacity == 1 for k in rolled)
+    assert all(k.tech_points_bank == 0 for k in rolled)
+
+
+async def test_rollback_age_refuses_the_first_age() -> None:
+    """The first age cannot be rolled back further."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    with pytest.raises(ValueError, match="first age"):
+        await bundle.events.rollback_age()
+
+
+async def test_enter_lords_day_phase_runs_the_switch_and_forces_the_window() -> None:
+    """The manual phase runs the cycle switch and forces the window open."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    now = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)  # a Saturday, no calendar window
+    report = await bundle.events.enter_lords_day_phase(now=now, seed=1)
+    assert report["cycle"] == 1
+    assert report["alliances_recomputed"] is False  # no diplomacy service wired
+    assert report["lords_day_forced"] is True
+    # The forced window has the same shape as the real one: 10.5 hours.
+    assert report["lords_day_forced_until"] == now + timedelta(hours=10, minutes=30)
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.lords_day_forced_start == now
+    assert season.lords_day_forced_end == now + timedelta(hours=10, minutes=30)
+    # Exiting the phase closes the window.
+    await bundle.events.exit_lords_day_phase()
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.lords_day_forced_start is None
+    assert season.lords_day_forced_end is None

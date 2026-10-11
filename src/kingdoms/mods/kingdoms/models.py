@@ -317,6 +317,13 @@ class SeasonState(BaseModel):
     out_maps: list[str] = Field(default_factory=list)
     finished: bool = False
     winner_kingdom_id: str | None = None
+    lords_day_forced_start: datetime | None = None
+    """Manual test override: when set (with ``lords_day_forced_end``),
+    the Lord's Day window is FORCED open between the two timestamps —
+    Drasah's test seam on the Paramètres panel (2026-10-11). Outside
+    that range the real calendar window (Sunday 23:30 → Monday 10:00)
+    applies alone."""
+    lords_day_forced_end: datetime | None = None
     pending_marriage_losses: list[str] = Field(default_factory=list)
     """Kingdom ids that lost a combat since the last cycle switch: their
     lords' marriages drop at the next recalculation (D34/D53)."""
