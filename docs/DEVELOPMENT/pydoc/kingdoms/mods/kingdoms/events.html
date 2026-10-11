@@ -100,7 +100,7 @@ non-out&nbsp;maps&nbsp;for&nbsp;Gaia.&nbsp;Raises&nbsp;<a href="#SeasonExhausted
 the&nbsp;pool&nbsp;cannot&nbsp;cover&nbsp;the&nbsp;draw&nbsp;-&nbsp;the&nbsp;season&nbsp;then&nbsp;ends<br>
 automatically.&nbsp;Returns&nbsp;the&nbsp;cycle&nbsp;report&nbsp;for&nbsp;the&nbsp;announcement.</span></dd></dl>
 
-<dl><dt>async <a name="EventService-run_due"><strong>run_due</strong></a>(self, now: 'datetime') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">Replay&nbsp;every&nbsp;event&nbsp;slot&nbsp;missed&nbsp;since&nbsp;the&nbsp;season&nbsp;start&nbsp;(D1).<br>
+<dl><dt>async <a name="EventService-run_due"><strong>run_due</strong></a>(self, now: 'datetime', *, snapshotter: 'Callable[[str], Awaitable[None]] | None' = None) -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">Replay&nbsp;every&nbsp;event&nbsp;slot&nbsp;missed&nbsp;since&nbsp;the&nbsp;season&nbsp;start&nbsp;(D1).<br>
 &nbsp;<br>
 The&nbsp;cadence&nbsp;is&nbsp;CALENDAR-based&nbsp;(Drasah's&nbsp;rule,&nbsp;2026-10-11):&nbsp;the<br>
 season&nbsp;launch&nbsp;IS&nbsp;cycle&nbsp;1&nbsp;(startcycle),&nbsp;the&nbsp;first&nbsp;Sunday&nbsp;23:30<br>
@@ -115,7 +115,12 @@ last-but-one&nbsp;are&nbsp;NORMAL&nbsp;switches;&nbsp;the&nbsp;season's&nbsp;LAS
 is&nbsp;the&nbsp;END&nbsp;slot&nbsp;—&nbsp;no&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;opens,&nbsp;and&nbsp;the&nbsp;verdict<br>
 applies&nbsp;at&nbsp;23:59&nbsp;(the&nbsp;slot&nbsp;plus&nbsp;29&nbsp;minutes):&nbsp;the&nbsp;ongoing<br>
 attacks&nbsp;are&nbsp;cancelled,&nbsp;the&nbsp;closing&nbsp;counts&nbsp;the&nbsp;territories&nbsp;and<br>
-the&nbsp;phase&nbsp;moves&nbsp;to&nbsp;``ended``.&nbsp;Nothing&nbsp;replays&nbsp;afterwards.</span></dd></dl>
+the&nbsp;phase&nbsp;moves&nbsp;to&nbsp;``ended``.&nbsp;Nothing&nbsp;replays&nbsp;afterwards.<br>
+&nbsp;<br>
+``snapshotter``&nbsp;(the&nbsp;time&nbsp;machine's&nbsp;hook,&nbsp;2026-10-11):&nbsp;awaited<br>
+with&nbsp;the&nbsp;slot&nbsp;kind&nbsp;right&nbsp;BEFORE&nbsp;each&nbsp;slot&nbsp;is&nbsp;applied&nbsp;—&nbsp;the<br>
+caller&nbsp;photographs&nbsp;the&nbsp;exact&nbsp;pre-switch&nbsp;state,&nbsp;so&nbsp;the&nbsp;rewind<br>
+can&nbsp;land&nbsp;on&nbsp;the&nbsp;exact&nbsp;moment&nbsp;a&nbsp;cycle&nbsp;or&nbsp;age&nbsp;switched.</span></dd></dl>
 
 <dl><dt>async <a name="EventService-run_exploration"><strong>run_exploration</strong></a>(self, ranking: 'list[str]', *, seed: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Run&nbsp;the&nbsp;Saturday&nbsp;exploration&nbsp;FFA&nbsp;(optional,&nbsp;1&nbsp;lord/kingdom).<br>
 &nbsp;<br>

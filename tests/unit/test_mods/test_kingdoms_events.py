@@ -379,3 +379,22 @@ async def test_no_lords_day_window_on_the_end_sunday() -> None:
         datetime(2026, 10, 18, 21, 30, tzinfo=UTC),
         datetime(2026, 10, 19, 8, 0, tzinfo=UTC),
     )
+
+
+async def test_run_due_snapshots_before_each_slot() -> None:
+    """The time-machine hook photographs the exact pre-switch state."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.set_started_at(datetime(2026, 10, 5, 12, 0, tzinfo=UTC))
+    hooked: list[str] = []
+
+    async def _snapshotter(kind: str) -> None:
+        hooked.append(kind)
+
+    reports = await bundle.events.run_due(
+        datetime(2026, 10, 12, 12, 0, tzinfo=UTC), snapshotter=_snapshotter
+    )
+    assert [r["kind"] for r in reports] == ["age", "cycle"]
+    assert hooked == ["age", "cycle"]
+    # Without a hook nothing changes (the restart catch-up path).
+    assert await bundle.events.run_due(datetime(2026, 10, 12, 12, 0, tzinfo=UTC)) == []

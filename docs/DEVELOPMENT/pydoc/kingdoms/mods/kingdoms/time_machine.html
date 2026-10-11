@@ -137,18 +137,50 @@ The&nbsp;game&nbsp;clock:&nbsp;status,&nbsp;reversible&nbsp;fast-forward,&nbsp;s
 
 <dl><dt>async <a name="TimeMachineService-advance"><strong>advance</strong></a>(self, days: 'int', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fast-forward&nbsp;``days``&nbsp;days:&nbsp;snapshot,&nbsp;then&nbsp;replay&nbsp;the&nbsp;missed&nbsp;slots.</span></dd></dl>
 
-<dl><dt>async <a name="TimeMachineService-create_snapshot"><strong>create_snapshot</strong></a>(self, label: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Snapshot&nbsp;the&nbsp;full&nbsp;season&nbsp;data&nbsp;under&nbsp;``label``&nbsp;(never&nbsp;wiped).</span></dd></dl>
+<dl><dt>async <a name="TimeMachineService-back_to_setup"><strong>back_to_setup</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Wipe&nbsp;the&nbsp;season&nbsp;data&nbsp;(NO&nbsp;archive)&nbsp;and&nbsp;relaunch&nbsp;in&nbsp;setup.<br>
+&nbsp;<br>
+Drasah's&nbsp;rules&nbsp;(2026-10-11):&nbsp;the&nbsp;players&nbsp;are&nbsp;sent&nbsp;back&nbsp;to&nbsp;the<br>
+waiting&nbsp;queue&nbsp;(everything&nbsp;wiped,&nbsp;they&nbsp;re-apply&nbsp;via&nbsp;Postuler),<br>
+the&nbsp;player&nbsp;kingdom&nbsp;salons&nbsp;are&nbsp;deleted&nbsp;by&nbsp;the&nbsp;caller,&nbsp;and&nbsp;the<br>
+season&nbsp;ARCHIVE&nbsp;only&nbsp;happens&nbsp;at&nbsp;a&nbsp;real&nbsp;season&nbsp;end&nbsp;—&nbsp;this&nbsp;wipe<br>
+archives&nbsp;nothing.&nbsp;The&nbsp;time-machine&nbsp;snapshots&nbsp;survive&nbsp;(they<br>
+live&nbsp;in&nbsp;the&nbsp;archive&nbsp;collection,&nbsp;never&nbsp;wiped).</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-create_snapshot"><strong>create_snapshot</strong></a>(self, label: 'str', *, now: 'datetime | None' = None, moment: 'str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Snapshot&nbsp;the&nbsp;full&nbsp;season&nbsp;data&nbsp;under&nbsp;``label``&nbsp;(never&nbsp;wiped).<br>
+&nbsp;<br>
+``moment``&nbsp;tags&nbsp;the&nbsp;KEY&nbsp;moment&nbsp;the&nbsp;snapshot&nbsp;sits&nbsp;on<br>
+(``cycle``,&nbsp;``age``,&nbsp;``end``,&nbsp;``lords_day_end``):&nbsp;the<br>
+one-click&nbsp;rewind&nbsp;buttons&nbsp;restore&nbsp;the&nbsp;latest&nbsp;snapshot&nbsp;of&nbsp;a<br>
+given&nbsp;moment.&nbsp;Manual&nbsp;snapshots&nbsp;carry&nbsp;``None``.</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-freeze"><strong>freeze</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">Pause&nbsp;the&nbsp;game&nbsp;clock:&nbsp;the&nbsp;scheduler&nbsp;replays&nbsp;no&nbsp;slot.</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-jump_to"><strong>jump_to</strong></a>(self, moment: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Jump&nbsp;to&nbsp;the&nbsp;next&nbsp;key&nbsp;moment:&nbsp;cycle&nbsp;switch,&nbsp;age&nbsp;switch&nbsp;or&nbsp;season&nbsp;end.</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-restore"><strong>restore</strong></a>(self, snapshot_id: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Restore&nbsp;a&nbsp;snapshot&nbsp;verbatim&nbsp;—&nbsp;a&nbsp;true,&nbsp;reversible&nbsp;rewind.<br>
 &nbsp;<br>
 The&nbsp;CURRENT&nbsp;state&nbsp;is&nbsp;snapshotted&nbsp;first&nbsp;(``avant&nbsp;restauration``):<br>
-a&nbsp;restore&nbsp;is&nbsp;itself&nbsp;restorable,&nbsp;the&nbsp;time&nbsp;line&nbsp;is&nbsp;never&nbsp;lost.</span></dd></dl>
+a&nbsp;restore&nbsp;is&nbsp;itself&nbsp;restorable,&nbsp;the&nbsp;time&nbsp;line&nbsp;is&nbsp;never&nbsp;lost.<br>
+The&nbsp;restored&nbsp;season&nbsp;comes&nbsp;back&nbsp;FROZEN&nbsp;(Drasah's&nbsp;rule,<br>
+2026-10-11):&nbsp;the&nbsp;real&nbsp;scheduler&nbsp;would&nbsp;otherwise&nbsp;re-advance&nbsp;the<br>
+clock&nbsp;to&nbsp;now&nbsp;within&nbsp;one&nbsp;tick&nbsp;and&nbsp;undo&nbsp;the&nbsp;rewind&nbsp;—&nbsp;the&nbsp;admin<br>
+resumes&nbsp;deliberately&nbsp;(the&nbsp;freeze&nbsp;toggle)&nbsp;when&nbsp;the&nbsp;test&nbsp;is&nbsp;done.</span></dd></dl>
 
-<dl><dt>async <a name="TimeMachineService-snapshots"><strong>snapshots</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;time-machine&nbsp;snapshots,&nbsp;most&nbsp;recent&nbsp;first.</span></dd></dl>
+<dl><dt>async <a name="TimeMachineService-restore_last"><strong>restore_last</strong></a>(self, moment: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">One-click&nbsp;rewind&nbsp;to&nbsp;the&nbsp;latest&nbsp;snapshot&nbsp;of&nbsp;one&nbsp;key&nbsp;moment.<br>
+&nbsp;<br>
+``moment``&nbsp;is&nbsp;the&nbsp;tag&nbsp;``create_snapshot``&nbsp;stored:&nbsp;``cycle``<br>
+(the&nbsp;state&nbsp;right&nbsp;before&nbsp;the&nbsp;last&nbsp;cycle&nbsp;switch),&nbsp;``age``&nbsp;(the<br>
+last&nbsp;age&nbsp;switch),&nbsp;``lords_day_end``&nbsp;(the&nbsp;Monday-10h&nbsp;window<br>
+close),&nbsp;``end``&nbsp;(the&nbsp;season&nbsp;verdict).</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-snapshots"><strong>snapshots</strong></a>(self, moment: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;time-machine&nbsp;snapshots,&nbsp;most&nbsp;recent&nbsp;first.<br>
+&nbsp;<br>
+``moment``&nbsp;filters&nbsp;to&nbsp;one&nbsp;key&nbsp;moment's&nbsp;snapshots&nbsp;(None&nbsp;lists<br>
+every&nbsp;snapshot,&nbsp;tagged&nbsp;or&nbsp;not).</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-status"><strong>status</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;game&nbsp;clock&nbsp;and&nbsp;the&nbsp;upcoming&nbsp;key&nbsp;moments.</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-unfreeze"><strong>unfreeze</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">Resume&nbsp;the&nbsp;game&nbsp;clock&nbsp;(the&nbsp;scheduler&nbsp;catches&nbsp;up&nbsp;on&nbsp;its&nbsp;next&nbsp;tick).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

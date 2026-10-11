@@ -119,7 +119,12 @@ async def test_snapshot_restore_round_trip_is_exact() -> None:
     assert sorted(bundle.store.territories) == territories_before
     season_after = await bundle.kingdoms.current_season()
     assert season_after is not None
-    assert season_after.model_dump() == season_before
+    # The restore comes back FROZEN (the real clock must not undo the
+    # rewind) — every other field matches the snapshot verbatim.
+    assert season_after.frozen is True
+    assert {k: v for k, v in season_after.model_dump().items() if k != "frozen"} == {
+        k: v for k, v in season_before.items() if k != "frozen"
+    }
     # The restore auto-snapshotted the pre-restore state: reversible twice.
     assert result["backup"] in [doc["_id"] for doc in await bundle.time.snapshots()]
 
@@ -130,6 +135,7 @@ async def test_advance_fast_forwards_the_calendar() -> None:
     await bundle.launch_season()
     await bundle.draw(1)
     await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
     result = await bundle.time.advance(7, now=MONDAY)
     assert [r["kind"] for r in result["reports"]] == ["age", "cycle"]
     season = await bundle.kingdoms.current_season()
@@ -152,6 +158,7 @@ async def test_advance_past_the_end_finishes_the_season() -> None:
     await bundle.launch_season()
     await bundle.draw(1)
     await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
     result = await bundle.time.advance(14, now=MONDAY)
     assert [r["kind"] for r in result["reports"]] == ["age", "cycle", "age", "end"]
     season = await bundle.kingdoms.current_season()
@@ -167,6 +174,7 @@ async def test_restore_reverts_a_fast_forward() -> None:
     await bundle.launch_season()
     await bundle.draw(1)
     await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
     territories_before = sorted(bundle.store.territories)
     result = await bundle.time.advance(7, now=MONDAY)
     season = await bundle.kingdoms.current_season()
@@ -186,6 +194,7 @@ async def test_jump_to_the_key_moments() -> None:
     await bundle.launch_season()
     await bundle.draw(1)
     await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
     jumped = await bundle.time.jump_to("next_age", now=MONDAY)
     assert [r["kind"] for r in jumped["reports"]] == ["age"]
     assert jumped["target"] == datetime(2026, 10, 6, 22, 0, tzinfo=UTC)
@@ -225,3 +234,109 @@ async def test_restore_unknown_snapshot_raises() -> None:
     await bundle.launch_season()
     with pytest.raises(TimeMachineError):
         await bundle.time.restore("tm-nope", now=MONDAY)
+
+
+async def test_advance_refuses_while_the_game_sits_in_setup() -> None:
+    """Drasah's guard: in setup the time buttons answer "not started"."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.set_started_at(MONDAY)
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.phase == "setup"
+    with pytest.raises(TimeMachineError):
+        await bundle.time.advance(1, now=MONDAY)
+    with pytest.raises(TimeMachineError):
+        await bundle.time.jump_to("next_cycle", now=MONDAY)
+    # Starting the game unlocks the machine.
+    await bundle.kingdoms.start_season()
+    assert await bundle.time.jump_to("next_age", now=MONDAY)
+
+
+async def test_freeze_pauses_and_unfreeze_resumes() -> None:
+    """The freeze flag flips and persists on the season."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    assert await bundle.time.freeze() is True
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.frozen is True
+    assert await bundle.time.unfreeze() is False
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.frozen is False
+
+
+async def test_restore_comes_back_frozen() -> None:
+    """A rewind pauses the game — the real clock must not undo it."""
+    bundle = Bundle(_full_catalog_weeks(4))
+    await bundle.launch_season()
+    await bundle.draw(1)
+    await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
+    result = await bundle.time.advance(7, now=MONDAY)
+    assert await bundle.time.restore(result["backup"], now=MONDAY) is not None
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.frozen is True
+    assert season.current_cycle == 1
+
+
+async def test_advance_tags_key_moment_snapshots() -> None:
+    """Every replayed slot photographs the exact pre-switch state."""
+    bundle = Bundle(_full_catalog_weeks(4))
+    await bundle.launch_season()
+    await bundle.draw(1)
+    await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
+    await bundle.time.advance(7, now=MONDAY)
+    moments = {doc["moment"] for doc in await bundle.time.snapshots() if doc.get("moment")}
+    assert moments == {"age", "cycle"}
+    assert all(doc["moment"] is None for doc in await bundle.time.snapshots() if not doc.get("moment"))
+
+
+async def test_restore_last_rewinds_one_key_moment() -> None:
+    """The one-click rewind lands on the exact pre-switch snapshot."""
+    bundle = Bundle(_full_catalog_weeks(4))
+    await bundle.launch_season()
+    await bundle.draw(1)
+    await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
+    await bundle.time.advance(7, now=MONDAY)  # age + cycle switched
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.current_cycle == 2
+    await bundle.time.restore_last("cycle", now=MONDAY)
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert season.current_cycle == 1
+    assert season.current_age_key == "feudal_age"  # the age switch stands (post-cycle snapshot)
+    # No snapshot of a moment never reached: loud error, no silent wipe.
+    with pytest.raises(TimeMachineError):
+        await bundle.time.restore_last("lords_day_end", now=MONDAY)
+    with pytest.raises(TimeMachineError):
+        await bundle.time.restore_last("next_birthday", now=MONDAY)
+
+
+async def test_back_to_setup_wipes_without_archiving() -> None:
+    """The fresh-start button: everything wiped, NO archive, snapshots alive."""
+    bundle = Bundle(_full_catalog_weeks(4))
+    await bundle.launch_season()
+    await bundle.draw(1)
+    await bundle.set_started_at(MONDAY)
+    await bundle.kingdoms.start_season()
+    await bundle.time.create_snapshot("gardien", now=MONDAY)
+    assert await bundle.time.advance(7, now=MONDAY) is not None
+    result = await bundle.time.back_to_setup()
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    assert result["season"] == season.id
+    assert season.phase == "setup"
+    assert season.current_cycle == 1
+    # Only the freshly recreated Gaia kingdom remains — no player kingdom.
+    assert [k for k in await bundle.kingdoms.kingdoms() if not k.is_gaia] == []
+    assert await bundle.kingdoms.lords() == []
+    # The wipe archives NOTHING: only the time-machine snapshots remain.
+    archives = await bundle.store.find_season_archives()
+    assert all(doc.get("kind") == "time_machine" for doc in archives)
+    assert len(await bundle.time.snapshots()) >= 1

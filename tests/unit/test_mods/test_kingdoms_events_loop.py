@@ -20,14 +20,20 @@ from kingdoms.mods.kingdoms.kingdom_events_loop import (
 
 
 class _FakeEvents:
-    """A fake event service counting the run_due calls."""
+    """A fake event service counting the run_due calls and hook kinds."""
 
     def __init__(self, reports: list[dict[str, object]]) -> None:
         self.reports = reports
         self.calls = 0
+        self.hooked: list[str] = []
 
-    async def run_due(self, now: Any) -> list[dict[str, object]]:
+    async def run_due(
+        self, now: Any, *, snapshotter: Any = None
+    ) -> list[dict[str, object]]:
         self.calls += 1
+        if snapshotter is not None:
+            await snapshotter("cycle")
+            self.hooked.append("cycle")
         return list(self.reports)
 
 
@@ -53,10 +59,46 @@ class _FakeLogs:
         return "fr"
 
 
+class _FakeSeason:
+    def __init__(self, frozen: bool = False, phase: str = "started") -> None:
+        self.frozen = frozen
+        self.phase = phase
+
+
+class _FakeKingdoms:
+    """A fake kingdoms service exposing one season (or None)."""
+
+    def __init__(self, season: _FakeSeason | None) -> None:
+        self._season = season
+        self.config: Any = None
+
+    async def current_season(self) -> Any:
+        return self._season
+
+
+class _FakeTime:
+    """A fake time machine collecting the snapshot calls."""
+
+    def __init__(self) -> None:
+        self.snapshots: list[dict[str, object]] = []
+
+    async def create_snapshot(self, label: str, *, moment: str | None = None) -> dict[str, object]:
+        self.snapshots.append({"label": label, "moment": moment})
+        return {"_id": f"tm-{len(self.snapshots)}", "label": label, "moment": moment}
+
+
 class _FakeBot:
-    def __init__(self, guild: _FakeGuild, events: _FakeEvents) -> None:
+    def __init__(
+        self,
+        guild: _FakeGuild,
+        events: _FakeEvents,
+        kingdoms: _FakeKingdoms | None = None,
+        time_service: _FakeTime | None = None,
+    ) -> None:
         self.guilds = [guild]
         self.kingdoms_events_service = events
+        self.kingdoms_service = kingdoms
+        self.kingdoms_time_service = time_service
         self.logs_service = _FakeLogs()
 
 
@@ -104,7 +146,7 @@ async def test_scheduler_survives_a_run_due_failure() -> None:
     channel = _FakeChannel()
 
     class _BrokenEvents(_FakeEvents):
-        async def run_due(self, now: Any) -> list[dict[str, object]]:
+        async def run_due(self, now: Any, *, snapshotter: Any = None) -> list[dict[str, object]]:
             self.calls += 1
             if self.calls == 1:
                 raise RuntimeError("store unavailable")
@@ -137,3 +179,46 @@ def test_report_text_renders_the_season_end() -> None:
     assert "Aquitaine" in _report_text(fr, end)
     tie = dict(end, winner_name=None, showmatch=True)
     assert "ShowMatch" in _report_text(fr, tie)
+
+
+async def test_scheduler_skips_a_frozen_season() -> None:
+    """Drasah's pause: a frozen season replays no slot at all."""
+    channel = _FakeChannel()
+    events = _FakeEvents([{"kind": "cycle", "cycle": 2, "gaia_new_maps": []}])
+    bot = _FakeBot(_FakeGuild(channel), events, _FakeKingdoms(_FakeSeason(frozen=True)))
+    assert start_kingdoms_event_scheduler(bot, tick_seconds=0) is True
+    for _ in range(10):
+        await asyncio.sleep(0)
+    assert events.calls == 0
+    assert channel.sent == []
+    await stop_kingdoms_event_scheduler()
+
+
+async def test_scheduler_skips_a_setup_season() -> None:
+    """The setup phase replays no slot — no Gaia draw before the start."""
+    channel = _FakeChannel()
+    events = _FakeEvents([{"kind": "cycle", "cycle": 2, "gaia_new_maps": []}])
+    bot = _FakeBot(_FakeGuild(channel), events, _FakeKingdoms(_FakeSeason(phase="setup")))
+    assert start_kingdoms_event_scheduler(bot, tick_seconds=0) is True
+    for _ in range(10):
+        await asyncio.sleep(0)
+    assert events.calls == 0
+    await stop_kingdoms_event_scheduler()
+
+
+async def test_scheduler_snapshots_each_replayed_slot() -> None:
+    """The time-machine hook photographs the state before each slot."""
+    channel = _FakeChannel()
+    events = _FakeEvents([{"kind": "cycle", "cycle": 2, "gaia_new_maps": []}])
+    time_service = _FakeTime()
+    bot = _FakeBot(
+        _FakeGuild(channel), events, _FakeKingdoms(_FakeSeason()), time_service
+    )
+    assert start_kingdoms_event_scheduler(bot, tick_seconds=0) is True
+    for _ in range(20):
+        await asyncio.sleep(0)
+        if time_service.snapshots:
+            break
+    assert events.hooked == ["cycle"]
+    assert time_service.snapshots == [{"label": "avant cycle", "moment": "cycle"}]
+    await stop_kingdoms_event_scheduler()
