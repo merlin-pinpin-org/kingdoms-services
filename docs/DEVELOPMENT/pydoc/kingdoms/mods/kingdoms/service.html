@@ -731,6 +731,15 @@ player:&nbsp;a&nbsp;replacement&nbsp;inherits&nbsp;the&nbsp;weekly&nbsp;attack/d
 
 <dl><dt>async <a name="KingdomsService-lords"><strong>lords</strong></a>(self) -&gt; 'list[LordModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;lords&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsService-redraw_lords_day_draft"><strong>redraw_lords_day_draft</strong></a>(self, *, seed: 'int | None' = None) -&gt; 'dict[str, list[str]]'</dt><dd><span class="code">Draw&nbsp;the&nbsp;fresh&nbsp;Lord's&nbsp;Day&nbsp;draft&nbsp;of&nbsp;every&nbsp;kingdom&nbsp;(Drasah's&nbsp;rule).<br>
+&nbsp;<br>
+Called&nbsp;by&nbsp;the&nbsp;cycle&nbsp;switch&nbsp;AFTER&nbsp;the&nbsp;alliance&nbsp;recalculation<br>
+dropped&nbsp;the&nbsp;un-wed&nbsp;civilizations&nbsp;(2026-10-11):&nbsp;each&nbsp;player<br>
+kingdom&nbsp;draws&nbsp;``starting_civilizations``&nbsp;fresh&nbsp;civilizations&nbsp;—<br>
+never&nbsp;a&nbsp;civilization&nbsp;another&nbsp;kingdom&nbsp;holds&nbsp;(married&nbsp;or&nbsp;in<br>
+hand),&nbsp;never&nbsp;Gaïa.&nbsp;The&nbsp;married&nbsp;civilizations&nbsp;stay;&nbsp;the&nbsp;new<br>
+draft&nbsp;joins&nbsp;the&nbsp;hand.&nbsp;Returns&nbsp;the&nbsp;drawn&nbsp;list&nbsp;per&nbsp;kingdom&nbsp;name.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsService-refuse_kingdom"><strong>refuse_kingdom</strong></a>(self, kingdom_id: 'str') -&gt; 'KingdomModel'</dt><dd><span class="code">Refuse&nbsp;a&nbsp;pending&nbsp;kingdom:&nbsp;its&nbsp;members&nbsp;fall&nbsp;back&nbsp;to&nbsp;the&nbsp;queue.<br>
 &nbsp;<br>
 The&nbsp;document&nbsp;stays&nbsp;REFUSED&nbsp;for&nbsp;the&nbsp;record&nbsp;(the&nbsp;admin&nbsp;may&nbsp;later<br>
