@@ -118,6 +118,27 @@ class ReplacementError(KingdomsModError):
     message_key = "kingdoms.errors.replacement"
 
 
+class ParishError(KingdomsModError):
+    """Base of the Paroisse (D64) domain errors."""
+
+    code = "KINGDOMS_PARISH_ERROR"
+    message_key = "kingdoms.errors.parish_unexpected"
+
+
+class ParishMaxTierError(ParishError):
+    """Raised when the Paroisse already sits at the Cathédrale palier."""
+
+    code = "KINGDOMS_PARISH_MAX_TIER"
+    message_key = "kingdoms.errors.parish_max_tier"
+
+
+class ParishInsufficientTechError(ParishError):
+    """Raised when the treasury cannot cover the palier upgrade (D64)."""
+
+    code = "KINGDOMS_PARISH_INSUFFICIENT_TECH"
+    message_key = "kingdoms.errors.parish_insufficient_tech"
+
+
 def _season_id(now: datetime) -> str:
     """Build the season id from its launch timestamp."""
     return f"s-{now:%Y%m%d-%H%M%S}"
@@ -399,6 +420,35 @@ class KingdomsService:
             await self._grant_starting_civilizations(kingdom)
         await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info("kingdoms: kingdom %s added manually by an admin", kingdom.name)
+        return kingdom
+
+    async def upgrade_parish(self, kingdom_id: str) -> KingdomModel:
+        """Upgrade the Paroisse one palier (D64, direct always-succeeds buy).
+
+        Chapelle → Église (2 🔬) → Cathédrale (4 🔬): the payment is a
+        direct purchase — it only fails when the treasury is short or
+        the palier already sits at the top. The lock of the standard
+        marriage and the Offrande follow the new palier immediately.
+        """
+        kingdom = await self._require_kingdom(kingdom_id)
+        if kingdom.is_gaia:
+            raise ParishError("Gaïa owns no Paroisse")
+        tier = int(getattr(kingdom, "parish_tier", 1))
+        tiers = self._config.parish.tiers
+        if tier >= len(tiers):
+            raise ParishMaxTierError("the Paroisse already sits at the top palier")
+        next_tier = tiers[tier]
+        if kingdom.tech_points_bank < next_tier.cost:
+            raise ParishInsufficientTechError("the treasury cannot cover the upgrade")
+        kingdom.tech_points_bank -= next_tier.cost
+        kingdom.parish_tier = tier + 1
+        await self._store.upsert_kingdom(kingdom.to_mongo())
+        logger.info(
+            "kingdoms: %s upgraded its Paroisse to %s (-%s tech)",
+            kingdom.id,
+            next_tier.display_name,
+            next_tier.cost,
+        )
         return kingdom
 
     async def replace(self, outgoing_player_id: str, incoming_player_id: str) -> LordModel:

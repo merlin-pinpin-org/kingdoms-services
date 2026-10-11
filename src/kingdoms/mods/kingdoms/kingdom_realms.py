@@ -40,9 +40,12 @@ REALM_SALONS: tuple[tuple[str, str], ...] = (
     ("le-royaume", "Le-Royaume"),
     ("territoire", "Territoire"),
     ("alliances", "Alliances"),
-    ("eglise", "Église"),
+    ("eglise", "Paroisse"),
     ("pigeon-voyageur", "Pigeon-Voyageur"),
 )
+# Drasah 2026-10-11: the salon « Église » is renamed « Paroisse » (the
+# palier lives inside); the data key ``eglise`` never changes.
+LEGACY_REALM_SALON_NAMES: dict[str, str] = {"eglise": "Église"}
 PUBLIC_REALM_SALONS = {"territoire", "alliances"}
 
 STRINGS: dict[str, dict[str, str]] = {
@@ -345,6 +348,23 @@ async def ensure_realm_structure(
             ),
             None,
         )
+        if existing is None and key in LEGACY_REALM_SALON_NAMES:
+            # adopt the pre-rename salon (Église → Paroisse) by renaming it
+            legacy = next(
+                (
+                    c
+                    for c in getattr(category, "channels", [])
+                    if _slug(getattr(c, "name", "")) == _slug(LEGACY_REALM_SALON_NAMES[key])
+                ),
+                None,
+            )
+            if legacy is not None:
+                try:
+                    await legacy.edit(name=name)
+                    logger.info("KINGDOM REALMS: salon renamed %s -> %s", LEGACY_REALM_SALON_NAMES[key], name)
+                    existing = legacy
+                except Exception:
+                    logger.warning("KINGDOM REALMS: salon rename failed", exc_info=True)
         channel = (
             existing if existing is not None else await guild.create_text_channel(name, category=category)
         )

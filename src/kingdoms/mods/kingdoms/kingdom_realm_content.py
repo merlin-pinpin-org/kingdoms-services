@@ -68,12 +68,21 @@ def _strings(locale: str) -> dict[str, str]:
                 "Au démarrage de la saison, chaque royaume recevra ses "
                 "territoires par tirage aléatoire."
             ),
-            "church_title": "⛪ Église — {0}",
-            "church_stock": "Stock mariages",
+            "church_title": "⛪ Paroisse — {0}",
+            "church_stock": "Points de mariage",
+            "church_arranged": "Mariages arrangés en stock",
             "church_active": "Mariages actifs",
             "church_none": "Aucun mariage actif.",
-            "church_badge": "💍 {0} — {1} (verrou en cours)",
-            "church_actions": "Boutons 💍 Se marier · ⛪ Améliorer · ✨ Chantier Sacrée — bientôt disponibles (D64)",
+            "church_badge": "💍 {0} — {1} (verrou {2} restant)",
+            "church_lock_hours": "{0}h",
+            "church_singles": "Célibataires",
+            "church_singles_none": "Aucun seigneur célibataire.",
+            "church_tier_line": "Palier : {0} ({1}/{2}) — Offrande : {3} 🔬",
+            "church_lock_line": "Verrou mariage classique : {0}h",
+            "church_marry_button": "💍 Se marier",
+            "church_arrange_button": "💒 Mariage arrangé ({0})",
+            "church_upgrade_button": "⛪ Améliorer → {0} ({1} 🔬)",
+            "church_upgrade_max": "⛪ Cathédrale — palier maximal",
             "carrier_title": "🕊️ Pigeon-Voyageur — {0}",
             "carrier_body": (
                 "Ce salon recevra les rappels du Roi (D69) : achat de patrouille,"
@@ -116,12 +125,21 @@ def _strings(locale: str) -> dict[str, str]:
             "At the season start, each kingdom will receive its "
             "territories through a random draw."
         ),
-        "church_title": "⛪ Church — {0}",
-        "church_stock": "Marriage stock",
+        "church_title": "⛪ Parish — {0}",
+        "church_stock": "Marriage points",
+        "church_arranged": "Arranged marriages in stock",
         "church_active": "Active marriages",
         "church_none": "No active marriage.",
-        "church_badge": "💍 {0} — {1} (lock running)",
-        "church_actions": "Buttons 💍 Marry · ⛪ Upgrade · ✨ Holy Works — coming soon (D64)",
+        "church_badge": "💍 {0} — {1} (lock {2} left)",
+        "church_lock_hours": "{0}h",
+        "church_singles": "Bachelors",
+        "church_singles_none": "No bachelor lord.",
+        "church_tier_line": "Tier: {0} ({1}/{2}) — Offering: {3} 🔬",
+        "church_lock_line": "Standard marriage lock: {0}h",
+        "church_marry_button": "💍 Marry",
+        "church_arrange_button": "💒 Arranged marriage ({0})",
+        "church_upgrade_button": "⛪ Upgrade → {0} ({1} 🔬)",
+        "church_upgrade_max": "⛪ Cathedral — top tier",
         "carrier_title": "🕊️ Carrier Pigeon — {0}",
         "carrier_body": (
             "This salon will carry the King's reminders (D69): patrol purchase,"
@@ -158,12 +176,15 @@ async def deploy_realm_content(
     others). While the season is in ``setup``, the Territoire salon
     shows the distribution placeholder instead of the territories.
     """
-    from kingdoms.mods.kingdoms.kingdom_realms import _find_realm_category
+    from kingdoms.mods.kingdoms.kingdom_realms import REALM_SALONS, _find_realm_category
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     category = _find_realm_category(guild, getattr(kingdom, "name", ""))
     if category is None:
         return {}
+    # The salon data keys (e.g. ``eglise``) map to display names
+    # (``Paroisse``); match channels by the slug of the display name.
+    salon_slugs = {key: _slug(display) for key, display in REALM_SALONS}
     channels: dict[str, Any] = {}
     for channel in getattr(category, "channels", []):
         channels[_slug(getattr(channel, "name", ""))] = channel
@@ -181,7 +202,7 @@ async def deploy_realm_content(
     }
     results: dict[str, bool] = {}
     for key, builder in builders.items():
-        channel = channels.get(key)
+        channel = channels.get(salon_slugs.get(key, key))
         if channel is None:
             results[key] = False
             continue
@@ -277,8 +298,39 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
         "civ_names": _catalog_names(service, "civilizations") if service is not None else {},
         "map_names": _catalog_names(service, "maps") if service is not None else {},
         "patrol_limit": _patrol_limit(service),
+        "parish": _parish_state(kingdom, service),
     }
     return state
+
+
+def _parish_state(kingdom: Any, service: Any) -> dict[str, Any]:
+    """Collect the Paroisse slice (palier, points, stock, offrande, lock)."""
+    config = getattr(service, "config", None) if service is not None else None
+    settings = getattr(config, "parish", None)
+    tier = max(1, int(getattr(kingdom, "parish_tier", 1) or 1))
+    if settings is None:
+        # defensive default: the config seam is unavailable (tests)
+        return {
+            "tier": tier,
+            "name": {1: "Chapelle", 2: "Église", 3: "Cathédrale"}.get(tier, "Chapelle"),
+            "cost": {2: 2, 3: 4}.get(tier + 1, 0),
+            "next_name": {2: "Église", 3: "Cathédrale"}.get(tier + 1, ""),
+            "offering": {1: 0, 2: 1, 3: 2}.get(tier, 0),
+            "lock_hours": {1: 24, 2: 12, 3: 6}.get(tier, 24),
+            "max_tier": 3,
+        }
+    tiers = settings.tiers
+    entry = settings.tier(tier)
+    next_entry = tiers[tier] if tier < len(tiers) else None
+    return {
+        "tier": tier,
+        "name": str(entry.display_name),
+        "cost": int(next_entry.cost) if next_entry is not None else 0,
+        "next_name": str(next_entry.display_name) if next_entry is not None else "",
+        "offering": int(entry.offering),
+        "lock_hours": int(entry.marriage_lock_hours),
+        "max_tier": len(tiers),
+    }
 
 
 def _patrol_limit(service: Any) -> int:
@@ -475,33 +527,111 @@ def _build_church(
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the ⛪ Église state view (D64 placeholder + marriages)."""
+    """Build the ⛪ Paroisse state view (D64 paliers + marriages).
+
+    Live data only: palier, points de mariage, jetons de mariage
+    arrangé, mariages actifs avec verrou restant, célibataires — the
+    anti-stale rule (Drasah 2026-10-11) re-renders this view after
+    every state change. The buttons (marry / arranged / upgrade) are
+    restart-proof DynamicItems registered on the bot.
+    """
+    import time as _time
+
     import discord
 
+    parish = state["parish"]
     lines = [
-        f"**{strings['parish']}** : {strings['parish_placeholder']}",
-        f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_capacity', 0) or 0)}",
+        strings["church_tier_line"].format(
+            parish["name"], parish["tier"], parish["max_tier"], parish["offering"]
+        ),
+        strings["church_lock_line"].format(parish["lock_hours"]),
+        f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_points', 0) or 0)}",
+        f"**{strings['church_arranged']}** : {int(getattr(kingdom, 'arranged_marriage_stock', 0) or 0)}",
         f"**{strings['church_active']}** :",
     ]
+    now = int(_time.time())
     married = [m for m in state["members"] if getattr(m, "married_civilization", None)]
     if not married:
         lines.append(strings["church_none"])
     for member in married:
         civ = str(getattr(member, "married_civilization", ""))
+        until = int(getattr(member, "marriage_locked_until", 0) or 0)
+        left = max(0, -(-(until - now) // 3600)) if until > now else 0
         lines.append(
             "• "
             + strings["church_badge"].format(
                 getattr(member, "display_name", strings["unknown"]),
                 state["civ_names"].get(civ, civ),
+                strings["church_lock_hours"].format(left),
             )
         )
-    lines.append(strings["church_actions"])
-    return _panel_view(
+    singles = [
+        m
+        for m in state["members"]
+        if getattr(m, "married_civilization", None) is None and not getattr(m, "left", False)
+    ]
+    if singles:
+        names = ", ".join(str(getattr(m, "display_name", m.id)) for m in singles)
+        lines.append(f"**{strings['church_singles']}** : {names}")
+    else:
+        lines.append(f"**{strings['church_singles']}** : {strings['church_singles_none']}")
+    body = "\n".join(lines)
+
+    buttons = _church_buttons(strings, kingdom, state)
+    return _panel_view_with_buttons(
         strings["church_title"].format(getattr(kingdom, "name", "")),
-        "\n".join(lines),
+        body,
         f"{VIEW_MARKER_PREFIX}:eglise",
         discord.Colour.purple(),
+        buttons,
     )
+
+
+def _church_buttons(strings: dict[str, str], kingdom: Any, state: dict[str, Any]) -> list[Any]:
+    """Build the restart-proof Paroisse buttons of the current palier."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomChurchArrangeButton,
+        KingdomChurchMarryButton,
+        KingdomChurchUpgradeButton,
+    )
+
+    parish = state["parish"]
+    arranged = int(getattr(kingdom, "arranged_marriage_stock", 0) or 0)
+    buttons: list[Any] = [KingdomChurchMarryButton(strings)]
+    if parish["tier"] >= 2:
+        buttons.append(KingdomChurchArrangeButton(strings, arranged))
+    if parish["tier"] < parish["max_tier"]:
+        buttons.append(
+            KingdomChurchUpgradeButton(strings, parish["next_name"], parish["cost"])
+        )
+    else:
+        buttons.append(KingdomChurchUpgradeButton(strings, "", 0))
+    return buttons
+
+
+def _panel_view_with_buttons(
+    title: str,
+    body: str,
+    marker: str,
+    accent: discord.Colour,
+    buttons: list[Any],
+) -> discord.ui.LayoutView:
+    """Build one Components V2 state panel with an action row of buttons."""
+    import discord
+
+    view = discord.ui.LayoutView(timeout=None)
+    container: discord.ui.Container[discord.ui.LayoutView] = discord.ui.Container(
+        discord.ui.TextDisplay(f"# {title}"),
+        discord.ui.Separator(),
+        discord.ui.TextDisplay(body),
+        discord.ui.Separator(),
+        accent_colour=accent,
+    )
+    if buttons:
+        container.add_item(discord.ui.ActionRow(*buttons))
+    container.add_item(discord.ui.TextDisplay(f"-# {marker}"))
+    view.add_item(container)
+    return view
 
 
 def _build_carrier(
