@@ -12,12 +12,12 @@ from typing import ClassVar
 
 import pytest
 
+from kingdoms.mods.kingdoms.attacks import SeasonClosedError
 from kingdoms.mods.kingdoms.config import (
     Epoch,
     KingdomsSeasonConfig,
     default_map_catalog,
 )
-from kingdoms.mods.kingdoms.attacks import SeasonClosedError
 from kingdoms.mods.kingdoms.events import (
     EventService,
     SeasonExhaustedError,
