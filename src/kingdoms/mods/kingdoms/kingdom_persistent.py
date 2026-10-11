@@ -849,6 +849,82 @@ class KingdomMarketActionButton(
         await interaction.response.send_message(prompt, view=view, ephemeral=True)
 
 
+async def _revoke_kingdoms_roles(guild: discord.Guild | None, user_id: str) -> None:
+    """Strip the kingdoms mod roles of one player (shared by the select and the modal)."""
+    wiring = _wiring()
+    if wiring.mod_roles_service is None or guild is None:
+        return
+    for role_key in ("kingdoms_lord", "kingdoms_king"):
+        try:
+            await wiring.mod_roles_service.remove_mod_role(str(guild.id), user_id, "kingdoms", role_key)
+        except Exception:
+            logger.warning("KINGDOMS ADMIN: role removal failed for %s", role_key, exc_info=True)
+
+
+class _ActiveLordsReadError(Exception):
+    """The lords list could not be read (wiring or storage failure)."""
+
+
+async def _active_lord_options(strings: dict[str, str]) -> list[discord.SelectOption] | None:
+    """List the season's active lords (assigned or waiting) as select options.
+
+    Drasah's rule (2026-10-11): ejecting a player must not require
+    typing their handle — the admin picks them from the active roster.
+    Returns None when the roster is empty or unreadable.
+    """
+    wiring = _wiring()
+    if wiring.kingdoms_service is None:
+        return None
+    try:
+        lords = [lord for lord in await wiring.kingdoms_service.lords() if not lord.left]
+        kingdoms = {kingdom.id: kingdom.name for kingdom in await wiring.kingdoms_service.kingdoms()}
+    except Exception as exc:
+        logger.warning("KINGDOMS ADMIN: active-lords read failed", exc_info=True)
+        raise _ActiveLordsReadError(type(exc).__name__) from exc
+    options: list[discord.SelectOption] = []
+    for lord in lords:
+        if not (lord.kingdom_id or lord.in_queue):
+            continue
+        kingdom_name = kingdoms.get(lord.kingdom_id or "", None) if lord.kingdom_id else None
+        description = kingdom_name or strings["remove_queue_desc"]
+        emoji = "👑" if str(lord.role) == "king" else None
+        options.append(
+            discord.SelectOption(
+                label=str(lord.display_name or lord.id)[:100],
+                value=str(lord.id)[:100],
+                description=str(description)[:100],
+                emoji=emoji,
+            )
+        )
+    return options[:25]
+
+
+class KingdomRemovePlayerView(discord.ui.View):
+    """The admin ephemeral roster: pick the active lord to eject."""
+
+    def __init__(self, options: list[discord.SelectOption], strings: dict[str, str]) -> None:
+        super().__init__(timeout=300)
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="kingdoms:remove:choose",
+            placeholder=strings["remove_select_placeholder"][:100],
+            options=options,
+            min_values=1,
+            max_values=1,
+        )
+
+        async def on_choose(target: discord.Interaction[Any]) -> None:
+            user_id = (select.values or [""])[0]
+            if not user_id:
+                return
+            await target.response.defer(ephemeral=True)
+            await _revoke_kingdoms_roles(target.guild, user_id)
+            note = strings["remove_player_done"].format(f"<@{user_id}>")
+            await target.followup.send(note, ephemeral=True)
+
+        select.callback = on_choose  # type: ignore[method-assign, assignment]
+        self.add_item(select)
+
+
 class KingdomRemovePlayerModal(discord.ui.Modal):
     """The admin form to remove one enrolled player (by mention/id)."""
 
@@ -873,16 +949,7 @@ class KingdomRemovePlayerModal(discord.ui.Modal):
             await interaction.response.send_message(strings["remove_player_not_found"], ephemeral=True)
             return
         user_id = match.group(1)
-        wiring = _wiring()
-        guild = interaction.guild
-        if wiring.mod_roles_service is not None and guild is not None:
-            for role_key in ("kingdoms_lord", "kingdoms_king"):
-                try:
-                    await wiring.mod_roles_service.remove_mod_role(
-                        str(guild.id), user_id, "kingdoms", role_key
-                    )
-                except Exception:
-                    logger.warning("KINGDOMS ADMIN: role removal failed for %s", role_key, exc_info=True)
+        await _revoke_kingdoms_roles(interaction.guild, user_id)
         note = strings["remove_player_done"].format(f"<@{user_id}>")
         await interaction.response.send_message(note, ephemeral=True)
 
@@ -1113,8 +1180,24 @@ class KingdomAdminButton(
     async def callback(self, interaction: discord.Interaction) -> None:
         """Run the admin action chosen on the Paramètres panel."""
 
-        async def open_remove(_: discord.Interaction, locale: str) -> None:
-            await interaction.response.send_modal(KingdomRemovePlayerModal(locale))
+        async def open_remove(interaction: discord.Interaction, locale: str) -> None:
+            """Eject flow: pick from the active roster first, modal as fallback."""
+            strings_local = _profile_strings(locale)
+            try:
+                options = await _active_lord_options(strings_local)
+            except _ActiveLordsReadError as exc:
+                await interaction.response.send_message(
+                    strings_local["remove_select_failed"].format(str(exc)), ephemeral=True
+                )
+                return
+            if options:
+                view = KingdomRemovePlayerView(options, strings_local)
+                await interaction.response.send_message(view=view, ephemeral=True)
+                return
+            if _wiring().kingdoms_service is None:
+                await interaction.response.send_modal(KingdomRemovePlayerModal(locale))
+                return
+            await interaction.response.send_message(strings_local["remove_select_none"], ephemeral=True)
 
         async def open_assign(_: discord.Interaction, locale: str) -> None:
             await interaction.response.send_modal(KingdomAssignPlayerModal(locale))
