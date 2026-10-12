@@ -69,7 +69,8 @@ def _pool_post_layout(
     from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolTransitionButton
 
     view = discord.ui.LayoutView(timeout=None)
-    header = f"## {pool.name}\n{_pool_state_badge(getattr(pool, 'state', 'draft'))}"
+    display = pool.name[:1].upper() + pool.name[1:]
+    header = f"## {display}\n{_pool_state_badge(getattr(pool, 'state', 'draft'))}"
     if pool.description:
         header += f"\n{pool.description}"
     mod_link = getattr(pool, "mod_link", "")
@@ -252,7 +253,7 @@ async def _create_pool_post(
     await platform.create_map_post(
         guild_id,
         str(forum.id),
-        pool.name,
+        pool.name[:1].upper() + pool.name[1:],
         _pool_post_content(pool, maps),
         view=_pool_post_layout(pool, maps, editable),
     )

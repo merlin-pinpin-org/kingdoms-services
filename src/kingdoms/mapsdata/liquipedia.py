@@ -217,9 +217,9 @@ class LiquipediaMapsProvider:
         wikitext = str(payload.get("parse", {}).get("wikitext", ""))
         fields = self._parse_infobox_fields(wikitext)
         name = fields.get("name") or page.replace("_", " ")
-        description = self._clean_wikitext(fields.get("description", "")) or (
-            f"Map page on Liquipedia: {LIQUIPEDIA_ATTRIBUTION}{page}"
-        )
+        description = self._lead_paragraph(wikitext) or self._clean_wikitext(
+            fields.get("description", "")
+        ) or (f"Map page on Liquipedia: {LIQUIPEDIA_ATTRIBUTION}{page}")
         return MapInfo(
             name=name,
             description=description,
@@ -258,6 +258,50 @@ class LiquipediaMapsProvider:
         cleaned = _BOLD_RE.sub("", cleaned)
         cleaned = _ITALIC_RE.sub("", cleaned)
         return cleaned.strip()
+
+    @staticmethod
+    def _overview_section(wikitext: str) -> str:
+        """Return the Overview prose when the page has one, else the lead."""
+        overview_at = wikitext.find("==Overview==")
+        if overview_at >= 0:
+            rest = wikitext[overview_at + len("==Overview==") :]
+            return rest.split("\n==")[0]
+        return wikitext
+
+    @staticmethod
+    def _lead_paragraph(wikitext: str) -> str:
+        """Extract the page's description from its wikitext.
+
+        The Overview prose when the page has one, else the bolded lead
+        sentence ("Hideout is an Age of Empires II multiplayer map.").
+        """
+        section = LiquipediaMapsProvider._overview_section(wikitext)
+        lines: list[str] = []
+        depth = 0
+        for line in section.splitlines():
+            stripped = line.strip()
+            if not stripped or depth > 0 or stripped.startswith("{{"):
+                if lines and depth <= 0:
+                    break
+                depth += stripped.count("{{") - stripped.count("}}")
+                continue
+            if depth <= 0 and (stripped.startswith("==") or stripped.startswith("<")):
+                if lines:
+                    break
+                continue
+            if stripped.startswith("<!--"):
+                continue
+            lines.append(stripped)
+            if len(lines) >= 4:
+                break
+        text = " ".join(lines)
+        text = _BOLD_RE.sub("", text)
+        text = _ITALIC_RE.sub("", text)
+        text = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]+)\]\]", r"\1", text)
+        text = re.sub(r"\{\{[^{}]*\}\}", "", text)
+        text = re.sub(r"<[^>]+>", "", text)
+        return text.strip()
+
 
     @classmethod
     def _parse_game_tabs(cls, wikitext: str) -> tuple[str, ...]:
