@@ -208,7 +208,7 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
     maps_row.add_item(GamesMapCreateButton(game_key))
     view.add_item(maps_row)
     pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    pools_row.add_item(GamesPoolImportButton(game_key))
+    pools_row.add_item(GamesPoolCopyButton(game_key))
     pools_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(pools_row)
     if not from_pin:
@@ -1997,20 +1997,20 @@ class GamesBulkImportModal(discord.ui.Modal):
 
 
 
-class GamesPoolImportButton(
+class GamesPoolCopyButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:pools:import:(?P<game_key>[a-z0-9_]+)",
+    template=rf"{_NS}:pools:copy:(?P<game_key>[a-z0-9_]+)",
 ):
-    """Import one published pool by its unique id (from another guild)."""
+    """Copy an existing map pool by its id (a real copy, own id)."""
 
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Importer un map pool",
-                emoji="\U0001f4e5",
+                label="Copier un map pool",
+                emoji="\U0001f5b3\ufe0f",
                 style=discord.ButtonStyle.secondary,
-                custom_id=f"{_NS}:pools:import:{game_key}"[:100],
+                custom_id=f"{_NS}:pools:copy:{game_key}"[:100],
             )
         )
 
@@ -2021,18 +2021,86 @@ class GamesPoolImportButton(
         item: discord.ui.Item[Any],
         match: re.Match[str],
         /,
-    ) -> GamesPoolImportButton:
+    ) -> GamesPoolCopyButton:
         """Rebuild the item from the wire (game key from the custom_id)."""
         del interaction, item
         return cls(match.group("game_key"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then open the pool import modal."""
+        """Guard, then open the pool copy modal."""
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
         if not await _guard_admin(interaction):
             return
-        await interaction.response.send_modal(GamesPoolImportModal(self.game_key))
+        await interaction.response.send_modal(GamesPoolCopyModal(self.game_key))
+
+
+class GamesPoolCopyModal(discord.ui.Modal):
+    """The pool copy form: the source pool's id + the copy's name.
+
+    The copy is a real copy (duplicate_map_pool): its own stable id
+    scoped to this guild, its own map list, editable — the source
+    stays untouched. The admin finds the source pool's id in its
+    post's footer (pool:<guild_id>:<slug>).
+    """
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(title="Copier un map pool", timeout=None)
+        self.source_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Id du pool à copier (footer du post, ex. pool:public:s1_r1)",
+            max_length=100,
+            required=True,
+        )
+        self.new_name: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Nom de la copie",
+            max_length=64,
+            required=True,
+        )
+        self.add_item(self.source_id)
+        self.add_item(self.new_name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Copy the pool by id into this guild (guard, defer, sync, link)."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        source_id = str(self.source_id.value or "").strip()
+        source = await service.get_map_pool(source_id) if source_id else None
+        if source is None:
+            await interaction.followup.send(
+                f"Pool introuvable : `{source_id}` — l'id est dans le footer du post du pool.",
+                ephemeral=True,
+            )
+            return
+        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        try:
+            copy = await service.duplicate_map_pool(
+                source.id, str(self.new_name.value or "").strip(), owner_guild_id=guild_id
+            )
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: pool copy failed")
+            await interaction.followup.send(f"Échec de la copie : {exc}", ephemeral=True)
+            return
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("GAMES ADMIN: pools forum sync after copy failed — best-effort")
+        await interaction.followup.send(
+            f"Pool **{copy.name}** copié (`{copy.id}`) — {len(copy.map_ids)} maps, "
+            "son post est dans le forum des map pools.",
+            ephemeral=True,
+        )
+        await _refresh_pins_after_mutation(interaction)
 
 
 class GamesPoolImportModal(discord.ui.Modal):
@@ -2120,7 +2188,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolSendButton,
         GamesMapImportButton,
         GamesBulkImportButton,
-        GamesPoolImportButton,
+        GamesPoolCopyButton,
         GamesGrantedSelect,
         GamesGrantedReopenButton,
     )
