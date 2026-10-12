@@ -340,3 +340,47 @@ async def test_back_to_setup_wipes_without_archiving() -> None:
     archives = await bundle.store.find_season_archives()
     assert all(doc.get("kind") == "time_machine" for doc in archives)
     assert len(await bundle.time.snapshots()) >= 1
+
+
+def test_status_text_shows_the_clock_even_in_setup() -> None:
+    """Drasah's 2026-10-12 report: the setup panel read as "no timeline
+    at all" — the CURRENT game time and the upcoming schedule (cycles,
+    ages, season length) must be visible before the season starts."""
+    from kingdoms.mods.kingdoms.kingdom_time_panel import _strings, status_text
+
+    text = status_text(
+        _strings("fr"),
+        {
+            "season": None,
+            "now": datetime(2026, 10, 12, 10, 30, tzinfo=UTC),
+            "snapshot_count": 0,
+        },
+        "fr",
+    )
+    assert "Horloge actuelle" in text
+    assert "lundi 12 octobre" in text
+    assert "Préparation" in text
+    assert "dimanche 23h30" in text and "mercredi 00h00" in text
+
+    started = status_text(
+        _strings("fr"),
+        {
+            "season": "s-1",
+            "now": datetime(2026, 10, 12, 10, 30, tzinfo=UTC),
+            "cycle": 1,
+            "weeks": 4,
+            "age_display": "Âge sombre",
+            "phase": "started",
+            "finished": False,
+            "frozen": False,
+            "next_cycle_at": datetime(2026, 10, 18, 21, 30, tzinfo=UTC),
+            "next_age_at": datetime(2026, 10, 13, 22, 0, tzinfo=UTC),
+            "season_end_at": datetime(2026, 11, 1, 22, 59, tzinfo=UTC),
+            "timezone": "Europe/Paris",
+            "snapshot_count": 1,
+        },
+        "fr",
+    )
+    assert "Horloge actuelle" in started
+    assert "En cours" in started and "1/4" in started
+    assert "18 octobre" in started

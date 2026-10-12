@@ -100,6 +100,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "back_setup_cancel": "❌ Cancel",
         "back_setup_cancelled": "Cancelled — nothing was touched.",
         "back_setup_done": "🧱 Fresh season in setup ({season}) — salons rebuilt ({deleted} deleted).",
+        "now_line": "🕰 Current game time: {now}",
+        "setup_schedule_line": (
+            "📅 Once started: cycle switch every Sunday 23:30 · age switch every"
+            " Wednesday 00:00 · {weeks} week season · verdict Sunday 23:59."
+        ),
     },
     "fr": {
         "panel_title": "🕰️ **Machine à temps Kingdoms** — l'horloge du jeu",
@@ -110,8 +115,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "next_cycle_line": "Prochain basculement de cycle : {next_cycle}",
         "next_age_line": "Prochain basculement d'âge : {next_age}",
         "season_end_line": "Verdict de fin de saison : {season_end}",
-        "snapshots_line": "Snapshots : {count}",
-        "refresh_button": "Rafraîchir",
+        "snapshots_line": "Snapshots : {count}",        "refresh_button": "Rafraîchir",
         "freeze_button": "⏯ Pause/Reprendre",
         "plus1d_button": "+1 jour",
         "plus3d_button": "+3 jours",
@@ -151,6 +155,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "back_setup_cancel": "❌ Annuler",
         "back_setup_cancelled": "Annulé — rien n'a été touché.",
         "back_setup_done": "🧱 Saison neuve en setup ({season}) — salons reconstruits ({deleted} supprimés).",
+        "now_line": "🕰 Horloge actuelle du jeu : {now}",
+        "setup_schedule_line": (
+            "📅 Une fois démarrée : basculement de cycle chaque dimanche 23h30 ·"
+            " âge chaque mercredi 00h00 · saison de {weeks} semaines · verdict le"
+            " dernier dimanche 23h59."
+        ),
     },
 }
 
@@ -187,12 +197,20 @@ def status_text(strings: dict[str, str], status: dict[str, Any], locale: str = "
     """Render the game-clock status block of the pinned panel."""
     tz_name = status.get("timezone") if isinstance(status.get("timezone"), str) else None
     lines = [strings["panel_title"], ""]
+    # Drasah's 2026-10-12 report: the panel showed "no timeline at all"
+    # — the CURRENT game time is the anchor every test reads first
+    # (lock end, next cycle, everything compares against it).
+    lines.append(
+        strings["now_line"].format(now=_fmt(status.get("now"), locale, tz_name))
+    )
     if status.get("season") is None:
         lines.append(strings["phase_setup"])
+        lines.append(strings["setup_schedule_line"].format(weeks=status.get("weeks", "?")))
     elif status.get("finished"):
         lines.append(strings["phase_ended"])
     elif status.get("phase") == "setup":
         lines.append(strings["phase_setup"])
+        lines.append(strings["setup_schedule_line"].format(weeks=status.get("weeks", "?")))
     else:
         lines.append(
             strings["phase_started"].format(

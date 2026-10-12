@@ -1421,6 +1421,19 @@ async def _assign_marriage_lock_role_safe(guild: discord.Guild | None, user_id: 
     member = guild.get_member(int(user_id))
     if member is None or role in getattr(member, "roles", ()):
         return
+    # Diagnostic (Drasah's 2026-10-12 "pseudo never red" report):
+    # Discord paints the HIGHEST role only — a member owning a role
+    # above the lock role (admin/founder roles ranked above the bot)
+    # keeps that role's colour. Say it once, at the marriage.
+    top_role = getattr(member, "top_role", None)
+    if top_role is not None and getattr(top_role, "id", None) != getattr(
+        role, "id", None
+    ):
+        logger.info(
+            "KINGDOMS: lock role is outranked by '%s' for member %s — the pseudo keeps the higher role's colour",
+            getattr(top_role, "name", "?"),
+            user_id,
+        )
     try:
         await member.add_roles(role, reason="kingdoms: mariage — verrou de lune de miel")
     except Exception:
@@ -1560,12 +1573,18 @@ async def _announce_royal_wedding_safe(
             if int(lock_until) > 0
             else f"{hours}h"
         )
-        await create_thread(
-            name=str(strings["royal_wedding_more_title"]),
-            content=str(strings["royal_wedding_more_body"]).format(
-                couple, kingdom_name, hours, lock_label
-            ),
-        )
+        # discord.py 2.6 live finding (2026-10-12): channel.send() hands
+        # back a PartialMessage whose create_thread() takes NO content
+        # kwarg — the TypeError killed the thread silently. Create the
+        # thread bare, then send the detail message inside it.
+        thread = await create_thread(name=str(strings["royal_wedding_more_title"]))
+        thread_send = getattr(thread, "send", None)
+        if thread_send is not None:
+            await thread_send(
+                str(strings["royal_wedding_more_body"]).format(
+                    couple, kingdom_name, hours, lock_label
+                )
+            )
     except Exception:
         logger.warning("KINGDOMS: royal wedding thread failed", exc_info=True)
 
@@ -3384,6 +3403,16 @@ class KingdomRealmButton(
                 ]
                 member_ids = [int(lord.id) for lord in members if str(lord.id).isdigit()]
                 await ensure_realm_structure(interaction.guild, kingdom, member_ids)
+                # the validation seam used to skip the Alliances message
+                # (Drasah's 2026-10-12 "sometimes missing" report) —
+                # every provisioning seam writes it, phase-aware.
+                from kingdoms.mods.kingdoms.kingdom_realms import (
+                    _announce_realm_alliances,
+                )
+
+                await _announce_realm_alliances(
+                    interaction.guild, kingdom, wiring.kingdoms_service
+                )
                 await _draw_territories_for_kingdom_safe(kingdom.id)
                 await _deploy_realm_content_safe(interaction.guild, kingdom)
             elif self.action == "delete-confirm":

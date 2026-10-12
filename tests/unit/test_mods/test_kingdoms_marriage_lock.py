@@ -401,3 +401,70 @@ async def test_church_badges_show_end_times_not_durations() -> None:
     # the stocks live in the title, not in a block
     assert "⛪ Paroisse — Avalon · ⛪ Église · 💍 2 · 💰 1" in content
     assert "Les Fidèles du Royaume" in content
+
+
+# ---------------------------------------------------------------------
+# The « En savoir plus » thread — discord.py 2.6 PartialMessage seam
+# ---------------------------------------------------------------------
+
+
+async def test_royal_wedding_thread_is_created_bare_then_filled() -> None:
+    """Live regression (2026-10-12): channel.send() hands back a
+    PartialMessage whose create_thread() takes NO content kwarg — the
+    TypeError killed the thread silently. The thread is created bare,
+    then the detail message is sent INSIDE it."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _announce_royal_wedding_safe,
+        _strings,
+    )
+    from tests.mocks.discord_mock import MockGuild
+
+    names: list[str] = []
+
+    class _Thread:
+        def __init__(self) -> None:
+            self.sent: list[str] = []
+
+        async def send(self, content: str | None = None, **kwargs: object) -> None:
+            self.sent.append(str(content or ""))
+
+    class _PartialMessage:
+        def __init__(self) -> None:
+            self.thread = _Thread()
+
+        async def create_thread(self, *, name: str | None = None, **kwargs: object) -> _Thread:
+            if "content" in kwargs:
+                raise TypeError(
+                    "PartialMessage.create_thread() got an unexpected"
+                    " keyword argument 'content'"
+                )
+            names.append(str(name or ""))
+            return self.thread
+
+    partial = _PartialMessage()
+    guild = MockGuild()
+    channel = await guild.create_text_channel("Géopolitique")
+
+    async def _send(*args: object, **kwargs: object) -> _PartialMessage:
+        return partial
+
+    channel.send = _send  # type: ignore[method-assign]
+
+    await _announce_royal_wedding_safe(
+        guild,
+        _strings("fr"),
+        "Drasah",
+        "HeN",
+        "Bourguignons",
+        24,
+        king_id="1",
+        lock_until=int(time.time()) + 3600,
+    )
+
+    assert names == ["En savoir plus"], "the thread carries its own name only"
+    assert len(partial.thread.sent) == 1, "the detail message lives inside the thread"
+    body = partial.thread.sent[0]
+    epouse = _pick_promise("1:Bourguignons", "Bourguignons")
+    assert epouse in body
+    assert "HeN" in body
+    assert "24" in body

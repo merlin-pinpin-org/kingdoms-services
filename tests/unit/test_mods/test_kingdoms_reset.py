@@ -172,3 +172,62 @@ async def test_draft_starter_pinned_in_alliances_idempotently() -> None:
     assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1
+
+
+async def test_validation_seam_writes_the_alliances_message_in_both_phases() -> None:
+    """Regression (Drasah 2026-10-12): a kingdom validated via the
+    Royaumes panel got its salons provisioned but the Alliances message
+    was NEVER written — only the launch path wrote it. The phase-aware
+    seam writes the placeholder during setup, the draft once started."""
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        ALLIANCES_PENDING_MARKER,
+        DRAFT_STARTER_MARKER,
+        _announce_realm_alliances,
+        ensure_realm_structure,
+    )
+
+    class _Civ:
+        def __init__(self, key: str, display_name: str) -> None:
+            self.key = key
+            self.display_name = display_name
+
+    class _Config:
+        civilizations = (_Civ("azteques", "Aztèques"),)  # noqa: RUF012
+
+    class _Season:
+        def __init__(self, phase: str) -> None:
+            self.phase = phase
+
+    class _Service:
+        config = _Config()
+
+        def __init__(self, phase: str) -> None:
+            self._season = _Season(phase)
+
+        async def current_season(self) -> _Season:
+            return self._season
+
+    class _Kingdom:
+        id = "k-1"
+        name = "Avalon"
+        validation = "approved"
+        is_gaia = False
+        civilizations = ["azteques"]  # noqa: RUF012
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+    category = guild.categories[0]
+    alliances = next(c for c in category.channels if c.name == "Alliances")
+
+    # setup phase: the secret placeholder, never the draft
+    assert await _announce_realm_alliances(guild, _Kingdom(), _Service("setup")) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert ALLIANCES_PENDING_MARKER in live[0].content
+
+    # started phase: the placeholder dies, the draft takes its place
+    assert await _announce_realm_alliances(guild, _Kingdom(), _Service("started")) is True
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert DRAFT_STARTER_MARKER in live[0].content
+    assert "Aztèques" in live[0].content

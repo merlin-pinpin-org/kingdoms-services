@@ -466,12 +466,6 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
     """
     if kingdoms_service is None:
         return
-    season: Any = None
-    try:
-        season = await kingdoms_service.current_season()
-    except Exception:
-        logger.warning("KINGDOM REALMS: season read failed", exc_info=True)
-    phase = str(getattr(season, "phase", "started") or "started") if season is not None else "started"
     for kingdom in await kingdoms_service.kingdoms():
         if kingdom.is_gaia or str(kingdom.validation) != "approved":
             continue
@@ -486,15 +480,37 @@ async def ensure_all_realm_structures(guild: discord.Guild, kingdoms_service: An
         except Exception:
             logger.warning("KINGDOM REALMS: structure failed for %s", kingdom.id, exc_info=True)
         try:
-            if phase == "setup":
-                # nothing random is revealed before the admin starts
-                # the game (Drasah's phase rule): the Alliances salon
-                # carries a "revealed at season start" placeholder
-                await announce_alliances_placeholder(guild, kingdom)
-            else:
-                await announce_draft_starter(guild, kingdom, kingdoms_service)
+            await _announce_realm_alliances(guild, kingdom, kingdoms_service)
         except Exception:
             logger.warning("KINGDOM REALMS: draft announce failed for %s", kingdom.id, exc_info=True)
+
+
+async def _announce_realm_alliances(
+    guild: discord.Guild, kingdom: Any, kingdoms_service: Any
+) -> bool:
+    """Write one kingdom's Alliances salon content (phase-aware).
+
+    Drasah's 2026-10-12 report: a kingdom born from a lord's proposal
+    (free mode → pending) that the admin VALIDATES via the Royaumes
+    panel got its salons provisioned but its Alliances message was
+    NEVER written — the launch path alone wrote it. Every provisioning
+    seam must call this: placeholder during setup, draft once started.
+    """
+    phase = "started"
+    if kingdoms_service is not None:
+        try:
+            season = await kingdoms_service.current_season()
+        except Exception:
+            logger.warning("KINGDOM REALMS: season read failed", exc_info=True)
+            season = None
+        phase = (
+            str(getattr(season, "phase", "started") or "started")
+            if season is not None
+            else "started"
+        )
+    if phase == "setup":
+        return await announce_alliances_placeholder(guild, kingdom)
+    return await announce_draft_starter(guild, kingdom, kingdoms_service)
 
 
 DRAFT_STARTER_MARKER = "kingdoms:realm:draft-starter"
