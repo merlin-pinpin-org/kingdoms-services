@@ -95,13 +95,17 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
             content_docs += 1
     maps_enriched = 0
     try:
-        from kingdoms.mapsdata.seed import fetch_map_seed
+        from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
 
         for entry in await game_data.list_maps("aoe2"):
             already = await content.get(entry.id, "en")
             if already is not None and already.get("image_url"):
                 continue
-            seed = await fetch_map_seed(entry.name)
+            seed = None
+            try:
+                seed = await fetch_map_seed(entry.name)
+            except LiquipediaUnconfiguredError:
+                break
             if seed is None or not seed.image_url:
                 continue
             await content.store(
