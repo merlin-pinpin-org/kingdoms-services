@@ -70,6 +70,10 @@ async def entity_post_content(entity_id: str, fallback_name: str, guild_id: str,
         return fallback_name, "", "", ""
     try:
         doc = await service.get(entity_id, locale)
+        if doc is None and locale != "en":
+            # The map imports store their content under the "en" locale —
+            # a guild reading in another locale still gets the card.
+            doc = await service.get(entity_id, "en")
     except Exception:
         logger.debug("content read failed (%s)", entity_id, exc_info=True)
         doc = None

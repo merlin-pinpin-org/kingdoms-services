@@ -157,15 +157,15 @@ def _map_post_view(
     game_key: str = "",
     owned_by_guild: bool = False,
 ) -> discord.ui.LayoutView:
-    """Build the map post's Components V2 layout.
+    """Build the map post's Components V2 layout, like the civ cards.
 
-    Title (capitalized) with the map type as its subtitle and the
-    source URL right under it (like the civ cards); the description
-    below; the image as the header's side accessory; the pools and
-    the id footer at the end. The action bar carries add-to-pool,
-    the edit entry point (guild-owned maps only) and delete —
-    definitive for a guild map, reversible (archive) for a public
-    one. Section children stay within Discord's cap of 3.
+    One container: capitalized title, the map type as subtitle, the
+    source URL right under it, the Liquipedia image as the header
+    section's side accessory, the description, the pools, and the id
+    as the small footer line. The action bar (add-to-pool, edit for
+    guild maps, delete) sits under the container. A Section holds at
+    most 3 text children (Discord 50035) — the header is one text
+    block by construction.
     """
     from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapDeleteButton, MapEditButton
@@ -176,21 +176,24 @@ def _map_post_view(
         header += f"\n*{map_type}*"
     if source:
         header += f"\n{source}"
-    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(header)]
+    blocks: list[discord.ui.Item[discord.ui.LayoutView]] = []
     media = image or resource_url
     if media:
-        view.add_item(
-            discord.ui.Section(*header_blocks, accessory=discord.ui.Thumbnail(media))
+        blocks.append(
+            discord.ui.Section(
+                discord.ui.TextDisplay(header),
+                accessory=discord.ui.Thumbnail(media),
+            )
         )
     else:
-        view.add_item(discord.ui.Container(*header_blocks))
-    body: list[discord.ui.Item[discord.ui.LayoutView]] = []
+        blocks.append(discord.ui.TextDisplay(header))
+    blocks.append(discord.ui.Separator())
     if description:
-        body.append(discord.ui.TextDisplay(description))
+        blocks.append(discord.ui.TextDisplay(description))
     if pools:
-        body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
-    body.append(discord.ui.TextDisplay(footer(map_id)))
-    view.add_item(discord.ui.Container(*body))
+        blocks.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
+    blocks.append(discord.ui.TextDisplay(footer(map_id)))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(MapAddToPoolButton(map_id))
     if editable:
@@ -198,6 +201,7 @@ def _map_post_view(
     actions.add_item(MapDeleteButton(map_id, game_key=game_key, owned_by_guild=owned_by_guild))
     view.add_item(actions)
     return view
+
 
 
 async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, service: Any) -> None:
