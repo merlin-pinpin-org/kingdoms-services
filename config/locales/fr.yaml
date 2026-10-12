@@ -239,3 +239,25 @@ fr:
       no_map_available: Aucune map disponible
       new_state_placeholder: Nouvel etat du pool...
       name: Nom
+
+      civs_section: Civs
+      maps_section: Maps
+      pools_section: Map pools
+      maps_active: actives
+      manage_maps: Gérer les maps
+      manage_pools: Gérer les pools
+      create_map: Créer une map
+      create_pool: Créer un map pool
+      bulk_import_map: Importer des maps (liste)
+      copy_pool: Copier un map pool
+      delete_pool_placeholder: Supprimer un pool...
+      remove_maps_placeholder: Retirer des maps du pool...
+      add_by_id: Ajouter une map (id)
+      map_id_label: Map id (ex. map:public:arena)
+      source_pool_footer: Id du pool à copier (footer du post, ex. pool:public:s1_r1)
+      copy_pool_title: Copier un map pool
+      bulk_import_title: Importer des maps (liste)
+      bulk_lines_label: Maps (une par ligne - id, nom_avec_underscores ou URL)
+      map_deleted: Map supprimée
+      map_disabled: Map désactivée (archivée) - réactivable
+      pool_deleted: Pool supprimé
