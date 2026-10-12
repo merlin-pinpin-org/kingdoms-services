@@ -163,3 +163,72 @@ def test_unknown_page_raises() -> None:
     with pytest.raises(RuntimeError, match="missingtitle"):
         provider.map_data("Unknown Map")
     provider.close()
+
+
+ARABIA_WIKITEXT = """{{tabs static
+|name1=Arabia (AoE2)|link1=Arabia|name2=Arabia (AoE4)|link2=Arabia (AoE4)|This=1}}
+{{Infobox map
+|name=Arabia
+|description=The classic open map
+|terrain=Land
+|type=Land
+|image=Arabia.png
+}}
+'''Arabia''' is a [[Random Map]] in [[Age of Empires II]].
+==Versions==
+<!--''list of the major official changes.'' -->
+*'''Arabia (default)''': standard Arabia map with big variety; can spawn with grass or desert terrain
+**Grass terrain: trees, more "noob friendly" with deer/sheep/boar and resources being closer to the [[Town Center|TC]]
+**Desert terrain: palms, ponds, less wood in general
+*'''Desert Arabia''': an Arabia map always spawning with (brown) desert terrain
+*[[Escape Champions League|ECL_Arabia]] (also used for [[EscapeTV Launch Event]])
+*RBW_Arabia ([[Red_Bull_Wololo|event example]])
+==Recent Tournament Appearances==
+{{Map appearances table|maps=Arabia}}
+"""
+
+
+def test_map_data_parses_game_tabs_and_versions() -> None:
+    """The full-page parse yields the game tabs and the map variants."""
+    provider = _make_provider(_mock_transport(ARABIA_WIKITEXT))
+    data = provider.map_data("Arabia")
+    assert data.info.game_versions == ("Arabia (AoE2)", "Arabia (AoE4)")
+    names = [v.name for v in data.info.versions]
+    assert names == [
+        "Arabia (default)",
+        "Desert Arabia",
+        "ECL_Arabia (also used for EscapeTV Launch Event)",
+        "RBW_Arabia (event example)",
+    ]
+    default = data.info.versions[0]
+    assert default.description.startswith("standard Arabia map")
+    assert default.details == (
+        'Grass terrain: trees, more "noob friendly" with deer/sheep/boar '
+        "and resources being closer to the TC",
+        "Desert terrain: palms, ponds, less wood in general",
+    )
+    provider.close()
+
+
+def test_versions_absent_section_yields_no_variants() -> None:
+    """A page without a Versions section carries no variants."""
+    provider = _make_provider(_mock_transport(DRY_RIVER_WIKITEXT))
+    data = provider.map_data("Dry River")
+    assert data.info.versions == ()
+    provider.close()
+
+
+def test_query_tags_normalize_info() -> None:
+    """Tags are stable, lowercase, and water derives from hybrid/water."""
+    from kingdoms.mapsdata.liquipedia import query_tags
+
+    provider = _make_provider(_mock_transport(ARABIA_WIKITEXT))
+    info = provider.map_data("Arabia").info
+    assert query_tags(info) == ("terrain:land",)  # type deduped against terrain
+    hybrid = type(info)(
+        name="X", description="", terrain="Hybrid", size="",
+        map_type="", image_file="", image_license="", source_url="",
+    )
+    assert "water" in query_tags(hybrid)
+    provider = _make_provider(_mock_transport(ARABIA_WIKITEXT))
+    provider.close()

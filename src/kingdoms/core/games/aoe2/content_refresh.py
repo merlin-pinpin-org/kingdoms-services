@@ -54,6 +54,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
     database = get_async_database()
     game_data = GameDataService(MongoAoE2Database(database))
     content = FactionContentService(database)
+    await content.ensure_indexes()
     from kingdoms.core.services.provider_mapping import ProviderMappingService
     from kingdoms.core.services.provider_mapping_mongo import MongoProviderMappingDatabase
 
@@ -112,6 +113,9 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
                     "source_url": seed.resource_url,
                     "image_url": seed.image_url,
                     "provider": "liquipedia",
+                    "game_versions": list(seed.game_versions),
+                    "versions": [dict(v) for v in seed.versions],
+                    "tags": list(seed.tags),
                 }
             )
             maps_enriched += 1
