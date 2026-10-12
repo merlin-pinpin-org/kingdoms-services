@@ -44,17 +44,28 @@ class MapSeed:
     tags: tuple[str, ...] = ()
 
 
+class LiquipediaUnconfiguredError(RuntimeError):
+    """Liquipedia access is not configured on this environment.
+
+    Raised instead of returning None so the UI can tell the
+    game designer "Liquipedia is disabled here" (missing
+    LIQUIPEDIA_CONTACT) from "Liquipedia has no such page".
+    """
+
+
 async def fetch_map_seed(name: str) -> MapSeed | None:
     """Resolve one map name into a seed via Liquipedia (best-effort).
 
-    Returns None when Liquipedia doesn't know the page or isn't
-    configured (no contact email) — the caller then creates a guild-local
-    entry with the fields typed in Discord.
+    Returns None when Liquipedia doesn't know the page — the caller
+    then creates a guild-local entry with the fields typed in
+    Discord. Raises :class:`LiquipediaUnconfiguredError` when the
+    environment declares no ``LIQUIPEDIA_CONTACT``: that is a
+    configuration gap, not an unknown map, and the UI says so.
     """
     user_agent = _user_agent()
     if not user_agent:
         logger.debug("liquipedia seed skipped: LIQUIPEDIA_CONTACT unset")
-        return None
+        raise LiquipediaUnconfiguredError("LIQUIPEDIA_CONTACT is not set")
     from kingdoms.mapsdata.liquipedia import (
         LIQUIPEDIA_ATTRIBUTION,
         LiquipediaMapsProvider,

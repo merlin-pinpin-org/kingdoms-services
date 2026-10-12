@@ -561,9 +561,12 @@ class GamesMapCreateModal(discord.ui.Modal):
         filename = str(self.filename.value or "").strip() or name
         seed = None
         if owner_guild_id is not None:
-            from kingdoms.mapsdata.seed import fetch_map_seed
+            from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
 
-            seed = await fetch_map_seed(name)
+            try:
+                seed = await fetch_map_seed(name)
+            except LiquipediaUnconfiguredError:
+                seed = None
             if seed is not None:
                 description = description or seed.description
                 filename = seed.name.replace(" ", "_").lower()
@@ -1429,9 +1432,15 @@ class GamesMapImportModal(discord.ui.Modal):
             )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
-        from kingdoms.mapsdata.seed import fetch_map_seed
-
-        seed = await fetch_map_seed(name)
+        from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+        try:
+            seed = await fetch_map_seed(name)
+        except LiquipediaUnconfiguredError:
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.liquipedia_unconfigured"),
+                ephemeral=True,
+            )
+            return
         if seed is None:
             await interaction.response.send_message(
                 f'Aucune page Liquipedia pour "{name}" \u2014 cr\u00e9e la map localement.',

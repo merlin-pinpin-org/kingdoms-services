@@ -183,6 +183,7 @@ fr:
     creation_failed: Création impossible (nom déjà pris ?).
     edit_failed: Modification impossible (voir les logs).
     import_failed: Import échoué (nom déjà pris ? voir les logs).
+    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur l’environnement.'
     pool_locked: Ce pool est verrouillé — dupliquez-le pour l'éditer.
     guild_maps_only: Seules les maps de la guilde sont modifiables.
     transition_failed: Transition impossible (voir les logs).

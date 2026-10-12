@@ -171,6 +171,7 @@ en:
     creation_failed: Creation failed (name already taken?).
     edit_failed: Edit failed (see the logs).
     import_failed: Import failed (name already taken? see the logs).
+    liquipedia_unconfigured: Liquipedia import disabled — the LIQUIPEDIA_CONTACT variable is missing on this environment.
     pool_locked: This pool is locked — duplicate it to edit.
     guild_maps_only: Only guild-owned maps are editable.
     transition_failed: State transition failed (see the logs).
