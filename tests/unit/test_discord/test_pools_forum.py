@@ -69,7 +69,12 @@ class _FakePool:
     map_ids: tuple[str, ...]
 
 
-_POOL = _FakePool("map_pool:aoe2:p1", "Rotation 1", "Desc", ("map:public:arabia", "map:public:plain", "map:public:gone"))
+_POOL = _FakePool(
+    "map_pool:aoe2:p1",
+    "Rotation 1",
+    "Desc",
+    ("map:public:arabia", "map:public:plain", "map:public:gone"),
+)
 
 
 async def test_pool_maps_resolves_members_keeps_linkless_maps() -> None:
