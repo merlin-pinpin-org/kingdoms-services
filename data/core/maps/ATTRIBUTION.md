@@ -24,3 +24,14 @@ Age of Empires II © Microsoft Corporation. Map content built under
 Microsoft's "Game Content Usage Rules"
 (https://www.xbox.com/en-US/developers/rules) — not endorsed by or affiliated
 with Microsoft.
+
+Per those Rules, the notice above is displayed wherever anyone seeing
+the Item can easily find it: the footer `Source :` line of every map
+forum post carries it together with the upstream page URL.
+
+## Versions section
+
+The map variants (tournament/terrain versions parsed from each
+page's `== Versions ==` section) are Liquipedia text under the same
+CC-BY-SA 3.0 licence, with the same attribution (per-map
+`source_url`).

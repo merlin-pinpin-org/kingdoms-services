@@ -41,6 +41,25 @@ _FIELD_RE = re.compile(r"^\s*\|\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$", re.MULTILINE
 _TEMPLATE_RE = re.compile(r"\[\[(?:[^|\]]*\|)?([^\]]+)\]\]")
 _STRIP_RE = re.compile(r"\{\{[^{}]*\}\}|\[\[(?:[^|\]]*\|)?")
 _UNLICENSED_NOTICE_RE = re.compile(r"fair use|non-free|copyright", re.IGNORECASE)
+_GAME_TAB_RE = re.compile(r"\|name(\d+)\s*=\s*([^|}\n]+?)\s*\|link\1\s*=\s*([^|}\n]+?)\s*(?=[|}])")
+_VERSIONS_SECTION_RE = re.compile(r"==\s*Versions\s*==(.*?)\n==", re.DOTALL)
+_BOLD_RE = re.compile(r"'''")
+_ITALIC_RE = re.compile(r"''")
+
+
+@dataclass(frozen=True)
+class MapVersion:
+    """One named variant of a map over time.
+
+    As listed in the page's Versions section (tournament/terrain
+    variants, e.g. KotD3 Arabia, Desert Arabia) — the map's own
+    history, distinct from the game-version tabs (AoE2/AoE4
+    disambiguation).
+    """
+
+    name: str
+    description: str = ""
+    details: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -55,6 +74,8 @@ class MapInfo:
     image_file: str
     image_license: str
     source_url: str
+    game_versions: tuple[str, ...] = ()
+    versions: tuple[MapVersion, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -68,6 +89,29 @@ class MapData:
 
 class MapLicenseError(RuntimeError):
     """The map's image carries an incompatible upstream licence."""
+
+
+def query_tags(info: MapInfo) -> tuple[str, ...]:
+    """Normalize a map's info into stable, queryable tag values.
+
+    Game-agnostic by construction: every field contributes only when
+    non-empty, so the same function serves the next game's provider
+    unchanged. Tags are lowercase slugs, safe for Mongo ``$all``
+    queries: ``terrain:<v>``, ``type:<v>`` and ``water`` when either
+    says hybrid/water.
+    """
+    tags: list[str] = []
+    terrain = info.terrain.strip().lower()
+    if terrain:
+        tags.append(f"terrain:{terrain}")
+    map_type = info.map_type.strip().lower()
+    if map_type and map_type != terrain:
+        tags.append(f"type:{map_type}")
+    if "water" not in tags and any(
+        value in (terrain, map_type) for value in ("hybrid", "water")
+    ):
+        tags.append("water")
+    return tuple(tags)
 
 
 class LiquipediaMapsProvider:
@@ -155,7 +199,6 @@ class LiquipediaMapsProvider:
                 "action": "parse",
                 "page": page,
                 "prop": "wikitext",
-                "section": "0",
                 "format": "json",
                 "formatversion": "2",
             },
@@ -176,6 +219,8 @@ class LiquipediaMapsProvider:
             image_file=fields.get("image", ""),
             image_license="",
             source_url=f"{LIQUIPEDIA_ATTRIBUTION}{page}",
+            game_versions=self._parse_game_tabs(wikitext),
+            versions=self._parse_versions_section(wikitext),
         )
 
     @staticmethod
@@ -187,6 +232,78 @@ class LiquipediaMapsProvider:
             if key not in fields:
                 fields[key] = match.group(2)
         return fields
+
+    @classmethod
+    def _clean_list_markup(cls, value: str) -> str:
+        """Clean a Versions-section line.
+
+        Wikilinks keep their label, bold/italic quotes drop,
+        templates vanish.
+        """
+        cleaned = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]+)\]\]", r"\1", value)
+        cleaned = re.sub(r"\{\{[^{}]*\}\}", "", cleaned)
+        cleaned = _BOLD_RE.sub("", cleaned)
+        cleaned = _ITALIC_RE.sub("", cleaned)
+        return cleaned.strip()
+
+    @classmethod
+    def _parse_game_tabs(cls, wikitext: str) -> tuple[str, ...]:
+        """Extract the game-version tab names (AoE2, AoM, AoE4...).
+
+        The ``{{tabs static}}`` template disambiguates one map across
+        games; only the tab names are kept (the link pages are the
+        wiki's own navigation, not our data).
+        """
+        return tuple(
+            cls._clean_wikitext(match.group(2))
+            for match in _GAME_TAB_RE.finditer(wikitext)
+        )
+
+    @classmethod
+    def _parse_versions_section(cls, wikitext: str) -> tuple[MapVersion, ...]:
+        """Extract the page's ``== Versions ==`` section items.
+
+        One top-level ``*`` item is one named variant of the map over
+        time (tournament/terrain variants — KotD3 Arabia, Desert
+        Arabia...): the head before the first colon is the name, the
+        rest the description; ``**`` sub-items become its ``details``.
+        Wiki markup is cleaned off every line. Maps without the
+        section carry no variants.
+        """
+        section = _VERSIONS_SECTION_RE.search(wikitext)
+        if section is None:
+            return ()
+        versions: list[MapVersion] = []
+        details: list[str] = []
+
+        def _attach() -> None:
+            if versions and details:
+                last = versions[-1]
+                versions[-1] = MapVersion(
+                    name=last.name, description=last.description, details=tuple(details)
+                )
+                details.clear()
+
+        for raw_line in section.group(1).splitlines():
+            line = raw_line.strip()
+            if line.startswith("**"):
+                cleaned = cls._clean_list_markup(line.lstrip("*"))
+                if cleaned and versions:
+                    details.append(cleaned)
+                continue
+            if not line.startswith("*"):
+                continue
+            _attach()
+            cleaned = cls._clean_list_markup(line.lstrip("*")).lstrip()
+            head, sep, tail = cleaned.partition(":")
+            versions.append(
+                MapVersion(
+                    name=head.strip(),
+                    description=tail.strip() if sep else "",
+                )
+            )
+        _attach()
+        return tuple(versions)
 
     @staticmethod
     def _clean_wikitext(value: str) -> str:

@@ -39,6 +39,9 @@ class MapSeed:
     size: str = ""
     map_type: str = ""
     public: bool = True
+    game_versions: tuple[str, ...] = ()
+    versions: tuple[dict[str, object], ...] = ()
+    tags: tuple[str, ...] = ()
 
 
 async def fetch_map_seed(name: str) -> MapSeed | None:
@@ -56,6 +59,7 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
         LIQUIPEDIA_ATTRIBUTION,
         LiquipediaMapsProvider,
         MapLicenseError,
+        query_tags,
     )
 
     provider = LiquipediaMapsProvider(user_agent)
@@ -70,6 +74,12 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
             size=data.info.size,
             map_type=data.info.map_type,
             public=True,
+            game_versions=data.info.game_versions,
+            versions=tuple(
+                {"name": v.name, "description": v.description, "details": list(v.details)}
+                for v in data.info.versions
+            ),
+            tags=query_tags(data.info),
         )
     except MapLicenseError:
         logger.info("liquipedia seed: image licence refused for %s", name)

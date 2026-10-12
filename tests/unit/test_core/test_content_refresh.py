@@ -25,6 +25,9 @@ class FakeCollection:
                 return doc
         return None
 
+    async def create_index(self, keys: Any) -> None:
+        del keys
+
 
 class FakeDatabase:
     def __init__(self) -> None:
