@@ -121,6 +121,75 @@ def _display_name(name: str) -> str:
     return name[:1].upper() + name[1:] if name else name
 
 
+async def civs_section_layout(game_key: str, guild_id: str) -> discord.ui.LayoutView:
+    """Build the civs section's pinned layout (forum aoe2-factions).
+
+    The section header (count + link) and its actions — the same
+    content the admin panel renders inline, pinned in its forum.
+    """
+    service = _games_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"# Civs — {game_key}")]
+    if service is None:
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        return view
+    factions = await service.list_factions(game_key)
+    blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    return view
+
+
+async def maps_section_layout(game_key: str, guild_id: str) -> discord.ui.LayoutView:
+    """Build the maps section's pinned layout (forum aoe2-maps).
+
+    The section header (count of active maps) and the section's
+    action buttons: import (single + bulk) and create.
+    """
+    service = _games_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"# Maps — {game_key}")]
+    if service is None:
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        return view
+    maps = await service.list_maps(game_key)
+    active = [m for m in maps if m.archived_at is None]
+    blocks.append(discord.ui.TextDisplay(f"{len(active)} maps actives"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(GamesMapImportButton(game_key))
+    actions.add_item(GamesBulkImportButton(game_key))
+    actions.add_item(GamesMapCreateButton(game_key))
+    view.add_item(actions)
+    return view
+
+
+async def pools_section_layout(game_key: str, guild_id: str) -> discord.ui.LayoutView:
+    """Build the map pools section's pinned layout (forum aoe2-map-pools).
+
+    The section header (count) and the section's action buttons:
+    copy, create and manage.
+    """
+    service = _games_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"# Map pools — {game_key}")]
+    if service is None:
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        return view
+    pools = await service.list_map_pools(game_key)
+    blocks.append(discord.ui.TextDisplay(f"{len(pools)} map pools"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(GamesPoolCopyButton(game_key))
+    actions.add_item(GamesPoolCreateButton(game_key))
+    actions.add_item(GamesPoolsManageButton(game_key))
+    view.add_item(actions)
+    return view
+
+
+
 class GamesGameSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_NS}:game:(?P<game_key>[a-z0-9_]+)",

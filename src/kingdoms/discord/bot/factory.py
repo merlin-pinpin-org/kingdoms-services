@@ -377,8 +377,6 @@ class KingdomsBot(discord.Client):
         re-provisioned) — the surface never depends on an admin
         remembering to type the command.
         """
-        from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
-        from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
 
         async def _resolve_admin_channel(guild_id: str) -> str | None:
             """Resolve (or recreate) the admin channel."""
@@ -405,6 +403,50 @@ class KingdomsBot(discord.Client):
                 self.admin_channel_service,
             )
 
+        await self._register_pinned_menus()
+
+        await asyncio.sleep(5)
+        logger.info("PINNED ADMIN MENU sweep started (guilds=%d)", len(self.guilds))
+        while True:
+            for guild in list(self.guilds):
+                if self.logs_service is None:
+                    logger.warning("PINNED ADMIN MENU sweep skipped: no logs service")
+                    break
+                try:
+                    await self._ensure_pinned_menus(str(guild.id))
+                except Exception:
+                    logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
+            await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
+
+    async def _register_pinned_menus(self: KingdomsBot) -> None:
+        """Declare every pinned menu (admin + game sections) once at boot."""
+        from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
+
+        async def _resolve_admin_channel(guild_id: str) -> str | None:
+            """Resolve (or recreate) the admin channel."""
+            service = self.admin_channel_service
+            if service is None:
+                return None
+            return await service.resolve_channel(guild_id, self.status_service.bot_admins)
+
+        async def _build_admin_panel(guild_id: str) -> Any:
+            """Build the admin panel layout for the static-pin registry."""
+            from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+
+            if self.logs_service is None:
+                return discord.ui.LayoutView(timeout=None)
+            try:
+                return await build_pin_main_menu(
+                    self.logs_service,
+                    guild_id,
+                    self.messages,
+                    "en",
+                    self.admin_channel_service,
+                )
+            except Exception:
+                logger.warning("admin panel build failed — best-effort", exc_info=True)
+                return discord.ui.LayoutView(timeout=None)
+
         register_static_pin(
             StaticPinnedView(
                 key="view:admin",
@@ -415,27 +457,106 @@ class KingdomsBot(discord.Client):
                 registry=getattr(self, "message_registry", None),
             )
         )
+        from kingdoms.discord.admin_panel_games import GAME_KEY as _SECTION_GAME_KEY
 
-        await asyncio.sleep(5)
-        logger.info("PINNED ADMIN MENU sweep started (guilds=%d)", len(self.guilds))
-        while True:
-            for guild in list(self.guilds):
-                if self.logs_service is None:
-                    logger.warning("PINNED ADMIN MENU sweep skipped: no logs service")
-                    break
+        for _spec in self._games_section_pin_specs(_SECTION_GAME_KEY):
+            register_static_pin(_spec)
+
+    def _games_section_pin_specs(self: KingdomsBot, game_key: str) -> list[Any]:
+        """Build the per-forum section pins for one game (aoe2).
+
+        One pinned post per forum — civs, maps, map pools — each
+        carrying its section's own buttons (the same views the admin
+        panel renders inline). The pins follow the view:<game>-<section>
+        registry keys; a deleted forum is recreated by the forum syncs
+        and the pin follows on the next sweep.
+        """
+        from kingdoms.discord.static_pins import StaticPinnedView
+
+        def _resolve_forum(forum_name: str) -> Any:
+            async def _resolve(guild_id: str) -> str | None:
+                from kingdoms.discord.admin_panel_dynamic import _panel_client_ref
+
+                client = _panel_client_ref()
+                guild = client.get_guild(int(guild_id)) if client and guild_id.isdigit() else None
+                if guild is None:
+                    return None
+                forum = discord.utils.get(guild.forums, name=forum_name)
+                return str(forum.id) if forum is not None else None
+
+            return _resolve
+
+        async def _build_civs(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import civs_section_layout
+
+            return await civs_section_layout(game_key, guild_id)
+
+        async def _build_maps(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import maps_section_layout
+
+            return await maps_section_layout(game_key, guild_id)
+
+        async def _build_pools(guild_id: str) -> Any:
+            from kingdoms.discord.admin_panel_games import pools_section_layout
+
+            return await pools_section_layout(game_key, guild_id)
+
+        return [
+            StaticPinnedView(
+                key=f"view:{game_key}-civs",
+                mark_suffix=f"view:{game_key}-civs",
+                resolve_channel=_resolve_forum(f"{game_key}-factions"),
+                build_layout=_build_civs,
+                registry=getattr(self, "message_registry", None),
+            ),
+            StaticPinnedView(
+                key=f"view:{game_key}-maps",
+                mark_suffix=f"view:{game_key}-maps",
+                resolve_channel=_resolve_forum(f"{game_key}-maps"),
+                build_layout=_build_maps,
+                registry=getattr(self, "message_registry", None),
+            ),
+            StaticPinnedView(
+                key=f"view:{game_key}-pools",
+                mark_suffix=f"view:{game_key}-pools",
+                resolve_channel=_resolve_forum(f"{game_key}-map-pools"),
+                build_layout=_build_pools,
+                registry=getattr(self, "message_registry", None),
+            ),
+        ]
+
+    async def _ensure_pinned_menus(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure every declared pinned menu exists (admin + game sections)."""
+        from kingdoms.discord.admin_panel_pin import ensure_pinned_admin_menu
+
+        if self.logs_service is None:
+            return
+        await ensure_pinned_admin_menu(
+            self,
+            guild_id,
+            self.logs_service,
+            self.roles_service,
+            self.admin_channel_service,
+            self.status_service.bot_admins,
+            self.messages,
+        )
+        await self._ensure_section_pins(guild_id)
+
+    async def _ensure_section_pins(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure the games section pins exist in their forums (best-effort)."""
+        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+        for spec in registered_static_pins():
+            if spec.key.startswith("view:aoe2-"):
                 try:
-                    await ensure_pinned_admin_menu(
-                        self,
-                        str(guild.id),
-                        self.logs_service,
-                        self.roles_service,
-                        self.admin_channel_service,
-                        self.status_service.bot_admins,
-                        self.messages,
-                    )
+                    await ensure_static_pin(self, spec, guild_id)
                 except Exception:
-                    logger.warning("PINNED ADMIN MENU check failed (guild %s) — best-effort", guild.id, exc_info=True)
-            await asyncio.sleep(PINNED_MENU_CHECK_INTERVAL)
+                    logger.warning(
+                        "GAMES SECTION PIN check failed (%s, guild %s) — best-effort",
+                        spec.key,
+                        guild_id,
+                        exc_info=True,
+                    )
 
     async def _provision_mods(
         self,

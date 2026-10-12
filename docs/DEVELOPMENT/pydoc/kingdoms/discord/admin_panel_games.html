@@ -6059,7 +6059,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-game_menu_view"><strong>game_menu_view</strong></a>(game_key: 'str', from_pin: 'bool' = False, guild_id: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">One&nbsp;game's&nbsp;admin&nbsp;menu:&nbsp;a&nbsp;sectioned&nbsp;card,&nbsp;Civs&nbsp;/&nbsp;Maps&nbsp;/&nbsp;Map&nbsp;pools.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-civs_section_layout"><strong>civs_section_layout</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;civs&nbsp;section's&nbsp;pinned&nbsp;layout&nbsp;(forum&nbsp;aoe2-factions).<br>
+&nbsp;<br>
+The&nbsp;section&nbsp;header&nbsp;(count&nbsp;+&nbsp;link)&nbsp;and&nbsp;its&nbsp;actions&nbsp;—&nbsp;the&nbsp;same<br>
+content&nbsp;the&nbsp;admin&nbsp;panel&nbsp;renders&nbsp;inline,&nbsp;pinned&nbsp;in&nbsp;its&nbsp;forum.</span></dd></dl>
+ <dl><dt>async <a name="-game_menu_view"><strong>game_menu_view</strong></a>(game_key: 'str', from_pin: 'bool' = False, guild_id: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">One&nbsp;game's&nbsp;admin&nbsp;menu:&nbsp;a&nbsp;sectioned&nbsp;card,&nbsp;Civs&nbsp;/&nbsp;Maps&nbsp;/&nbsp;Map&nbsp;pools.<br>
 &nbsp;<br>
 Each&nbsp;section&nbsp;carries&nbsp;its&nbsp;count&nbsp;and&nbsp;its&nbsp;forum&nbsp;link&nbsp;in&nbsp;the&nbsp;header,<br>
 then&nbsp;its&nbsp;action&nbsp;row&nbsp;with&nbsp;short&nbsp;contextual&nbsp;labels&nbsp;(i18n,&nbsp;every<br>
@@ -6067,12 +6071,20 @@ locale).&nbsp;The&nbsp;sections&nbsp;will&nbsp;grow&nbsp;(players,&nbsp;matches)
 per&nbsp;domain,&nbsp;never&nbsp;a&nbsp;flat&nbsp;button&nbsp;pile.</span></dd></dl>
  <dl><dt>async <a name="-games_admin_entry"><strong>games_admin_entry</strong></a>(interaction: 'discord.Interaction') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;games&nbsp;admin&nbsp;section:&nbsp;game&nbsp;picker&nbsp;+&nbsp;per-game&nbsp;actions.</span></dd></dl>
  <dl><dt>async <a name="-maps_admin_view"><strong>maps_admin_view</strong></a>(game_key: 'str', from_pin: 'bool' = False, guild_id: 'str' = '') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;game's&nbsp;maps&nbsp;sub-view:&nbsp;the&nbsp;catalog&nbsp;with&nbsp;archive&nbsp;toggles.</span></dd></dl>
+ <dl><dt>async <a name="-maps_section_layout"><strong>maps_section_layout</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;maps&nbsp;section's&nbsp;pinned&nbsp;layout&nbsp;(forum&nbsp;aoe2-maps).<br>
+&nbsp;<br>
+The&nbsp;section&nbsp;header&nbsp;(count&nbsp;of&nbsp;active&nbsp;maps)&nbsp;and&nbsp;the&nbsp;section's<br>
+action&nbsp;buttons:&nbsp;import&nbsp;(single&nbsp;+&nbsp;bulk)&nbsp;and&nbsp;create.</span></dd></dl>
  <dl><dt>async <a name="-pool_editor_view"><strong>pool_editor_view</strong></a>(pool_id: 'str', game_key: 'str', page: 'int' = 0, from_pin: 'bool' = False) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">One&nbsp;pool's&nbsp;editor:&nbsp;rename,&nbsp;add/remove&nbsp;maps&nbsp;(paged,&nbsp;25&nbsp;per&nbsp;select),&nbsp;archive.</span></dd></dl>
  <dl><dt>async <a name="-pools_admin_view"><strong>pools_admin_view</strong></a>(game_key: 'str', from_pin: 'bool' = False) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;game's&nbsp;map&nbsp;pools&nbsp;management&nbsp;view.<br>
 &nbsp;<br>
 The&nbsp;list&nbsp;(&lt;=&nbsp;25&nbsp;active&nbsp;pools&nbsp;by&nbsp;contract),&nbsp;the&nbsp;editor&nbsp;select,&nbsp;and<br>
 a&nbsp;delete&nbsp;select&nbsp;—&nbsp;deleting&nbsp;is&nbsp;a&nbsp;first-class&nbsp;action,&nbsp;reachable<br>
 from&nbsp;the&nbsp;list,&nbsp;not&nbsp;only&nbsp;from&nbsp;inside&nbsp;the&nbsp;editor.</span></dd></dl>
+ <dl><dt>async <a name="-pools_section_layout"><strong>pools_section_layout</strong></a>(game_key: 'str', guild_id: 'str') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;map&nbsp;pools&nbsp;section's&nbsp;pinned&nbsp;layout&nbsp;(forum&nbsp;aoe2-map-pools).<br>
+&nbsp;<br>
+The&nbsp;section&nbsp;header&nbsp;(count)&nbsp;and&nbsp;the&nbsp;section's&nbsp;action&nbsp;buttons:<br>
+copy,&nbsp;create&nbsp;and&nbsp;manage.</span></dd></dl>
  <dl><dt><a name="-register_games_admin_items"><strong>register_games_admin_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;section's&nbsp;DynamicItems&nbsp;(called&nbsp;at&nbsp;every&nbsp;startup).</span></dd></dl>
  <dl><dt><a name="-register_games_admin_section"><strong>register_games_admin_section</strong></a>() -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;games&nbsp;section&nbsp;into&nbsp;the&nbsp;/admin&nbsp;panel&nbsp;(idempotent).</span></dd></dl>
 </td></tr></table><p>
