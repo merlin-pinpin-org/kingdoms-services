@@ -172,10 +172,12 @@ class GamesGameSelect(
 
 
 async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = "") -> discord.ui.LayoutView:
-    """One game's sub-menu: snapshot, forum links, civs reload, maps/pools.
+    """One game's admin menu: a sectioned card, Civs / Maps / Map pools.
 
-    A pin-opened view carries no back button (the pin stays under the
-    ephemeral); a command-opened one keeps it for the walk back.
+    Each section carries its count and its forum link in the header,
+    then its action row with short contextual labels (i18n, every
+    locale). The sections will grow (players, matches) — one section
+    per domain, never a flat button pile.
     """
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -190,30 +192,121 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
     pools = await service.list_map_pools(game_key)
     factions = await service.list_factions(game_key)
     active_maps = [m for m in maps if m.archived_at is None]
+    civs_forum = _forum_id(guild_id, f"{game_key}-factions") if guild_id else ""
+    maps_forum = _forum_id(guild_id, f"{game_key}-maps") if guild_id else ""
+    pools_forum = _forum_id(guild_id, f"{game_key}-map-pools") if guild_id else ""
     blocks.extend(
         [
             discord.ui.Separator(),
-            discord.ui.TextDisplay(f"**Civs** : {len(factions)} \u2014 **Maps actives** : {len(active_maps)} \u2014 "
-                f"**Pools** : {len(pools)}"
+            discord.ui.TextDisplay(f"## Civs \u2014 {len(factions)}\n" + (f"<#{civs_forum}>" if civs_forum else "")),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                f"## Maps \u2014 {len(active_maps)} actives\n"
+                + (f"<#{maps_forum}>" if maps_forum else "")
+            ),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                f"## Map pools \u2014 {len(pools)}\n"
+                + (f"<#{pools_forum}>" if pools_forum else "")
             ),
         ]
     )
-    links = await _forum_links(game_key, guild_id)
-    if links:
-        blocks.append(discord.ui.TextDisplay(links))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     maps_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maps_row.add_item(GamesMapImportButton(game_key))
     maps_row.add_item(GamesBulkImportButton(game_key))
     maps_row.add_item(GamesMapCreateButton(game_key))
+    maps_row.add_item(GamesMapsManageButton(game_key))
     view.add_item(maps_row)
     pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     pools_row.add_item(GamesPoolCopyButton(game_key))
     pools_row.add_item(GamesPoolCreateButton(game_key))
+    pools_row.add_item(GamesPoolsManageButton(game_key))
     view.add_item(pools_row)
     if not from_pin:
         view.add_item(_back_row())
     return view
+
+
+class GamesPoolsManageButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:poolsmanage:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the game's map pools management view (list, edit, delete)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Gérer les pools",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:poolsmanage:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolsManageButton:
+        """Rebuild from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the pools management view."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(
+            view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
+
+
+class GamesMapsManageButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:mapsmanage:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the game's maps management view (list, archive, delete)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Gérer les maps",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:mapsmanage:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesMapsManageButton:
+        """Rebuild from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the maps management view."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        await interaction.edit_original_response(
+            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction), guild_id=guild_id)
+        )
 
 
 async def _forum_links(game_key: str, guild_id: str) -> str:
@@ -462,7 +555,7 @@ class GamesPoolsButton(
         )
 
 
-async def maps_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
+async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str = "") -> discord.ui.LayoutView:
     """Render the game's maps sub-view: the catalog with archive toggles."""
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
@@ -712,31 +805,115 @@ class GamesMapArchiveSelect(
 
 
 async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
-    """Render the game's map pools sub-view: list + CRUD actions."""
+    """Render the game's map pools management view.
+
+    The list (<= 25 active pools by contract), the editor select, and
+    a delete select — deleting is a first-class action, reachable
+    from the list, not only from inside the editor.
+    """
     service = _games_wiring()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay(f"# Map pools ({game_key})")]
     if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring unavailable."))
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
         view.add_item(discord.ui.Container(*blocks))
         view.add_item(_back_row())
         return view
     pools = await service.list_map_pools(game_key)
     if not pools:
-        blocks.append(discord.ui.TextDisplay("_No map pool._"))
+        blocks.append(discord.ui.TextDisplay("_Aucun map pool._"))
     else:
-        lines = [f"- {p.name} ({len(p.map_ids)} maps)" for p in pools[:15]]
+        lines = [f"- {p.name} ({len(p.map_ids)} maps)" for p in pools[:25]]
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     select_row.add_item(GamesPoolEditSelect(game_key))
     view.add_item(select_row)
+    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    delete_row.add_item(GamesPoolDeleteSelect(game_key))
+    view.add_item(delete_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(action_row)
     if not from_pin:
         view.add_item(GamesPoolsBackButton(game_key))
     return view
+
+
+class GamesPoolDeleteSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pools:deleteselect:(?P<game_key>[a-z0-9_]+)",
+):
+    """Delete (archive) a pool straight from the list."""
+
+    def __init__(self, game_key: str, options: list[discord.SelectOption] | None = None) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:pools:deleteselect:{game_key}"[:100],
+                options=options or [discord.SelectOption(label="Aucun pool", value="none")],
+                placeholder="Supprimer un pool...",
+                max_values=1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolDeleteSelect:
+        """Rebuild the options at click time (the active pools)."""
+        del interaction, item
+        service = _games_wiring()
+        options: list[discord.SelectOption] = []
+        if service is not None:
+            pools = await service.list_map_pools(match.group("game_key"))
+            options = [
+                discord.SelectOption(label=p.name, value=p.id) for p in pools[:25]
+            ]
+        return cls(match.group("game_key"), options or None)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Archive the chosen pool, refresh the list and the forums."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        chosen = (_selected_values(interaction) or [""])[0]
+        if not chosen or chosen == "none":
+            await interaction.response.defer()
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        try:
+            pool = await service.get_map_pool(chosen)
+            await service.archive_map_pool(chosen)
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: pool delete failed (%s)", chosen)
+            await interaction.followup.send(
+                f"Suppression impossible — {exc}", ephemeral=True
+            )
+            return
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("GAMES ADMIN: pools sync after delete failed — best-effort")
+        await interaction.edit_original_response(
+            view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
+        await interaction.followup.send(
+            f"Pool **{pool.name if pool else chosen}** supprimé.", ephemeral=True
+        )
+        await _refresh_pins_after_mutation(interaction)
 
 
 class GamesMapDeleteSelect(
@@ -2191,4 +2368,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolCopyButton,
         GamesGrantedSelect,
         GamesGrantedReopenButton,
+        GamesMapsManageButton,
+        GamesPoolsManageButton,
+        GamesPoolDeleteSelect,
     )
