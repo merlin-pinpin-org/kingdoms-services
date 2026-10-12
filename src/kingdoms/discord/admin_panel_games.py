@@ -203,12 +203,12 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         blocks.append(discord.ui.TextDisplay(links))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     maps_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    maps_row.add_item(GamesMapCreateButton(game_key))
     maps_row.add_item(GamesMapImportButton(game_key))
+    maps_row.add_item(GamesMapCreateButton(game_key))
     view.add_item(maps_row)
     pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    pools_row.add_item(GamesPoolCreateButton(game_key))
     pools_row.add_item(GamesPoolImportButton(game_key))
+    pools_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(pools_row)
     if not from_pin:
         view.add_item(_back_row())
@@ -506,7 +506,7 @@ class GamesMapCreateButton(
     def __init__(self, game_key: str, global_scope: bool = False) -> None:
         self.game_key = game_key
         self.global_scope = global_scope
-        label = "+ Map globale" if global_scope else "+ Map (manuel)"
+        label = "+ Map globale" if global_scope else "Créer une map"
         custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
         super().__init__(discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
 
@@ -819,7 +819,7 @@ class GamesPoolCreateButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="+ Pool (manuel)",
+                label="Créer un map pool",
                 style=discord.ButtonStyle.success,
                 custom_id=f"{_NS}:pools:create:{game_key}"[:100],
             )
@@ -847,13 +847,9 @@ class GamesPoolCreateModal(discord.ui.Modal):
 
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
-        super().__init__(title="Create a map pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Pool name", max_length=64, required=True)
-        self.map_name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="First map (name, optional)", max_length=64, required=False
-        )
+        super().__init__(title="Créer un map pool", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom du pool", max_length=64, required=True)
         self.add_item(self.name)
-        self.add_item(self.map_name)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Create the pool (with the optional first map), confirm."""
@@ -863,18 +859,10 @@ class GamesPoolCreateModal(discord.ui.Modal):
                 await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
             )
             return
-        map_ids: tuple[str, ...] = ()
-        map_name = str(self.map_name.value or "").strip()
-        if map_name:
-            from kingdoms.core.services.game_data import MAPS_COLLECTION
-
-            doc = await service._db.find_by_name(MAPS_COLLECTION, self.game_key, map_name)
-            if doc is None:
-                await interaction.response.send_message(f"Map inconnue : {map_name}.", ephemeral=True)
-                return
-            map_ids = (str(doc["_id"]),)
         try:
-            pool = await service.create_map_pool(self.game_key, str(self.name.value).strip(), map_ids=map_ids)
+            pool = await service.create_map_pool(
+                self.game_key, str(self.name.value).strip(), map_ids=()
+            )
         except Exception:
             logger.exception("GAMES ADMIN: pool creation failed")
             await interaction.response.send_message(
@@ -882,8 +870,15 @@ class GamesPoolCreateModal(discord.ui.Modal):
             )
             return
         await interaction.response.send_message(
-            f"Pool **{pool.name}** créé - ajoute ses maps via la liste.", ephemeral=True
+            f"Pool **{pool.name}** créé — son post est dans le forum des map pools.", ephemeral=True
         )
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("GAMES ADMIN: pools forum sync after create failed — best-effort")
         await _refresh_pins_after_mutation(interaction)
 
 
@@ -1484,7 +1479,7 @@ class GamesMapImportButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Importer une map (Liquipedia)",
+                label="Importer une map",
                 emoji="\U0001f4e5",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:maps:import:guild:{game_key}"[:100],

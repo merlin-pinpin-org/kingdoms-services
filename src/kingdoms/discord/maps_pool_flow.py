@@ -185,6 +185,13 @@ class MapPoolPickerSelect(
             )
             return
         await interaction.response.send_message(f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True)
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools forum sync failed — best-effort")
 
 
 class MapNewPoolModal(discord.ui.Modal):
@@ -193,17 +200,9 @@ class MapNewPoolModal(discord.ui.Modal):
     def __init__(self, map_id: str, game_key: str) -> None:
         self.map_id = map_id
         self.game_key = game_key
-        super().__init__(title="New map pool", timeout=None)
-        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Pool name", max_length=64, required=True)
-        self.public: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Public? (yes / no)",
-            placeholder="non",
-            max_length=3,
-            required=False,
-            default="non",
-        )
+        super().__init__(title="Nouveau map pool", timeout=None)
+        self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(label="Nom du pool", max_length=64, required=True)
         self.add_item(self.name)
-        self.add_item(self.public)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Create the pool (owned by this guild) and add the map."""
@@ -220,7 +219,7 @@ class MapNewPoolModal(discord.ui.Modal):
                 str(self.name.value).strip(),
                 map_ids=(self.map_id,),
                 owner_guild_id=guild_id or None,
-                is_public=str(self.public.value or "non").strip().lower() in {"oui", "yes", "public", "true"},
+                is_public=False,
             )
         except Exception:
             logger.warning("POOL FLOW: pool create failed", exc_info=True)
@@ -229,6 +228,13 @@ class MapNewPoolModal(discord.ui.Modal):
             )
             return
         await interaction.response.send_message(f"Pool **{pool.name}** créé — la map a été ajoutée.", ephemeral=True)
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools forum sync after create failed — best-effort")
 
 
 _ADD_TO_POOL_NS = "games:pool:addmap"
@@ -347,11 +353,18 @@ class PoolMapPickerView(discord.ui.View):
         await interaction.response.edit_message(
             content=f"**{entry.name}** ajoutée à **{pool.name}** — la fiche du pool se met à jour à la prochaine sync."
         )
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools forum sync failed — best-effort")
 
 
 class MapDeleteButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"games:map:delete:(?P<map_id>[^:]+):(?P<game_key>[a-z0-9_]+):(?P<owned>[01])",
+    template=r"games:map:delete:(?P<map_id>.+):(?P<game_key>[a-z0-9_]+):(?P<owned>[01])",
 ):
     """A map post's delete action.
 
