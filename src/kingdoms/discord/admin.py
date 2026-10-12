@@ -597,10 +597,11 @@ def register_admin_command(
                 # One panel, one message: the admin panel embeds the DM
                 # locale picker at the end — two separate followups left
                 # the admin juggling two ephemerals.
-                admin_view = await build_admin_dm_panel(interaction)
                 dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
-                for item in dm_view.children:
-                    admin_view.add_item(item)
+                locale_select = next(
+                    (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
+                )
+                admin_view = await build_admin_dm_panel(interaction, locale_select=locale_select)
                 await interaction.followup.send(view=admin_view, ephemeral=True)
             else:
                 await interaction.followup.send(

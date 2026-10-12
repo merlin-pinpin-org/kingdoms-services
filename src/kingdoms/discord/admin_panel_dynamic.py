@@ -517,10 +517,13 @@ async def build_pin_main_menu(
         container_blocks.append(discord.ui.Separator())
         listed = ", ".join(f"`{key}`" for key in granted_games)
         container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
-        from kingdoms.discord.admin_panel_games import GamesGrantedSelect
+        from kingdoms.discord.admin_panel_games import GamesGrantedReopenButton, GamesGrantedSelect
 
         game_options = [discord.SelectOption(label=key, value=key) for key in granted_games[:25]]
-        container_blocks.append(_select_row(GamesGrantedSelect(game_options)))
+        games_row = _select_row(GamesGrantedSelect(game_options))
+        if granted_games:
+            games_row.add_item(GamesGrantedReopenButton(granted_games[0]))
+        container_blocks.append(games_row)
     if registered_admin_game_sections():
         container_blocks.append(discord.ui.Separator())
         container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))

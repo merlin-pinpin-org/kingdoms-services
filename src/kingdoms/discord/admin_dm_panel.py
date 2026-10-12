@@ -51,56 +51,67 @@ async def _access_service() -> Any | None:
     return build_guild_access_service()
 
 
-async def build_admin_dm_panel(interaction: discord.Interaction) -> discord.ui.LayoutView:
-    """Render the bot-admin DM panel: pending requests, grants, refresh."""
+async def build_admin_dm_panel(
+    interaction: discord.Interaction,
+    locale_select: discord.ui.Item[Any] | None = None,
+) -> discord.ui.LayoutView:
+    """Render the bot-admin DM panel: one FR menu, sectioned.
+
+    Sections: demandes en attente (approve/deny), accords actifs, la
+    langue des DM du bot admin (the DM locale select rides inside this
+    single panel), refresh du contenu civs/maps et gestion directe des
+    accords (sans demande). No provider-mapping section.
+    """
     service = await _access_service()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# 🛡️ Bot admin — cross-guild")]
+    blocks: list[Any] = [discord.ui.TextDisplay("# \U0001f6e1\ufe0f Bot admin \u2014 cross-guild")]
     if service is None:
         blocks.append(discord.ui.TextDisplay("Wiring indisponible (Mongo absent)."))
-        view.add_item(discord.ui.Container(*blocks))
+        blocks.append(discord.ui.Separator())
+        blocks.append(discord.ui.TextDisplay("## \U0001f310 Langue des DM"))
+        view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        if locale_select is not None:
+            early_row = discord.ui.ActionRow[discord.ui.LayoutView]()
+            early_row.add_item(locale_select)
+            view.add_item(early_row)
         return view
     requests = await service.pending_requests()
     if requests:
-        lines = []
+        req_lines = []
         for request in requests[:20]:
             guild_id = request.get("guild_id")
             keys = ", ".join(request.get("keys") or [])
-            lines.append(f"- Guilde `{guild_id}` : {keys}")
-        blocks.append(discord.ui.TextDisplay("## Demandes d'accès en attente\n" + "\n".join(lines)))
-    else:
-        blocks.append(discord.ui.TextDisplay("_Aucune demande d'accès en attente._"))
+            req_lines.append(f"- Guilde `{guild_id}` : {keys}")
+        blocks.append(discord.ui.Separator())
+        blocks.append(
+            discord.ui.TextDisplay("## \U0001f4e9 Demandes d'acc\u00e8s en attente\n" + "\n".join(req_lines))
+        )
     access_docs = await service.list_all()
     granted_lines = []
     for doc in access_docs[:20]:
-        games = ", ".join(doc.get("games") or []) or "—"
-        mods = ", ".join(doc.get("mods") or []) or "—"
-        granted_lines.append(f"- Guilde `{doc.get('guild_id')}` : games={games}, mods={mods}")
+        games = ", ".join(doc.get("games") or []) or "\u2014"
+        mods = ", ".join(doc.get("mods") or []) or "\u2014"
+        granted_lines.append(f"- Guilde `{doc.get('guild_id')}` : jeux={games}, mods={mods}")
     if granted_lines:
-        blocks.append(discord.ui.TextDisplay("## Accords actifs\n" + "\n".join(granted_lines)))
+        blocks.append(discord.ui.Separator())
+        blocks.append(discord.ui.TextDisplay("## \U0001f513 Accords actifs\n" + "\n".join(granted_lines)))
+    blocks.append(discord.ui.Separator())
+    blocks.append(discord.ui.TextDisplay("## \U0001f310 Langue des DM"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     if requests:
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         first = requests[0]
         row.add_item(AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests)))
         row.add_item(AccessDenyButton(str(first["guild_id"]), str(first["requested_at"])))
         view.add_item(row)
-    blocks.append(
-        discord.ui.TextDisplay(
-            "## Mappings de providers\n"
-            "Chaque provider a ses ids propres (civ ids, map names) à remapper à chaque maj.\n"
-            "Sources de données : aoe2techtree — https://github.com/SiegeEngineers/aoe2techtree"
-        )
-    )
-    view.add_item(discord.ui.Container(*blocks))
-    refresh_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    refresh_row.add_item(ContentRefreshButton())
-    view.add_item(refresh_row)
-    grant_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    grant_row.add_item(AccessGrantButton())
-    view.add_item(grant_row)
-    mapping_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    mapping_row.add_item(ProviderMappingSelect())
-    view.add_item(mapping_row)
+    if locale_select is not None:
+        locale_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        locale_row.add_item(locale_select)
+        view.add_item(locale_row)
+    actions_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions_row.add_item(ContentRefreshButton())
+    actions_row.add_item(AccessGrantButton())
+    view.add_item(actions_row)
     return view
 
 
@@ -260,105 +271,6 @@ class ContentRefreshButton(
         )
 
 
-PROVIDER_KEYS = ("aoe2techtree",)
-MAPPING_KINDS_LABELS = {"factions": "civ ids", "maps": "map names"}
-
-
-def _mapping_service() -> Any | None:
-    from kingdoms.discord.wiring import build_provider_mapping_service
-
-    return build_provider_mapping_service()
-
-
-class ProviderMappingSelect(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:mapping:edit",
-):
-    """Pick a provider/kind pair, then open the mapping editor (bot admins)."""
-
-    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
-        super().__init__(
-            discord.ui.Select(
-                custom_id=f"{_NS}:mapping:edit",
-                options=options
-                or [
-                    discord.SelectOption(label=f"{p} — {MAPPING_KINDS_LABELS[k]}", value=f"{p}:{k}")
-                    for p in PROVIDER_KEYS
-                    for k in MAPPING_KINDS_LABELS
-                ],
-                placeholder="Edit a provider mapping...",
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> ProviderMappingSelect:
-        """Rebuild from the wire."""
-        del interaction, item, match
-        return cls()
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then open the mapping editor modal for the chosen pair."""
-        if not _is_bot_admin(interaction):
-            await _deny(interaction)
-            return
-        data: Any = interaction.data or {}
-        values: Any = data.get("values") or []
-        chosen = str(values[0]) if values else ""
-        if ":" not in chosen:
-            await interaction.response.defer()
-            return
-        provider, kind = chosen.split(":", 1)
-        service = _mapping_service()
-        if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
-            return
-        doc = await service.get(provider)
-        table = doc.get(kind) or {}
-        current = "\n".join(f"{k}={v}" for k, v in sorted(table.items()))
-        await interaction.response.send_modal(ProviderMappingModal(provider, kind, current))
-
-
-class ProviderMappingModal(discord.ui.Modal):
-    """Edit one provider/kind mapping table (``catalog=provider`` per line)."""
-
-    def __init__(self, provider: str, kind: str, current: str) -> None:
-        self.provider = provider
-        self.kind = kind
-        super().__init__(title=f"Mapping {provider} ({kind})", timeout=None)
-        self.lines: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="catalog=provider (one per line)",
-            style=discord.TextStyle.paragraph,
-            default=current,
-            max_length=4000,
-            required=False,
-        )
-        self.add_item(self.lines)
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Parse, persist, invalidate the cache, confirm."""
-        service = _mapping_service()
-        if service is None:
-            await interaction.response.send_message("Wiring indisponible.", ephemeral=True)
-            return
-        from kingdoms.core.services.provider_mapping import parse_mapping_lines
-
-        try:
-            mapping = parse_mapping_lines(str(self.lines.value or "").splitlines())
-        except ValueError as exc:
-            await interaction.response.send_message(f"Mapping invalide : {exc}", ephemeral=True)
-            return
-        await service.update_kind(self.provider, self.kind, mapping)
-        await interaction.response.send_message(
-            f"Mapping {self.provider}/{self.kind} mis à jour ({len(mapping)} entrées).", ephemeral=True
-        )
-
-
 class AccessGrantButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=rf"{_NS}:access:grant",
@@ -387,16 +299,21 @@ class AccessGrantButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then open the guild picker."""
+        """Guard, then open the guild picker (never silent)."""
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
-        service = await _access_service()
-        if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+        try:
+            service = await _access_service()
+            if service is None:
+                await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+                return
+            guilds = await service.list_all()
+        except Exception:
+            logger.exception("DM ACCESS: guild list failed")
+            await interaction.followup.send("Échec du listing des guildes (voir les logs).", ephemeral=True)
             return
-        guilds = await service.list_all()
         options = [
             discord.SelectOption(
                 label=f"Guilde {doc.get('guild_id')}",
@@ -631,4 +548,3 @@ def register_admin_dm_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(AccessGuildSelect)
     bot.add_dynamic_items(AccessKeysSelect)
     bot.add_dynamic_items(AccessApplyButton)
-    bot.add_dynamic_items(ProviderMappingSelect)

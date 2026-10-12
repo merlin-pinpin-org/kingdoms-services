@@ -215,6 +215,57 @@ def _forum_id(guild_id: str, forum_name: str) -> str:
 
 
 
+class GamesGrantedReopenButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:granted:reopen:(?P<game_key>[a-z0-9_]+)",
+):
+    """Re-open a granted game's sub-menu without re-selecting.
+
+    A Discord select fires only on *change*: once a game is selected,
+    dismissing the ephemeral leaves the option selected and picking it
+    again does nothing. This button sits next to the select and always
+    re-opens the last-chosen game's menu.
+    """
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Rouvrir le menu du jeu",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:granted:reopen:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesGrantedReopenButton:
+        """Rebuild from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Re-open the game's sub-menu (deferred: the render can exceed 3s)."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        try:
+            view = await game_menu_view(self.game_key, from_pin=from_pin(interaction), guild_id=guild_id)
+        except Exception:
+            logger.exception("GAMES GRANTED REOPEN: game menu render failed")
+            await interaction.edit_original_response(
+                view=discord.ui.LayoutView(
+                    timeout=None
+                )
+            )
+            return
+        await interaction.edit_original_response(view=view)
+
+
 class GamesGrantedSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_NS}:granted:games",
@@ -1551,4 +1602,5 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapImportButton,
         GamesPoolImportButton,
         GamesGrantedSelect,
+        GamesGrantedReopenButton,
     )
