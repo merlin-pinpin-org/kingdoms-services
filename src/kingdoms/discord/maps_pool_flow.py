@@ -39,10 +39,16 @@ def _games_wiring() -> Any | None:
 
 
 async def _guard_admin(interaction: discord.Interaction) -> bool:
-    """Deny non-admins ephemerally; True when the clicker may proceed."""
-    from kingdoms.discord.wiring import guard_admin
+    """Deny non-bot-admins ephemerally; True when the clicker may proceed.
 
-    return await guard_admin(interaction)
+    The maps and map pools are platform-wide catalog data — every
+    mutation surface (posts' action bars, pool posts, the import and
+    create flows) is reserved to the BOT_ADMINS operators, not the
+    guild administrators.
+    """
+    from kingdoms.discord.wiring import guard_bot_admin
+
+    return await guard_bot_admin(interaction, denied_message="Réservé aux bot admins.")
 
 
 class MapAddToPoolButton(
@@ -419,6 +425,13 @@ class MapDeleteButton(
             else:
                 await service.archive_map(self.map_id)
                 message = f"Map **{entry.name}** désactivée (archivée) — réactivable."
+        except ValueError as exc:
+            await interaction.followup.send(
+                f"Impossible de supprimer **{entry.name}** — elle fait partie d'un map pool. "
+                f"Retire-la du pool d'abord ({exc}).",
+                ephemeral=True,
+            )
+            return
         except Exception as exc:
             logger.exception("MAPS: delete/archive failed (%s)", self.map_id)
             await interaction.followup.send(f"Échec : {exc}", ephemeral=True)

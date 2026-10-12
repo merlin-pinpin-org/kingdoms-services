@@ -28,6 +28,7 @@ class _Seed:
 class _Entry:
     id = "map:public:arabia"
     name = "Arabia"
+    forum_message_id = None
 
 
 class _FakeGamesService:
@@ -42,6 +43,9 @@ class _FakeGamesService:
     async def delete_map(self, entry_id: str) -> bool:
         self.deleted.append(entry_id)
         return True
+
+    async def get_map(self, entry_id: str) -> _Entry | None:
+        return _Entry() if entry_id == _Entry.id else None
 
 
 class _Followups:

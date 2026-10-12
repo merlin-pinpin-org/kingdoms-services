@@ -42,6 +42,10 @@ on&nbsp;the&nbsp;grant&nbsp;even&nbsp;when&nbsp;the&nbsp;catalog&nbsp;is&nbsp;st
 the&nbsp;content&nbsp;arrives.&nbsp;When&nbsp;the&nbsp;access&nbsp;service&nbsp;is&nbsp;unwired&nbsp;the<br>
 catalog's&nbsp;keys&nbsp;stand&nbsp;in&nbsp;(the&nbsp;open-degradation&nbsp;seam).</span></dd></dl>
  <dl><dt>async <a name="-guard_admin"><strong>guard_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.</span></dd></dl>
+ <dl><dt>async <a name="-guard_bot_admin"><strong>guard_bot_admin</strong></a>(interaction: 'discord.Interaction', denied_message: 'str' = 'Réservé aux bot admins.') -&gt; 'bool'</dt><dd><span class="code">Deny&nbsp;non-bot-admins&nbsp;ephemerally;&nbsp;True&nbsp;when&nbsp;the&nbsp;clicker&nbsp;may&nbsp;proceed.<br>
+&nbsp;<br>
+Strictly&nbsp;the&nbsp;BOT_ADMINS&nbsp;operators&nbsp;—&nbsp;not&nbsp;the&nbsp;guild&nbsp;administrators;<br>
+for&nbsp;platform-wide&nbsp;catalog&nbsp;surfaces&nbsp;(maps,&nbsp;map&nbsp;pools).</span></dd></dl>
  <dl><dt><a name="-guild_access_platform"><strong>guild_access_platform</strong></a>() -&gt; 'tuple[tuple[str, ...], tuple[str, ...]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(for&nbsp;request&nbsp;pickers).</span></dd></dl>
  <dl><dt>async <a name="-guild_category"><strong>guild_category</strong></a>(guild: 'discord.Guild', name: 'str', *, create_reason: 'str' = '') -&gt; 'Any | None'</dt><dd><span class="code">Resolve&nbsp;a&nbsp;guild&nbsp;category&nbsp;by&nbsp;name,&nbsp;creating&nbsp;it&nbsp;when&nbsp;missing.<br>
 &nbsp;<br>

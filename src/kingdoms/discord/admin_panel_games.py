@@ -204,6 +204,7 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     maps_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     maps_row.add_item(GamesMapImportButton(game_key))
+    maps_row.add_item(GamesBulkImportButton(game_key))
     maps_row.add_item(GamesMapCreateButton(game_key))
     view.add_item(maps_row)
     pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -1526,7 +1527,7 @@ def _map_summary_from_seed(seed: Any) -> str:
     traits = " · ".join(bits)
     description = (seed.description or "").strip()
     if traits and description:
-        return f"{description}\n{traits}"
+        return f"**{traits}**\n\n{description}"
     return traits or description
 
 
@@ -1588,8 +1589,15 @@ async def _finish_map_import(
                 ephemeral=True,
             )
         return
+    fresh = await service.get_map(entry.id)
+    post_link = ""
+    if fresh is not None and fresh.forum_message_id and interaction.guild_id is not None:
+        post_link = (
+            f" — son post : https://discord.com/channels/{interaction.guild_id}/"
+            f"{fresh.forum_message_id}/{fresh.forum_message_id}"
+        )
     await interaction.followup.send(
-        f"Map **{entry.name}** importée — son post est dans le forum maps.",
+        f"Map **{entry.name}** importée{post_link or ' — son post est dans le forum maps.'}",
         ephemeral=True,
     )
 
@@ -1665,6 +1673,200 @@ class GamesMapImportModal(discord.ui.Modal):
             )
             return
         await _finish_map_import(interaction, service, self.game_key, entry, seed)
+
+
+async def _bulk_import_maps(service: Any, game_key: str, parsed: list[Any]) -> tuple[list[Any], str]:
+    """Import the missing maps transactionally; (created, failure).
+
+    Existing non-archived maps are skipped (re-import = no-op); any
+    failure returns the created-so-far entries with the reason — the
+    caller rolls them back (#259 semantics for the bulk path).
+    """
+    from kingdoms.mapsdata.seed import fetch_map_seed
+
+    created: list[Any] = []
+    for p in parsed:
+        try:
+            existing = await service.get_map(
+                f"map:public:{p.page_name.replace(' ', '_').lower()}"
+            )
+            if existing is not None and existing.archived_at is None:
+                continue
+            seed = await fetch_map_seed(p.page_name)
+            if seed is None:
+                return created, f"Aucune page Liquipedia pour « {p.page_name} »."
+            entry = await service.create_map(
+                game_key,
+                seed.name,
+                filename=seed.name.replace(" ", "_").lower(),
+                description=seed.description,
+                resource_url=seed.resource_url,
+                owner_guild_id=None,
+                map_type=seed.map_type,
+            )
+            if seed.image_url:
+                from kingdoms.discord.content_posts import content_service
+
+                content = content_service()
+                if content is not None:
+                    await content.store(
+                        {
+                            "entity_id": entry.id,
+                            "locale": "en",
+                            "name": entry.name,
+                            "summary": _map_summary_from_seed(seed),
+                            "source_url": seed.resource_url,
+                            "image_url": seed.image_url,
+                            "provider": "liquipedia",
+                            "tags": list(seed.tags or ()),
+                        }
+                    )
+            created.append(entry)
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: bulk import failed on %s", p.page_name)
+            return created, f"échec sur « {p.page_name} » ({exc})."
+    return created, ""
+
+
+async def _finish_bulk_import(
+    interaction: discord.Interaction,
+    service: Any,
+    created: list[Any],
+    pool_id: str,
+) -> None:
+    """Associate the batch to its pool, sync the forum, confirm."""
+    if pool_id:
+        try:
+            pool = await service.get_map_pool(pool_id)
+            if pool is not None:
+                ids = set(pool.map_ids)
+                ids.update(e.id for e in created)
+                await service.update_map_pool(pool_id, map_ids=tuple(sorted(ids)))
+        except Exception:
+            logger.exception("GAMES ADMIN: bulk pool association failed")
+            await interaction.followup.send(
+                f"{len(created)} maps importées mais l'association au pool a échoué (voir les logs).",
+                ephemeral=True,
+            )
+            return
+    try:
+        from kingdoms.discord.maps_forum import sync_maps_forum
+
+        if interaction.guild_id is not None:
+            game = str(created[0].game_key) if created else "aoe2"
+            await sync_maps_forum(str(interaction.guild_id), game, interaction.client)
+    except Exception:
+        logger.warning("GAMES ADMIN: forum sync after bulk import failed — best-effort")
+    target = f" et associées au pool `{pool_id}`" if pool_id else ""
+    await interaction.followup.send(
+        f"{len(created)} maps importées{target} — les posts arrivent dans le forum maps.",
+        ephemeral=True,
+    )
+
+
+class GamesBulkImportButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:maps:bulkimport:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the bulk map-import modal (id / slug / URL per line)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Importer des maps (liste)",
+                emoji="\U0001f4c5",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:maps:bulkimport:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesBulkImportButton:
+        """Rebuild from the wire (game key from the custom_id)."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the bulk import modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.send_modal(GamesBulkImportModal(self.game_key))
+
+
+class GamesBulkImportModal(discord.ui.Modal):
+    """The bulk Liquipedia import: one map per line (id / slug / URL).
+
+    Missing maps are imported from Liquipedia and (optionally) all
+    lines are associated to a target pool. Any failure rolls the whole
+    batch back — the catalog never keeps a half-imported state (#259).
+    """
+
+    def __init__(self, game_key: str, pool_id: str = "") -> None:
+        self.game_key = game_key
+        self.pool_id = pool_id
+        title = "Importer des maps (liste)"
+        super().__init__(title=title, timeout=None)
+        self.lines: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Maps (une par ligne : id, nom_avec_underscores ou URL)",
+            style=discord.TextStyle.paragraph,
+            max_length=3800,
+            required=True,
+        )
+        self.add_item(self.lines)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Guard, parse, import the batch transactionally, report."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        from kingdoms.mapsdata.bulk_import import parse_import_line
+
+        parsed = [parse_import_line(item) for item in str(self.lines.value or "").splitlines()]
+        parsed = [p for p in parsed if p.raw]
+        errors = [p.error for p in parsed if p.error]
+        if errors:
+            await interaction.followup.send(
+                "Import refusé — lignes invalides :\n" + "\n".join(f"- {e}" for e in errors[:10]),
+                ephemeral=True,
+            )
+            return
+        if not parsed:
+            await interaction.followup.send("Aucune map dans la liste.", ephemeral=True)
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+
+        created, failure = await _bulk_import_maps(service, self.game_key, parsed)
+        if failure:
+            logger.exception("GAMES ADMIN: bulk import failed — rolling back %d maps", len(created))
+            rolled = 0
+            for entry in created:
+                try:
+                    await service.delete_map(entry.id)
+                    rolled += 1
+                except Exception:
+                    logger.exception("GAMES ADMIN: bulk rollback failed for %s", entry.id)
+            await interaction.followup.send(
+                f"Import refusé — {failure} "
+                f"{rolled}/{len(created)} maps créées ont été supprimées ; corrige la liste et réessaie.",
+                ephemeral=True,
+            )
+            return
+        await _finish_bulk_import(interaction, service, created, self.pool_id)
+
 
 
 class GamesPoolImportButton(
@@ -1787,6 +1989,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolDuplicateButton,
         GamesPoolSendButton,
         GamesMapImportButton,
+        GamesBulkImportButton,
         GamesPoolImportButton,
         GamesGrantedSelect,
         GamesGrantedReopenButton,

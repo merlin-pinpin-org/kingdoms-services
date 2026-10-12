@@ -81,25 +81,28 @@ def _pool_post_layout(
     header += f"\n{footer(pool.id)}"
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(header)))
     for m in maps[:MAX_SECTIONS]:
-        text = f"### {m['name']}"
-        if m.get("map_type"):
-            text += f" — *{m['map_type']}*"
-        image = m.get("resource_url") or m.get("image_url") or ""
+        image = m.get("image_url") or m.get("resource_url") or ""
         if m.get("forum_message_id") and m.get("guild_id"):
             link = f"https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']}"
+            title = f"### [{m['name']}]({link})"
+            if m.get("map_type"):
+                title += f" — *{m['map_type']}*"
             view.add_item(
                 discord.ui.Section(
-                    discord.ui.TextDisplay(text),
-                    accessory=discord.ui.Thumbnail(image)
-                    if image
-                    else discord.ui.Button(label="View the map", url=link),
+                    discord.ui.TextDisplay(title),
+                    accessory=(
+                        discord.ui.Thumbnail(image) if image else discord.ui.Button(label="Voir la map", url=link)
+                    ),
                 )
             )
         else:
+            fallback = f"### {m['name']}"
+            if m.get("map_type"):
+                fallback += f" — *{m['map_type']}*"
             view.add_item(
                 discord.ui.Section(
-                    discord.ui.TextDisplay(text),
-                    accessory=discord.ui.Button(label="-", disabled=True),
+                    discord.ui.TextDisplay(fallback),
+                    accessory=discord.ui.Button(label="—", disabled=True),
                 )
             )
     overflow = maps[MAX_SECTIONS:]

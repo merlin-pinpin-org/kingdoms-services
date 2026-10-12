@@ -104,6 +104,22 @@ def build_games_service() -> Any | None:
     return _GAMES_SERVICE
 
 
+async def guard_bot_admin(
+    interaction: discord.Interaction,
+    denied_message: str = "Réservé aux bot admins.",
+) -> bool:
+    """Deny non-bot-admins ephemerally; True when the clicker may proceed.
+
+    Strictly the BOT_ADMINS operators — not the guild administrators;
+    for platform-wide catalog surfaces (maps, map pools).
+    """
+    bot = interaction.client
+    admins = getattr(getattr(bot, "status_service", None), "bot_admins", ())
+    from kingdoms.discord.guards import require_admin
+
+    return await require_admin(interaction, admins, None, denied_message=denied_message)
+
+
 async def guard_admin(interaction: discord.Interaction, denied_message: str = "Réservé aux admins.") -> bool:
     """Deny non-admins ephemerally; True when the clicker may proceed."""
     from kingdoms.discord.guards import require_admin
