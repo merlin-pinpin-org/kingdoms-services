@@ -384,3 +384,25 @@ def test_status_text_shows_the_clock_even_in_setup() -> None:
     assert "Horloge actuelle" in started
     assert "En cours" in started and "1/4" in started
     assert "18 octobre" in started
+
+
+async def test_advance_elapses_the_marriage_locks_with_the_game_clock() -> None:
+    """Drasah's live finding (2026-10-12): the locks were wall-clock —
+    a Machine à temps +3 days never expired a 24h honeymoon, so the
+    livery test flow (red → ring) was impossible. The game clock now
+    elapses the active locks with each fast-forward."""
+    bundle = Bundle()
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
+    lord.married_civilization = "azteques"
+    lord.marriage_locked_until = int((MONDAY + timedelta(hours=12)).timestamp())
+    await bundle.store.upsert_lord(lord.to_mongo())
+
+    # +1 day of game time elapses a 12h lock: clamped to 0 (expired)
+    assert await bundle.kingdoms._shift_marriage_locks(
+        int(timedelta(days=1).total_seconds())
+    ) == 1
+    fresh = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
+    assert fresh.marriage_locked_until == 0
+
+    # a second shift is a no-op (nothing active anymore)
+    assert await bundle.kingdoms._shift_marriage_locks(3600) == 0

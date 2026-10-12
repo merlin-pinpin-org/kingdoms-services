@@ -337,6 +337,15 @@ class TimeMachineService:
 
         backup = await self.create_snapshot(label, now=timestamp)
         reports = await self._events.run_due(target, snapshotter=_slot_snapshotter)
+        # The locks live on the wall clock (D34) but the game just
+        # jumped forward: elapse the honeymoons with the game clock so
+        # a "+N days" also expires the marriage locks (Drasah's
+        # 2026-10-12 livery test flow). Best effort, never blocks.
+        delta = int((target - timestamp).total_seconds())
+        try:
+            await self._kingdoms._shift_marriage_locks(delta)
+        except Exception:
+            logger.warning("kingdoms: time-machine lock shift failed", exc_info=True)
         return {"backup": backup["_id"], "reports": reports, "target": target}
 
     def _next_slot(self, cron: str, started_at: datetime, timestamp: datetime) -> datetime | None:

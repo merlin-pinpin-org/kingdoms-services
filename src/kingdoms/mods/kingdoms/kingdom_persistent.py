@@ -1456,13 +1456,75 @@ async def _ensure_marriage_ring_role(guild: discord.Guild | None) -> discord.Rol
     return role
 
 
+async def _resolve_member(guild: discord.Guild, user_id: int) -> Any | None:
+    """Find one member: cache first, REST fallback (Drasah's 2026-10-12).
+
+    The bot runs WITHOUT the Discord "members" intent
+    (``Intents.default()`` in the bot factory): ``guild.members`` stays
+    empty and ``guild.get_member`` returns None for everyone — every
+    livery assignment silently no-opped (the live 03:45 marriage logged
+    NOTHING). ``fetch_member`` is a plain REST call that works without
+    the intent: it is the reliable seam.
+    """
+    member = guild.get_member(user_id)
+    if member is not None:
+        return member
+    try:
+        return await guild.fetch_member(user_id)
+    except Exception:
+        return None
+
+
+_LIVERY_AUDITED_GUILDS: set[int] = set()
+
+
+async def _log_livery_audit(guild: discord.Guild) -> None:
+    """Log the role ladder + the bot's perms once per boot (diagnostic).
+
+    Red needs the lock role to be the member's HIGHEST coloured role
+    and the bot cannot move its own role (Discord rule): when the
+    ladder is wrong the fix is server-side. The audit names the culprit
+    so a single /logs read settles it.
+    """
+    guild_id = int(getattr(guild, "id", 0) or 0)
+    if guild_id in _LIVERY_AUDITED_GUILDS:
+        return
+    _LIVERY_AUDITED_GUILDS.add(guild_id)
+    roles = list(getattr(guild, "roles", []) or [])
+    ladder = sorted(
+        roles, key=lambda r: int(getattr(r, "position", 0) or 0), reverse=True
+    )
+    ladder_text = ", ".join(
+        f"{getattr(r, 'name', '?')}@{int(getattr(r, 'position', 0) or 0)}"
+        for r in ladder[:10]
+    )
+    bot_member = getattr(guild, "me", None)
+    perms = getattr(bot_member, "guild_permissions", None)
+    logger.info(
+        "KINGDOMS LIVERY AUDIT (guild %s): ladder %s | bot top role %s"
+        " | moderate_members=%s manage_roles=%s",
+        guild_id,
+        ladder_text,
+        getattr(getattr(bot_member, "top_role", None), "name", "?"),
+        bool(getattr(perms, "moderate_members", False)) if perms is not None else None,
+        bool(getattr(perms, "manage_roles", False)) if perms is not None else None,
+    )
+
+
 async def _assign_marriage_lock_role_safe(guild: discord.Guild | None, user_id: str) -> None:
     """Give one lord the red lock role (best effort, zero notification)."""
     role = await _ensure_marriage_lock_role(guild)
     if role is None or guild is None or not str(user_id).isdigit():
         return
-    member = guild.get_member(int(user_id))
-    if member is None or role in getattr(member, "roles", ()):
+    member = await _resolve_member(guild, int(user_id))
+    if member is None:
+        logger.warning(
+            "KINGDOMS: lock role skipped — member %s not found in guild %s",
+            user_id,
+            getattr(guild, "id", "?"),
+        )
+        return
+    if role in getattr(member, "roles", ()):
         return
     # Diagnostic (Drasah's 2026-10-12 "pseudo never red" report):
     # Discord paints the HIGHEST role only — a member owning a role
@@ -1490,8 +1552,15 @@ async def _remove_marriage_lock_role_safe(guild: discord.Guild | None, user_id: 
     role = discord.utils.get(guild.roles, name=MARRIAGE_LOCK_ROLE_NAME)
     if role is None:
         return
-    member = guild.get_member(int(user_id))
-    if member is None or role not in getattr(member, "roles", ()):
+    member = await _resolve_member(guild, int(user_id))
+    if member is None:
+        logger.warning(
+            "KINGDOMS: lock role strip skipped — member %s not found in guild %s",
+            user_id,
+            getattr(guild, "id", "?"),
+        )
+        return
+    if role not in getattr(member, "roles", ()):
         return
     try:
         await member.remove_roles(role, reason="kingdoms: fin du verrou mariage")
@@ -1552,10 +1621,23 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
     ring_role = await _ensure_marriage_ring_role(guild)
     if lock_role is None and ring_role is None:
         return set()
+    await _log_livery_audit(guild)
     now = int(_time.time())
     by_id = {str(getattr(lord, "id", "")): lord for lord in lords}
-    changed: set[str] = set()
+    # The bot runs without the members intent (see _resolve_member): the
+    # gateway cache is EMPTY on the live guild — the pass is driven by
+    # the LORD documents instead, each member resolved cache-then-REST.
+    members: dict[str, Any] = {}
     for member in list(getattr(guild, "members", []) or []):
+        members[str(getattr(member, "id", ""))] = member
+    for lord_id in by_id:
+        if lord_id in members or not lord_id.isdigit():
+            continue
+        fetched = await _resolve_member(guild, int(lord_id))
+        if fetched is not None:
+            members[lord_id] = fetched
+    changed: set[str] = set()
+    for member in members.values():
         lord = by_id.get(str(getattr(member, "id", "")))
         until = int(getattr(lord, "marriage_locked_until", 0) or 0) if lord is not None else 0
         married = bool(

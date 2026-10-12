@@ -344,6 +344,32 @@ class KingdomsService:
         """Return the lords of the current data set."""
         return [LordModel.from_mongo(doc) for doc in await self._store.find_lords()]
 
+    async def _shift_marriage_locks(self, delta_seconds: int) -> int:
+        """Shift every active marriage lock by a game-clock delta (private).
+
+        Drasah's live finding (2026-10-12): the Machine à temps advances
+        the GAME clock but the locks were wall-clock — a +3 days never
+        expired a 24h honeymoon, so the livery test flow was impossible.
+        The time machine calls this after each fast-forward: N days of
+        game time elapse, every active lock expires N days sooner.
+        """
+        if delta_seconds <= 0:
+            return 0
+        shifted = 0
+        for lord in await self.lords():
+            until = int(lord.marriage_locked_until or 0)
+            if until > 0 and not lord.left:
+                lord.marriage_locked_until = max(0, until - delta_seconds)
+                await self._store.upsert_lord(lord.to_mongo())
+                shifted += 1
+        if shifted:
+            logger.info(
+                "kingdoms: %s marriage lock(s) advanced by %ss of game time",
+                shifted,
+                delta_seconds,
+            )
+        return shifted
+
     async def enroll(
         self,
         player_id: str,

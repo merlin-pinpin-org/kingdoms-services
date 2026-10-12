@@ -541,3 +541,55 @@ async def test_ring_is_painted_in_the_pseudo_once_the_lock_expires() -> None:
     wed.married_civilization = None
     await sync_marriage_lock_roles_safe(guild)
     assert m_wed.nick == "Drasah"
+
+
+# ---------------------------------------------------------------------
+# The members-intent seam — cache-then-REST member resolution
+# ---------------------------------------------------------------------
+
+
+async def test_lock_assign_falls_back_to_rest_when_the_member_is_not_cached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Live root cause (Drasah's 2026-10-12 report): the bot runs WITHOUT
+    the Discord members intent — guild.get_member() returned None for
+    every member and the assignment silently no-opped (zero livery log
+    at the 03:45 marriage). fetch_member is a REST call that works
+    without the intent: the red role must land anyway."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _assign_marriage_lock_role_safe,
+    )
+
+    guild = MockGuild()
+    lord = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
+    _wired([lord])
+    member = _member_with_role(guild, "SansCache", has_role=False, id=111)
+    monkeypatch.setattr(guild, "get_member", lambda user_id: None)
+
+    await _assign_marriage_lock_role_safe(guild, "111")
+
+    assert any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in member.roles), (
+        "the REST fallback must assign the red role when the cache is empty"
+    )
+
+
+async def test_lock_sync_resolves_lords_via_rest_when_the_cache_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Same seam on the scheduler pass: without the members intent
+    guild.members is EMPTY — the pass is driven by the lord documents
+    and each member is resolved cache-then-REST."""
+    guild = MockGuild()
+    active = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
+    wed = _LockLord(id="222", marriage_locked_until=int(time.time()) - 10)
+    _wired([active, wed])
+    m_active = _member_with_role(guild, "Actif", has_role=False, id=111)
+    m_wed = _member_with_role(guild, "Marié", has_role=False, id=222)
+    monkeypatch.setattr(MockGuild, "members", property(lambda self: []))
+
+    changed = await sync_marriage_lock_roles_safe(guild)
+
+    assert any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in m_active.roles)
+    assert any(r.name == MARRIAGE_RING_ROLE_NAME for r in m_wed.roles)
+    assert m_wed.nick == "Marié 💍"
+    assert changed == {"k-1"}
