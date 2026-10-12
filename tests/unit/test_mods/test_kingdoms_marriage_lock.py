@@ -15,6 +15,7 @@ from __future__ import annotations
 import time
 from typing import ClassVar
 
+import discord
 import pytest
 
 from kingdoms.mods.kingdoms.diplomacy import (
@@ -25,6 +26,7 @@ from kingdoms.mods.kingdoms.diplomacy import (
 from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
 from kingdoms.mods.kingdoms.kingdom_persistent import (
     MARRIAGE_LOCK_ROLE_NAME,
+    MARRIAGE_RING_ROLE_NAME,
     KingdomsPanelWiring,
     register_kingdoms_panel_wiring,
     sync_marriage_lock_roles_safe,
@@ -275,9 +277,55 @@ async def test_lock_sync_survives_a_restart_mid_honeymoon() -> None:
     assert any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in member.roles)
 
     # the lock expires while the bot is down: the next tick strips it
+    # and swaps in the married ring badge (Drasah's rule, 2026-10-12)
     lord.marriage_locked_until = int(time.time()) - 1
     await sync_marriage_lock_roles_safe(guild)
     assert not any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in member.roles)
+    assert any(r.name == MARRIAGE_RING_ROLE_NAME for r in member.roles)
+
+
+async def test_lock_sync_swaps_red_for_the_ring_and_never_both() -> None:
+    """Drasah's full livery rule (2026-10-12): an ACTIVE lock wears the
+    red pseudo and NOT the ring; an EXPIRED lock on a still-married
+    lord swaps red for the colour-neutral 💍 ring; a broken marriage
+    (defeat) or a departure loses the ring entirely."""
+    guild = MockGuild()
+    active = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
+    wed = _LockLord(id="222", marriage_locked_until=int(time.time()) - 10)
+    single = _LockLord(id="333", marriage_locked_until=int(time.time()) - 10)
+    single.married_civilization = None
+    gone = _LockLord(id="444", marriage_locked_until=int(time.time()) - 10)
+    gone.left = True
+    _wired([active, wed, single, gone])
+
+    m_active = _member_with_role(guild, "Actif", has_role=False, id=111)
+    m_wed = _member_with_role(guild, "Marié", has_role=False, id=222)
+    m_single = _member_with_role(guild, "Célibataire", has_role=False, id=333)
+    # a departed lord still wearing a stale ring loses it
+    m_gone = _member_with_role(guild, "Parti", has_role=True, id=444)
+    ring = discord.utils.get(guild.roles, name=MARRIAGE_RING_ROLE_NAME)
+    if ring is None:
+        from tests.mocks.discord_mock import MockRole
+
+        ring = MockRole(name=MARRIAGE_RING_ROLE_NAME, guild=guild)
+        guild._roles[ring.id] = ring
+    m_gone._roles.append(ring)
+
+    changed = await sync_marriage_lock_roles_safe(guild)
+
+    assert any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in m_active.roles)
+    assert not any(r.name == MARRIAGE_RING_ROLE_NAME for r in m_active.roles), (
+        "no ring while the lock is red — the red pseudo is the one state"
+    )
+    assert not any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in m_wed.roles)
+    assert any(r.name == MARRIAGE_RING_ROLE_NAME for r in m_wed.roles), (
+        "an expired lock on a married lord swaps red for the ring badge"
+    )
+    assert not any(r.name == MARRIAGE_RING_ROLE_NAME for r in m_single.roles)
+    assert not any(r.name == MARRIAGE_RING_ROLE_NAME for r in m_gone.roles)
+    assert changed == {"k-1"}
+    # idempotent
+    assert await sync_marriage_lock_roles_safe(guild) == set()
 
 
 # ---------------------------------------------------------------------

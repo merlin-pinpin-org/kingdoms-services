@@ -1378,6 +1378,12 @@ MARRIAGE_LOCK_ROLE_COLOUR = 0xE74C3C
 state the players read at a glance — no ping, no notification: a role
 assignment never notifies anyone, the adversaries must OBSERVE."""
 
+MARRIAGE_RING_ROLE_NAME = "💍"
+"""The married badge (Drasah's rule, 2026-10-12): once the honeymoon
+lock expires, a still-married lord keeps a 💍 RING badge next to their
+pseudo. The role is colour-NEUTRAL — it never paints the pseudo, the
+emoji alone carries the intel."""
+
 
 async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Role | None:
     """Adopt or create the red 💍 Verrouillé role (never hoisted)."""
@@ -1410,6 +1416,39 @@ async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Rol
                 )
             except Exception:
                 logger.warning("KINGDOMS: lock role positioning failed", exc_info=True)
+    return role
+
+
+async def _ensure_marriage_ring_role(guild: discord.Guild | None) -> discord.Role | None:
+    """Adopt or create the colour-neutral 💍 married badge (never hoisted).
+
+    The ring carries NO colour (a default-colour role never paints the
+    pseudo) — its emoji alone marks the married lord. Parked under the
+    lock role so the badges read lock-first; best effort like the lock.
+    """
+    if guild is None:
+        return None
+    role = discord.utils.get(guild.roles, name=MARRIAGE_RING_ROLE_NAME)
+    if role is None:
+        try:
+            role = await guild.create_role(
+                name=MARRIAGE_RING_ROLE_NAME,
+                reason="kingdoms: mariage — badge bague des seigneurs mariés",
+            )
+        except Exception:
+            logger.warning("KINGDOMS: marriage ring role creation failed", exc_info=True)
+            return None
+    bot_top = getattr(getattr(guild, "me", None), "top_role", None)
+    if bot_top is not None:
+        target_position = int(getattr(bot_top, "position", 0)) - 2
+        if int(getattr(role, "position", 0)) < target_position:
+            try:
+                await role.edit(
+                    position=target_position,
+                    reason="kingdoms: badge bague sous le rôle verrou",
+                )
+            except Exception:
+                logger.warning("KINGDOMS: ring role positioning failed", exc_info=True)
     return role
 
 
@@ -1456,16 +1495,42 @@ async def _remove_marriage_lock_role_safe(guild: discord.Guild | None, user_id: 
         logger.warning("KINGDOMS: marriage lock role removal failed", exc_info=True)
 
 
+async def _sync_member_role(
+    member: Any, role: discord.Role | None, should: bool, reason: str
+) -> bool:
+    """Add/strip one livery role to match the expected state.
+
+    Returns True when the Discord state actually changed (the caller
+    marks the kingdom for a view refresh). Best effort: a refused API
+    call logs and leaves the state to the next tick.
+    """
+    if role is None:
+        return False
+    has = role in getattr(member, "roles", ())
+    if has == should:
+        return False
+    try:
+        if should:
+            await member.add_roles(role, reason=reason)
+        else:
+            await member.remove_roles(role, reason=reason)
+    except Exception:
+        logger.warning("KINGDOMS: livery role sync failed (%s)", reason, exc_info=True)
+        return False
+    return True
+
+
 async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]:
-    """Reconcile the 💍 Verrouillé role with the live lord documents.
+    """Reconcile the lock/ring livery with the live lord documents.
 
     The scheduler calls this every tick — it is the boot resync AND the
-    expiry engine in one idempotent pass: an expired lock loses its red
-    pseudo (a restart during the honeymoon never leaves a ghost), an
-    active lock regains it, an orphaned role (ejected or departed
-    player, missing document) is stripped. Returns the kingdom ids
-    whose Discord state changed — the caller re-renders their salon
-    views in place (an edit never pings anyone).
+    expiry engine in one idempotent pass. Drasah's full rule
+    (2026-10-12): an ACTIVE lock wears the RED 💍 Verrouillé pseudo; an
+    EXPIRED lock on a still-married lord swaps red for the colour-neutral
+    💍 ring badge; an unmarried/ejected/departed lord wears nothing. A
+    restart never leaves a ghost. Returns the kingdom ids whose Discord
+    state changed — the caller re-renders their salon views in place
+    (an edit never pings anyone).
     """
     import time as _time
 
@@ -1478,35 +1543,31 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
     except Exception:
         logger.warning("KINGDOMS: lord list read failed (lock sync)", exc_info=True)
         return set()
-    role = await _ensure_marriage_lock_role(guild)
-    if role is None:
+    lock_role = await _ensure_marriage_lock_role(guild)
+    ring_role = await _ensure_marriage_ring_role(guild)
+    if lock_role is None and ring_role is None:
         return set()
     now = int(_time.time())
     by_id = {str(getattr(lord, "id", "")): lord for lord in lords}
     changed: set[str] = set()
     for member in list(getattr(guild, "members", []) or []):
-        has = role in getattr(member, "roles", ())
         lord = by_id.get(str(getattr(member, "id", "")))
         until = int(getattr(lord, "marriage_locked_until", 0) or 0) if lord is not None else 0
-        should = bool(
+        married = bool(
             lord is not None
             and not getattr(lord, "left", False)
             and getattr(lord, "married_civilization", None) is not None
-            and until > now
         )
-        kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
-        if has and not should:
-            try:
-                await member.remove_roles(role, reason="kingdoms: fin du verrou mariage")
-                changed.add(kingdom_id)
-            except Exception:
-                logger.warning("KINGDOMS: lock role strip failed", exc_info=True)
-        elif should and not has:
-            try:
-                await member.add_roles(role, reason="kingdoms: mariage — verrou de lune de miel")
-                changed.add(kingdom_id)
-            except Exception:
-                logger.warning("KINGDOMS: lock role grant failed", exc_info=True)
+        should_lock = married and until > now
+        should_ring = married and not should_lock
+        lock_moved = await _sync_member_role(
+            member, lock_role, should_lock, "kingdoms: mariage — verrou de lune de miel"
+        )
+        ring_moved = await _sync_member_role(
+            member, ring_role, should_ring, "kingdoms: mariage — badge bague"
+        )
+        if (lock_moved or ring_moved) and lord is not None:
+            changed.add(str(getattr(lord, "kingdom_id", "") or ""))
     return changed
 
 
