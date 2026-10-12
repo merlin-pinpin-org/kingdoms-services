@@ -192,7 +192,7 @@ async def test_validation_seam_writes_the_alliances_message_in_both_phases() -> 
             self.display_name = display_name
 
     class _Config:
-        civilizations = (_Civ("azteques", "Aztèques"),)  # noqa: RUF012
+        civilizations = (_Civ("azteques", "Aztèques"),)
 
     class _Season:
         def __init__(self, phase: str) -> None:
