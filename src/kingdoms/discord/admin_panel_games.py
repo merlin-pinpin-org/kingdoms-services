@@ -1086,7 +1086,7 @@ class GamesPoolRenameModal(discord.ui.Modal):
 
 class GamesPoolArchiveButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:pools:archive:(?P<pool_id>[^:]+)",
+    template=rf"{_NS}:pools:archive:(?P<pool_id>.+)",
 ):
     """Archive (delete) the pool, unless it is the active pool of a mod."""
 
@@ -1094,7 +1094,9 @@ class GamesPoolArchiveButton(
         self.pool_id = pool_id
         super().__init__(
             discord.ui.Button(
-                label="Delete", style=discord.ButtonStyle.danger, custom_id=f"{_NS}:pools:archive:{pool_id}"[:100]
+                label="Supprimer",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:pools:archive:{pool_id}"[:100],
             )
         )
 
@@ -1347,7 +1349,7 @@ class GamesPoolsBackButton(
 
 class GamesPoolDuplicateButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:pools:duplicate:(?P<pool_id>[^:]+)",
+    template=rf"{_NS}:pools:duplicate:(?P<pool_id>.+)",
 ):
     """Duplicate the pool: the copy starts editable (that is its point)."""
 
@@ -1424,7 +1426,7 @@ class GamesPoolDuplicateModal(discord.ui.Modal):
 
 class GamesPoolSendButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:pools:send:(?P<pool_id>[^:]+)",
+    template=rf"{_NS}:pools:send:(?P<pool_id>.+)",
 ):
     """Send the pool to another guild: the received copy is locked."""
 
@@ -1517,7 +1519,7 @@ class GamesMapImportButton(
         super().__init__(
             discord.ui.Button(
                 label="Importer une map",
-                emoji="\U0001f4e5",
+                emoji="\U0001f310",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:maps:import:guild:{game_key}"[:100],
             )
@@ -1809,7 +1811,7 @@ class GamesBulkImportButton(
         super().__init__(
             discord.ui.Button(
                 label="Importer des maps (liste)",
-                emoji="\U0001f4c5",
+                emoji="\U0001f4da",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:maps:bulkimport:{game_key}"[:100],
             )

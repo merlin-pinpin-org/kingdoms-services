@@ -158,7 +158,10 @@ async def _legacy_renames(database: Any, collections: tuple[tuple[str, str], ...
                 parts = entry_id.split(":")
                 if len(parts) != 3 or parts[0] != prefix:
                     continue
-                if prefix == "map":
+                if prefix == "map_pool":
+                    scope = str(doc.get("owner_guild_id") or "public")
+                    wanted = f"pool:{scope}:{slug_id(parts[2])}"
+                elif prefix == "map":
                     scope = str(doc.get("owner_guild_id") or "public")
                     wanted = f"map:{scope}:{slug_id(parts[2])}"
                 else:
@@ -241,12 +244,25 @@ async def _migrate_entity_ids(database: Any, game_data: Any) -> None:
         MAPS_COLLECTION,
     )
 
-    renames = await _legacy_renames(database, ((MAPS_COLLECTION, "map"), (FACTIONS_COLLECTION, "faction")))
+    renames = await _legacy_renames(
+        database,
+        (
+            (MAPS_COLLECTION, "map"),
+            (FACTIONS_COLLECTION, "faction"),
+            (MAP_POOLS_COLLECTION, "map_pool"),
+        ),
+    )
     if not renames:
         return
     await _rename_documents(database, renames, {"map": MAPS_COLLECTION, "faction": FACTIONS_COLLECTION})
     await _rewrite_id_references(
-        database, renames, ((MAP_POOLS_COLLECTION, "map_ids"), (MAP_PACKS_COLLECTION, "map_ids"))
+        database,
+        renames,
+        (
+            (MAP_POOLS_COLLECTION, "map_ids"),
+            (MAP_PACKS_COLLECTION, "map_ids"),
+            ("map_pool_history", "map_pool_id"),
+        ),
     )
     await _rewrite_content_ids(database, renames, CONTENT_COLLECTION)
     logger.info("ID MIGRATION: %d entity ids renamed to their slug form", len(renames))

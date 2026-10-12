@@ -84,6 +84,17 @@ def map_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
     return f"map:{scope}:{slug_id(name)}"
 
 
+def pool_entry_id(name: str, owner_guild_id: str | None) -> str:
+    """Return a map pool's stable id, scoped by ownership like the maps.
+
+    ``pool:<guild_id>:<name-slug>`` for a guild's pool, ``pool:public:
+    <name-slug>`` for a platform-wide one. Same convention as
+    ``map_entry_id`` — the id carries the visibility scope.
+    """
+    scope = owner_guild_id if owner_guild_id else "public"
+    return f"pool:{scope}:{slug_id(name)}"
+
+
 def slug_id(name: str) -> str:
     """Normalize a human name into its stable slug (ids, everywhere).
 

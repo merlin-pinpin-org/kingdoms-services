@@ -52,6 +52,11 @@ visibility&nbsp;scope,&nbsp;which&nbsp;is&nbsp;what&nbsp;every&nbsp;consumer&nbs
 permissions)&nbsp;branches&nbsp;on.&nbsp;``&lt;slug&gt;``&nbsp;keeps&nbsp;underscores<br>
 (``slug_id``).</span></dd></dl>
  <dl><dt><a name="-mod_scope"><strong>mod_scope</strong></a>(mod_key: 'str', game_key: 'str', guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;mod's&nbsp;season&nbsp;scope:&nbsp;``&lt;mod&gt;:&lt;game&nbsp;key&gt;:&lt;guild&nbsp;id&gt;``.</span></dd></dl>
+ <dl><dt><a name="-pool_entry_id"><strong>pool_entry_id</strong></a>(name: 'str', owner_guild_id: 'str | None') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;map&nbsp;pool's&nbsp;stable&nbsp;id,&nbsp;scoped&nbsp;by&nbsp;ownership&nbsp;like&nbsp;the&nbsp;maps.<br>
+&nbsp;<br>
+``pool:&lt;guild_id&gt;:&lt;name-slug&gt;``&nbsp;for&nbsp;a&nbsp;guild's&nbsp;pool,&nbsp;``pool:public:<br>
+&lt;name-slug&gt;``&nbsp;for&nbsp;a&nbsp;platform-wide&nbsp;one.&nbsp;Same&nbsp;convention&nbsp;as<br>
+``map_entry_id``&nbsp;—&nbsp;the&nbsp;id&nbsp;carries&nbsp;the&nbsp;visibility&nbsp;scope.</span></dd></dl>
  <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;:&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
  <dl><dt><a name="-slug_id"><strong>slug_id</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;human&nbsp;name&nbsp;into&nbsp;its&nbsp;stable&nbsp;slug&nbsp;(ids,&nbsp;everywhere).<br>
 &nbsp;<br>

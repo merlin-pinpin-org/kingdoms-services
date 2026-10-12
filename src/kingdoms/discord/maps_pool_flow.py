@@ -592,7 +592,7 @@ _TRANSITION_NS = "games:pool:state"
 
 class PoolTransitionButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_TRANSITION_NS}:(?P<pool_id>[^:]+)",
+    template=rf"{_TRANSITION_NS}:(?P<pool_id>.+)",
 ):
     """The pool post's lifecycle action: move the pool to its next state.
 
