@@ -207,7 +207,7 @@ def _map_post_view(
     return map_card(
         map_id=map_id,
         name=name,
-        props=tuple(_map_props_lines(walls, nomad, tc)),
+        props=tuple(_map_props_lines(map_type, walls, nomad, tc)),
         description=description,
         image_url=image,
         icon_url=icon_url,
@@ -409,9 +409,9 @@ async def _migrate_stale_map_doc(
     logger.info("map doc migrated to the split keys (%s)", entity_id)
     return updated
 
-def _map_props_lines(walls: str, nomad: str, tc: str) -> list[str]:
-    """Render the map's properties as label lines (Walls/Nomad/TC)."""
-    props: list[str] = []
+def _map_props_lines(map_type: str, walls: str, nomad: str, tc: str) -> list[str]:
+    """Render the map's properties as label lines (Type/Walls/Nomad/TC)."""
+    props = [f"**Type** : {map_type}"] if map_type else []
     if walls:
         props.append(f"**Walls** : {walls}")
     if nomad:

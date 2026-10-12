@@ -646,7 +646,7 @@ class MapDeleteButton(
         super().__init__(
             discord.ui.Button(
                 label=label,
-                emoji="\U0001f5d1\ufe0f",
+                emoji="\U0001f5d1",
                 style=discord.ButtonStyle.danger,
                 custom_id=(f"games:map:delete:{map_id}:{game_key}:{1 if owned_by_guild else 0}")[:100],
             )
