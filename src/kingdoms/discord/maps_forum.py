@@ -154,39 +154,41 @@ def _map_post_view(
 ) -> discord.ui.LayoutView:
     """Build the map post's layout: type, description, files, pools, image.
 
-    The order is designer-chosen and unordered by nature: pools' links,
-    description, associated filenames, map type, image, the id footer,
-    then the add-to-pool entry point (admins, pools in edition).
-    ``editable`` marks a guild-owned map: its post carries the edit
-    entry point too.
+    A Section tops out at 3 text children (Discord 50035 — the map
+    post carried up to 6), so the post rides a Container; the media
+    is the side accessory of a one-child header Section when present,
+    and the actions (add-to-pool, edit) live in an action bar.
     """
     from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapEditButton
 
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(f"## {name}")]
+    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [
+        discord.ui.TextDisplay(f"## {name}")
+    ]
     if map_type:
-        blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
-    if description:
-        blocks.append(discord.ui.TextDisplay(description))
-    if filenames:
-        blocks.append(discord.ui.TextDisplay("**Fichiers**\n" + "\n".join(f"`{f}`" for f in filenames)))
-    if pools:
-        blocks.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
+        header_blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
     media = resource_url or image
     if media:
-        blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(media)))
-    blocks.append(discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)))
-    view.add_item(
-        discord.ui.Section(
-            *blocks,
-            accessory=MapAddToPoolButton(map_id),
+        view.add_item(
+            discord.ui.Section(*header_blocks, accessory=discord.ui.Thumbnail(media))
         )
-    )
+    else:
+        view.add_item(discord.ui.Container(*header_blocks))
+    body: list[discord.ui.Item[discord.ui.LayoutView]] = []
+    if description:
+        body.append(discord.ui.TextDisplay(description))
+    if filenames:
+        body.append(discord.ui.TextDisplay("**Fichiers**\n" + "\n".join(f"`{f}`" for f in filenames)))
+    if pools:
+        body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
+    body.append(discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)))
+    view.add_item(discord.ui.Container(*body))
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(MapAddToPoolButton(map_id))
     if editable:
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        row.add_item(MapEditButton(map_id))
-        view.add_item(row)
+        actions.add_item(MapEditButton(map_id))
+    view.add_item(actions)
     return view
 
 
