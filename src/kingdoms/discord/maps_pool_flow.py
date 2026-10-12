@@ -443,7 +443,7 @@ class PoolDeleteButton(
         return cls(match.group("pool_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, archive the pool, sync the forum, confirm."""
+        """Guard, then open the type-the-name confirmation modal."""
         if not await _guard_admin(interaction):
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -455,22 +455,175 @@ class PoolDeleteButton(
         if pool is None:
             await interaction.followup.send("Pool introuvable.", ephemeral=True)
             return
+        await interaction.followup.send(
+            view=_pool_delete_confirm_view(self.pool_id, pool.name),
+            ephemeral=True,
+        )
+
+
+def _pool_delete_confirm_view(pool_id: str, name: str) -> discord.ui.View:
+    """Build the confirmation view: one button opening the type-the-name modal."""
+    import discord as _discord
+
+    view = _discord.ui.View(timeout=180)
+
+    async def _open(interaction: _discord.Interaction) -> None:
+        await interaction.response.send_modal(PoolDeleteConfirmModal(pool_id, name))
+
+    class _ConfirmButton(_discord.ui.Button[Any]):
+        def __init__(self) -> None:
+            super().__init__(
+                label="Confirmer la suppression",
+                style=_discord.ButtonStyle.danger,
+                emoji="\U0001f5d1",
+            )
+
+        async def callback(self, interaction: _discord.Interaction) -> None:
+            await _open(interaction)
+
+    view.add_item(_ConfirmButton())
+    return view
+
+
+class MapDeleteConfirmModal(discord.ui.Modal):
+    """Type-the-name confirmation for deleting a map.
+
+    The delete is irreversible for a guild map and reversible
+    (archive) for a public one; both require the admin to retype the
+    map's exact name — a mistyped or empty answer refuses.
+    """
+
+    def __init__(self, map_id: str, game_key: str, expected_name: str) -> None:
+        self.map_id = map_id
+        self.game_key = game_key
+        self.expected_name = expected_name
+        super().__init__(title=f"Supprimer {expected_name}", timeout=None)
+        self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=f"Tape le nom exact ({expected_name}) pour confirmer",
+            max_length=64,
+            required=True,
+        )
+        self.add_item(self.confirm)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Refuse unless the typed name matches; delete + delete the post."""
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        typed = str(self.confirm.value or "").strip()
+        if typed.casefold() != self.expected_name.casefold():
+            await interaction.followup.send(
+                f"Nom ne correspond pas — abandon. Attendu : **{self.expected_name}**.",
+                ephemeral=True,
+            )
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        entry = await service.get_map(self.map_id)
+        if entry is None:
+            await interaction.followup.send("Map introuvable.", ephemeral=True)
+            return
+        try:
+            if entry.owner_guild_id:
+                await service.delete_map(self.map_id)
+                outcome = f"Map **{entry.name}** supprimée définitivement."
+            else:
+                await service.archive_map(self.map_id)
+                outcome = f"Map **{entry.name}** désactivée (archivée) — réactivable."
+        except ValueError as exc:
+            await interaction.followup.send(
+                f"Impossible de supprimer **{entry.name}** — elle fait partie d'un map pool. "
+                f"Retire-la du pool d'abord ({exc}).",
+                ephemeral=True,
+            )
+            return
+        except Exception as exc:
+            logger.exception("MAPS: confirmed delete failed (%s)", self.map_id)
+            await interaction.followup.send(f"Échec : {exc}", ephemeral=True)
+            return
+        await _delete_map_post(interaction, entry)
+        await interaction.followup.send(outcome + " Le post est supprimé.", ephemeral=True)
+
+
+async def _delete_map_post(interaction: discord.Interaction, entry: Any) -> None:
+    """Delete the map's forum post (best-effort) after a delete."""
+    if entry.forum_message_id and interaction.guild_id is not None:
+        from kingdoms.discord.admin_panel_dynamic import _panel_client_ref
+
+        client = _panel_client_ref()
+        guild = client.get_guild(interaction.guild_id) if client else None
+        if guild is not None:
+            try:
+                thread = await guild.fetch_channel(int(entry.forum_message_id))
+                if thread is not None:
+                    await thread.delete(reason=f"kingdoms: map {entry.name} deleted")
+            except Exception:
+                logger.warning(
+                    "map post delete failed (thread %s) — best-effort",
+                    entry.forum_message_id,
+                    exc_info=True,
+                )
+        try:
+            from kingdoms.discord.pinned_views import refresh_registered_pins
+
+            await refresh_registered_pins(str(interaction.guild_id))
+        except Exception:
+            logger.warning("pin refresh after map delete failed — best-effort")
+
+
+class PoolDeleteConfirmModal(discord.ui.Modal):
+    """Type-the-name confirmation for deleting a map pool."""
+
+    def __init__(self, pool_id: str, expected_name: str) -> None:
+        self.pool_id = pool_id
+        self.expected_name = expected_name
+        super().__init__(title=f"Supprimer {expected_name}", timeout=None)
+        self.confirm: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=f"Tape le nom exact ({expected_name}) pour confirmer",
+            max_length=64,
+            required=True,
+        )
+        self.add_item(self.confirm)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Refuse unless the typed name matches; archive + delete the post."""
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        typed = str(self.confirm.value or "").strip()
+        if typed.casefold() != self.expected_name.casefold():
+            await interaction.followup.send(
+                f"Nom ne correspond pas — abandon. Attendu : **{self.expected_name}**.",
+                ephemeral=True,
+            )
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            return
         try:
             await service.archive_map_pool(self.pool_id)
         except Exception as exc:
-            logger.warning("POOL FLOW: pool delete failed", exc_info=True)
+            logger.warning("POOL FLOW: confirmed pool delete failed", exc_info=True)
             await interaction.followup.send(f"Suppression impossible — {exc}", ephemeral=True)
             return
+        await interaction.followup.send(
+            f"Pool **{pool.name}** supprimé — son post disparaît au prochain sync.",
+            ephemeral=True,
+        )
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
 
             if interaction.guild_id is not None:
                 await sync_pools_forum(str(interaction.guild_id), interaction.client)
         except Exception:
-            logger.warning("POOL FLOW: pools sync after delete failed — best-effort")
-        await interaction.followup.send(
-            f"Pool **{pool.name}** supprimé.", ephemeral=True
-        )
+            logger.warning("pools sync after confirmed delete failed — best-effort")
 
 
 
@@ -512,7 +665,9 @@ class MapDeleteButton(
         return cls(match.group("map_id"), match.group("game_key"), match.group("owned") == "1")
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard, then delete (guild) or archive (public) the map."""
+        """Guard, then open the type-the-name confirmation modal."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
         if not await _guard_admin(interaction):
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -524,32 +679,36 @@ class MapDeleteButton(
         if entry is None:
             await interaction.followup.send("Map introuvable.", ephemeral=True)
             return
-        try:
-            if self.owned_by_guild and entry.owner_guild_id:
-                await service.delete_map(self.map_id)
-                message = f"Map **{entry.name}** supprimée."
-            else:
-                await service.archive_map(self.map_id)
-                message = f"Map **{entry.name}** désactivée (archivée) — réactivable."
-        except ValueError as exc:
-            await interaction.followup.send(
-                f"Impossible de supprimer **{entry.name}** — elle fait partie d'un map pool. "
-                f"Retire-la du pool d'abord ({exc}).",
-                ephemeral=True,
-            )
-            return
-        except Exception as exc:
-            logger.exception("MAPS: delete/archive failed (%s)", self.map_id)
-            await interaction.followup.send(f"Échec : {exc}", ephemeral=True)
-            return
-        try:
-            from kingdoms.discord.pinned_views import refresh_registered_pins
+        await interaction.followup.send(
+            view=_map_delete_confirm_view(self.map_id, self.game_key, entry.name),
+            ephemeral=True,
+        )
 
-            if interaction.guild_id is not None:
-                await refresh_registered_pins(str(interaction.guild_id))
-        except Exception:
-            logger.warning("MAPS: pin refresh after delete failed — best-effort")
-        await interaction.followup.send(message, ephemeral=True)
+
+def _map_delete_confirm_view(map_id: str, game_key: str, name: str) -> discord.ui.View:
+    """Build the confirmation view: one button opening the type-the-name modal."""
+    import discord as _discord
+
+    view = _discord.ui.View(timeout=180)
+
+    async def _open(interaction: _discord.Interaction) -> None:
+        await interaction.response.send_modal(
+            MapDeleteConfirmModal(map_id, game_key, name)
+        )
+
+    class _ConfirmButton(_discord.ui.Button[Any]):
+        def __init__(self) -> None:
+            super().__init__(
+                label="Confirmer la suppression",
+                style=_discord.ButtonStyle.danger,
+                emoji="\U0001f5d1",
+            )
+
+        async def callback(self, interaction: _discord.Interaction) -> None:
+            await _open(interaction)
+
+    view.add_item(_ConfirmButton())
+    return view
 
 
 class MapEditButton(

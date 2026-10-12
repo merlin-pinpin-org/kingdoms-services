@@ -1585,7 +1585,7 @@ Hard-delete&nbsp;a&nbsp;map&nbsp;record&nbsp;(orphan&nbsp;cleanup;&nbsp;no&nbsp;
 Methods defined here:<br>
 <dl><dt><a name="GamesMapDeleteSelect-__init__"><strong>__init__</strong></a>(self, game_key: 'str', options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesMapDeleteSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GamesMapDeleteSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Delete&nbsp;the&nbsp;chosen&nbsp;map&nbsp;through&nbsp;the&nbsp;service&nbsp;(#259&nbsp;cleanup&nbsp;path).</span></dd></dl>
+<dl><dt>async <a name="GamesMapDeleteSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard,&nbsp;resolve&nbsp;the&nbsp;entry,&nbsp;open&nbsp;the&nbsp;confirm&nbsp;view.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
@@ -3570,7 +3570,7 @@ Delete&nbsp;(archive)&nbsp;a&nbsp;pool&nbsp;straight&nbsp;from&nbsp;the&nbsp;lis
 Methods defined here:<br>
 <dl><dt><a name="GamesPoolDeleteSelect-__init__"><strong>__init__</strong></a>(self, game_key: 'str', options: 'list[discord.SelectOption] | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#GamesPoolDeleteSelect-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="GamesPoolDeleteSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Archive&nbsp;the&nbsp;chosen&nbsp;pool,&nbsp;refresh&nbsp;the&nbsp;list&nbsp;and&nbsp;the&nbsp;forums.</span></dd></dl>
+<dl><dt>async <a name="GamesPoolDeleteSelect-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard,&nbsp;resolve&nbsp;the&nbsp;entry,&nbsp;open&nbsp;the&nbsp;confirm&nbsp;view.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>

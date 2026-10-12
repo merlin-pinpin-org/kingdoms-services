@@ -946,7 +946,7 @@ class GamesPoolDeleteSelect(
         return cls(match.group("game_key"), options or None)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Archive the chosen pool, refresh the list and the forums."""
+        """Guard, resolve the entry, open the confirm view."""
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
         if not await _guard_admin(interaction):
@@ -960,30 +960,16 @@ class GamesPoolDeleteSelect(
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
             return
-        try:
-            pool = await service.get_map_pool(chosen)
-            await service.archive_map_pool(chosen)
-        except Exception as exc:
-            logger.exception("GAMES ADMIN: pool delete failed (%s)", chosen)
-            await interaction.followup.send(
-                f"Suppression impossible — {exc}", ephemeral=True
-            )
+        entry = await service.get_map_pool(chosen)
+        if entry is None:
+            await interaction.followup.send("Entrée introuvable.", ephemeral=True)
             return
-        try:
-            from kingdoms.discord.pools_forum import sync_pools_forum
+        from kingdoms.discord.maps_pool_flow import _pool_delete_confirm_view
 
-            if interaction.guild_id is not None:
-                await sync_pools_forum(str(interaction.guild_id), interaction.client)
-        except Exception:
-            logger.warning("GAMES ADMIN: pools sync after delete failed — best-effort")
-        await interaction.edit_original_response(
-            view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
-        )
         await interaction.followup.send(
-            f"Pool **{pool.name if pool else chosen}** supprimé.", ephemeral=True
+            view=_pool_delete_confirm_view(chosen, entry.name),
+            ephemeral=True,
         )
-        await _refresh_pins_after_mutation(interaction)
-
 
 class GamesMapDeleteSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
@@ -1022,7 +1008,7 @@ class GamesMapDeleteSelect(
         return cls(match.group("game_key"), options or None)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Delete the chosen map through the service (#259 cleanup path)."""
+        """Guard, resolve the entry, open the confirm view."""
         from kingdoms.discord.maps_pool_flow import _guard_admin
 
         if not await _guard_admin(interaction):
@@ -1036,25 +1022,16 @@ class GamesMapDeleteSelect(
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
             return
-        try:
-            await service.delete_map(chosen)
-        except Exception as exc:
-            logger.exception("GAMES ADMIN: map delete failed (%s)", chosen)
-            await interaction.followup.send(
-                f"Suppression échouée : {exc}", ephemeral=True
-            )
+        entry = await service.get_map(chosen)
+        if entry is None:
+            await interaction.followup.send("Entrée introuvable.", ephemeral=True)
             return
-        from kingdoms.discord.maps_forum import sync_maps_forum
+        from kingdoms.discord.maps_pool_flow import _map_delete_confirm_view
 
-        if interaction.guild_id is not None:
-            try:
-                await sync_maps_forum(str(interaction.guild_id), self.game_key, interaction.client)
-            except Exception:
-                logger.warning("GAMES ADMIN: forum sync after delete failed — best-effort")
-        await interaction.edit_original_response(
-            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
+        await interaction.followup.send(
+            view=_map_delete_confirm_view(chosen, self.game_key, entry.name),
+            ephemeral=True,
         )
-
 
 class GamesPoolCreateButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
