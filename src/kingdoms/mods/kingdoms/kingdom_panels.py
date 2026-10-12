@@ -1336,6 +1336,13 @@ async def _deploy_channel_panel(
 
         await deploy_time_panel(channel, locale)
         return "machine à temps"
+    if slug == "distributeur":
+        from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
+            deploy_distributor_panel,
+        )
+
+        await deploy_distributor_panel(channel, locale)
+        return "distributeur"
     return None
 
 

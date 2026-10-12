@@ -39,6 +39,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.attacks import AttackService
         from kingdoms.mods.kingdoms.config import load_season_config
         from kingdoms.mods.kingdoms.diplomacy import DiplomacyService
+        from kingdoms.mods.kingdoms.distributor import DistributorService
         from kingdoms.mods.kingdoms.economy import EconomyService
         from kingdoms.mods.kingdoms.events import EventService
         from kingdoms.mods.kingdoms.service import KingdomsService
@@ -55,7 +56,8 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         diplomacy = DiplomacyService(store, season_config, kingdoms, territories)
         events = EventService(store, season_config, kingdoms, territories, attacks, diplomacy)
         time_machine = TimeMachineService(store, season_config, kingdoms, events)
-        return kingdoms, territories, attacks, economy, diplomacy, events, time_machine
+        distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
+        return kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
         return None
@@ -79,8 +81,9 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_diplomacy_service = None
         bot.kingdoms_events_service = None
         bot.kingdoms_time_service = None
+        bot.kingdoms_distributor_service = None
     else:
-        kingdoms, territories, attacks, economy, diplomacy, events, time_machine = services
+        kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
@@ -88,6 +91,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_diplomacy_service = diplomacy
         bot.kingdoms_events_service = events
         bot.kingdoms_time_service = time_machine
+        bot.kingdoms_distributor_service = distributor
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)

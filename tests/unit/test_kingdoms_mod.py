@@ -51,6 +51,7 @@ class TestModDeclaration:
             "bug",
             "cadastre",
             "diplomacy",
+            "distributor",
             "epoch",
             "exploration",
             "geopolitics",
