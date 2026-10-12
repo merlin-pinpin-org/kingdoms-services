@@ -38,7 +38,7 @@ def test_button_emojis_are_discord_valid() -> None:
             raw = match.group(1)
             decoded = _decode(raw)
             if "\\U" in raw:
-                codepoints = [c for c in decoded]
+                codepoints = list(decoded)
                 if len(codepoints) > 1 or decoded.lower().endswith(_VS16):
                     line = text[: match.start()].count("\n") + 1
                     offenders.append(f"{path.relative_to(root)}:{line} {raw!r} -> {decoded!r}")
