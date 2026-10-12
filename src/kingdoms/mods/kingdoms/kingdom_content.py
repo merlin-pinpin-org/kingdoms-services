@@ -20,7 +20,7 @@ not the bot UI.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import discord
 
@@ -308,17 +308,30 @@ async def refresh_channel_descriptions(guild: discord.Guild) -> dict[str, str]:
     return report
 
 
-async def announce_geopolitics(guild: discord.Guild, locale: str, text: str) -> bool:
-    """Send one announcement in the Géopolitique channel (best effort)."""
+async def _announce_geopolitics_message(
+    guild: discord.Guild, text: str
+) -> discord.Message | None:
+    """Send one Géopolitique announcement; return the live message.
+
+    The royal-wedding announcement (Drasah 2026-10-12) attaches ONE
+    public « En savoir plus » thread to the message — the caller
+    needs the live message back, not a mere success bool. Best
+    effort: a missing channel or a refused send returns None and
+    never raises.
+    """
     channel = _find_channel(guild, GEOPOLITICS_CHANNEL)
     if channel is None:
-        return False
+        return None
     try:
-        await channel.send(text)
-        return True
+        return cast(discord.Message, await channel.send(text))
     except Exception:
         logger.warning("KINGDOM CONTENT: geopolitics announcement failed", exc_info=True)
-        return False
+        return None
+
+
+async def announce_geopolitics(guild: discord.Guild, locale: str, text: str) -> bool:
+    """Send one announcement in the Géopolitique channel (best effort)."""
+    return await _announce_geopolitics_message(guild, text) is not None
 
 
 async def announce_enrollment(

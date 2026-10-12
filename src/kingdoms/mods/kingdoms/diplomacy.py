@@ -12,6 +12,7 @@ diplomacy surface displays; this service owns the rules only.
 from __future__ import annotations
 
 import logging
+import random
 import re
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -33,6 +34,385 @@ if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.territories import TerritoryService
 
 logger = logging.getLogger("kingdoms.diplomacy")
+
+
+_PROMISES: dict[str, tuple[str, ...]] = {
+    "arméniens": (
+        "Zabel la Juste",
+        "Parandzem",
+        "Ashkhen",
+        "Khanduts",
+        "Shushanik",
+    ),
+    "aztèques": (
+        "Atotoztli",
+        "Papantzin",
+        "Azcalxochitzin",
+        "Tlacuilolxochitzin",
+        "Teotlalco",
+    ),
+    "bengalis": (
+        "Maynamati",
+        "Lakshmi Sen",
+        "Ramadevi Choudhury",
+    ),
+    "berbères": (
+        "Dihya « la Kahina »",
+        "Tin Hinan",
+        "Zaynab al-Nafzawiya",
+        "Lalla Fatma N'Soumer",
+    ),
+    "birmans": (
+        "Shin Sawbu",
+        "Saw Min Hla",
+        "Atula Sanda Dewi",
+    ),
+    "bohémiens": (
+        "Ludmila de Bohême",
+        "Anežka Přemyslovna",
+        "Kunhuta Habsburská",
+        "Žofie Bavorská",
+        "Libuše",
+    ),
+    "bourguignons": (
+        "Marguerite de Bourgogne",
+        "Bonne de Berry",
+        "Isabeau de Bavière",
+        "Marie de Bourgogne",
+    ),
+    "britanniques": (
+        "Æthelflæd",
+        "Mathilde l'Emperesse",
+        "Aliénor d'Aquitaine",
+        "Emma de Normandie",
+        "Boudicca",
+    ),
+    "bulgares": (
+        "Kera Tamara",
+        "Maria Paléologue",
+        "Théodora",
+        "Anna de Bulgarie",
+    ),
+    "byzantins": (
+        "Théodora",
+        "Zoé Porphyrogénète",
+        "Irène l'Athénienne",
+        "Anne Comnène",
+        "Eudokia Makrembolitissa",
+    ),
+    "celtes": (
+        "Boudicca",
+        "Cartimandua",
+        "Medb",
+        "Macha Mong Ruad",
+    ),
+    "chinois": (
+        "Wu Zetian",
+        "Lü Zhi",
+        "Wang Zhengjun",
+        "Yang Guifei",
+        "Xiaozhuang",
+    ),
+    "coréens": (
+        "Sondok",
+        "Jindeok",
+        "Jinseong",
+        "Heo Hwang-ok",
+        "Munjeong",
+    ),
+    "coumans": (
+        "Elizabeth la Coumane",
+        "Anna de Bulgarie",
+        "Elena",
+    ),
+    "danois": (
+        "Thyra Danebod",
+        "Gunnhild Konungamóðir",
+        "Margrete Valdemarsdatter",
+        "Estrid Svendsdatter",
+        "Sigrid la Haute",
+    ),
+    "dravidiens": (
+        "Sembiyan Mahadevi",
+        "Kundavai",
+        "Lokamahadevi",
+        "Viramahadevi",
+        "Machchidevi",
+    ),
+    "espagnols": (
+        "Isabelle Iʳᵉ de Castille",
+        "Urraca Iʳᵉ de León",
+        "Jeanne de Castille",
+        "Blanche de Navarre",
+        "Pétronille d'Aragon",
+    ),
+    "éthiopiens": (
+        "Gudit",
+        "Eleni",
+        "Mentewab",
+        "Taytu Betul",
+        "Makeda",
+    ),
+    "francs": (
+        "Brunehaut",
+        "Bathilde",
+        "Clothilde",
+        "Rigunthe",
+        "Berthe aux Grands Pieds",
+    ),
+    "géorgiens": (
+        "Tamar la Grande",
+        "Rusudan",
+        "Ketevan de Kakheti",
+        "Gulkan",
+        "Dinar",
+    ),
+    "goths": (
+        "Amalaswinthe",
+        "Theodelinde",
+        "Matasunthe",
+        "Gaïswinthe",
+        "Rosamunde",
+    ),
+    "gurjaras": (
+        "Kurmadevi",
+        "Naikadevi",
+        "Mira Bai",
+        "Padmini",
+        "Rukmini",
+    ),
+    "hindoustanis": (
+        "Razia Sultana",
+        "Nur Jahan",
+        "Jodha Bai",
+        "Mumtaz Mahal",
+        "Roopmati",
+    ),
+    "huns": (
+        "Kreka",
+        "Ildico",
+        "Fille d'Eskam",
+        "Justa Grata Honoria",
+    ),
+    "incas": (
+        "Anahuarque",
+        "Cusirimay",
+        "Quispe Sisa",
+        "Tocto Ocllo",
+        "Mama Ocllo",
+    ),
+    "italiens": (
+        "Matilde de Canossa",
+        "Constance de Hauteville",
+        "Bianca Lancia",
+        "Béatrice de Provence",
+        "Adélaïde de Susa",
+    ),
+    "japonais": (
+        "Himiko",
+        "Suiko",
+        "Kōken",
+        "Hōjō Masako",
+        "Saigō no Tsubone",
+    ),
+    "jürchen": (
+        "Impératrice Mingde",
+        "Impératrice Daoping",
+        "Impératrice Tailing",
+        "Impératrice Cheng'an",
+    ),
+    "khitan": (
+        "Xiao Yanyan",
+        "Yelü Pusuwan",
+        "Impératrice Shunsheng",
+        "Impératrice Ruizhi",
+        "Impératrice Huizhi",
+    ),
+    "khmers": (
+        "Jayarajadevi",
+        "Indradevi II",
+        "Indradevi I",
+        "Nrpatindradevi",
+    ),
+    "lituaniens": (
+        "Birutė",
+        "Danutė",
+        "Ona Vytautienė",
+        "Aldona",
+        "Rimgailė",
+    ),
+    "magyars": (
+        "Sarolt",
+        "Gisèle de Bavière",
+        "Margit",
+        "Piroska",
+        "Ilona",
+    ),
+    "malais": (
+        "Cik Siti Wan Kembang",
+        "Puteri Saadong",
+        "Tun Fatimah",
+    ),
+    "maliens": (
+        "Sogolon Kédjou",
+        "Kankou Kanté",
+        "Kamissa Camara",
+    ),
+    "mapuche": (
+        "Janequeo",
+        "Guacolda",
+        "Fresia",
+        "Tegualda",
+    ),
+    "mayas": (
+        "Lady Xoc",
+        "Sak K'uk'",
+        "Ix Yohl Ik'nal",
+        "Lady Six Sky",
+    ),
+    "mongols": (
+        "Börte",
+        "Chabi",
+        "Töregene",
+        "Sorghaghtani Beki",
+        "Oghul Qaimish",
+    ),
+    "muisca": (
+        "Usaca",
+        "Machinza",
+        "Zoratama",
+        "Noncetá",
+        "Magdalena de Guatavita",
+    ),
+    "perses": (
+        "Atossa",
+        "Parysatis",
+        "Roshanak",
+        "Shirin",
+        "Purandokht",
+    ),
+    "polonais": (
+        "Jadwiga d'Anjou",
+        "Doubravka de Bohême",
+        "Bona Sforza",
+        "Anna Jagiellonka",
+        "Élizabeth de Pologne",
+    ),
+    "portugais": (
+        "Thérèse de León",
+        "Isabelle de Portugal",
+        "Jeanne de Portugal",
+        "Béatrice de Portugal",
+    ),
+    "romains": (
+        "Livie Drusilla",
+        "Octavie la Jeune",
+        "Julia Caesaris",
+        "Agrippine la Jeune",
+        "Faustine la Jeune",
+    ),
+    "sarrasins": (
+        "Zénobie",
+        "Shajar ad-Durr",
+        "Zubaida bint Ja'far",
+        "Arwa al-Sulayhi",
+        "Aïcha bint Abi Bakr",
+    ),
+    "saxons": (
+        "Mathilde de Ringelheim",
+        "Edith d'Angleterre",
+        "Ælfgifu",
+        "Oda de Saxe",
+    ),
+    "shu": (
+        "Sun Shangxiang",
+        "Dame Gan",
+        "Dame Mi",
+        "Dame Zhang",
+        "Dame Xiahou",
+    ),
+    "siciliens": (
+        "Constance de Hauteville",
+        "Adélaïde del Vasto",
+        "Marguerite de Navarre",
+        "Sibylle de Acerra",
+    ),
+    "slaves": (
+        "Olga de Kiev",
+        "Rogneda de Polotsk",
+        "Dobrava de Bohême",
+        "Anne de Kiev",
+        "Jelena Balšić",
+    ),
+    "tatars": (
+        "Töregene",
+        "Oghul Qaimish",
+        "Nur Sultan",
+    ),
+    "teutons": (
+        "Mathilde de Toscane",
+        "Adélaïde de Meissen",
+        "Kunigonde de Hohenstaufen",
+        "Adélaïde de Vohburg",
+        "Béatrice de Souabe",
+    ),
+    "tupi": (
+        "Bartira",
+        "Paragaçu",
+        "Aracy",
+    ),
+    "turcs": (
+        "Kösem Sultan",
+        "Hürrem Sultan",
+        "Nurbanu Sultan",
+        "Safiye Sultan",
+        "Mihrimah Sultan",
+    ),
+    "varègues": (
+        "Ingigerd Olofsdotter",
+        "Ellisif de Kiev",
+        "Astrid Tryggvesdatter",
+        "Rogneda de Polotsk",
+    ),
+    "vikings": (
+        "Aud Ketilsdóttir « la Profonde »",
+        "Freydís Eriksdóttter",
+        "Gunnhild Konungamóðir",
+        "Sigrid la Haute",
+        "Thyra Danebod",
+    ),
+    "wei": (
+        "Dame Zhen",
+        "Dame Bian",
+        "Guo Nüwang",
+        "Cao Jie",
+        "Princesse Dongxiang",
+    ),
+    "wu": (
+        "Dame Bu Lianshi",
+        "Dame Xu",
+        "Daqiao",
+        "Xiaoqiao",
+        "Sun Shangxiang",
+    ),
+}
+
+
+def _pick_promise(seed: str, civilization: str) -> str | None:
+    """Pick one stable historical spouse for a lord (PROMISES.md, D34).
+
+    Pure role-play flavour (the designer's PROMISES.md table): the
+    announcements and the Paroisse badges show « Thérèse de León
+    (Portugais) » instead of a raw civilization name. The pick is
+    SEEDED — the same lord wedded to the same civilization always
+    shows the same promise in every view, without persisting
+    anything on the lord document (a restart never changes a bride).
+    """
+    promises = _PROMISES.get(str(civilization).casefold())
+    if not promises:
+        return None
+    rng = random.Random(str(seed))  # noqa: S311 - game draw, not crypto
+    return rng.choice(promises)
 
 
 class MarriageError(KingdomsModError):

@@ -740,6 +740,9 @@ async def _market_marry_civ_view(
     economy = wiring.economy_service
     diplomacy = wiring.diplomacy_service
     kingdom_id = king.kingdom_id or ""
+    civ_names = {
+        str(civ.key): str(getattr(civ, "display_name", civ.key)) for civ in catalog
+    }
 
     async def on_choose(target: discord.Interaction[Any]) -> None:
         values = getattr(target, "data", None) or {}
@@ -763,6 +766,7 @@ async def _market_marry_civ_view(
             wallet = 0
         royal = False
         hours = 6
+        civ_label = civ_names.get(chosen[0], chosen[0])
         try:
             target_lord = next(
                 (
@@ -779,7 +783,7 @@ async def _market_marry_civ_view(
             hours = 12
             kingdom_doc = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
             await target.followup.send(
-                strings["church_marry_royal_arranged_ok"].format(chosen[0], hours),
+                strings["church_marry_royal_arranged_ok"].format(civ_label, hours),
                 ephemeral=True,
             )
             await _announce_royal_wedding_safe(
@@ -787,12 +791,14 @@ async def _market_marry_civ_view(
                 strings,
                 str(getattr(king, "display_name", str(king.id))),
                 str(getattr(kingdom_doc, "name", kingdom_id)),
-                chosen[0],
+                civ_label,
                 hours,
+                king_id=str(lord_id),
+                lock_until=int(getattr(target_lord, "marriage_locked_until", 0) or 0),
             )
         else:
             await target.followup.send(
-                strings["market_mariage_ok"].format(chosen[0], wallet),
+                strings["market_mariage_ok"].format(civ_label, wallet),
                 ephemeral=True,
             )
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
@@ -1078,6 +1084,22 @@ async def _church_marry_civ_view(
                 ),
                 ephemeral=True,
             )
+            lock_until = 0
+            try:
+                fresh_lord = next(
+                    (
+                        item
+                        for item in await kingdoms_service.lords()
+                        if str(item.id) == str(lord.id)
+                    ),
+                    None,
+                )
+                if fresh_lord is not None:
+                    lock_until = int(
+                        getattr(fresh_lord, "marriage_locked_until", 0) or 0
+                    )
+            except Exception:
+                lock_until = 0
             await _announce_royal_wedding_safe(
                 target.guild,
                 strings,
@@ -1085,6 +1107,8 @@ async def _church_marry_civ_view(
                 str(getattr(kingdom, "name", "")),
                 civ_names.get(chosen[0], chosen[0]),
                 hours,
+                king_id=str(lord.id),
+                lock_until=lock_until,
             )
         else:
             await target.followup.send(
@@ -1370,6 +1394,22 @@ async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Rol
         except Exception:
             logger.warning("KINGDOMS: marriage lock role creation failed", exc_info=True)
             return None
+    # Drasah's live finding (2026-10-12): the red pseudo never paints
+    # when the lord's own roles (Roi…) sit ABOVE the lock role — Discord
+    # colours the HIGHEST role only. Park the lock role just under the
+    # bot's top role so it out-ranks every member role; best effort,
+    # the scheduler's sync pass retries the edit every tick.
+    bot_top = getattr(getattr(guild, "me", None), "top_role", None)
+    if bot_top is not None:
+        target_position = int(getattr(bot_top, "position", 0)) - 1
+        if int(getattr(role, "position", 0)) < target_position:
+            try:
+                await role.edit(
+                    position=target_position,
+                    reason="kingdoms: rôle verrou au-dessus des rôles joueurs",
+                )
+            except Exception:
+                logger.warning("KINGDOMS: lock role positioning failed", exc_info=True)
     return role
 
 
@@ -1469,6 +1509,9 @@ async def _announce_royal_wedding_safe(
     kingdom_name: str,
     civ_name: str,
     hours: int,
+    *,
+    king_id: str = "",
+    lock_until: int = 0,
 ) -> None:
     """Announce a royal wedding in Géopolitique (Drasah: the ONE lock event).
 
@@ -1476,21 +1519,55 @@ async def _announce_royal_wedding_safe(
     adversaries must observe. A ROYAL wedding (Reine) is a grand event:
     its lock IS announced (Drasah 2026-10-11), with the doubled hours
     and the season-long security.
+
+    Drasah's 2026-10-12 tune: the bride is the PROMISE herself
+    (« Thérèse de León, promise de la civilisation Portugais » —
+    never a raw civilization name) and the announcement stays
+    LIGHT — the details (gains, lock window) live in ONE public
+    « En savoir plus » thread attached to the announcement.
     """
     if guild is None:
         return
-    from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
+    from kingdoms.mods.kingdoms.diplomacy import _pick_promise
+    from kingdoms.mods.kingdoms.kingdom_content import _announce_geopolitics_message
+    from kingdoms.mods.kingdoms.kingdom_realm_content import _lock_until_label
 
+    promise = _pick_promise(f"{king_id}:{civ_name}", civ_name)
+    couple = (
+        str(strings["royal_wedding_couple"]).format(promise, civ_name)
+        if promise
+        else civ_name
+    )
     try:
-        await announce_geopolitics(
+        message = await _announce_geopolitics_message(
             guild,
-            _locale_of_strings(strings),
             str(strings["royal_wedding_announce"]).format(
-                king_name, civ_name, kingdom_name, hours
+                king_name, couple, kingdom_name
             ),
         )
     except Exception:
         logger.warning("KINGDOMS: royal wedding announcement failed", exc_info=True)
+        return
+    if message is None:
+        return
+    try:
+        create_thread = getattr(message, "create_thread", None)
+        if create_thread is None:
+            return
+        lock_strings = {str(key): str(value) for key, value in strings.items()}
+        lock_label = (
+            _lock_until_label(int(lock_until), lock_strings)
+            if int(lock_until) > 0
+            else f"{hours}h"
+        )
+        await create_thread(
+            name=str(strings["royal_wedding_more_title"]),
+            content=str(strings["royal_wedding_more_body"]).format(
+                couple, kingdom_name, hours, lock_label
+            ),
+        )
+    except Exception:
+        logger.warning("KINGDOMS: royal wedding thread failed", exc_info=True)
 
 
 class _ActiveLordsReadError(Exception):

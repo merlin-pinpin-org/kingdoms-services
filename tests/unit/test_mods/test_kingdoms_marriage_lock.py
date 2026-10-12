@@ -20,6 +20,7 @@ import pytest
 from kingdoms.mods.kingdoms.diplomacy import (
     RoyalMarriagePointsError,
     RoyalMarriageTokenError,
+    _pick_promise,
 )
 from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
 from kingdoms.mods.kingdoms.kingdom_persistent import (
@@ -160,9 +161,30 @@ def test_church_strings_exist_in_both_locales() -> None:
             "church_err_royal_points",
             "church_err_royal_token",
             "royal_wedding_announce",
+            "royal_wedding_couple",
+            "royal_wedding_more_title",
+            "royal_wedding_more_body",
         ):
             assert strings.get(key), f"missing {key} in {locale}"
         assert "🔬" not in "".join(str(v) for v in strings.values())
+
+
+def test_promises_are_stable_flavoured_and_case_insensitive() -> None:
+    """PROMISES.md (D34 RP): every wedding names a historical spouse —
+    « Thérèse de León (Portugais) » — and the pick is SEEDED so the
+    same lord with the same civilization always shows the same bride
+    everywhere, without persisting anything on the lord document."""
+    first = _pick_promise("king-a:Celtes", "Celtes")
+    assert first in ("Boudicca", "Cartimandua", "Medb", "Macha Mong Ruad")
+    assert _pick_promise("king-a:Celtes", "Celtes") == first  # stable
+    assert _pick_promise("king-a:Celtes", "celtes") == first  # key casefold
+    assert _pick_promise("x:Portugais", "Portugais") in (
+        "Thérèse de León",
+        "Isabelle de Portugal",
+        "Jeanne de Portugal",
+        "Béatrice de Portugal",
+    )
+    assert _pick_promise("x:Inconnus", "Inconnus") is None  # outside the table
 
 
 # ---------------------------------------------------------------------
@@ -369,10 +391,13 @@ async def test_church_badges_show_end_times_not_durations() -> None:
             _ViewLord(id="c", display_name="Baudouin"),
         ]
     )
-    # the royal marriage wears its Queen badge with the end time
-    assert "👑 Reine Shu · 🔒 verrou jusqu'à" in content
+    # the royal marriage wears its Queen badge — the promise herself
+    # (Drasah 2026-10-12) — with the lock end time
+    reine = _pick_promise("a:Shu", "Shu")
+    assert f"👑 Reine {reine} (Shu) · 🔒 verrou jusqu'à" in content
     # a lifted lock says so — no more ambiguous "0h restant"
-    assert "💍 Luc — Aztèques · ✅ verrou levé" in content
+    epouse = _pick_promise("b:Aztèques", "Aztèques")
+    assert f"💍 Luc — {epouse} (Aztèques) · ✅ verrou levé" in content
     # the stocks live in the title, not in a block
     assert "⛪ Paroisse — Avalon · ⛪ Église · 💍 2 · 💰 1" in content
     assert "Les Fidèles du Royaume" in content

@@ -13,6 +13,7 @@ from typing import ClassVar
 
 import pytest
 
+from kingdoms.mods.kingdoms.diplomacy import _pick_promise
 from kingdoms.mods.kingdoms.kingdom_realm_content import (
     VIEW_MARKER_PREFIX,
     deploy_realm_content,
@@ -225,7 +226,10 @@ async def test_church_view_shows_the_fidèles_the_palier_ladder_and_the_legend()
     assert "Verrou mariage royal (Roi) : 48h" in content
     # 💒 Les Fidèles du Royaume — one line per member with their state
     assert "Les Fidèles du Royaume" in content
-    assert "💍 Luc — Aztèques · 🔒 verrou jusqu'à" in content  # married, lock running
+    # Drasah 2026-10-12: the badge names the promise herself —
+    # « 💍 Luc — Atotoztli (Aztèques) » — never a lone civ key
+    epouse = _pick_promise("p2:Aztèques", "Aztèques")
+    assert f"💍 Luc — {epouse} (Aztèques) · 🔒 verrou jusqu'à" in content
     assert "🎖️ Arthur — célibataire · prêt à se marier 💍" in content
     # 🔭 the ladder — every palier visible with cost, perks and Sacrée
     assert "Aperçu des paliers" in content

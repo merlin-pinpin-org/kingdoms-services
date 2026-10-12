@@ -644,6 +644,8 @@ def _build_church(
 
     import discord
 
+    from kingdoms.mods.kingdoms.diplomacy import _pick_promise
+
     parish = state["parish"]
     members = [m for m in state["members"] if not getattr(m, "left", False)]
     now = int(_time.time())
@@ -668,6 +670,11 @@ def _build_church(
         lines.append(strings["church_none"])
     for member in married:
         civ = str(getattr(member, "married_civilization", ""))
+        civ_display = state["civ_names"].get(civ, civ)
+        # Drasah 2026-10-12: the badge shows the promise herself —
+        # « 💍 Luc — Atotoztli (Aztèques) » — never a lone civ key.
+        promise = _pick_promise(f"{member.id}:{civ_display}", civ_display)
+        civ_label = f"{promise} ({civ_display})" if promise else civ_display
         until = int(getattr(member, "marriage_locked_until", 0) or 0)
         royal = bool(getattr(member, "royal_marriage", False))
         base = "church_badge_royal" if royal else "church_badge"
@@ -675,7 +682,7 @@ def _build_church(
         lines.append(
             strings[key].format(
                 getattr(member, "display_name", strings["unknown"]),
-                state["civ_names"].get(civ, civ),
+                civ_label,
                 _lock_until_label(until, strings) if until > now else "",
             )
         )
