@@ -521,7 +521,9 @@ async def test_royal_wedding_thread_is_created_bare_then_filled() -> None:
 async def test_ring_is_painted_in_the_pseudo_once_the_lock_expires() -> None:
     """Drasah's follow-up (2026-10-12): the ring must show IN the pseudo,
     not only in the profile role list — a role name emoji never renders
-    in a nickname, so the sync pass edits the nickname itself."""
+    in a nickname, so the sync pass edits the nickname itself. The LOCK
+    also lives in the pseudo (Drasah's same-day follow-up): an active
+    lock wears the 🔒 suffix, swapped for the 💍 once it expires."""
     guild = MockGuild()
     active = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
     wed = _LockLord(id="222", marriage_locked_until=int(time.time()) - 10)
@@ -531,16 +533,62 @@ async def test_ring_is_painted_in_the_pseudo_once_the_lock_expires() -> None:
 
     await sync_marriage_lock_roles_safe(guild)
 
-    assert m_active.nick is None, "no ring in the pseudo while the lock is red"
+    assert m_active.nick == "Actif 🔒", "the locked lord wears the lock in the pseudo"
     assert m_wed.nick == "Drasah 💍", "the married lord wears the ring in the pseudo"
-    # idempotent: the suffix never stacks
+    # idempotent: the suffixes never stack
     await sync_marriage_lock_roles_safe(guild)
+    assert m_active.nick == "Actif 🔒"
     assert m_wed.nick == "Drasah 💍"
+
+    # the lock expires: 🔒 is swapped for 💍, never both
+    active.marriage_locked_until = int(time.time()) - 1
+    await sync_marriage_lock_roles_safe(guild)
+    assert m_active.nick == "Actif 💍"
 
     # the marriage breaks (a defeat drops a lord's marriage): the ring goes
     wed.married_civilization = None
     await sync_marriage_lock_roles_safe(guild)
     assert m_wed.nick == "Drasah"
+    assert m_active.nick == "Actif 💍"
+
+
+async def test_lock_assign_paints_the_lock_in_the_pseudo_immediately() -> None:
+    """The marriage itself completes the livery — the 🔒 suffix is
+    painted at the assign seam, not on the next 5-minute tick."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _assign_marriage_lock_role_safe,
+    )
+
+    guild = MockGuild()
+    lord = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
+    _wired([lord])
+    member = _member_with_role(guild, "Drasah", has_role=False, id=111)
+
+    await _assign_marriage_lock_role_safe(guild, "111")
+
+    assert any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in member.roles)
+    assert member.nick == "Drasah 🔒", "the lock shows in the pseudo at the marriage"
+
+
+async def test_back_to_setup_strip_removes_the_livery_before_the_wipe() -> None:
+    """Drasah's live incident (2026-10-12): the Retour setup wiped the
+    lord documents but the sync pass is doc-driven (no members intent)
+    — the 💍 pseudo and the red role survived forever. The wipe flows
+    strip every lord's livery BEFORE the wipe, while the docs resolve."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _strip_marriage_livery_for_all_lords_safe,
+    )
+
+    guild = MockGuild()
+    wed = _LockLord(id="111", marriage_locked_until=int(time.time()) - 10)
+    _wired([wed])
+    member = _member_with_role(guild, "Drasah", has_role=True, id=111)
+    member.nick = "Drasah 💍"
+
+    assert await _strip_marriage_livery_for_all_lords_safe(guild) == 1
+
+    assert member.nick == "Drasah", "the ghost ring leaves the pseudo"
+    assert not any(r.name == MARRIAGE_LOCK_ROLE_NAME for r in member.roles)
 
 
 # ---------------------------------------------------------------------

@@ -375,7 +375,11 @@ class KingdomTimeConfirmView(discord.ui.View):
     @discord.ui.button(label="✅", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
         """Wipe (no archive), relaunch in setup, rebuild the salons."""
-        from kingdoms.mods.kingdoms.kingdom_persistent import _purge_and_reinstall, _wiring
+        from kingdoms.mods.kingdoms.kingdom_persistent import (
+            _purge_and_reinstall,
+            _strip_marriage_livery_for_all_lords_safe,
+            _wiring,
+        )
 
         await interaction.response.defer(ephemeral=True)
         wiring = _wiring()
@@ -383,6 +387,12 @@ class KingdomTimeConfirmView(discord.ui.View):
             await interaction.followup.send(self.strings["no_service"], ephemeral=True)
             return
         try:
+            # BEFORE the wipe: strip every lord's livery while their
+            # documents still exist (the sync pass cannot clean ghosts
+            # once the docs are gone — Drasah 2026-10-12).
+            guild0 = interaction.guild
+            if guild0 is not None:
+                await _strip_marriage_livery_for_all_lords_safe(guild0)
             result = await wiring.time_service.back_to_setup()
         except Exception as exc:
             await interaction.followup.send(

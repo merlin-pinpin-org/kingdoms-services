@@ -1387,6 +1387,11 @@ _RING_NICK_SUFFIX = " 💍"
 """The ring IN the pseudo itself (Drasah's follow-up, 2026-10-12): a
 role name emoji shows only in the profile role list, NEVER in the
 nickname — only a nickname edit can paint the ring on the pseudo."""
+_LOCK_NICK_SUFFIX = " 🔒"
+"""The lock IN the pseudo itself (Drasah's rule, 2026-10-12): while the
+honeymoon lock is ACTIVE the pseudo wears the 🔒 suffix on top of the
+red role colour — the colour alone is invisible when a higher-ranked
+role outranks the lock role, the emoji always shows."""
 
 
 async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Role | None:
@@ -1543,6 +1548,12 @@ async def _assign_marriage_lock_role_safe(guild: discord.Guild | None, user_id: 
         await member.add_roles(role, reason="kingdoms: mariage — verrou de lune de miel")
     except Exception:
         logger.warning("KINGDOMS: marriage lock role assignment failed", exc_info=True)
+        return
+    # Drasah's follow-up (2026-10-12): the lock also lives IN the pseudo
+    # (🔒 suffix) — the red colour is invisible when a higher role
+    # outranks the lock role, the emoji always shows. Painted NOW so
+    # the livery is complete at the marriage itself.
+    await _sync_member_marriage_nickname(member, _LOCK_NICK_SUFFIX)
 
 
 async def _remove_marriage_lock_role_safe(guild: discord.Guild | None, user_id: str) -> None:
@@ -1598,11 +1609,11 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
 
     The scheduler calls this every tick — it is the boot resync AND the
     expiry engine in one idempotent pass. Drasah's full rule
-    (2026-10-12): an ACTIVE lock wears the RED 💍 Verrouillé pseudo; an
-    EXPIRED lock on a still-married lord swaps red for the colour-neutral
-    💍 ring badge AND paints the 💍 suffix on the pseudo itself; an
-    unmarried/ejected/departed lord wears nothing. A
-    restart never leaves a ghost. Returns the kingdom ids whose Discord
+    (2026-10-12): an ACTIVE lock wears the RED 💍 Verrouillé pseudo
+    AND the 🔒 suffix in the nickname; an EXPIRED lock on a
+    still-married lord swaps red for the colour-neutral 💍 ring badge
+    AND the 💍 suffix on the pseudo itself; an unmarried/ejected/
+    departed lord wears nothing. A restart never leaves a ghost. Returns the kingdom ids whose Discord
     state changed — the caller re-renders their salon views in place
     (an edit never pings anyone).
     """
@@ -1647,17 +1658,19 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
         )
         should_lock = married and until > now
         should_ring = married and not should_lock
+        nick_suffix = (
+            _LOCK_NICK_SUFFIX if should_lock else _RING_NICK_SUFFIX if should_ring else None
+        )
         lock_moved = await _sync_member_role(
             member, lock_role, should_lock, "kingdoms: mariage — verrou de lune de miel"
         )
         ring_moved = await _sync_member_role(
             member, ring_role, should_ring, "kingdoms: mariage — badge bague"
         )
-        nick_moved = (
-            await _sync_member_ring_nickname(member, should_ring)
-            if lord is not None
-            else False
-        )
+        # A member with no lord document (ejected mid-season, wiped
+        # season) is stripped of every marriage suffix — a lordless
+        # member never wears the livery.
+        nick_moved = await _sync_member_marriage_nickname(member, nick_suffix)
         if (lock_moved or ring_moved or nick_moved) and lord is not None:
             changed.add(str(getattr(lord, "kingdom_id", "") or ""))
     return changed
@@ -1668,43 +1681,49 @@ def _locale_of_strings(strings: dict[str, Any]) -> str:
     return "fr" if str(strings.get("lock_days", "")).startswith("lundi") else "en"
 
 
-async def _sync_member_ring_nickname(member: Any, should_ring: bool) -> bool:
-    """Paint/strip the 💍 suffix of one member's nickname (best effort).
+async def _sync_member_marriage_nickname(member: Any, suffix: str | None) -> bool:
+    """Paint/strip the marriage suffix of one member's nickname.
 
-    Drasah's full rule (2026-10-12): the ring must live IN the pseudo —
-    a role name emoji never renders there. The pass is idempotent (the
-    suffix never stacks) and only ever appends/strips its own suffix: a
-    hand-made nickname is left alone unless it ends with it. Returns
-    True when the nickname actually changed.
+    Drasah's full pseudo rule (2026-10-12): an ACTIVE lock wears the 🔒
+    suffix (on top of the red role colour), an EXPIRED lock on a
+    still-married lord wears the 💍 suffix, anything else wears none.
+    The pass is idempotent (the suffixes never stack, whichever of the
+    two is present is stripped first) and only ever appends/strips its
+    OWN suffixes: a hand-made nickname is left alone unless it ends
+    with one of them. Returns True when the nickname actually changed.
     """
     current = getattr(member, "nick", None)
     base = str(current) if current is not None else str(getattr(member, "name", ""))
     if not base:
         return False
-    if should_ring:
-        if base.endswith(_RING_NICK_SUFFIX):
-            return False
-        target = base + _RING_NICK_SUFFIX
+    if suffix and base.endswith(suffix):
+        return False  # idempotent: the target suffix is already worn
+    changed = False
+    for known in (_RING_NICK_SUFFIX, _LOCK_NICK_SUFFIX):
+        if base.endswith(known):
+            base = base[: -len(known)]
+            changed = True
+    if suffix and base:
+        target = base + suffix
         if len(target) > 32:
             logger.info(
-                "KINGDOMS: ring nickname skipped for %s (over 32 chars)", base
+                "KINGDOMS: marriage nickname skipped for %s (over 32 chars)", base
             )
-            return False
+            return changed
         try:
-            await member.edit(nick=target, reason="kingdoms: mariage — bague au pseudo")
+            await member.edit(nick=target, reason="kingdoms: mariage — pseudo")
         except Exception:
-            logger.warning("KINGDOMS: ring nickname edit failed", exc_info=True)
-            return False
+            logger.warning("KINGDOMS: marriage nickname edit failed", exc_info=True)
+            return changed
         return True
-    if base.endswith(_RING_NICK_SUFFIX):
-        stripped = base[: -len(_RING_NICK_SUFFIX)]
+    if changed:
         try:
             await member.edit(
-                nick=stripped or None,
-                reason="kingdoms: fin de mariage — bague retirée du pseudo",
+                nick=base or None,
+                reason="kingdoms: fin de mariage — pseudo nettoyé",
             )
         except Exception:
-            logger.warning("KINGDOMS: ring nickname strip failed", exc_info=True)
+            logger.warning("KINGDOMS: marriage nickname strip failed", exc_info=True)
             return False
         return True
     return False
@@ -2799,6 +2818,54 @@ async def _purge_and_reinstall(guild: discord.Guild) -> tuple[bool, int]:
     return reinstalled, deleted
 
 
+async def _strip_marriage_livery_for_all_lords_safe(guild: discord.Guild | None) -> int:
+    """Remove every marriage livery BEFORE a season wipe (ghost guard).
+
+    Drasah's live finding (2026-10-12): the Retour setup wiped the lord
+    DOCUMENTS but the sync pass is doc-driven (no members intent — the
+    gateway cache is empty) — once the docs are gone nothing iterates
+    the members, so the 💍 pseudo suffix (and the red role) survived
+    the wipe forever. The wipe flows call this while the docs still
+    exist: each lord's roles AND nickname are cleaned via the same
+    cache-then-REST resolution the sync pass uses. Returns the number
+    of members actually found.
+    """
+    if guild is None:
+        return 0
+    wiring = _wiring()
+    service = wiring.kingdoms_service
+    try:
+        lords = await service.lords() if service is not None else []
+    except Exception:
+        logger.warning("KINGDOMS: lord list read failed (livery strip)", exc_info=True)
+        lords = []
+    lock_role = discord.utils.get(guild.roles, name=MARRIAGE_LOCK_ROLE_NAME)
+    ring_role = discord.utils.get(guild.roles, name=MARRIAGE_RING_ROLE_NAME)
+    found = 0
+    seen: set[str] = set()
+    for lord in lords:
+        lord_id = str(getattr(lord, "id", ""))
+        if not lord_id.isdigit() or lord_id in seen:
+            continue
+        seen.add(lord_id)
+        member = await _resolve_member(guild, int(lord_id))
+        if member is None:
+            continue
+        found += 1
+        for role in (lock_role, ring_role):
+            if role is not None and role in getattr(member, "roles", ()):
+                try:
+                    await member.remove_roles(
+                        role, reason="kingdoms: wipe saison — livery retirée"
+                    )
+                except Exception:
+                    logger.warning(
+                        "KINGDOMS: livery role strip failed", exc_info=True
+                    )
+        await _sync_member_marriage_nickname(member, None)
+    return found
+
+
 async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
     """Full test reset: wipe + fresh season in setup, salons rebuilt.
 
@@ -2818,6 +2885,10 @@ async def _run_back_to_setup(interaction: discord.Interaction, strings: dict[str
         await interaction.followup.send(strings["back_setup_failed"].format("no service"), ephemeral=True)
         return
     try:
+        # BEFORE the wipe: the sync pass is doc-driven, once the lord
+        # documents are gone a stale 💍 pseudo (or red role) would live
+        # forever — strip the livery while the docs still resolve.
+        await _strip_marriage_livery_for_all_lords_safe(guild)
         await wiring.kingdoms_service.reset()
         await wiring.kingdoms_service.launch()
     except Exception as exc:
