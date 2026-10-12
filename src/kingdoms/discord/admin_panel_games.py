@@ -183,11 +183,14 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         return view
     maps = await service.list_maps(game_key)
     pools = await service.list_map_pools(game_key)
+    factions = await service.list_factions(game_key)
     active_maps = [m for m in maps if m.archived_at is None]
     blocks.extend(
         [
             discord.ui.Separator(),
-            discord.ui.TextDisplay(f"**Maps actives** : {len(active_maps)} \u2014 **Pools** : {len(pools)}"),
+            discord.ui.TextDisplay(f"**Civs** : {len(factions)} \u2014 **Maps actives** : {len(active_maps)} \u2014 "
+                f"**Pools** : {len(pools)}"
+            ),
         ]
     )
     links = await _forum_links(game_key, guild_id)
@@ -198,10 +201,12 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
     actions.add_item(GamesMapsButton(game_key))
     actions.add_item(GamesPoolsButton(game_key))
     view.add_item(actions)
-    imports: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    imports.add_item(GamesMapImportButton(game_key))
-    imports.add_item(GamesPoolImportButton(game_key))
-    view.add_item(imports)
+    adds: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    adds.add_item(GamesMapCreateButton(game_key))
+    adds.add_item(GamesPoolCreateButton(game_key))
+    adds.add_item(GamesMapImportButton(game_key))
+    adds.add_item(GamesPoolImportButton(game_key))
+    view.add_item(adds)
     if not from_pin:
         view.add_item(_back_row())
     return view
@@ -390,7 +395,11 @@ class GamesMapsButton(
     def __init__(self, game_key: str) -> None:
         self.game_key = game_key
         super().__init__(
-            discord.ui.Button(label="Maps", style=discord.ButtonStyle.primary, custom_id=f"{_NS}:maps:{game_key}"[:100])
+            discord.ui.Button(
+                label="Gérer les maps",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:maps:{game_key}"[:100],
+            )
         )
 
     @classmethod
@@ -423,7 +432,9 @@ class GamesPoolsButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Map pools", style=discord.ButtonStyle.primary, custom_id=f"{_NS}:pools:{game_key}"[:100]
+                label="Gérer les map pools",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:pools:{game_key}"[:100],
             )
         )
 
@@ -492,7 +503,7 @@ class GamesMapCreateButton(
     def __init__(self, game_key: str, global_scope: bool = False) -> None:
         self.game_key = game_key
         self.global_scope = global_scope
-        label = "+ Map globale" if global_scope else "+ Map"
+        label = "+ Map globale" if global_scope else "+ Map (manuel)"
         custom_id = f"{_NS}:maps:create:{'global' if global_scope else 'guild'}:{game_key}"
         super().__init__(discord.ui.Button(label=label, style=discord.ButtonStyle.success, custom_id=custom_id[:100]))
 
@@ -805,7 +816,9 @@ class GamesPoolCreateButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="+ Pool", style=discord.ButtonStyle.success, custom_id=f"{_NS}:pools:create:{game_key}"[:100]
+                label="+ Pool (manuel)",
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_NS}:pools:create:{game_key}"[:100],
             )
         )
 
@@ -1468,7 +1481,7 @@ class GamesMapImportButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Import a map",
+                label="Importer une map (Liquipedia)",
                 emoji="\U0001f4e5",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:maps:import:guild:{game_key}"[:100],
@@ -1643,7 +1656,7 @@ class GamesPoolImportButton(
         self.game_key = game_key
         super().__init__(
             discord.ui.Button(
-                label="Import a map pool",
+                label="Importer un map pool",
                 emoji="\U0001f4e5",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:pools:import:{game_key}"[:100],
