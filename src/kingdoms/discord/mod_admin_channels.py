@@ -64,13 +64,15 @@ class ModAdminChannelSpec:
     build_season_layout: SeasonLayoutBuilder | None = None
     season_channel_name: str = "🛡-season-admin"
     root_message_key: str = ""
+    root_message_legacy_key: str = ""
     root_marker: str = ""
     root_category: str = ""
 
     def __post_init__(self) -> None:
         """Fill the derived keys (message key, marker, category) when unset."""
         keys = {
-            "root_message_key": f"mod-{self.mod}-admin-menu",
+            "root_message_key": f"view:{self.mod}-admin",
+            "root_message_legacy_key": f"mod-{self.mod}-admin-menu",
             "root_marker": f"admin:{self.mod}:pin:",
             "root_category": f"mod_{self.mod}_admin",
         }
@@ -255,6 +257,8 @@ async def _resolve_root_message_id(bot: discord.Client, spec: ModAdminChannelSpe
     if registry is not None:
         try:
             registered = await registry.resolve("discord", spec.root_message_key, guild_id)
+            if registered is None and spec.root_message_legacy_key:
+                registered = await registry.resolve("discord", spec.root_message_legacy_key, guild_id)
             if registered is not None:
                 return str(registered.message_id)
         except Exception:

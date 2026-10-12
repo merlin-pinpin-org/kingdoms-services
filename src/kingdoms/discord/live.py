@@ -29,7 +29,7 @@ logger = logging.getLogger("kingdoms.live")
 GAME_KEY = "aoe2"
 LIVE_CHANNEL_NAME = "📡-live-dashboard"
 LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
-LIVE_MESSAGE_KEY = "live-dashboard"
+LIVE_MESSAGE_KEY = "view:live-dashboard"
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 
@@ -405,7 +405,7 @@ async def ensure_live_dashboard(
     locale = await guild_locale(guild_id, bot)
     body = render_dashboard(snapshot, locale=locale, bot=bot)
     embeds = _dashboard_embeds(snapshot, body, bot, locale=locale)
-    registered = await registry.resolve(PLATFORM, _page_key(1), guild_id)
+    registered = await _resolve_page(registry, guild_id)
     if await _edit_registered(channel, registered, embeds[0]):
         await _sync_extra_pages(guild_id, channel, registry, embeds)
         await _remember_sent_fingerprint(guild_id, _snapshot_fingerprint(snapshot))
@@ -442,8 +442,21 @@ async def ensure_live_dashboard(
 
 
 def _page_key(page: int) -> str:
-    """Build the registry key of one dashboard page (page 1 keeps the legacy key)."""
+    """Build the registry key of one dashboard page.
+
+    The view convention is ``view:<slug>`` (``view:live-dashboard``);
+    extra pages suffix it. The pre-convention key (``live-dashboard``)
+    stays as the legacy fallback for the page-1 resolve.
+    """
     return LIVE_MESSAGE_KEY if page == 1 else f"{LIVE_MESSAGE_KEY}-{page}"
+
+
+async def _resolve_page(registry: Any, guild_id: str, page: int = 1) -> Any:
+    """Resolve a dashboard page's message: current key, then legacy."""
+    registered = await registry.resolve(PLATFORM, _page_key(page), guild_id)
+    if registered is None and page == 1:
+        registered = await registry.resolve(PLATFORM, "live-dashboard", guild_id)
+    return registered
 
 
 def _dashboard_embeds(
@@ -587,7 +600,7 @@ def _dashboard_embed(
     icon_url = getattr(icon, "url", None) if icon else None
     from kingdoms.discord.pinned_marks import pinned_mark
 
-    description = truncate_body(body + "\n" + pinned_mark("live-dashboard"), MAX_EMBED_DESCRIPTION)
+    description = truncate_body(body + "\n" + pinned_mark(LIVE_MESSAGE_KEY), MAX_EMBED_DESCRIPTION)
     title = _t(bot, locale, "title", "🎮 Live dashboard")
     if page_count > 1:
         title += f" ({page_index}/{page_count})"

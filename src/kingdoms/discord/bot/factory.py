@@ -407,8 +407,9 @@ class KingdomsBot(discord.Client):
 
         register_static_pin(
             StaticPinnedView(
-                key="admin-panel",
-                mark_suffix="admin-panel",
+                key="view:admin",
+                mark_suffix="view:admin",
+                legacy_key="admin-panel",
                 resolve_channel=_resolve_admin_channel,
                 build_layout=_build_admin_panel,
                 registry=getattr(self, "message_registry", None),

@@ -1429,17 +1429,23 @@ class GamesMapImportModal(discord.ui.Modal):
             )
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
+        # Ack FIRST: the Liquipedia fetch is rate-limited (>= 2 s per
+        # request, 3-4 requests per map) — way past Discord's 3-second
+        # modal window; the ack-less import raised in the popup while
+        # the map was still created, leaving "name already taken" on
+        # retry.
+        await interaction.response.defer(ephemeral=True, thinking=True)
         from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
         try:
             seed = await fetch_map_seed(name)
         except LiquipediaUnconfiguredError:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 await reply(interaction, "replies_shared.liquipedia_unconfigured"),
                 ephemeral=True,
             )
             return
         if seed is None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f'Aucune page Liquipedia pour "{name}" \u2014 cr\u00e9e la map localement.',
                 ephemeral=True,
             )
@@ -1456,7 +1462,7 @@ class GamesMapImportModal(discord.ui.Modal):
             )
         except Exception:
             logger.exception("GAMES ADMIN: map import failed")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 await reply(interaction, "replies_shared.import_failed"), ephemeral=True
             )
             return
@@ -1476,8 +1482,8 @@ class GamesMapImportModal(discord.ui.Modal):
                         "provider": "liquipedia",
                     }
                 )
-        await interaction.response.send_message(
-            f"Map **{entry.name}** importee \u2014 son post apparaitra au prochain passage du forum.",
+        await interaction.followup.send(
+            f"Map **{entry.name}** importée — son post apparaîtra au prochain passage du forum.",
             ephemeral=True,
         )
 

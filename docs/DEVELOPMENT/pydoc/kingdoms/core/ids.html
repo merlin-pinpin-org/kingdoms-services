@@ -60,6 +60,14 @@ Lowercase,&nbsp;every&nbsp;non-alphanumeric&nbsp;run&nbsp;collapsed&nbsp;to&nbsp
 ``coast_to_mountain``.&nbsp;Uniform&nbsp;across&nbsp;the&nbsp;catalog,&nbsp;the&nbsp;content<br>
 store&nbsp;and&nbsp;the&nbsp;Discord&nbsp;footers.</span></dd></dl>
  <dl><dt><a name="-territory_id"><strong>territory_id</strong></a>(season_id: 'str', map_key: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;territory&nbsp;id:&nbsp;``territory:&lt;season&nbsp;id&gt;:&lt;map&nbsp;key&gt;``.</span></dd></dl>
+ <dl><dt><a name="-view_key"><strong>view_key</strong></a>(slug: 'str', legacy: 'str' = '') -&gt; 'tuple[str, str]'</dt><dd><span class="code">Return&nbsp;a&nbsp;persistent&nbsp;view's&nbsp;registry&nbsp;key&nbsp;pair:&nbsp;(current,&nbsp;legacy).<br>
+&nbsp;<br>
+The&nbsp;current&nbsp;convention&nbsp;is&nbsp;``view:&lt;slug&gt;``&nbsp;(``view:live-dashboard``,<br>
+``view:home``,&nbsp;``view:admin``);&nbsp;the&nbsp;legacy&nbsp;key&nbsp;is&nbsp;what&nbsp;the&nbsp;view&nbsp;was<br>
+registered&nbsp;under&nbsp;before&nbsp;the&nbsp;convention&nbsp;(``live-dashboard``,<br>
+``home-menu``...)&nbsp;—&nbsp;empty&nbsp;when&nbsp;there&nbsp;was&nbsp;none.&nbsp;Callers&nbsp;resolve&nbsp;the<br>
+current&nbsp;key&nbsp;first&nbsp;and&nbsp;fall&nbsp;back&nbsp;to&nbsp;the&nbsp;legacy&nbsp;one&nbsp;(the&nbsp;migration:<br>
+the&nbsp;first&nbsp;re-register&nbsp;moves&nbsp;the&nbsp;entry&nbsp;to&nbsp;the&nbsp;current&nbsp;key).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

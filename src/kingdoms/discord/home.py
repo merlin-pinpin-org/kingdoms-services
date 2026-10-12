@@ -46,7 +46,8 @@ logger = logging.getLogger("kingdoms.home")
 HOME_CHANNEL_NAME = "🏛-home"
 HOME_CHANNEL_CATEGORY = "bot_home"
 HOME_MARKER = "home:pin:"
-HOME_MESSAGE_KEY = "home-menu"
+HOME_MESSAGE_KEY = "view:home"
+HOME_MESSAGE_LEGACY_KEY = "home-menu"
 HOME_MESSAGE_PLATFORM = "discord"
 
 
@@ -112,7 +113,7 @@ def build_home_menu(home: HomeService) -> discord.ui.LayoutView:
         discord.ui.Container(
             discord.ui.TextDisplay("## 🏛 Kingdoms\nBienvenue — chaque bouton ouvre une vue réservée à toi."),
             *rows,
-            discord.ui.TextDisplay(pinned_mark("home-menu")),
+            discord.ui.TextDisplay(pinned_mark(HOME_MESSAGE_KEY)),
         )
     )
     return view
@@ -653,8 +654,8 @@ def _home_static_pin_spec(bot: discord.Client) -> Any:
         return None
     registry = getattr(bot, "message_registry", None)
     spec = StaticPinnedView(
-        key="home-menu",
-        mark_suffix="home-menu",
+        key=HOME_MESSAGE_KEY,
+        mark_suffix=HOME_MESSAGE_KEY,
         resolve_channel=home_channel.resolve_channel,
         build_layout=_async_layout(home),
         registry=registry,
@@ -714,6 +715,10 @@ async def _resolve_menu_message_id(bot: discord.Client, guild_id: str) -> str | 
     if registry is not None:
         try:
             registered = await registry.resolve(HOME_MESSAGE_PLATFORM, HOME_MESSAGE_KEY, guild_id)
+            if registered is None:
+                registered = await registry.resolve(
+                    HOME_MESSAGE_PLATFORM, HOME_MESSAGE_LEGACY_KEY, guild_id
+                )
             if registered is not None:
                 return str(registered.message_id)
         except Exception:

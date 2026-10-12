@@ -49,12 +49,15 @@ class StaticPinnedView:
     build_layout: BuildLayout
     registry: Any = None
     delete_when_superseded: bool = True
+    legacy_key: str = ""
 
     async def resolve_message_id(self, guild_id: str) -> str | None:
         """Resolve the registered pin id (registry first, memory fallback)."""
         if self.registry is not None:
             try:
                 registered = await self.registry.resolve("discord", self.key, guild_id)
+                if registered is None and self.legacy_key:
+                    registered = await self.registry.resolve("discord", self.legacy_key, guild_id)
                 if registered is not None:
                     return str(registered.message_id)
             except Exception:

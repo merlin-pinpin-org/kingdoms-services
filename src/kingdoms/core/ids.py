@@ -57,6 +57,19 @@ def footer(*ids: str) -> str:
 _NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
 
 
+def view_key(slug: str, legacy: str = "") -> tuple[str, str]:
+    """Return a persistent view's registry key pair: (current, legacy).
+
+    The current convention is ``view:<slug>`` (``view:live-dashboard``,
+    ``view:home``, ``view:admin``); the legacy key is what the view was
+    registered under before the convention (``live-dashboard``,
+    ``home-menu``...) — empty when there was none. Callers resolve the
+    current key first and fall back to the legacy one (the migration:
+    the first re-register moves the entry to the current key).
+    """
+    return f"view:{slug}", legacy
+
+
 def map_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
     """Return a map entry's stable id, scoped by ownership, not by game.
 
