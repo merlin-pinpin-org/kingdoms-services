@@ -2008,7 +2008,7 @@ class GamesPoolCopyButton(
         super().__init__(
             discord.ui.Button(
                 label="Copier un map pool",
-                emoji="\U0001f5b3\ufe0f",
+                emoji="\U0001f4cb",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:pools:copy:{game_key}"[:100],
             )
