@@ -38,6 +38,9 @@ class MapSeed:
     terrain: str = ""
     size: str = ""
     map_type: str = ""
+    nomad: str = ""
+    walls: str = ""
+    tc: str = ""
     public: bool = True
     game_versions: tuple[str, ...] = ()
     versions: tuple[dict[str, object], ...] = ()
@@ -82,6 +85,9 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
             resource_url=data.info.source_url,
             image_url=data.image_url,
             terrain=data.info.terrain,
+            nomad=data.info.nomad,
+            walls=data.info.walls,
+            tc=data.info.tc,
             size=data.info.size,
             map_type=data.info.map_type,
             public=True,

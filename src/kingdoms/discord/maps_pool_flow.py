@@ -349,9 +349,80 @@ class PoolMapPickerView(discord.ui.View):
         )
 
 
+class MapDeleteButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"games:map:delete:(?P<map_id>[^:]+):(?P<game_key>[a-z0-9_]+):(?P<owned>[01])",
+):
+    """A map post's delete action.
+
+    A guild-owned map is deleted for good (hard delete); a public map
+    is archived (reversible) — the catalog seed owns it, another guild
+    may still use it.
+    """
+
+    def __init__(self, map_id: str, game_key: str = "", owned_by_guild: bool = False) -> None:
+        self.map_id = map_id
+        self.game_key = game_key
+        self.owned_by_guild = owned_by_guild
+        label = "Supprimer" if owned_by_guild else "Désactiver"
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                emoji="\U0001f5d1\ufe0f",
+                style=discord.ButtonStyle.danger,
+                custom_id=(f"games:map:delete:{map_id}:{game_key}:{1 if owned_by_guild else 0}")[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> MapDeleteButton:
+        """Rebuild from the wire (map id, game, ownership flag)."""
+        del interaction, item
+        return cls(match.group("map_id"), match.group("game_key"), match.group("owned") == "1")
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then delete (guild) or archive (public) the map."""
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        entry = await service.get_map(self.map_id)
+        if entry is None:
+            await interaction.followup.send("Map introuvable.", ephemeral=True)
+            return
+        try:
+            if self.owned_by_guild and entry.owner_guild_id:
+                await service.delete_map(self.map_id)
+                message = f"Map **{entry.name}** supprimée."
+            else:
+                await service.archive_map(self.map_id)
+                message = f"Map **{entry.name}** désactivée (archivée) — réactivable."
+        except Exception as exc:
+            logger.exception("MAPS: delete/archive failed (%s)", self.map_id)
+            await interaction.followup.send(f"Échec : {exc}", ephemeral=True)
+            return
+        try:
+            from kingdoms.discord.pinned_views import refresh_registered_pins
+
+            if interaction.guild_id is not None:
+                await refresh_registered_pins(str(interaction.guild_id))
+        except Exception:
+            logger.warning("MAPS: pin refresh after delete failed — best-effort")
+        await interaction.followup.send(message, ephemeral=True)
+
+
 class MapEditButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"games:map:edit:(?P<map_id>[^:]+)",
+    template=r"games:map:edit:(?P<map_id>.+)",
 ):
     """A guild-owned map post's edit action: open the edit modal (admins)."""
 
@@ -592,4 +663,5 @@ def register_pool_flow_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(MapPoolPickerSelect)
     bot.add_dynamic_items(PoolAddMapButton)
     bot.add_dynamic_items(MapEditButton)
+    bot.add_dynamic_items(MapDeleteButton)
     bot.add_dynamic_items(PoolTransitionButton)

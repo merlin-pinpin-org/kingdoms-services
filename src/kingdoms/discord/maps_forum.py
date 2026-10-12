@@ -96,10 +96,13 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
             entry.resource_url,
             editable=entry.owner_guild_id == guild_id,
             map_type=getattr(entry, "map_type", ""),
-            filenames=tuple(getattr(entry, "filenames", ()) or ()),
+            filenames=(),
+            game_key=str(getattr(entry, "game_key", "")),
+            owned_by_guild=entry.owner_guild_id == guild_id,
         )
-        tail = f"Source : {source}\n" if source else ""
-        content = f"{tail}**{entry.name}**\n{description}"
+        display = f"{entry.name[:1].upper()}{entry.name[1:]}"
+        tail = f"{source}\n" if source else ""
+        content = f"## {display}\n{tail}{description}"
         if pools:
             content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
         if entry.resource_url:
@@ -151,24 +154,30 @@ def _map_post_view(
     editable: bool = False,
     map_type: str = "",
     filenames: tuple[str, ...] = (),
+    game_key: str = "",
+    owned_by_guild: bool = False,
 ) -> discord.ui.LayoutView:
-    """Build the map post's layout: type, description, files, pools, image.
+    """Build the map post's Components V2 layout.
 
-    A Section tops out at 3 text children (Discord 50035 — the map
-    post carried up to 6), so the post rides a Container; the media
-    is the side accessory of a one-child header Section when present,
-    and the actions (add-to-pool, edit) live in an action bar.
+    Title (capitalized) with the map type as its subtitle and the
+    source URL right under it (like the civ cards); the description
+    below; the image as the header's side accessory; the pools and
+    the id footer at the end. The action bar carries add-to-pool,
+    the edit entry point (guild-owned maps only) and delete —
+    definitive for a guild map, reversible (archive) for a public
+    one. Section children stay within Discord's cap of 3.
     """
     from kingdoms.core.ids import footer
-    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapEditButton
+    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapDeleteButton, MapEditButton
 
     view = discord.ui.LayoutView(timeout=None)
-    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [
-        discord.ui.TextDisplay(f"## {name}")
-    ]
+    header = f"## {name[:1].upper()}{name[1:]}"
     if map_type:
-        header_blocks.append(discord.ui.TextDisplay(f"**Type** : {map_type}"))
-    media = resource_url or image
+        header += f"\n*{map_type}*"
+    if source:
+        header += f"\n{source}"
+    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(header)]
+    media = image or resource_url
     if media:
         view.add_item(
             discord.ui.Section(*header_blocks, accessory=discord.ui.Thumbnail(media))
@@ -178,16 +187,15 @@ def _map_post_view(
     body: list[discord.ui.Item[discord.ui.LayoutView]] = []
     if description:
         body.append(discord.ui.TextDisplay(description))
-    if filenames:
-        body.append(discord.ui.TextDisplay("**Fichiers**\n" + "\n".join(f"`{f}`" for f in filenames)))
     if pools:
         body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
-    body.append(discord.ui.TextDisplay(f"Source : {source}\n{footer(map_id)}" if source else footer(map_id)))
+    body.append(discord.ui.TextDisplay(footer(map_id)))
     view.add_item(discord.ui.Container(*body))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(MapAddToPoolButton(map_id))
     if editable:
         actions.add_item(MapEditButton(map_id))
+    actions.add_item(MapDeleteButton(map_id, game_key=game_key, owned_by_guild=owned_by_guild))
     view.add_item(actions)
     return view
 
@@ -224,10 +232,13 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
             entry.resource_url,
             editable=entry.owner_guild_id == guild_id,
             map_type=getattr(entry, "map_type", ""),
-            filenames=tuple(getattr(entry, "filenames", ()) or ()),
+            filenames=(),
+            game_key=str(getattr(entry, "game_key", "")),
+            owned_by_guild=entry.owner_guild_id == guild_id,
         )
-        tail = f"Source : {source}\n" if source else ""
-        content = f"{tail}**{entry.name}**\n{description}"
+        display = f"{entry.name[:1].upper()}{entry.name[1:]}"
+        tail = f"{source}\n" if source else ""
+        content = f"## {display}\n{tail}{description}"
         if pools:
             content = f"{content}\n\n**Pools**\n" + "\n".join(pools)
         if entry.resource_url:

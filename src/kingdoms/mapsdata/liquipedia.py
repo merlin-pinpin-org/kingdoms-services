@@ -74,6 +74,9 @@ class MapInfo:
     image_file: str
     image_license: str
     source_url: str
+    nomad: str = ""
+    walls: str = ""
+    tc: str = ""
     game_versions: tuple[str, ...] = ()
     versions: tuple[MapVersion, ...] = ()
 
@@ -111,6 +114,13 @@ def query_tags(info: MapInfo) -> tuple[str, ...]:
         value in (terrain, map_type) for value in ("hybrid", "water")
     ):
         tags.append("water")
+    if info.nomad.strip().lower() in ("yes", "true"):
+        tags.append("nomad")
+    if info.walls.strip().lower() in ("yes", "partial"):
+        tags.append("walled")
+    tc = info.tc.strip()
+    if tc.isdigit() and int(tc) > 1:
+        tags.append(f"tc:{tc}")
     return tuple(tags)
 
 
@@ -219,6 +229,9 @@ class LiquipediaMapsProvider:
             image_file=fields.get("image", ""),
             image_license="",
             source_url=f"{LIQUIPEDIA_ATTRIBUTION}{page}",
+            nomad=self._clean_wikitext(fields.get("nomad", "")),
+            walls=self._clean_wikitext(fields.get("walls", "")),
+            tc=self._clean_wikitext(fields.get("tc", "")),
             game_versions=self._parse_game_tabs(wikitext),
             versions=self._parse_versions_section(wikitext),
         )

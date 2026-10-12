@@ -116,6 +116,11 @@ async def _refresh_pins_after_mutation(interaction: discord.Interaction) -> None
         logger.warning("pin refresh after mutation failed — best-effort", exc_info=True)
 
 
+def _display_name(name: str) -> str:
+    """Title-case a map's name for its post ('hideout' -> 'Hideout')."""
+    return name[:1].upper() + name[1:] if name else name
+
+
 class GamesGameSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_NS}:game:(?P<game_key>[a-z0-9_]+)",
@@ -1507,6 +1512,29 @@ class GamesMapImportButton(
         await interaction.response.send_modal(GamesMapImportModal(self.game_key))
 
 
+def _map_summary_from_seed(seed: Any) -> str:
+    """Render the imported map's content: Liquipedia description + traits.
+
+    The infobox traits (type de terrain, nomade, murs, town centers)
+    join the description as a compact line — the post shows them in
+    the subtitle and the content store keeps them queryable.
+    """
+    bits: list[str] = []
+    if seed.map_type:
+        bits.append(f"Type : {seed.map_type}")
+    if seed.nomad:
+        bits.append("Nomade" if seed.nomad.strip().lower() in ("yes", "true") else f"Nomade : {seed.nomad}")
+    if seed.walls:
+        bits.append(f"Fortifications : {seed.walls}")
+    if seed.tc and seed.tc.isdigit() and int(seed.tc) > 1:
+        bits.append(f"Town centers : {seed.tc}")
+    traits = " · ".join(bits)
+    description = (seed.description or "").strip()
+    if traits and description:
+        return f"{description}\n{traits}"
+    return traits or description
+
+
 async def _finish_map_import(
     interaction: discord.Interaction,
     service: Any,
@@ -1532,10 +1560,11 @@ async def _finish_map_import(
                         "entity_id": entry.id,
                         "locale": "en",
                         "name": entry.name,
-                        "summary": seed.description,
+                        "summary": _map_summary_from_seed(seed),
                         "source_url": seed.resource_url,
                         "image_url": seed.image_url,
                         "provider": "liquipedia",
+                        "tags": list(seed.tags or ()),
                     }
                 )
         from kingdoms.discord.maps_forum import sync_maps_forum
@@ -1595,7 +1624,6 @@ class GamesMapImportModal(discord.ui.Modal):
                 await reply(interaction, "replies_shared.name_required"), ephemeral=True
             )
             return
-        guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         # Ack FIRST: the Liquipedia fetch is rate-limited (>= 2 s per
         # request, 3-4 requests per map) — way past Discord's 3-second
         # modal window; the ack-less import raised in the popup while
@@ -1626,7 +1654,7 @@ class GamesMapImportModal(discord.ui.Modal):
                 filename=seed.name.replace(" ", "_").lower(),
                 description=seed.description,
                 resource_url=seed.resource_url,
-                owner_guild_id=guild_id,
+                owner_guild_id=None,
                 map_type=seed.map_type,
             )
         except NameTakenError as error:
