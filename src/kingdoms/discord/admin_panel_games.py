@@ -281,15 +281,11 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         ]
     )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    maps_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    maps_row.add_item(GamesMapImportButton(game_key))
-    maps_row.add_item(GamesBulkImportButton(game_key))
-    maps_row.add_item(GamesMapCreateButton(game_key))
-    view.add_item(maps_row)
-    pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    pools_row.add_item(GamesPoolCopyButton(game_key))
-    pools_row.add_item(GamesPoolCreateButton(game_key))
-    view.add_item(pools_row)
+    sections_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    sections_row.add_item(GamesCivsSectionButton(game_key))
+    sections_row.add_item(GamesMapsSectionButton(game_key))
+    sections_row.add_item(GamesPoolsSectionButton(game_key))
+    view.add_item(sections_row)
     if not from_pin:
         view.add_item(_back_row())
     return view
@@ -373,6 +369,144 @@ class GamesMapsManageButton(
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         await interaction.edit_original_response(
             view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction), guild_id=guild_id)
+        )
+
+
+async def civs_section_view(game_key: str) -> discord.ui.LayoutView:
+    """Build the civs sub-menu: count, forum link, refresh entry point."""
+    service = _games_wiring()
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [discord.ui.TextDisplay(f"# Civs ({game_key})")]
+    if service is None:
+        blocks.append(discord.ui.TextDisplay("Wiring indisponible."))
+        view.add_item(discord.ui.Container(*blocks))
+        return view
+    factions = await service.list_factions(game_key)
+    blocks.append(discord.ui.TextDisplay(f"{len(factions)} civs"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    view.add_item(_back_row())
+    return view
+
+
+class GamesCivsSectionButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:section:civs:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the game's civs sub-menu."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Civs",
+                emoji="\U0001f9d9",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:section:civs:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesCivsSectionButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the civs sub-menu."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(view=await civs_section_view(self.game_key))
+
+
+class GamesMapsSectionButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:section:maps:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the game's maps sub-menu (list, import, create, delete)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Maps",
+                emoji="\U0001f5fa",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:section:maps:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesMapsSectionButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the maps sub-menu."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        await interaction.edit_original_response(
+            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction), guild_id=guild_id)
+        )
+
+
+class GamesPoolsSectionButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:section:pools:(?P<game_key>[a-z0-9_]+)",
+):
+    """Open the game's map pools sub-menu (list, copy, create, delete)."""
+
+    def __init__(self, game_key: str) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Map pools",
+                emoji="\U0001f9f1",
+                style=discord.ButtonStyle.primary,
+                custom_id=f"{_NS}:section:pools:{game_key}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolsSectionButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("game_key"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the pools sub-menu."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(
+            view=await pools_admin_view(self.game_key, from_pin=from_pin(interaction))
         )
 
 
@@ -646,6 +780,11 @@ async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str =
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     select_row.add_item(GamesMapArchiveSelect(game_key))
     view.add_item(select_row)
+    actions_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions_row.add_item(GamesMapImportButton(game_key))
+    actions_row.add_item(GamesBulkImportButton(game_key))
+    actions_row.add_item(GamesMapCreateButton(game_key))
+    view.add_item(actions_row)
     delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     delete_row.add_item(GamesMapDeleteSelect(game_key))
     view.add_item(delete_row)
@@ -900,6 +1039,7 @@ async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.
     delete_row.add_item(GamesPoolDeleteSelect(game_key))
     view.add_item(delete_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    action_row.add_item(GamesPoolCopyButton(game_key))
     action_row.add_item(GamesPoolCreateButton(game_key))
     view.add_item(action_row)
     if not from_pin:
@@ -2420,6 +2560,9 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolCopyButton,
         GamesGrantedSelect,
         GamesGrantedReopenButton,
+        GamesCivsSectionButton,
+        GamesMapsSectionButton,
+        GamesPoolsSectionButton,
         GamesMapsManageButton,
         GamesPoolsManageButton,
         GamesPoolDeleteSelect,
