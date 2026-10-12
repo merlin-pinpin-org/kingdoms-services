@@ -99,7 +99,7 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
 
         for entry in await game_data.list_maps("aoe2"):
             already = await content.get(entry.id, "en")
-            if already is not None and already.get("image_url"):
+            if already is not None and already.get("icon_url") and already.get("walls"):
                 continue
             seed = None
             try:
@@ -116,6 +116,10 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
                     "summary": seed.description,
                     "source_url": seed.resource_url,
                     "image_url": seed.image_url,
+                    "icon_url": seed.icon_url,
+                    "walls": seed.walls,
+                    "nomad": seed.nomad,
+                    "tc": seed.tc,
                     "provider": "liquipedia",
                     "game_versions": list(seed.game_versions),
                     "versions": [dict(v) for v in seed.versions],

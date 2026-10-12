@@ -191,7 +191,7 @@ def _map_post_view(
         view.add_item(discord.ui.Container(*header_blocks))
 
     body: list[discord.ui.Item[discord.ui.LayoutView]] = []
-    props = _map_props_lines(map_type, walls, nomad, tc)
+    props = _map_props_lines(walls, nomad, tc)
     if props:
         body.append(discord.ui.TextDisplay("\n".join(props)))
     if description:
@@ -200,12 +200,12 @@ def _map_post_view(
     if image:
         body.append(discord.ui.Separator())
         body.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
-    if source:
-        body.append(discord.ui.Separator())
-        body.append(discord.ui.TextDisplay(f"Source : [Liquipedia]({source})"))
     if pools:
         body.append(discord.ui.Separator())
         body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
+    if source:
+        body.append(discord.ui.Separator())
+        body.append(discord.ui.TextDisplay(f"Source : [Liquipedia]({source})"))
     body.append(discord.ui.TextDisplay(footer(map_id)))
     view.add_item(discord.ui.Container(*body, accent_colour=discord.Colour(0x5865F2)))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -357,9 +357,9 @@ async def _map_content_full(
         str(doc.get("tc") or ""),
     )
 
-def _map_props_lines(map_type: str, walls: str, nomad: str, tc: str) -> list[str]:
-    """Render the map's properties as label lines (Type/Walls/Nomad/TC)."""
-    props = [f"**Type** : {map_type}"] if map_type else []
+def _map_props_lines(walls: str, nomad: str, tc: str) -> list[str]:
+    """Render the map's properties as label lines (Walls/Nomad/TC)."""
+    props: list[str] = []
     if walls:
         props.append(f"**Walls** : {walls}")
     if nomad:

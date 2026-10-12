@@ -412,6 +412,68 @@ class PoolAddMapByIdModal(discord.ui.Modal):
         )
 
 
+class PoolDeleteButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"games:pool:delete:(?P<pool_id>.+)",
+):
+    """A pool post's delete action: archive (reversible) + forum sync."""
+
+    def __init__(self, pool_id: str, game_key: str = "") -> None:
+        self.pool_id = pool_id
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Button(
+                label="Supprimer",
+                emoji="\U0001f5d1",
+                style=discord.ButtonStyle.danger,
+                custom_id=(f"games:pool:delete:{pool_id}")[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PoolDeleteButton:
+        """Rebuild from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, archive the pool, sync the forum, confirm."""
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            return
+        try:
+            await service.archive_map_pool(self.pool_id)
+        except Exception as exc:
+            logger.warning("POOL FLOW: pool delete failed", exc_info=True)
+            await interaction.followup.send(f"Suppression impossible — {exc}", ephemeral=True)
+            return
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools sync after delete failed — best-effort")
+        await interaction.followup.send(
+            f"Pool **{pool.name}** supprimé.", ephemeral=True
+        )
+
+
+
 class MapDeleteButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"games:map:delete:(?P<map_id>.+):(?P<game_key>[a-z0-9_]+):(?P<owned>[01])",
@@ -734,4 +796,5 @@ def register_pool_flow_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(PoolAddMapButton)
     bot.add_dynamic_items(MapEditButton)
     bot.add_dynamic_items(MapDeleteButton)
+    bot.add_dynamic_items(PoolDeleteButton)
     bot.add_dynamic_items(PoolTransitionButton)

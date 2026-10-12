@@ -120,6 +120,11 @@ def _pool_post_layout(
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(PoolTransitionButton(pool.id))
     view.add_item(row)
+    from kingdoms.discord.maps_pool_flow import PoolDeleteButton
+
+    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    delete_row.add_item(PoolDeleteButton(pool.id, game_key=str(getattr(pool, "game_key", ""))))
+    view.add_item(delete_row)
     return view
 
 
