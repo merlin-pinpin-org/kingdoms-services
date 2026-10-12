@@ -272,7 +272,13 @@ async def _realm_overwrites(
             except Exception:
                 member = None
         if member is not None:
-            overwrites[member] = discord.PermissionOverwrite(view_channel=True)
+            # Drasah's live finding (2026-10-12): view_channel alone is
+            # NOT enough — an unspecified permission falls back to the
+            # @everyone deny above, so the members saw the salons but
+            # not their content ("not authorised to read the history").
+            overwrites[member] = discord.PermissionOverwrite(
+                view_channel=True, read_message_history=True
+            )
     return overwrites
 
 
@@ -369,7 +375,11 @@ async def ensure_realm_structure(
             existing if existing is not None else await guild.create_text_channel(name, category=category)
         )
         if key in PUBLIC_REALM_SALONS and lord_role is not None:
-            await channel.set_permissions(lord_role, view_channel=True, send_messages=False)
+            # same live finding: the lord role must read the history too,
+            # not just view the salon
+            await channel.set_permissions(
+                lord_role, view_channel=True, send_messages=False, read_message_history=True
+            )
 
     return category
 

@@ -345,3 +345,25 @@ async def test_ensure_realm_structure_renames_the_legacy_eglise_salon() -> None:
     assert names.count("Paroisse") == 1
     assert "Église" not in names  # renamed in place, not duplicated
     assert len(names) == len(REALM_SALONS)
+
+
+async def test_ensure_realm_structure_grants_members_the_message_history() -> None:
+    """Live regression (Drasah 2026-10-12): a member with no server role
+    saw the realm salons but not their content — the member overwrite
+    carried view_channel only, so read_message_history fell back to the
+    @everyone deny of the category."""
+    guild = MockGuild()
+    await guild.create_role(name="kingdoms_lord")
+    member = MockMember(id=111, name="Newcomer", guild=guild)
+    guild._members[member.id] = member
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+
+    await ensure_realm_structure(guild, kingdom, [111])
+
+    category = guild.categories[0]
+    overwrite = category.permission_overwrite_for(member)
+    assert overwrite is not None
+    assert overwrite.view_channel is True
+    assert overwrite.read_message_history is True, (
+        "a member must read the salons' history, not just see them"
+    )
