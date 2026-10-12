@@ -116,6 +116,45 @@ class GuildAccessService:
         await self._db.upsert_guild_access(self._to_mongo(doc))
         return doc
 
+    async def grant(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
+        """Grant games/mods to a guild directly (bot admin, no request).
+
+        Keys carry their kind (``game:<key>`` / ``mod:<key>``); a
+        mod's declared ``required_games`` ride along (same expansion
+        as the request path — a mod is never granted unusable).
+        """
+        self._validate_keys(keys)
+        doc = await self.get(guild_id)
+        games = set(doc.get("games") or ())
+        mods = set(doc.get("mods") or ())
+        for key in keys:
+            if key.startswith("game:"):
+                games.add(key[5:])
+            else:
+                mods.add(key[4:])
+        doc["games"] = sorted(games)
+        doc["mods"] = sorted(mods)
+        doc["updated_at"] = int(time.time())
+        await self._db.upsert_guild_access(self._to_mongo(doc))
+        return doc
+
+    async def revoke_keys(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
+        """Revoke games/mods from a guild directly (bot admin)."""
+        self._validate_keys(keys)
+        doc = await self.get(guild_id)
+        games = set(doc.get("games") or ())
+        mods = set(doc.get("mods") or ())
+        for key in keys:
+            if key.startswith("game:"):
+                games.discard(key[5:])
+            else:
+                mods.discard(key[4:])
+        doc["games"] = sorted(games)
+        doc["mods"] = sorted(mods)
+        doc["updated_at"] = int(time.time())
+        await self._db.upsert_guild_access(self._to_mongo(doc))
+        return doc
+
     async def approve(self, guild_id: str, requested_at: str) -> dict[str, Any]:
         """Approve one pending request; the keys become active."""
         doc = await self.get(guild_id)

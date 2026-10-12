@@ -594,9 +594,13 @@ def register_admin_command(
             if is_bot_admin:
                 from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
-                dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
+                # One panel, one message: the admin panel embeds the DM
+                # locale picker at the end — two separate followups left
+                # the admin juggling two ephemerals.
                 admin_view = await build_admin_dm_panel(interaction)
-                await interaction.followup.send(view=dm_view, ephemeral=True)
+                dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
+                for item in dm_view.children:
+                    admin_view.add_item(item)
                 await interaction.followup.send(view=admin_view, ephemeral=True)
             else:
                 await interaction.followup.send(

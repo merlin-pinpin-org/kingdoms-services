@@ -186,9 +186,6 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
     imports.add_item(GamesMapImportButton(game_key))
     imports.add_item(GamesPoolImportButton(game_key))
     view.add_item(imports)
-    content_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    content_row.add_item(GamesCivsReloadButton(game_key))
-    view.add_item(content_row)
     if not from_pin:
         view.add_item(_back_row())
     return view
@@ -216,57 +213,6 @@ def _forum_id(guild_id: str, forum_name: str) -> str:
     forum = discord.utils.get(guild.forums, name=forum_name) if guild else None
     return str(forum.id) if forum is not None else ""
 
-
-class GamesCivsReloadButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:civs:reload",
-):
-    """Reload the civs content from the aoe2techtree dataset (admins)."""
-
-    def __init__(self, game_key: str) -> None:
-        self.game_key = game_key
-        super().__init__(
-            discord.ui.Button(
-                label="Rafraichir les civs",
-                emoji="\U0001f504",
-                style=discord.ButtonStyle.secondary,
-                custom_id=f"{_NS}:civs:reload"[:100],
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> GamesCivsReloadButton:
-        """Rebuild the item from the wire."""
-        del interaction, item, match
-        return cls("aoe2")
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Run the content refresh, report the counts."""
-        from kingdoms.discord.maps_pool_flow import _guard_admin
-
-        if not await _guard_admin(interaction):
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        try:
-            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
-
-            counts = await refresh_aoe2_content()
-        except Exception:
-            logger.exception("GAMES ADMIN: civs refresh failed")
-            await interaction.followup.send("Refresh echoue (voir les logs).", ephemeral=True)
-            return
-        await interaction.followup.send(
-            f"Contenu rafraichi : {counts.get('total_factions', 0)} civs, "
-            f"{counts.get('content_docs', 0)} documents, "
-            f"{counts.get('maps_enriched', 0)} maps enrichies.",
-            ephemeral=True,
-        )
 
 
 class GamesGrantedSelect(
@@ -1605,5 +1551,4 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapImportButton,
         GamesPoolImportButton,
         GamesGrantedSelect,
-        GamesCivsReloadButton,
     )
