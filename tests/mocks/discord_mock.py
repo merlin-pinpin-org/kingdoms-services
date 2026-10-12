@@ -224,7 +224,9 @@ class MockRole(discord.Role):
         self.name = name
         self.hoist = hoist
         self.mentionable = mentionable
-        self._color = self._coerce_color(color)
+        self._color = self._coerce_color(
+            color if color is not None else kwargs.pop("colour", None)
+        )
         self._permissions = self._coerce_permissions(permissions)
         for key, value in kwargs.items():
             setattr(self, key, value)

@@ -1475,7 +1475,7 @@ async def _resolve_member(guild: discord.Guild, user_id: int) -> Any | None:
         return None
 
 
-_LIVERY_AUDITED_GUILDS: set[int] = set()
+_LIVERY_AUDITED_GUILDS = set()  # type: set[int]
 
 
 async def _log_livery_audit(guild: discord.Guild) -> None:

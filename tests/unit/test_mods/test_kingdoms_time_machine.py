@@ -392,6 +392,7 @@ async def test_advance_elapses_the_marriage_locks_with_the_game_clock() -> None:
     livery test flow (red → ring) was impossible. The game clock now
     elapses the active locks with each fast-forward."""
     bundle = Bundle()
+    await bundle.launch_season()
     lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
     lord.married_civilization = "azteques"
     lord.marriage_locked_until = int((MONDAY + timedelta(hours=12)).timestamp())

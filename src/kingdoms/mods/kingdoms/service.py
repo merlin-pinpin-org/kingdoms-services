@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import random
 import re
+import time
 from datetime import UTC, datetime
 from typing import Any, ClassVar
 
@@ -356,10 +357,14 @@ class KingdomsService:
         if delta_seconds <= 0:
             return 0
         shifted = 0
+        now = int(time.time())
         for lord in await self.lords():
             until = int(lord.marriage_locked_until or 0)
             if until > 0 and not lord.left:
-                lord.marriage_locked_until = max(0, until - delta_seconds)
+                new_until = until - delta_seconds
+                if new_until <= now:
+                    new_until = 0  # the game clock ran past the end: expired
+                lord.marriage_locked_until = new_until
                 await self._store.upsert_lord(lord.to_mongo())
                 shifted += 1
         if shifted:
