@@ -138,9 +138,9 @@ async def test_marry_secures_a_civilization_once_per_lord() -> None:
     aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.draw_one(aquitaine, "black-forest")
     await bundle.diplomacy.recalculate()
-    assert await bundle.diplomacy.marry("king-a", "celtes") == "celtes"
+    assert await bundle.diplomacy.marry("lord-a", "celtes") == "celtes"
     with pytest.raises(AlreadyMarriedError):
-        await bundle.diplomacy.marry("king-a", "shu")
+        await bundle.diplomacy.marry("lord-a", "shu")
     kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
     assert "celtes" in kingdom.secured_civilizations
     # The marriage survives losing the territory (it is secured).
@@ -160,13 +160,15 @@ async def test_marry_respects_the_capacity() -> None:
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.give("Aquitaine", "celtes", "shu")
+    await bundle.give("Bourgogne", "shu")
     kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
     kingdom.marriage_points = 1
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
-    await bundle.diplomacy.marry("king-a", "celtes")
+    await bundle.diplomacy.marry("lord-a", "celtes")
     # D59: one marriage consumes ONE point de mariage (a currency).
+    await bundle.patch_kingdom_of("king-b", marriage_points=0)
     with pytest.raises(NoMarriagePointsError):
-        await bundle.diplomacy.marry("lord-a", "shu")
+        await bundle.diplomacy.marry("lord-b", "shu")
 
 
 async def test_marry_refuses_unknown_civilizations() -> None:
@@ -174,7 +176,7 @@ async def test_marry_refuses_unknown_civilizations() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     with pytest.raises(UnknownCivilizationError):
-        await bundle.diplomacy.marry("king-a", "mayas")
+        await bundle.diplomacy.marry("lord-a", "mayas")
 
 
 async def test_marry_requires_the_civilization_in_hand() -> None:
@@ -183,11 +185,11 @@ async def test_marry_requires_the_civilization_in_hand() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     with pytest.raises(CivilizationNotInHandError):
-        await bundle.diplomacy.marry("king-a", "chinois")  # not in the hand
+        await bundle.diplomacy.marry("lord-a", "chinois")  # not in the hand
     # The arranged marriage carries no hand constraint (D60): any
     # catalog civilization weds against one bought token.
     await bundle.patch_kingdom_of("king-b", arranged_marriage_stock=1)
-    assert await bundle.diplomacy.arranged_marriage("king-b", "chinois") == "chinois"
+    assert await bundle.diplomacy.arranged_marriage("lord-b", "chinois") == "chinois"
 
 
 async def test_arranged_marriage_consumes_one_token() -> None:
@@ -195,7 +197,7 @@ async def test_arranged_marriage_consumes_one_token() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     await bundle.patch_kingdom_of("king-a", arranged_marriage_stock=1)
-    result = await bundle.diplomacy.arranged_marriage("king-a", "celtes")
+    result = await bundle.diplomacy.arranged_marriage("lord-a", "celtes")
     assert result == "celtes"
     kingdom = await bundle.kingdom_by_id_of("king-a")
     assert kingdom.arranged_marriage_stock == 0  # the token was consumed
@@ -209,12 +211,12 @@ async def test_marry_refuses_a_civilization_claimed_elsewhere() -> None:
     await bundle.launch_season()
     await bundle.give("Aquitaine", "celtes")
     await bundle.give("Bourgogne", "celtes")
-    await bundle.diplomacy.marry("king-a", "celtes")
+    await bundle.diplomacy.marry("lord-a", "celtes")
     await bundle.patch_kingdom_of("king-b", arranged_marriage_stock=1)
     with pytest.raises(MarriageExclusivityError):
-        await bundle.diplomacy.marry("king-b", "celtes")
+        await bundle.diplomacy.marry("lord-b", "celtes")
     with pytest.raises(MarriageExclusivityError):
-        await bundle.diplomacy.arranged_marriage("king-b", "celtes")
+        await bundle.diplomacy.arranged_marriage("lord-b", "celtes")
 
 
 async def test_arranged_marriage_bypasses_the_stock_and_locks_six_hours() -> None:
@@ -227,8 +229,8 @@ async def test_arranged_marriage_bypasses_the_stock_and_locks_six_hours() -> Non
     kingdom.marriage_points = 0  # the points never bind the arranged path
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
     now = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
-    assert await bundle.diplomacy.arranged_marriage("king-a", "celtes", now=now) == "celtes"
-    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    assert await bundle.diplomacy.arranged_marriage("lord-a", "celtes", now=now) == "celtes"
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
     assert lord.marriage_locked_until == int(
         (now + timedelta(hours=6)).timestamp()
     )
@@ -242,8 +244,8 @@ async def test_standard_marriage_locks_twenty_four_hours() -> None:
     await bundle.launch_season()
     await bundle.give("Aquitaine", "celtes")
     now = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
-    await bundle.diplomacy.marry("king-a", "celtes", now=now)
-    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    await bundle.diplomacy.marry("lord-a", "celtes", now=now)
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
     assert lord.marriage_locked_until == int(
         (now + timedelta(hours=24)).timestamp()
     )
@@ -254,12 +256,12 @@ async def test_arranged_marriage_never_spends_a_token_on_refusal() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     await bundle.patch_kingdom_of("king-a", arranged_marriage_stock=1)
-    await bundle.diplomacy.arranged_marriage("king-a", "celtes")
+    await bundle.diplomacy.arranged_marriage("lord-a", "celtes")
     kingdom = await bundle.kingdom_by_id_of("king-a")
     assert kingdom.arranged_marriage_stock == 0
     # A second weds refused: one marriage per lord (D45), no token spent.
     with pytest.raises(AlreadyMarriedError):
-        await bundle.diplomacy.arranged_marriage("king-a", "shu")
+        await bundle.diplomacy.arranged_marriage("lord-a", "shu")
     assert (
         await bundle.kingdom_by_id_of("king-a")
     ).arranged_marriage_stock == 0
@@ -270,7 +272,7 @@ async def test_arranged_marriage_refuses_without_a_token() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     with pytest.raises(NoArrangedTokenError):
-        await bundle.diplomacy.arranged_marriage("king-a", "celtes")
+        await bundle.diplomacy.arranged_marriage("lord-a", "celtes")
     # Nothing was locked nor secured on the refusal.
     lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
     assert lord.married_civilization is None
@@ -281,18 +283,21 @@ async def test_marriage_lock_blocks_attack_and_defense() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     await bundle.patch_kingdom_of("king-a", arranged_marriage_stock=2)
+    # king-a weds a QUEEN here: a royal arranged marriage consumes the
+    # TWO tokens stocked above (Drasah's Reine rule) and locks 12h.
     await bundle.diplomacy.arranged_marriage("king-a", "celtes")
     await bundle.draw(1)
     bourgogne = await bundle.kingdom_id("Bourgogne")
     aquitaine = await bundle.kingdom_id("Aquitaine")
     territories = await bundle.territories.territories()
     target = next(t for t in territories if t.owner_kingdom_id == bourgogne)
+    now = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
     with pytest.raises(LordLockedError):
-        await bundle.attacks.declare_attack("king-a", target.map_key, "aoe2de://x")
+        await bundle.attacks.declare_attack("king-a", target.map_key, "aoe2de://x", now=now)
     # The defense side is locked too: an Aquitaine lord weds, then
     # cannot answer the attack on his kingdom.
     home = next(t.map_key for t in territories if t.owner_kingdom_id == aquitaine)
-    attack = await bundle.attacks.declare_attack("king-b", home, "aoe2de://y")
+    attack = await bundle.attacks.declare_attack("king-b", home, "aoe2de://y", now=now)
     await bundle.patch_kingdom_of("lord-a", arranged_marriage_stock=1)
     await bundle.diplomacy.arranged_marriage("lord-a", "shu")
     with pytest.raises(LordLockedError):
@@ -305,11 +310,11 @@ async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.give("Aquitaine", "celtes")
-    await bundle.diplomacy.marry("king-a", "celtes")
+    await bundle.diplomacy.marry("lord-a", "celtes")
     await bundle.diplomacy.record_defeat(aquitaine)
     reports = await bundle.diplomacy.recalculate()
     assert "celtes" not in reports["Aquitaine"]
-    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
     assert lord.married_civilization is None
     season = await bundle.kingdoms.current_season()
     assert season is not None
@@ -399,7 +404,7 @@ async def test_lords_day_drops_the_un_wed_draft() -> None:
     # secures it through the Lord's Day; the rest of the hand drops.
     wed = before["Aquitaine"][0]
     await bundle.give("Aquitaine", wed)  # ensure the wed civ is in hand
-    await bundle.diplomacy.marry("king-a", wed)
+    await bundle.diplomacy.marry("lord-a", wed)
     reports = await bundle.diplomacy.recalculate()
     assert reports["Aquitaine"] == [wed]  # only the marriage survives
     for name, _civs in before.items():

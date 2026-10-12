@@ -254,11 +254,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_actions_section": "⚔️ Special actions",
         "market_hint": (
             "Only the King of a kingdom can buy. Every purchase debits the"
-            " kingdom's tech-point treasury ({} 🔬 per purchase)."
+            " kingdom's tech-point treasury ({} ⚙️ per purchase)."
         ),
         "market_not_king": "Only Kings can buy on the market.",
         "market_no_service": "The market is not available right now.",
-        "market_buy_ok": "✅ Purchased: **{}** — treasury left: {} 🔬",
+        "market_buy_ok": "✅ Purchased: **{}** — treasury left: {} ⚙️",
         "market_buy_ok_territory": "✅ Purchased: **{}** — {}.",
         "market_err_insufficient": "❌ Not enough tech points.",
         "market_err_limit": "❌ The per-season purchase limit is reached.",
@@ -271,13 +271,13 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_slot_line": "{:02d}:00 → {:02d}:00",
         "market_patrouille_ok": (
             "✅ Purchased: **Patrol** — daily slot {:02d}:00 → {:02d}:00"
-            " — treasury left: {} 🔬"
+            " — treasury left: {} ⚙️"
         ),
         "market_choose_lord": "💍 Choose the lord to wed:",
         "market_choose_civ": "👰 Choose the civilization of the arranged marriage:",
         "market_mariage_ok": (
             "✅ Arranged marriage sealed: **{}** is exclusive to your kingdom"
-            " — treasury left: {} 🔬"
+            " — treasury left: {} ⚙️"
         ),
         "market_err_unknown": "❌ Purchase refused ({}).",
         "market_arranged_token_ok": (
@@ -289,13 +289,34 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "church_marry_intro": "👰 Choose the civilization of your marriage:",
         "church_marry_ok": (
-            "💍 Marriage sealed: **{0}** — lock {1}h, Offrande +{2} 🔬."
+            "💍 Marriage sealed: **{0}** — lock {1}h, Offrande +{2} ⚙️."
+        ),
+        "church_marry_royal_ok": (
+            "👑💍 Marriage sealed: **{0}** becomes your Queen — royal lock"
+            " {1}h · +2 ⚙️ to the treasury · secured for the whole season."
+        ),
+        "church_marry_royal_arranged_ok": (
+            "👑💍 Royal arranged marriage: **{0}** becomes the Queen — royal"
+            " lock {1}h · +2 ⚙️ · secured for the whole season."
+        ),
+        "church_err_royal_points": (
+            "❌ A royal marriage costs TWO marriage points — the kingdom"
+            " does not hold enough."
+        ),
+        "church_err_royal_token": (
+            "❌ A royal arranged marriage costs TWO tokens — the kingdom"
+            " does not hold enough."
+        ),
+        "royal_wedding_announce": (
+            "👑💍 **Grand mariage royal** — {0} has taken **{1}** as Queen of"
+            " {2}! The kingdom gains +2 ⚙️; the Queen is secured until the"
+            " end of the season (royal lock: {3}h)."
         ),
         "church_marry_kingdom_none": "You belong to no kingdom of the season.",
         "church_arrange_king_only": "Only the King consumes an arranged marriage.",
         "church_upgrade_king_only": "Only the King upgrades the Parish.",
         "church_upgrade_ok": (
-            "⛪ Parish upgraded: **{0}** (tier {1}/{2}) — treasury left: {3} 🔬"
+            "⛪ Parish upgraded: **{0}** (tier {1}/{2}) — treasury left: {3} ⚙️"
         ),
         "church_upgrade_max": "❌ The Parish already sits at the top tier.",
         "church_err_not_in_hand": (
@@ -433,11 +454,11 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_actions_section": "⚔️ Actions spéciales",
         "market_hint": (
             "Seul le Roi d'un royaume peut acheter. Chaque achat débite le"
-            " trésor de points de tech du royaume ({} 🔬 par achat)."
+            " trésor de points de tech du royaume ({} ⚙️ par achat)."
         ),
         "market_not_king": "Seuls les Rois peuvent acheter au marché.",
         "market_no_service": "Le marché n'est pas disponible pour le moment.",
-        "market_buy_ok": "✅ Achat effectué : **{}** — trésor restant : {} 🔬",
+        "market_buy_ok": "✅ Achat effectué : **{}** — trésor restant : {} ⚙️",
         "market_buy_ok_territory": "✅ Achat effectué : **{}** — {}.",
         "market_err_insufficient": "❌ Pas assez de points de tech.",
         "market_err_limit": "❌ La limite d'achats pour cette saison est atteinte.",
@@ -450,13 +471,13 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_slot_line": "{:02d}h00 → {:02d}h00",
         "market_patrouille_ok": (
             "✅ Achat effectué : **Patrouille** — créneau quotidien {:02d}h00 → {:02d}h00"
-            " — trésor restant : {} 🔬"
+            " — trésor restant : {} ⚙️"
         ),
         "market_choose_lord": "💍 Choisissez le seigneur à marier :",
         "market_choose_civ": "👰 Choisissez la civilisation du mariage arrangé :",
         "market_mariage_ok": (
             "✅ Mariage arrangé scellé : **{}** est exclusive à votre royaume"
-            " — trésor restant : {} 🔬"
+            " — trésor restant : {} ⚙️"
         ),
         "market_err_unknown": "❌ Achat refusé ({}).",
         "market_arranged_token_ok": (
@@ -468,13 +489,34 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "church_marry_intro": "👰 Choisissez la civilisation de votre mariage :",
         "church_marry_ok": (
-            "💍 Mariage scellé : **{0}** — verrou {1}h, Offrande +{2} 🔬."
+            "💍 Mariage scellé : **{0}** — verrou {1}h, Offrande +{2} ⚙️."
+        ),
+        "church_marry_royal_ok": (
+            "👑💍 Mariage scellé : **{0}** devient votre Reine — verrou royal"
+            " {1}h · +2 ⚙️ au trésor · sécurisée toute la saison."
+        ),
+        "church_marry_royal_arranged_ok": (
+            "👑💍 Mariage arrangé royal : **{0}** devient la Reine — verrou"
+            " royal {1}h · +2 ⚙️ · sécurisée toute la saison."
+        ),
+        "church_err_royal_points": (
+            "❌ Un mariage royal coûte DEUX points de mariage — le royaume"
+            " n'en détient pas assez."
+        ),
+        "church_err_royal_token": (
+            "❌ Un mariage arrangé royal coûte DEUX jetons — le royaume n'en"
+            " détient pas assez."
+        ),
+        "royal_wedding_announce": (
+            "👑💍 **Grand mariage royal** — {0} a pris **{1}** pour Reine de"
+            " {2} ! Le royaume reçoit +2 ⚙️ ; la Reine est sécurisée jusqu'à"
+            " la fin de la saison (verrou royal : {3}h)."
         ),
         "church_marry_kingdom_none": "Tu n'appartiens à aucun royaume de la saison.",
         "church_arrange_king_only": "Seul le Roi consomme un mariage arrangé.",
         "church_upgrade_king_only": "Seul le Roi améliore la Paroisse.",
         "church_upgrade_ok": (
-            "⛪ Paroisse améliorée : **{0}** (palier {1}/{2}) — trésorerie restante : {3} 🔬"
+            "⛪ Paroisse améliorée : **{0}** (palier {1}/{2}) — trésorerie restante : {3} ⚙️"
         ),
         "church_upgrade_max": "❌ La Paroisse est déjà au palier maximal.",
         "church_err_not_in_hand": (
@@ -1100,7 +1142,7 @@ async def build_market_panel(
         row.add_item(
             KingdomMarketTechButton(
                 key,
-                f"{strings['market_tech'][key]} — {cost} 🔬",
+                f"{strings['market_tech'][key]} — {cost} ⚙️",
                 discord.ButtonStyle.primary,
             )
         )
@@ -1110,7 +1152,7 @@ async def build_market_panel(
         action_row.add_item(
             KingdomMarketActionButton(
                 key,
-                f"{strings['market_action'][key]} — {cost} 🔬",
+                f"{strings['market_action'][key]} — {cost} ⚙️",
                 discord.ButtonStyle.secondary,
             )
         )

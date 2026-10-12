@@ -166,6 +166,9 @@ roles:
   - key: kingdoms_lord
     display_name: Kingdoms Lord
     color: 0x3498DB
+  - key: kingdoms_locked
+    display_name: 💍 Verrouillé
+    color: 0xE74C3C
   - key: kingdoms_admin
     display_name: Kingdoms Admin
     color: 0xE74C3C

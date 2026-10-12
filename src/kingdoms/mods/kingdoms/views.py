@@ -119,7 +119,7 @@ def build_kingdom_profile_layout(
         container = container.add(Text(f"🎖️ {lord}"))
     container = container.add(Separator())
     container = container.add(Text(f"🗺️ {kingdom.territories}"))
-    container = container.add(Text(f"🔬 {kingdom.tech_points}"))
+    container = container.add(Text(f"⚙️ {kingdom.tech_points}"))
     container = container.add(Text(f"💍 {kingdom.marriages}"))
     if footer:
         container = container.add(Separator()).add(Text(f"-# {footer}"))
@@ -160,12 +160,12 @@ def build_diplomacy_layout(
     button never wires its callback (SDK rule).
     """
     container = Container(accent=BLURPLE).add(Text(f"# {title}"))
-    container = container.add(Text(f"🔬 {tech_points_label}"))
+    container = container.add(Text(f"⚙️ {tech_points_label}"))
     container = container.add(Separator())
     for alliance in alliances:
         container = container.add(Text(alliance))
     for action in actions:
-        container = container.add(Text(f"**{action.name}** — {action.cost} 🔬"))
+        container = container.add(Text(f"**{action.name}** — {action.cost} ⚙️"))
         if action.description:
             container = container.add(Text(action.description))
         button = Action(

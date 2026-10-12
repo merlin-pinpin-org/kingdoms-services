@@ -84,11 +84,11 @@ async def test_marry_consumes_one_point_and_refuses_at_zero() -> None:
     kingdom.marriage_points = 0
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
     with pytest.raises(NoMarriagePointsError):
-        await bundle.diplomacy.marry("king-a", "celtes")
+        await bundle.diplomacy.marry("lord-a", "celtes")
     kingdom = await bundle.kingdom_of("Aquitaine")
     kingdom.marriage_points = 1
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
-    assert await bundle.diplomacy.marry("king-a", "celtes") == "celtes"
+    assert await bundle.diplomacy.marry("lord-a", "celtes") == "celtes"
     assert (await bundle.kingdom_of("Aquitaine")).marriage_points == 0
 
 
@@ -102,26 +102,26 @@ async def test_palier_drives_the_lock_and_the_offrande() -> None:
 
     await bundle.kingdoms.upgrade_parish(aquitaine)  # → Église, -2 🔬
     now = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
-    await bundle.diplomacy.marry("king-a", "celtes", now=now)
+    await bundle.diplomacy.marry("lord-a", "celtes", now=now)
     kingdom = await bundle.kingdom_of("Aquitaine")
     assert kingdom.parish_tier == 2
     assert kingdom.tech_points_bank == 6 - 2 + 1  # the Offrande is credited
-    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
     assert lord.marriage_locked_until == int(
         datetime(2026, 10, 11, 12, 0, tzinfo=UTC).timestamp() + 12 * 3600
     )
 
     await bundle.kingdoms.upgrade_parish(aquitaine)  # → Cathédrale, -4 🔬
     kingdom = await bundle.kingdom_of("Aquitaine")
-    kingdom.marriage_points = 1
+    kingdom.marriage_points = 2  # a royal marriage (Roi → Reine) costs 2 points
     await bundle.store.upsert_kingdom(kingdom.to_mongo())
-    await bundle.diplomacy.marry("lord-a", "shu", now=now)
+    await bundle.diplomacy.marry("king-a", "shu", now=now)
     kingdom = await bundle.kingdom_of("Aquitaine")
     assert kingdom.parish_tier == 3
-    assert kingdom.tech_points_bank == 5 - 4 + 2  # the Cathédrale Offrande
-    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-a")
+    assert kingdom.tech_points_bank == 5 - 4 + 2 + 2  # Cathédrale Offrande + royal bonus
+    lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
     assert lord.marriage_locked_until == int(
-        datetime(2026, 10, 11, 12, 0, tzinfo=UTC).timestamp() + 6 * 3600
+        datetime(2026, 10, 11, 12, 0, tzinfo=UTC).timestamp() + 12 * 3600
     )
 
 

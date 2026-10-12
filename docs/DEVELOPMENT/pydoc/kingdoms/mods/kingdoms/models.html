@@ -2999,7 +2999,7 @@ is&nbsp;a&nbsp;read-only&nbsp;view&nbsp;of&nbsp;the&nbsp;internal&nbsp;mapping.<
 <td class="section-title" colspan=3>&nbsp;<br><a name="LordModel">class <strong>LordModel</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#LordModel">LordModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;role:&nbsp;kingdoms.mods.kingdoms.models.<a href="#LordRole">LordRole</a>,&nbsp;display_name:&nbsp;str,&nbsp;in_queue:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;attack_used:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;defense_used:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;married_civilization:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;marriage_locked_until:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;left:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;left_reason:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LordModel">LordModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;kingdom_id:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;role:&nbsp;kingdoms.mods.kingdoms.models.<a href="#LordRole">LordRole</a>,&nbsp;display_name:&nbsp;str,&nbsp;in_queue:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;attack_used:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;defense_used:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;0,&nbsp;married_civilization:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;marriage_locked_until:&nbsp;int&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;royal_marriage:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;left:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;left_reason:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;player&nbsp;of&nbsp;the&nbsp;current&nbsp;season:&nbsp;king&nbsp;or&nbsp;lord&nbsp;of&nbsp;a&nbsp;kingdom.<br>
 &nbsp;<br>
@@ -3007,7 +3007,10 @@ A&nbsp;player&nbsp;of&nbsp;the&nbsp;current&nbsp;season:&nbsp;king&nbsp;or&nbsp;
 D34);&nbsp;``marriage_locked_until``&nbsp;is&nbsp;the&nbsp;real-time&nbsp;combat&nbsp;lock&nbsp;of&nbsp;a<br>
 fresh&nbsp;marriage&nbsp;(D59:&nbsp;24h&nbsp;standard,&nbsp;D60:&nbsp;6h&nbsp;arranged)&nbsp;-&nbsp;a&nbsp;locked<br>
 lord&nbsp;can&nbsp;neither&nbsp;attack&nbsp;nor&nbsp;defend&nbsp;while&nbsp;the&nbsp;unix&nbsp;timestamp&nbsp;is&nbsp;in<br>
-the&nbsp;future.<br>
+the&nbsp;future.&nbsp;``royal_marriage``&nbsp;marks&nbsp;a&nbsp;KING's&nbsp;wedding&nbsp;(Drasah's<br>
+Reine&nbsp;rule,&nbsp;2026-10-11):&nbsp;the&nbsp;lock&nbsp;doubles,&nbsp;the&nbsp;kingdom&nbsp;gains&nbsp;+2<br>
+tech&nbsp;points&nbsp;and&nbsp;the&nbsp;civilization&nbsp;stays&nbsp;secured&nbsp;for&nbsp;the&nbsp;whole<br>
+season&nbsp;-&nbsp;even&nbsp;after&nbsp;a&nbsp;combat&nbsp;defeat.<br>
 &nbsp;<br>
 ``attack_used``/``defense_used``&nbsp;are&nbsp;the&nbsp;weekly&nbsp;budgets&nbsp;consumed&nbsp;in<br>
 the&nbsp;current&nbsp;cycle&nbsp;(1+1&nbsp;per&nbsp;week&nbsp;—&nbsp;reference&nbsp;§11,&nbsp;recharge&nbsp;at&nbsp;the<br>

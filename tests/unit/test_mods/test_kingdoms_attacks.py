@@ -38,6 +38,22 @@ from kingdoms.mods.kingdoms.territories import TerritoryService
 
 from .test_kingdoms_service import MemoryStore as _BaseStore
 
+_SAFE_NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+"""A Sunday 14:00 Paris moment — OUTSIDE the Lord's Day window.
+
+The attacks tests that pass no ``now`` used to read the real clock,
+which made them flaky every Sunday 23:30 → Monday 10:00 Paris (the
+real window refuses the declarations). Freezing the module clock keeps
+the suite green at any hour; the window behaviours keep their own
+explicit ``now=`` / monkeypatch overrides."""
+
+
+@pytest.fixture(autouse=True)
+def _freeze_attacks_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
+    monkeypatch.setattr(attacks_module, "_now", lambda: _SAFE_NOW)
+
 
 class MemoryStore(_BaseStore):
     """The enrollment store extended with the T3/T4 collections."""
@@ -426,10 +442,6 @@ async def test_resolve_is_blocked_during_lords_day(monkeypatch: pytest.MonkeyPat
         await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
 
 
-def _real_now() -> datetime:
-    return datetime.now(tz=UTC)
-
-
 async def test_forced_lords_day_window_blocks_executions() -> None:
     """The manual test window behaves like the calendar one."""
     bundle = Bundle()
@@ -469,7 +481,7 @@ async def test_forced_lords_day_window_blocks_executions() -> None:
         with pytest.raises(LordsDayAttackError):
             await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
     finally:
-        attacks_module._now = _real_now
+        attacks_module._now = lambda: _SAFE_NOW  # type: ignore[assignment]
     resolved = await bundle.attacks.resolve(
         attack.id, await bundle.kingdom_id("Aquitaine")
     )

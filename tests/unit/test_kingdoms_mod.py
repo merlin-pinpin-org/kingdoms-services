@@ -76,6 +76,7 @@ class TestModDeclaration:
             "kingdoms_king",
             "kingdoms_lord",
             "kingdoms_admin",
+            "kingdoms_locked",
         }
 
 

@@ -8,6 +8,7 @@ starter.
 """
 from __future__ import annotations
 
+import time
 from typing import ClassVar
 
 import pytest
@@ -54,7 +55,7 @@ class _Lord:
         self.attack_used = kwargs.get("attack_used", 1)
         self.defense_used = kwargs.get("defense_used", 2)
         self.married_civilization = kwargs.get("married_civilization")
-        self.marriage_locked_until = None
+        self.marriage_locked_until = kwargs.get("marriage_locked_until")
 
 
 class _KingdomsService:
@@ -63,7 +64,12 @@ class _KingdomsService:
     async def lords(self) -> list:
         return [
             _Lord(id="p1", role="king", display_name="Arthur"),
-            _Lord(id="p2", display_name="Luc", married_civilization="azteques"),
+            _Lord(
+                id="p2",
+                display_name="Luc",
+                married_civilization="azteques",
+                marriage_locked_until=int(time.time()) + 3600,
+            ),
         ]
 
     async def kingdoms(self) -> list:
@@ -163,7 +169,7 @@ async def test_overview_renders_the_live_data() -> None:
     content = _text(_live(_channel(guild, "Le-Royaume"))[0])
     assert "Avalon" in content
     assert "Arthur + **1** seigneur" in content
-    assert "7 🔬" in content
+    assert "7 ⚙️" in content
     assert f"{VIEW_MARKER_PREFIX}:le-royaume" in content
 
 
@@ -199,31 +205,41 @@ async def test_territory_view_lists_owned_maps_with_display_names() -> None:
     assert "1 territoire" in content
 
 
-async def test_church_view_shows_the_household_and_the_palier_ladder() -> None:
-    """The Paroisse v2 (Drasah 2026-10-11): the palier block, the
-    Maisonnée (one line per member, married or single), the stocks
-    with their meaning, and the full palier ladder for everyone."""
+async def test_church_view_shows_the_fidèles_the_palier_ladder_and_the_legend() -> None:
+    """The Paroisse v3 (Drasah 2026-10-11): the palier block with the
+    royal lock line, Les Fidèles du Royaume (one line per member, the
+    married ones with the lock END TIME — never a stale duration), the
+    stocks in the title, the palier ladder with the Cathédrale's Lieu
+    Sacrée, and the legend (verrou, offrande, jeton, sacrée)."""
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
     content = _text(_live(_channel(guild, "Paroisse"))[0])
+    # ⛪ the stocks live in the title — palier, marriage points, tokens
+    assert "⛪ Paroisse — Avalon · ⛪ Chapelle · 💍 3 · 💰 1" in content
     # ✨ the palier block — every kingdom sees its current tier
     assert "Notre Chapelle" in content
-    assert "Palier : Chapelle (1/3) — Offrande : 0 🔬" in content
+    assert "Palier : Chapelle (1/3) — Offrande : 0 ⚙️" in content
     assert "Verrou mariage classique : 24h" in content
-    # 💒 the Maisonnée — one line per member with their state
-    assert "La Maisonnée" in content
-    assert "💍 Luc — Aztèques (verrou" in content  # married, lock remaining
+    assert "Verrou mariage royal (Roi) : 48h" in content
+    # 💒 Les Fidèles du Royaume — one line per member with their state
+    assert "Les Fidèles du Royaume" in content
+    assert "💍 Luc — Aztèques · 🔒 verrou jusqu'à" in content  # married, lock running
     assert "🎖️ Arthur — célibataire · prêt à se marier 💍" in content
-    # 💰 the stocks and their semantics
-    assert "Points de mariage** : 3" in content
-    assert "Mariages arrangés en stock** : 1" in content
-    # 🔭 the ladder — every palier visible with cost and perks
+    # 🔭 the ladder — every palier visible with cost, perks and Sacrée
     assert "Aperçu des paliers" in content
-    assert "● Chapelle — 0 🔬 · verrou 24h · offrande +0 🔬" in content
-    assert "▸ Église — 2 🔬 · verrou 12h · offrande +1 🔬" in content
-    assert "▸ Cathédrale — 4 🔬 · verrou 6h · offrande +2 🔬" in content
+    assert "● Chapelle — 0 ⚙️ · verrou 24h · offrande +0 ⚙️" in content
+    assert "▸ Église — 2 ⚙️ · verrou 12h · offrande +1 ⚙️" in content
+    assert "▸ Cathédrale — 4 ⚙️ · verrou 6h · offrande +2 ⚙️ · ⛪ Lieu Sacrée" in content
+    # 📖 the legend — verrou, offrande, jeton, lieu sacrée
+    assert "-# 🔒 Verrou :" in content
+    assert "-# 🕯️ Offrande :" in content
+    assert "-# 💰 Jeton :" in content
+    assert "-# ⛪ Lieu Sacrée (Cathédrale) :" in content
+    # the retired stocks block and help line are gone
+    assert "Points de mariage" not in content
+    assert "Mariages arrangés en stock" not in content
 
 
 async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
@@ -253,7 +269,7 @@ async def test_deploy_survives_missing_services() -> None:
     assert all(results.values())
     overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
     assert "Avalon" in overview  # the sheet renders from the kingdom alone
-    assert "5 🔬" in overview  # wallet falls back to tech_points_bank
+    assert "5 ⚙️" in overview  # wallet falls back to tech_points_bank
 
 
 async def test_deploy_without_category_is_a_no_op() -> None:

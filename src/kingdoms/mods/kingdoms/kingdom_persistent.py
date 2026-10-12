@@ -492,6 +492,8 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         MarriageExclusivityError,
         NoArrangedTokenError,
         NoMarriagePointsError,
+        RoyalMarriagePointsError,
+        RoyalMarriageTokenError,
     )
     from kingdoms.mods.kingdoms.economy import (
         EconomyLimitReachedError,
@@ -519,6 +521,8 @@ def _market_error_note(exc: Exception, strings: dict[str, Any]) -> str:
         ((AlreadyMarriedError,), "market_err_already_married"),
         ((MarriageExclusivityError,), "market_err_civ_taken"),
         ((NoMarriagePointsError,), "market_err_no_points"),
+        ((RoyalMarriagePointsError,), "church_err_royal_points"),
+        ((RoyalMarriageTokenError,), "church_err_royal_token"),
         ((NoArrangedTokenError,), "market_err_no_token"),
         ((CivilizationNotInHandError,), "church_err_not_in_hand"),
         ((ParishMaxTierError,), "church_upgrade_max"),
@@ -740,18 +744,51 @@ async def _market_marry_civ_view(
         try:
             # D60/D74: consumes ONE token of the kingdom's stock — the
             # token was bought at the Marché; no payment happens here.
+            # A ROYAL arranged marriage (the King weds himself) consumes
+            # TWO tokens (Drasah's Reine rule, 2026-10-11).
             await diplomacy.arranged_marriage(lord_id, chosen[0])
         except Exception as exc:
             await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
             return
+        await _assign_marriage_lock_role_safe(target.guild, str(lord_id))
         try:
             wallet = await economy.wallet(kingdom_id)
         except Exception:
             wallet = 0
-        await target.followup.send(
-            strings["market_mariage_ok"].format(chosen[0], wallet),
-            ephemeral=True,
-        )
+        royal = False
+        hours = 6
+        try:
+            target_lord = next(
+                (
+                    item
+                    for item in await wiring.kingdoms_service.lords()
+                    if str(item.id) == str(lord_id)
+                ),
+                None,
+            )
+            royal = target_lord is not None and str(getattr(target_lord, "role", "")) == "king"
+        except Exception:
+            royal = False
+        if royal:
+            hours = 12
+            kingdom_doc = await _kingdom_by_id_safe(wiring.kingdoms_service, kingdom_id)
+            await target.followup.send(
+                strings["church_marry_royal_arranged_ok"].format(chosen[0], hours),
+                ephemeral=True,
+            )
+            await _announce_royal_wedding_safe(
+                target.guild,
+                strings,
+                str(getattr(king, "display_name", str(king.id))),
+                str(getattr(kingdom_doc, "name", kingdom_id)),
+                chosen[0],
+                hours,
+            )
+        else:
+            await target.followup.send(
+                strings["market_mariage_ok"].format(chosen[0], wallet),
+                ephemeral=True,
+            )
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
@@ -1022,14 +1059,36 @@ async def _church_marry_civ_view(
         except Exception as exc:
             await target.followup.send(_market_error_note(exc, strings), ephemeral=True)
             return
-        await target.followup.send(
-            strings["church_marry_ok"].format(
+        # Drasah's livery (2026-10-11): the fresh spouse wears the red
+        # 💍 Verrouillé role until the lock expires — zero notification.
+        await _assign_marriage_lock_role_safe(target.guild, str(lord.id))
+        royal = str(getattr(lord, "role", "")) == "king"
+        hours = int(tier.marriage_lock_hours) * (2 if royal else 1)
+        if royal:
+            await target.followup.send(
+                strings["church_marry_royal_ok"].format(
+                    civ_names.get(chosen[0], chosen[0]),
+                    hours,
+                ),
+                ephemeral=True,
+            )
+            await _announce_royal_wedding_safe(
+                target.guild,
+                strings,
+                str(getattr(lord, "display_name", str(lord.id))),
+                str(getattr(kingdom, "name", "")),
                 civ_names.get(chosen[0], chosen[0]),
-                int(tier.marriage_lock_hours),
-                int(tier.offering),
-            ),
-            ephemeral=True,
-        )
+                hours,
+            )
+        else:
+            await target.followup.send(
+                strings["church_marry_ok"].format(
+                    civ_names.get(chosen[0], chosen[0]),
+                    hours,
+                    int(tier.offering),
+                ),
+                ephemeral=True,
+            )
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
@@ -1281,6 +1340,151 @@ async def _revoke_kingdoms_roles(guild: discord.Guild | None, user_id: str) -> N
             await wiring.mod_roles_service.remove_mod_role(str(guild.id), user_id, "kingdoms", role_key)
         except Exception:
             logger.warning("KINGDOMS ADMIN: role removal failed for %s", role_key, exc_info=True)
+
+
+MARRIAGE_LOCK_ROLE_NAME = "💍 Verrouillé"
+MARRIAGE_LOCK_ROLE_COLOUR = 0xE74C3C
+"""Drasah's lock livery (2026-10-11): a RED pseudo is the one visible
+state the players read at a glance — no ping, no notification: a role
+assignment never notifies anyone, the adversaries must OBSERVE."""
+
+
+async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Role | None:
+    """Adopt or create the red 💍 Verrouillé role (never hoisted)."""
+    if guild is None:
+        return None
+    role = discord.utils.get(guild.roles, name=MARRIAGE_LOCK_ROLE_NAME)
+    if role is None:
+        try:
+            role = await guild.create_role(
+                name=MARRIAGE_LOCK_ROLE_NAME,
+                colour=discord.Colour(MARRIAGE_LOCK_ROLE_COLOUR),
+                reason="kingdoms: mariage — rôle verrou visible",
+            )
+        except Exception:
+            logger.warning("KINGDOMS: marriage lock role creation failed", exc_info=True)
+            return None
+    return role
+
+
+async def _assign_marriage_lock_role_safe(guild: discord.Guild | None, user_id: str) -> None:
+    """Give one lord the red lock role (best effort, zero notification)."""
+    role = await _ensure_marriage_lock_role(guild)
+    if role is None or guild is None or not str(user_id).isdigit():
+        return
+    member = guild.get_member(int(user_id))
+    if member is None or role in getattr(member, "roles", ()):
+        return
+    try:
+        await member.add_roles(role, reason="kingdoms: mariage — verrou de lune de miel")
+    except Exception:
+        logger.warning("KINGDOMS: marriage lock role assignment failed", exc_info=True)
+
+
+async def _remove_marriage_lock_role_safe(guild: discord.Guild | None, user_id: str) -> None:
+    """Strip the red lock role of one lord (best effort)."""
+    if guild is None or not str(user_id).isdigit():
+        return
+    role = discord.utils.get(guild.roles, name=MARRIAGE_LOCK_ROLE_NAME)
+    if role is None:
+        return
+    member = guild.get_member(int(user_id))
+    if member is None or role not in getattr(member, "roles", ()):
+        return
+    try:
+        await member.remove_roles(role, reason="kingdoms: fin du verrou mariage")
+    except Exception:
+        logger.warning("KINGDOMS: marriage lock role removal failed", exc_info=True)
+
+
+async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]:
+    """Reconcile the 💍 Verrouillé role with the live lord documents.
+
+    The scheduler calls this every tick — it is the boot resync AND the
+    expiry engine in one idempotent pass: an expired lock loses its red
+    pseudo (a restart during the honeymoon never leaves a ghost), an
+    active lock regains it, an orphaned role (ejected or departed
+    player, missing document) is stripped. Returns the kingdom ids
+    whose Discord state changed — the caller re-renders their salon
+    views in place (an edit never pings anyone).
+    """
+    import time as _time
+
+    wiring = _wiring()
+    service = wiring.kingdoms_service
+    if guild is None or service is None:
+        return set()
+    try:
+        lords = await service.lords()
+    except Exception:
+        logger.warning("KINGDOMS: lord list read failed (lock sync)", exc_info=True)
+        return set()
+    role = await _ensure_marriage_lock_role(guild)
+    if role is None:
+        return set()
+    now = int(_time.time())
+    by_id = {str(getattr(lord, "id", "")): lord for lord in lords}
+    changed: set[str] = set()
+    for member in list(getattr(guild, "members", []) or []):
+        has = role in getattr(member, "roles", ())
+        lord = by_id.get(str(getattr(member, "id", "")))
+        until = int(getattr(lord, "marriage_locked_until", 0) or 0) if lord is not None else 0
+        should = bool(
+            lord is not None
+            and not getattr(lord, "left", False)
+            and getattr(lord, "married_civilization", None) is not None
+            and until > now
+        )
+        kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
+        if has and not should:
+            try:
+                await member.remove_roles(role, reason="kingdoms: fin du verrou mariage")
+                changed.add(kingdom_id)
+            except Exception:
+                logger.warning("KINGDOMS: lock role strip failed", exc_info=True)
+        elif should and not has:
+            try:
+                await member.add_roles(role, reason="kingdoms: mariage — verrou de lune de miel")
+                changed.add(kingdom_id)
+            except Exception:
+                logger.warning("KINGDOMS: lock role grant failed", exc_info=True)
+    return changed
+
+
+def _locale_of_strings(strings: dict[str, Any]) -> str:
+    """Derive the locale of one merged strings dict (lock_days sentinel)."""
+    return "fr" if str(strings.get("lock_days", "")).startswith("lundi") else "en"
+
+
+async def _announce_royal_wedding_safe(
+    guild: discord.Guild | None,
+    strings: dict[str, Any],
+    king_name: str,
+    kingdom_name: str,
+    civ_name: str,
+    hours: int,
+) -> None:
+    """Announce a royal wedding in Géopolitique (Drasah: the ONE lock event).
+
+    A lord's marriage stays silent — the red pseudo is the intel the
+    adversaries must observe. A ROYAL wedding (Reine) is a grand event:
+    its lock IS announced (Drasah 2026-10-11), with the doubled hours
+    and the season-long security.
+    """
+    if guild is None:
+        return
+    from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
+
+    try:
+        await announce_geopolitics(
+            guild,
+            _locale_of_strings(strings),
+            str(strings["royal_wedding_announce"]).format(
+                king_name, civ_name, kingdom_name, hours
+            ),
+        )
+    except Exception:
+        logger.warning("KINGDOMS: royal wedding announcement failed", exc_info=True)
 
 
 class _ActiveLordsReadError(Exception):

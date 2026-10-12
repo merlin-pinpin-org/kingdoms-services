@@ -113,7 +113,10 @@ class LordModel(BaseModel):
     D34); ``marriage_locked_until`` is the real-time combat lock of a
     fresh marriage (D59: 24h standard, D60: 6h arranged) - a locked
     lord can neither attack nor defend while the unix timestamp is in
-    the future.
+    the future. ``royal_marriage`` marks a KING's wedding (Drasah's
+    Reine rule, 2026-10-11): the lock doubles, the kingdom gains +2
+    tech points and the civilization stays secured for the whole
+    season - even after a combat defeat.
 
     ``attack_used``/``defense_used`` are the weekly budgets consumed in
     the current cycle (1+1 per week — reference §11, recharge at the
@@ -132,6 +135,7 @@ class LordModel(BaseModel):
     defense_used: int = Field(default=0, ge=0)
     married_civilization: str | None = None
     marriage_locked_until: int | None = None
+    royal_marriage: bool = False
     left: bool = False
     left_reason: str | None = None
 

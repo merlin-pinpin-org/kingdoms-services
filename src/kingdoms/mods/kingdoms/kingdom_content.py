@@ -80,7 +80,7 @@ TAVERNE_DESCRIPTION = "La taverne du serveur — discussions libres autour d'un 
 REGLES_DESCRIPTION = (
     "Les règles complètes du mod Kingdoms — Saison II. À lire avant de s'inscrire.\n"
     "Sommaire : ⚔️ Attaque & Défense · 🕰️ Époque · 👑 Jour du Seigneur · 🧭 Exploration · "
-    "💍 Mariage · 🔬 Technologie · 🤝 Traité · 📋 Inscription & Royaumes · "
+    "💍 Mariage · ⚙️ Technologie · 🤝 Traité · 📋 Inscription & Royaumes · "
     "🗺️ Territoires & Cadastre · 🏆 Fin de saison · ⚖️ Fair-play & sanctions."
 )
 

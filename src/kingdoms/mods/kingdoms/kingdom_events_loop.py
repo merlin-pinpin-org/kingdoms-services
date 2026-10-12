@@ -215,10 +215,42 @@ async def _snapshot_lords_day_closure_safe(bot: Any, tick_seconds: int) -> None:
         logger.warning("KINGDOMS EVENTS: Lord's Day closure snapshot failed", exc_info=True)
 
 
+async def _sync_marriage_locks_safe(bot: Any) -> None:
+    """Reconcile the 💍 Verrouillé roles of every guild (every tick).
+
+    Drasah's lock livery (2026-10-11): a fresh spouse wears a RED role
+    until the lock expires. This pass IS the expiry engine — the role
+    leaves when the timestamp passes, the salon views re-render in
+    place (an edit never pings), and a restart mid-honeymoon never
+    leaves a ghost red pseudo. It runs even on a paused season: the
+    marriage lock is REAL time, not game time.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _refresh_realm_views_for_kingdom_safe,
+        sync_marriage_lock_roles_safe,
+    )
+
+    for guild in list(getattr(bot, "guilds", []) or []):
+        try:
+            changed = await sync_marriage_lock_roles_safe(guild)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: marriage lock sync failed", exc_info=True)
+            continue
+        for kingdom_id in sorted(changed):
+            if kingdom_id:
+                try:
+                    await _refresh_realm_views_for_kingdom_safe(guild, kingdom_id)
+                except Exception:
+                    logger.warning(
+                        "KINGDOMS EVENTS: post-lock view refresh failed", exc_info=True
+                    )
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
         await asyncio.sleep(tick_seconds)
+        await _sync_marriage_locks_safe(bot)
         events = getattr(bot, "kingdoms_events_service", None)
         if events is None:
             continue

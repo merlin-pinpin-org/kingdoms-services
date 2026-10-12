@@ -95,6 +95,29 @@ class CivilizationNotInHandError(MarriageError):
     message_key = "kingdoms.errors.civ_not_in_hand"
 
 
+class RoyalMarriagePointsError(MarriageError):
+    """Raised when a KING weds without the two points a Reine costs.
+
+    Drasah's Reine rule (2026-10-11): a royal marriage (standard)
+    consumes TWO points de mariage - the doubled price of the
+    season-long security and the +2 tech reward.
+    """
+
+    code = "KINGDOMS_ROYAL_MARRIAGE_POINTS"
+    message_key = "kingdoms.errors.royal_marriage_points"
+
+
+class RoyalMarriageTokenError(MarriageError):
+    """Raised when a KING weds arranged without the two tokens required.
+
+    Drasah's Reine rule (2026-10-11): a royal arranged marriage
+    consumes TWO arranged-marriage tokens.
+    """
+
+    code = "KINGDOMS_ROYAL_MARRIAGE_TOKEN"
+    message_key = "kingdoms.errors.royal_marriage_token"
+
+
 class DiplomacyService:
     """Civilization conditions and marriage rules (reference §18-§19)."""
 
@@ -149,7 +172,9 @@ class DiplomacyService:
                 if lord.kingdom_id == kingdom.id
                 and not lord.left
                 and lord.married_civilization is not None
-                and kingdom.id not in dropped
+                # a royal marriage (Reine) survives every defeat —
+                # Drasah's 2026-10-11 rule: secured for the whole season
+                and (kingdom.id not in dropped or bool(lord.royal_marriage))
             ]
             for key in secured:
                 if key not in unlocked:
@@ -166,9 +191,17 @@ class DiplomacyService:
     async def _apply_marriage_losses(
         self, lords: list[LordModel], season: SeasonState, dropped: list[str]
     ) -> None:
-        """Drop the marriages of the defeated kingdoms (D34/D53)."""
+        """Drop the marriages of the defeated kingdoms (D34/D53).
+
+        A royal marriage (Reine) never drops — Drasah's 2026-10-11
+        rule: the civilization stays secured until the season ends.
+        """
         for lord in lords:
-            if lord.kingdom_id in dropped and lord.married_civilization is not None:
+            if (
+                lord.kingdom_id in dropped
+                and lord.married_civilization is not None
+                and not lord.royal_marriage
+            ):
                 logger.info(
                     "kingdoms: %s loses the marriage %s (combat defeat)",
                     lord.id,
@@ -248,8 +281,8 @@ class DiplomacyService:
         consumable stock (D59 — a currency, not a slot); the combat
         lock follows the Paroisse palier (24h Chapelle / 12h Église /
         6h Cathédrale, D64) and the Offrande of the palier credits the
-        treasury at the celebration (Drasah 2026-10-11: +1 🔬 Église,
-        +2 🔬 Cathédrale). The exclusivity is common to every marriage
+        treasury at the celebration (Drasah 2026-10-11: +1 ⚙️ Église,
+        +2 ⚙️ Cathédrale). The exclusivity is common to every marriage
         (D74): a civilization already claimed by an active marriage -
         any kingdom - is never targeted twice.
         """
@@ -274,10 +307,18 @@ class DiplomacyService:
             raise CivilizationNotInHandError(
                 f"{civilization} is not in the kingdom's hand (Alliances)"
             )
-        if kingdom.marriage_points < 1:
+        royal = str(getattr(lord, "role", "")) == "king"
+        cost = 2 if royal else 1
+        if kingdom.marriage_points < cost:
+            if royal:
+                raise RoyalMarriagePointsError(
+                    "a royal marriage (Reine) costs 2 marriage points"
+                )
             raise NoMarriagePointsError("the kingdom holds no marriage point (D59)")
         await self._check_exclusivity(civilization)
-        await self._commit_marriage(lord, kingdom, civilization, now=timestamp)
+        await self._commit_marriage(
+            lord, kingdom, civilization, now=timestamp, royal=royal, point_cost=cost
+        )
         logger.info("kingdoms: %s married %s", player_id, civilization)
         return civilization
 
@@ -313,11 +354,25 @@ class DiplomacyService:
         if lord.kingdom_id is None or lord.left:
             raise MarriageCapacityError("the lord belongs to no kingdom")
         kingdom = await self._kingdom_by_id(lord.kingdom_id)
-        if kingdom.arranged_marriage_stock < 1:
+        royal = str(getattr(lord, "role", "")) == "king"
+        token_cost = 2 if royal else 1
+        if kingdom.arranged_marriage_stock < token_cost:
+            if royal:
+                raise RoyalMarriageTokenError(
+                    "a royal arranged marriage (Reine) costs 2 tokens"
+                )
             raise NoArrangedTokenError("the kingdom holds no arranged-marriage token")
         await self._check_exclusivity(civilization)
-        kingdom.arranged_marriage_stock -= 1
-        await self._commit_marriage(lord, kingdom, civilization, hours=6, now=timestamp)
+        kingdom.arranged_marriage_stock -= token_cost
+        await self._commit_marriage(
+            lord,
+            kingdom,
+            civilization,
+            hours=6,
+            now=timestamp,
+            royal=royal,
+            point_cost=0,
+        )
         logger.info("kingdoms: %s arranged-married %s", player_id, civilization)
         return civilization
 
@@ -337,18 +392,30 @@ class DiplomacyService:
         *,
         hours: int | None = None,
         now: datetime,
+        royal: bool = False,
+        point_cost: int | None = None,
     ) -> None:
-        """Persist one marriage: point consumed, Offrande, secured civ, lock.
+        """Persist one marriage: points consumed, Offrande, secured civ, lock.
 
         ``hours=None`` means a standard marriage: the lock follows the
-        Paroisse palier (D64) and ONE marriage point is consumed plus
+        Paroisse palier (D64) and the marriage points are consumed plus
         the palier's Offrande credited to the treasury. ``hours`` set
         (arranged) never touches the marriage points nor the Offrande.
+
+        Drasah's Reine rule (2026-10-11): ``royal=True`` (a KING's
+        wedding) doubles the combat lock, grants +2 tech points to the
+        treasury and flags the lord ``royal_marriage`` — the
+        civilization then survives every combat defeat until the
+        season ends. ``point_cost`` overrides the standard point
+        debit (arranged marriages pay nothing here).
         """
         tier = self._config.parish.tier(getattr(kingdom, "parish_tier", 1))
         lock_hours = tier.marriage_lock_hours if hours is None else hours
+        if royal:
+            lock_hours = lock_hours * 2
         if hours is None:
-            kingdom.marriage_points -= 1
+            cost = 1 if point_cost is None else max(0, point_cost)
+            kingdom.marriage_points -= cost
             if tier.offering > 0:
                 kingdom.tech_points_bank += tier.offering
                 logger.info(
@@ -357,7 +424,16 @@ class DiplomacyService:
                     tier.offering,
                     lord.id,
                 )
+        if royal:
+            kingdom.tech_points_bank += 2
+            logger.info(
+                "kingdoms: royal marriage - %s +%s tech (Reine of %s)",
+                kingdom.id,
+                2,
+                lord.id,
+            )
         lord.married_civilization = civilization
+        lord.royal_marriage = royal
         lord.marriage_locked_until = int((now + timedelta(hours=lock_hours)).timestamp())
         await self._store.upsert_lord(lord.to_mongo())
         if civilization not in kingdom.secured_civilizations:

@@ -18,7 +18,9 @@ carries its own (in kingdom_realms). Once the admin starts the season
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 
@@ -28,6 +30,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger("kingdoms.kingdom_realm_content")
 
 VIEW_MARKER_PREFIX = "kingdoms:realm:view"
+
+_PARIS_TZ = "Europe/Paris"
+
+
+def _lock_until_label(until: int, strings: dict[str, str]) -> str:
+    """Format one lock deadline as a readable Paris time (Drasah 2026-10-11).
+
+    An end TIME never goes stale — unlike a remaining duration, the
+    label stays true for ever, and it names the exact moment the lord
+    can fight again.
+    """
+    stamp = datetime.fromtimestamp(until, tz=ZoneInfo(_PARIS_TZ))
+    days = str(strings.get("lock_days", "")).split("|")
+    day = days[stamp.weekday()] if stamp.weekday() < len(days) else ""
+    return str(strings.get("lock_time_fmt", "{0} {1}h{2}")).format(
+        day, f"{stamp.hour:02d}", f"{stamp.minute:02d}"
+    )
 
 
 def _strings(locale: str) -> dict[str, str]:
@@ -68,32 +87,51 @@ def _strings(locale: str) -> dict[str, str]:
                 "Au démarrage de la saison, chaque royaume recevra ses "
                 "territoires par tirage aléatoire."
             ),
-            "church_title": "⛪ Paroisse — {0}",
-            "church_stock": "Points de mariage",
-            "church_arranged": "Mariages arrangés en stock",
+            "church_title": "⛪ Paroisse — {0} · ⛪ {1} · 💍 {2} · 💰 {3}",
             "church_active": "Mariages actifs",
             "church_none": "Aucun mariage actif.",
-            "church_badge": "💍 {0} — {1} (verrou {2} restant)",
-            "church_lock_hours": "{0}h",
+            "church_badge_locked": "💍 {0} — {1} · 🔒 verrou jusqu'à {2}",
+            "church_badge_free": "💍 {0} — {1} · ✅ verrou levé",
+            "church_badge_royal_locked": "💍 {0} — 👑 Reine {1} · 🔒 verrou jusqu'à {2}",
+            "church_badge_royal_free": "💍 {0} — 👑 Reine {1} · ✅ verrou levé",
             "church_singles": "Célibataires",
             "church_singles_none": "Aucun seigneur célibataire.",
-            "church_tier_line": "Palier : {0} ({1}/{2}) — Offrande : {3} 🔬",
+            "church_tier_line": "Palier : {0} ({1}/{2}) — Offrande : {3} ⚙️",
             "church_lock_line": "Verrou mariage classique : {0}h",
+            "church_royal_lock_line": "Verrou mariage royal (Roi) : {0}h",
             "church_marry_button": "💍 Se marier",
             "church_arrange_button": "💒 Mariage arrangé ({0})",
-            "church_upgrade_button": "⛪ Améliorer → {0} ({1} 🔬)",
+            "church_upgrade_button": "⛪ Améliorer → {0} ({1} ⚙️)",
             "church_upgrade_max": "⛪ Cathédrale — palier maximal",
             "church_household_palier": "✨ Notre {0}",
-            "church_household": "💒 La Maisonnée",
+            "church_household": "💒 Les Fidèles du Royaume",
             "church_bachelor": "🎖️ {0} — célibataire · prêt à se marier 💍",
-            "church_help": (
-                "-# 💍 Un point de mariage = un mariage classique disponible ·"
-                " 🎟️ un jeton = un mariage arrangé disponible (acheté au Marché)"
-            ),
             "church_ladder_title": "🔭 Aperçu des paliers",
             "church_ladder_current": "●",
             "church_ladder_other": "▸",
-            "church_ladder_line": "{0} {1} — {2} 🔬 · verrou {3}h · offrande +{4} 🔬",
+            "church_ladder_line": "{0} {1} — {2} ⚙️ · verrou {3}h · offrande +{4} ⚙️",
+            "church_ladder_sacree": " · ⛪ Lieu Sacrée",
+            "church_legend_lock": (
+                "-# 🔒 Verrou : un seigneur fraîchement marié ne peut ni"
+                " attaquer ni défendre pendant quelques heures (24h · 12h · 6h"
+                " selon le palier, doublé pour un mariage royal)."
+            ),
+            "church_legend_offering": (
+                "-# 🕯️ Offrande : à chaque mariage célébré, la Paroisse verse"
+                " des points de technologie au trésor du royaume."
+            ),
+            "church_legend_token": (
+                "-# 💰 Jeton : acheté au Marché (3 ⚙️), permet un mariage"
+                " arrangé sans consommer de point de mariage."
+            ),
+            "church_legend_sacree": (
+                "-# ⛪ Lieu Sacrée (Cathédrale) : le royaume consacre un"
+                " territoire — immunisé contre toute action technologique et"
+                " insensible à la conquête pendant 72h ; seule une attaque"
+                " classique peut le disputer."
+            ),
+            "lock_days": "lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche",
+            "lock_time_fmt": "{0} {1}h{2}",
             "carrier_title": "🕊️ Pigeon-Voyageur — {0}",
             "carrier_body": (
                 "Ce salon recevra les rappels du Roi (D69) : achat de patrouille,"
@@ -136,32 +174,50 @@ def _strings(locale: str) -> dict[str, str]:
             "At the season start, each kingdom will receive its "
             "territories through a random draw."
         ),
-        "church_title": "⛪ Parish — {0}",
-        "church_stock": "Marriage points",
-        "church_arranged": "Arranged marriages in stock",
+        "church_title": "⛪ Parish — {0} · ⛪ {1} · 💍 {2} · 💰 {3}",
         "church_active": "Active marriages",
         "church_none": "No active marriage.",
-        "church_badge": "💍 {0} — {1} (lock {2} left)",
-        "church_lock_hours": "{0}h",
+        "church_badge_locked": "💍 {0} — {1} · 🔒 locked until {2}",
+        "church_badge_free": "💍 {0} — {1} · ✅ lock lifted",
+        "church_badge_royal_locked": "💍 {0} — 👑 Queen {1} · 🔒 locked until {2}",
+        "church_badge_royal_free": "💍 {0} — 👑 Queen {1} · ✅ lock lifted",
         "church_singles": "Bachelors",
         "church_singles_none": "No bachelor lord.",
-        "church_tier_line": "Tier: {0} ({1}/{2}) — Offering: {3} 🔬",
+        "church_tier_line": "Tier: {0} ({1}/{2}) — Offering: {3} ⚙️",
         "church_lock_line": "Standard marriage lock: {0}h",
+        "church_royal_lock_line": "Royal marriage lock (King): {0}h",
         "church_marry_button": "💍 Marry",
         "church_arrange_button": "💒 Arranged marriage ({0})",
-        "church_upgrade_button": "⛪ Upgrade → {0} ({1} 🔬)",
+        "church_upgrade_button": "⛪ Upgrade → {0} ({1} ⚙️)",
         "church_upgrade_max": "⛪ Cathedral — top tier",
         "church_household_palier": "✨ Our {0}",
-        "church_household": "💒 The Household",
+        "church_household": "💒 The Kingdom's Faithful",
         "church_bachelor": "🎖️ {0} — bachelor · ready to marry 💍",
-        "church_help": (
-            "-# 💍 One marriage point = one standard marriage available ·"
-            " 🎟️ one token = one arranged marriage available (bought at the Market)"
-        ),
         "church_ladder_title": "🔭 Tier ladder",
         "church_ladder_current": "●",
         "church_ladder_other": "▸",
-        "church_ladder_line": "{0} {1} — {2} 🔬 · lock {3}h · offering +{4} 🔬",
+        "church_ladder_line": "{0} {1} — {2} ⚙️ · lock {3}h · offering +{4} ⚙️",
+        "church_ladder_sacree": " · ⛪ Sacred Site",
+        "church_legend_lock": (
+            "-# 🔒 Lock: a freshly married lord can neither attack nor"
+            " defend for a few hours (24h · 12h · 6h depending on the tier,"
+            " doubled for a royal marriage)."
+        ),
+        "church_legend_offering": (
+            "-# 🕯️ Offering: at every celebrated marriage, the Parish pays"
+            " technology points into the kingdom's treasury."
+        ),
+        "church_legend_token": (
+            "-# 💰 Token: bought at the Market (3 ⚙️), allows one arranged"
+            " marriage without spending a marriage point."
+        ),
+        "church_legend_sacree": (
+            "-# ⛪ Sacred Site (Cathedral): the kingdom consecrates a"
+            " territory — immune to every technology action and safe from"
+            " conquest for 72h; only a classic attack can dispute it."
+        ),
+        "lock_days": "Mon|Tue|Wed|Thu|Fri|Sat|Sun",
+        "lock_time_fmt": "{0} {1}:{2}",
         "carrier_title": "🕊️ Carrier Pigeon — {0}",
         "carrier_body": (
             "This salon will carry the King's reminders (D69): patrol purchase,"
@@ -438,7 +494,7 @@ def _build_overview(
         [
             f"**{strings['members']}** : "
             f"{strings['members_line'].format(king_name, len(subjects), len(members))}",
-            f"**{strings['treasury']}** : {state['wallet']} 🔬",
+            f"**{strings['treasury']}** : {state['wallet']} ⚙️",
             f"**{strings['territories']}** : {len(state['territories'])}",
             f"**{strings['civilizations']}** : {len(getattr(kingdom, 'civilizations', []) or [])}",
             f"**{strings['marriages']}** : {len(married)}",
@@ -575,13 +631,14 @@ def _build_church(
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the ⛪ Paroisse state view (D64 paliers + marriages).
+    """Build the ⛪ Paroisse state view (D64 paliers + marriages, v3).
 
-    Live data only: palier, points de mariage, jetons de mariage
-    arrangé, mariages actifs avec verrou restant, célibataires — the
-    anti-stale rule (Drasah 2026-10-11) re-renders this view after
-    every state change. The buttons (marry / arranged / upgrade) are
-    restart-proof DynamicItems registered on the bot.
+    Live data only: palier, points de mariage and jetons in the title
+    (Drasah's 2026-10-11 header), one line per Fidèle with their
+    marriage and their lock END TIME (never a stale remaining
+    duration), the palier ladder with the Cathédrale's Lieu Sacrée,
+    and a small legend (verrou, offrande, jeton, sacrée). The buttons
+    (marry / arranged / upgrade) are restart-proof DynamicItems.
     """
     import time as _time
 
@@ -602,8 +659,9 @@ def _build_church(
             parish["name"], parish["tier"], parish["max_tier"], parish["offering"]
         ),
         strings["church_lock_line"].format(parish["lock_hours"]),
+        strings["church_royal_lock_line"].format(parish["lock_hours"] * 2),
         "",
-        # 💒 La Maisonnée — one line per member with their state
+        # 💒 Les Fidèles du Royaume — one line per member with their state
         f"## {strings['church_household']}",
     ]
     if not members:
@@ -611,12 +669,14 @@ def _build_church(
     for member in married:
         civ = str(getattr(member, "married_civilization", ""))
         until = int(getattr(member, "marriage_locked_until", 0) or 0)
-        left = max(0, -(-(until - now) // 3600)) if until > now else 0
+        royal = bool(getattr(member, "royal_marriage", False))
+        base = "church_badge_royal" if royal else "church_badge"
+        key = f"{base}_locked" if until > now else f"{base}_free"
         lines.append(
-            strings["church_badge"].format(
+            strings[key].format(
                 getattr(member, "display_name", strings["unknown"]),
                 state["civ_names"].get(civ, civ),
-                strings["church_lock_hours"].format(left),
+                _lock_until_label(until, strings) if until > now else "",
             )
         )
     for member in singles:
@@ -625,32 +685,41 @@ def _build_church(
                 getattr(member, "display_name", member.id)
             )
         )
-    # 💰 Stocks — one marriage point = one standard marriage available
+    # 🔭 Aperçu des paliers — every tier visible with cost and perks
     lines += [
         "",
-        f"**{strings['church_stock']}** : {int(getattr(kingdom, 'marriage_points', 0) or 0)}",
-        f"**{strings['church_arranged']}** : {int(getattr(kingdom, 'arranged_marriage_stock', 0) or 0)}",
-        strings["church_help"],
-        "",
-        # 🔭 Aperçu des paliers — every tier visible with cost and perks
         f"## {strings['church_ladder_title']}",
     ]
     for index, step in enumerate(parish.get("ladder") or [], start=1):
         marker = strings["church_ladder_current"] if index == parish["tier"] else strings["church_ladder_other"]
-        lines.append(
-            strings["church_ladder_line"].format(
-                marker,
-                step["name"],
-                step["cost"],
-                step["lock_hours"],
-                step["offering"],
-            )
+        line = strings["church_ladder_line"].format(
+            marker,
+            step["name"],
+            step["cost"],
+            step["lock_hours"],
+            step["offering"],
         )
+        if index == parish["max_tier"]:
+            line += strings["church_ladder_sacree"]
+        lines.append(line)
+    # 📖 la légende — verrou, offrande, jeton, lieu sacrée
+    lines += [
+        "",
+        strings["church_legend_lock"],
+        strings["church_legend_offering"],
+        strings["church_legend_token"],
+        strings["church_legend_sacree"],
+    ]
     body = "\n".join(lines)
 
     buttons = _church_buttons(strings, kingdom, state)
     return _panel_view_with_buttons(
-        strings["church_title"].format(getattr(kingdom, "name", "")),
+        strings["church_title"].format(
+            getattr(kingdom, "name", ""),
+            parish["name"],
+            int(getattr(kingdom, "marriage_points", 0) or 0),
+            int(getattr(kingdom, "arranged_marriage_stock", 0) or 0),
+        ),
         body,
         f"{VIEW_MARKER_PREFIX}:eglise",
         discord.Colour.purple(),
