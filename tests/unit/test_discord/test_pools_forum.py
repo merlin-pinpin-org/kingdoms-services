@@ -110,9 +110,13 @@ def test_pool_post_layout_has_section_per_map_and_add_button() -> None:
     )
     assert isinstance(view, discord.ui.LayoutView)
     sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
-    assert len(sections) == 3  # two map sections + the add-map section (editable pool)
+    assert len(sections) == 1  # the imaged member rides a Section; Plain is a text line
     assert sections[0].accessory is not None
-    assert sections[2].accessory is not None
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
+
+    rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
+    buttons = [b for row in rows for b in row.children]
+    assert any(isinstance(b, PoolAddMapButton) for b in buttons)  # editable pool keeps add-map
 
 
 def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
@@ -142,5 +146,7 @@ def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
         editable=True,
     )
     sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
-    assert len(sections) == 2
-    assert isinstance(sections[1].accessory, PoolAddMapButton)  # only the add entry point remains
+    assert len(sections) == 0  # imageless member = text line, no section
+    rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
+    buttons = [b for row in rows for b in row.children]
+    assert any(isinstance(b, PoolAddMapButton) for b in buttons)  # the add entry point remains

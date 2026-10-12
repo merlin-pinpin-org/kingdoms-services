@@ -457,10 +457,6 @@ class KingdomsBot(discord.Client):
                 registry=getattr(self, "message_registry", None),
             )
         )
-        from kingdoms.discord.admin_panel_games import GAME_KEY as _SECTION_GAME_KEY
-
-        for _spec in self._games_section_pin_specs(_SECTION_GAME_KEY):
-            register_static_pin(_spec)
 
     def _games_section_pin_specs(self: KingdomsBot, game_key: str) -> list[Any]:
         """Build the per-forum section pins for one game (aoe2).
@@ -540,7 +536,6 @@ class KingdomsBot(discord.Client):
             self.status_service.bot_admins,
             self.messages,
         )
-        await self._ensure_section_pins(guild_id)
 
     async def _ensure_section_pins(self: KingdomsBot, guild_id: str) -> None:
         """Ensure the games section pins exist in their forums (best-effort)."""

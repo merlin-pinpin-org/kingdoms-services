@@ -71,6 +71,17 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
     forum_name = _forum_name(game_key)
     await platform.adopt_legacy_forum(guild_id, "maps", forum_name, category_id)
     forum_id = await platform.ensure_forum(guild_id, forum_name, category_id)
+    forum = bot.get_guild(int(guild_id)).forums if bot.get_guild(int(guild_id)) else []
+    forum_obj = None
+    for f in forum:
+        if f.id == int(forum_id):
+            forum_obj = f
+            break
+    adopted = await _adopt_unclaimed_threads(
+        bot.get_guild(int(guild_id)), guild_id, forum_obj, service, game_key, bot
+    )
+    if adopted:
+        logger.info("maps forum: adopted %d admin-created posts (game %s)", adopted, game_key)
     created = 0
     maps = await service.list_maps(game_key)
     for entry in maps:
@@ -166,55 +177,44 @@ def _map_post_view(
     nomad: str = "",
     tc: str = "",
 ) -> discord.ui.LayoutView:
-    """Build the map post's Components V2 layout.
+    """Build the map post on the shared entity-card template.
 
     Header: capitalized title with the in-game icon (Gallery) as the
-    section's thumbnail, then the properties as label lines (Type,
-    Walls, Nomad), then the description, the main infobox image, the
-    source link and the id footer — each block behind a divider, as
-    the designer specced. The action bar (add-to-pool, edit for guild
-    maps, delete) sits under the container. A Section holds at most 3
-    text children (Discord 50035); the header is one text block by
-    construction.
+    thumbnail; then the properties (one setting per line), the
+    description, the main image, the pool links, the source link and
+    the id footer — the game-agnostic contract from
+    ``kingdoms.discord.ui.entity_cards``.
     """
-    from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapDeleteButton, MapEditButton
+    from kingdoms.discord.ui.entity_cards import map_card
 
-    view = discord.ui.LayoutView(timeout=None)
-    display = f"## {name[:1].upper()}{name[1:]}"
-    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(display)]
-    if icon_url:
-        view.add_item(
-            discord.ui.Section(*header_blocks, accessory=discord.ui.Thumbnail(icon_url))
-        )
-    else:
-        view.add_item(discord.ui.Container(*header_blocks))
+    def _add_to_pool() -> Any:
+        return MapAddToPoolButton(map_id)
 
-    body: list[discord.ui.Item[discord.ui.LayoutView]] = []
-    props = _map_props_lines(walls, nomad, tc)
-    if props:
-        body.append(discord.ui.TextDisplay("\n".join(props)))
-    if description:
-        body.append(discord.ui.Separator())
-        body.append(discord.ui.TextDisplay(description))
-    if image:
-        body.append(discord.ui.Separator())
-        body.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
-    if pools:
-        body.append(discord.ui.Separator())
-        body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
-    if source:
-        body.append(discord.ui.Separator())
-        body.append(discord.ui.TextDisplay(f"Source : [Liquipedia]({source})"))
-    body.append(discord.ui.TextDisplay(footer(map_id)))
-    view.add_item(discord.ui.Container(*body, accent_colour=discord.Colour(0x5865F2)))
-    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    actions.add_item(MapAddToPoolButton(map_id))
+    buttons: list[Any] = [_add_to_pool]
+
     if editable:
-        actions.add_item(MapEditButton(map_id))
-    actions.add_item(MapDeleteButton(map_id, game_key=game_key, owned_by_guild=owned_by_guild))
-    view.add_item(actions)
-    return view
+
+        def _edit() -> Any:
+            return MapEditButton(map_id)
+
+        buttons.append(_edit)
+
+    def _delete() -> Any:
+        return MapDeleteButton(map_id, game_key=game_key, owned_by_guild=owned_by_guild)
+
+    buttons.append(_delete)
+    return map_card(
+        map_id=map_id,
+        name=name,
+        props=tuple(_map_props_lines(walls, nomad, tc)),
+        description=description,
+        image_url=image,
+        icon_url=icon_url,
+        source_url=source,
+        pool_links=tuple(pools),
+        buttons=tuple(buttons),
+    )
 
 
 
@@ -420,3 +420,98 @@ def _map_props_lines(walls: str, nomad: str, tc: str) -> list[str]:
     if tc and tc.isdigit() and int(tc) > 1:
         props.append(f"**TC** : {tc}")
     return props
+
+async def _adopt_unclaimed_threads(
+    guild: discord.Guild,
+    guild_id: str,
+    forum: Any,
+    service: Any,
+    game_key: str,
+    bot: Any,
+) -> int:
+    """Adopt forum threads the sync did not create (admin-created posts).
+
+    A bot admin can create a post straight in the maps forum (Discord's
+    own UI); the sync names that post after the catalog. Unclaimed
+    threads (no catalog entry bears their name) are adopted: the name
+    is parsed, Liquipedia fills the map when the page exists, else an
+    empty guild-local map is created — then the sync renders its usual
+    card on the next pass. Returns the number of adopted threads.
+    """
+    if forum is None or service is None:
+        return 0
+    adopted = 0
+    try:
+        known = {m.name.casefold(): m for m in await service.list_maps(game_key)}
+    except Exception:
+        return 0
+    for thread in list(forum.threads):
+        name = thread.name.strip()
+        if not name or name.casefold() in known:
+            continue
+        if await _adopt_thread_as_map(thread, name, guild_id, service, game_key):
+            logger.info("maps forum: adopted thread %s", thread.name)
+            adopted += 1
+    return adopted
+
+
+async def _adopt_thread_as_map(
+    thread: Any, name: str, guild_id: str, service: Any, game_key: str
+) -> bool:
+    """Adopt one forum thread as a map; True when it landed."""
+    from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+
+    seed = None
+    try:
+        seed = await fetch_map_seed(name)
+    except LiquipediaUnconfiguredError:
+        seed = None
+    except Exception:
+        logger.warning("thread adoption: Liquipedia lookup failed (%s)", name, exc_info=True)
+        seed = None
+    description = seed.description if seed is not None else ""
+    resource_url = seed.resource_url if seed is not None else ""
+    map_type = seed.map_type if seed is not None else ""
+    try:
+        entry = await service.create_map(
+            game_key,
+            name,
+            filename=name.replace(" ", "_").lower(),
+            description=description,
+            resource_url=resource_url,
+            owner_guild_id=guild_id,
+            map_type=map_type,
+        )
+    except Exception:
+        logger.warning("thread adoption: create failed (%s)", name, exc_info=True)
+        return False
+    if seed is not None:
+        try:
+            from kingdoms.discord.content_posts import content_service
+
+            content = content_service()
+            if content is not None and seed.image_url:
+                await content.store(
+                    {
+                        "entity_id": entry.id,
+                        "locale": "en",
+                        "name": entry.name,
+                        "summary": seed.description,
+                        "source_url": seed.resource_url,
+                        "image_url": seed.image_url,
+                        "icon_url": seed.icon_url,
+                        "walls": seed.walls,
+                        "nomad": seed.nomad,
+                        "tc": seed.tc,
+                        "provider": "liquipedia",
+                        "tags": list(seed.tags or ()),
+                    }
+                )
+        except Exception:
+            logger.warning("thread adoption: content store failed (%s)", name, exc_info=True)
+    try:
+        await service.set_map_forum_message(entry.id, str(thread.id))
+    except Exception:
+        logger.warning("thread adoption: forum id bind failed (%s)", name, exc_info=True)
+    return True
+

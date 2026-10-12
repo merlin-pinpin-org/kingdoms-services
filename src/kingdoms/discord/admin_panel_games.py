@@ -281,17 +281,11 @@ async def game_menu_view(game_key: str, from_pin: bool = False, guild_id: str = 
         ]
     )
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    maps_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    maps_row.add_item(GamesMapImportButton(game_key))
-    maps_row.add_item(GamesBulkImportButton(game_key))
-    maps_row.add_item(GamesMapCreateButton(game_key))
-    maps_row.add_item(GamesMapsManageButton(game_key))
-    view.add_item(maps_row)
-    pools_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    pools_row.add_item(GamesPoolCopyButton(game_key))
-    pools_row.add_item(GamesPoolCreateButton(game_key))
-    pools_row.add_item(GamesPoolsManageButton(game_key))
-    view.add_item(pools_row)
+    footer_note = (
+        "Les actions (import, création, gestion) vivent dans les posts épinglés "
+        "des forums — ce menu reste informatif."
+    )
+    view.add_item(discord.ui.TextDisplay(f"-# {footer_note}"))
     if not from_pin:
         view.add_item(_back_row())
     return view

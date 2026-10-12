@@ -58,74 +58,51 @@ def _pool_post_layout(
     maps: list[dict[str, Any]],
     editable: bool = False,
 ) -> discord.ui.LayoutView:
-    """Build the pool post's component layout: state, maps, transition.
+    """Build the pool post on the shared pool-card template.
 
-    The pool's lifecycle state leads the post, then its member maps are
-    listed read-only (name + image + type when known, each image linking
-    to its map post). The **Add map** entry point only renders on a pool
-    still in edition (draft, or published-and-reopened); the transition
-    button proposes the next state(s) the lifecycle allows.
+    State header (accent container), then one Section per member map
+    (the name links to the map's post, the map image is the accessory
+    thumbnail), the overflow as text lines, the id footer and the
+    action row (add map when in edition, transition, delete).
     """
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolTransitionButton
+    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolDeleteButton, PoolTransitionButton
+    from kingdoms.discord.ui.entity_cards import pool_card
 
-    view = discord.ui.LayoutView(timeout=None)
-    display = pool.name[:1].upper() + pool.name[1:]
-    header = f"## {display}\n{_pool_state_badge(getattr(pool, 'state', 'draft'))}"
-    if pool.description:
-        header += f"\n{pool.description}"
+    state_line = _pool_state_badge(getattr(pool, "state", "draft"))
     mod_link = getattr(pool, "mod_link", "")
     if mod_link:
-        header += f"\n**Mod à installer** : {mod_link}"
-    from kingdoms.core.ids import footer
+        state_line += f"\n**Mod à installer** : {mod_link}"
 
-    header += f"\n{footer(pool.id)}"
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay(header)))
-    for m in maps[:MAX_SECTIONS]:
+    sections: list[tuple[str, str, str]] = []
+    for m in maps:
         image = m.get("image_url") or m.get("resource_url") or ""
+        link = ""
         if m.get("forum_message_id") and m.get("guild_id"):
-            link = f"https://discord.com/channels/{m['guild_id']}/{m['forum_message_id']}/{m['forum_message_id']}"
-            title = f"### [{m['name']}]({link})"
-            if m.get("map_type"):
-                title += f" — *{m['map_type']}*"
-            view.add_item(
-                discord.ui.Section(
-                    discord.ui.TextDisplay(title),
-                    accessory=(
-                        discord.ui.Thumbnail(image) if image else discord.ui.Button(label="Voir la map", url=link)
-                    ),
-                )
+            link = (
+                f"https://discord.com/channels/{m['guild_id']}/"
+                f"{m['forum_message_id']}/{m['forum_message_id']}"
             )
-        else:
-            fallback = f"### {m['name']}"
-            if m.get("map_type"):
-                fallback += f" — *{m['map_type']}*"
-            view.add_item(
-                discord.ui.Section(
-                    discord.ui.TextDisplay(fallback),
-                    accessory=discord.ui.Button(label="—", disabled=True),
-                )
-            )
-    overflow = maps[MAX_SECTIONS:]
-    for chunk_start in range(0, len(overflow), TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS):
-        chunk = overflow[chunk_start : chunk_start + TEXT_CHUNK_MAPS * MAX_TEXT_CHUNKS]
-        view.add_item(discord.ui.TextDisplay("\n".join(f"- {m['name']}" for m in chunk)))
-    view.add_item(discord.ui.Separator())
-    if editable:
-        view.add_item(
-            discord.ui.Section(
-                discord.ui.TextDisplay("Ajouter une map à ce pool :"),
-                accessory=PoolAddMapButton(pool.id),
-            )
-        )
-    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(PoolTransitionButton(pool.id))
-    view.add_item(row)
-    from kingdoms.discord.maps_pool_flow import PoolDeleteButton
+        name = m["name"]
+        if m.get("map_type"):
+            name += f" — *{m['map_type']}*"
+        sections.append((name, link, image))
 
-    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    delete_row.add_item(PoolDeleteButton(pool.id, game_key=str(getattr(pool, "game_key", ""))))
-    view.add_item(delete_row)
-    return view
+    buttons: list[Any] = []
+    if editable:
+        buttons.append(lambda: PoolAddMapButton(pool.id))
+    buttons.append(lambda: PoolTransitionButton(pool.id))
+    buttons.append(
+        lambda: PoolDeleteButton(pool.id, game_key=str(getattr(pool, "game_key", "")))
+    )
+    return pool_card(
+        pool_id=pool.id,
+        name=pool.name,
+        state_line=state_line,
+        description=pool.description or "",
+        member_sections=tuple(sections),
+        buttons=tuple(buttons),
+    )
+
 
 
 def _pool_post_content(pool: Any, maps: list[dict[str, Any]]) -> str:
