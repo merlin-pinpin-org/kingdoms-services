@@ -40,6 +40,7 @@ T = TypeVar("T")
 
 MAPS_COLLECTION = "maps"
 MAX_POOL_MAPS = 25
+MAX_ACTIVE_POOLS = 25
 
 POOL_STATE_DRAFT = "draft"
 POOL_STATE_PUBLISHED = "published"
@@ -374,6 +375,12 @@ class GameDataService:
             raise ValueError("a map pool references at least one map or map pack")
         if len(map_ids) > MAX_POOL_MAPS:
             raise ValueError(f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}")
+        active = await self._db.find_active_map_pools(game_key, owner_guild_id)
+        if len(active) >= MAX_ACTIVE_POOLS:
+            raise ValueError(
+                f"at most {MAX_ACTIVE_POOLS} non-archived map pools per scope "
+                "(Discord list caps) — archive one first"
+            )
         pool = MapPoolModel(
             _id=pool_entry_id(name, owner_guild_id),
             game_key=game_key,

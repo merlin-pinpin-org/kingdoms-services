@@ -19,6 +19,13 @@ from kingdoms.core.services.game_data import (
 class _FakeDb:
     """Minimal GameDataDatabase seam: an in-memory store."""
 
+    async def find_active_map_pools(self, game_key, guild_id=None):
+        return [
+            d
+            for d in self.collections.get("map_pools", {}).values()
+            if d.get("game_key") == game_key and d.get("archived_at") is None
+        ]
+
     def __init__(self) -> None:
         self.collections: dict[str, dict[str, dict[str, Any]]] = {}
 
