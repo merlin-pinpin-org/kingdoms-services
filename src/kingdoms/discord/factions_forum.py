@@ -27,25 +27,51 @@ FACTIONS_FORUM_SUFFIX = "-factions"
 
 def _civ_post_layout(
     name: str,
-    body: str,
+    civ_type: str,
+    sections: list[tuple[str, list[str]]],
     image: str,
     source: str,
     entry_id: str,
 ) -> discord.ui.LayoutView:
-    """Build the civ post's layout: title, parsed sections, image, ids."""
+    """Build the civ post's Components V2 layout.
+
+    Title with the civilization type as its subtitle, one section per
+    parsed block separated by dividers, the civ image on the side
+    (section accessory), and a disabled TODO action row — the civ's
+    future actions (build orders, counters...) land there.
+    """
     from kingdoms.core.ids import footer
 
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(f"## {name}")]
-    for block in body.split("\n\n"):
-        if block.strip():
-            blocks.append(discord.ui.TextDisplay(block.strip()))
-    if image:
-        blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
-    view.add_item(discord.ui.Separator())
+    header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
+    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header)]
+    for index, (label, items) in enumerate(sections):
+        if index:
+            blocks.append(discord.ui.Separator())
+        body = f"**{label}**\n" + "\n".join("\u2022 " + item for item in items)
+        if image and index == 0:
+            blocks.append(
+                discord.ui.Section(
+                    discord.ui.TextDisplay(body),
+                    accessory=discord.ui.Thumbnail(image),
+                )
+            )
+        else:
+            blocks.append(discord.ui.TextDisplay(body))
+    blocks.append(discord.ui.Separator())
     tail = f"Source : {source}\n" if source else ""
-    blocks.append(discord.ui.TextDisplay(f"{tail}{footer(entry_id)}"))
-    view.add_item(discord.ui.Container(*blocks))
+    blocks.append(discord.ui.TextDisplay(f"{tail}-# {footer(entry_id)}"))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    actions.add_item(
+        discord.ui.Button(
+            label="Actions à venir",
+            custom_id=f"faction:todo:{entry_id}"[:100],
+            style=discord.ButtonStyle.secondary,
+            disabled=True,
+        )
+    )
+    view.add_item(actions)
     return view
 
 
@@ -148,22 +174,24 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         return await _sorted_by_localized_name(factions, guild_id, bot)
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
-        from kingdoms.core.ids import footer
         from kingdoms.discord.civ_content import civ_section_lines, parse_civ_help
         from kingdoms.discord.content_posts import entity_post_content
 
         entry_id = str(getattr(faction, "id", ""))
         fallback = str(getattr(faction, "name", faction))
         name, summary, source, image = await entity_post_content(entry_id, fallback, guild_id, bot)
-        sections = civ_section_lines(parse_civ_help(summary)) if summary else []
-        flat = "\n".join(
-            "**" + label + "**\n" + "\n".join("\u2022 " + item for item in items) for label, items in sections
-        )
-        view = _civ_post_layout(name, flat or summary, image, source, entry_id)
-        content = f"**{name}**\n{flat or summary}\n\n"
+        parsed = parse_civ_help(summary) if summary else None
+        sections = civ_section_lines(parsed) if parsed else []
+        civ_type = str(getattr(parsed, "civ_type", "") or "") if parsed else ""
+        view = _civ_post_layout(name, civ_type, sections, image, source, entry_id)
+        from kingdoms.core.ids import footer as id_footer
+
+        content = f"## {name}\n" + (f"_{civ_type}_\n" if civ_type else "")
+        for label, items in sections:
+            content += f"\n**{label}**\n" + "\n".join("\u2022 " + item for item in items) + "\n"
         if source:
-            content += f"Source : {source}\n"
-        content += footer(entry_id)
+            content += f"\nSource : {source}\n"
+        content += f"-# {id_footer(entry_id)}"
         return content, view
 
     def forum_name_for(faction: Any) -> str:
