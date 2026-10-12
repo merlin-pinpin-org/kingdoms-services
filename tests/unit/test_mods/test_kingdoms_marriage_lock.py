@@ -512,10 +512,17 @@ async def test_royal_wedding_thread_is_created_bare_then_filled() -> None:
     assert names == ["En savoir plus"], "the thread carries its own name only"
     assert len(partial.thread.sent) == 1, "the detail message lives inside the thread"
     body = partial.thread.sent[0]
-    epouse = _pick_promise("1:Bourguignons", "Bourguignons")
-    assert epouse in body
-    assert "HeN" in body
+    # Drasah's v3 shape (2026-10-12): the thread names the CIVILIZATION
+    # alone (no promise inside), the kingdom reads « du Royaume … » and
+    # the lock line is « Durée des Noces … : ne peut ni attaquer ni
+    # défendre jusqu'à … ».
+    assert "Civilisation Bourguignons" in body
+    assert "du Royaume HeN" in body
+    assert "Durée des Noces" in body
     assert "24" in body
+    assert _pick_promise("1:Bourguignons", "Bourguignons") not in body, (
+        "the promise lives in the announcement only, never in the thread"
+    )
 
 
 async def test_ring_is_painted_in_the_pseudo_once_the_lock_expires() -> None:

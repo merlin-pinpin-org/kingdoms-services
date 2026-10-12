@@ -309,19 +309,18 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "royal_wedding_announce": (
             "👑💍 **Grand royal wedding** — {0} has taken **{1}** as Queen"
-            " of {2}! 📑 The gains and lock details live in the « Learn"
-            " more » thread attached to this announcement."
+            " of the Kingdom of {2}! 📑 The details live in the « Learn"
+            " more » thread below."
         ),
         "royal_wedding_couple": "{0}, promised lady of the {1} civilization",
         "royal_wedding_more_title": "Learn more",
         "royal_wedding_more_body": (
-            "📑 **Learn more — the royal wedding of {1}**\n"
-            "🎯 **Gains** — the civilization of {0} stays secured **for the"
-            " whole season** (a lord's marriage breaks on a combat defeat)"
-            " and the kingdom receives **+2 ⚙️** in its technology"
-            " treasury.\n"
-            "🔒 **Lock** — {2}h honeymoon: {0} can neither attack nor defend"
-            " until **{3}** (Paris time)."
+            "📑 **Learn more — the royal wedding of the Kingdom of {1}**\n"
+            "🎯 **Gains** —\n"
+            "🏴 **{0} civilization** ⏳ **All season long**\n"
+            "⚙️ **+2 in the technology treasury**.\n"
+            "🔒 **Lock** — {2}h nuptials: no attacks, no defense"
+            " until **{3}**."
         ),
         "church_marry_kingdom_none": "You belong to no kingdom of the season.",
         "church_arrange_king_only": "Only the King consumes an arranged marriage.",
@@ -520,19 +519,18 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "royal_wedding_announce": (
             "👑💍 **Grand mariage royal** — {0} a pris **{1}** pour Reine"
-            " de {2} ! 📑 Le détail des gains et du verrou est dans le fil"
-            " « En savoir plus » attaché à cette annonce."
+            " du Royaume {2} ! 📑 Le détail est dans le fil « En savoir"
+            " plus » ci-dessous."
         ),
         "royal_wedding_couple": "{0}, promise de la civilisation {1}",
         "royal_wedding_more_title": "En savoir plus",
         "royal_wedding_more_body": (
-            "📑 **En savoir plus — le mariage royal de {1}**\n"
-            "🎯 **Gains** — la civilisation de {0} est sécurisée **toute la"
-            " saison** (un mariage de seigneur se rompt en cas de défaite"
-            " au combat) et le royaume reçoit **+2 ⚙️** en trésorerie"
-            " technologique.\n"
-            "🔒 **Verrou** — lune de miel de {2} h : {0} ne peut ni attaquer"
-            " ni défendre jusqu'à **{3}** (heure de Paris)."
+            "📑 **En savoir plus — le mariage royal du Royaume {1}**\n"
+            "🎯 **Gains** —\n"
+            "🏴 **Civilisation {0}** ⏳ **Toute la saison**\n"
+            "⚙️ **+2 en trésorerie technologique**.\n"
+            "🔒 **Verrou** — Durée des Noces {2} h : ne peut ni attaquer"
+            " ni défendre jusqu'à **{3}**."
         ),
         "church_marry_kingdom_none": "Tu n'appartiens à aucun royaume de la saison.",
         "church_arrange_king_only": "Seul le Roi consomme un mariage arrangé.",

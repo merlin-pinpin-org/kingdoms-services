@@ -1751,7 +1751,10 @@ async def _announce_royal_wedding_safe(
     (« Thérèse de León, promise de la civilisation Portugais » —
     never a raw civilization name) and the announcement stays
     LIGHT — the details (gains, lock window) live in ONE public
-    « En savoir plus » thread attached to the announcement.
+    « En savoir plus » thread attached to the announcement. The
+    thread body names the CIVILIZATION alone (Drasah's same-day
+    v3 shape: gains in bullet lines, « Durée des Noces » lock
+    with the Paris end time, no promise inside).
     """
     if guild is None:
         return
@@ -1796,7 +1799,7 @@ async def _announce_royal_wedding_safe(
         if thread_send is not None:
             await thread_send(
                 str(strings["royal_wedding_more_body"]).format(
-                    couple, kingdom_name, hours, lock_label
+                    civ_name, kingdom_name, hours, lock_label
                 )
             )
     except Exception:
