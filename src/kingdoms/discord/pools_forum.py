@@ -312,6 +312,9 @@ def start_pools_forum_sync(bot: Any) -> asyncio.Task[None]:
                     actions = await sync_pools_forum(str(guild.id), bot)
                     if actions:
                         logger.info("pools forum: %d changes (guild %s)", actions, guild.id)
+                    from kingdoms.discord.maps_forum import _ensure_section_pins_after_sync
+
+                    await _ensure_section_pins_after_sync(bot, str(guild.id))
                 except Exception:
                     logger.warning("pools forum sync failed (guild %s) — best-effort", guild.id, exc_info=True)
             await asyncio.sleep(SYNC_INTERVAL_S)

@@ -279,8 +279,26 @@ def start_maps_forum_sync(bot: Any) -> asyncio.Task[None]:
                         created = await sync_maps_forum(str(guild.id), game_key, bot, service)
                         if created:
                             logger.info("maps forum: %d posts created (guild %s, game %s)", created, guild.id, game_key)
+                        await _ensure_section_pins_after_sync(bot, str(guild.id))
                 except Exception:
                     logger.warning("maps forum sync failed (guild %s) — best-effort", guild.id, exc_info=True)
             await asyncio.sleep(SYNC_INTERVAL_S)
 
     return asyncio.create_task(_loop())
+
+async def _ensure_section_pins_after_sync(bot: Any, guild_id: str) -> None:
+    """Ensure the game-section pins after the forum sync (best-effort).
+
+    The section pins resolve their forums; at boot the sweep races
+    the forum provisioning (the forums are created by this very sync
+    loop), so the pins get their chance right after the forums exist
+    — no waiting for the hourly pinned-menu sweep.
+    """
+    try:
+        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+        for spec in registered_static_pins():
+            if spec.key.startswith("view:aoe2-"):
+                await ensure_static_pin(bot, spec, guild_id)
+    except Exception:
+        logger.warning("section pins ensure after forum sync failed — best-effort", exc_info=True)
