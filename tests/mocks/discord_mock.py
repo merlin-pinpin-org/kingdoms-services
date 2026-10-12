@@ -178,6 +178,11 @@ class MockMember(discord.Member):
             if role in self._roles:
                 self._roles.remove(role)  # type: ignore[arg-type]
 
+    async def edit(self, **kwargs: Any) -> None:
+        """In-memory Member.edit — only the nickname is modelled."""
+        if "nick" in kwargs:
+            self.nick = kwargs["nick"]
+
     async def send(
         self,
         content: str | None = None,

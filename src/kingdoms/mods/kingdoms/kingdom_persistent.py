@@ -1383,6 +1383,10 @@ MARRIAGE_RING_ROLE_NAME = "💍"
 lock expires, a still-married lord keeps a 💍 RING badge next to their
 pseudo. The role is colour-NEUTRAL — it never paints the pseudo, the
 emoji alone carries the intel."""
+_RING_NICK_SUFFIX = " 💍"
+"""The ring IN the pseudo itself (Drasah's follow-up, 2026-10-12): a
+role name emoji shows only in the profile role list, NEVER in the
+nickname — only a nickname edit can paint the ring on the pseudo."""
 
 
 async def _ensure_marriage_lock_role(guild: discord.Guild | None) -> discord.Role | None:
@@ -1527,7 +1531,8 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
     expiry engine in one idempotent pass. Drasah's full rule
     (2026-10-12): an ACTIVE lock wears the RED 💍 Verrouillé pseudo; an
     EXPIRED lock on a still-married lord swaps red for the colour-neutral
-    💍 ring badge; an unmarried/ejected/departed lord wears nothing. A
+    💍 ring badge AND paints the 💍 suffix on the pseudo itself; an
+    unmarried/ejected/departed lord wears nothing. A
     restart never leaves a ghost. Returns the kingdom ids whose Discord
     state changed — the caller re-renders their salon views in place
     (an edit never pings anyone).
@@ -1566,7 +1571,12 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
         ring_moved = await _sync_member_role(
             member, ring_role, should_ring, "kingdoms: mariage — badge bague"
         )
-        if (lock_moved or ring_moved) and lord is not None:
+        nick_moved = (
+            await _sync_member_ring_nickname(member, should_ring)
+            if lord is not None
+            else False
+        )
+        if (lock_moved or ring_moved or nick_moved) and lord is not None:
             changed.add(str(getattr(lord, "kingdom_id", "") or ""))
     return changed
 
@@ -1574,6 +1584,48 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
 def _locale_of_strings(strings: dict[str, Any]) -> str:
     """Derive the locale of one merged strings dict (lock_days sentinel)."""
     return "fr" if str(strings.get("lock_days", "")).startswith("lundi") else "en"
+
+
+async def _sync_member_ring_nickname(member: Any, should_ring: bool) -> bool:
+    """Paint/strip the 💍 suffix of one member's nickname (best effort).
+
+    Drasah's full rule (2026-10-12): the ring must live IN the pseudo —
+    a role name emoji never renders there. The pass is idempotent (the
+    suffix never stacks) and only ever appends/strips its own suffix: a
+    hand-made nickname is left alone unless it ends with it. Returns
+    True when the nickname actually changed.
+    """
+    current = getattr(member, "nick", None)
+    base = str(current) if current is not None else str(getattr(member, "name", ""))
+    if not base:
+        return False
+    if should_ring:
+        if base.endswith(_RING_NICK_SUFFIX):
+            return False
+        target = base + _RING_NICK_SUFFIX
+        if len(target) > 32:
+            logger.info(
+                "KINGDOMS: ring nickname skipped for %s (over 32 chars)", base
+            )
+            return False
+        try:
+            await member.edit(nick=target, reason="kingdoms: mariage — bague au pseudo")
+        except Exception:
+            logger.warning("KINGDOMS: ring nickname edit failed", exc_info=True)
+            return False
+        return True
+    if base.endswith(_RING_NICK_SUFFIX):
+        stripped = base[: -len(_RING_NICK_SUFFIX)]
+        try:
+            await member.edit(
+                nick=stripped or None,
+                reason="kingdoms: fin de mariage — bague retirée du pseudo",
+            )
+        except Exception:
+            logger.warning("KINGDOMS: ring nickname strip failed", exc_info=True)
+            return False
+        return True
+    return False
 
 
 async def _announce_royal_wedding_safe(

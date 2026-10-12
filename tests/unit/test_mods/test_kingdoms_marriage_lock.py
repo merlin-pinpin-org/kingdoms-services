@@ -516,3 +516,28 @@ async def test_royal_wedding_thread_is_created_bare_then_filled() -> None:
     assert epouse in body
     assert "HeN" in body
     assert "24" in body
+
+
+async def test_ring_is_painted_in_the_pseudo_once_the_lock_expires() -> None:
+    """Drasah's follow-up (2026-10-12): the ring must show IN the pseudo,
+    not only in the profile role list — a role name emoji never renders
+    in a nickname, so the sync pass edits the nickname itself."""
+    guild = MockGuild()
+    active = _LockLord(id="111", marriage_locked_until=int(time.time()) + 3600)
+    wed = _LockLord(id="222", marriage_locked_until=int(time.time()) - 10)
+    _wired([active, wed])
+    m_active = _member_with_role(guild, "Actif", has_role=False, id=111)
+    m_wed = _member_with_role(guild, "Drasah", has_role=False, id=222)
+
+    await sync_marriage_lock_roles_safe(guild)
+
+    assert m_active.nick is None, "no ring in the pseudo while the lock is red"
+    assert m_wed.nick == "Drasah 💍", "the married lord wears the ring in the pseudo"
+    # idempotent: the suffix never stacks
+    await sync_marriage_lock_roles_safe(guild)
+    assert m_wed.nick == "Drasah 💍"
+
+    # the marriage breaks (a defeat drops a lord's marriage): the ring goes
+    wed.married_civilization = None
+    await sync_marriage_lock_roles_safe(guild)
+    assert m_wed.nick == "Drasah"
