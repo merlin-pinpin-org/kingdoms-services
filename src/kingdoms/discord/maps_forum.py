@@ -346,6 +346,23 @@ async def _map_content_full(
                 break
     if doc is None:
         return "", "", "", "", "", "", "", ""
+    if doc.get("icon_url") and doc.get("walls") is not None:
+        return (
+            str(doc.get("name") or ""),
+            str(doc.get("summary") or ""),
+            str(doc.get("source_url") or ""),
+            str(doc.get("image_url") or ""),
+            str(doc.get("icon_url") or ""),
+            str(doc.get("walls") or ""),
+            str(doc.get("nomad") or ""),
+            str(doc.get("tc") or ""),
+        )
+    # Stale doc (pre-split import: no icon_url / trait keys, the summary
+    # carries the old inline blob) — re-resolve from Liquipedia once and
+    # re-store the new keys; the next pass takes the fast path.
+    migrated = await _migrate_stale_map_doc(entity_id, doc, service, locale)
+    if migrated is not None:
+        doc = migrated
     return (
         str(doc.get("name") or ""),
         str(doc.get("summary") or ""),
@@ -356,6 +373,41 @@ async def _map_content_full(
         str(doc.get("nomad") or ""),
         str(doc.get("tc") or ""),
     )
+
+
+async def _migrate_stale_map_doc(
+    entity_id: str, doc: dict[str, Any], service: Any, locale: str
+) -> dict[str, Any] | None:
+    """Re-resolve a stale Liquipedia map doc and store the new keys."""
+    try:
+        from kingdoms.mapsdata.seed import LiquipediaUnconfiguredError, fetch_map_seed
+
+        seed = await fetch_map_seed(str(doc.get("name") or entity_id.rsplit(":", 1)[-1]))
+    except LiquipediaUnconfiguredError:
+        return None
+    except Exception:
+        logger.warning("stale map doc migration failed (%s) — best-effort", entity_id, exc_info=True)
+        return None
+    if seed is None:
+        return None
+    updated = dict(doc)
+    updated.update(
+        {
+            "summary": seed.description,
+            "icon_url": seed.icon_url,
+            "walls": seed.walls,
+            "nomad": seed.nomad,
+            "tc": seed.tc,
+            "image_url": seed.image_url or doc.get("image_url") or "",
+        }
+    )
+    try:
+        await service.store(updated)
+    except Exception:
+        logger.warning("stale map doc re-store failed (%s) — best-effort", entity_id, exc_info=True)
+        return updated
+    logger.info("map doc migrated to the split keys (%s)", entity_id)
+    return updated
 
 def _map_props_lines(walls: str, nomad: str, tc: str) -> list[str]:
     """Render the map's properties as label lines (Walls/Nomad/TC)."""
