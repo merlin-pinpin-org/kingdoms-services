@@ -291,50 +291,41 @@ class PoolAddMapButton(
             )
             return
         maps = [m for m in await service.list_maps(pool.game_key) if m.id not in pool.map_ids]
-        view = PoolMapPickerView(pool, maps, page=0)
-        await interaction.response.send_message(
-            f"Ajouter une map à **{pool.name}** — page 1/{view.pages}",
-            view=view,
-            ephemeral=True,
-        )
+        view = PoolMapPickerView(pool, maps)
+        await view.build(interaction)
 
 
 class PoolMapPickerView(discord.ui.View):
-    """Ephemeral paginated picker: pick one map to add to the pool."""
+    """Ephemeral picker for a pool's add-map action.
 
-    PAGE_SIZE = 24
+    A select when the pool fits (<= 25 options); a by-id modal entry
+    otherwise (the two-pattern catalog contract — no pagination: a
+    paged select silently hides options past the page and the page
+    buttons race the sync).
+    """
 
-    def __init__(self, pool: Any, maps: list[Any], page: int = 0) -> None:
+    def __init__(self, pool: Any, maps: list[Any]) -> None:
         super().__init__(timeout=180)
         self.pool = pool
         self.maps = maps
-        self.pages = max(1, (len(maps) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
-        self.page = max(0, min(page, self.pages - 1))
-        chunk = maps[self.page * self.PAGE_SIZE : (self.page + 1) * self.PAGE_SIZE]
-        select: discord.ui.Select[Any] = discord.ui.Select(
-            placeholder=f"{pool.name} — choisir une map",
-            options=[discord.SelectOption(label=m.name, value=m.id) for m in chunk]
-            or [discord.SelectOption(label="No map available", value="none")],
-        )
-        select.callback = self._on_pick  # type: ignore[method-assign]
-        self.add_item(select)
-        if self.page > 0:
-            prev: discord.ui.Button[Any] = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
-            prev.callback = self._nav(self.page - 1)  # type: ignore[method-assign]
-            self.add_item(prev)
-        if self.page < self.pages - 1:
-            nxt: discord.ui.Button[Any] = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
-            nxt.callback = self._nav(self.page + 1)  # type: ignore[method-assign]
-            self.add_item(nxt)
 
-    def _nav(self, page: int) -> Any:
-        async def _go(interaction: discord.Interaction) -> None:
-            await interaction.response.edit_message(
-                content=f"Ajouter une map à **{self.pool.name}** — page {page + 1}/{self.pages}",
-                view=PoolMapPickerView(self.pool, self.maps, page=page),
+    async def build(self, interaction: discord.Interaction) -> None:
+        """Answer: the select when small enough, the by-id modal otherwise."""
+        if len(self.maps) <= 25:
+            select: discord.ui.Select[Any] = discord.ui.Select(
+                placeholder=f"{self.pool.name} — choisir une map",
+                options=[discord.SelectOption(label=m.name, value=m.id) for m in self.maps]
+                or [discord.SelectOption(label="Aucune map", value="none")],
             )
-
-        return _go
+            select.callback = self._on_pick  # type: ignore[method-assign]
+            self.add_item(select)
+            await interaction.response.send_message(
+                f"Ajouter une map à **{self.pool.name}**", view=self, ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(
+            PoolAddMapByIdModal(self.pool.id, self.pool.name)
+        )
 
     async def _on_pick(self, interaction: discord.Interaction) -> None:
         children = [c for c in self.children if isinstance(c, discord.ui.Select)]
@@ -354,10 +345,12 @@ class PoolMapPickerView(discord.ui.View):
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
         except Exception:
             logger.warning("POOL FLOW: add to pool failed", exc_info=True)
-            await interaction.response.edit_message(content=await reply(interaction, "replies_shared.action_failed"))
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.action_failed")
+            )
             return
         await interaction.response.edit_message(
-            content=f"**{entry.name}** ajoutée à **{pool.name}** — la fiche du pool se met à jour à la prochaine sync."
+            content=f"**{entry.name}** ajoutée à **{pool.name}**."
         )
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
@@ -366,6 +359,54 @@ class PoolMapPickerView(discord.ui.View):
                 await sync_pools_forum(str(interaction.guild_id), interaction.client)
         except Exception:
             logger.warning("POOL FLOW: pools forum sync failed — best-effort")
+
+
+class PoolAddMapByIdModal(discord.ui.Modal):
+    """Add one map to a pool by id (map:public:arena) — the over-25 path."""
+
+    def __init__(self, pool_id: str, pool_name: str = "") -> None:
+        self.pool_id = pool_id
+        super().__init__(title=f"Ajouter à {pool_name or 'pool'} (id)", timeout=None)
+        self.map_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label="Map id (ex. map:public:arena)",
+            max_length=100,
+            required=True,
+        )
+        self.add_item(self.map_id)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Guard, resolve the id, add the map, sync the pool post."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        map_id = str(self.map_id.value or "").strip()
+        pool = await service.get_map_pool(self.pool_id)
+        entry = await service.get_map(map_id)
+        if pool is None or entry is None:
+            await interaction.followup.send("Map ou pool introuvable.", ephemeral=True)
+            return
+        try:
+            await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, entry.id))
+        except Exception as exc:
+            logger.warning("POOL FLOW: add by id failed", exc_info=True)
+            await interaction.followup.send(f"Échec : {exc}", ephemeral=True)
+            return
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools forum sync failed — best-effort")
+        await interaction.followup.send(
+            f"**{entry.name}** ajoutée à **{pool.name}**.", ephemeral=True
+        )
 
 
 class MapDeleteButton(

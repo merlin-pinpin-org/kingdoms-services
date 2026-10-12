@@ -956,19 +956,17 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin:
         lines.append("_Aucune map._")
     blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view.add_item(discord.ui.Container(*blocks))
-    # Discord caps a select at 25 options: with 50+ maps the picker pages
-    # through the catalog; the page rides the toggle's custom_id so the
-    # re-render after a toggle stays on the same page.
-    page_count = max(1, -(-len(maps) // PAGE_SIZE))
-    page = max(0, min(page, page_count - 1))
+    # The two-pattern catalog contract: a select when the catalog fits
+    # (<= 25 options); beyond that no paged select — the by-id modal
+    # carries the mutation instead (a paged select hides options past
+    # the page and races the sync).
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     if pool.edition_mode:
-        select_row.add_item(GamesPoolMapToggle(pool_id, page, _page_options(pool, maps, page)))
+        if len(maps) <= 25:
+            select_row.add_item(GamesPoolMapToggle(pool_id, 0, _page_options(pool, maps, 0)))
+        else:
+            select_row.add_item(GamesPoolAddByIdButton(pool_id))
         view.add_item(select_row)
-    if page_count > 1:
-        page_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        page_row.add_item(GamesPoolMapPageSelect(pool_id, page_count, page))
-        view.add_item(page_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesPoolDuplicateButton(pool_id))
     if pool.edition_mode:
@@ -983,6 +981,44 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin:
         back_row.add_item(GamesPoolsBackButton(pool.game_key))
         view.add_item(back_row)
     return view
+
+
+class GamesPoolAddByIdButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:pools:addbyid:(?P<pool_id>.+)",
+):
+    """Open the add-map-by-id modal — the over-25 catalog path."""
+
+    def __init__(self, pool_id: str) -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label="Ajouter une map (id)",
+                emoji="\U0001f4cd",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:pools:addbyid:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolAddByIdButton:
+        """Rebuild from the wire (pool id from the custom_id)."""
+        del interaction, item
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, then open the by-id modal."""
+        from kingdoms.discord.maps_pool_flow import PoolAddMapByIdModal, _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        await interaction.response.send_modal(PoolAddMapByIdModal(self.pool_id))
 
 
 class GamesPoolRenameButton(
@@ -1546,23 +1582,22 @@ async def _finish_map_import(
     it (delete from the Maps menu, no forum thread needed).
     """
     try:
-        if seed.image_url:
-            from kingdoms.discord.content_posts import content_service
+        from kingdoms.discord.content_posts import content_service
 
-            content = content_service()
-            if content is not None:
-                await content.store(
-                    {
-                        "entity_id": entry.id,
-                        "locale": "en",
-                        "name": entry.name,
-                        "summary": _map_summary_from_seed(seed),
-                        "source_url": seed.resource_url,
-                        "image_url": seed.image_url,
-                        "provider": "liquipedia",
-                        "tags": list(seed.tags or ()),
-                    }
-                )
+        content = content_service()
+        if content is not None:
+            await content.store(
+                {
+                    "entity_id": entry.id,
+                    "locale": "en",
+                    "name": entry.name,
+                    "summary": _map_summary_from_seed(seed),
+                    "source_url": seed.resource_url,
+                    "image_url": seed.image_url,
+                    "provider": "liquipedia",
+                    "tags": list(seed.tags or ()),
+                }
+            )
         from kingdoms.discord.maps_forum import sync_maps_forum
 
         if interaction.guild_id is not None:
@@ -1704,23 +1739,22 @@ async def _bulk_import_maps(service: Any, game_key: str, parsed: list[Any]) -> t
                 owner_guild_id=None,
                 map_type=seed.map_type,
             )
-            if seed.image_url:
-                from kingdoms.discord.content_posts import content_service
+            from kingdoms.discord.content_posts import content_service
 
-                content = content_service()
-                if content is not None:
-                    await content.store(
-                        {
-                            "entity_id": entry.id,
-                            "locale": "en",
-                            "name": entry.name,
-                            "summary": _map_summary_from_seed(seed),
-                            "source_url": seed.resource_url,
-                            "image_url": seed.image_url,
-                            "provider": "liquipedia",
-                            "tags": list(seed.tags or ()),
-                        }
-                    )
+            content = content_service()
+            if content is not None:
+                await content.store(
+                    {
+                        "entity_id": entry.id,
+                        "locale": "en",
+                        "name": entry.name,
+                        "summary": _map_summary_from_seed(seed),
+                        "source_url": seed.resource_url,
+                        "image_url": seed.image_url,
+                        "provider": "liquipedia",
+                        "tags": list(seed.tags or ()),
+                    }
+                )
             created.append(entry)
         except Exception as exc:
             logger.exception("GAMES ADMIN: bulk import failed on %s", p.page_name)
@@ -1986,6 +2020,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolArchiveButton,
         GamesPoolMapToggle,
         GamesPoolMapPageSelect,
+        GamesPoolAddByIdButton,
         GamesPoolDuplicateButton,
         GamesPoolSendButton,
         GamesMapImportButton,
