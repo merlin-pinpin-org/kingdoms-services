@@ -44,6 +44,8 @@ def _civ_post_layout(
 
     view = discord.ui.LayoutView(timeout=None)
     header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
+    if source:
+        header += f"\n{source}"
     blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header)]
     for index, (label, items) in enumerate(sections):
         if index:
@@ -59,8 +61,7 @@ def _civ_post_layout(
         else:
             blocks.append(discord.ui.TextDisplay(body))
     blocks.append(discord.ui.Separator())
-    tail = f"Source : {source}\n" if source else ""
-    blocks.append(discord.ui.TextDisplay(f"{tail}-# {footer(entry_id)}"))
+    blocks.append(discord.ui.TextDisplay(footer(entry_id)))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(
@@ -187,11 +188,11 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         from kingdoms.core.ids import footer as id_footer
 
         content = f"## {name}\n" + (f"_{civ_type}_\n" if civ_type else "")
+        if source:
+            content += f"{source}\n"
         for label, items in sections:
             content += f"\n**{label}**\n" + "\n".join("\u2022 " + item for item in items) + "\n"
-        if source:
-            content += f"\nSource : {source}\n"
-        content += f"-# {id_footer(entry_id)}"
+        content += id_footer(entry_id)
         return content, view
 
     def forum_name_for(faction: Any) -> str:

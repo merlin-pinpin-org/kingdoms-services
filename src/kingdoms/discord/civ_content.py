@@ -108,8 +108,6 @@ def parse_civ_help(help_text: str) -> CivContent:
 def civ_section_lines(content: CivContent) -> list[tuple[str, list[str]]]:
     """Build the labeled section bodies for a civ post."""
     sections: list[tuple[str, list[str]]] = []
-    if content.civ_type:
-        sections.append(("Type de civilisation", [content.civ_type]))
     if content.bonuses:
         sections.append(("Bonus de civilisation", content.bonuses))
     if content.unique_unit:

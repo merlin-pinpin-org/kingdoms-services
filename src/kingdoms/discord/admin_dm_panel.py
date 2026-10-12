@@ -88,10 +88,13 @@ async def build_admin_dm_panel(
         )
     access_docs = await service.list_all()
     granted_lines = []
+    client = getattr(interaction, "client", None)
     for doc in access_docs[:20]:
+        guild = client.get_guild(int(doc.get("guild_id") or 0)) if client is not None else None
+        name = guild.name if guild is not None else "Guilde inconnue"
         games = ", ".join(doc.get("games") or []) or "\u2014"
         mods = ", ".join(doc.get("mods") or []) or "\u2014"
-        granted_lines.append(f"- Guilde `{doc.get('guild_id')}` : jeux={games}, mods={mods}")
+        granted_lines.append(f"- **{name}** `{doc.get('guild_id')}` : jeux={games}, mods={mods}")
     if granted_lines:
         blocks.append(discord.ui.Separator())
         blocks.append(discord.ui.TextDisplay("## \U0001f513 Accords actifs\n" + "\n".join(granted_lines)))
@@ -280,7 +283,7 @@ class AccessGrantButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Gérer les accès (sans demande)",
+                label="Gérer les accès",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:access:grant",
             )
@@ -314,17 +317,19 @@ class AccessGrantButton(
             logger.exception("DM ACCESS: guild list failed")
             await interaction.followup.send("Échec du listing des guildes (voir les logs).", ephemeral=True)
             return
-        options = [
-            discord.SelectOption(
-                label=f"Guilde {doc.get('guild_id')}",
-                value=str(doc.get("guild_id")),
-                description=(
-                    ", ".join([*(doc.get("games") or []), *(doc.get("mods") or [])])[:100]
-                    or "aucun accès actif"
-                ),
+        options = []
+        for doc in guilds[:25]:
+            guild = interaction.client.get_guild(int(doc.get("guild_id") or 0))
+            name = guild.name if guild is not None else "Guilde inconnue"
+            games = ", ".join(doc.get("games") or []) or "—"
+            mods = ", ".join(doc.get("mods") or []) or "—"
+            options.append(
+                discord.SelectOption(
+                    label=f"{name} ({doc.get('guild_id')})",
+                    value=str(doc.get("guild_id")),
+                    description=f"jeux : {games} · mods : {mods}"[:100],
+                )
             )
-            for doc in guilds[:25]
-        ]
         if not options:
             await interaction.followup.send("Aucune guilde enregistrée.", ephemeral=True)
             return

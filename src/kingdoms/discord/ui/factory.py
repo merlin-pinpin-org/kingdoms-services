@@ -176,6 +176,7 @@ class Option:
     value: str
     description: str = ""
     emoji: str = ""
+    default: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,6 +214,7 @@ class SelectMenu:
                     label=o.label,
                     value=o.value,
                     description=o.description or None,
+                    default=o.default,
                     emoji=discord.PartialEmoji.from_str(o.emoji) if o.emoji else None,
                 )
                 for o in self.options

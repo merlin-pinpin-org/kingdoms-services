@@ -151,13 +151,31 @@ async def build_dm_setup_view(
             await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
-        await interaction.response.edit_message(
-            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter)
-        )
+        # Re-render the merged panel (admin panel + embedded locale
+        # select) when the clicker is a bot admin outside a guild — the
+        # dm_setup view alone replaced the whole admin panel before.
+        if not interaction.guild_id and _is_bot_admin(interaction.user.id, bot_admins):
+            from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+
+            dm_view = await build_dm_setup_view(
+                logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
+            )
+            locale_select = next(
+                (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
+            )
+            await interaction.response.edit_message(
+                view=await build_admin_dm_panel(interaction, locale_select=locale_select)
+            )
+        else:
+            await interaction.response.edit_message(
+                view=await build_dm_setup_view(
+                    logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
+                )
+            )
 
     locale_select = SelectMenu(
         custom_id=USER_LOCALE_SELECT_ID,
-        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
+        options=tuple(Option(_LOCALE_LABELS[loc], loc, default=loc == locale) for loc in LOCALES),
         on_choose=on_user_locale,
         placeholder=_t(catalog, locale, "dm_placeholder"),
     )

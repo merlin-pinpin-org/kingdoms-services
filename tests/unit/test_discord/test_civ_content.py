@@ -53,7 +53,6 @@ def test_section_lines_cover_every_part() -> None:
     sections = civ_section_lines(parse_civ_help(FRANKS_HELP))
     labels = [label for label, _ in sections]
     assert labels == [
-        "Type de civilisation",
         "Bonus de civilisation",
         "Unité unique",
         "Technologies uniques",
