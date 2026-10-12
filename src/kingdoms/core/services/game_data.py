@@ -120,6 +120,10 @@ class GameDataDatabase(Protocol):
         """List the still-open activations referencing one pool."""
         ...
 
+    async def delete_entry(self, collection: str, entry_id: str) -> bool:
+        """Delete one document by ``_id``; True when one was removed."""
+        ...
+
 
 class GameDataAudit(Protocol):
     """Narrow audit seam: every mutation is recorded (best-effort)."""
@@ -275,6 +279,23 @@ class GameDataService:
         await self._db.upsert_entry(MAPS_COLLECTION, updated.to_mongo())
         await self._audit_record("map.update", {"entry_id": entry_id, "changes": updates})
         return updated
+
+    async def delete_map(self, entry_id: str) -> bool:
+        """Hard-delete a map record (rollback and orphan cleanup only).
+
+        The normal lifecycle is archival-only, but two paths need a
+        real delete: the rollback of a just-created map whose import
+        failed after the record landed (#259), and the cleanup of an
+        orphaned map (no forum thread, nothing user-visible to
+        archive). Refuses to delete a map referenced by a pool.
+        """
+        entry = await self._require(MAPS_COLLECTION, entry_id, MapModel.from_mongo)
+        for pool in await self._db.find_active_map_pools(entry.game_key):
+            if entry_id in (pool.get("map_ids") or ()):
+                raise ValueError(f"map {entry_id!r} is referenced by pool {pool.get('_id')!r}")
+        await self._db.delete_entry(MAPS_COLLECTION, entry_id)
+        await self._audit_record("map.delete", {"entry_id": entry_id})
+        return True
 
     async def archive_map(self, entry_id: str) -> MapModel:
         """Archive a map (archival-only delete)."""

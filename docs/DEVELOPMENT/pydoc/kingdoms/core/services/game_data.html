@@ -268,6 +268,8 @@ Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;the&nbsp;<a href="#GameDataService
 Methods defined here:<br>
 <dl><dt><a name="GameDataDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
 
+<dl><dt>async <a name="GameDataDatabase-delete_entry"><strong>delete_entry</strong></a>(self, collection: 'str', entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Delete&nbsp;one&nbsp;document&nbsp;by&nbsp;``_id``;&nbsp;True&nbsp;when&nbsp;one&nbsp;was&nbsp;removed.</span></dd></dl>
+
 <dl><dt>async <a name="GameDataDatabase-find_active_factions"><strong>find_active_factions</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;factions&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;like&nbsp;the&nbsp;maps.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataDatabase-find_active_map_pools"><strong>find_active_map_pools</strong></a>(self, game_key: 'str', guild_id: 'str | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;the&nbsp;non-archived&nbsp;map&nbsp;pools&nbsp;for&nbsp;a&nbsp;game,&nbsp;scoped&nbsp;for&nbsp;one&nbsp;guild.<br>
@@ -312,7 +314,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'find_active_factions', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', 'find_game_keys', ...}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'delete_entry', 'find_active_factions', 'find_active_map_pools', 'find_active_maps', 'find_by_name', 'find_entry', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -385,6 +387,14 @@ The&nbsp;pool&nbsp;belongs&nbsp;to&nbsp;a&nbsp;guild&nbsp;(``owner_guild_id``)&n
 its&nbsp;owner&nbsp;(#04fcb94c).</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-create_rule"><strong>create_rule</strong></a>(self, game_key: 'str', name: 'str', rule_key: 'str' = '', params: 'dict[str, str] | None' = None, description: 'str' = '') -&gt; 'RuleModel'</dt><dd><span class="code">Create&nbsp;a&nbsp;game&nbsp;rule/format&nbsp;entry;&nbsp;name&nbsp;unique&nbsp;among&nbsp;non-archived.</span></dd></dl>
+
+<dl><dt>async <a name="GameDataService-delete_map"><strong>delete_map</strong></a>(self, entry_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Hard-delete&nbsp;a&nbsp;map&nbsp;record&nbsp;(rollback&nbsp;and&nbsp;orphan&nbsp;cleanup&nbsp;only).<br>
+&nbsp;<br>
+The&nbsp;normal&nbsp;lifecycle&nbsp;is&nbsp;archival-only,&nbsp;but&nbsp;two&nbsp;paths&nbsp;need&nbsp;a<br>
+real&nbsp;delete:&nbsp;the&nbsp;rollback&nbsp;of&nbsp;a&nbsp;just-created&nbsp;map&nbsp;whose&nbsp;import<br>
+failed&nbsp;after&nbsp;the&nbsp;record&nbsp;landed&nbsp;(#259),&nbsp;and&nbsp;the&nbsp;cleanup&nbsp;of&nbsp;an<br>
+orphaned&nbsp;map&nbsp;(no&nbsp;forum&nbsp;thread,&nbsp;nothing&nbsp;user-visible&nbsp;to<br>
+archive).&nbsp;Refuses&nbsp;to&nbsp;delete&nbsp;a&nbsp;map&nbsp;referenced&nbsp;by&nbsp;a&nbsp;pool.</span></dd></dl>
 
 <dl><dt>async <a name="GameDataService-duplicate_map_pool"><strong>duplicate_map_pool</strong></a>(self, entry_id: 'str', new_name: 'str', owner_guild_id: 'str | None' = None) -&gt; 'MapPoolModel'</dt><dd><span class="code">Duplicate&nbsp;a&nbsp;pool&nbsp;under&nbsp;a&nbsp;new&nbsp;name&nbsp;(a&nbsp;new&nbsp;stable&nbsp;id).<br>
 &nbsp;<br>

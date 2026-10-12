@@ -100,6 +100,22 @@ async def games_admin_entry(interaction: discord.Interaction) -> discord.ui.Layo
     return view
 
 
+async def _refresh_pins_after_mutation(interaction: discord.Interaction) -> None:
+    """Re-render the guild's pinned views after a games mutation (#257).
+
+    No manual refresh affordance: the admin pin (and every surface
+    registered in pinned_views) is edited in place, best-effort.
+    """
+    if interaction.guild_id is None:
+        return
+    try:
+        from kingdoms.discord.pinned_views import refresh_registered_pins
+
+        await refresh_registered_pins(str(interaction.guild_id))
+    except Exception:
+        logger.warning("pin refresh after mutation failed — best-effort", exc_info=True)
+
+
 class GamesGameSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
     template=rf"{_NS}:game:(?P<game_key>[a-z0-9_]+)",
@@ -455,6 +471,9 @@ async def maps_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.L
     select_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     select_row.add_item(GamesMapArchiveSelect(game_key))
     view.add_item(select_row)
+    delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    delete_row.add_item(GamesMapDeleteSelect(game_key))
+    view.add_item(delete_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesMapCreateButton(game_key))
     action_row.add_item(GamesMapCreateButton(game_key, global_scope=True))
@@ -674,6 +693,7 @@ class GamesMapArchiveSelect(
             view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
         )
         await interaction.followup.send(message, ephemeral=True)
+        await _refresh_pins_after_mutation(interaction)
 
 
 async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.LayoutView:
@@ -702,6 +722,77 @@ async def pools_admin_view(game_key: str, from_pin: bool = False) -> discord.ui.
     if not from_pin:
         view.add_item(GamesPoolsBackButton(game_key))
     return view
+
+
+class GamesMapDeleteSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:maps:delete:(?P<game_key>[a-z0-9_]+)",
+):
+    """Hard-delete a map record (orphan cleanup; no forum thread needed)."""
+
+    def __init__(self, game_key: str, options: list[discord.SelectOption] | None = None) -> None:
+        self.game_key = game_key
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:maps:delete:{game_key}"[:100],
+                options=options or [discord.SelectOption(label="Aucune map", value="none")],
+                placeholder="Supprimer une map...",
+                max_values=1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesMapDeleteSelect:
+        """Rebuild the options at click time (the game's maps)."""
+        del interaction, item
+        service = _games_wiring()
+        options: list[discord.SelectOption] = []
+        if service is not None:
+            maps = await service.list_maps(match.group("game_key"))
+            options = [
+                discord.SelectOption(label=m.name, value=m.id) for m in maps[:25] if m.archived_at is None
+            ]
+        return cls(match.group("game_key"), options or None)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Delete the chosen map through the service (#259 cleanup path)."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        chosen = (_selected_values(interaction) or [""])[0]
+        if not chosen or chosen == "none":
+            await interaction.response.defer()
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        try:
+            await service.delete_map(chosen)
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: map delete failed (%s)", chosen)
+            await interaction.followup.send(
+                f"Suppression échouée : {exc}", ephemeral=True
+            )
+            return
+        from kingdoms.discord.maps_forum import sync_maps_forum
+
+        if interaction.guild_id is not None:
+            try:
+                await sync_maps_forum(str(interaction.guild_id), self.game_key, interaction.client)
+            except Exception:
+                logger.warning("GAMES ADMIN: forum sync after delete failed — best-effort")
+        await interaction.edit_original_response(
+            view=await maps_admin_view(self.game_key, from_pin=from_pin(interaction))
+        )
 
 
 class GamesPoolCreateButton(
@@ -777,6 +868,7 @@ class GamesPoolCreateModal(discord.ui.Modal):
         await interaction.response.send_message(
             f"Pool **{pool.name}** créé - ajoute ses maps via la liste.", ephemeral=True
         )
+        await _refresh_pins_after_mutation(interaction)
 
 
 class GamesPoolEditSelect(
@@ -992,6 +1084,7 @@ class GamesPoolArchiveButton(
             return
         await interaction.response.edit_message(view=await pools_admin_view(pool.game_key))
         await interaction.followup.send("Pool supprime (archive).", ephemeral=True)
+        await _refresh_pins_after_mutation(interaction)
 
 
 PAGE_SIZE = 25  # Discord's hard cap on select options
@@ -1403,6 +1496,69 @@ class GamesMapImportButton(
         await interaction.response.send_modal(GamesMapImportModal(self.game_key))
 
 
+async def _finish_map_import(
+    interaction: discord.Interaction,
+    service: Any,
+    game_key: str,
+    entry: Any,
+    seed: Any,
+) -> None:
+    """Store the imported map's content and sync its forum post (#259).
+
+    Transactional tail: any failure after the record landed rolls the
+    record back — no orphaned "name taken" residue. When the rollback
+    itself fails, the popup says the map is orphaned and how to clean
+    it (delete from the Maps menu, no forum thread needed).
+    """
+    try:
+        if seed.image_url:
+            from kingdoms.discord.content_posts import content_service
+
+            content = content_service()
+            if content is not None:
+                await content.store(
+                    {
+                        "entity_id": entry.id,
+                        "locale": "en",
+                        "name": entry.name,
+                        "summary": seed.description,
+                        "source_url": seed.resource_url,
+                        "image_url": seed.image_url,
+                        "provider": "liquipedia",
+                    }
+                )
+        from kingdoms.discord.maps_forum import sync_maps_forum
+
+        if interaction.guild_id is not None:
+            await sync_maps_forum(str(interaction.guild_id), game_key, interaction.client)
+    except Exception as exc:
+        logger.exception("GAMES ADMIN: map import tail failed — rolling back %s", entry.id)
+        rolled_back = False
+        try:
+            await service.delete_map(entry.id)
+            rolled_back = True
+        except Exception:
+            logger.exception("GAMES ADMIN: rollback failed for %s", entry.id)
+        if rolled_back:
+            await interaction.followup.send(
+                f"Import échoué à l'étape « contenu/forum » ({exc}) — la map a été supprimée, "
+                "réessaie.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.followup.send(
+                f"Import échoué à l'étape « contenu/forum » ({exc}) et le nettoyage a échoué : "
+                f"la map **{entry.name}** (`{entry.id}`) est orpheline — supprime-la depuis le "
+                "menu Maps puis réessaie.",
+                ephemeral=True,
+            )
+        return
+    await interaction.followup.send(
+        f"Map **{entry.name}** importée — son post est dans le forum maps.",
+        ephemeral=True,
+    )
+
+
 class GamesMapImportModal(discord.ui.Modal):
     """The Liquipedia map import form: the map's page name."""
 
@@ -1450,6 +1606,8 @@ class GamesMapImportModal(discord.ui.Modal):
                 ephemeral=True,
             )
             return
+        from kingdoms.core.services.game_data import NameTakenError
+
         try:
             entry = await service.create_map(
                 self.game_key,
@@ -1460,32 +1618,19 @@ class GamesMapImportModal(discord.ui.Modal):
                 owner_guild_id=guild_id,
                 map_type=seed.map_type,
             )
-        except Exception:
-            logger.exception("GAMES ADMIN: map import failed")
+        except NameTakenError as error:
             await interaction.followup.send(
-                await reply(interaction, "replies_shared.import_failed"), ephemeral=True
+                f"Import refusé — {error}. Supprime ou archive la map existante d'abord.",
+                ephemeral=True,
             )
             return
-        if seed.image_url:
-            from kingdoms.discord.content_posts import content_service
-
-            content = content_service()
-            if content is not None:
-                await content.store(
-                    {
-                        "entity_id": entry.id,
-                        "locale": "en",
-                        "name": entry.name,
-                        "summary": seed.description,
-                        "source_url": seed.resource_url,
-                        "image_url": seed.image_url,
-                        "provider": "liquipedia",
-                    }
-                )
-        await interaction.followup.send(
-            f"Map **{entry.name}** importée — son post apparaîtra au prochain passage du forum.",
-            ephemeral=True,
-        )
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: map creation failed")
+            await interaction.followup.send(
+                f"Import échoué à l'étape « création » : {exc}", ephemeral=True
+            )
+            return
+        await _finish_map_import(interaction, service, self.game_key, entry, seed)
 
 
 class GamesPoolImportButton(
@@ -1597,12 +1742,14 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesMapsBackButton,
         GamesPoolsBackButton,
         GamesMapArchiveSelect,
+        GamesMapDeleteSelect,
         GamesMapCreateButton,
         GamesPoolCreateButton,
         GamesPoolEditSelect,
         GamesPoolRenameButton,
         GamesPoolArchiveButton,
         GamesPoolMapToggle,
+        GamesPoolMapPageSelect,
         GamesPoolDuplicateButton,
         GamesPoolSendButton,
         GamesMapImportButton,

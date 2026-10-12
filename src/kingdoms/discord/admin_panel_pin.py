@@ -87,7 +87,21 @@ async def ensure_pinned_admin_menu(
 
     required_ids = (mod_section_route_id("mods"),) if registered_admin_mod_sections() else ()
     delivery = _AdminPinDelivery(admin_channel_service, admin_ids, guild_id)
-    service = PinnedMenuService(delivery, delivery)
+
+    async def _registered_menu_id(guild: str) -> str | None:
+        """Resolve the registered admin pin id (#256): registry-first."""
+        registry = getattr(bot, "message_registry", None)
+        if registry is None:
+            return None
+        try:
+            registered = await registry.resolve("discord", "view:admin", guild)
+            if registered is None:
+                registered = await registry.resolve("discord", "admin-panel", guild)
+            return str(registered.message_id) if registered is not None else None
+        except Exception:
+            return None
+
+    service = PinnedMenuService(delivery, delivery, registered_id_resolver=_registered_menu_id)
     created = await service.ensure(
         str(guild_id),
         cast("PinnedMenuChannel", channel),
