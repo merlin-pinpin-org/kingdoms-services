@@ -19,6 +19,31 @@ logger = logging.getLogger("kingdoms.mapsdata")
 DEFAULT_USER_AGENT_TEMPLATE = "KingdomsBot/1.0 (https://github.com/merlin-pinpin-org/kingdoms; {contact})"
 
 
+def _extract_page_name(name: str) -> str:
+    """Extract the page title from a name or a full Liquipedia URL.
+
+    "https://liquipedia.net/ageofempires/Team_Islands" ->
+    "Team Islands"; query strings and trailing paths drop.
+    """
+    name = name.strip()
+    if "liquipedia.net" in name:
+        tail = name.split("/ageofempires/")[-1]
+        tail = tail.split("?")[0].split("#")[0].strip("/")
+        return tail.replace("_", " ")
+    return name
+
+
+def _title_variants(name: str) -> list[str]:
+    """Return the casings to try, in order: as-given, then title-cased.
+
+    MediaWiki resolves page titles case-sensitively; a lowercase
+    catalog name ("team islands") misses the cased wiki title ("Team
+    Islands") — both casings are tried, first hit wins.
+    """
+    title = " ".join(w[:1].upper() + w[1:] for w in name.split())
+    return [name] if name == title else [name, title]
+
+
 def _user_agent() -> str:
     """Build the identified User-Agent; the contact comes from config."""
     contact = os.environ.get("LIQUIPEDIA_CONTACT", "")
@@ -69,6 +94,7 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
     if not user_agent:
         logger.debug("liquipedia seed skipped: LIQUIPEDIA_CONTACT unset")
         raise LiquipediaUnconfiguredError("LIQUIPEDIA_CONTACT is not set")
+    name = _extract_page_name(name)
     from kingdoms.mapsdata.liquipedia import (
         LIQUIPEDIA_ATTRIBUTION,
         LiquipediaMapsProvider,
@@ -78,7 +104,15 @@ async def fetch_map_seed(name: str) -> MapSeed | None:
 
     provider = LiquipediaMapsProvider(user_agent)
     try:
-        data = provider.map_data(name)
+        data = None
+        for variant in _title_variants(name):
+            try:
+                data = provider.map_data(variant)
+                break
+            except RuntimeError:
+                continue
+        if data is None:
+            return None
         return MapSeed(
             name=data.info.name,
             description=data.info.description,
