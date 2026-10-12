@@ -77,6 +77,7 @@ class MapInfo:
     nomad: str = ""
     walls: str = ""
     tc: str = ""
+    gallery_icon: str = ""
     game_versions: tuple[str, ...] = ()
     versions: tuple[MapVersion, ...] = ()
 
@@ -87,6 +88,7 @@ class MapData:
 
     info: MapInfo
     image_url: str
+    icon_url: str = ""
     attribution: str = LIQUIPEDIA_ATTRIBUTION
 
 
@@ -201,7 +203,10 @@ class LiquipediaMapsProvider:
                 "available under a licence compatible with republication; "
                 "refusing to import it (Liquipedia CC-BY-SA terms)."
             )
-        return MapData(info=info, image_url=image_url)
+        icon_url = ""
+        if info.gallery_icon:
+            icon_url = self._resolve_image_url(info.gallery_icon)
+        return MapData(info=info, image_url=image_url, icon_url=icon_url)
 
     def _fetch_infobox(self, page: str) -> MapInfo:
         payload = self._get_json(
@@ -230,6 +235,7 @@ class LiquipediaMapsProvider:
             image_license="",
             source_url=f"{LIQUIPEDIA_ATTRIBUTION}{page}",
             nomad=self._clean_wikitext(fields.get("nomad", "")),
+            gallery_icon=self._parse_gallery_icon(wikitext),
             walls=self._clean_wikitext(fields.get("walls", "")),
             tc=self._clean_wikitext(fields.get("tc", "")),
             game_versions=self._parse_game_tabs(wikitext),
@@ -302,6 +308,17 @@ class LiquipediaMapsProvider:
         text = re.sub(r"<[^>]+>", "", text)
         return text.strip()
 
+
+    @staticmethod
+    def _parse_gallery_icon(wikitext: str) -> str:
+        """Extract the in-game icon File: name from the Gallery.
+
+        The section lists "<gallery>File:Name.png|in-game icon...</gallery>"
+        — the first File: entry is the map's in-game icon (the post's
+        thumbnail). Empty when the page has no Gallery.
+        """
+        match = re.search(r"<gallery[^>]*>\s*File:([^|\n<]+)", wikitext)
+        return match.group(1).strip() if match else ""
 
     @classmethod
     def _parse_game_tabs(cls, wikitext: str) -> tuple[str, ...]:

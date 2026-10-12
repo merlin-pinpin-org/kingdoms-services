@@ -80,9 +80,10 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
             await _refresh_map_post(bot, platform, guild_id, entry, service)
             continue
         from kingdoms.core.ids import footer
-        from kingdoms.discord.content_posts import entity_post_content
 
-        _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
+        _, summary, source, image, icon, walls, nomad, tc = await _map_content_full(
+            entry.id, guild_id, bot
+        )
         source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
@@ -99,6 +100,10 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
             filenames=(),
             game_key=str(getattr(entry, "game_key", "")),
             owned_by_guild=entry.owner_guild_id == guild_id,
+            icon_url=icon,
+            walls=walls,
+            nomad=nomad,
+            tc=tc,
         )
         display = f"{entry.name[:1].upper()}{entry.name[1:]}"
         tail = f"{source}\n" if source else ""
@@ -156,44 +161,53 @@ def _map_post_view(
     filenames: tuple[str, ...] = (),
     game_key: str = "",
     owned_by_guild: bool = False,
+    icon_url: str = "",
+    walls: str = "",
+    nomad: str = "",
+    tc: str = "",
 ) -> discord.ui.LayoutView:
-    """Build the map post's Components V2 layout, like the civ cards.
+    """Build the map post's Components V2 layout.
 
-    One container: capitalized title, the map type as subtitle, the
-    source URL right under it, the Liquipedia image as the header
-    section's side accessory, the description, the pools, and the id
-    as the small footer line. The action bar (add-to-pool, edit for
-    guild maps, delete) sits under the container. A Section holds at
-    most 3 text children (Discord 50035) — the header is one text
-    block by construction.
+    Header: capitalized title with the in-game icon (Gallery) as the
+    section's thumbnail, then the properties as label lines (Type,
+    Walls, Nomad), then the description, the main infobox image, the
+    source link and the id footer — each block behind a divider, as
+    the designer specced. The action bar (add-to-pool, edit for guild
+    maps, delete) sits under the container. A Section holds at most 3
+    text children (Discord 50035); the header is one text block by
+    construction.
     """
     from kingdoms.core.ids import footer
     from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapDeleteButton, MapEditButton
 
     view = discord.ui.LayoutView(timeout=None)
-    header = f"## {name[:1].upper()}{name[1:]}"
-    if map_type:
-        header += f"\n*{map_type}*"
-    if source:
-        header += f"\n{source}"
-    blocks: list[discord.ui.Item[discord.ui.LayoutView]] = []
-    media = image or resource_url
-    if media:
-        blocks.append(
-            discord.ui.Section(
-                discord.ui.TextDisplay(header),
-                accessory=discord.ui.Thumbnail(media),
-            )
+    display = f"## {name[:1].upper()}{name[1:]}"
+    header_blocks: list[discord.ui.Item[discord.ui.LayoutView]] = [discord.ui.TextDisplay(display)]
+    if icon_url:
+        view.add_item(
+            discord.ui.Section(*header_blocks, accessory=discord.ui.Thumbnail(icon_url))
         )
     else:
-        blocks.append(discord.ui.TextDisplay(header))
-    blocks.append(discord.ui.Separator())
+        view.add_item(discord.ui.Container(*header_blocks))
+
+    body: list[discord.ui.Item[discord.ui.LayoutView]] = []
+    props = _map_props_lines(map_type, walls, nomad, tc)
+    if props:
+        body.append(discord.ui.TextDisplay("\n".join(props)))
     if description:
-        blocks.append(discord.ui.TextDisplay(description))
+        body.append(discord.ui.Separator())
+        body.append(discord.ui.TextDisplay(description))
+    if image:
+        body.append(discord.ui.Separator())
+        body.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
+    if source:
+        body.append(discord.ui.Separator())
+        body.append(discord.ui.TextDisplay(f"Source : [Liquipedia]({source})"))
     if pools:
-        blocks.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
-    blocks.append(discord.ui.TextDisplay(footer(map_id)))
-    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+        body.append(discord.ui.Separator())
+        body.append(discord.ui.TextDisplay("**Map pools**\n" + "\n".join(pools)))
+    body.append(discord.ui.TextDisplay(footer(map_id)))
+    view.add_item(discord.ui.Container(*body, accent_colour=discord.Colour(0x5865F2)))
     actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     actions.add_item(MapAddToPoolButton(map_id))
     if editable:
@@ -216,13 +230,14 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
         _remember_layout_render,
         _stagger_stale_edit,
     )
-    from kingdoms.discord.content_posts import entity_post_content
 
     thread_id = str(entry.forum_message_id)
     if _stagger_stale_edit(thread_id, time.monotonic()):
         return
     try:
-        _, summary, source, image = await entity_post_content(entry.id, "", guild_id, bot)
+        _, summary, source, image, icon, walls, nomad, tc = await _map_content_full(
+            entry.id, guild_id, bot
+        )
         source = source or liquipedia_map_url(entry.name)
         description = summary or (entry.description or "_Aucune description._")
         pools = await _map_pools_link(service, entry, guild_id, bot=bot)
@@ -239,6 +254,10 @@ async def _refresh_map_post(bot: Any, platform: Any, guild_id: str, entry: Any, 
             filenames=(),
             game_key=str(getattr(entry, "game_key", "")),
             owned_by_guild=entry.owner_guild_id == guild_id,
+            icon_url=icon,
+            walls=walls,
+            nomad=nomad,
+            tc=tc,
         )
         display = f"{entry.name[:1].upper()}{entry.name[1:]}"
         tail = f"{source}\n" if source else ""
@@ -302,3 +321,50 @@ async def _ensure_section_pins_after_sync(bot: Any, guild_id: str) -> None:
                 await ensure_static_pin(bot, spec, guild_id)
     except Exception:
         logger.warning("section pins ensure after forum sync failed — best-effort", exc_info=True)
+
+async def _map_content_full(
+    entity_id: str, guild_id: str, bot: Any
+) -> tuple[str, str, str, str, str, str, str, str]:
+    """Resolve a map's full stored content for its post.
+
+    ``(name, summary, source, image, icon, walls, nomad, tc)`` — the
+    traits (walls/nomad/tc) live as separate keys next to the summary
+    since the label-line layout split them out of the summary blob.
+    """
+    from kingdoms.discord.content_posts import content_service, guild_locale
+
+    service = content_service()
+    locale = await guild_locale(guild_id, bot)
+    doc = None
+    if service is not None:
+        for candidate in (locale, "en"):
+            try:
+                doc = await service.get(entity_id, candidate)
+            except Exception:
+                doc = None
+            if doc is not None:
+                break
+    if doc is None:
+        return "", "", "", "", "", "", "", ""
+    return (
+        str(doc.get("name") or ""),
+        str(doc.get("summary") or ""),
+        str(doc.get("source_url") or ""),
+        str(doc.get("image_url") or ""),
+        str(doc.get("icon_url") or ""),
+        str(doc.get("walls") or ""),
+        str(doc.get("nomad") or ""),
+        str(doc.get("tc") or ""),
+    )
+
+def _map_props_lines(map_type: str, walls: str, nomad: str, tc: str) -> list[str]:
+    """Render the map's properties as label lines (Type/Walls/Nomad/TC)."""
+    props = [f"**Type** : {map_type}"] if map_type else []
+    if walls:
+        props.append(f"**Walls** : {walls}")
+    if nomad:
+        shown = "Oui" if nomad.strip().lower() in ("yes", "true") else nomad
+        props.append(f"**Nomad** : {shown}")
+    if tc and tc.isdigit() and int(tc) > 1:
+        props.append(f"**TC** : {tc}")
+    return props
