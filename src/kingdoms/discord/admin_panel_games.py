@@ -967,6 +967,14 @@ async def pool_editor_view(pool_id: str, game_key: str, page: int = 0, from_pin:
         else:
             select_row.add_item(GamesPoolAddByIdButton(pool_id))
         view.add_item(select_row)
+        remove_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        member_options = [
+            discord.SelectOption(label=names.get(mid, mid), value=mid)
+            for mid in pool.map_ids
+            if mid in names
+        ]
+        remove_row.add_item(GamesPoolMapRemoveSelect(pool_id, member_options or None))
+        view.add_item(remove_row)
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     action_row.add_item(GamesPoolDuplicateButton(pool_id))
     if pool.edition_mode:
@@ -1279,6 +1287,90 @@ class GamesPoolMapToggle(
             view=await pool_editor_view(self.pool_id, pool.game_key, self.page, from_pin=from_pin(interaction))
         )
         await interaction.followup.send("Map retiree." if removed else "Map ajoutee.", ephemeral=True)
+
+
+class GamesPoolMapRemoveSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:pools:remove:(?P<pool_id>.+)",
+):
+    """Remove maps from the pool (multi-select, pool members only).
+
+    The pool caps at 25 maps by contract, so its members always fit
+    one select; picking one or more removes them all, then the
+    editor re-renders.
+    """
+
+    def __init__(self, pool_id: str, options: list[discord.SelectOption] | None = None) -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:pools:remove:{pool_id}"[:100],
+                options=options or [discord.SelectOption(label="Aucune map", value="none")],
+                placeholder="Retirer des maps du pool...",
+                min_values=1,
+                max_values=min(25, len(options)) if options else 1,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GamesPoolMapRemoveSelect:
+        """Rebuild the options at click time (the pool's members)."""
+        del interaction, item
+        service = _games_wiring()
+        options: list[discord.SelectOption] = []
+        if service is not None:
+            pool = await service.get_map_pool(match.group("pool_id"))
+            if pool is not None:
+                for map_id in pool.map_ids:
+                    entry = await service.get_map(map_id)
+                    if entry is not None and entry.archived_at is None:
+                        options.append(discord.SelectOption(label=entry.name, value=entry.id))
+        return cls(match.group("pool_id"), options or None)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Remove the chosen maps from the pool, re-render the editor."""
+        from kingdoms.discord.maps_pool_flow import _guard_admin
+
+        if not await _guard_admin(interaction):
+            return
+        chosen = [v for v in _selected_values(interaction) if v and v != "none"]
+        if not chosen:
+            await interaction.response.defer()
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = _games_wiring()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.followup.send("Pool introuvable.", ephemeral=True)
+            return
+        remaining = tuple(m for m in pool.map_ids if m not in set(chosen))
+        try:
+            await service.update_map_pool(self.pool_id, map_ids=remaining)
+        except Exception as exc:
+            logger.exception("GAMES ADMIN: pool map removal failed")
+            await interaction.followup.send(f"Échec : {exc}", ephemeral=True)
+            return
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("GAMES ADMIN: pools sync after removal failed — best-effort")
+        await interaction.edit_original_response(
+            view=await pool_editor_view(self.pool_id, pool.game_key, 0, from_pin=from_pin(interaction))
+        )
+        await interaction.followup.send(f"{len(chosen)} map(s) retirée(s).", ephemeral=True)
+
 
 
 class GamesMapsBackButton(
@@ -2023,6 +2115,7 @@ def register_games_admin_items(bot: discord.Client) -> None:
         GamesPoolMapToggle,
         GamesPoolMapPageSelect,
         GamesPoolAddByIdButton,
+        GamesPoolMapRemoveSelect,
         GamesPoolDuplicateButton,
         GamesPoolSendButton,
         GamesMapImportButton,

@@ -323,8 +323,11 @@ class PoolMapPickerView(discord.ui.View):
                 f"Ajouter une map à **{self.pool.name}**", view=self, ephemeral=True
             )
             return
-        await interaction.response.send_modal(
-            PoolAddMapByIdModal(self.pool.id, self.pool.name)
+        await interaction.response.send_message(
+            "Le catalogue dépasse 25 maps — pas de sélect ici. Ajoute la map par id "
+            "(bouton « Ajouter une map (id) ») ou **depuis le post de chaque map** "
+            "(bouton « Ajouter à un map pool »).",
+            ephemeral=True,
         )
 
     async def _on_pick(self, interaction: discord.Interaction) -> None:
