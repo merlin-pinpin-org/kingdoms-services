@@ -54,9 +54,9 @@ class _FakeMap:
 class _FakeService:
     async def get_map(self, map_id: str) -> Any:
         known = {
-            "map:aoe2:arabia": _FakeMap("map:aoe2:arabia", "Arabia", "https://x/arabia.png", "111"),
-            "map:aoe2:plain": _FakeMap("map:aoe2:plain", "Plain"),
-            "map:aoe2:gone": _FakeMap("map:aoe2:gone", "Gone", archived_at=1),
+            "map:public:arabia": _FakeMap("map:public:arabia", "Arabia", "https://x/arabia.png", "111"),
+            "map:public:plain": _FakeMap("map:public:plain", "Plain"),
+            "map:public:gone": _FakeMap("map:public:gone", "Gone", archived_at=1),
         }
         return known.get(map_id)
 
@@ -69,7 +69,7 @@ class _FakePool:
     map_ids: tuple[str, ...]
 
 
-_POOL = _FakePool("map_pool:aoe2:p1", "Rotation 1", "Desc", ("map:aoe2:arabia", "map:aoe2:plain", "map:aoe2:gone"))
+_POOL = _FakePool("map_pool:aoe2:p1", "Rotation 1", "Desc", ("map:public:arabia", "map:public:plain", "map:public:gone"))
 
 
 async def test_pool_maps_resolves_members_keeps_linkless_maps() -> None:

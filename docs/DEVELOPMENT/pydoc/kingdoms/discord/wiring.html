@@ -53,13 +53,18 @@ resolved&nbsp;id&nbsp;(never&nbsp;the&nbsp;name)&nbsp;in&nbsp;the&nbsp;channels&
 When&nbsp;the&nbsp;access&nbsp;service&nbsp;is&nbsp;unavailable&nbsp;(no&nbsp;Mongo),&nbsp;the&nbsp;forums&nbsp;keep<br>
 syncing&nbsp;as&nbsp;before&nbsp;—&nbsp;the&nbsp;seam&nbsp;degrades&nbsp;open&nbsp;for&nbsp;the&nbsp;core&nbsp;surfaces,<br>
 while&nbsp;mod&nbsp;provisioning&nbsp;is&nbsp;the&nbsp;strict&nbsp;seam&nbsp;(nothing&nbsp;active).</span></dd></dl>
- <dl><dt><a name="-set_guild_access_platform"><strong>set_guild_access_platform</strong></a>(games: 'tuple[str, ...]', mods: 'tuple[str, ...]') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(bot&nbsp;build&nbsp;time).</span></dd></dl>
+ <dl><dt><a name="-mod_required_games"><strong>mod_required_games</strong></a>(mod_name: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;games&nbsp;a&nbsp;mod&nbsp;declared&nbsp;as&nbsp;required&nbsp;(empty&nbsp;when&nbsp;none).<br>
+&nbsp;<br>
+Recorded&nbsp;at&nbsp;bot&nbsp;build&nbsp;time&nbsp;from&nbsp;the&nbsp;mod&nbsp;registry,&nbsp;next&nbsp;to&nbsp;the<br>
+platform's&nbsp;games/mods&nbsp;—&nbsp;the&nbsp;request&nbsp;picker&nbsp;uses&nbsp;it&nbsp;to&nbsp;add&nbsp;a&nbsp;mod's<br>
+games&nbsp;to&nbsp;the&nbsp;guild's&nbsp;request&nbsp;automatically.</span></dd></dl>
+ <dl><dt><a name="-set_guild_access_platform"><strong>set_guild_access_platform</strong></a>(games: 'tuple[str, ...]', mods: 'tuple[str, ...]', mod_required_games: 'tuple[tuple[str, tuple[str, ...]], ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;platform's&nbsp;known&nbsp;games&nbsp;and&nbsp;mods&nbsp;(bot&nbsp;build&nbsp;time).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None', '_PROVIDER_MAPPING_SERVICE': 'Any | None'}<br>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_GAMES_SERVICE': 'Any | None', '_GUILD_ACCESS_MODS': 'tuple[str, ...]', '_GUILD_ACCESS_PLATFORM': 'tuple[str, ...]', '_GUILD_ACCESS_SERVICE': 'Any | None', '_MOD_REQUIRED_GAMES': 'tuple[tuple[str, tuple[str, ...]], ...]', '_PROVIDER_MAPPING_SERVICE': 'Any | None'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.wiring (WARNING)&gt;</td></tr></table>
 </body></html>

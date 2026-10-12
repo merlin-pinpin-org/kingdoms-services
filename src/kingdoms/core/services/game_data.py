@@ -24,7 +24,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
 
-from kingdoms.core.ids import slug_id
+from kingdoms.core.ids import map_entry_id, slug_id
 from kingdoms.core.models.game_data import (
     FactionModel,
     MapModel,
@@ -203,7 +203,7 @@ class GameDataService:
         if await self._db.find_by_name(MAPS_COLLECTION, game_key, name) is not None:
             raise NameTakenError(f"map {name!r} already exists for game {game_key!r}")
         entry = MapModel(
-            _id=f"map:{game_key}:{slug_id(name)}",
+            _id=map_entry_id(game_key, name, owner_guild_id),
             game_key=game_key,
             name=name,
             filename=filename,
@@ -737,7 +737,7 @@ class GameDataService:
         """
         counts = {"maps": 0, "factions": 0, "rules": 0}
         for spec in data.get("maps", []) or []:
-            if await self.get_map(f"map:{game_key}:{slug_id(spec['name'])}") is not None:
+            if await self.get_map(map_entry_id(game_key, spec["name"], None)) is not None:
                 continue
             await self.create_map(
                 game_key,

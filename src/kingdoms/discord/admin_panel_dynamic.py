@@ -503,9 +503,9 @@ async def build_pin_main_menu(
         _roles_row(_t(catalog, locale, "roles_button")),
         discord.ui.Separator(),
         discord.ui.TextDisplay(
-            "## \U0001f513 Acc\u00e8s games/mods\n"
+            "## \U0001f513 Acc\u00e8s jeux/mods\n"
             "Rien n'est actif par d\u00e9faut : la guilde doit demander l'acc\u00e8s aux "
-            "games et mods ; un bot admin l'approuve depuis ses DMs."
+            "jeux et mods ; un bot admin l'approuve depuis ses DMs."
         ),
     ]
     if guild_id:

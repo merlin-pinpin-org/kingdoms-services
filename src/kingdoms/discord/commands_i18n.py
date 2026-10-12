@@ -78,7 +78,12 @@ async def reply(interaction: discord.Interaction, key: str, **kwargs: object) ->
     locale = await reply_locale(interaction)
     if catalog is None:
         return key
+    # `replies_shared.*` lives at the catalog root, every other reply key
+    # under `replies` — try the prefixed key first, then the bare one, so
+    # a misplaced section never leaks a dotted key to the user.
     rendered: str = catalog.render(f"replies.{key}", locale, **kwargs)
+    if rendered == f"replies.{key}":
+        rendered = catalog.render(key, locale, **kwargs)
     return rendered
 
 

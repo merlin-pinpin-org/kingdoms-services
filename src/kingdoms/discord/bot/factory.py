@@ -744,7 +744,11 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     from kingdoms.core.services.mod_entrypoint import register_mod
     from kingdoms.discord.wiring import set_guild_access_platform
 
-    set_guild_access_platform(games, tuple(registry.enabled()))
+    set_guild_access_platform(
+        games,
+        tuple(registry.enabled()),
+        tuple((name, definition.required_games) for name, definition in registry.enabled().items()),
+    )
     for mod_name in registry.enabled():
         register_mod(bot, resolved, mod_name)
     return bot

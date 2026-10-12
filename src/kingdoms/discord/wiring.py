@@ -25,18 +25,34 @@ _GUILD_ACCESS_SERVICE: Any | None = None
 _GUILD_ACCESS_READY = False
 _GUILD_ACCESS_PLATFORM: tuple[str, ...] = ()
 _GUILD_ACCESS_MODS: tuple[str, ...] = ()
+_MOD_REQUIRED_GAMES: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
-def set_guild_access_platform(games: tuple[str, ...], mods: tuple[str, ...]) -> None:
+def set_guild_access_platform(
+    games: tuple[str, ...],
+    mods: tuple[str, ...],
+    mod_required_games: tuple[tuple[str, tuple[str, ...]], ...] = (),
+) -> None:
     """Record the platform's known games and mods (bot build time)."""
-    global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+    global _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS, _MOD_REQUIRED_GAMES
     _GUILD_ACCESS_PLATFORM = tuple(games)
     _GUILD_ACCESS_MODS = tuple(mods)
+    _MOD_REQUIRED_GAMES = tuple(mod_required_games)
 
 
 def guild_access_platform() -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Return the platform's known games and mods (for request pickers)."""
     return _GUILD_ACCESS_PLATFORM, _GUILD_ACCESS_MODS
+
+
+def mod_required_games(mod_name: str) -> tuple[str, ...]:
+    """Return the games a mod declared as required (empty when none).
+
+    Recorded at bot build time from the mod registry, next to the
+    platform's games/mods — the request picker uses it to add a mod's
+    games to the guild's request automatically.
+    """
+    return dict(_MOD_REQUIRED_GAMES).get(mod_name, ())
 
 
 def build_guild_access_service() -> Any | None:

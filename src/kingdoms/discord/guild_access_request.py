@@ -37,12 +37,12 @@ class GuildAccessRequestSelect(
         self, guild_id: str, options: list[discord.SelectOption] | None = None, disabled: bool = False
     ) -> None:
         self.guild_id = guild_id
-        resolved = options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
+        resolved = options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:select:{guild_id}"[:100],
                 options=resolved,
-                placeholder="Games/mods a demander...",
+                placeholder="Jeux/mods à demander...",
                 min_values=1,
                 max_values=min(25, len(resolved)),
                 disabled=disabled or all(o.value == "none" for o in resolved),
@@ -70,10 +70,11 @@ class GuildAccessRequestSelect(
         """
         data: Any = interaction.data or {}
         data_values: Any = data.get("values") or []
-        chosen = [str(v) for v in data_values if v and v != "none"]
+        raw = [str(v) for v in data_values if v and v != "none"]
+        chosen = _with_required_games(raw)
         await interaction.response.defer(ephemeral=True, thinking=True)
         if not chosen:
-            await interaction.followup.send("Rien a demander — aucun game/mod sélectionné.", ephemeral=True)
+            await interaction.followup.send("Rien à demander — aucun jeu/mod sélectionné.", ephemeral=True)
             return
         service = await _access_service()
         if service is None:
@@ -108,7 +109,7 @@ class GuildAccessRequestButton(
         self.guild_id = guild_id
         super().__init__(
             discord.ui.Button(
-                label="Request access to games/mods",
+                label="Demander l'accès aux jeux/mods",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:open:{guild_id}"[:100],
             )
@@ -138,7 +139,7 @@ class GuildAccessRequestButton(
         options = _request_options()
         if all(option.value == "none" for option in options):
             await interaction.followup.send(
-                "Aucun game/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
+                "Aucun jeu/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
                 ephemeral=True,
             )
             return
@@ -146,7 +147,7 @@ class GuildAccessRequestButton(
         picker = discord.ui.View(timeout=None)
         picker.add_item(select)
         await interaction.followup.send(
-            "Choisis les games/mods que la guilde demande :",
+            "Choisis les jeux/mods que la guilde demande :",
             view=picker,
             ephemeral=True,
         )
@@ -170,9 +171,31 @@ def _request_options() -> list[discord.SelectOption]:
     from kingdoms.discord.wiring import guild_access_platform
 
     games, mods = guild_access_platform()
-    options = [discord.SelectOption(label=f"game : {g}", value=f"game:{g}") for g in games]
+    options = [discord.SelectOption(label=f"jeu : {g}", value=f"game:{g}") for g in games]
     options += [discord.SelectOption(label=f"mod : {m}", value=f"mod:{m}") for m in mods]
-    return options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
+    return options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
+
+
+def _with_required_games(chosen: list[str]) -> list[str]:
+    """Expand a selection with every chosen mod's required games.
+
+    A mod declares the games it needs (``required_games`` in its
+    config/mods/<mod>.yaml — kingdoms requires aoe2); requesting the
+    mod without its game would leave it unusable, so the game rides
+    along automatically (deduplicated, order-stable).
+    """
+    from kingdoms.discord.wiring import mod_required_games
+
+    expanded: list[str] = []
+    for item in chosen:
+        if item not in expanded:
+            expanded.append(item)
+        if item.startswith("mod:"):
+            for game_key in mod_required_games(item.removeprefix("mod:")):
+                entry = f"game:{game_key}"
+                if entry not in expanded:
+                    expanded.append(entry)
+    return expanded
 
 
 _PENDING_DMS: dict[str, list[tuple[str, str]]] = {}

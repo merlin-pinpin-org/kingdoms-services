@@ -108,7 +108,7 @@ class TechtreeContentProvider:
         """
         del locale
         return LocalizedContent(
-            entity_id=f"map:aoe2:{slug_id(map_name)}",
+            entity_id=f"map:public:{slug_id(map_name)}",
             locale="en",
             name=map_name,
             summary="",

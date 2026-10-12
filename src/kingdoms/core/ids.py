@@ -57,6 +57,20 @@ def footer(*ids: str) -> str:
 _NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
 
 
+def map_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
+    """Return a map entry's stable id, scoped by ownership, not by game.
+
+    ``map:public:<slug>`` for the global catalog (config seed, bot
+    admins), ``map:<guild_id>:<slug>`` for a guild's local maps. The
+    game lives in the entry's ``game_key`` field — the id carries the
+    visibility scope, which is what every consumer (forums, pools,
+    permissions) branches on. ``<slug>`` keeps underscores
+    (``slug_id``).
+    """
+    scope = owner_guild_id if owner_guild_id else "public"
+    return f"map:{scope}:{slug_id(name)}"
+
+
 def slug_id(name: str) -> str:
     """Normalize a human name into its stable slug (ids, everywhere).
 

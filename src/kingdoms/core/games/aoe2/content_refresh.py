@@ -141,7 +141,14 @@ async def refresh_aoe2_content(dataset_dir: Path = DATASET_DIR) -> dict[str, int
 
 
 async def _legacy_renames(database: Any, collections: tuple[tuple[str, str], ...]) -> dict[str, str]:
-    """Scan the collections for legacy (non-slug) ids worth renaming."""
+    """Scan the collections for legacy ids worth renaming.
+
+    Maps carry two legacy shapes: non-slug tails and the game-key
+    middle segment (``map:aoe2:arabia``). The current scheme scopes by
+    ownership instead: ``map:public:<slug>`` (global) or
+    ``map:<guild_id>:<slug>`` (guild-local) — the doc's
+    ``owner_guild_id`` decides.
+    """
     renames: dict[str, str] = {}
     for collection, prefix in collections:
         try:
@@ -151,7 +158,11 @@ async def _legacy_renames(database: Any, collections: tuple[tuple[str, str], ...
                 parts = entry_id.split(":")
                 if len(parts) != 3 or parts[0] != prefix:
                     continue
-                wanted = f"{prefix}:{parts[1]}:{slug_id(parts[2])}"
+                if prefix == "map":
+                    scope = str(doc.get("owner_guild_id") or "public")
+                    wanted = f"map:{scope}:{slug_id(parts[2])}"
+                else:
+                    wanted = f"{prefix}:{parts[1]}:{slug_id(parts[2])}"
                 if wanted != entry_id and await database[collection].find_one({"_id": wanted}) is None:
                     renames[entry_id] = wanted
         except Exception:

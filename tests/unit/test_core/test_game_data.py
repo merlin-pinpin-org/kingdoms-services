@@ -89,7 +89,7 @@ GAME = "aoe2"
 async def test_create_and_get_map() -> None:
     svc, _, audit = _service()
     entry = await svc.create_map(GAME, "Arabia", filename="arabia.v0", description="The classic")
-    assert entry.id == f"map:{GAME}:arabia"
+    assert entry.id == f"map:public:arabia"
     fetched = await svc.get_map(entry.id)
     assert fetched is not None and fetched.filename == "arabia.v0"
     assert ("map.create", {"game_key": GAME, "name": "Arabia"}) in audit.lines
@@ -144,7 +144,7 @@ async def test_map_pack_validates_map_ids() -> None:
     pack = await svc.create_map_pack(GAME, "Closed Maps", map_ids=(map_.id,))
     assert pack.map_ids == (map_.id,)
     with pytest.raises(ValueError, match="unknown map"):
-        await svc.create_map_pack(GAME, "Broken", map_ids=("map:aoe2:Nowhere",))
+        await svc.create_map_pack(GAME, "Broken", map_ids=("map:public:Nowhere",))
 
 
 @pytest.mark.asyncio

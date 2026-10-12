@@ -176,15 +176,15 @@ async def test_ensure_indexes_creates_query_indexes() -> None:
 async def test_query_by_tags_scopes_and_filters() -> None:
     db = FakeDatabase()
     service = FactionContentService(db)
-    hybrid = dict(DOC, entity_id="map:aoe2:islands", tags=["terrain:hybrid", "water"])
-    hybrid["_id"] = "map:aoe2:islands:fr"
+    hybrid = dict(DOC, entity_id="map:public:islands", tags=["terrain:hybrid", "water"])
+    hybrid["_id"] = "map:public:islands:fr"
     service._database["faction_content"].docs[hybrid["_id"]] = hybrid
     faction = dict(DOC, tags=["terrain:hybrid"])
     faction["_id"] = "faction:aoe2:franks:fr"
     service._database["faction_content"].docs[faction["_id"]] = faction
 
-    maps = await service.query_by_tags(["terrain:hybrid"], entity_prefix="map:aoe2:")
-    assert [d["entity_id"] for d in maps] == ["map:aoe2:islands"]
+    maps = await service.query_by_tags(["terrain:hybrid"], entity_prefix="map:public:")
+    assert [d["entity_id"] for d in maps] == ["map:public:islands"]
     everything = await service.query_by_tags(["terrain:hybrid"])
     assert len(everything) == 2
 
@@ -192,19 +192,19 @@ async def test_query_by_tags_scopes_and_filters() -> None:
 async def test_list_map_content_caches_guild_list_and_invalidates_on_store() -> None:
     state = FakeState()
     service = FactionContentService(FakeDatabase(), state)
-    doc = dict(DOC, entity_id="map:aoe2:arabia")
-    doc["_id"] = "map:aoe2:arabia:fr"
+    doc = dict(DOC, entity_id="map:public:arabia")
+    doc["_id"] = "map:public:arabia:fr"
     service._database["faction_content"].docs[doc["_id"]] = dict(doc)
 
-    found = await service.list_map_content(["map:aoe2:arabia"], "fr", cache_key="guild:1:fr")
-    assert [d["entity_id"] for d in found] == ["map:aoe2:arabia"]
+    found = await service.list_map_content(["map:public:arabia"], "fr", cache_key="guild:1:fr")
+    assert [d["entity_id"] for d in found] == ["map:public:arabia"]
 
     baseline = state.get_calls
-    cached = await service.list_map_content(["map:aoe2:arabia"], "fr", cache_key="guild:1:fr")
-    assert [d["entity_id"] for d in cached] == ["map:aoe2:arabia"]
+    cached = await service.list_map_content(["map:public:arabia"], "fr", cache_key="guild:1:fr")
+    assert [d["entity_id"] for d in cached] == ["map:public:arabia"]
     assert state.get_calls == baseline + 1  # one cache read, no Mongo
 
     updated = dict(doc, name="Arabia (maj)")
     await service.store(updated)
     assert any(k.startswith("faction_content_list:guild:1:fr") for k in state.deleted)
-    assert any("tracker:map:aoe2:arabia:fr" in k for k in state.deleted)
+    assert any("tracker:map:public:arabia:fr" in k for k in state.deleted)

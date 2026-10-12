@@ -154,7 +154,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ModDefinition">class <strong>ModDefinition</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ModDefinition">ModDefinition</a>(name:&nbsp;'str',&nbsp;enabled:&nbsp;'bool'&nbsp;=&nbsp;True,&nbsp;seasonal:&nbsp;'bool&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;channel_categories:&nbsp;'tuple[<a href="#ChannelCategoryDef">ChannelCategoryDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;roles:&nbsp;'tuple[<a href="#RoleDef">RoleDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;workflows:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;commands:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;dependencies:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ModDefinition">ModDefinition</a>(name:&nbsp;'str',&nbsp;enabled:&nbsp;'bool'&nbsp;=&nbsp;True,&nbsp;seasonal:&nbsp;'bool&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;channel_categories:&nbsp;'tuple[<a href="#ChannelCategoryDef">ChannelCategoryDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;roles:&nbsp;'tuple[<a href="#RoleDef">RoleDef</a>,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;workflows:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;commands:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;dependencies:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;,&nbsp;required_games:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;mod's&nbsp;complete&nbsp;declaration:&nbsp;the&nbsp;core&nbsp;provisions&nbsp;from&nbsp;this&nbsp;only.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -170,7 +170,7 @@ A&nbsp;mod's&nbsp;complete&nbsp;declaration:&nbsp;the&nbsp;core&nbsp;provisions&
 
 <dl><dt><a name="ModDefinition-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ModDefinition-__init__"><strong>__init__</strong></a>(self, name: 'str', enabled: 'bool' = True, seasonal: 'bool | None' = None, channel_categories: 'tuple[ChannelCategoryDef, ...]' = &lt;factory&gt;, roles: 'tuple[RoleDef, ...]' = &lt;factory&gt;, workflows: 'tuple[str, ...]' = &lt;factory&gt;, commands: 'tuple[str, ...]' = &lt;factory&gt;, dependencies: 'tuple[str, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ModDefinition-__init__"><strong>__init__</strong></a>(self, name: 'str', enabled: 'bool' = True, seasonal: 'bool | None' = None, channel_categories: 'tuple[ChannelCategoryDef, ...]' = &lt;factory&gt;, roles: 'tuple[RoleDef, ...]' = &lt;factory&gt;, workflows: 'tuple[str, ...]' = &lt;factory&gt;, commands: 'tuple[str, ...]' = &lt;factory&gt;, dependencies: 'tuple[str, ...]' = &lt;factory&gt;, required_games: 'tuple[str, ...]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ModDefinition-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -201,6 +201,8 @@ Data descriptors defined here:<br>
 </dl>
 <dl><dt><strong>name</strong></dt>
 </dl>
+<dl><dt><strong>required_games</strong></dt>
+</dl>
 <dl><dt><strong>roles</strong></dt>
 </dl>
 <dl><dt><strong>seasonal</strong></dt>
@@ -209,13 +211,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'channel_categories': 'tuple[ChannelCategoryDef, ...]', 'commands': 'tuple[str, ...]', 'dependencies': 'tuple[str, ...]', 'enabled': 'bool', 'name': 'str', 'roles': 'tuple[RoleDef, ...]', 'seasonal': 'bool | None', 'workflows': 'tuple[str, ...]'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'channel_categories': 'tuple[ChannelCategoryDef, ...]', 'commands': 'tuple[str, ...]', 'dependencies': 'tuple[str, ...]', 'enabled': 'bool', 'name': 'str', 'required_games': 'tuple[str, ...]', 'roles': 'tuple[RoleDef, ...]', 'seasonal': 'bool | None', 'workflows': 'tuple[str, ...]'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'channel_categories': Field(name='channel_categories',type='tuple[Chan...appingproxy({}),kw_only=False,_field_type=_FIELD), 'commands': Field(name='commands',type='tuple[str, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'dependencies': Field(name='dependencies',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'enabled': Field(name='enabled',type='bool',default=True,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'roles': Field(name='roles',type='tuple[RoleDef, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'seasonal': Field(name='seasonal',type='bool | None',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'workflows': Field(name='workflows',type='tuple[str, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'channel_categories': Field(name='channel_categories',type='tuple[Chan...appingproxy({}),kw_only=False,_field_type=_FIELD), 'commands': Field(name='commands',type='tuple[str, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'dependencies': Field(name='dependencies',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'enabled': Field(name='enabled',type='bool',default=True,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'required_games': Field(name='required_games',type='tuple[str, ......appingproxy({}),kw_only=False,_field_type=_FIELD), 'roles': Field(name='roles',type='tuple[RoleDef, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'seasonal': Field(name='seasonal',type='bool | None',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'workflows': Field(name='workflows',type='tuple[str, ...]',de...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...True,kw_only=False,slots=True,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('name', 'enabled', 'seasonal', 'channel_categories', 'roles', 'workflows', 'commands', 'dependencies')</dl>
+<dl><dt><strong>__match_args__</strong> = ('name', 'enabled', 'seasonal', 'channel_categories', 'roles', 'workflows', 'commands', 'dependencies', 'required_games')</dl>
 
 </td></tr></table> <p>
 <table class="section">
