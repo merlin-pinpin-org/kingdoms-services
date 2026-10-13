@@ -281,3 +281,14 @@ en:
         games: 🎮 games
         games_aoe2: ⚔️ games/aoe2
         mods: 🧩 mods
+    homes:
+      root_home_title: "🏰 Kingdoms"
+      root_home_description: "Welcome — every button opens a view of your own. Discussions live in 💬 discussions."
+      games_home_title: "🎮 Games"
+      games_home_description: "The server's games: data forums, discussions and management."
+      games_aoe2_home_title: "⚔️ Age of Empires II"
+      games_aoe2_home_description: "The game's data — civilisations, maps and map pools — and its live tracking."
+      mods_home_title: "🧩 Mods"
+      mods_home_description: "The server's mods: data, discussions and management."
+      bot_home_title: "🤖 Bot"
+      bot_home_description: "The bot's operation — logs, administration, decisions."

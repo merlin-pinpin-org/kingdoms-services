@@ -372,6 +372,23 @@ class KingdomsBot(discord.Client):
             return
         await self._sync_tree_surfaces(guild_id, guild)
 
+    async def _heal_channel_tree(self, guild_id: str, guild: discord.Guild) -> None:
+        """Re-provision the tree after a channel delete, then re-pin.
+
+        The provisioning is idempotent and stored-id-first: a deleted
+        channel is simply re-created (its stored id is stale, the name
+        resolution adopts or creates), the resolution re-persists, and
+        every pin follows through the shared ensure. Best-effort.
+        """
+        try:
+            await self._provision_channel_tree(guild_id, guild)
+        except Exception:
+            logger.warning(
+                "CHANNEL TREE heal failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
+
     async def _route_managed_channels(self, guild_id: str) -> None:
         """Route the managed services onto the tree's stored channel ids.
 
@@ -417,12 +434,13 @@ class KingdomsBot(discord.Client):
             from kingdoms.discord.maps_forum import maps_forum_wiring_ready, sync_maps_forum
             from kingdoms.discord.pools_forum import sync_pools_forum
 
+            self._register_scope_pins()
+            await self._ensure_all_pins(guild_id)
             if not maps_forum_wiring_ready():
                 return
             await sync_maps_forum(guild_id, "aoe2", self)
             await sync_pools_forum(guild_id, self)
             await sync_entity_forum(guild_id, self, factions_forum_spec(self))
-            await self._ensure_section_pins(guild_id)
             logger.info("CHANNEL TREE surfaces synced (guild %s)", guild_id)
         except Exception:
             logger.warning(
@@ -638,6 +656,31 @@ class KingdomsBot(discord.Client):
             self.messages,
         )
 
+    def _register_scope_pins(self: KingdomsBot) -> None:
+        """Declare every scope's home and admin pins (idempotent)."""
+        from kingdoms.discord.scope_pins import register_scope_pins
+
+        self._scope_pins = register_scope_pins(self, ("root", "bot", "games", "games/aoe2", "mods"))
+
+    async def _ensure_all_pins(self: KingdomsBot, guild_id: str) -> None:
+        """Ensure every registered static pin lives in its channel (now).
+
+        The boot's surface pass: home pins, admin pins, section pins —
+        all created or refreshed synchronously, best-effort each.
+        """
+        from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+        for spec in registered_static_pins():
+            try:
+                await ensure_static_pin(self, spec, guild_id)
+            except Exception:
+                logger.warning(
+                    "PIN ensure failed (%s, guild %s) — best-effort",
+                    spec.key,
+                    guild_id,
+                    exc_info=True,
+                )
+
     async def _ensure_section_pins(self: KingdomsBot, guild_id: str) -> None:
         """Ensure the games section pins exist in their forums (best-effort)."""
         from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
@@ -707,8 +750,9 @@ class KingdomsBot(discord.Client):
         """
         guild = getattr(channel, "guild", None)
         guild_id = str(guild.id) if guild is not None else ""
-        if not guild_id:
+        if not guild_id or guild is None:
             return
+        await self._heal_channel_tree(guild_id, guild)
         for service, admin_ids in (
             (getattr(self, "home_channel_service", None), ()),
             (getattr(self, "admin_channel_service", None), tuple(self.status_service.bot_admins)),
