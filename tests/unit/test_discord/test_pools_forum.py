@@ -9,12 +9,7 @@ from kingdoms.discord.pools_forum import (
     _pool_maps,
     _pool_post_content,
     _pool_post_layout,
-    _pools_forum_name,
 )
-
-
-def test_pools_forum_name() -> None:
-    assert _pools_forum_name("aoe2") == "aoe2-map-pools"
 
 
 @dataclass

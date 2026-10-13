@@ -26,7 +26,6 @@ import discord
 
 logger = logging.getLogger("kingdoms.games.maps_forum")
 
-GAMES_CATEGORY_NAME = "games"
 LIQUIPEDIA_MAP_URL = "https://liquipedia.net/ageofempires/"
 
 
@@ -35,18 +34,12 @@ def liquipedia_map_url(name: str) -> str:
     return LIQUIPEDIA_MAP_URL + name.strip().replace(" ", "_")
 
 
-FORUM_SUFFIX = "-maps"
 SYNC_INTERVAL_S = 3600
 
 
 def maps_forum_wiring_ready() -> bool:
     """Whether the maps forum wiring can be built (Mongo configured)."""
     return bool(os.environ.get("MONGO_URI"))
-
-
-def _forum_name(game_key: str) -> str:
-    """Build the per-game forum name (``aoe2`` -> ``aoe2-maps``)."""
-    return f"{game_key}{FORUM_SUFFIX}"
 
 
 def _build_service() -> Any:
@@ -78,14 +71,9 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
     platform = DiscordChannelsPlatform(bot)
     service = service if service is not None else _build_service()
     stored_forum_id = await stored_channel_id(guild_id, f"games/{game_key}", "maps")
-    resolved_forum_id: str | None = stored_forum_id
-    if not await _forum_alive(bot, guild_id, resolved_forum_id):
-        category_id = await platform.ensure_category(guild_id, GAMES_CATEGORY_NAME)
-        forum_name = _forum_name(game_key)
-        resolved_forum_id = await platform.ensure_forum(guild_id, forum_name, category_id)
-    forum_id = str(resolved_forum_id or "")
-    if not forum_id:
-        return 0
+    if not await _forum_alive(bot, guild_id, stored_forum_id):
+        return 0  # the provisioning owns creation; nothing stored yet
+    forum_id = str(stored_forum_id)
     created = 0
     maps = await service.list_maps(game_key)
     for entry in maps:

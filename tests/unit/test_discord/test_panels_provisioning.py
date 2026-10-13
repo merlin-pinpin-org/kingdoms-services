@@ -23,6 +23,7 @@ from kingdoms.discord.ui.panels_provisioning import (
 from kingdoms.discord.ui.panels_scopes import (
     AOE2_SCOPE,
     BOT_SCOPE,
+    ROOT_SCOPE,
     register_platform_scopes,
 )
 from tests.mocks.discord_mock import (
@@ -52,6 +53,17 @@ class TestCanonicalOrder:
 
     def test_the_bot_scope_orders_logs_first(self) -> None:
         assert [d.key for d in _sorted_channels(BOT_SCOPE)] == ["logs", "admin", "decisions"]
+
+
+class TestRootScope:
+    @pytest.mark.asyncio
+    async def test_the_root_scope_creates_uncategorised_channels(self) -> None:
+        guild = MockGuild()
+        resolved = await provision_scope(guild, ROOT_SCOPE, "fr", _translate)
+        assert set(resolved) == {"general", "discussions"}
+        general = next(c for c in guild.text_channels if c.name == "général")
+        assert general.category is None
+        assert len(guild.categories) == 0
 
 
 class TestProvisioning:

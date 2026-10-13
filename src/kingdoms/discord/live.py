@@ -359,20 +359,21 @@ async def _last_completed_match_ms(matches: Any, profile_id: str) -> int:
 
 
 async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextChannel:
-    """Resolve, migrate or create the guild's live-dashboard channel (idempotent).
+    """Resolve the guild's live channel through the tree's stored id.
 
-    A legacy ``live-dashboard`` channel (pre-icon) is renamed in place —
-    the message registry keeps pointing at the same channel id, so the
-    registered dashboard message survives the rename.
+    The channel lives in the ``games/aoe2`` scope folder (key ``live``),
+    provisioned and persisted by the Panels SDK; the name never drives
+    the resolution. Raises LookupError when the tree has not provided
+    it yet (the caller degrades quietly).
     """
-    for channel in guild.text_channels:
-        if channel.name == LIVE_CHANNEL_NAME:
-            return channel
-    for channel in guild.text_channels:
-        if channel.name == LIVE_LEGACY_CHANNEL_NAME:
-            await channel.edit(name=LIVE_CHANNEL_NAME, reason="Kingdoms: live dashboard channel icon (#147)")
-            return channel
-    return await guild.create_text_channel(LIVE_CHANNEL_NAME, reason="Kingdoms live test dashboard (#147)")
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    stored = await stored_channel_id(str(guild.id), "games/aoe2", "live")
+    if stored and stored.isdigit():
+        channel = guild.get_channel(int(stored))
+        if channel is not None and not isinstance(channel, (discord.CategoryChannel, discord.ForumChannel)):
+            return channel  # type: ignore[return-value]
+    raise LookupError("the tree has no live channel yet (games/aoe2:live)")
 
 
 async def ensure_live_dashboard(
@@ -394,7 +395,10 @@ async def ensure_live_dashboard(
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
         return False
-    channel = await ensure_live_dashboard_channel(guild)
+    try:
+        channel = await ensure_live_dashboard_channel(guild)
+    except LookupError:
+        return False  # the tree has not provisioned games/aoe2:live yet
     try:
         snapshot = await client.watch(GAME_KEY)
     except Exception:
@@ -783,7 +787,10 @@ async def _push_snapshot(
         if now - last_at < DASHBOARD_MIN_EDIT_INTERVAL_S:
             continue
         _LAST_PUSH[guild_id] = (now, fingerprint)
-        channel = await ensure_live_dashboard_channel(guild)
+        try:
+            channel = await ensure_live_dashboard_channel(guild)
+        except LookupError:
+            continue  # the tree has not provisioned games/aoe2:live yet
         registered = await registry.resolve(PLATFORM, _page_key(1), str(guild.id))
         try:
             if not await _edit_registered(channel, registered, embeds[0]):

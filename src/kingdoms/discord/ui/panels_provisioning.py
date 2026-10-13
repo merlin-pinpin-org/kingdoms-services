@@ -136,9 +136,13 @@ async def provision_scope(
     (``MessageCatalog.render``-shaped callable).
     """
     platform = _Platform(guild)
-    category_name = translate(spec.category_key, locale)
-    category_id = await platform.ensure_category(category_name)
-    resolved: dict[str, str] = {spec.scope: category_id}
+    resolved: dict[str, str] = {}
+    category_id = ""
+    if spec.category_key:
+        category_name = translate(spec.category_key, locale)
+        category_id = await platform.ensure_category(category_name)
+        resolved[spec.scope] = category_id
+    # an empty category_key is the guild root: its channels live uncategorised
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
         if decl.kind == "forum":

@@ -16,6 +16,15 @@ from __future__ import annotations
 
 from kingdoms.discord.ui.panels import ChannelDecl, ScopeSpec
 
+ROOT_SCOPE = ScopeSpec(
+    scope="root",
+    category_key="",
+    channels=(
+        ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
+        ChannelDecl(key="discussions", label_key="ui.panels.channels.discussions"),
+    ),
+)
+
 BOT_SCOPE = ScopeSpec(
     scope="bot",
     category_key="ui.panels.categories.bot",
@@ -99,7 +108,7 @@ def register_platform_scopes() -> None:
     """Register the platform's reference scopes (idempotent, boot-time)."""
     from kingdoms.discord.ui.panels import register_scope
 
-    for spec in (BOT_SCOPE, GAMES_SCOPE, AOE2_SCOPE, MODS_SCOPE):
+    for spec in (ROOT_SCOPE, BOT_SCOPE, GAMES_SCOPE, AOE2_SCOPE, MODS_SCOPE):
         register_scope(spec)
 
 
@@ -108,5 +117,6 @@ __all__ = [
     "BOT_SCOPE",
     "GAMES_SCOPE",
     "MODS_SCOPE",
+    "ROOT_SCOPE",
     "register_platform_scopes",
 ]

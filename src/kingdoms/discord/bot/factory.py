@@ -368,6 +368,37 @@ class KingdomsBot(discord.Client):
                 guild_id,
                 exc_info=True,
             )
+            return
+        await self._sync_tree_surfaces(guild_id, guild)
+
+    async def _sync_tree_surfaces(self, guild_id: str, guild: discord.Guild) -> None:
+        """Fill the freshly provisioned tree: forums sync, pins land, now.
+
+        The provisioning owns the channels; this pass owns the content:
+        the forum syncs (maps, pools, civs) and the section pins run
+        right after the tree exists — no waiting for the hourly loops
+        on a virgin guild. Best-effort throughout.
+        """
+        del guild
+        try:
+            from kingdoms.core.services.entity_forum import sync_entity_forum
+            from kingdoms.discord.factions_forum import factions_forum_spec
+            from kingdoms.discord.maps_forum import maps_forum_wiring_ready, sync_maps_forum
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if not maps_forum_wiring_ready():
+                return
+            await sync_maps_forum(guild_id, "aoe2", self)
+            await sync_pools_forum(guild_id, self)
+            await sync_entity_forum(guild_id, self, factions_forum_spec(self))
+            await self._ensure_section_pins(guild_id)
+            logger.info("CHANNEL TREE surfaces synced (guild %s)", guild_id)
+        except Exception:
+            logger.warning(
+                "CHANNEL TREE surface sync failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
 
     def _translate_panel_label(self, key: str, locale: str) -> str:
         """Render one panels label key in the guild's locale (fallback EN)."""
@@ -401,6 +432,19 @@ class KingdomsBot(discord.Client):
         except Exception:
             logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
+    async def _resolve_admin_pin_channel(self, guild_id: str) -> str | None:
+        """Resolve the tree's ``bot/admin`` first, then the managed fallback."""
+        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+        stored = await stored_channel_id(guild_id, "bot", "admin")
+        if stored:
+            return stored
+        service = self.admin_channel_service
+        if service is None:
+            return None
+        resolved = await service.resolve_channel(guild_id, self.status_service.bot_admins)
+        return str(resolved) if resolved else None
+
     async def _maintain_pinned_menus(self) -> None:
         """Keep the pinned admin menu alive in every guild (self-healing).
 
@@ -410,13 +454,6 @@ class KingdomsBot(discord.Client):
         re-provisioned) — the surface never depends on an admin
         remembering to type the command.
         """
-
-        async def _resolve_admin_channel(guild_id: str) -> str | None:
-            """Resolve (or recreate) the admin channel."""
-            service = self.admin_channel_service
-            if service is None:
-                return None
-            return await service.resolve_channel(guild_id, self.status_service.bot_admins)
 
         async def _build_admin_panel(guild_id: str) -> Any:
             """Build the admin panel layout for the static-pin registry."""
@@ -455,12 +492,7 @@ class KingdomsBot(discord.Client):
         """Declare every pinned menu (admin + game sections) once at boot."""
         from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
 
-        async def _resolve_admin_channel(guild_id: str) -> str | None:
-            """Resolve (or recreate) the admin channel."""
-            service = self.admin_channel_service
-            if service is None:
-                return None
-            return await service.resolve_channel(guild_id, self.status_service.bot_admins)
+
 
         async def _build_admin_panel(guild_id: str) -> Any:
             """Build the admin panel layout for the static-pin registry."""
@@ -485,7 +517,7 @@ class KingdomsBot(discord.Client):
                 key="view:bot:admin",
                 mark_suffix="view:bot:admin",
                 legacy_key="admin-panel",
-                resolve_channel=_resolve_admin_channel,
+                resolve_channel=self._resolve_admin_pin_channel,
                 build_layout=_build_admin_panel,
                 registry=getattr(self, "message_registry", None),
             )
