@@ -47,7 +47,9 @@ admin&nbsp;surface&nbsp;lives&nbsp;in&nbsp;the&nbsp;games&nbsp;admin&nbsp;sectio
 &nbsp;<br>
 Existing&nbsp;posts&nbsp;are&nbsp;kept&nbsp;(matched&nbsp;by&nbsp;the&nbsp;stored&nbsp;``forum_message_id``),<br>
 missing&nbsp;posts&nbsp;are&nbsp;created,&nbsp;dead&nbsp;links&nbsp;are&nbsp;recreated.&nbsp;Returns&nbsp;the<br>
-number&nbsp;of&nbsp;posts&nbsp;created.</span></dd></dl>
+number&nbsp;of&nbsp;posts&nbsp;created.&nbsp;The&nbsp;whole&nbsp;pass&nbsp;holds&nbsp;the&nbsp;guild's&nbsp;sync<br>
+lock:&nbsp;the&nbsp;delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;create&nbsp;the&nbsp;same<br>
+post&nbsp;twice.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -56,5 +58,6 @@ number&nbsp;of&nbsp;posts&nbsp;created.</span></dd></dl>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>LIQUIPEDIA_MAP_URL</strong> = 'https://liquipedia.net/ageofempires/'<br>
 <strong>SYNC_INTERVAL_S</strong> = 3600<br>
+<strong>__annotations__</strong> = {'_SYNC_LOCKS': 'dict[str, asyncio.Lock]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.games.maps_forum (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -94,7 +94,7 @@ class DatasetContentSource(UpstreamContentSource):
         """Serve a map's descriptor (name-only: the dataset has no map help)."""
         del locale
         return {
-            "entity_id": f"map:public:{slug_id(map_key)}",
+            "entity_id": f"map:aoe2:public:{slug_id(map_key)}",
             "locale": "en",
             "name": map_key,
             "summary": "",
@@ -165,7 +165,7 @@ class ApiContentSource(UpstreamContentSource):
         response.raise_for_status()
         payload: dict[str, Any] = response.json()
         return {
-            "entity_id": str(payload.get("entity_id", f"map:public:{slug_id(map_key)}")),
+            "entity_id": str(payload.get("entity_id", f"map:aoe2:public:{slug_id(map_key)}")),
             "locale": str(payload.get("locale", locale)),
             "name": str(payload.get("name", map_key)),
             "summary": str(payload.get("summary", "")),

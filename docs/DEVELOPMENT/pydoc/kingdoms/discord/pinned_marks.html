@@ -18,14 +18,22 @@ rendered&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the<br>
 pinned&nbsp;message's&nbsp;content&nbsp;—&nbsp;readable&nbsp;without&nbsp;fetching&nbsp;history.</span></p>
 <p>
 <table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-is_pinned_view"><strong>is_pinned_view</strong></a>(message: 'Any') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;message&nbsp;carries&nbsp;a&nbsp;pinned-view&nbsp;mark&nbsp;(never&nbsp;delete&nbsp;it).<br>
 &nbsp;<br>
-Reads&nbsp;the&nbsp;message's&nbsp;content&nbsp;—&nbsp;the&nbsp;mark&nbsp;is&nbsp;the&nbsp;last&nbsp;footer&nbsp;line;&nbsp;a<br>
-message&nbsp;without&nbsp;a&nbsp;view&nbsp;id&nbsp;is&nbsp;free&nbsp;to&nbsp;delete.</span></dd></dl>
+Reads&nbsp;the&nbsp;message's&nbsp;content&nbsp;—&nbsp;the&nbsp;mark&nbsp;is&nbsp;the&nbsp;last&nbsp;footer&nbsp;line<br>
+(a&nbsp;``view:&lt;scope&gt;:&lt;slug&gt;``&nbsp;id);&nbsp;a&nbsp;message&nbsp;without&nbsp;one&nbsp;is&nbsp;free&nbsp;to<br>
+delete.</span></dd></dl>
  <dl><dt><a name="-pinned_mark"><strong>pinned_mark</strong></a>(suffix: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;pinned-view&nbsp;id&nbsp;footer&nbsp;(``&lt;suffix&gt;``&nbsp;—&nbsp;a&nbsp;view&nbsp;id).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -33,5 +41,5 @@ message&nbsp;without&nbsp;a&nbsp;view&nbsp;id&nbsp;is&nbsp;free&nbsp;to&nbsp;del
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>PIN_MARK_PREFIX</strong> = 'view:'</td></tr></table>
+<td class="singlecolumn"><strong>PIN_MARK_PREFIX</strong> = ''</td></tr></table>
 </body></html>

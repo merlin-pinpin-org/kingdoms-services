@@ -41,7 +41,11 @@ concept;&nbsp;this&nbsp;surface&nbsp;just&nbsp;mirrors&nbsp;them.</span></p>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-start_pools_forum_sync"><strong>start_pools_forum_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;every&nbsp;guild's&nbsp;pools&nbsp;forums&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
- <dl><dt>async <a name="-sync_pools_forum"><strong>sync_pools_forum</strong></a>(guild_id: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;game's&nbsp;pools&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;pool&nbsp;(idempotent).</span></dd></dl>
+ <dl><dt>async <a name="-sync_pools_forum"><strong>sync_pools_forum</strong></a>(guild_id: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;every&nbsp;game's&nbsp;pools&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;pool&nbsp;(idempotent).<br>
+&nbsp;<br>
+The&nbsp;pass&nbsp;holds&nbsp;the&nbsp;guild's&nbsp;forum-sync&nbsp;lock&nbsp;(shared&nbsp;with&nbsp;the&nbsp;maps<br>
+and&nbsp;civs&nbsp;syncs):&nbsp;the&nbsp;delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;create<br>
+the&nbsp;same&nbsp;post&nbsp;twice.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

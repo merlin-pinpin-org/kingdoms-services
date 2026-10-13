@@ -2177,9 +2177,9 @@ async def _bulk_import_maps(service: Any, game_key: str, parsed: list[Any]) -> t
     created: list[Any] = []
     for p in parsed:
         try:
-            existing = await service.get_map(
-                f"map:public:{p.page_name.replace(' ', '_').lower()}"
-            )
+            from kingdoms.core.ids import map_entry_id
+
+            existing = await service.get_map(map_entry_id(game_key, p.page_name, None))
             if existing is not None and existing.archived_at is None:
                 continue
             seed = await fetch_map_seed(p.page_name)

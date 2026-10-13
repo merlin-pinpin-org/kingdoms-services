@@ -146,7 +146,20 @@ async def _pool_maps(service: Any, pool: Any, guild_id: str) -> list[dict[str, A
 
 
 async def sync_pools_forum(guild_id: str, bot: Any, service: Any = None) -> int:
-    """Ensure every game's pools forum and one post per pool (idempotent)."""
+    """Ensure every game's pools forum and one post per pool (idempotent).
+
+    The pass holds the guild's forum-sync lock (shared with the maps
+    and civs syncs): the delete-heal and the hourly tick never create
+    the same post twice.
+    """
+    from kingdoms.discord.maps_forum import _sync_lock
+
+    async with _sync_lock(guild_id):
+        return await _sync_pools_forum_locked(guild_id, bot, service)
+
+
+async def _sync_pools_forum_locked(guild_id: str, bot: Any, service: Any = None) -> int:
+    """Run the sync body (the caller holds the guild's sync lock)."""
     from kingdoms.discord.channels_platform import DiscordChannelsPlatform
 
     platform = DiscordChannelsPlatform(bot)

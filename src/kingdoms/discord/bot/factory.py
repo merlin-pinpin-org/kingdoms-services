@@ -154,6 +154,7 @@ class KingdomsBot(discord.Client):
         self._provisioned = False
         self._provision_task: asyncio.Task[None] | None = None
         self._pin_task: asyncio.Task[None] | None = None
+        self._heal_locks: dict[str, asyncio.Lock] = {}
         self._live_dashboard_task: asyncio.Future[None] | None = None
         self._maps_forum_task: asyncio.Task[None] | None = None
         self._pools_forum_task: asyncio.Task[None] | None = None
@@ -318,6 +319,12 @@ class KingdomsBot(discord.Client):
             self._provisioned = True
             return
         self._provisioned = True
+        try:
+            from kingdoms.discord.catalog_purge import purge_polluted_catalog
+
+            await purge_polluted_catalog()
+        except Exception:
+            logger.warning("CATALOG PURGE wiring failed — best-effort", exc_info=True)
         for guild in list(self.guilds):
             guild_id = str(guild.id)
             await self._provision_channel_tree(guild_id, guild)
@@ -366,15 +373,24 @@ class KingdomsBot(discord.Client):
         channel is simply re-created (its stored id is stale, the name
         resolution adopts or creates), the resolution re-persists, and
         every pin follows through the shared ensure. Best-effort.
+
+        One heal at a time per guild: a deleted forum fires many
+        delete events (the channel, its threads) and each would run a
+        full provisioning pass — the lock keeps the heal a no-op for
+        the events that follow the first.
         """
-        try:
-            await self._provision_channel_tree(guild_id, guild)
-        except Exception:
-            logger.warning(
-                "CHANNEL TREE heal failed (guild %s) — best-effort",
-                guild_id,
-                exc_info=True,
-            )
+        lock = self._heal_locks.setdefault(guild_id, asyncio.Lock())
+        if lock.locked():
+            return  # a heal is already running; its pass covers this event
+        async with lock:
+            try:
+                await self._provision_channel_tree(guild_id, guild)
+            except Exception:
+                logger.warning(
+                    "CHANNEL TREE heal failed (guild %s) — best-effort",
+                    guild_id,
+                    exc_info=True,
+                )
 
     async def _route_managed_channels(self, guild_id: str) -> None:
         """Route the managed services onto the tree's stored channel ids.

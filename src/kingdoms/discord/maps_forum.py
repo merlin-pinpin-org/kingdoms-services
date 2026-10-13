@@ -58,13 +58,29 @@ async def _forum_alive(bot: Any, guild_id: str, forum_id: str | None) -> bool:
     return channel is not None and getattr(channel, "type", None) == discord.ChannelType.forum
 
 
+_SYNC_LOCKS: dict[str, asyncio.Lock] = {}
+
+
+def _sync_lock(guild_id: str) -> asyncio.Lock:
+    """One forum-sync at a time per guild (heal vs hourly tick)."""
+    return _SYNC_LOCKS.setdefault(guild_id, asyncio.Lock())
+
+
 async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any = None) -> int:
     """Ensure the game's forum and one post per active map (idempotent).
 
     Existing posts are kept (matched by the stored ``forum_message_id``),
     missing posts are created, dead links are recreated. Returns the
-    number of posts created.
+    number of posts created. The whole pass holds the guild's sync
+    lock: the delete-heal and the hourly tick never create the same
+    post twice.
     """
+    async with _sync_lock(guild_id):
+        return await _sync_maps_forum_locked(guild_id, game_key, bot, service)
+
+
+async def _sync_maps_forum_locked(guild_id: str, game_key: str, bot: Any, service: Any = None) -> int:
+    """Run the sync body (the caller holds the guild's sync lock)."""
     from kingdoms.discord.channels_platform import DiscordChannelsPlatform
     from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 

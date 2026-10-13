@@ -97,8 +97,25 @@ async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> i
 
     Posts are matched by thread name (the entity's display name); the
     spec's ``build_post`` returns ``(content, view)`` for each entity.
-    Returns the number of forum actions taken.
+    Returns the number of forum actions taken. The pass holds the
+    guild's forum-sync lock when the platform provides it (the
+    delete-heal and the hourly tick never double-create).
     """
+    lock = None
+    try:
+        from kingdoms.discord.maps_forum import _sync_lock
+
+        lock = _sync_lock(guild_id)
+    except Exception:
+        lock = None
+    if lock is None:
+        return await _sync_entity_forum_locked(guild_id, bot, spec)
+    async with lock:
+        return await _sync_entity_forum_locked(guild_id, bot, spec)
+
+
+async def _sync_entity_forum_locked(guild_id: str, bot: Any, spec: EntityForumSpec) -> int:
+    """Run the sync body (the caller holds the guild's sync lock)."""
     from kingdoms.discord.channels_platform import DiscordChannelsPlatform
 
     platform = DiscordChannelsPlatform(bot)

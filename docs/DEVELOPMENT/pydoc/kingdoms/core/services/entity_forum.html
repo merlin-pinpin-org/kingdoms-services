@@ -120,7 +120,9 @@ Data and other attributes defined here:<br>
 &nbsp;<br>
 Posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;thread&nbsp;name&nbsp;(the&nbsp;entity's&nbsp;display&nbsp;name);&nbsp;the<br>
 spec's&nbsp;``build_post``&nbsp;returns&nbsp;``(content,&nbsp;view)``&nbsp;for&nbsp;each&nbsp;entity.<br>
-Returns&nbsp;the&nbsp;number&nbsp;of&nbsp;forum&nbsp;actions&nbsp;taken.</span></dd></dl>
+Returns&nbsp;the&nbsp;number&nbsp;of&nbsp;forum&nbsp;actions&nbsp;taken.&nbsp;The&nbsp;pass&nbsp;holds&nbsp;the<br>
+guild's&nbsp;forum-sync&nbsp;lock&nbsp;when&nbsp;the&nbsp;platform&nbsp;provides&nbsp;it&nbsp;(the<br>
+delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;double-create).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
