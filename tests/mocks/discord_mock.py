@@ -826,6 +826,10 @@ class MockFollowup:
                 return await message.edit(**kwargs)
         return None
 
+    async def edit_message(self, message_id: int, **kwargs: Any) -> MockMessage | None:
+        """Alias mirroring :meth:`discord.Webhook.edit_message`."""
+        return await self.edit(message_id, **kwargs)
+
     async def delete_message(self, message_id: int) -> None:
         self.messages = [m for m in self.messages if m.id != message_id]
 

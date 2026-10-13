@@ -36,6 +36,7 @@ __all__ = [
     "KingdomMarketTechButton",
     "KingdomProfileButton",
     "KingdomRequestButton",
+    "KingdomRoleInfoButton",
     "KingdomsPanelWiring",
     "register_kingdoms_panel_bot",
 ]
@@ -120,6 +121,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomRealmButton,
         KingdomKingNameButton,
         KingdomKingClaimSelect,
+        KingdomRoleInfoButton,
         KingdomTimeButton,
         KingdomChurchMarryButton,
         KingdomChurchArrangeButton,
@@ -200,6 +202,7 @@ class KingdomApplyButton(
             mod_roles_service=wiring.mod_roles_service,
             guild_id=str(guild.id) if guild is not None else "",
             kingdoms_service=wiring.kingdoms_service,
+            anchor=interaction,
         )
         strings = _strings(context.locale)
         await interaction.response.send_message(
@@ -207,6 +210,46 @@ class KingdomApplyButton(
             view=_role_select_view(context),
             ephemeral=True,
         )
+
+
+class KingdomRoleInfoButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:apply:roleinfo:(?P<role>king|lord)",
+):
+    """The restart-proof “View the role” sheet button of the Postuler panel."""
+
+    def __init__(self, role: str, label: str, style: discord.ButtonStyle = discord.ButtonStyle.secondary) -> None:
+        custom_id = f"kingdoms:apply:roleinfo:{role}"
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                style=style,
+                custom_id=custom_id,
+            )
+        )
+        self.role = role
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRoleInfoButton:
+        """Rebuild the role sheet button from the wire — post-restart path."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        role = match.group("role")
+        key = "roleinfo_king_button" if role == "king" else "roleinfo_lord_button"
+        return cls(role, strings[key])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Send the one-page rights & obligations sheet, ephemeral."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        key = "role_sheet_king" if self.role == "king" else "role_sheet_lord"
+        await interaction.response.send_message(strings[key], ephemeral=True)
 
 
 class KingdomCandidatureButton(

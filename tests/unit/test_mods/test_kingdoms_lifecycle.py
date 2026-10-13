@@ -62,6 +62,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomMarketTechButton,
         KingdomProfileButton,
         KingdomRequestButton,
+        KingdomRoleInfoButton,
     )
 
     expected = {
@@ -69,6 +70,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomCandidatureButton,
         KingdomProfileButton,
         KingdomRequestButton,
+        KingdomRoleInfoButton,
         KingdomAdminButton,
         KingdomMarketTechButton,
         KingdomMarketActionButton,

@@ -48,7 +48,7 @@ stores&nbsp;are&nbsp;not&nbsp;wired&nbsp;(local&nbsp;runs):&nbsp;the&nbsp;button
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;one&nbsp;Enroll&nbsp;button.</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-build_apply_panel"><strong>build_apply_panel</strong></a>(locale: 'str' = 'en', candidatures_channel: 'discord.abc.Messageable | None' = None, bot_admins: 'tuple[str, ...]' = (), mod_roles_service: 'ModRolesService | None' = None, guild_id: 'str' = '', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Postuler&nbsp;pinned&nbsp;panel:&nbsp;role&nbsp;lines,&nbsp;Enroll&nbsp;and&nbsp;sheet&nbsp;buttons.</span></dd></dl>
  <dl><dt>async <a name="-build_market_panel"><strong>build_market_panel</strong></a>(locale: 'str', kingdoms_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;Marché&nbsp;panel:&nbsp;the&nbsp;King's&nbsp;technology&nbsp;&amp;&nbsp;action&nbsp;shop&nbsp;(§20).<br>
 &nbsp;<br>
 Buttons&nbsp;only&nbsp;—&nbsp;every&nbsp;purchase&nbsp;is&nbsp;confirmed&nbsp;through&nbsp;an&nbsp;ephemeral<br>
@@ -74,7 +74,7 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>APPLY_BUTTON_ID</strong> = 'kingdoms:apply:open'<br>
-<strong>APPLY_TAGLINE</strong> = 'Choisis ton rôle et pars à la conquête des territoires !'<br>
+<strong>APPLY_TAGLINE</strong> = 'Pars à la conquête des territoires ! Choisis ton camp avant de postuler.'<br>
 <strong>APPLY_TITLE</strong> = '⚔️ INSCRIPTION — KINGDOMS SAISON II'<br>
 <strong>CHANGELOG_MARKER</strong> = 'kingdoms:update:changelog'<br>
 <strong>DECISION_APPROVE_ID</strong> = 'kingdoms:candidature:approve'<br>
@@ -96,7 +96,7 @@ versions&nbsp;are&nbsp;not&nbsp;removed&nbsp;—&nbsp;a&nbsp;later&nbsp;slice&nb
 <strong>SEASON_STATUS_CHANNEL</strong> = 'saison'<br>
 <strong>SEASON_STATUS_MARKER</strong> = 'kingdoms:season:status'<br>
 <strong>SETTINGS_PANEL_MARKER</strong> = 'kingdoms:panel:parametres'<br>
-<strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'cancel': 'Cancel', 'cancelled': 'Application cancelled.', 'candidature_game_id': 'Game ID', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Kingdom', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'cancel': 'Annuler', 'cancelled': 'Candidature annulée.', 'candidature_game_id': 'ID de jeu', 'candidature_insight': 'AoE II Insight', 'candidature_kingdom': 'Royaume', ...}}<br>
+<strong>STRINGS</strong> = {'en': {'apply_button': '📋 Enroll', 'apply_role_king_line': '👑 King — Found your kingdom, run its treasury and lead diplomacy.', 'apply_role_lord_line': '🛡️ Lord — Join a banner and bear arms for your crown.', 'apply_sending': '⏳ Sending your application…', 'apply_title': 'Kingdoms enrollment', 'approved': '✅ validated', 'bad_game_id': 'The game ID must be 6 to 20 digits.', 'bad_insight': 'The AoE II Insight link must be a valid URL.', 'cancel': 'Cancel', 'cancelled': 'Application cancelled.', ...}, 'fr': {'apply_button': "📋 S'inscrire", 'apply_role_king_line': '👑 Roi — Fonde ton royaume, gère son trésor et mène la diplomatie.', 'apply_role_lord_line': '🛡️ Seigneur — Rejoins une bannière et porte les armes pour ta couronne.', 'apply_sending': '⏳ Envoi de ta candidature…', 'apply_title': 'Inscription Kingdoms', 'approved': '✅ validée', 'bad_game_id': "L'ID de jeu doit contenir 6 à 20 chiffres.", 'bad_insight': 'Le lien AoE II Insight doit être une URL valide.', 'cancel': 'Annuler', 'cancelled': 'Candidature annulée.', ...}}<br>
 <strong>UPDATE_CHANNEL</strong> = 'update'<br>
 <strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, Any]]', '_EPHEMERAL_TASKS': 'set[asyncio.Task[None]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom_panels (WARNING)&gt;</td></tr></table>

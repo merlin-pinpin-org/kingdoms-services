@@ -50,6 +50,10 @@ logger = logging.getLogger("kingdoms.kingdom_panels")
 # interaction webhook token lives 15 minutes: a deletion scheduled
 # before that boundary succeeds, later ones fail silently.
 _EPHEMERAL_TTL_SECONDS = 840
+# The enrollment flow lives in ONE ephemeral bubble: after the final
+# confirmation the whole thing must vanish quickly (~30 s) instead of
+# staying 14 minutes (Drasah 2026-10-13 postulation-v1 spec).
+_CONFIRM_TTL_SECONDS = 30  # type: int
 _EPHEMERAL_TASKS: set[asyncio.Task[None]] = set()
 
 
@@ -150,6 +154,53 @@ STRINGS: dict[str, dict[str, Any]] = {
     "en": {
         "apply_button": "📋 Enroll",
         "apply_title": "Kingdoms enrollment",
+        "apply_role_king_line": "👑 King — Found your kingdom, run its treasury and lead diplomacy.",
+        "apply_role_lord_line": "🛡️ Lord — Join a banner and bear arms for your crown.",
+        "roleinfo_king_button": "📖 View the King role",
+        "roleinfo_lord_button": "📖 View the Lord role",
+        "apply_sending": "⏳ Sending your application…",
+        "role_sheet_king": (
+            "# 👑 THE KING — RIGHTS & OBLIGATIONS\n"
+            "\n"
+            "**Role** — one single King per kingdom.\n"
+            "\n"
+            "**⚙️ TREASURY — SOLE HOLDER**\n"
+            "• Patrol (2 h daily slot, quota/season), combat technologies, Explorer, territory purchase.\n"
+            "\n"
+            "**⛪ PARISH — SOLE DECISION-MAKER**\n"
+            "• Tier upgrade, arranged marriage (💰 token), choice of the lord.\n"
+            "\n"
+            "**👑💍 ROYAL MARRIAGE — SPECIFIC REGIME**\n"
+            "• Cost: 2 marriage points or 2 tokens.\n"
+            "• Doubled lock: 48 h / 24 h / 12 h.\n"
+            "• +2 ⚙️ to the treasury; civilisation secured for the whole season (even after a defeat).\n"
+            "• Announcement in Géopolitique is mandatory.\n"
+            "\n"
+            "**🐦 CARRIER PIGEON — SOLE RECIPIENT**\n"
+            "\n"
+            "🚫 A lord can NOT spend the treasury, upgrade the Parish, nor seal an arranged marriage."
+        ),
+        "role_sheet_lord": (
+            "# 🛡️ THE LORD — RIGHTS & OBLIGATIONS\n"
+            "\n"
+            "**⚔️ COMBAT — YOUR JURISDICTION**\n"
+            "• Lord's Day window: Sunday 23:30 → Monday 10:00.\n"
+            "• No execution during the window; declaring is allowed if the execution happens after it closes.\n"
+            "• Marriage lock = forbidden to attack AND to defend.\n"
+            "\n"
+            "**💍 MARRIAGE — YOUR DECISION ALONE**\n"
+            "• Nobody can marry you off.\n"
+            "• 1 marriage point, civilisation drawn from your kingdom's hand, "
+            "24 h / 12 h / 6 h lock, exclusivity between kingdoms.\n"
+            "\n"
+            "**🚫 WHAT YOU CANNOT DO**\n"
+            "• Spend the treasury, upgrade the Parish, buy tokens for someone else.\n"
+            "\n"
+            "**👀 OBSERVATION**\n"
+            "• Your marriage is never announced: red username 🔒 then 💍, no bot reminder.\n"
+            "\n"
+            "📜 Territory and Alliances are readable by every lord — espionage is legal."
+        ),
         "choose_role": "Choose your role",
         "choose_kingdom": "Join a kingdom",
         "queue_option": "⏳ Wait for a kingdom",
@@ -220,7 +271,7 @@ STRINGS: dict[str, dict[str, Any]] = {
         "bad_game_id": "The game ID must be 6 to 20 digits.",
         "cancelled": "Application cancelled.",
         "sent": "Your application has been sent — an admin will review it.",
-        "sent_ttl": "*This message disappears by itself in ~15 minutes.*",
+        "sent_ttl": "*This message disappears by itself in a few moments.*",
         "profile_created": "Your profile has been created in your profile salon.",
         "candidature_title": "📋 New enrollment application",
         "candidature_role": "Requested role",
@@ -358,6 +409,56 @@ STRINGS: dict[str, dict[str, Any]] = {
     "fr": {
         "apply_button": "📋 S'inscrire",
         "apply_title": "Inscription Kingdoms",
+        "apply_role_king_line": "👑 Roi — Fonde ton royaume, gère son trésor et mène la diplomatie.",
+        "apply_role_lord_line": "🛡️ Seigneur — Rejoins une bannière et porte les armes pour ta couronne.",
+        "roleinfo_king_button": "📖 Voir le rôle Roi",
+        "roleinfo_lord_button": "📖 Voir le rôle Seigneur",
+        "apply_sending": "⏳ Envoi de ta candidature…",
+        "role_sheet_king": (
+            "# 👑 LE ROI — DROITS & OBLIGATIONS\n"
+            "\n"
+            "**Rôle** — un seul Roi par royaume.\n"
+            "\n"
+            "**⚙️ TRÉSOR — SEUL DÉTENTEUR**\n"
+            "• Patrouille (créneau quotidien 2 h, quota/saison), technologies "
+            "de combat, Explorateur, achat de territoire.\n"
+            "\n"
+            "**⛪ PAROISSE — SEUL DÉCISIONNAIRE**\n"
+            "• Amélioration de palier, mariage arrangé (jeton 💰), choix du seigneur.\n"
+            "\n"
+            "**👑💍 MARIAGE ROYAL — RÉGIME SPÉCIFIQUE**\n"
+            "• Coût : 2 points de mariage ou 2 jetons.\n"
+            "• Verrou doublé : 48 h / 24 h / 12 h.\n"
+            "• +2 ⚙️ au trésor ; civilisation sécurisée toute la saison, même "
+            "après une défaite.\n"
+            "• Annonce en Géopolitique obligatoire.\n"
+            "\n"
+            "**🐦 PIGEON-VOYAGEUR — SEUL DESTINATAIRE**\n"
+            "\n"
+            "🚫 Un seigneur ne peut PAS dépenser le trésor, améliorer la Paroisse ni sceller un mariage arrangé."
+        ),
+        "role_sheet_lord": (
+            "# 🛡️ LE SEIGNEUR — DROITS & OBLIGATIONS\n"
+            "\n"
+            "**⚔️ COMBAT — TA JURIDICTION**\n"
+            "• Fenêtre du Jour du Seigneur : dimanche 23 h 30 → lundi 10 h.\n"
+            "• Aucune exécution pendant la fenêtre ; la déclaration est permise "
+            "si l'exécution a lieu après la fermeture.\n"
+            "• Verrou mariage = interdit d'attaquer ET de défendre.\n"
+            "\n"
+            "**💍 MARIAGE — TA DÉCISION SEULE**\n"
+            "• Personne ne peut te marier.\n"
+            "• 1 point de mariage, civilisation issue de la main du royaume, "
+            "verrou 24 h / 12 h / 6 h, exclusivité entre royaumes.\n"
+            "\n"
+            "🚫 **CE QUE TU NE PEUX PAS FAIRE**\n"
+            "• Dépenser le trésor, améliorer la Paroisse, acheter des jetons pour un autre.\n"
+            "\n"
+            "👀 **OBSERVATION**\n"
+            "• Ton mariage n'est jamais annoncé : pseudo rouge 🔒 puis 💍, aucun rappel du bot.\n"
+            "\n"
+            "📜 Territoire et Alliances lisibles par tous les seigneurs — l'espionnage est légal."
+        ),
         "choose_role": "Choisissez votre rôle",
         "choose_kingdom": "Rejoindre un royaume",
         "queue_option": "⏳ En attente",
@@ -430,7 +531,7 @@ STRINGS: dict[str, dict[str, Any]] = {
         "bad_game_id": "L'ID de jeu doit contenir 6 à 20 chiffres.",
         "cancelled": "Candidature annulée.",
         "sent": "Votre candidature a été envoyée — un admin l'examinera.",
-        "sent_ttl": "*Ce message disparaît de lui-même dans ~15 minutes.*",
+        "sent_ttl": "*Ce message disparaît de lui-même dans quelques instants.*",
         "profile_created": "Votre profil a été créé dans votre salon de profil.",
         "candidature_title": "📋 Nouvelle candidature",
         "candidature_role": "Rôle demandé",
@@ -592,6 +693,7 @@ class _ApplicationContext:
         mod_roles_service: ModRolesService | None = None,
         guild_id: str = "",
         kingdoms_service: Any = None,
+        anchor: Any = None,
     ) -> None:
         self.locale = "fr" if str(locale).lower().startswith("fr") else "en"
         self.candidatures_channel = candidatures_channel
@@ -599,6 +701,10 @@ class _ApplicationContext:
         self.mod_roles_service = mod_roles_service
         self.guild_id = guild_id
         self.kingdoms_service = kingdoms_service
+        # The interaction that created the single ephemeral bubble: its
+        # webhook token is the only one that can edit/delete that bubble
+        # from the final submit step (a modal cannot edit it).
+        self.anchor = anchor
 
     async def declared_kingdom_names(self) -> list[str]:
         """Return the player kingdom names of the current season (empty if none)."""
@@ -728,7 +834,13 @@ async def _send_summary(
     game_id: str,
     smurfs: tuple[str, ...] = (),
 ) -> None:
-    """Validate the form, then show the review + rules-acceptance step."""
+    """Validate the form, then show the review + rules-acceptance step.
+
+    The modal was launched from a component of the ephemeral bubble, so
+    edit_message rewrites THAT bubble — the flow stays a single message
+    (validation errors are the exception: they open their own short
+    bubble and leave the flow bubble intact).
+    """
     strings = _strings(context.locale)
     if not INSIGHT_URL.match(insight):
         await interaction.response.send_message(strings["bad_insight"], ephemeral=True)
@@ -765,7 +877,38 @@ async def _send_summary(
         smurfs=smurfs,
         context=context,
     )
-    await interaction.response.send_message("\n".join(lines), view=view, ephemeral=True)
+    # The modal was launched from a component of the ephemeral flow
+    # bubble: edit_message rewrites that same bubble (postulation-v1
+    # single-bubble rule) instead of stacking a new ephemeral message.
+    await interaction.response.edit_message(content="\n".join(lines), view=view)
+
+
+async def _rewrite_flow_confirmation(
+    context: _ApplicationContext,
+    interaction: discord.Interaction,
+    confirmation: str,
+) -> None:
+    """Rewrite the single ephemeral flow bubble into its final state.
+
+    Only the anchor interaction's webhook token can edit the ephemeral
+    bubble it created (postulation-v1 single-bubble rule); fall back to
+    a fresh ephemeral followup when the anchor or bubble is gone, then
+    schedule the short confirmation auto-delete (~30 s).
+    """
+    anchor = context.anchor
+    flow_message = getattr(interaction, "message", None)
+    flow_id = int(getattr(flow_message, "id", 0) or 0)
+    edited = False
+    if anchor is not None and flow_id:
+        try:
+            await anchor.followup.edit_message(flow_id, content=confirmation, view=None)
+            edited = True
+        except Exception:
+            logger.warning("KINGDOM PANELS: flow bubble edit failed", exc_info=True)
+    if not edited:
+        await interaction.followup.send(confirmation, ephemeral=True)
+    if anchor is not None and flow_id:
+        _schedule_ephemeral_delete(anchor, flow_message, seconds=_CONFIRM_TTL_SECONDS)
 
 
 def _summary_view(
@@ -784,6 +927,9 @@ def _summary_view(
     strings = _strings(context.locale)
 
     async def submit(interaction: discord.Interaction) -> None:
+        # Ack first (3-second rule): rewrite the single flow bubble into
+        # its "sending" state while the slow work runs.
+        await interaction.response.edit_message(content=strings["apply_sending"], view=None)
         role_label = strings["role_king"] if is_king else strings["role_lord"]
         lines = [
             f"# 📋 {applicant_name}",
@@ -811,7 +957,6 @@ def _summary_view(
             guild_id=context.guild_id,
         )
         target = context.candidatures_channel
-        await interaction.response.defer(ephemeral=True)
         if target is None:
             await interaction.followup.send(strings["no_service"], ephemeral=True)
             return
@@ -845,8 +990,7 @@ def _summary_view(
                 logger.warning("KINGDOM PANELS: profile provisioning failed", exc_info=True)
         confirmation = strings["sent"] if not profile_note else f"{strings['sent']}\n{profile_note}"
         confirmation = f"{confirmation}\n{strings['sent_ttl']}"
-        message = await interaction.followup.send(confirmation, ephemeral=True)  # type: ignore[func-returns-value]
-        _schedule_ephemeral_delete(interaction, message)
+        await _rewrite_flow_confirmation(context, interaction, confirmation)
 
     async def cancel(interaction: discord.Interaction) -> None:
         await interaction.response.edit_message(content=strings["cancelled"], view=None)
@@ -986,7 +1130,7 @@ def _candidature_view(
 # accent (the King colour), artwork thumbnail when the asset is
 # bundled, one tagline — everything else lives in the flow itself.
 APPLY_TITLE = "⚔️ INSCRIPTION — KINGDOMS SAISON II"
-APPLY_TAGLINE = "Choisis ton rôle et pars à la conquête des territoires !"
+APPLY_TAGLINE = "Pars à la conquête des territoires ! Choisis ton camp avant de postuler."
 GOLD = discord.Colour(0xE6B800)
 
 
@@ -1008,7 +1152,7 @@ async def build_apply_panel(
     guild_id: str = "",
     kingdoms_service: Any = None,
 ) -> discord.ui.LayoutView:
-    """Build the Postuler pinned panel: one Enroll button."""
+    """Build the Postuler pinned panel: role lines, Enroll and sheet buttons."""
     strings = _strings(locale)
     del (
         candidatures_channel,
@@ -1018,11 +1162,14 @@ async def build_apply_panel(
         kingdoms_service,
     )
 
-    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomApplyButton
+    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomApplyButton, KingdomRoleInfoButton
 
     apply_button = KingdomApplyButton(strings["apply_button"][:80], discord.ButtonStyle.primary)
     apply_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     apply_row.add_item(apply_button)
+    roleinfo_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    roleinfo_row.add_item(KingdomRoleInfoButton("king", strings["roleinfo_king_button"]))
+    roleinfo_row.add_item(KingdomRoleInfoButton("lord", strings["roleinfo_lord_button"]))
     view = discord.ui.LayoutView(timeout=None)
     items: list[discord.ui.Item[discord.ui.LayoutView]] = [
         discord.ui.TextDisplay(f"# {APPLY_TITLE}"),
@@ -1037,10 +1184,16 @@ async def build_apply_panel(
         )
     else:
         items.append(discord.ui.TextDisplay(APPLY_TAGLINE))
+    # One short line per role (postulation-v1): the player picks a camp
+    # before opening the enrollment flow, and each line has its own
+    # “View the role” rights & obligations sheet button.
     items.extend(
         [
+            discord.ui.TextDisplay(strings["apply_role_king_line"]),
+            discord.ui.TextDisplay(strings["apply_role_lord_line"]),
             discord.ui.Separator(),
             apply_row,
+            roleinfo_row,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {PANEL_MARKER}"),
         ]
