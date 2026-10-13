@@ -49,6 +49,32 @@ def _locale_of(bot: Any, guild_id: str) -> Any:
     return _locale()
 
 
+# The per-scope navigation buttons (all open ephemeral views through
+# the shared ``home:open:<view>`` dispatch): each home shows its own
+# perimeter's surfaces only — the redesigned menus.
+_SCOPE_BUTTONS: dict[str, tuple[tuple[str, str, str], ...]] = {
+    "root": (
+        ("status", "ui.homes.btn_status", "📊"),
+        ("profile", "ui.homes.btn_profile", "🪪"),
+        ("games", "ui.homes.btn_games", "🎮"),
+    ),
+    "bot": (
+        ("admin", "ui.homes.btn_admin", "🛠️"),
+        ("status", "ui.homes.btn_status", "📊"),
+    ),
+    "games": (
+        ("games", "ui.homes.btn_games", "🎮"),
+    ),
+    "games/aoe2": (
+        ("guild-games:aoe2", "ui.homes.btn_aoe2", "⚔️"),
+        ("mod:aoe2", "ui.homes.btn_aoe2_admin", "🏛️"),
+    ),
+    "mods": (
+        ("status", "ui.homes.btn_mods", "🧩"),
+    ),
+}
+
+
 def _home_builder(bot: Any, scope: str, title_key: str, description_key: str) -> Any:
     """Build a scope's home menu: description + the scope's own buttons."""
 
@@ -63,10 +89,22 @@ def _home_builder(bot: Any, scope: str, title_key: str, description_key: str) ->
         title = catalog.render(title_key, locale)
         description = catalog.render(description_key, locale)
         view_id = f"view:{scope}:home" if scope != "root" else "view:home"
+        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        for view_key, label_key, emoji in _SCOPE_BUTTONS.get(scope, ()):
+            label = catalog.render(label_key, locale)
+            row.add_item(
+                discord.ui.Button(
+                    custom_id=f"home:open:{view_key}",
+                    label=label if label != label_key else view_key.replace("-", " "),
+                    emoji=discord.PartialEmoji.from_str(emoji),
+                    style=discord.ButtonStyle.secondary,
+                )
+            )
+        blocks: list[Any] = [discord.ui.TextDisplay(f"# {title}\n{description}"), row]
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay(f"# {title}\n{description}"),
+                *blocks,
                 discord.ui.TextDisplay(pinned_mark(view_id)),
             )
         )

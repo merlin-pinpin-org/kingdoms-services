@@ -94,7 +94,7 @@ class TestProvisioning:
     async def test_a_scope_provisions_category_and_channels(self) -> None:
         guild = MockGuild()
         resolved = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
-        assert set(resolved) == {"bot", "logs", "admin", "decisions"}
+        assert set(resolved) == {"category", "logs", "admin", "decisions"}
         names = {c.name for c in guild.text_channels}
         assert "📜 logs" in names
         assert "⚖️ décisions" in names  # emoji + translated at creation (FR guild)

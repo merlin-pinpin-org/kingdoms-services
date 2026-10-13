@@ -159,6 +159,28 @@ async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl
         )
 
 
+async def _ensure_scope_category(
+    guild: discord.Guild,
+    platform: _Platform,
+    scope: str,
+    name: str,
+) -> str:
+    """Resolve (or create) the scope's category by stored id, then name.
+
+    The stored id wins: a label refresh (an emoji added to the label)
+    renames the category in place — never a duplicate. Without a
+    stored id the name resolves or creates, and the caller persists.
+    """
+    stored = await stored_channel_id(str(guild.id), scope, "category")
+    if stored and stored.isdigit():
+        category = guild.get_channel(int(stored))
+        if isinstance(category, discord.CategoryChannel):
+            if category.name != name:
+                await category.edit(name=name, reason="kingdoms: panels provisioning (label refresh)")
+            return stored
+    return await platform.ensure_category(name)
+
+
 async def provision_scope(
     guild: discord.Guild,
     spec: ScopeSpec,
@@ -175,8 +197,8 @@ async def provision_scope(
     category_id = ""
     if spec.category_key:
         category_name = translate(spec.category_key, locale)
-        category_id = await platform.ensure_category(category_name)
-        resolved[spec.scope] = category_id
+        category_id = await _ensure_scope_category(guild, platform, spec.scope, category_name)
+        resolved["category"] = category_id
     # an empty category_key is the guild root: its channels live uncategorised
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
