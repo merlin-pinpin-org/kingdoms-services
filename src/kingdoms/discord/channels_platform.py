@@ -14,6 +14,28 @@ import discord
 logger = logging.getLogger("kingdoms.channels.discord")
 
 
+# Post-creation pacing: Discord rate-limits channel-thread creation
+# (roughly 2/s burst then a sustained 1 per 10s); a bulk sync that
+# fires dozens of create_thread calls in a row eats the quota and the
+# posts start failing with 429s. The pacer keeps consecutive creations
+# apart, process-wide.
+POST_PACING_S = 1.5
+_last_post_at = 0.0
+
+
+async def _pace_post_creation() -> None:
+    """Wait so consecutive post creations stay under the rate limit."""
+    import asyncio
+    import time
+
+    global _last_post_at
+    now = time.monotonic()
+    wait = _last_post_at + POST_PACING_S - now
+    if wait > 0:
+        await asyncio.sleep(wait)
+    _last_post_at = time.monotonic()
+
+
 class DiscordChannelsPlatform:
     """discord.py implementation of the channels platform seam."""
 
@@ -181,6 +203,7 @@ class DiscordChannelsPlatform:
         # A components-v2 layout carries its own text: Discord rejects a
         # message that sends both a view and a content string (50035).
         content_kwarg: dict[str, Any] = {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
+        await _pace_post_creation()
         thread, _ = await forum.create_thread(
             name=name,
             reason=f"kingdoms: map post {name}",

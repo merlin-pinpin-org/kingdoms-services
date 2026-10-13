@@ -358,8 +358,10 @@ class LogService:
         """
         if not await self._platform.channel_exists(guild_id, channel_id):
             raise ValueError(f"channel {channel_id} does not exist in guild {guild_id}")
-        policy = await self.get_access_policy(guild_id)
         previous = await self._db.find_channel(guild_id, BOT_LOGS_CATEGORY)
+        if previous is not None and previous.channel_id == channel_id:
+            return  # already routed there: a no-op, never an audit event
+        policy = await self.get_access_policy(guild_id)
         await self._db.upsert_channel(
             ChannelModel(
                 _id=f"{guild_id}:{BOT_LOGS_CATEGORY}",

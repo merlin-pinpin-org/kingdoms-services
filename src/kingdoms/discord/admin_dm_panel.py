@@ -52,7 +52,7 @@ async def _access_service() -> Any | None:
 
 
 async def build_admin_dm_panel(
-    interaction: discord.Interaction,
+    interaction: discord.Interaction | discord.Client,
     locale_select: discord.ui.Item[Any] | None = None,
 ) -> discord.ui.LayoutView:
     """Render the bot-admin DM panel: one FR menu, sectioned.
@@ -60,8 +60,11 @@ async def build_admin_dm_panel(
     Sections: demandes en attente (approve/deny), accords actifs, la
     langue des DM du bot admin (the DM locale select rides inside this
     single panel), refresh du contenu civs/maps et gestion directe des
-    accords (sans demande). No provider-mapping section.
+    accords (sans demande). No provider-mapping section. The caller
+    passes the interaction (clicks) or the client itself (the boot's
+    DM delivery) — only the client reference is read.
     """
+    client = interaction if isinstance(interaction, discord.Client) else getattr(interaction, "client", None)
     service = await _access_service()
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [discord.ui.TextDisplay("# \U0001f6e1\ufe0f Bot admin \u2014 cross-guild")]
@@ -88,7 +91,6 @@ async def build_admin_dm_panel(
         )
     access_docs = await service.list_all()
     granted_lines = []
-    client = getattr(interaction, "client", None)
     for doc in access_docs[:20]:
         guild = client.get_guild(int(doc.get("guild_id") or 0)) if client is not None else None
         name = guild.name if guild is not None else "Guilde inconnue"

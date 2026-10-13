@@ -481,8 +481,30 @@ async def _announce_boot_to_admins(
             user = await bot.fetch_user(int(admin_id))
             await user.send(view=layout)
             logger.info("STARTUP ANNOUNCEMENT DM sent to bot-admin %s", admin_id)
+            await _send_boot_admin_dm(bot, user)
         except Exception:
             logger.warning("STARTUP ANNOUNCEMENT DM failed (admin %s) — best-effort", admin_id, exc_info=True)
+
+
+async def _send_boot_admin_dm(bot: discord.Client, user: Any) -> None:
+    """Send the bot-admin DM menu after the boot message (best-effort).
+
+    The cross-guild management menu (access grants, DM locale, content
+    refresh) lands in every bot-admin's DM at boot — the operators'
+    home surface, kept for the session; the clicks answer ephemerally.
+    """
+    from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+
+    try:
+        panel = await build_admin_dm_panel(bot)
+        message = await user.send(view=panel)
+        try:
+            await message.pin(reason="kingdoms: boot admin DM menu")
+        except Exception:
+            logger.info("BOOT ADMIN DM menu pin skipped (admin %s)", user.id)
+        logger.info("BOOT ADMIN DM menu sent to bot-admin %s", user.id)
+    except Exception:
+        logger.warning("BOOT ADMIN DM menu failed (admin %s) — best-effort", user.id, exc_info=True)
 
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:

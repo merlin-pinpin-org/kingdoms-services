@@ -1042,12 +1042,14 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction', locale_select: 'discord.ui.Item[Any] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;panel:&nbsp;one&nbsp;FR&nbsp;menu,&nbsp;sectioned.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction | discord.Client', locale_select: 'discord.ui.Item[Any] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;panel:&nbsp;one&nbsp;FR&nbsp;menu,&nbsp;sectioned.<br>
 &nbsp;<br>
 Sections:&nbsp;demandes&nbsp;en&nbsp;attente&nbsp;(approve/deny),&nbsp;accords&nbsp;actifs,&nbsp;la<br>
 langue&nbsp;des&nbsp;DM&nbsp;du&nbsp;bot&nbsp;admin&nbsp;(the&nbsp;DM&nbsp;locale&nbsp;select&nbsp;rides&nbsp;inside&nbsp;this<br>
 single&nbsp;panel),&nbsp;refresh&nbsp;du&nbsp;contenu&nbsp;civs/maps&nbsp;et&nbsp;gestion&nbsp;directe&nbsp;des<br>
-accords&nbsp;(sans&nbsp;demande).&nbsp;No&nbsp;provider-mapping&nbsp;section.</span></dd></dl>
+accords&nbsp;(sans&nbsp;demande).&nbsp;No&nbsp;provider-mapping&nbsp;section.&nbsp;The&nbsp;caller<br>
+passes&nbsp;the&nbsp;interaction&nbsp;(clicks)&nbsp;or&nbsp;the&nbsp;client&nbsp;itself&nbsp;(the&nbsp;boot's<br>
+DM&nbsp;delivery)&nbsp;—&nbsp;only&nbsp;the&nbsp;client&nbsp;reference&nbsp;is&nbsp;read.</span></dd></dl>
  <dl><dt><a name="-register_admin_dm_items"><strong>register_admin_dm_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;DM&nbsp;panel's&nbsp;persistent&nbsp;dynamic&nbsp;items.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
