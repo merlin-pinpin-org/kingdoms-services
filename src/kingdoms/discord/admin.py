@@ -521,29 +521,30 @@ async def _resolve_managed_channel(
     category: str,
     admin_channel_service: AdminChannelService | None = None,
 ) -> str | None:
-    """Resolve a managed channel id, degrading to None on failure."""
-    client = _panel_client()
-    if client is None and category in (HOME_CHANNEL_CATEGORY, LIVE_CHANNEL_CATEGORY):
+    """Resolve a managed channel through its stored tree id; None when absent.
+
+    The tree is the single owner of the channels: the admin panel
+    resolves by the persisted id (``tree:<scope>:<key>``) and never
+    creates or adopts — a channel the tree has not provisioned simply
+    reads "not provisioned yet".
+    """
+    del logs_service, admin_channel_service
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    tree_keys = {
+        BOT_LOGS_CATEGORY: ("bot", "logs"),
+        ADMIN_CHANNEL_CATEGORY: ("bot", "admin"),
+        HOME_CHANNEL_CATEGORY: ("root", "general"),
+        LIVE_CHANNEL_CATEGORY: ("games/aoe2", "live"),
+    }
+    scope, key = tree_keys.get(category, ("", ""))
+    if not scope:
         return None
     try:
-        if category == BOT_LOGS_CATEGORY:
-            return await logs_service.resolve_channel(guild_id)
-        if category == ADMIN_CHANNEL_CATEGORY and admin_channel_service is not None:
-            return await admin_channel_service.resolve_channel(guild_id)
-        if category == HOME_CHANNEL_CATEGORY:
-            home_channel = getattr(client, "home_channel_service", None)
-            if home_channel is not None:
-                resolved = await home_channel.resolve_channel(guild_id)
-                return str(resolved) if resolved else None
-        if category == LIVE_CHANNEL_CATEGORY and client is not None:
-            from kingdoms.discord.live import LIVE_CHANNEL_NAME
-
-            guild = client.get_guild(int(guild_id)) if guild_id.isdigit() else None
-            channel = discord.utils.get(guild.text_channels, name=LIVE_CHANNEL_NAME) if guild else None
-            return str(channel.id) if channel is not None else None
+        return await stored_channel_id(guild_id, scope, key)
     except Exception:
         logger.warning("ADMIN PANEL: channel resolution failed (guild %s, category %s)", guild_id, category)
-    return None
+        return None
 
 
 def _panel_client() -> discord.Client | None:

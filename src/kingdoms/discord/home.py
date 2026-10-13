@@ -648,21 +648,16 @@ def _home_static_pin_spec(bot: discord.Client) -> Any:
     """Declare (and register) the home menu as a static pinned view."""
     from kingdoms.discord.static_pins import StaticPinnedView, register_static_pin
 
-    home_channel = getattr(bot, "home_channel_service", None)
     home = getattr(bot, "home_service", None)
-    if home_channel is None or home is None:
+    if home is None:
         return None
     registry = getattr(bot, "message_registry", None)
 
     async def _resolve(guild_id: str) -> str | None:
-        """Resolve the tree's ``root/general`` first, then the managed fallback."""
+        """Resolve the tree's ``root/general`` (stored id only)."""
         from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
-        stored = await stored_channel_id(guild_id, "root", "general")
-        if stored:
-            return stored
-        resolved = await home_channel.resolve_channel(guild_id)
-        return str(resolved) if resolved else None
+        return await stored_channel_id(guild_id, "root", "general")
 
     spec = StaticPinnedView(
         key=HOME_MESSAGE_KEY,

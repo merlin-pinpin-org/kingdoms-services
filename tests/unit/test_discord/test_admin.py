@@ -70,7 +70,8 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     customs = _custom_ids(layout)
     assert PIN_LOCALE_SELECT_ID in customs, "the guild language select is on the main menu"
     assert PIN_CHANNEL_MENU_ID in customs, "the managed-channel picker is on the main menu"
-    assert logs.resolved_guilds == ["42"]
+    # the tree owns the channels: the admin panel resolves by stored id
+    # (never through the managed services), so no service resolution here.
     await client.close()
 
 

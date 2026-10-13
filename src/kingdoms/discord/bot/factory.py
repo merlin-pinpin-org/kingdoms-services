@@ -318,23 +318,10 @@ class KingdomsBot(discord.Client):
             self._provisioned = True
             return
         self._provisioned = True
-        admin_ids = self.status_service.bot_admins
         for guild in list(self.guilds):
             guild_id = str(guild.id)
             await self._provision_channel_tree(guild_id, guild)
             await self._route_managed_channels(guild_id)
-            if self.logs_service is not None:
-                try:
-                    await self.logs_service.resolve_channel(guild_id)
-                except Exception:
-                    logger.warning("LOGS CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True)
-            if self.admin_channel_service is not None:
-                try:
-                    await self.admin_channel_service.resolve_channel(guild_id, admin_ids)
-                except Exception:
-                    logger.warning(
-                        "ADMIN CHANNEL provisioning failed (guild %s) — best-effort", guild_id, exc_info=True
-                    )
             if self.channel_service is not None and self.mod_roles_service is not None and self.registry is not None:
                 await self._provision_mods(
                     guild_id,
@@ -482,17 +469,10 @@ class KingdomsBot(discord.Client):
             logger.warning("CHANNEL AUDIT failed (guild %s) — best-effort", guild_id, exc_info=True)
 
     async def _resolve_admin_pin_channel(self, guild_id: str) -> str | None:
-        """Resolve the tree's ``bot/admin`` first, then the managed fallback."""
+        """Resolve the tree's ``bot/admin`` (stored id only)."""
         from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
-        stored = await stored_channel_id(guild_id, "bot", "admin")
-        if stored:
-            return stored
-        service = self.admin_channel_service
-        if service is None:
-            return None
-        resolved = await service.resolve_channel(guild_id, self.status_service.bot_admins)
-        return str(resolved) if resolved else None
+        return await stored_channel_id(guild_id, "bot", "admin")
 
     async def _maintain_pinned_menus(self) -> None:
         """Keep the pinned admin menu alive in every guild (self-healing).
@@ -753,24 +733,7 @@ class KingdomsBot(discord.Client):
         if not guild_id or guild is None:
             return
         await self._heal_channel_tree(guild_id, guild)
-        for service, admin_ids in (
-            (getattr(self, "home_channel_service", None), ()),
-            (getattr(self, "admin_channel_service", None), tuple(self.status_service.bot_admins)),
-            (getattr(self, "logs_service", None), ()),
-        ):
-            if service is None:
-                continue
-            try:
-                if admin_ids:
-                    await service.resolve_channel(guild_id, admin_ids)
-                else:
-                    await service.resolve_channel(guild_id)
-            except Exception:
-                logger.warning(
-                    "MANAGED CHANNEL recreation failed (guild %s) — best-effort",
-                    guild_id,
-                    exc_info=True,
-                )
+        await self._route_managed_channels(guild_id)
         try:
             from kingdoms.discord.static_pins import heal_static_pins
 
