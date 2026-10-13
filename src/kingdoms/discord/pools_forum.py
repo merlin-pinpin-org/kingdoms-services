@@ -59,7 +59,7 @@ def _pool_post_layout(
     thumbnail), the overflow as text lines, the id footer and the
     action row (add map when in edition, transition, delete).
     """
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton, PoolDeleteButton, PoolTransitionButton
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
     from kingdoms.discord.ui.entity_cards import pool_card
 
     state_line = _pool_state_badge(getattr(pool, "state", "draft"))
@@ -81,13 +81,11 @@ def _pool_post_layout(
             name += f" — *{m['map_type']}*"
         sections.append((name, link, image))
 
-    buttons: list[Any] = []
-    if editable:
-        buttons.append(lambda: PoolAddMapButton(pool.id))
-    buttons.append(lambda: PoolTransitionButton(pool.id))
-    buttons.append(
-        lambda: PoolDeleteButton(pool.id, game_key=str(getattr(pool, "game_key", "")))
-    )
+    buttons: list[Any] = [
+        lambda: EntityAdminButton(
+            "pool", pool.id, game_key=str(getattr(pool, "game_key", "")), owned=editable
+        )
+    ]
     return pool_card(
         pool_id=pool.id,
         name=pool.name,

@@ -96,11 +96,11 @@ def test_pool_post_layout_has_section_per_map_and_add_button() -> None:
     sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
     assert len(sections) == 1  # the imaged member rides a Section; Plain is a text line
     assert sections[0].accessory is not None
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
 
     rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
     buttons = [b for row in rows for b in row.children]
-    assert any(isinstance(b, PoolAddMapButton) for b in buttons)  # editable pool keeps add-map
+    assert any(isinstance(b, EntityAdminButton) for b in buttons)  # the single admin entry point
 
 
 def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
@@ -114,7 +114,6 @@ def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
 def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
     import discord
 
-    from kingdoms.discord.maps_pool_flow import PoolAddMapButton
 
     view = _pool_post_layout(
         _POOL,
@@ -133,4 +132,6 @@ def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
     assert len(sections) == 0  # imageless member = text line, no section
     rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
     buttons = [b for row in rows for b in row.children]
-    assert any(isinstance(b, PoolAddMapButton) for b in buttons)  # the add entry point remains
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
+
+    assert any(isinstance(b, EntityAdminButton) for b in buttons)  # the single admin entry point

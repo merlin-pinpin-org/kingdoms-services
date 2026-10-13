@@ -193,25 +193,13 @@ def _map_post_view(
     the id footer — the game-agnostic contract from
     ``kingdoms.discord.ui.entity_cards``.
     """
-    from kingdoms.discord.maps_pool_flow import MapAddToPoolButton, MapDeleteButton, MapEditButton
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
     from kingdoms.discord.ui.entity_cards import map_card
 
-    def _add_to_pool() -> Any:
-        return MapAddToPoolButton(map_id)
+    def _admin() -> Any:
+        return EntityAdminButton("map", map_id, game_key=game_key, owned=owned_by_guild)
 
-    buttons: list[Any] = [_add_to_pool]
-
-    if editable:
-
-        def _edit() -> Any:
-            return MapEditButton(map_id)
-
-        buttons.append(_edit)
-
-    def _delete() -> Any:
-        return MapDeleteButton(map_id, game_key=game_key, owned_by_guild=owned_by_guild)
-
-    buttons.append(_delete)
+    buttons: list[Any] = [_admin]
     return map_card(
         map_id=map_id,
         name=name,

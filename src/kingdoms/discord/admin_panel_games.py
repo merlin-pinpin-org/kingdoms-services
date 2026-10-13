@@ -1228,7 +1228,7 @@ class GamesPoolCreateModal(discord.ui.Modal):
             )
             return
         await interaction.response.send_message(
-            f"Pool **{pool.name}** créé — son post est dans le forum des map pools.", ephemeral=True
+            f"Pool **{pool.name}** créé — synchronisation du forum…", ephemeral=True
         )
         try:
             from kingdoms.discord.pools_forum import sync_pools_forum
@@ -1237,6 +1237,16 @@ class GamesPoolCreateModal(discord.ui.Modal):
                 await sync_pools_forum(str(interaction.guild_id), interaction.client)
         except Exception:
             logger.warning("GAMES ADMIN: pools forum sync after create failed — best-effort")
+        pool_link = ""
+        fresh = await service.get_map_pool(pool.id)
+        if fresh is not None and getattr(fresh, "forum_message_id", None) and interaction.guild_id:
+            pool_link = (
+                f" — son post : https://discord.com/channels/{interaction.guild_id}/"
+                f"{fresh.forum_message_id}/{fresh.forum_message_id}"
+            )
+        await interaction.edit_original_response(
+            content=f"Pool **{pool.name}** créé{pool_link or ' — son post est dans le forum des map pools.'}"
+        )
         await _refresh_pins_after_mutation(interaction)
 
 
