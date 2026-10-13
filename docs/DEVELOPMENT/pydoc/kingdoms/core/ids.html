@@ -58,6 +58,11 @@ is&nbsp;what&nbsp;every&nbsp;consumer&nbsp;(forums,&nbsp;pools,&nbsp;permissions
 ``pool:&lt;game_key&gt;:public:&lt;name-slug&gt;``&nbsp;for&nbsp;a&nbsp;platform-wide&nbsp;one.<br>
 Same&nbsp;convention&nbsp;as&nbsp;``map_entry_id``&nbsp;—&nbsp;the&nbsp;id&nbsp;carries&nbsp;the&nbsp;game&nbsp;and<br>
 the&nbsp;visibility&nbsp;scope.</span></dd></dl>
+ <dl><dt><a name="-scope_view_key"><strong>scope_view_key</strong></a>(scope: 'str', slug: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;a&nbsp;scope's&nbsp;view&nbsp;id:&nbsp;``view:&lt;short&nbsp;scope&gt;:&lt;slug&gt;``.<br>
+&nbsp;<br>
+The&nbsp;short&nbsp;scope&nbsp;is&nbsp;the&nbsp;scope's&nbsp;**last**&nbsp;segment&nbsp;—&nbsp;``games/aoe2``<br>
+reads&nbsp;``aoe2``,&nbsp;``mods/ladder``&nbsp;reads&nbsp;``ladder``&nbsp;—&nbsp;so&nbsp;view&nbsp;ids<br>
+stay&nbsp;flat&nbsp;and&nbsp;quotable:&nbsp;``view:aoe2:home``,&nbsp;``view:ladder:news``.</span></dd></dl>
  <dl><dt><a name="-season_id"><strong>season_id</strong></a>(ladder_id: 'str', index: 'int') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;visible&nbsp;season&nbsp;id:&nbsp;``&lt;ladder&nbsp;id&gt;:&lt;index&gt;``&nbsp;(from&nbsp;1).</span></dd></dl>
  <dl><dt><a name="-slug_id"><strong>slug_id</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;human&nbsp;name&nbsp;into&nbsp;its&nbsp;stable&nbsp;slug&nbsp;(ids,&nbsp;everywhere).<br>
 &nbsp;<br>

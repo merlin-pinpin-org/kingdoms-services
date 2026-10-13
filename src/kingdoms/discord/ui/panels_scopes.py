@@ -52,9 +52,7 @@ GAMES_SCOPE = ScopeSpec(
     category_key="ui.panels.categories.games",
     channels=(
         ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="discussions", label_key="ui.panels.channels.discussions"),
         ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-        ChannelDecl(key="decisions", label_key="ui.panels.channels.decisions", access="admin"),
     ),
 )
 
@@ -63,7 +61,6 @@ AOE2_SCOPE = ScopeSpec(
     category_key="ui.panels.categories.games_aoe2",
     channels=(
         ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="discussions", label_key="ui.panels.channels.discussions"),
         ChannelDecl(
             key="live",
             label_key="ui.panels.channels.live",
@@ -88,7 +85,6 @@ AOE2_SCOPE = ScopeSpec(
             access="readonly"
         ),
         ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-        ChannelDecl(key="decisions", label_key="ui.panels.channels.decisions", access="admin"),
     ),
 )
 
@@ -97,9 +93,7 @@ MODS_SCOPE = ScopeSpec(
     category_key="ui.panels.categories.mods",
     channels=(
         ChannelDecl(key="general", label_key="ui.panels.channels.general", access="readonly"),
-        ChannelDecl(key="discussions", label_key="ui.panels.channels.discussions"),
         ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
-        ChannelDecl(key="decisions", label_key="ui.panels.channels.decisions", access="admin"),
     ),
 )
 

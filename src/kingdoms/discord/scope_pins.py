@@ -23,6 +23,8 @@ from typing import Any
 
 import discord
 
+from kingdoms.core.ids import scope_view_key
+
 logger = logging.getLogger("kingdoms.discord.scope_pins")
 
 
@@ -122,7 +124,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
             MenuSpec(
                 title=title,
                 description=description,
-                view_id="view:home" if scope == "root" else f"view:{scope}:home",
+                view_id="view:home" if scope == "root" else scope_view_key(scope, "home"),
                 sections=sections,
             )
         )
@@ -152,7 +154,7 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                         locale,
                         "Les données du jeu : civilisations, maps et map pools.",
                     ),
-                    view_id="view:games/aoe2:admin",
+                    view_id=scope_view_key(scope, "admin"),
                     sections=(
                         MenuSection(
                             buttons=(
@@ -176,20 +178,70 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                     ),
                 )
             )
-        # the other scopes (games, mods) manage their perimeters through
-        # the shared admin dispatch — the charte wrapper keeps them uniform
+        if scope in ("games", "mods"):
+            # the perimeter management: granted list, access request,
+            # channels and roles (the shared admin dispatches)
+            kind = "games" if scope == "games" else "mods"
+            extra = (
+                (
+                    _tr(
+                        catalog,
+                        "ui.homes.mods_doc_line",
+                        locale,
+                        "📖 Documentation des mods : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS",
+                    ),
+                )
+                if scope == "mods"
+                else ()
+            )
+            return build_menu(
+                MenuSpec(
+                    title=_tr(catalog, f"ui.homes.{kind}_admin_title", locale, f"{kind} — admin"),
+                    description=_tr(
+                        catalog,
+                        f"ui.homes.{kind}_admin_description",
+                        locale,
+                        "Les périmètres accordés, les demandes d'accès et la configuration.",
+                    ),
+                    extra_lines=extra,
+                    view_id=scope_view_key(scope, "admin"),
+                    sections=(
+                        MenuSection(
+                            heading_key=_tr(catalog, "ui.homes.heading_perimeters", locale, "Périmètres"),
+                            buttons=(
+                                ("home:open:games", _tr(catalog, "ui.homes.btn_list", locale, "Liste"), "📋"),
+                                (
+                                    f"admin:access:open:{guild_id}",
+                                    _tr(catalog, "ui.homes.btn_request_access", locale, "Demander l'accès"),
+                                    "✉️",
+                                ),
+                            ),
+                        ),
+                        MenuSection(
+                            heading_key=_tr(catalog, "ui.homes.heading_configuration", locale, "Configuration"),
+                            buttons=(
+                                (
+                                    "admin:pin:button:roles",
+                                    _tr(catalog, "ui.homes.btn_channels_roles", locale, "Salons & rôles"),
+                                    "🛠️",
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+            )
+        # bot: the operation panel keeps its dedicated surfaces (language,
+        # channels, roles) through the shared admin dispatch
         return build_menu(
             MenuSpec(
-                title=_tr(
-                    catalog, f"ui.homes.{scope.replace('/', '_')}_admin_title", locale, f"{scope} — admin"
-                ),
+                title=_tr(catalog, "ui.homes.bot_admin_title", locale, "🤖 Bot — admin"),
                 description=_tr(
                     catalog,
-                    f"ui.homes.{scope.replace('/', '_')}_admin_description",
+                    "ui.homes.bot_admin_description",
                     locale,
-                    "La gestion du périmètre.",
+                    "L'exploitation du bot : langue, salons, rôles, jeux et mods.",
                 ),
-                view_id=f"view:{scope}:admin",
+                view_id=scope_view_key(scope, "admin"),
                 sections=(
                     MenuSection(
                         buttons=(
@@ -215,7 +267,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
     specs: list[Any] = []
     for scope in scopes:
         if scope not in ("root", "bot"):  # root's home is the legacy view:home spec
-            home_key = f"view:{scope}:home"
+            home_key = scope_view_key(scope, "home")
             specs.append(
                 register_static_pin(
                     StaticPinnedView(
@@ -228,7 +280,7 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
                 )
             )
         if scope != "root":  # the root has no admin channel of its own
-            admin_key = f"view:{scope}:admin"
+            admin_key = scope_view_key(scope, "admin")
             specs.append(
                 register_static_pin(
                     StaticPinnedView(

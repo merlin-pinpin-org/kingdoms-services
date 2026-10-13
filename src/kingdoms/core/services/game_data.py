@@ -371,8 +371,9 @@ class GameDataService:
         for pack_id in map_pack_ids:
             if await self._db.find_entry(MAP_PACKS_COLLECTION, pack_id) is None:
                 raise ValueError(f"unknown map pack {pack_id!r}")
-        if not map_ids and not map_pack_ids:
-            raise ValueError("a map pool references at least one map or map pack")
+        # an empty pool is the creation flow's draft state: the maps are
+        # added through the pool's editor right after; publishing an
+        # empty pool is guarded downstream (the publish action)
         if len(map_ids) > MAX_POOL_MAPS:
             raise ValueError(f"a map pool holds at most {MAX_POOL_MAPS} maps (Discord list caps), got {len(map_ids)}")
         active = await self._db.find_active_map_pools(game_key, owner_guild_id)

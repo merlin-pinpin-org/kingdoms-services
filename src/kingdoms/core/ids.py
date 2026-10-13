@@ -57,6 +57,17 @@ def footer(*ids: str) -> str:
 _NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
 
 
+def scope_view_key(scope: str, slug: str) -> str:
+    """Build a scope's view id: ``view:<short scope>:<slug>``.
+
+    The short scope is the scope's **last** segment — ``games/aoe2``
+    reads ``aoe2``, ``mods/ladder`` reads ``ladder`` — so view ids
+    stay flat and quotable: ``view:aoe2:home``, ``view:ladder:news``.
+    """
+    short = scope.rsplit("/", 1)[-1] if "/" in scope else scope
+    return f"view:{short}:{slug}"
+
+
 def view_key(scope: str, slug: str, legacy: str = "") -> tuple[str, str]:
     """Return a persistent view's registry key pair: (current, legacy).
 

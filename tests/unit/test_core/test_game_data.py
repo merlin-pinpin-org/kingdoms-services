@@ -157,8 +157,10 @@ async def test_map_pack_validates_map_ids() -> None:
 @pytest.mark.asyncio
 async def test_map_pool_requires_maps_and_duplicate() -> None:
     svc, _, _ = _service()
-    with pytest.raises(ValueError, match="at least one"):
-        await svc.create_map_pool(GAME, "Empty")
+    # an empty pool is the creation flow's draft state (maps added in
+    # the editor right after) — it must create cleanly
+    draft = await svc.create_map_pool(GAME, "Empty")
+    assert draft.map_ids == ()
     map_ = await svc.create_map(GAME, "Nomad", filename="nomad.v0")
     pool = await svc.create_map_pool(GAME, "Open Pool", map_ids=(map_.id,))
     with pytest.raises(NameTakenError):

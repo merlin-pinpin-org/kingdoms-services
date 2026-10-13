@@ -69,9 +69,7 @@ class TestCanonicalOrder:
         decls = _sorted_channels(AOE2_SCOPE)
         keys = [d.key for d in decls]
         assert keys[0] == "general"
-        assert keys[1] == "discussions"
-        assert keys[-2] == "admin"
-        assert keys[-1] == "decisions"
+        assert keys[-1] == "admin"  # the grouping folder closes on admin
         assert keys.index("civs") < keys.index("admin")
 
     def test_the_bot_scope_orders_logs_first(self) -> None:
