@@ -115,11 +115,32 @@ class _Platform:
 
 
 async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl) -> None:
-    """Apply the channel's access band (overwrites, best-effort)."""
+    """Apply the channel's access band (overwrites, best-effort).
+
+    The bot's own member always carries an explicit allow (view, send,
+    manage) — without it a ``view_channel=False`` for @everyone locks
+    the bot out of the very channel it provisioned, and every surface
+    (pins, syncs, dashboards) degrades with 403s.
+    """
     channel = guild.get_channel(int(channel_id)) if channel_id.isdigit() else None
     if channel is None:
         return
     try:
+        me = guild.me
+        if me is not None:
+            await channel.set_permissions(
+                me,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    manage_messages=True,
+                    manage_threads=True,
+                    read_message_history=True,
+                    embed_links=True,
+                    attach_files=True,
+                ),
+                reason="kingdoms: the bot operates its own channel",
+            )
         if decl.access == "readonly":
             overwrite = discord.PermissionOverwrite(send_messages=False, add_reactions=True)
             await channel.set_permissions(
