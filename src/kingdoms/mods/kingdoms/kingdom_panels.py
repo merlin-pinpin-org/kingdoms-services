@@ -301,6 +301,85 @@ STRINGS: dict[str, dict[str, Any]] = {
         "season_status_empty": "none yet",
         "season_status_hint": "This message is refreshed automatically by the bot.",
         "market_title": "🛒 Kingdom Market",
+        "market_hint_panel": (
+            "👑 Only the King of a kingdom can buy — every purchase debits "
+            "the kingdom treasury immediately (cost shown per article)."
+        ),
+        "market_fiche_input": "Article sheet (read only)",
+        "market_fiche_effect": "EFFECT — {0}",
+        "market_fiche_cost": "COST — {0} ⚙️",
+        "market_fiche_wallet": "CURRENT TREASURY — {0} ⚙️",
+        "market_fiche_left": "LEFT THIS SEASON — {0}/{1}",
+        "market_fiche_king_only": "👑 King only — debited from the treasury immediately.",
+        "market_effect": {
+            "embuscade": (
+                "Declare an exceptional attack without spending an attack "
+                "point (the matching defence is exceptional too). Every "
+                "protection applies."
+            ),
+            "traquenard": (
+                "On use: the AI you face becomes Easy, and the target kingdom's "
+                "active marriages gain a +2h lock."
+            ),
+            "contre_espionnage": (
+                "On use: declare an attack under cover — another lord is "
+                "displayed instead of you. The real attacker is revealed "
+                "15 minutes before the game."
+            ),
+            "sabotage": (
+                "A charge to engage in the meeting DM: disables up to 2 enemy "
+                "civilizations for the encounter (the counter resets afterwards)."
+            ),
+            "jeu_d_armes": (
+                "+1 permanent AI level (until the season ends) on your defence "
+                "bot — cap 5, reached: your Patrols become Reinforced (3h)."
+            ),
+            "explorateur": (
+                "The chosen lord is locked for 48h (🔒 no attack, no defence) "
+                "then the kingdom receives a brand-new map. Once per season."
+            ),
+            "corruption": (
+                "Instantly transfers an enemy territory to your kingdom, no "
+                "combat. Blocked if the map is under Royal Guard. 2 per season."
+            ),
+            "garde_royale": (
+                "Shields ONE kingdom map for 12h against everything "
+                "(Corruption, Ambush, classic attacks). Piloted from the "
+                "Remparts salon."
+            ),
+            "patrouille": (
+                "Immunity against incoming attacks on a chosen daily 2h slot. "
+                "Max 2 per season (3h when Reinforced)."
+            ),
+            "mariage_arrange": (
+                "A 💰 token to consume at the Parish: arranged marriage of a "
+                "lord of your choice with an unmarried civilization (6h lock)."
+            ),
+        },
+        "market_bought": "✅ Purchased: **{0}** — the treasury holds {1} ⚙️ left.",
+        "market_bought_detail": "✅ Purchased: **{0}** — {1}\nThe treasury holds {2} ⚙️ left.",
+        "market_bought_left": "\nLeft this season: {0}/{1}.",
+        "market_err_missing": "❌ Insufficient treasury — you are {0} ⚙️ short.",
+        "market_err_limit_reached": "❌ Season limit reached ({0}/{1}).",
+        "market_ledger_button": "🏛️ Chambre des comptes",
+        "market_ledger_title": "🏛️ Chambre des comptes — {0}",
+        "market_ledger_input": "Season register (read only)",
+        "market_ledger_summary": "Season balance — spent: {0} ⚙️ · treasury: {1} ⚙️",
+        "market_ledger_limits": "Limits — {0}",
+        "market_ledger_empty": "No purchase yet.",
+        "market_ledger_line": "{0} {1} — {2} · {3} ⚙️ · {4}",
+        "market_ledger_emoji": {
+            "embuscade": "🧪",
+            "traquenard": "🧪",
+            "contre_espionnage": "🧪",
+            "sabotage": "🧪",
+            "jeu_d_armes": "🧪",
+            "explorateur": "🛡️",
+            "corruption": "🧨",
+            "garde_royale": "🛡️",
+            "patrouille": "🛡️",
+            "mariage_arrange": "💒",
+        },
         "market_tech_section": "🧪 Combat technologies",
         "market_actions_section": "⚔️ Special actions",
         "market_hint": (
@@ -561,6 +640,89 @@ STRINGS: dict[str, dict[str, Any]] = {
         "season_status_empty": "aucun pour le moment",
         "season_status_hint": "Ce message est mis à jour automatiquement par le bot.",
         "market_title": "🛒 Marché du Royaume",
+        "market_hint_panel": (
+            "👑 Seul le Roi d'un royaume peut acheter — chaque achat débite "
+            "immédiatement le trésor du royaume (coût affiché par article)."
+        ),
+        "market_fiche_input": "Fiche article (lecture seule)",
+        "market_fiche_effect": "EFFET — {0}",
+        "market_fiche_cost": "COÛT — {0} ⚙️",
+        "market_fiche_wallet": "TRÉSORERIE ACTUELLE — {0} ⚙️",
+        "market_fiche_left": "RESTE CETTE SAISON — {0}/{1}",
+        "market_fiche_king_only": "👑 Réservé au Roi — débité immédiatement du trésor.",
+        "market_effect": {
+            "embuscade": (
+                "Déclare une attaque exceptionnelle, sans consommer de point "
+                "d'attaque (la défense correspondante est aussi exceptionnelle). "
+                "Toutes les protections s'appliquent."
+            ),
+            "traquenard": (
+                "À l'usage : l'IA affrontée devient Facile, et les mariages "
+                "actifs du royaume ciblé prennent +2h de verrou."
+            ),
+            "contre_espionnage": (
+                "À l'usage : déclare une attaque sous couverture — un autre "
+                "seigneur est affiché à ta place. Le vrai attaquant est révélé "
+                "15 min avant la partie."
+            ),
+            "sabotage": (
+                "Charge à engager dans le MP de rencontre : neutralise jusqu'à "
+                "2 civilisations adverses pour la rencontre (compteur remis à "
+                "zéro ensuite)."
+            ),
+            "jeu_d_armes": (
+                "+1 niveau d'IA permanent (jusqu'à la fin de saison) sur ton "
+                "bot de défense — plafond 5, atteint : les Patrouilles "
+                "deviennent Renforcées (3h)."
+            ),
+            "explorateur": (
+                "Le seigneur choisi est verrouillé 48h (🔒 ni attaque ni "
+                "défense) puis le royaume reçoit une map inédite. 1 par saison."
+            ),
+            "corruption": (
+                "Transfert immédiat d'un territoire adverse vers ton royaume, "
+                "sans combat. Bloquée si la map est sous Garde Royale. "
+                "2 par saison."
+            ),
+            "garde_royale": (
+                "Protège UNE map du royaume pendant 12h contre tout "
+                "(Corruption, Embuscade, attaques classiques). Pilotée depuis "
+                "le salon Remparts."
+            ),
+            "patrouille": (
+                "Immunité contre les attaques entrantes sur une tranche de 2h "
+                "choisie, chaque jour. Max 2 par saison (3h si Renforcée)."
+            ),
+            "mariage_arrange": (
+                "Jeton 💰 à consommer à la Paroisse : mariage arrangé d'un "
+                "seigneur de ton choix avec une civilisation non mariée "
+                "(verrou 6h)."
+            ),
+        },
+        "market_bought": "✅ Acheté : **{0}** — il reste {1} ⚙️ au trésor.",
+        "market_bought_detail": "✅ Acheté : **{0}** — {1}\nIl reste {2} ⚙️ au trésor.",
+        "market_bought_left": "\nReste cette saison : {0}/{1}.",
+        "market_err_missing": "❌ Trésorerie insuffisante — il te manque {0} ⚙️.",
+        "market_err_limit_reached": "❌ Limite de saison atteinte ({0}/{1}).",
+        "market_ledger_button": "🏛️ Chambre des comptes",
+        "market_ledger_title": "🏛️ Chambre des comptes — {0}",
+        "market_ledger_input": "Registre de la saison (lecture seule)",
+        "market_ledger_summary": "Bilan de saison — dépensé : {0} ⚙️ · trésor : {1} ⚙️",
+        "market_ledger_limits": "Limites — {0}",
+        "market_ledger_empty": "Aucun achat pour le moment.",
+        "market_ledger_line": "{0} {1} — {2} · {3} ⚙️ · {4}",
+        "market_ledger_emoji": {
+            "embuscade": "🧪",
+            "traquenard": "🧪",
+            "contre_espionnage": "🧪",
+            "sabotage": "🧪",
+            "jeu_d_armes": "🧪",
+            "explorateur": "🛡️",
+            "corruption": "🧨",
+            "garde_royale": "🛡️",
+            "patrouille": "🛡️",
+            "mariage_arrange": "💒",
+        },
         "market_tech_section": "🧪 Technologies de combat",
         "market_actions_section": "⚔️ Actions spéciales",
         "market_hint": (
@@ -1334,6 +1496,10 @@ async def build_market_panel(
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(f"# {strings['market_title']}"),
+            discord.ui.Separator(),
+            # marche-v2: the King-only rule is finally visible on the
+            # pinned panel (Drasah's decision, 2026-10-13).
+            discord.ui.TextDisplay(strings["market_hint_panel"]),
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"## {strings['market_tech_section']}"),
             *tech_rows,

@@ -90,6 +90,10 @@ class KingdomModel(BaseModel):
     arranged_marriage_stock: int = Field(default=0, ge=0)
     """Jeton(s) de mariage arrangé bought at the Marché (3 🔬 each, D60),
     consumed at the Paroisse button — never from the marriage points."""
+    market_registry: list[dict[str, Any]] = Field(default_factory=list)
+    """Chambre des comptes (marche-v2, 2026-10-13): the kingdom's dated
+    purchase ledger — one ``{"item", "detail", "cost", "at"}`` entry per
+    successful Marché buy, newest readable through the ledger modal."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

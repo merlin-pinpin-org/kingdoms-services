@@ -65,6 +65,7 @@ def _strings(locale: str) -> dict[str, str]:
             "royal_guard": "Garde royale",
             "parish": "Paroisse",
             "parish_placeholder": "⛪ Chapelle (palier 1/3) — paliers D64 à venir",
+            "ledger_button": "🏛️ Chambre des comptes",
             "yes": "oui",
             "no": "non",
             "none_f": "aucune",
@@ -152,6 +153,7 @@ def _strings(locale: str) -> dict[str, str]:
         "royal_guard": "Royal guard",
         "parish": "Parish",
         "parish_placeholder": "⛪ Chapel (tier 1/3) — D64 tiers coming soon",
+        "ledger_button": "🏛️ Chambre des comptes",
         "yes": "yes",
         "no": "no",
         "none_f": "none",
@@ -504,11 +506,14 @@ def _build_overview(
             f"**{strings['parish']}** : {strings['parish_placeholder']}",
         ]
     )
-    return _panel_view(
+    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomMarketLedgerButton
+
+    return _panel_view_with_buttons(
         strings["overview_title"].format(getattr(kingdom, "name", "")),
         body,
         f"{VIEW_MARKER_PREFIX}:le-royaume",
         discord.Colour.gold(),
+        [KingdomMarketLedgerButton(strings["ledger_button"])],
     )
 
 

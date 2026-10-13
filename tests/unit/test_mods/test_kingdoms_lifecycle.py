@@ -59,6 +59,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomMarketActionButton,
+        KingdomMarketLedgerButton,
         KingdomMarketTechButton,
         KingdomProfileButton,
         KingdomRequestButton,
@@ -74,6 +75,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomAdminButton,
         KingdomMarketTechButton,
         KingdomMarketActionButton,
+        KingdomMarketLedgerButton,
     }
     assert expected <= bot._dynamic_items
 

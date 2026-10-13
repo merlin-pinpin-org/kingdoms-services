@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import random
+import time
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -157,6 +158,7 @@ class EconomyService:
             cost,
             kingdom.arranged_marriage_stock,
         )
+        await self._record_purchase(kingdom_id, "mariage_arrange", "jeton 💰", cost)
         return kingdom
 
     async def buy_combat_technology(self, kingdom_id: str, technology: str) -> object:
@@ -172,12 +174,14 @@ class EconomyService:
         state.tech_points += cost
         await self._store.upsert_technology(state.to_mongo())
         try:
-            return await self._attacks.buy_technology(kingdom_id, technology)
+            result = await self._attacks.buy_technology(kingdom_id, technology)
         except KingdomsModError:
             refunded = await self._kingdom_by_id(kingdom_id)
             refunded.tech_points_bank += cost
             await self._store.upsert_kingdom(refunded.to_mongo())
             raise
+        await self._record_purchase(kingdom_id, technology, "", cost)
+        return result
 
     # ------------------------------------------------------------------
     # Explorateur (D48)
@@ -204,6 +208,7 @@ class EconomyService:
             raise
         await self._count_purchase(kingdom_id, EXPLORATEUR)
         logger.info("kingdoms: %s explored the map %s", kingdom_id, map_key)
+        await self._record_purchase(kingdom_id, EXPLORATEUR, f"map {map_key}", self._cost(EXPLORATEUR))
         return territory
 
     # ------------------------------------------------------------------
@@ -263,6 +268,9 @@ class EconomyService:
             territory_id,
             fresh.protected_until.isoformat(),
         )
+        await self._record_purchase(
+            kingdom_id, CORRUPTION, f"map {fresh.map_key}", self._cost(CORRUPTION)
+        )
         return fresh
 
     # ------------------------------------------------------------------
@@ -299,6 +307,9 @@ class EconomyService:
             kingdom_id,
             territory_id,
             territory.protected_until.isoformat(),
+        )
+        await self._record_purchase(
+            kingdom_id, GARDE_ROYALE, f"map {territory.map_key}", self._cost(GARDE_ROYALE)
         )
         return territory
 
@@ -368,11 +379,38 @@ class EconomyService:
         await self._store.upsert_technology(state.to_mongo())
         await self._count_purchase(kingdom_id, PATROUILLE)
         logger.info("kingdoms: %s patrols the daily slot %sh", kingdom_id, slot_start)
+        await self._record_purchase(
+            kingdom_id,
+            PATROUILLE,
+            f"{slot_start:02d}h00 → {slot_start + PATROUILLE_HOURS:02d}h00",
+            self._cost(PATROUILLE),
+        )
         return slot_start
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Chambre des comptes (marche-v2, 2026-10-13)
+    # ------------------------------------------------------------------
+    async def _record_purchase(self, kingdom_id: str, item: str, detail: str, cost: int) -> None:
+        """Append one dated entry to the kingdom's purchase ledger.
+
+        Best-effort: a ledger failure never breaks a successful
+        purchase — the registry is the consultative Chambre des
+        comptes history, not an accounting invariant.
+        """
+        try:
+            kingdom = await self._kingdom_by_id(kingdom_id)
+            registry = list(getattr(kingdom, "market_registry", None) or [])
+            registry.append(
+                {"item": str(item), "detail": str(detail)[:100], "cost": int(cost), "at": int(time.time())}
+            )
+            kingdom.market_registry = registry[-50:]
+            await self._store.upsert_kingdom(kingdom.to_mongo())
+        except Exception:
+            logger.warning("kingdoms: ledger write failed for %s", kingdom_id, exc_info=True)
+
     def _cost(self, action: str) -> int:
         """Return the configured cost of one special action (D9)."""
         return int(getattr(self._config.technologies, action))

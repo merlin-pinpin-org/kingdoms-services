@@ -229,7 +229,7 @@ async def test_market_panel_never_serializes_an_empty_action_row() -> None:
         assert len(row.children) >= 1
 
 
-async def test_tech_button_buys_through_the_economy_for_kings() -> None:
+async def test_tech_button_opens_the_sheet_then_buys_through_the_economy_for_kings() -> None:
     economy = FakeEconomyService()
     _wiring(
         lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
@@ -238,9 +238,19 @@ async def test_tech_button_buys_through_the_economy_for_kings() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketTechButton("embuscade", "Embuscade — 2 🔬", discord.ButtonStyle.primary)
     await button.callback(interaction)
+    assert interaction.response.modal is not None
+    modal = interaction.response.modal
+    sheet = str(modal.fiche.default or "")
+    assert "EFFECT" in sheet
+    assert "COST" in sheet
+    assert "CURRENT TREASURY" in sheet
+    assert "King only" in sheet
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
     assert economy.tech_bought == [("k1", "embuscade")]
-    assert interaction.followup.messages
-    assert "Purchased" in (interaction.followup.messages[-1].content or "")
+    assert submit.followup.messages
+    assert "Purchased" in (submit.followup.messages[-1].content or "")
 
 
 async def test_tech_button_refuses_non_kings() -> None:
@@ -253,7 +263,8 @@ async def test_tech_button_refuses_non_kings() -> None:
     button = KingdomMarketTechButton("embuscade", "Embuscade", discord.ButtonStyle.primary)
     await button.callback(interaction)
     assert economy.tech_bought == []
-    assert "Only Kings" in (interaction.followup.messages[-1].content or "")
+    assert interaction.response.message is not None
+    assert "Only Kings" in (interaction.response.message.content or "")
 
 
 async def test_action_button_opens_the_territory_select_and_buys() -> None:
@@ -272,16 +283,23 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("corruption", "Corruption — 4 🔬", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    assert interaction.response.sent
-    message = interaction.response.message
+    modal = interaction.response.modal
+    assert modal is not None
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
+    message = submit.response.message
     assert message is not None and message.view is not None
     select = next(iter(message.view.children))
     assert [opt.value for opt in select.options] == ["t1"]  # own territory filtered out
 
     choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["t1"]}, locale="en-US")
+    choice.message = message
     await select.callback(choice)
     assert economy.corrupted == [("k1", "t1")]
-    assert "Purchased" in (choice.followup.messages[-1].content or "")
+    # Single-bubble echo: the select bubble is edited, no followup stack.
+    assert choice.followup.messages == []
+    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
 async def test_explorateur_button_buys_a_random_map_directly() -> None:
@@ -294,8 +312,13 @@ async def test_explorateur_button_buys_a_random_map_directly() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("explorateur", "Explorateur", discord.ButtonStyle.secondary)
     await button.callback(interaction)
+    modal = interaction.response.modal
+    assert modal is not None
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
     assert economy.explorateur_bought == ["k1"]
-    assert "Purchased" in (interaction.followup.messages[-1].content or "")
+    assert "Purchased" in (submit.followup.messages[-1].content or "")
 
 
 async def test_patrouille_button_opens_the_slot_select_and_buys() -> None:
@@ -308,15 +331,22 @@ async def test_patrouille_button_opens_the_slot_select_and_buys() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("patrouille", "Patrol — 2 🔬", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    message = interaction.response.message
+    modal = interaction.response.modal
+    assert modal is not None
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
+    message = submit.response.message
     assert message is not None and message.view is not None
     select = next(iter(message.view.children))
     assert [opt.value for opt in select.options] == [str(h) for h in range(0, 24, 2)]
 
     choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["2"]}, locale="en-US")
+    choice.message = message
     await select.callback(choice)
     assert economy.patrols == [("k1", 2)]
-    assert "02:00" in (choice.followup.messages[-1].content or "")
+    assert choice.followup.messages == []
+    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
 async def test_mariage_button_sells_an_arranged_marriage_token() -> None:
@@ -334,10 +364,15 @@ async def test_mariage_button_sells_an_arranged_marriage_token() -> None:
         "mariage_arrange", "Arranged marriage — 3 🔬", discord.ButtonStyle.secondary
     )
     await button.callback(interaction)
+    modal = interaction.response.modal
+    assert modal is not None
+
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
     # The 3 techs went through the kingdom treasury (D2), no marriage yet.
     assert economy.spent == [("k1", 3)]
     assert diplomacy.arranged == []
-    assert interaction.followup.messages  # the confirmation note was sent
+    assert submit.followup.messages  # the confirmation note was sent
 
 
 async def test_church_arrange_button_flows_lord_then_civilization() -> None:
@@ -391,8 +426,14 @@ async def test_action_button_answers_no_options_when_empty() -> None:
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     button = KingdomMarketActionButton("garde_royale", "Garde Royale", discord.ButtonStyle.secondary)
     await button.callback(interaction)
-    assert interaction.response.sent
-    assert "No option" in (interaction.response.message.content if interaction.response.message else "")
+    modal = interaction.response.modal
+    assert modal is not None
+    submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    await modal.on_submit(submit)
+    assert submit.response.sent
+    message = submit.response.message
+    assert message is not None
+    assert "No option" in (message.content or "")
 
 
 async def test_deploy_panels_pins_the_market_panel_in_the_marche_channel() -> None:

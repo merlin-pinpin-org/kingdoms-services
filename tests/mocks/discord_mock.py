@@ -924,6 +924,10 @@ class MockInteraction(discord.Interaction):
         """Mirror :meth:`discord.Interaction.edit_original_response` (post-defer)."""
         return await self._webhook.edit("@original", **kwargs)
 
+    async def original_response(self) -> MockMessage | None:
+        """Mirror :meth:`discord.Interaction.original_response` (post-send)."""
+        return self.response.message
+
     @property
     def guild(self) -> MockGuild:
         return self._guild
