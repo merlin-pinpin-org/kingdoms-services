@@ -541,7 +541,7 @@ async def _sweep_duplicate_dashboards(channel: discord.TextChannel, keep: str | 
     A crash mid-cycle (or a pre-adoption deployment) can leave an
     orphan dashboard next to the pinned one. The sweep keeps the
     pinned (or freshly created) message and removes the bot's other
-    dashboard messages in the channel — the ``fixe:`` mark identifies
+    dashboard messages in the channel — the view-id mark identifies
     ours; foreign messages are never touched.
     """
     from kingdoms.discord.pinned_marks import is_pinned_view

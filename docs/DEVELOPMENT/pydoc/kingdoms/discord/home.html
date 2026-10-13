@@ -1562,7 +1562,7 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
  <dl><dt>async <a name="-ensure_pinned_home_menu"><strong>ensure_pinned_home_menu</strong></a>(bot: 'discord.Client', guild_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;guild's&nbsp;home&nbsp;channel&nbsp;holds&nbsp;its&nbsp;pinned&nbsp;menu&nbsp;(registry&nbsp;cycle).<br>
 &nbsp;<br>
 The&nbsp;static-pin&nbsp;cycle&nbsp;owns&nbsp;everything:&nbsp;channel&nbsp;resolution&nbsp;(recreated<br>
-on&nbsp;delete),&nbsp;pin&nbsp;creation/refresh/re-pin,&nbsp;and&nbsp;the&nbsp;``fixe:``&nbsp;mark.</span></dd></dl>
+on&nbsp;delete),&nbsp;pin&nbsp;creation/refresh/re-pin,&nbsp;and&nbsp;the&nbsp;view-id&nbsp;mark.</span></dd></dl>
  <dl><dt>async <a name="-open_home_menu"><strong>open_home_menu</strong></a>(interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;home&nbsp;menu&nbsp;itself&nbsp;(the&nbsp;back&nbsp;target&nbsp;of&nbsp;mod&nbsp;views).</span></dd></dl>
  <dl><dt>async <a name="-open_home_view"><strong>open_home_view</strong></a>(interaction: 'discord.Interaction', view_key: 'str') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;a&nbsp;home&nbsp;click&nbsp;with&nbsp;the&nbsp;matching&nbsp;ephemeral&nbsp;view.</span></dd></dl>
  <dl><dt>async <a name="-open_home_view_for_guild"><strong>open_home_view_for_guild</strong></a>(interaction: 'discord.Interaction', view_key: 'str', guild_id: 'str') -&gt; 'None'</dt><dd><span class="code">Re-dispatch&nbsp;a&nbsp;home&nbsp;view&nbsp;key&nbsp;with&nbsp;an&nbsp;explicit&nbsp;guild&nbsp;scope&nbsp;(DM&nbsp;pick).</span></dd></dl>

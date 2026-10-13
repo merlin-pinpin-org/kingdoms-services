@@ -181,6 +181,18 @@ async def provision_scope(
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
         try:
+            stored = await stored_channel_id(str(guild.id), spec.scope, decl.key)
+            if stored and stored.isdigit():
+                channel = guild.get_channel(int(stored))
+                if channel is not None:
+                    existing = getattr(channel, "name", "")
+                    if existing != name:
+                        await channel.edit(
+                            name=name, reason="kingdoms: panels provisioning (label refresh)"
+                        )
+                    await _apply_access(guild, stored, decl)
+                    resolved[decl.key] = stored
+                    continue
             if decl.kind == "forum":
                 channel_id = await platform.ensure_forum(name, category_id)
             else:

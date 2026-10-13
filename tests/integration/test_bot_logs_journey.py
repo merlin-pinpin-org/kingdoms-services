@@ -17,10 +17,7 @@ import pytest
 
 from kingdoms.core.models.channel import ChannelModel
 from kingdoms.core.services.logs import (
-    BOT_LOGS_CATEGORY,
-    BOT_LOGS_CHANNEL_NAME,
     LogService,
-    default_policy,
 )
 from kingdoms.core.services.state import StateService
 from kingdoms.discord.logs_platform import DiscordLogsPlatform
@@ -90,54 +87,13 @@ class TestStartupAnnouncementJourney:
         return kingdoms_bot
 
     @pytest.mark.simcord(strict_sync=False)
-    async def test_startup_announcement_creates_and_fills_bot_logs_channel(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+    async def test_startup_announcement_dm_the_bot_admins(self, simcord_env) -> None:  # type: ignore[no-untyped-def]
+        """The boot message lands in the bot-admins' DMs, never a guild channel."""
         guild = simcord_env.create_guild(name="Kingdom Test")
-
-        # SimCord reaches READY with no guilds (guilds arrive via GUILD_CREATE
-        # afterwards), so replay on_ready now that the guild is present.
         with simcord_env._bot_scope():
             simcord_env.bot.dispatch("ready")
         await simcord_env.settle()
-
         channels = guild.channels
-        assert BOT_LOGS_CHANNEL_NAME in channels, f"channels: {list(channels)}"
-        logs_channel = channels[BOT_LOGS_CHANNEL_NAME]
-        history = logs_channel.history()
-        assert history, "the startup announcement must be in the bot logs channel"
-        message = history[0]
-        assert message.flags.value & IS_COMPONENTS_V2, "the announcement must be a V2 layout"
-        texts = [
-            c["content"] if isinstance(c, dict) else c.content
-            for c in _walk(message.components)
-            if (c.get("type") if isinstance(c, dict) else c.type.value) == TYPE_TEXT_DISPLAY
-        ]
-        joined = "\n".join(texts)
-        assert "Kingdoms — Deployment" in joined
-        assert "**Services**" in joined
-        assert "**Infra**" in joined
-        assert "kingdoms-deploy" not in joined, "no machine footer in the announcement"
-
-        stored = self.logs_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY]
-        assert stored.name == BOT_LOGS_CHANNEL_NAME
-        assert stored.channel_id == str(logs_channel.id)
-        policy = await self.logs_database.get_policy(str(guild.id), BOT_LOGS_CATEGORY)
-        expected = default_policy()
-        assert policy is not None
-        assert policy["default"] == expected["default"]
-        assert policy["roles_with_view"] == expected["roles_with_view"]
-
-        # The CI/CD-bot scenario: a fresh process with an empty database must
-        # adopt the existing channel, never create a second one.
-        fresh_database = InMemoryLogsDatabase()
-        simcord_env.bot.logs_service = LogService(
-            database=fresh_database,  # type: ignore[arg-type]
-            platform=DiscordLogsPlatform(simcord_env.bot),  # type: ignore[arg-type]
-            state=StateService(store=InMemoryStateStore()),  # type: ignore[arg-type]
+        assert not any(list(c.history()) for c in channels.values()), (
+            "the boot message never lands in a guild channel anymore"
         )
-        with simcord_env._bot_scope():
-            simcord_env.bot.dispatch("ready")
-        await simcord_env.settle()
-
-        bot_logs_channels = [name for name in guild.channels if name == BOT_LOGS_CHANNEL_NAME]
-        assert len(bot_logs_channels) == 1, "a fresh database must adopt, not duplicate"
-        assert fresh_database.channels[str(guild.id) + ":" + BOT_LOGS_CATEGORY].channel_id == str(logs_channel.id)

@@ -33,6 +33,29 @@ from tests.mocks.discord_mock import (
 
 CONFIG_DIR = str(Path(__file__).resolve().parents[3] / "config")
 
+_STORED: dict[str, str] = {}
+
+
+def _fake_stored_id(guild_id: str, scope: str, key: str) -> Any:
+    """Awaitable stand-in for stored_channel_id (no Mongo in tests)."""
+
+    class _Awaitable:
+        def __await__(self):
+            if False:  # pragma: no cover — keeps this a generator
+                yield
+            return _STORED.get(f"{scope}:{key}")
+
+    return _Awaitable()
+
+
+@pytest.fixture(autouse=True)
+def _no_mongo_stored_ids(monkeypatch: Any) -> None:
+    """Every provisioning test resolves from an empty store unless set."""
+    _STORED.clear()
+    monkeypatch.setattr(
+        "kingdoms.discord.ui.panels_provisioning.stored_channel_id", _fake_stored_id
+    )
+
 
 def _translate(key: str, locale: str) -> str:
     """Render through the real catalog (the FR naming is the contract)."""
@@ -61,7 +84,7 @@ class TestRootScope:
         guild = MockGuild()
         resolved = await provision_scope(guild, ROOT_SCOPE, "fr", _translate)
         assert set(resolved) == {"general", "discussions"}
-        general = next(c for c in guild.text_channels if c.name == "général")
+        general = next(c for c in guild.text_channels if c.name == "🗺️ général")
         assert general.category is None
         assert len(guild.categories) == 0
 
@@ -73,11 +96,11 @@ class TestProvisioning:
         resolved = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
         assert set(resolved) == {"bot", "logs", "admin", "decisions"}
         names = {c.name for c in guild.text_channels}
-        assert "logs" in names
-        assert "décisions" in names  # translated at creation (FR guild)
-        logs = next(c for c in guild.text_channels if c.name == "logs")
+        assert "📜 logs" in names
+        assert "⚖️ décisions" in names  # emoji + translated at creation (FR guild)
+        logs = next(c for c in guild.text_channels if c.name == "📜 logs")
         assert logs.category is not None
-        assert logs.category.name == "bot"
+        assert logs.category.name == "🤖 bot"
 
     @pytest.mark.asyncio
     async def test_provisioning_is_idempotent(self) -> None:
@@ -93,10 +116,10 @@ class TestProvisioning:
         resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
         assert resolved["civs"] and resolved["maps"] and resolved["map-pools"]
         forums = {f.name: f for f in guild.forums}
-        assert set(forums) == {"civs", "maps", "map pools"}  # EN locale: translated names
+        assert set(forums) == {"🏛️ civs", "🌍 maps", "🧱 map pools"}  # EN locale: emoji + translated
         for forum in forums.values():
             assert forum.category is not None
-            assert forum.category.name == "games/aoe2"
+            assert forum.category.name == "⚔️ games/aoe2"
 
 
 

@@ -277,3 +277,19 @@ fr:
         games: games
         games_aoe2: games/aoe2
         mods: mods
+    panels:
+      channels:
+        general: 🗺️ général
+        discussions: 💬 discussions
+        decisions: ⚖️ décisions
+        logs: 📜 logs
+        admin: 🛠️ admin
+        live: 📡 live
+        civs: 🏛️ civilisations
+        maps: 🌍 maps
+        map_pools: 🧱 map pools
+      categories:
+        bot: 🤖 bot
+        games: 🎮 games
+        games_aoe2: ⚔️ games/aoe2
+        mods: 🧩 mods

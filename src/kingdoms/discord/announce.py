@@ -45,7 +45,7 @@ from typing import Any
 import discord
 
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.core.services.logs import LifecycleEvent, LogService
+from kingdoms.core.services.logs import LogService
 from kingdoms.core.services.status import StatusService
 from kingdoms.discord.deploy_render import (
     INFRA_REPO_URL,
@@ -446,31 +446,8 @@ async def announce_startup(
     if logs_service is None:
         logger.info("STARTUP ANNOUNCEMENT SKIPPED: no LogService wired (local run?)")
         return
+    del logs_service, locale_resolver
     latency_ms = _gateway_latency(bot)
-    for guild in bot.guilds:
-        locale = config.locale
-        if locale_resolver is not None:
-            try:
-                locale = await locale_resolver(str(guild.id))
-            except Exception:
-                logger.warning("guild locale lookup failed (guild %s) — falling back", guild.id)
-        guild_config = AnnounceConfig(locale=locale, config_dir=config.config_dir)
-        commands_block = (
-            commands_section(sync_scope, commands, locale, config.config_dir) if commands is not None else ""
-        )
-        layout = build_announcement_layout(
-            status,
-            guild_config,
-            env=deploy_env,
-            thumbnail_url=thumbnail_url,
-            latency_ms=latency_ms,
-            commands=commands_block,
-            command_ids=commands or (),
-        )
-        event = LifecycleEvent(kind="start", message="", layout=layout)
-        await logs_service.log_event(str(guild.id), event, pin=True)
-        logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s, pinned)", guild.id, locale)
-
     await _announce_boot_to_admins(bot, status, config, deploy_env, latency_ms, commands or (), sync_scope)
 
 

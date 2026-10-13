@@ -679,7 +679,7 @@ async def ensure_pinned_home_menu(bot: discord.Client, guild_id: str) -> bool:
     """Ensure the guild's home channel holds its pinned menu (registry cycle).
 
     The static-pin cycle owns everything: channel resolution (recreated
-    on delete), pin creation/refresh/re-pin, and the ``fixe:`` mark.
+    on delete), pin creation/refresh/re-pin, and the view-id mark.
     """
     from kingdoms.discord.static_pins import ensure_static_pin
 

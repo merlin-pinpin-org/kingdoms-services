@@ -321,6 +321,8 @@ class KingdomsBot(discord.Client):
         admin_ids = self.status_service.bot_admins
         for guild in list(self.guilds):
             guild_id = str(guild.id)
+            await self._provision_channel_tree(guild_id, guild)
+            await self._route_managed_channels(guild_id)
             if self.logs_service is not None:
                 try:
                     await self.logs_service.resolve_channel(guild_id)
@@ -340,7 +342,6 @@ class KingdomsBot(discord.Client):
                     mod_roles_service=self.mod_roles_service,
                     registry=self.registry,
                 )
-            await self._provision_channel_tree(guild_id, guild)
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
             await self._audit_channel_drift(guild_id)
 
@@ -370,6 +371,36 @@ class KingdomsBot(discord.Client):
             )
             return
         await self._sync_tree_surfaces(guild_id, guild)
+
+    async def _route_managed_channels(self, guild_id: str) -> None:
+        """Route the managed services onto the tree's stored channel ids.
+
+        The tree is the source of truth: once it provisioned ``bot/logs``
+        and ``bot/admin``, the managed services (logs, admin) must point
+        at those channels — their name-based adoption/creation fallback
+        would otherwise keep resurrecting the pre-tree channels (the
+        autoheal loop). Best-effort: a service without a tree channel
+        keeps its own resolution (the degraded, tree-less path).
+        """
+        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+        try:
+            logs_id = await stored_channel_id(guild_id, "bot", "logs")
+            if logs_id and self.logs_service is not None:
+                await self.logs_service.set_channel(guild_id, logs_id, by="channel-tree")
+            admin_id = await stored_channel_id(guild_id, "bot", "admin")
+            if admin_id and self.admin_channel_service is not None:
+                await self.admin_channel_service.set_channel(guild_id, admin_id, self.status_service.bot_admins)
+            home_id = await stored_channel_id(guild_id, "root", "general")
+            home_service = getattr(self, "home_channel_service", None)
+            if home_id and home_service is not None:
+                await home_service.set_channel(guild_id, home_id)
+        except Exception:
+            logger.warning(
+                "MANAGED CHANNEL routing failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
 
     async def _sync_tree_surfaces(self, guild_id: str, guild: discord.Guild) -> None:
         """Fill the freshly provisioned tree: forums sync, pins land, now.

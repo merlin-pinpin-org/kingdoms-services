@@ -10,7 +10,7 @@ everything:
 - **pin**: created when missing, edited in place to the current
   layout when it lives (a boot with a changed surface updates the
   pin), re-pinned when unpinned;
-- **mark**: every rendered layout carries its ``fixe:<suffix>`` id;
+- **mark**: every rendered layout carries its view id;
 - **heal**: the channel-delete event re-ensures every registered view
   — the pin follows the recreated channel instead of staying lost.
 
