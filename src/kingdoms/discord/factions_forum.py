@@ -1,7 +1,7 @@
 """The factions forum: one post per faction, per game (core).
 
 Every game known to the catalog gets, in the ``games`` category, a
-``<game>-factions`` forum (e.g. ``aoe2-factions``). Every
+``<game>-factions`` forum (e.g. ``aoe2-civs``). Every
 non-archived faction gets exactly one post — the faction's public
 surface and the future link target for mod-specific faction entities
 (the kingdoms mod overlays its own concepts on AoE2 civilizations and
@@ -147,7 +147,7 @@ async def _localized_faction_name(faction: Any, guild_id: str, bot: Any = None) 
 
 
 def factions_forum_name(game_key: str) -> str:
-    """Build the per-game factions forum name (``aoe2`` -> ``aoe2-factions``)."""
+    """Build the per-game factions forum name (``aoe2`` -> ``aoe2-civs``)."""
     return f"{game_key}{FACTIONS_FORUM_SUFFIX}"
 
 
