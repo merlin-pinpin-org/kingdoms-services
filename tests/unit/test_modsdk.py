@@ -86,6 +86,7 @@ TERRITORY = EntitySpec(
     key="territory",
     id_prefix="territory",
     label_key="modsdk.entity.territory",
+    game_key="aoe2",
     states=("draft", "published", "closed"),
     initial_state="draft",
     fields=(
@@ -137,8 +138,8 @@ def _interaction() -> Any:
 class TestStoreIds:
     def test_entity_ids_carry_the_prefix_and_scope(self) -> None:
         store = EntityStore(FakeDatabase(), TERRITORY)
-        assert store.entity_id("Buda Hills", "public") == "territory:public:buda_hills"
-        assert store.entity_id("Buda Hills", "155") == "territory:155:buda_hills"
+        assert store.entity_id("Buda Hills", "public") == "territory:aoe2:public:buda_hills"
+        assert store.entity_id("Buda Hills", "155") == "territory:aoe2:155:buda_hills"
 
     @pytest.mark.asyncio
     async def test_create_then_get_round_trips(self) -> None:
@@ -171,15 +172,15 @@ class TestStoreIds:
 
 class TestTemplates:
     def test_admin_button_custom_id_matches_its_template(self) -> None:
-        button = AdminOpenButton("territory", "territory:public:a", binding=_binding())
+        button = AdminOpenButton("territory", "territory:aoe2:public:a", binding=_binding())
         custom_id = str(button.item.custom_id)
         match = re.fullmatch(r"modsdk:admin:(?P<entity_kind>[a-z0-9_]+):(?P<entity_id>.+)", custom_id)
         assert match is not None
         assert match.group("entity_kind") == "territory"
-        assert match.group("entity_id") == "territory:public:a"
+        assert match.group("entity_id") == "territory:aoe2:public:a"
 
     def test_action_button_custom_id_matches_its_template(self) -> None:
-        button = AdminActionButton("territory", "territory:public:a", "publish", binding=_binding())
+        button = AdminActionButton("territory", "territory:aoe2:public:a", "publish", binding=_binding())
         custom_id = str(button.item.custom_id)
         match = re.fullmatch(
             r"modsdk:action:(?P<entity_kind>[a-z0-9_]+):(?P<action_key>[a-z0-9_]+):(?P<entity_id>.+)",
@@ -190,7 +191,7 @@ class TestTemplates:
 
     def test_custom_ids_stay_under_the_wire_limit(self) -> None:
         binding = _binding()
-        long_id = "territory:public:" + "x" * 120
+        long_id = "territory:aoe2:public:" + "x" * 120
         admin = AdminOpenButton("territory", long_id, binding=binding)
         action = AdminActionButton("territory", long_id, "publish", binding=binding)
         assert len(str(admin.item.custom_id)) <= 100
@@ -201,7 +202,7 @@ class TestCards:
     def test_card_renders_props_one_per_line(self) -> None:
         binding = _binding()
         entity = {
-            "_id": "territory:public:a",
+            "_id": "territory:aoe2:public:a",
             "kind": "territory",
             "name": "Buda Hills",
             "state": "draft",
@@ -215,11 +216,11 @@ class TestCards:
         assert any("**map_type** : land" in t for t in texts)
         assert any("**nomad** : yes" in t for t in texts)
         assert any("A hilly land." in t for t in texts)
-        assert any("territory:public:a" in t for t in texts)
+        assert any("territory:aoe2:public:a" in t for t in texts)
 
     def test_admin_ephemeral_greys_by_state(self) -> None:
         binding = _binding()
-        draft = {"_id": "territory:public:a", "kind": "territory", "name": "A", "state": "draft"}
+        draft = {"_id": "territory:aoe2:public:a", "kind": "territory", "name": "A", "state": "draft"}
         view = binding.admin_ephemeral(TERRITORY, draft, "")
         buttons = _flat_buttons(view)
         states = {str(b.item.label): bool(b.item.disabled) for b in buttons}

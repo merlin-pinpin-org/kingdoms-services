@@ -29,8 +29,14 @@ class EntityStore:
         self._collection = f"modsdk_{spec.key}"
 
     def entity_id(self, name: str, scope: str = "public") -> str:
-        """Build the entity's stable id (``<prefix>:<scope>:<slug>``)."""
-        return f"{self._spec.id_prefix}:{scope}:{slug_id(name)}"
+        """Build the entity's stable id (``<prefix>:<game>:<scope>:<slug>``).
+
+        Same convention as the platform's own entities
+        (``map:aoe2:public:nomad``): the id carries the game, the
+        visibility scope and the name slug — no hand-formatting.
+        """
+        game = self._spec.game_key or "core"
+        return f"{self._spec.id_prefix}:{game}:{scope}:{slug_id(name)}"
 
     async def create(
         self,

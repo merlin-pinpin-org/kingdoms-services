@@ -55,7 +55,11 @@ The&nbsp;generic&nbsp;per-entity&nbsp;Mongo&nbsp;store&nbsp;of&nbsp;the&nbsp;mod
 
 <dl><dt>async <a name="EntityStore-create"><strong>create</strong></a>(self, scope: 'str', name: 'str', fields: 'dict[str, Any] | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Create&nbsp;one&nbsp;entity&nbsp;in&nbsp;its&nbsp;scope;&nbsp;return&nbsp;the&nbsp;stored&nbsp;doc.</span></dd></dl>
 
-<dl><dt><a name="EntityStore-entity_id"><strong>entity_id</strong></a>(self, name: 'str', scope: 'str' = 'public') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;entity's&nbsp;stable&nbsp;id&nbsp;(``&lt;prefix&gt;:&lt;scope&gt;:&lt;slug&gt;``).</span></dd></dl>
+<dl><dt><a name="EntityStore-entity_id"><strong>entity_id</strong></a>(self, name: 'str', scope: 'str' = 'public') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;entity's&nbsp;stable&nbsp;id&nbsp;(``&lt;prefix&gt;:&lt;game&gt;:&lt;scope&gt;:&lt;slug&gt;``).<br>
+&nbsp;<br>
+Same&nbsp;convention&nbsp;as&nbsp;the&nbsp;platform's&nbsp;own&nbsp;entities<br>
+(``map:aoe2:public:nomad``):&nbsp;the&nbsp;id&nbsp;carries&nbsp;the&nbsp;game,&nbsp;the<br>
+visibility&nbsp;scope&nbsp;and&nbsp;the&nbsp;name&nbsp;slug&nbsp;—&nbsp;no&nbsp;hand-formatting.</span></dd></dl>
 
 <dl><dt>async <a name="EntityStore-get"><strong>get</strong></a>(self, entity_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;entity&nbsp;by&nbsp;id;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
 

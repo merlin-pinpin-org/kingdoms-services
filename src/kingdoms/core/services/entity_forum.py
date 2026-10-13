@@ -74,16 +74,19 @@ def _remember_layout_render(thread_id: str, fingerprint: str) -> None:
 class EntityForumSpec:
     """Declarative description of one entity-post forum.
 
-    ``forum_name`` names a single forum; when the entities span
-    several forums (e.g. one per game), set ``forum_name`` to ""
-    and provide ``forum_name_for`` — the entities are then grouped
-    into their forum and each is synced there.
+    ``tree_channel_for`` returns the channel **key** of the tree
+    folder the entities' forum lives in (``civs`` — the provisioning
+    stored its id under ``tree:<scope>:<key>``); ``tree_scope_for``
+    returns the scope (``games/<game_key>``). When the entities span
+    several forums (e.g. one per game), the entities are grouped by
+    that pair and each group is synced to its own forum. The forum is
+    resolved by its **stored channel id** — never by its translated
+    name; the provisioning owns creation.
     """
 
-    forum_name: str
-    category_name: str = GAMES_CATEGORY_NAME
     list_entities: Callable[[str], Awaitable[list[Any]]] | None = None
-    forum_name_for: Callable[[Any], str] | None = None
+    tree_scope_for: Callable[[Any], str] | None = None
+    tree_channel_for: Callable[[Any], str] | None = None
     entity_name: Callable[[Any], str] = field(default=lambda entity: str(getattr(entity, "name", "")))
     display_name_for: Callable[[Any, str], Awaitable[str]] | None = None
     build_post: Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None = None
@@ -102,13 +105,14 @@ async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> i
     if spec.list_entities is None or spec.build_post is None:
         return 0
     entities = await spec.list_entities(guild_id)
-    groups: dict[str, list[Any]] = {}
+    groups: dict[tuple[str, str], list[Any]] = {}
     for entity in entities:
-        forum_of = spec.forum_name_for(entity) if spec.forum_name_for is not None else spec.forum_name
-        groups.setdefault(forum_of, []).append(entity)
+        scope = spec.tree_scope_for(entity) if spec.tree_scope_for is not None else "games"
+        channel_key = spec.tree_channel_for(entity) if spec.tree_channel_for is not None else "civs"
+        groups.setdefault((scope, channel_key), []).append(entity)
     actions = 0
-    for forum_of, members in groups.items():
-        actions += await _sync_one_forum(guild_id, bot, spec, platform, forum_of, members)
+    for (scope, channel_key), members in groups.items():
+        actions += await _sync_one_forum(guild_id, bot, spec, platform, scope, channel_key, members)
     return actions
 
 
@@ -117,34 +121,23 @@ async def _sync_one_forum(
     bot: Any,
     spec: EntityForumSpec,
     platform: Any,
-    forum_name: str,
+    tree_scope: str,
+    tree_channel: str,
     entities: list[Any],
 ) -> int:
-    """Sync one named forum against its entities (idempotent)."""
-    from kingdoms.discord.wiring import guild_category
-
+    """Sync one tree forum (resolved by stored id) against its entities."""
     guild = bot.get_guild(int(guild_id))
     if guild is None or spec.build_post is None:
         return 0
-    forum = discord.utils.get(guild.forums, name=forum_name)
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    stored = await stored_channel_id(guild_id, tree_scope, tree_channel)
+    forum = None
+    if stored and stored.isdigit():
+        channel = guild.get_channel(int(stored))
+        forum = channel if channel is not None and channel.type == discord.ChannelType.forum else None
     if forum is None:
-        forum = await guild.create_forum(
-            forum_name,
-            category=await guild_category(guild, spec.category_name),
-            overwrites={
-                guild.default_role: discord.PermissionOverwrite(
-                    view_channel=True, send_messages=False, create_public_threads=False
-                ),
-                guild.me: discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    create_public_threads=True,
-                    manage_threads=True,
-                    read_message_history=True,
-                ),
-            },
-            reason=f"kingdoms: {forum_name} forum",
-        )
+        return 0  # the provisioning owns creation; nothing stored yet
     wanted: dict[str, Any] = {}
     for entity in entities:
         key = spec.entity_name(entity)
@@ -219,11 +212,10 @@ def start_entity_forum_sync(
                 try:
                     actions = await sync_entity_forum(str(guild.id), bot, spec)
                     if actions:
-                        logger.info("entity forum %s: %d changes (guild %s)", spec.forum_name, actions, guild.id)
+                        logger.info("entity forum: %d changes (guild %s)", actions, guild.id)
                 except Exception:
                     logger.warning(
-                        "entity forum %s sync failed (guild %s) — best-effort",
-                        spec.forum_name,
+                        "entity forum sync failed (guild %s) — best-effort",
                         guild.id,
                         exc_info=True,
                     )

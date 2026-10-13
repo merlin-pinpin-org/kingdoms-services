@@ -35,14 +35,16 @@ class EntitySpec:
     """One entity type of a mod: territories, kingdoms, matches...
 
     ``states`` lists the entity's lifecycle (``draft``, ``published``,
-    ``closed``...); ``initial_state`` seeds a new entity; ``id_prefix``
-    builds the stable ids; ``title_field`` and ``image_field`` pick
-    the card's headline and thumbnail.
+    ``closed``...); ``initial_state`` seeds a new entity; ``game_key``
+    scopes the entity to its game (the id embeds it —
+    ``kingdoms:territory:aoe2:public:buda_hills``); ``title_field``
+    and ``image_field`` pick the card's headline and thumbnail.
     """
 
     key: str
     id_prefix: str
     label_key: str
+    game_key: str = ""
     states: tuple[str, ...] = ()
     initial_state: str = ""
     fields: tuple[Field, ...] = ()

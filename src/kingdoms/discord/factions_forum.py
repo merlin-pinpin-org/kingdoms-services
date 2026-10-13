@@ -22,8 +22,6 @@ import discord
 
 from kingdoms.core.services.entity_forum import EntityForumSpec
 
-FACTIONS_FORUM_SUFFIX = "-factions"
-
 
 def _civ_post_layout(
     name: str,
@@ -146,11 +144,6 @@ async def _localized_faction_name(faction: Any, guild_id: str, bot: Any = None) 
     return fallback
 
 
-def factions_forum_name(game_key: str) -> str:
-    """Build the per-game factions forum name (``aoe2`` -> ``aoe2-civs``)."""
-    return f"{game_key}{FACTIONS_FORUM_SUFFIX}"
-
-
 def _game_data(bot: Any) -> Any | None:
     from kingdoms.discord.wiring import build_games_service
 
@@ -195,13 +188,13 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         content += id_footer(entry_id)
         return content, view
 
-    def forum_name_for(faction: Any) -> str:
-        return factions_forum_name(str(getattr(faction, "game_key", "")))
+    def tree_scope_for(faction: Any) -> str:
+        return f"games/{getattr(faction, 'game_key', '')!s}"
 
     return EntityForumSpec(
-        forum_name="",
         list_entities=list_factions,
         display_name_for=lambda faction, guild_id: _localized_faction_name(faction, guild_id, bot),
         build_post=build_post,
-        forum_name_for=forum_name_for,
+        tree_scope_for=tree_scope_for,
+        tree_channel_for=lambda faction: "civs",
     )
