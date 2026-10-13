@@ -441,6 +441,12 @@ class KingdomsBot(discord.Client):
             await self._ensure_all_pins(guild_id)
             if not maps_forum_wiring_ready():
                 return
+            from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
+
+            try:
+                await refresh_aoe2_content()
+            except Exception:
+                logger.warning("CONTENT REFRESH at boot failed — best-effort", exc_info=True)
             await sync_maps_forum(guild_id, "aoe2", self)
             await sync_pools_forum(guild_id, self)
             await sync_entity_forum(guild_id, self, factions_forum_spec(self))

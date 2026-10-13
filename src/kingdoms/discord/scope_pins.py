@@ -34,19 +34,15 @@ def _scope_channel(scope: str, key: str) -> Any:
     return _resolve
 
 
-def _locale_of(bot: Any, guild_id: str) -> Any:
+async def _locale_of(bot: Any, guild_id: str) -> str:
     """Resolve the guild's locale through the logs service (en fallback)."""
-
-    async def _locale() -> str:
-        logs = getattr(bot, "logs_service", None)
-        if logs is None:
-            return "en"
-        try:
-            return str(await logs.get_locale(guild_id) or "en")
-        except Exception:
-            return "en"
-
-    return _locale()
+    logs = getattr(bot, "logs_service", None)
+    if logs is None:
+        return "en"
+    try:
+        return str(await logs.get_locale(guild_id) or "en")
+    except Exception:
+        return "en"
 
 
 # The per-scope navigation buttons (all open ephemeral views through
@@ -85,7 +81,7 @@ def _home_builder(bot: Any, scope: str, title_key: str, description_key: str) ->
         catalog = getattr(bot, "messages", None) or MessageCatalog(
             str(getattr(getattr(bot, "config", None), "config_dir", "config"))
         )
-        locale = await _locale_of(bot, guild_id)()
+        locale = await _locale_of(bot, guild_id)
         title = catalog.render(title_key, locale)
         description = catalog.render(description_key, locale)
         view_id = f"view:{scope}:home" if scope != "root" else "view:home"
@@ -127,7 +123,7 @@ def _admin_builder(bot: Any, scope: str) -> Any:
         logs = getattr(bot, "logs_service", None)
         if logs is None:
             return discord.ui.LayoutView(timeout=None)
-        locale = await _locale_of(bot, guild_id)()
+        locale = await _locale_of(bot, guild_id)
         return await build_pin_main_menu(
             logs,
             guild_id,
@@ -151,25 +147,27 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
     specs: list[Any] = []
     for scope in scopes:
         home_key = "view:home" if scope == "root" else f"view:{scope}:home"
-        admin_key = f"view:{scope}:admin"
         title_key = f"ui.homes.{scope.replace('/', '_')}_home_title"
         description_key = f"ui.homes.{scope.replace('/', '_')}_home_description"
-        home_spec = StaticPinnedView(
-            key=home_key,
-            mark_suffix=home_key,
-            resolve_channel=_scope_channel(scope, "general"),
-            build_layout=_home_builder(bot, scope, title_key, description_key),
-            registry=registry,
-        )
-        admin_spec = StaticPinnedView(
-            key=admin_key,
-            mark_suffix=admin_key,
-            resolve_channel=_scope_channel(scope, "admin"),
-            build_layout=_admin_builder(bot, scope),
-            registry=registry,
-        )
-        specs.append(register_static_pin(home_spec))
-        specs.append(register_static_pin(admin_spec))
+        if scope not in ("root", "bot"):  # bot carries no general channel
+            home_spec = StaticPinnedView(
+                key=home_key,
+                mark_suffix=home_key,
+                resolve_channel=_scope_channel(scope, "general"),
+                build_layout=_home_builder(bot, scope, title_key, description_key),
+                registry=registry,
+            )
+            specs.append(register_static_pin(home_spec))
+        if scope != "root":  # the root has no admin channel of its own
+            admin_key = f"view:{scope}:admin"
+            admin_spec = StaticPinnedView(
+                key=admin_key,
+                mark_suffix=admin_key,
+                resolve_channel=_scope_channel(scope, "admin"),
+                build_layout=_admin_builder(bot, scope),
+                registry=registry,
+            )
+            specs.append(register_static_pin(admin_spec))
     _pin_specs[:] = specs
     return specs
 
