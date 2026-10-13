@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.modsdk.models</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.modsdk.html" class="white">modsdk</a>.models</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/modsdk/models.py">SOURCE_ROOT/modsdk/models.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;modder&nbsp;SDK&nbsp;declarations:&nbsp;entities,&nbsp;fields,&nbsp;actions,&nbsp;menus.<br>
+&nbsp;<br>
+Plain&nbsp;dataclasses&nbsp;—&nbsp;a&nbsp;mod&nbsp;declares&nbsp;its&nbsp;universe&nbsp;and&nbsp;the&nbsp;SDK&nbsp;owns<br>
+every&nbsp;technical&nbsp;consequence&nbsp;(storage,&nbsp;Discord,&nbsp;permissions,&nbsp;i18n).</span></p>
+<p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.modsdk.models.html#ActionResult">ActionResult</a>
+</dt><dt class="heading-text"><a href="kingdoms.modsdk.models.html#ActionSpec">ActionSpec</a>
+</dt><dt class="heading-text"><a href="kingdoms.modsdk.models.html#EntityPanelSpec">EntityPanelSpec</a>
+</dt><dt class="heading-text"><a href="kingdoms.modsdk.models.html#EntitySpec">EntitySpec</a>
+</dt><dt class="heading-text"><a href="kingdoms.modsdk.models.html#Field">Field</a>
+</dt><dt class="heading-text"><a href="kingdoms.modsdk.models.html#MenuSpec">MenuSpec</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ActionResult">class <strong>ActionResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ActionResult">ActionResult</a>(entity:&nbsp;'Entity&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;message:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;new_state:&nbsp;'str'&nbsp;=&nbsp;'')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+What&nbsp;a&nbsp;handler&nbsp;returns:&nbsp;the&nbsp;(optionally)&nbsp;updated&nbsp;entity.<br>
+&nbsp;<br>
+Pass&nbsp;``entity=None``&nbsp;for&nbsp;a&nbsp;message-only&nbsp;result&nbsp;(nothing<br>
+persists);&nbsp;pass&nbsp;a&nbsp;dict&nbsp;to&nbsp;merge&nbsp;into&nbsp;the&nbsp;stored&nbsp;entity&nbsp;(the<br>
+SDK&nbsp;persists&nbsp;and&nbsp;every&nbsp;surface&nbsp;re-renders&nbsp;at&nbsp;the&nbsp;next&nbsp;sync).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ActionResult-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ActionResult-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ActionResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ActionResult-__init__"><strong>__init__</strong></a>(self, entity: 'Entity | None' = None, message: 'str' = '', new_state: 'str' = '') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ActionResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ActionResult-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'entity': 'Entity | None', 'message': 'str', 'new_state': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'entity': Field(name='entity',type='Entity | None',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'message': Field(name='message',type='str',default='',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'new_state': Field(name='new_state',type='str',default='',def...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('entity', 'message', 'new_state')</dl>
+
+<dl><dt><strong>entity</strong> = None</dl>
+
+<dl><dt><strong>message</strong> = ''</dl>
+
+<dl><dt><strong>new_state</strong> = ''</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ActionSpec">class <strong>ActionSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ActionSpec">ActionSpec</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;from_states:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;permission:&nbsp;'str'&nbsp;=&nbsp;'admin',&nbsp;confirm:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;prompt:&nbsp;'tuple[<a href="#Field">Field</a>,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;handler:&nbsp;'Callable[...,&nbsp;Coroutine[Any,&nbsp;Any,&nbsp;Any]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;interaction&nbsp;on&nbsp;an&nbsp;entity:&nbsp;claim,&nbsp;publish,&nbsp;close,&nbsp;delete.<br>
+&nbsp;<br>
+``from_states``&nbsp;gates&nbsp;the&nbsp;button&nbsp;—&nbsp;the&nbsp;SDK&nbsp;greys&nbsp;it&nbsp;when&nbsp;the<br>
+entity's&nbsp;state&nbsp;is&nbsp;not&nbsp;in&nbsp;the&nbsp;list&nbsp;(empty&nbsp;=&nbsp;always&nbsp;available);<br>
+``permission``&nbsp;is&nbsp;checked&nbsp;at&nbsp;click&nbsp;time&nbsp;(``admin``&nbsp;=&nbsp;bot-admins,<br>
+``owner``&nbsp;=&nbsp;the&nbsp;entity's&nbsp;owner,&nbsp;``everyone``);&nbsp;``confirm``&nbsp;asks<br>
+the&nbsp;user&nbsp;to&nbsp;retype&nbsp;the&nbsp;entity's&nbsp;title&nbsp;before&nbsp;the&nbsp;handler&nbsp;runs<br>
+(for&nbsp;destructive&nbsp;actions);&nbsp;``prompt``&nbsp;opens&nbsp;a&nbsp;modal&nbsp;instead&nbsp;of<br>
+running&nbsp;the&nbsp;handler&nbsp;directly&nbsp;(for&nbsp;actions&nbsp;that&nbsp;need&nbsp;input).<br>
+&nbsp;<br>
+The&nbsp;handler&nbsp;receives&nbsp;``(entity,&nbsp;actor,&nbsp;input)``&nbsp;and&nbsp;returns&nbsp;an<br>
+``<a href="#ActionResult">ActionResult</a>``;&nbsp;the&nbsp;SDK&nbsp;persists&nbsp;and&nbsp;re-renders&nbsp;—&nbsp;the&nbsp;mod<br>
+never&nbsp;touches&nbsp;Mongo&nbsp;or&nbsp;Discord.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ActionSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ActionSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ActionSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ActionSpec-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', from_states: 'tuple[str, ...]' = (), permission: 'str' = 'admin', confirm: 'bool' = False, prompt: 'tuple[Field, ...]' = (), handler: 'Callable[..., Coroutine[Any, Any, Any]] | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ActionSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ActionSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'confirm': 'bool', 'from_states': 'tuple[str, ...]', 'handler': 'Callable[..., Coroutine[Any, Any, Any]] | None', 'key': 'str', 'label_key': 'str', 'permission': 'str', 'prompt': 'tuple[Field, ...]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'confirm': Field(name='confirm',type='bool',default=False,d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'from_states': Field(name='from_states',type='tuple[str, ...]',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'handler': Field(name='handler',type='Callable[..., Corouti...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'permission': Field(name='permission',type='str',default='admi...appingproxy({}),kw_only=False,_field_type=_FIELD), 'prompt': Field(name='prompt',type='tuple[Field, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'from_states', 'permission', 'confirm', 'prompt', 'handler')</dl>
+
+<dl><dt><strong>confirm</strong> = False</dl>
+
+<dl><dt><strong>from_states</strong> = ()</dl>
+
+<dl><dt><strong>handler</strong> = None</dl>
+
+<dl><dt><strong>permission</strong> = 'admin'</dl>
+
+<dl><dt><strong>prompt</strong> = ()</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EntityPanelSpec">class <strong>EntityPanelSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EntityPanelSpec">EntityPanelSpec</a>(entity:&nbsp;'str',&nbsp;channel:&nbsp;'str',&nbsp;order:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;admin_actions:&nbsp;'tuple[<a href="#ActionSpec">ActionSpec</a>,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;entity's&nbsp;public&nbsp;card&nbsp;(its&nbsp;forum&nbsp;post)&nbsp;+&nbsp;its&nbsp;admin&nbsp;surface.<br>
+&nbsp;<br>
+The&nbsp;SDK&nbsp;renders&nbsp;the&nbsp;card&nbsp;from&nbsp;the&nbsp;entity&nbsp;spec&nbsp;(title,&nbsp;fields,<br>
+image,&nbsp;source,&nbsp;id&nbsp;footer)&nbsp;in&nbsp;the&nbsp;forum&nbsp;the&nbsp;tree&nbsp;provisions,&nbsp;and<br>
+replaces&nbsp;every&nbsp;action&nbsp;button&nbsp;with&nbsp;the&nbsp;single&nbsp;⚙️&nbsp;Admin&nbsp;button&nbsp;—<br>
+the&nbsp;admin&nbsp;ephemeral&nbsp;carries&nbsp;the&nbsp;actions,&nbsp;greyed&nbsp;by&nbsp;state.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="EntityPanelSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="EntityPanelSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="EntityPanelSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="EntityPanelSpec-__init__"><strong>__init__</strong></a>(self, entity: 'str', channel: 'str', order: 'tuple[str, ...]' = (), admin_actions: 'tuple[ActionSpec, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="EntityPanelSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EntityPanelSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'admin_actions': 'tuple[ActionSpec, ...]', 'channel': 'str', 'entity': 'str', 'order': 'tuple[str, ...]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'admin_actions': Field(name='admin_actions',type='tuple[ActionSpe...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channel': Field(name='channel',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD), 'entity': Field(name='entity',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'order': Field(name='order',type='tuple[str, ...]',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('entity', 'channel', 'order', 'admin_actions')</dl>
+
+<dl><dt><strong>admin_actions</strong> = ()</dl>
+
+<dl><dt><strong>order</strong> = ()</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EntitySpec">class <strong>EntitySpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EntitySpec">EntitySpec</a>(key:&nbsp;'str',&nbsp;id_prefix:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;states:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;initial_state:&nbsp;'str'&nbsp;=&nbsp;'',&nbsp;fields:&nbsp;'tuple[<a href="#Field">Field</a>,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;title_field:&nbsp;'str'&nbsp;=&nbsp;'name',&nbsp;image_field:&nbsp;'str'&nbsp;=&nbsp;'image_url',&nbsp;source_field:&nbsp;'str'&nbsp;=&nbsp;'source_url')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;entity&nbsp;type&nbsp;of&nbsp;a&nbsp;mod:&nbsp;territories,&nbsp;kingdoms,&nbsp;matches...<br>
+&nbsp;<br>
+``states``&nbsp;lists&nbsp;the&nbsp;entity's&nbsp;lifecycle&nbsp;(``draft``,&nbsp;``published``,<br>
+``closed``...);&nbsp;``initial_state``&nbsp;seeds&nbsp;a&nbsp;new&nbsp;entity;&nbsp;``id_prefix``<br>
+builds&nbsp;the&nbsp;stable&nbsp;ids;&nbsp;``title_field``&nbsp;and&nbsp;``image_field``&nbsp;pick<br>
+the&nbsp;card's&nbsp;headline&nbsp;and&nbsp;thumbnail.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="EntitySpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="EntitySpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="EntitySpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="EntitySpec-__init__"><strong>__init__</strong></a>(self, key: 'str', id_prefix: 'str', label_key: 'str', states: 'tuple[str, ...]' = (), initial_state: 'str' = '', fields: 'tuple[Field, ...]' = (), title_field: 'str' = 'name', image_field: 'str' = 'image_url', source_field: 'str' = 'source_url') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="EntitySpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EntitySpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'fields': 'tuple[Field, ...]', 'id_prefix': 'str', 'image_field': 'str', 'initial_state': 'str', 'key': 'str', 'label_key': 'str', 'source_field': 'str', 'states': 'tuple[str, ...]', 'title_field': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'fields': Field(name='fields',type='tuple[Field, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'id_prefix': Field(name='id_prefix',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'image_field': Field(name='image_field',type='str',default='ima...appingproxy({}),kw_only=False,_field_type=_FIELD), 'initial_state': Field(name='initial_state',type='str',default=''...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_field': Field(name='source_field',type='str',default='so...appingproxy({}),kw_only=False,_field_type=_FIELD), 'states': Field(name='states',type='tuple[str, ...]',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'title_field': Field(name='title_field',type='str',default='nam...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'id_prefix', 'label_key', 'states', 'initial_state', 'fields', 'title_field', 'image_field', 'source_field')</dl>
+
+<dl><dt><strong>fields</strong> = ()</dl>
+
+<dl><dt><strong>image_field</strong> = 'image_url'</dl>
+
+<dl><dt><strong>initial_state</strong> = ''</dl>
+
+<dl><dt><strong>source_field</strong> = 'source_url'</dl>
+
+<dl><dt><strong>states</strong> = ()</dl>
+
+<dl><dt><strong>title_field</strong> = 'name'</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Field">class <strong>Field</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Field">Field</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;kind:&nbsp;'str'&nbsp;=&nbsp;'text',&nbsp;required:&nbsp;'bool'&nbsp;=&nbsp;False,&nbsp;choices:&nbsp;'tuple[tuple[str,&nbsp;str],&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;field&nbsp;of&nbsp;an&nbsp;entity:&nbsp;a&nbsp;key,&nbsp;a&nbsp;display&nbsp;label,&nbsp;a&nbsp;kind.<br>
+&nbsp;<br>
+``kind``&nbsp;picks&nbsp;the&nbsp;rendering&nbsp;and&nbsp;the&nbsp;editor:&nbsp;text,&nbsp;long_text,<br>
+number,&nbsp;bool,&nbsp;url,&nbsp;image,&nbsp;select&nbsp;(with&nbsp;``choices``).&nbsp;``choices``<br>
+is&nbsp;a&nbsp;(value,&nbsp;label_key)&nbsp;tuple&nbsp;for&nbsp;select&nbsp;fields.&nbsp;``required``<br>
+drives&nbsp;both&nbsp;the&nbsp;editor&nbsp;and&nbsp;the&nbsp;validation.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="Field-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="Field-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="Field-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="Field-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', kind: 'str' = 'text', required: 'bool' = False, choices: 'tuple[tuple[str, str], ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="Field-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="Field-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'choices': 'tuple[tuple[str, str], ...]', 'key': 'str', 'kind': 'str', 'label_key': 'str', 'required': 'bool'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'choices': Field(name='choices',type='tuple[tuple[str, str]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default='text',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'required': Field(name='required',type='bool',default=False,...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'kind', 'required', 'choices')</dl>
+
+<dl><dt><strong>choices</strong> = ()</dl>
+
+<dl><dt><strong>kind</strong> = 'text'</dl>
+
+<dl><dt><strong>required</strong> = False</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MenuSpec">class <strong>MenuSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MenuSpec">MenuSpec</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;scope:&nbsp;'str',&nbsp;channel_key:&nbsp;'str',&nbsp;build:&nbsp;'Callable[...,&nbsp;Coroutine[Any,&nbsp;Any,&nbsp;Any]]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;permissions:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;frozen&nbsp;pinned&nbsp;menu&nbsp;of&nbsp;the&nbsp;mod's&nbsp;channel&nbsp;tree.<br>
+&nbsp;<br>
+``build``&nbsp;renders&nbsp;the&nbsp;menu's&nbsp;layout&nbsp;—&nbsp;the&nbsp;SDK&nbsp;pins&nbsp;it&nbsp;(registry<br>
+``view:&lt;guild&gt;:&lt;slug&gt;``),&nbsp;heals&nbsp;it,&nbsp;and&nbsp;every&nbsp;button&nbsp;of&nbsp;the<br>
+menu&nbsp;opens&nbsp;an&nbsp;ephemeral&nbsp;(the&nbsp;frozen-menu&nbsp;contract).&nbsp;``scope``<br>
+places&nbsp;the&nbsp;menu&nbsp;in&nbsp;a&nbsp;folder&nbsp;(``mods/&lt;mod&gt;``);&nbsp;``channel_key``<br>
+names&nbsp;the&nbsp;channel&nbsp;inside&nbsp;it.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MenuSpec-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="MenuSpec-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="MenuSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="MenuSpec-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', scope: 'str', channel_key: 'str', build: 'Callable[..., Coroutine[Any, Any, Any]] | None' = None, permissions: 'tuple[str, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="MenuSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="MenuSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'build': 'Callable[..., Coroutine[Any, Any, Any]] | None', 'channel_key': 'str', 'key': 'str', 'label_key': 'str', 'permissions': 'tuple[str, ...]', 'scope': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'build': Field(name='build',type='Callable[..., Coroutine...appingproxy({}),kw_only=False,_field_type=_FIELD), 'channel_key': Field(name='channel_key',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'permissions': Field(name='permissions',type='tuple[str, ...]',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'scope': Field(name='scope',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'scope', 'channel_key', 'build', 'permissions')</dl>
+
+<dl><dt><strong>build</strong> = None</dl>
+
+<dl><dt><strong>permissions</strong> = ()</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['ActionResult', 'ActionSpec', 'EntityPanelSpec', 'EntitySpec', 'Field', 'MenuSpec']</td></tr></table>
+</body></html>

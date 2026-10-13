@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.modsdk.store</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.modsdk.html" class="white">modsdk</a>.store</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/modsdk/store.py">SOURCE_ROOT/modsdk/store.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;modder&nbsp;SDK&nbsp;storage:&nbsp;one&nbsp;generic&nbsp;store,&nbsp;no&nbsp;Mongo&nbsp;in&nbsp;the&nbsp;mod.<br>
+&nbsp;<br>
+An&nbsp;``<a href="#EntityStore">EntityStore</a>``&nbsp;backs&nbsp;one&nbsp;entity&nbsp;spec&nbsp;with&nbsp;a&nbsp;generic&nbsp;Mongo<br>
+collection;&nbsp;the&nbsp;mod&nbsp;(or&nbsp;its&nbsp;agent)&nbsp;never&nbsp;writes&nbsp;a&nbsp;query&nbsp;—&nbsp;the&nbsp;SDK<br>
+owns&nbsp;the&nbsp;ids&nbsp;(``&lt;prefix&gt;:&lt;scope&gt;:&lt;slug&gt;``),&nbsp;the&nbsp;upserts,&nbsp;the<br>
+list-by-scope&nbsp;and&nbsp;the&nbsp;state&nbsp;transitions.&nbsp;This&nbsp;is&nbsp;the&nbsp;whole<br>
+persistence&nbsp;surface&nbsp;the&nbsp;mods&nbsp;are&nbsp;allowed&nbsp;to&nbsp;touch.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.modsdk.store.html#EntityStore">EntityStore</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EntityStore">class <strong>EntityStore</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EntityStore">EntityStore</a>(database:&nbsp;'Any',&nbsp;spec:&nbsp;'EntitySpec')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+The&nbsp;generic&nbsp;per-entity&nbsp;Mongo&nbsp;store&nbsp;of&nbsp;the&nbsp;modder&nbsp;SDK.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="EntityStore-__init__"><strong>__init__</strong></a>(self, database: 'Any', spec: 'EntitySpec') -&gt; 'None'</dt><dd><span class="code">Bind&nbsp;the&nbsp;store&nbsp;to&nbsp;its&nbsp;Mongo&nbsp;database&nbsp;and&nbsp;entity&nbsp;spec.</span></dd></dl>
+
+<dl><dt>async <a name="EntityStore-archive"><strong>archive</strong></a>(self, entity_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Archive&nbsp;one&nbsp;entity&nbsp;(reversible&nbsp;—&nbsp;nothing&nbsp;is&nbsp;ever&nbsp;deleted).</span></dd></dl>
+
+<dl><dt>async <a name="EntityStore-create"><strong>create</strong></a>(self, scope: 'str', name: 'str', fields: 'dict[str, Any] | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Create&nbsp;one&nbsp;entity&nbsp;in&nbsp;its&nbsp;scope;&nbsp;return&nbsp;the&nbsp;stored&nbsp;doc.</span></dd></dl>
+
+<dl><dt><a name="EntityStore-entity_id"><strong>entity_id</strong></a>(self, name: 'str', scope: 'str' = 'public') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;entity's&nbsp;stable&nbsp;id&nbsp;(``&lt;prefix&gt;:&lt;scope&gt;:&lt;slug&gt;``).</span></dd></dl>
+
+<dl><dt>async <a name="EntityStore-get"><strong>get</strong></a>(self, entity_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;one&nbsp;entity&nbsp;by&nbsp;id;&nbsp;None&nbsp;when&nbsp;unknown.</span></dd></dl>
+
+<dl><dt>async <a name="EntityStore-list"><strong>list</strong></a>(self, scope: 'str', include_archived: 'bool' = False) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;a&nbsp;scope's&nbsp;entities,&nbsp;newest&nbsp;last;&nbsp;archived&nbsp;last&nbsp;when&nbsp;kept.</span></dd></dl>
+
+<dl><dt>async <a name="EntityStore-update"><strong>update</strong></a>(self, entity_id: 'str', changes: 'dict[str, Any]', new_state: 'str' = '') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Merge&nbsp;``changes``&nbsp;into&nbsp;one&nbsp;entity;&nbsp;optionally&nbsp;move&nbsp;its&nbsp;state.<br>
+&nbsp;<br>
+The&nbsp;SDK's&nbsp;action&nbsp;pipeline&nbsp;persists&nbsp;through&nbsp;here&nbsp;—&nbsp;the&nbsp;mod<br>
+returns&nbsp;its&nbsp;``ActionResult``&nbsp;and&nbsp;this&nbsp;lands&nbsp;it.&nbsp;Returns&nbsp;the<br>
+updated&nbsp;doc&nbsp;(None&nbsp;when&nbsp;the&nbsp;entity&nbsp;vanished&nbsp;mid-flight).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['EntityStore']</td></tr></table>
+</body></html>
