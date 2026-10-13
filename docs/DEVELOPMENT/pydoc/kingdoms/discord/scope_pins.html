@@ -9,17 +9,22 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.scope_pins</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/scope_pins.py">SOURCE_ROOT/discord/scope_pins.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;scope&nbsp;menus:&nbsp;every&nbsp;tree&nbsp;folder&nbsp;carries&nbsp;its&nbsp;home&nbsp;and&nbsp;admin&nbsp;pins.<br>
+    <p><span class="code">The&nbsp;scope&nbsp;menus&nbsp;—&nbsp;every&nbsp;tree&nbsp;folder's&nbsp;home&nbsp;and&nbsp;admin,&nbsp;on&nbsp;the&nbsp;charte.<br>
 &nbsp;<br>
-The&nbsp;channel&nbsp;tree&nbsp;(docs/architecture/channel-tree.md)&nbsp;gives&nbsp;each&nbsp;scope<br>
-folder&nbsp;a&nbsp;``général``&nbsp;with&nbsp;a&nbsp;pinned&nbsp;home&nbsp;menu&nbsp;and&nbsp;an&nbsp;``admin``&nbsp;with&nbsp;the<br>
-management&nbsp;menu.&nbsp;This&nbsp;module&nbsp;declares&nbsp;those&nbsp;pins&nbsp;as&nbsp;StaticPinnedViews<br>
-so&nbsp;the&nbsp;shared&nbsp;cycle&nbsp;owns&nbsp;them&nbsp;(create,&nbsp;refresh,&nbsp;re-pin,&nbsp;heal)&nbsp;—&nbsp;the<br>
-boot's&nbsp;surface&nbsp;pass&nbsp;ensures&nbsp;them&nbsp;all&nbsp;synchronously&nbsp;right&nbsp;after&nbsp;the<br>
-tree&nbsp;is&nbsp;provisioned.<br>
+The&nbsp;channel&nbsp;tree&nbsp;gives&nbsp;each&nbsp;scope&nbsp;folder&nbsp;a&nbsp;``général``&nbsp;with&nbsp;a&nbsp;pinned<br>
+home&nbsp;menu&nbsp;and&nbsp;an&nbsp;``admin``&nbsp;with&nbsp;the&nbsp;management&nbsp;menu.&nbsp;Both&nbsp;follow&nbsp;the<br>
+menu&nbsp;template&nbsp;(title,&nbsp;description,&nbsp;sections&nbsp;of&nbsp;buttons,&nbsp;view&nbsp;id<br>
+footer);&nbsp;every&nbsp;button&nbsp;opens&nbsp;an&nbsp;ephemeral&nbsp;(the&nbsp;frozen-menu&nbsp;contract)<br>
+through&nbsp;the&nbsp;existing&nbsp;dispatches:<br>
 &nbsp;<br>
-Every&nbsp;menu&nbsp;resolves&nbsp;its&nbsp;channel&nbsp;by&nbsp;the&nbsp;**stored&nbsp;tree&nbsp;id**&nbsp;(never&nbsp;by<br>
-the&nbsp;translated&nbsp;name)&nbsp;and&nbsp;renders&nbsp;in&nbsp;the&nbsp;guild's&nbsp;locale.</span></p>
+-&nbsp;``home:open:&lt;view&gt;``&nbsp;—&nbsp;the&nbsp;user-facing&nbsp;views&nbsp;(status,&nbsp;profile,<br>
+&nbsp;&nbsp;games,&nbsp;the&nbsp;aoe2&nbsp;game&nbsp;manager);<br>
+-&nbsp;``admin:pin:modgames:section:&lt;section&gt;:&lt;game&gt;``&nbsp;—&nbsp;the&nbsp;aoe2&nbsp;admin<br>
+&nbsp;&nbsp;sub-menus&nbsp;(civs,&nbsp;maps,&nbsp;pools:&nbsp;list,&nbsp;import,&nbsp;create,&nbsp;manage);<br>
+-&nbsp;the&nbsp;access&nbsp;and&nbsp;cross-guild&nbsp;flows&nbsp;keep&nbsp;their&nbsp;existing&nbsp;ids.<br>
+&nbsp;<br>
+The&nbsp;menus&nbsp;resolve&nbsp;their&nbsp;channel&nbsp;by&nbsp;the&nbsp;stored&nbsp;tree&nbsp;id&nbsp;and&nbsp;render&nbsp;in<br>
+the&nbsp;guild's&nbsp;locale.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -44,6 +49,5 @@ Idempotent:&nbsp;re-registering&nbsp;returns&nbsp;the&nbsp;already-registered&nb
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['register_scope_pins']<br>
-<strong>__annotations__</strong> = {'_SCOPE_BUTTONS': 'dict[str, tuple[tuple[str, str, str], ...]]', '_pin_specs': 'list[Any]'}</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['register_scope_pins']</td></tr></table>
 </body></html>

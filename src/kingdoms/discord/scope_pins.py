@@ -1,14 +1,19 @@
-"""The scope menus: every tree folder carries its home and admin pins.
+"""The scope menus — every tree folder's home and admin, on the charte.
 
-The channel tree (docs/architecture/channel-tree.md) gives each scope
-folder a ``général`` with a pinned home menu and an ``admin`` with the
-management menu. This module declares those pins as StaticPinnedViews
-so the shared cycle owns them (create, refresh, re-pin, heal) — the
-boot's surface pass ensures them all synchronously right after the
-tree is provisioned.
+The channel tree gives each scope folder a ``général`` with a pinned
+home menu and an ``admin`` with the management menu. Both follow the
+menu template (title, description, sections of buttons, view id
+footer); every button opens an ephemeral (the frozen-menu contract)
+through the existing dispatches:
 
-Every menu resolves its channel by the **stored tree id** (never by
-the translated name) and renders in the guild's locale.
+- ``home:open:<view>`` — the user-facing views (status, profile,
+  games, the aoe2 game manager);
+- ``admin:pin:modgames:section:<section>:<game>`` — the aoe2 admin
+  sub-menus (civs, maps, pools: list, import, create, manage);
+- the access and cross-guild flows keep their existing ids.
+
+The menus resolve their channel by the stored tree id and render in
+the guild's locale.
 """
 
 from __future__ import annotations
@@ -19,19 +24,6 @@ from typing import Any
 import discord
 
 logger = logging.getLogger("kingdoms.discord.scope_pins")
-
-_pin_specs: list[Any] = []
-
-
-def _scope_channel(scope: str, key: str) -> Any:
-    """Build a resolver for one tree channel (stored id first, never name)."""
-
-    async def _resolve(guild_id: str) -> str | None:
-        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
-
-        return await stored_channel_id(guild_id, scope, key)
-
-    return _resolve
 
 
 async def _locale_of(bot: Any, guild_id: str) -> str:
@@ -45,91 +37,167 @@ async def _locale_of(bot: Any, guild_id: str) -> str:
         return "en"
 
 
-# The per-scope navigation buttons (all open ephemeral views through
-# the shared ``home:open:<view>`` dispatch): each home shows its own
-# perimeter's surfaces only — the redesigned menus.
-_SCOPE_BUTTONS: dict[str, tuple[tuple[str, str, str], ...]] = {
-    "root": (
-        ("status", "ui.homes.btn_status", "📊"),
-        ("profile", "ui.homes.btn_profile", "🪪"),
-        ("games", "ui.homes.btn_games", "🎮"),
-    ),
-    "bot": (
-        ("admin", "ui.homes.btn_admin", "🛠️"),
-        ("status", "ui.homes.btn_status", "📊"),
-    ),
-    "games": (
-        ("games", "ui.homes.btn_games", "🎮"),
-    ),
-    "games/aoe2": (
-        ("guild-games:aoe2", "ui.homes.btn_aoe2", "⚔️"),
-        ("mod:aoe2", "ui.homes.btn_aoe2_admin", "🏛️"),
-    ),
-    "mods": (
-        ("status", "ui.homes.btn_mods", "🧩"),
-    ),
-}
+def _catalog(bot: Any) -> Any:
+    """Resolve the message catalog (bot's or a fresh default)."""
+    from kingdoms.core.services.i18n import MessageCatalog
+
+    catalog = getattr(bot, "messages", None)
+    if catalog is not None:
+        return catalog
+    config = getattr(bot, "config", None)
+    return MessageCatalog(str(getattr(config, "config_dir", "config")))
 
 
-def _home_builder(bot: Any, scope: str, title_key: str, description_key: str) -> Any:
-    """Build a scope's home menu: description + the scope's own buttons."""
+def _tr(catalog: Any, key: str, locale: str, fallback: str = "") -> str:
+    """Render one key; the fallback when unknown."""
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else (fallback or key)
+
+
+def _scope_channel(scope: str, key: str) -> Any:
+    """Build a resolver for one tree channel (stored id only)."""
+
+    async def _resolve(guild_id: str) -> str | None:
+        from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+        return await stored_channel_id(guild_id, scope, key)
+
+    return _resolve
+
+
+# --- the per-scope home menus (the redesigned charte) ----------------
+
+
+def _home_builder(bot: Any, scope: str) -> Any:
+    """Build a scope's home menu: charte + the scope's own buttons."""
 
     async def _build(guild_id: str) -> discord.ui.LayoutView:
-        from kingdoms.core.services.i18n import MessageCatalog
-        from kingdoms.discord.pinned_marks import pinned_mark
+        from kingdoms.discord.ui.menu_template import MenuSection, MenuSpec, build_menu
 
-        catalog = getattr(bot, "messages", None) or MessageCatalog(
-            str(getattr(getattr(bot, "config", None), "config_dir", "config"))
-        )
+        catalog = _catalog(bot)
         locale = await _locale_of(bot, guild_id)
-        title = catalog.render(title_key, locale)
-        description = catalog.render(description_key, locale)
-        view_id = f"view:{scope}:home" if scope != "root" else "view:home"
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        for view_key, label_key, emoji in _SCOPE_BUTTONS.get(scope, ()):
-            label = catalog.render(label_key, locale)
-            row.add_item(
-                discord.ui.Button(
-                    custom_id=f"home:open:{view_key}",
-                    label=label if label != label_key else view_key.replace("-", " "),
-                    emoji=discord.PartialEmoji.from_str(emoji),
-                    style=discord.ButtonStyle.secondary,
-                )
+        prefix = f"ui.homes.{scope.replace('/', '_')}"
+        title = _tr(catalog, f"{prefix}_home_title", locale)
+        description = _tr(catalog, f"{prefix}_home_description", locale)
+        sections: tuple[MenuSection, ...] = ()
+        if scope == "root":
+            sections = (
+                MenuSection(
+                    heading_key=_tr(catalog, "ui.homes.heading_navigate", locale, "Navigation"),
+                    buttons=(
+                        ("home:open:status", _tr(catalog, "ui.homes.btn_status", locale), "📊"),
+                        ("home:open:profile", _tr(catalog, "ui.homes.btn_profile", locale), "🪪"),
+                        ("home:open:games", _tr(catalog, "ui.homes.btn_games", locale), "🎮"),
+                    ),
+                ),
             )
-        blocks: list[Any] = [discord.ui.TextDisplay(f"# {title}\n{description}"), row]
-        view = discord.ui.LayoutView(timeout=None)
-        view.add_item(
-            discord.ui.Container(
-                *blocks,
-                discord.ui.TextDisplay(pinned_mark(view_id)),
+        elif scope == "games":
+            sections = (
+                MenuSection(
+                    heading_key=_tr(catalog, "ui.homes.heading_navigate", locale, "Navigation"),
+                    buttons=(
+                        ("home:open:games", _tr(catalog, "ui.homes.btn_games", locale), "🎮"),
+                    ),
+                ),
+            )
+        elif scope == "games/aoe2":
+            sections = (
+                MenuSection(
+                    heading_key=_tr(catalog, "ui.homes.heading_data", locale, "Données"),
+                    buttons=(
+                        ("home:open:guild-games:aoe2", _tr(catalog, "ui.homes.btn_aoe2", locale), "⚔️"),
+                    ),
+                ),
+            )
+        elif scope == "mods":
+            sections = (
+                MenuSection(
+                    heading_key=_tr(catalog, "ui.homes.heading_navigate", locale, "Navigation"),
+                    buttons=(
+                        ("home:open:games", _tr(catalog, "ui.homes.btn_mods", locale), "🧩"),
+                    ),
+                ),
+            )
+        return build_menu(
+            MenuSpec(
+                title=title,
+                description=description,
+                view_id="view:home" if scope == "root" else f"view:{scope}:home",
+                sections=sections,
             )
         )
-        return view
 
     return _build
 
 
-def _admin_builder(bot: Any, scope: str) -> Any:
-    """Build a scope's admin menu — the shared admin panel today.
+# --- the per-scope admin menus (the redesigned charte) ----------------
 
-    The per-scope admin surfaces (games admin, aoe2 admin, mods admin)
-    all render the same management panel for now; the sections evolve
-    per scope later without touching the cycle.
-    """
+
+def _admin_builder(bot: Any, scope: str) -> Any:
+    """Build a scope's admin menu: charte + the scope's own buttons."""
 
     async def _build(guild_id: str) -> discord.ui.LayoutView:
-        from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+        from kingdoms.discord.ui.menu_template import MenuSection, MenuSpec, build_menu
 
-        logs = getattr(bot, "logs_service", None)
-        if logs is None:
-            return discord.ui.LayoutView(timeout=None)
+        catalog = _catalog(bot)
         locale = await _locale_of(bot, guild_id)
-        return await build_pin_main_menu(
-            logs,
-            guild_id,
-            getattr(bot, "messages", None),
-            locale,
-            getattr(bot, "admin_channel_service", None),
+        if scope == "games/aoe2":
+            # the three sub-menus the sessions designed: civs, maps, pools
+            return build_menu(
+                MenuSpec(
+                    title=_tr(catalog, "ui.homes.games_aoe2_admin_title", locale, "⚔️ Age of Empires II — admin"),
+                    description=_tr(
+                        catalog,
+                        "ui.homes.games_aoe2_admin_description",
+                        locale,
+                        "Les données du jeu : civilisations, maps et map pools.",
+                    ),
+                    view_id="view:games/aoe2:admin",
+                    sections=(
+                        MenuSection(
+                            buttons=(
+                                (
+                                    "admin:pin:modgames:section:civs:aoe2",
+                                    _tr(catalog, "ui.homes.btn_civs", locale, "Civs"),
+                                    "🏛️",
+                                ),
+                                (
+                                    "admin:pin:modgames:section:maps:aoe2",
+                                    _tr(catalog, "ui.homes.btn_maps", locale, "Maps"),
+                                    "🗺️",
+                                ),
+                                (
+                                    "admin:pin:modgames:section:pools:aoe2",
+                                    _tr(catalog, "ui.homes.btn_pools", locale, "Map pools"),
+                                    "🧱",
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+            )
+        # the other scopes (games, mods) manage their perimeters through
+        # the shared admin dispatch — the charte wrapper keeps them uniform
+        return build_menu(
+            MenuSpec(
+                title=_tr(
+                    catalog, f"ui.homes.{scope.replace('/', '_')}_admin_title", locale, f"{scope} — admin"
+                ),
+                description=_tr(
+                    catalog,
+                    f"ui.homes.{scope.replace('/', '_')}_admin_description",
+                    locale,
+                    "La gestion du périmètre.",
+                ),
+                view_id=f"view:{scope}:admin",
+                sections=(
+                    MenuSection(
+                        buttons=(
+                            ("home:open:admin", _tr(catalog, "ui.homes.btn_admin", locale, "Admin"), "🛠️"),
+                        ),
+                    ),
+                ),
+            )
         )
 
     return _build
@@ -146,29 +214,32 @@ def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:
     registry = getattr(bot, "message_registry", None)
     specs: list[Any] = []
     for scope in scopes:
-        home_key = "view:home" if scope == "root" else f"view:{scope}:home"
-        title_key = f"ui.homes.{scope.replace('/', '_')}_home_title"
-        description_key = f"ui.homes.{scope.replace('/', '_')}_home_description"
-        if scope not in ("root", "bot"):  # bot carries no general channel
-            home_spec = StaticPinnedView(
-                key=home_key,
-                mark_suffix=home_key,
-                resolve_channel=_scope_channel(scope, "general"),
-                build_layout=_home_builder(bot, scope, title_key, description_key),
-                registry=registry,
+        if scope not in ("root", "bot"):  # root's home is the legacy view:home spec
+            home_key = f"view:{scope}:home"
+            specs.append(
+                register_static_pin(
+                    StaticPinnedView(
+                        key=home_key,
+                        mark_suffix=home_key,
+                        resolve_channel=_scope_channel(scope, "general"),
+                        build_layout=_home_builder(bot, scope),
+                        registry=registry,
+                    )
+                )
             )
-            specs.append(register_static_pin(home_spec))
         if scope != "root":  # the root has no admin channel of its own
             admin_key = f"view:{scope}:admin"
-            admin_spec = StaticPinnedView(
-                key=admin_key,
-                mark_suffix=admin_key,
-                resolve_channel=_scope_channel(scope, "admin"),
-                build_layout=_admin_builder(bot, scope),
-                registry=registry,
+            specs.append(
+                register_static_pin(
+                    StaticPinnedView(
+                        key=admin_key,
+                        mark_suffix=admin_key,
+                        resolve_channel=_scope_channel(scope, "admin"),
+                        build_layout=_admin_builder(bot, scope),
+                        registry=registry,
+                    )
+                )
             )
-            specs.append(register_static_pin(admin_spec))
-    _pin_specs[:] = specs
     return specs
 
 
