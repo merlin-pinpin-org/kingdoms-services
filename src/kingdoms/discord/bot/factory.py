@@ -340,8 +340,42 @@ class KingdomsBot(discord.Client):
                     mod_roles_service=self.mod_roles_service,
                     registry=self.registry,
                 )
+            await self._provision_channel_tree(guild_id, guild)
             logger.info("DEFAULT CHANNELS provisioned (guild %s)", guild_id)
             await self._audit_channel_drift(guild_id)
+
+    async def _provision_channel_tree(self, guild_id: str, guild: discord.Guild) -> None:
+        """Provision the declared channel-tree scopes (best-effort, idempotent).
+
+        The Panels SDK owns the tree rules: the scope folders are
+        created in the guild's locale, the legacy channels adopted in
+        place (ids unchanged), the canonical order applied. The managed
+        services (logs, admin, home, live) resolve their channels by id
+        and keep working across the migration.
+        """
+        if self.messages is None or self.logs_service is None:
+            return
+        try:
+            from kingdoms.core.services.i18n import DEFAULT_LOCALE
+            from kingdoms.discord.ui.panels_provisioning import provision_all
+            from kingdoms.discord.ui.panels_scopes import register_platform_scopes
+
+            register_platform_scopes()
+            locale = await self.logs_service.get_locale(guild_id) or DEFAULT_LOCALE
+            await provision_all(guild, locale, self._translate_panel_label)
+        except Exception:
+            logger.warning(
+                "CHANNEL TREE provisioning failed (guild %s) — best-effort",
+                guild_id,
+                exc_info=True,
+            )
+
+    def _translate_panel_label(self, key: str, locale: str) -> str:
+        """Render one panels label key in the guild's locale (fallback EN)."""
+        if self.messages is None:
+            return key
+        rendered = self.messages.render(key, locale)
+        return rendered if rendered != key else self.messages.render(key, "en")
 
     async def _audit_channel_drift(self, guild_id: str) -> None:
         """Audit declared policies vs runtime overwrites; log the drift (#57).

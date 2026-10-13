@@ -1,0 +1,169 @@
+"""Unit tests for the Panels SDK provisioning — the tree rules + adoption.
+
+These pin the channel-tree contract of docs/architecture/channel-tree.md
+(the kingdoms repo): the scope folders provisioned in the guild's
+locale, the canonical order, the read-only menu channels, the admin
+visibility — and the legacy adoption (rename + move in place, ids
+unchanged, so the managed services and their pins survive).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from kingdoms.core.services.i18n import MessageCatalog
+from kingdoms.discord.ui.panels_provisioning import (
+    _Platform,
+    _sorted_channels,
+    provision_scope,
+)
+from kingdoms.discord.ui.panels_scopes import (
+    AOE2_SCOPE,
+    BOT_SCOPE,
+    register_platform_scopes,
+)
+from tests.mocks.discord_mock import (
+    MockCategoryChannel,
+    MockForumChannel,
+    MockGuild,
+    MockTextChannel,
+)
+
+CONFIG_DIR = str(Path(__file__).resolve().parents[3] / "config")
+
+
+def _translate(key: str, locale: str) -> str:
+    """Render through the real catalog (the FR naming is the contract)."""
+    catalog = MessageCatalog(CONFIG_DIR)
+    rendered = catalog.render(key, locale)
+    return rendered if rendered != key else catalog.render(key, "en")
+
+
+class TestCanonicalOrder:
+    def test_the_canonical_order_sorts_the_bands(self) -> None:
+        decls = _sorted_channels(AOE2_SCOPE)
+        keys = [d.key for d in decls]
+        assert keys[0] == "general"
+        assert keys[1] == "discussions"
+        assert keys[-2] == "admin"
+        assert keys[-1] == "decisions"
+        assert keys.index("civs") < keys.index("admin")
+
+    def test_the_bot_scope_orders_logs_first(self) -> None:
+        assert [d.key for d in _sorted_channels(BOT_SCOPE)] == ["logs", "admin", "decisions"]
+
+
+class TestProvisioning:
+    @pytest.mark.asyncio
+    async def test_a_scope_provisions_category_and_channels(self) -> None:
+        guild = MockGuild()
+        resolved = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
+        assert set(resolved) == {"bot", "logs", "admin", "decisions"}
+        names = {c.name for c in guild.text_channels}
+        assert "logs" in names
+        assert "décisions" in names  # translated at creation (FR guild)
+        logs = next(c for c in guild.text_channels if c.name == "logs")
+        assert logs.category is not None
+        assert logs.category.name == "bot"
+
+    @pytest.mark.asyncio
+    async def test_provisioning_is_idempotent(self) -> None:
+        guild = MockGuild()
+        first = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
+        second = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
+        assert first == second
+        assert len(guild.channels) == 4  # category + 3 channels, no duplicates
+
+    @pytest.mark.asyncio
+    async def test_the_games_scope_creates_the_forums(self) -> None:
+        guild = MockGuild()
+        resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
+        assert resolved["civs"] and resolved["maps"] and resolved["map-pools"]
+        forums = {f.name: f for f in guild.forums}
+        assert set(forums) == {"civs", "maps", "map pools"}  # EN locale: translated names
+        for forum in forums.values():
+            assert forum.category is not None
+            assert forum.category.name == "games/aoe2"
+
+
+class TestLegacyAdoption:
+    @pytest.mark.asyncio
+    async def test_a_legacy_channel_is_adopted_in_place(self) -> None:
+        guild = MockGuild()
+        legacy = MockTextChannel(name="🛰-bot-logs", guild=guild)
+        guild._channels[legacy.id] = legacy
+        legacy_id = legacy.id
+
+        resolved = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
+
+        assert resolved["logs"] == str(legacy_id)
+        assert legacy.name == "logs"
+        assert legacy.category is not None
+        assert legacy.category.name == "bot"
+        assert len(guild.text_channels) == 3  # adopted + admin + decisions, no duplicate
+
+    @pytest.mark.asyncio
+    async def test_a_legacy_forum_is_adopted_and_recategorised(self) -> None:
+        guild = MockGuild()
+        old_category = MockCategoryChannel(name="games", guild=guild)
+        guild._channels[old_category.id] = old_category
+        legacy_forum = MockForumChannel(name="aoe2-maps", guild=guild, category=old_category)
+        guild._channels[legacy_forum.id] = legacy_forum
+        legacy_id = legacy_forum.id
+
+        resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
+
+        assert resolved["maps"] == str(legacy_id)
+        assert legacy_forum.name == "maps"
+        assert legacy_forum.category is not None
+        assert legacy_forum.category.name == "games/aoe2"
+
+    @pytest.mark.asyncio
+    async def test_adoption_falls_back_to_creation_when_absent(self) -> None:
+        guild = MockGuild()
+        resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
+        maps = next(c for c in guild.channels if getattr(c, "name", "") == "maps")
+        assert resolved["maps"] == str(maps.id)
+        assert len(guild.forums) == 3
+
+
+class TestPlatformScopes:
+    def test_registration_is_idempotent(self) -> None:
+        register_platform_scopes()
+        register_platform_scopes()
+        from kingdoms.discord.ui.panels import registered_scopes
+
+        keys = [spec.scope for spec in registered_scopes()]
+        assert keys.count("bot") == 1
+        assert keys.count("games/aoe2") == 1
+
+    def test_every_decl_carries_a_label_key(self) -> None:
+        for spec in (BOT_SCOPE, AOE2_SCOPE):
+            for decl in spec.channels:
+                assert decl.label_key.startswith("ui.panels.")
+
+    def test_the_legacy_names_cover_the_pre_tree_surfaces(self) -> None:
+        decls = {d.key: d for d in BOT_SCOPE.channels}
+        assert "🛰-bot-logs" in decls["logs"].legacy_names
+        assert "🛡-bot-admins" in decls["admin"].legacy_names
+        aoe2 = {d.key: d for d in AOE2_SCOPE.channels}
+        assert "aoe2-maps" in aoe2["maps"].legacy_names
+        assert "aoe2-factions" in aoe2["civs"].legacy_names
+        assert "aoe2-map-pools" in aoe2["map-pools"].legacy_names
+
+
+class TestAdoptionSeams:
+    @pytest.mark.asyncio
+    async def test_ensure_channel_moves_a_stray_channel_into_the_folder(self) -> None:
+        guild = MockGuild()
+        platform: Any = _Platform(guild)
+        stray = MockTextChannel(name="discussions", guild=guild)
+        guild._channels[stray.id] = stray
+        category_id = await platform.ensure_category("games")
+        channel_id = await platform.ensure_channel("discussions", category_id)
+        assert channel_id == str(stray.id)
+        assert stray.category is not None
+        assert stray.category.name == "games"

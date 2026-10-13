@@ -78,6 +78,8 @@ class _Platform:
         category = self._category(category_id)
         channel = discord.utils.get(self._guild.text_channels, name=name)
         if channel is not None:
+            if category is not None and channel.category_id != category.id:
+                await channel.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
             return str(channel.id)
         created = await self._guild.create_text_channel(
             name, category=category, reason="kingdoms: panels provisioning"
@@ -89,11 +91,52 @@ class _Platform:
         category = self._category(category_id)
         forum = discord.utils.get(self._guild.forums, name=name)
         if forum is not None:
+            if category is not None and forum.category_id != category.id:
+                await forum.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
             return str(forum.id)
         created = await self._guild.create_forum(
             name, category=category, reason="kingdoms: panels provisioning"
         )
         return str(created.id)
+
+    async def adopt_legacy(
+        self,
+        decl: ChannelDecl,
+        name: str,
+        category_id: str,
+    ) -> str | None:
+        """Rename and move a pre-tree channel; return its id, None when absent.
+
+        The adoption is in place: the channel id never changes, so the
+        managed services (logs, admin, home, live) and their persisted
+        pins survive the migration untouched. The category follows only
+        for text channels — a forum adoption also recategorises.
+        """
+        category = self._category(category_id)
+        for legacy_name in decl.legacy_names:
+            if decl.kind == "forum":
+                forum = discord.utils.get(self._guild.forums, name=legacy_name)
+                if forum is None:
+                    continue
+                if category is not None:
+                    await forum.edit(
+                        name=name,
+                        category=category,
+                        reason="kingdoms: adopt the legacy forum into the tree",
+                    )
+                else:
+                    await forum.edit(name=name, reason="kingdoms: adopt the legacy forum into the tree")
+                return str(forum.id)
+            text = discord.utils.get(self._guild.text_channels, name=legacy_name)
+            if text is None:
+                continue
+            await text.edit(
+                name=name,
+                category=category,
+                reason="kingdoms: adopt the legacy channel into the tree",
+            )
+            return str(text.id)
+        return None
 
 
 async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl) -> None:
@@ -137,6 +180,12 @@ async def provision_scope(
     resolved: dict[str, str] = {spec.scope: category_id}
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
+        if decl.legacy_names:
+            adopted = await platform.adopt_legacy(decl, name, category_id)
+            if adopted is not None:
+                await _apply_access(guild, adopted, decl)
+                resolved[decl.key] = adopted
+                continue
         if decl.kind == "forum":
             channel_id = await platform.ensure_forum(name, category_id)
         else:

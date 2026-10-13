@@ -249,3 +249,19 @@ en:
       map_deleted: Map deleted
       map_disabled: Map disabled (archived) - reactivable
       pool_deleted: Pool deleted
+    panels:
+      channels:
+        general: general
+        discussions: discussions
+        decisions: decisions
+        logs: logs
+        admin: admin
+        live: live
+        civs: civs
+        maps: maps
+        map_pools: map pools
+      categories:
+        bot: bot
+        games: games
+        games_aoe2: games/aoe2
+        mods: mods
