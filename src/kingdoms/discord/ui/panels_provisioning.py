@@ -79,7 +79,14 @@ class _Platform:
         channel = discord.utils.get(self._guild.text_channels, name=name)
         if channel is not None:
             if category is not None and channel.category_id != category.id:
-                await channel.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
+                try:
+                    await channel.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
+                except discord.HTTPException:
+                    logger.warning(
+                        "panels provisioning: moving %s into its folder failed — kept in place",
+                        name,
+                        exc_info=True,
+                    )
             return str(channel.id)
         created = await self._guild.create_text_channel(
             name, category=category, reason="kingdoms: panels provisioning"
@@ -92,7 +99,14 @@ class _Platform:
         forum = discord.utils.get(self._guild.forums, name=name)
         if forum is not None:
             if category is not None and forum.category_id != category.id:
-                await forum.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
+                try:
+                    await forum.edit(category=category, reason="kingdoms: panels provisioning (adopt)")
+                except discord.HTTPException:
+                    logger.warning(
+                        "panels provisioning: moving %s into its folder failed — kept in place",
+                        name,
+                        exc_info=True,
+                    )
             return str(forum.id)
         created = await self._guild.create_forum(
             name, category=category, reason="kingdoms: panels provisioning"
@@ -145,10 +159,19 @@ async def provision_scope(
     # an empty category_key is the guild root: its channels live uncategorised
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
-        if decl.kind == "forum":
-            channel_id = await platform.ensure_forum(name, category_id)
-        else:
-            channel_id = await platform.ensure_channel(name, category_id)
+        try:
+            if decl.kind == "forum":
+                channel_id = await platform.ensure_forum(name, category_id)
+            else:
+                channel_id = await platform.ensure_channel(name, category_id)
+        except discord.HTTPException:
+            logger.warning(
+                "panels provisioning: channel %s/%s failed — best-effort, skipped",
+                spec.scope,
+                decl.key,
+                exc_info=True,
+            )
+            continue
         await _apply_access(guild, channel_id, decl)
         resolved[decl.key] = channel_id
     return resolved

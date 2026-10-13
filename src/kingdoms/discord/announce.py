@@ -471,6 +471,42 @@ async def announce_startup(
         await logs_service.log_event(str(guild.id), event, pin=True)
         logger.info("STARTUP ANNOUNCEMENT SENT to guild %s (locale=%s, pinned)", guild.id, locale)
 
+    await _announce_boot_to_admins(bot, status, config, deploy_env, latency_ms, commands or (), sync_scope)
+
+
+async def _announce_boot_to_admins(
+    bot: discord.Client,
+    status: StatusService,
+    config: AnnounceConfig,
+    deploy_env: str,
+    latency_ms: int | None,
+    commands: Iterable[object],
+    sync_scope: str,
+) -> None:
+    """DM the boot message to every bot-admin (the tree contract).
+
+    The boot message targets the operators personally: one DM per
+    bot-admin, best-effort (a closed DM or an unreachable user logs
+    and moves on — the guild announcement above is the fallback).
+    """
+    command_items = tuple(commands or ())
+    commands_block = commands_section(sync_scope, command_items, config.locale, config.config_dir)
+    layout = build_announcement_layout(
+        status,
+        config,
+        env=deploy_env,
+        latency_ms=latency_ms,
+        commands=commands_block,
+        command_ids=command_items,
+    )
+    for admin_id in status.bot_admins:
+        try:
+            user = await bot.fetch_user(int(admin_id))
+            await user.send(view=layout)
+            logger.info("STARTUP ANNOUNCEMENT DM sent to bot-admin %s", admin_id)
+        except Exception:
+            logger.warning("STARTUP ANNOUNCEMENT DM failed (admin %s) — best-effort", admin_id, exc_info=True)
+
 
 def _load_catalog(locale: str, config_dir: Path) -> dict[str, str]:
     """Resolve the announce strings through the shared MessageCatalog.
