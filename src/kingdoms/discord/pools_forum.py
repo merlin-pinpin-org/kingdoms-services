@@ -28,7 +28,6 @@ logger = logging.getLogger("kingdoms.games.pools_forum")
 
 GAMES_CATEGORY_NAME = "games"
 POOLS_FORUM_SUFFIX = "-map-pools"
-LEGACY_PREFIX = "map-pools-"
 SYNC_INTERVAL_S = 3600
 MAX_SECTIONS = 10
 MAX_TEXT_CHUNKS = 4
@@ -160,23 +159,17 @@ async def sync_pools_forum(guild_id: str, bot: Any, service: Any = None) -> int:
     guild = bot.get_guild(int(guild_id))
     if guild is None:
         return 0
-    actions = await _purge_legacy_forums(guild)
+    actions = 0
     from kingdoms.discord.wiring import granted_game_keys, guild_has_game
 
     for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
         if not await guild_has_game(guild_id, game_key):
             continue
-        actions += await _sync_game_pools(guild, guild_id, platform, service, game_key)
+        actions += await _sync_game_pools(guild, guild_id, platform, service, game_key, bot)
     return actions
 
 
-async def _purge_legacy_forums(guild: discord.Guild) -> int:
-    deleted = 0
-    for forum in list(guild.forums):
-        if forum.name.startswith(LEGACY_PREFIX):
-            await forum.delete(reason="kingdoms: legacy per-pool forum superseded by <game>-map-pools")
-            deleted += 1
-    return deleted
+
 
 
 async def _sync_game_pools(
@@ -185,11 +178,19 @@ async def _sync_game_pools(
     platform: Any,
     service: Any,
     game_key: str,
+    bot: Any = None,
 ) -> int:
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
     from kingdoms.discord.wiring import guild_category
 
     forum_name = _pools_forum_name(game_key)
-    forum = discord.utils.get(guild.forums, name=forum_name)
+    forum_id = await stored_channel_id(guild_id, f"games/{game_key}", "map-pools")
+    forum = None
+    if forum_id and forum_id.isdigit():
+        channel = guild.get_channel(int(forum_id))
+        forum = channel if channel is not None and channel.type == discord.ChannelType.forum else None
+    if forum is None:
+        forum = discord.utils.get(guild.forums, name=forum_name)
     if forum is None:
         forum = await guild.create_forum(
             forum_name,

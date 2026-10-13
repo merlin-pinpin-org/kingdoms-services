@@ -348,10 +348,9 @@ class KingdomsBot(discord.Client):
         """Provision the declared channel-tree scopes (best-effort, idempotent).
 
         The Panels SDK owns the tree rules: the scope folders are
-        created in the guild's locale, the legacy channels adopted in
-        place (ids unchanged), the canonical order applied. The managed
-        services (logs, admin, home, live) resolve their channels by id
-        and keep working across the migration.
+        created in the guild's locale, the canonical order applied,
+        and every resolution persisted (the stored channel ids the
+        syncs resolve by).
         """
         if self.messages is None or self.logs_service is None:
             return
@@ -483,8 +482,8 @@ class KingdomsBot(discord.Client):
 
         register_static_pin(
             StaticPinnedView(
-                key="view:admin",
-                mark_suffix="view:admin",
+                key="view:bot:admin",
+                mark_suffix="view:bot:admin",
                 legacy_key="admin-panel",
                 resolve_channel=_resolve_admin_channel,
                 build_layout=_build_admin_panel,
@@ -503,16 +502,21 @@ class KingdomsBot(discord.Client):
         """
         from kingdoms.discord.static_pins import StaticPinnedView
 
-        def _resolve_forum(forum_name: str) -> Any:
+        def _resolve_forum(channel_key: str) -> Any:
             async def _resolve(guild_id: str) -> str | None:
                 from kingdoms.discord.admin_panel_dynamic import _panel_client_ref
+                from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
                 client = _panel_client_ref()
                 guild = client.get_guild(int(guild_id)) if client and guild_id.isdigit() else None
                 if guild is None:
                     return None
-                forum = discord.utils.get(guild.forums, name=forum_name)
-                return str(forum.id) if forum is not None else None
+                stored = await stored_channel_id(guild_id, f"games/{game_key}", channel_key)
+                if stored and stored.isdigit():
+                    channel = guild.get_channel(int(stored))
+                    if channel is not None:
+                        return str(channel.id)
+                return None
 
             return _resolve
 
@@ -533,23 +537,23 @@ class KingdomsBot(discord.Client):
 
         return [
             StaticPinnedView(
-                key=f"view:{game_key}-civs",
-                mark_suffix=f"view:{game_key}-civs",
-                resolve_channel=_resolve_forum(f"{game_key}-factions"),
+                key=f"view:{game_key}:civs",
+                mark_suffix=f"view:{game_key}:civs",
+                resolve_channel=_resolve_forum("civs"),
                 build_layout=_build_civs,
                 registry=getattr(self, "message_registry", None),
             ),
             StaticPinnedView(
-                key=f"view:{game_key}-maps",
-                mark_suffix=f"view:{game_key}-maps",
-                resolve_channel=_resolve_forum(f"{game_key}-maps"),
+                key=f"view:{game_key}:maps",
+                mark_suffix=f"view:{game_key}:maps",
+                resolve_channel=_resolve_forum("maps"),
                 build_layout=_build_maps,
                 registry=getattr(self, "message_registry", None),
             ),
             StaticPinnedView(
-                key=f"view:{game_key}-pools",
-                mark_suffix=f"view:{game_key}-pools",
-                resolve_channel=_resolve_forum(f"{game_key}-map-pools"),
+                key=f"view:{game_key}:pools",
+                mark_suffix=f"view:{game_key}:pools",
+                resolve_channel=_resolve_forum("map-pools"),
                 build_layout=_build_pools,
                 registry=getattr(self, "message_registry", None),
             ),
@@ -576,7 +580,7 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
 
         for spec in registered_static_pins():
-            if spec.key.startswith("view:aoe2-"):
+            if spec.key.startswith("view:aoe2:"):
                 try:
                     await ensure_static_pin(self, spec, guild_id)
                 except Exception:

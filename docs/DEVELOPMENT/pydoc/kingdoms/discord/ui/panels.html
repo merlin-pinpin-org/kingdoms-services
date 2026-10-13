@@ -65,7 +65,7 @@ menu&nbsp;(see&nbsp;``admin_button``).</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><a name="ChannelDecl">class <strong>ChannelDecl</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelDecl">ChannelDecl</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;kind:&nbsp;'str'&nbsp;=&nbsp;'text',&nbsp;access:&nbsp;'str'&nbsp;=&nbsp;'public',&nbsp;position:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;legacy_names:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;())&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChannelDecl">ChannelDecl</a>(key:&nbsp;'str',&nbsp;label_key:&nbsp;'str',&nbsp;kind:&nbsp;'str'&nbsp;=&nbsp;'text',&nbsp;access:&nbsp;'str'&nbsp;=&nbsp;'public',&nbsp;position:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;channel&nbsp;of&nbsp;a&nbsp;scope&nbsp;folder,&nbsp;tree-rule-declared.<br>
 &nbsp;<br>
@@ -73,10 +73,7 @@ One&nbsp;channel&nbsp;of&nbsp;a&nbsp;scope&nbsp;folder,&nbsp;tree-rule-declared.
 never&nbsp;on&nbsp;the&nbsp;translated&nbsp;name);&nbsp;``label_key``&nbsp;is&nbsp;the&nbsp;i18n&nbsp;key&nbsp;of<br>
 the&nbsp;displayed&nbsp;name;&nbsp;``kind``&nbsp;picks&nbsp;text/forum/category;<br>
 ``access``&nbsp;picks&nbsp;public&nbsp;(everyone),&nbsp;readonly&nbsp;(read&nbsp;for&nbsp;all,&nbsp;no<br>
-send&nbsp;for&nbsp;anyone),&nbsp;or&nbsp;admin&nbsp;(bot-admins&nbsp;only);&nbsp;``legacy_names``<br>
-are&nbsp;pre-tree&nbsp;names&nbsp;adopted&nbsp;in&nbsp;place&nbsp;(renamed&nbsp;+&nbsp;moved&nbsp;into&nbsp;the<br>
-scope&nbsp;folder,&nbsp;ids&nbsp;unchanged&nbsp;—&nbsp;the&nbsp;managed&nbsp;services&nbsp;and&nbsp;their<br>
-persisted&nbsp;pins&nbsp;keep&nbsp;working).<br>&nbsp;</span></td></tr>
+send&nbsp;for&nbsp;anyone),&nbsp;or&nbsp;admin&nbsp;(bot-admins&nbsp;only).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="ChannelDecl-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
@@ -85,7 +82,7 @@ persisted&nbsp;pins&nbsp;keep&nbsp;working).<br>&nbsp;</span></td></tr>
 
 <dl><dt><a name="ChannelDecl-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ChannelDecl-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', kind: 'str' = 'text', access: 'str' = 'public', position: 'int | None' = None, legacy_names: 'tuple[str, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ChannelDecl-__init__"><strong>__init__</strong></a>(self, key: 'str', label_key: 'str', kind: 'str' = 'text', access: 'str' = 'public', position: 'int | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ChannelDecl-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -101,19 +98,17 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'access': 'str', 'key': 'str', 'kind': 'str', 'label_key': 'str', 'legacy_names': 'tuple[str, ...]', 'position': 'int | None'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'access': 'str', 'key': 'str', 'kind': 'str', 'label_key': 'str', 'position': 'int | None'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'access': Field(name='access',type='str',default='public',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default='text',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'legacy_names': Field(name='legacy_names',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'position': Field(name='position',type='int | None',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'access': Field(name='access',type='str',default='public',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key': Field(name='key',type='str',default=&lt;dataclasses...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default='text',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'label_key': Field(name='label_key',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'position': Field(name='position',type='int | None',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'kind', 'access', 'position', 'legacy_names')</dl>
+<dl><dt><strong>__match_args__</strong> = ('key', 'label_key', 'kind', 'access', 'position')</dl>
 
 <dl><dt><strong>access</strong> = 'public'</dl>
 
 <dl><dt><strong>kind</strong> = 'text'</dl>
-
-<dl><dt><strong>legacy_names</strong> = ()</dl>
 
 <dl><dt><strong>position</strong> = None</dl>
 

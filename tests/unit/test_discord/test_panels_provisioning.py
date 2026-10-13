@@ -26,8 +26,6 @@ from kingdoms.discord.ui.panels_scopes import (
     register_platform_scopes,
 )
 from tests.mocks.discord_mock import (
-    MockCategoryChannel,
-    MockForumChannel,
     MockGuild,
     MockTextChannel,
 )
@@ -89,46 +87,6 @@ class TestProvisioning:
             assert forum.category.name == "games/aoe2"
 
 
-class TestLegacyAdoption:
-    @pytest.mark.asyncio
-    async def test_a_legacy_channel_is_adopted_in_place(self) -> None:
-        guild = MockGuild()
-        legacy = MockTextChannel(name="🛰-bot-logs", guild=guild)
-        guild._channels[legacy.id] = legacy
-        legacy_id = legacy.id
-
-        resolved = await provision_scope(guild, BOT_SCOPE, "fr", _translate)
-
-        assert resolved["logs"] == str(legacy_id)
-        assert legacy.name == "logs"
-        assert legacy.category is not None
-        assert legacy.category.name == "bot"
-        assert len(guild.text_channels) == 3  # adopted + admin + decisions, no duplicate
-
-    @pytest.mark.asyncio
-    async def test_a_legacy_forum_is_adopted_and_recategorised(self) -> None:
-        guild = MockGuild()
-        old_category = MockCategoryChannel(name="games", guild=guild)
-        guild._channels[old_category.id] = old_category
-        legacy_forum = MockForumChannel(name="aoe2-maps", guild=guild, category=old_category)
-        guild._channels[legacy_forum.id] = legacy_forum
-        legacy_id = legacy_forum.id
-
-        resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
-
-        assert resolved["maps"] == str(legacy_id)
-        assert legacy_forum.name == "maps"
-        assert legacy_forum.category is not None
-        assert legacy_forum.category.name == "games/aoe2"
-
-    @pytest.mark.asyncio
-    async def test_adoption_falls_back_to_creation_when_absent(self) -> None:
-        guild = MockGuild()
-        resolved = await provision_scope(guild, AOE2_SCOPE, "en", _translate)
-        maps = next(c for c in guild.channels if getattr(c, "name", "") == "maps")
-        assert resolved["maps"] == str(maps.id)
-        assert len(guild.forums) == 3
-
 
 class TestPlatformScopes:
     def test_registration_is_idempotent(self) -> None:
@@ -145,14 +103,6 @@ class TestPlatformScopes:
             for decl in spec.channels:
                 assert decl.label_key.startswith("ui.panels.")
 
-    def test_the_legacy_names_cover_the_pre_tree_surfaces(self) -> None:
-        decls = {d.key: d for d in BOT_SCOPE.channels}
-        assert "🛰-bot-logs" in decls["logs"].legacy_names
-        assert "🛡-bot-admins" in decls["admin"].legacy_names
-        aoe2 = {d.key: d for d in AOE2_SCOPE.channels}
-        assert "aoe2-maps" in aoe2["maps"].legacy_names
-        assert "aoe2-factions" in aoe2["civs"].legacy_names
-        assert "aoe2-map-pools" in aoe2["map-pools"].legacy_names
 
 
 class TestAdoptionSeams:

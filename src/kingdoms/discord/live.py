@@ -29,7 +29,7 @@ logger = logging.getLogger("kingdoms.live")
 GAME_KEY = "aoe2"
 LIVE_CHANNEL_NAME = "📡-live-dashboard"
 LIVE_LEGACY_CHANNEL_NAME = "live-dashboard"
-LIVE_MESSAGE_KEY = "view:live-dashboard"
+LIVE_MESSAGE_KEY = "view:aoe2:live"
 
 _STATE_ICONS = {"offline": "⚫", "in_lobby": "🟡", "in_game": "🟢"}
 
@@ -444,7 +444,7 @@ async def ensure_live_dashboard(
 def _page_key(page: int) -> str:
     """Build the registry key of one dashboard page.
 
-    The view convention is ``view:<slug>`` (``view:live-dashboard``);
+    The view convention is ``view:<scope>:<slug>`` (``view:aoe2:live``);
     extra pages suffix it. The pre-convention key (``live-dashboard``)
     stays as the legacy fallback for the page-1 resolve.
     """

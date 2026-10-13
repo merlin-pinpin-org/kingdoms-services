@@ -94,7 +94,7 @@ async def ensure_pinned_admin_menu(
         if registry is None:
             return None
         try:
-            registered = await registry.resolve("discord", "view:admin", guild)
+            registered = await registry.resolve("discord", "view:bot:admin", guild)
             if registered is None:
                 registered = await registry.resolve("discord", "admin-panel", guild)
             return str(registered.message_id) if registered is not None else None

@@ -10,7 +10,6 @@ from kingdoms.discord.pools_forum import (
     _pool_post_content,
     _pool_post_layout,
     _pools_forum_name,
-    _purge_legacy_forums,
 )
 
 
@@ -32,16 +31,6 @@ class _FakeGuild:
     forums: list[_FakeForum]
 
 
-async def test_purge_legacy_forums_deletes_per_pool_forums() -> None:
-    legacy = _FakeForum("map-pools-season-1-rotation-1")
-    keep = _FakeForum("aoe2-map-pools")
-    maps = _FakeForum("aoe2-maps")
-    guild = _FakeGuild([legacy, keep, maps])
-    deleted = await _purge_legacy_forums(guild)  # type: ignore[arg-type]
-    assert deleted == 1
-    assert legacy.deleted and not keep.deleted and not maps.deleted
-
-
 @dataclass
 class _FakeMap:
     id: str
@@ -54,9 +43,9 @@ class _FakeMap:
 class _FakeService:
     async def get_map(self, map_id: str) -> Any:
         known = {
-            "map:public:arabia": _FakeMap("map:public:arabia", "Arabia", "https://x/arabia.png", "111"),
-            "map:public:plain": _FakeMap("map:public:plain", "Plain"),
-            "map:public:gone": _FakeMap("map:public:gone", "Gone", archived_at=1),
+            "map:aoe2:public:arabia": _FakeMap("map:aoe2:public:arabia", "Arabia", "https://x/arabia.png", "111"),
+            "map:aoe2:public:plain": _FakeMap("map:aoe2:public:plain", "Plain"),
+            "map:aoe2:public:gone": _FakeMap("map:aoe2:public:gone", "Gone", archived_at=1),
         }
         return known.get(map_id)
 
@@ -73,7 +62,7 @@ _POOL = _FakePool(
     "map_pool:aoe2:p1",
     "Rotation 1",
     "Desc",
-    ("map:public:arabia", "map:public:plain", "map:public:gone"),
+    ("map:aoe2:public:arabia", "map:aoe2:public:plain", "map:aoe2:public:gone"),
 )
 
 

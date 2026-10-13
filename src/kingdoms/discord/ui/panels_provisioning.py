@@ -99,45 +99,6 @@ class _Platform:
         )
         return str(created.id)
 
-    async def adopt_legacy(
-        self,
-        decl: ChannelDecl,
-        name: str,
-        category_id: str,
-    ) -> str | None:
-        """Rename and move a pre-tree channel; return its id, None when absent.
-
-        The adoption is in place: the channel id never changes, so the
-        managed services (logs, admin, home, live) and their persisted
-        pins survive the migration untouched. The category follows only
-        for text channels — a forum adoption also recategorises.
-        """
-        category = self._category(category_id)
-        for legacy_name in decl.legacy_names:
-            if decl.kind == "forum":
-                forum = discord.utils.get(self._guild.forums, name=legacy_name)
-                if forum is None:
-                    continue
-                if category is not None:
-                    await forum.edit(
-                        name=name,
-                        category=category,
-                        reason="kingdoms: adopt the legacy forum into the tree",
-                    )
-                else:
-                    await forum.edit(name=name, reason="kingdoms: adopt the legacy forum into the tree")
-                return str(forum.id)
-            text = discord.utils.get(self._guild.text_channels, name=legacy_name)
-            if text is None:
-                continue
-            await text.edit(
-                name=name,
-                category=category,
-                reason="kingdoms: adopt the legacy channel into the tree",
-            )
-            return str(text.id)
-        return None
-
 
 async def _apply_access(guild: discord.Guild, channel_id: str, decl: ChannelDecl) -> None:
     """Apply the channel's access band (overwrites, best-effort)."""
@@ -180,12 +141,6 @@ async def provision_scope(
     resolved: dict[str, str] = {spec.scope: category_id}
     for decl in _sorted_channels(spec):
         name = translate(decl.label_key, locale)
-        if decl.legacy_names:
-            adopted = await platform.adopt_legacy(decl, name, category_id)
-            if adopted is not None:
-                await _apply_access(guild, adopted, decl)
-                resolved[decl.key] = adopted
-                continue
         if decl.kind == "forum":
             channel_id = await platform.ensure_forum(name, category_id)
         else:
@@ -198,10 +153,15 @@ async def provision_scope(
 async def provision_all(
     guild: discord.Guild, locale: str, translate: Callable[[str, str], str]
 ) -> None:
-    """Provision every registered scope folder (boot pass, best-effort)."""
+    """Provision every registered scope folder (boot pass, best-effort).
+
+    Every resolution is persisted under its stable key — the stored
+    channel ids the syncs resolve by (never by name).
+    """
     for spec in registered_scopes():
         try:
-            await provision_scope(guild, spec, locale, translate)
+            resolved = await provision_scope(guild, spec, locale, translate)
+            await persist_resolutions(str(guild.id), spec.scope, resolved)
         except Exception:
             logger.warning(
                 "panels provisioning failed (scope %s, guild %s) — best-effort",
@@ -211,7 +171,61 @@ async def provision_all(
             )
 
 
+async def persist_resolutions(guild_id: str, scope: str, resolved: dict[str, str]) -> None:
+    """Persist one scope's resolved channel ids under their stable keys.
+
+    ``tree:<scope>:<channel key>`` — the channels registry documents
+    them; the syncs and the pins resolve by these stored ids, never by
+    the translated name. Best-effort: a failed write logs and moves on
+    (the next boot re-resolves).
+    """
+    try:
+        from kingdoms.core.models.db import get_async_database
+
+        collection = get_async_database()["channels"]
+        for key, channel_id in resolved.items():
+            await collection.replace_one(
+                {"_id": f"{guild_id}:tree:{scope}:{key}"},
+                {
+                    "_id": f"{guild_id}:tree:{scope}:{key}",
+                    "guild_id": guild_id,
+                    "platform": "discord",
+                    "category": f"tree:{scope}:{key}",
+                    "channel_id": channel_id,
+                    "name": key,
+                },
+                upsert=True,
+            )
+    except Exception:
+        logger.warning(
+            "panels provisioning: resolution persist failed (scope %s, guild %s) — best-effort",
+            scope,
+            guild_id,
+            exc_info=True,
+        )
+
+
+async def stored_channel_id(guild_id: str, scope: str, channel_key: str) -> str | None:
+    """Resolve one tree channel by its stored id (never by name).
+
+    The syncs' resolution contract: the provisioning stored the id at
+    creation time; a miss (virgin guild, unwired Mongo) returns None
+    and the caller falls back to the provisioning.
+    """
+    try:
+        from kingdoms.core.models.db import get_async_database
+
+        document = await get_async_database()["channels"].find_one(
+            {"_id": f"{guild_id}:tree:{scope}:{channel_key}"}
+        )
+        return str(document["channel_id"]) if document and document.get("channel_id") else None
+    except Exception:
+        return None
+
+
 __all__ = [
+    "persist_resolutions",
     "provision_all",
     "provision_scope",
+    "stored_channel_id",
 ]

@@ -14,9 +14,9 @@
 One&nbsp;declaration&nbsp;per&nbsp;scope&nbsp;folder&nbsp;of&nbsp;docs/architecture/channel-tree.md<br>
 (the&nbsp;kingdoms&nbsp;repo&nbsp;is&nbsp;the&nbsp;source&nbsp;of&nbsp;truth):&nbsp;`bot`&nbsp;(private),&nbsp;`games`,<br>
 `games/aoe2`,&nbsp;`mods`.&nbsp;Each&nbsp;folder&nbsp;carries&nbsp;its&nbsp;channels&nbsp;with&nbsp;stable<br>
-keys,&nbsp;i18n&nbsp;labels,&nbsp;access&nbsp;bands&nbsp;and&nbsp;the&nbsp;pre-tree&nbsp;legacy&nbsp;names&nbsp;adopted<br>
-in&nbsp;place&nbsp;—&nbsp;the&nbsp;ids&nbsp;never&nbsp;change,&nbsp;so&nbsp;the&nbsp;managed&nbsp;services&nbsp;(logs,&nbsp;admin,<br>
-home,&nbsp;live)&nbsp;and&nbsp;their&nbsp;persisted&nbsp;pins&nbsp;survive&nbsp;the&nbsp;migration.<br>
+keys,&nbsp;i18n&nbsp;labels&nbsp;and&nbsp;access&nbsp;bands.&nbsp;Every&nbsp;resolution&nbsp;is&nbsp;persisted&nbsp;at<br>
+provisioning&nbsp;time&nbsp;(stored&nbsp;channel&nbsp;ids)&nbsp;—&nbsp;the&nbsp;syncs&nbsp;and&nbsp;the&nbsp;pins<br>
+resolve&nbsp;by&nbsp;those&nbsp;stored&nbsp;ids,&nbsp;never&nbsp;by&nbsp;the&nbsp;translated&nbsp;name.<br>
 &nbsp;<br>
 Registering&nbsp;at&nbsp;boot&nbsp;is&nbsp;enough:&nbsp;the&nbsp;provisioning&nbsp;applies&nbsp;the&nbsp;tree<br>
 rules&nbsp;(canonical&nbsp;order,&nbsp;guild-locale&nbsp;naming,&nbsp;read-only&nbsp;menu&nbsp;channels,<br>
@@ -34,9 +34,9 @@ admin&nbsp;visibility),&nbsp;idempotently,&nbsp;in&nbsp;every&nbsp;guild.</span>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>AOE2_SCOPE</strong> = ScopeSpec(scope='games/aoe2', category_key='ui.p...in', position=None, legacy_names=())), panels=())<br>
-<strong>BOT_SCOPE</strong> = ScopeSpec(scope='bot', category_key='ui.panels.c...in', position=None, legacy_names=())), panels=())<br>
-<strong>GAMES_SCOPE</strong> = ScopeSpec(scope='games', category_key='ui.panels...in', position=None, legacy_names=())), panels=())<br>
-<strong>MODS_SCOPE</strong> = ScopeSpec(scope='mods', category_key='ui.panels....in', position=None, legacy_names=())), panels=())<br>
+<td class="singlecolumn"><strong>AOE2_SCOPE</strong> = ScopeSpec(scope='games/aoe2', category_key='ui.p...ext', access='admin', position=None)), panels=())<br>
+<strong>BOT_SCOPE</strong> = ScopeSpec(scope='bot', category_key='ui.panels.c...ext', access='admin', position=None)), panels=())<br>
+<strong>GAMES_SCOPE</strong> = ScopeSpec(scope='games', category_key='ui.panels...ext', access='admin', position=None)), panels=())<br>
+<strong>MODS_SCOPE</strong> = ScopeSpec(scope='mods', category_key='ui.panels....ext', access='admin', position=None)), panels=())<br>
 <strong>__all__</strong> = ['AOE2_SCOPE', 'BOT_SCOPE', 'GAMES_SCOPE', 'MODS_SCOPE', 'register_platform_scopes']</td></tr></table>
 </body></html>

@@ -26,7 +26,7 @@ class _Seed:
 
 
 class _Entry:
-    id = "map:public:arabia"
+    id = "map:aoe2:public:arabia"
     name = "Arabia"
     forum_message_id = None
 
@@ -114,7 +114,7 @@ async def test_import_rolls_back_on_forum_failure(monkeypatch: Any) -> None:
     )
     await _run_import(interaction)
     assert "supprimée" in interaction.followup.messages[-1]
-    assert service.deleted == ["map:public:arabia"]
+    assert service.deleted == ["map:aoe2:public:arabia"]
 
 
 async def test_import_orphan_message_when_rollback_fails(monkeypatch: Any) -> None:

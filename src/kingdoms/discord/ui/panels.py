@@ -47,10 +47,7 @@ class ChannelDecl:
     never on the translated name); ``label_key`` is the i18n key of
     the displayed name; ``kind`` picks text/forum/category;
     ``access`` picks public (everyone), readonly (read for all, no
-    send for anyone), or admin (bot-admins only); ``legacy_names``
-    are pre-tree names adopted in place (renamed + moved into the
-    scope folder, ids unchanged — the managed services and their
-    persisted pins keep working).
+    send for anyone), or admin (bot-admins only).
     """
 
     key: str
@@ -58,7 +55,6 @@ class ChannelDecl:
     kind: str = "text"
     access: str = "public"
     position: int | None = None
-    legacy_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

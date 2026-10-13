@@ -56,6 +56,15 @@ def _build_service() -> Any:
     return build_games_service()
 
 
+async def _forum_alive(bot: Any, guild_id: str, forum_id: str | None) -> bool:
+    """Whether the stored forum id still resolves to a live forum."""
+    if not forum_id or not forum_id.isdigit():
+        return False
+    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
+    channel = guild.get_channel(int(forum_id)) if guild is not None else None
+    return channel is not None and getattr(channel, "type", None) == discord.ChannelType.forum
+
+
 async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any = None) -> int:
     """Ensure the game's forum and one post per active map (idempotent).
 
@@ -64,13 +73,19 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
     number of posts created.
     """
     from kingdoms.discord.channels_platform import DiscordChannelsPlatform
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
 
     platform = DiscordChannelsPlatform(bot)
     service = service if service is not None else _build_service()
-    category_id = await platform.ensure_category(guild_id, GAMES_CATEGORY_NAME)
-    forum_name = _forum_name(game_key)
-    await platform.adopt_legacy_forum(guild_id, "maps", forum_name, category_id)
-    forum_id = await platform.ensure_forum(guild_id, forum_name, category_id)
+    stored_forum_id = await stored_channel_id(guild_id, f"games/{game_key}", "maps")
+    resolved_forum_id: str | None = stored_forum_id
+    if not await _forum_alive(bot, guild_id, resolved_forum_id):
+        category_id = await platform.ensure_category(guild_id, GAMES_CATEGORY_NAME)
+        forum_name = _forum_name(game_key)
+        resolved_forum_id = await platform.ensure_forum(guild_id, forum_name, category_id)
+    forum_id = str(resolved_forum_id or "")
+    if not forum_id:
+        return 0
     created = 0
     maps = await service.list_maps(game_key)
     for entry in maps:
@@ -306,7 +321,7 @@ async def _ensure_section_pins_after_sync(bot: Any, guild_id: str) -> None:
         from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
 
         for spec in registered_static_pins():
-            if spec.key.startswith("view:aoe2-"):
+            if spec.key.startswith("view:aoe2:"):
                 await ensure_static_pin(bot, spec, guild_id)
     except Exception:
         logger.warning("section pins ensure after forum sync failed — best-effort", exc_info=True)

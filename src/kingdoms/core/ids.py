@@ -57,42 +57,44 @@ def footer(*ids: str) -> str:
 _NON_ALPHA_RE = re.compile(r"[^a-z0-9]+")
 
 
-def view_key(slug: str, legacy: str = "") -> tuple[str, str]:
+def view_key(scope: str, slug: str, legacy: str = "") -> tuple[str, str]:
     """Return a persistent view's registry key pair: (current, legacy).
 
-    The current convention is ``view:<slug>`` (``view:live-dashboard``,
-    ``view:home``, ``view:admin``); the legacy key is what the view was
-    registered under before the convention (``live-dashboard``,
-    ``home-menu``...) — empty when there was none. Callers resolve the
-    current key first and fall back to the legacy one (the migration:
-    the first re-register moves the entry to the current key).
+    The convention is ``view:<scope>:<slug>`` — the scope is the
+    surface's perimeter (``home``, ``bot``, ``aoe2``, ``ladder``...),
+    the slug the surface itself: ``view:home``, ``view:bot:admin``,
+    ``view:aoe2:live``, ``view:ladder:news``. The id is displayed as
+    the panel's footer so designers can quote it. The legacy key is
+    what the view was registered under before the convention — empty
+    when there was none; callers resolve the current key first.
     """
-    return f"view:{slug}", legacy
+    return f"view:{scope}:{slug}", legacy
 
 
 def map_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
-    """Return a map entry's stable id, scoped by ownership, not by game.
+    """Return a map entry's stable id, game-scoped and ownership-scoped.
 
-    ``map:public:<slug>`` for the global catalog (config seed, bot
-    admins), ``map:<guild_id>:<slug>`` for a guild's local maps. The
-    game lives in the entry's ``game_key`` field — the id carries the
-    visibility scope, which is what every consumer (forums, pools,
-    permissions) branches on. ``<slug>`` keeps underscores
-    (``slug_id``).
+    ``map:<game_key>:public:<slug>`` for the global catalog (config
+    seed, bot admins), ``map:<game_key>:<guild_id>:<slug>`` for a
+    guild's local maps. The game lives in the id itself — the same
+    map name across games never collides — and the visibility scope
+    is what every consumer (forums, pools, permissions) branches on.
+    ``<slug>`` keeps underscores (``slug_id``).
     """
     scope = owner_guild_id if owner_guild_id else "public"
-    return f"map:{scope}:{slug_id(name)}"
+    return f"map:{game_key}:{scope}:{slug_id(name)}"
 
 
-def pool_entry_id(name: str, owner_guild_id: str | None) -> str:
-    """Return a map pool's stable id, scoped by ownership like the maps.
+def pool_entry_id(game_key: str, name: str, owner_guild_id: str | None) -> str:
+    """Return a map pool's stable id, game-scoped like the maps.
 
-    ``pool:<guild_id>:<name-slug>`` for a guild's pool, ``pool:public:
-    <name-slug>`` for a platform-wide one. Same convention as
-    ``map_entry_id`` — the id carries the visibility scope.
+    ``pool:<game_key>:<guild_id>:<name-slug>`` for a guild's pool,
+    ``pool:<game_key>:public:<name-slug>`` for a platform-wide one.
+    Same convention as ``map_entry_id`` — the id carries the game and
+    the visibility scope.
     """
     scope = owner_guild_id if owner_guild_id else "public"
-    return f"pool:{scope}:{slug_id(name)}"
+    return f"pool:{game_key}:{scope}:{slug_id(name)}"
 
 
 def slug_id(name: str) -> str:

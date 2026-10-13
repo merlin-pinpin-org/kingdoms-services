@@ -38,10 +38,11 @@ example.</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.modsdk.models.html">models</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.modsdk.ident.html">ident</a><br>
+</td><td class="multicolumn"><a href="kingdoms.modsdk.models.html">models</a><br>
 </td><td class="multicolumn"><a href="kingdoms.modsdk.runtime.html">runtime</a><br>
 </td><td class="multicolumn"><a href="kingdoms.modsdk.store.html">store</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -480,12 +481,25 @@ Data descriptors defined here:<br>
 Attach&nbsp;the&nbsp;binding&nbsp;to&nbsp;the&nbsp;client&nbsp;for&nbsp;the&nbsp;persistent&nbsp;items:<br>
 ``bot.modsdk_bindings[mod_key]&nbsp;=&nbsp;binding``&nbsp;(``register_dynamic_items``<br>
 wires&nbsp;the&nbsp;classes&nbsp;once&nbsp;at&nbsp;boot).</span></dd></dl>
+ <dl><dt><a name="-entity_id"><strong>entity_id</strong></a>(mod_key: 'str', entity_key: 'str', game_key: 'str', name: 'str', scope: 'str' = 'public') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;one&nbsp;mod&nbsp;entity's&nbsp;stable&nbsp;id.<br>
+&nbsp;<br>
+``&lt;mod&gt;:&lt;game&gt;:&lt;scope&gt;:&lt;slug&gt;``&nbsp;—&nbsp;e.g.&nbsp;a&nbsp;kingdoms&nbsp;territory&nbsp;on&nbsp;the<br>
+public&nbsp;catalog&nbsp;of&nbsp;the&nbsp;aoe2&nbsp;game:<br>
+``kingdoms:territory:aoe2:public:buda_hills``.&nbsp;The&nbsp;slug&nbsp;keeps<br>
+underscores&nbsp;(``slug_id``);&nbsp;the&nbsp;scope&nbsp;is&nbsp;``public``&nbsp;or&nbsp;the&nbsp;owning<br>
+guild&nbsp;id.</span></dd></dl>
+ <dl><dt><a name="-footer"><strong>footer</strong></a>(*ids: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;ids&nbsp;footer&nbsp;line&nbsp;of&nbsp;a&nbsp;panel&nbsp;or&nbsp;post&nbsp;(empty&nbsp;ids&nbsp;drop).</span></dd></dl>
  <dl><dt><a name="-register_dynamic_items"><strong>register_dynamic_items</strong></a>(client: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;runtime's&nbsp;persistent&nbsp;DynamicItems&nbsp;on&nbsp;the&nbsp;client.</span></dd></dl>
+ <dl><dt><a name="-view_id"><strong>view_id</strong></a>(scope: 'str', slug: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;one&nbsp;pinned&nbsp;view's&nbsp;registry&nbsp;id:&nbsp;``view:&lt;scope&gt;:&lt;slug&gt;``.<br>
+&nbsp;<br>
+``view:home``,&nbsp;``view:bot:admin``,&nbsp;``view:aoe2:live``,<br>
+``view:ladder:news``&nbsp;—&nbsp;the&nbsp;id&nbsp;is&nbsp;the&nbsp;pin's&nbsp;registry&nbsp;key&nbsp;and&nbsp;its<br>
+displayed&nbsp;footer.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['ActionResult', 'ActionSpec', 'EntityPanelSpec', 'EntitySpec', 'EntityStore', 'Field', 'MenuSpec', 'ModBinding', 'bind_mod', 'register_dynamic_items']</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['ActionResult', 'ActionSpec', 'EntityPanelSpec', 'EntitySpec', 'EntityStore', 'Field', 'MenuSpec', 'ModBinding', 'bind_mod', 'entity_id', 'footer', 'register_dynamic_items', 'view_id']</td></tr></table>
 </body></html>

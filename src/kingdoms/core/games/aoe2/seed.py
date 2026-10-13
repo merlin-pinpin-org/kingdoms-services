@@ -242,7 +242,7 @@ async def seed_aoe2(
     result["factions"] = counts["factions"]
     result["rules"] = counts.get("rules", 0)
     for spec in data.get("map_pools", []) or []:
-        pool_id = pool_entry_id(spec["name"], None)
+        pool_id = pool_entry_id(game_key, spec["name"], None)
         if await game_data.get_map_pool(pool_id) is None:
             map_ids = tuple(map_entry_id(game_key, m, None) for m in spec.get("maps", []))
             await game_data.create_map_pool(

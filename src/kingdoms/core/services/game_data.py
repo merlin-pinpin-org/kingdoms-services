@@ -382,7 +382,7 @@ class GameDataService:
                 "(Discord list caps) — archive one first"
             )
         pool = MapPoolModel(
-            _id=pool_entry_id(name, owner_guild_id),
+            _id=pool_entry_id(game_key, name, owner_guild_id),
             game_key=game_key,
             name=name,
             description=description,

@@ -3,9 +3,9 @@
 One declaration per scope folder of docs/architecture/channel-tree.md
 (the kingdoms repo is the source of truth): `bot` (private), `games`,
 `games/aoe2`, `mods`. Each folder carries its channels with stable
-keys, i18n labels, access bands and the pre-tree legacy names adopted
-in place — the ids never change, so the managed services (logs, admin,
-home, live) and their persisted pins survive the migration.
+keys, i18n labels and access bands. Every resolution is persisted at
+provisioning time (stored channel ids) — the syncs and the pins
+resolve by those stored ids, never by the translated name.
 
 Registering at boot is enough: the provisioning applies the tree
 rules (canonical order, guild-locale naming, read-only menu channels,
@@ -23,14 +23,12 @@ BOT_SCOPE = ScopeSpec(
         ChannelDecl(
             key="logs",
             label_key="ui.panels.channels.logs",
-            access="admin",
-            legacy_names=("🛰-bot-logs",),
+            access="admin"
         ),
         ChannelDecl(
             key="admin",
             label_key="ui.panels.channels.admin",
-            access="admin",
-            legacy_names=("🛡-bot-admins",),
+            access="admin"
         ),
         ChannelDecl(
             key="decisions",
@@ -60,29 +58,25 @@ AOE2_SCOPE = ScopeSpec(
         ChannelDecl(
             key="live",
             label_key="ui.panels.channels.live",
-            access="readonly",
-            legacy_names=("📞-live-dashboard", "live-dashboard"),
+            access="readonly"
         ),
         ChannelDecl(
             key="civs",
             label_key="ui.panels.channels.civs",
             kind="forum",
-            access="readonly",
-            legacy_names=("aoe2-factions",),
+            access="readonly"
         ),
         ChannelDecl(
             key="maps",
             label_key="ui.panels.channels.maps",
             kind="forum",
-            access="readonly",
-            legacy_names=("aoe2-maps",),
+            access="readonly"
         ),
         ChannelDecl(
             key="map-pools",
             label_key="ui.panels.channels.map_pools",
             kind="forum",
-            access="readonly",
-            legacy_names=("aoe2-map-pools",),
+            access="readonly"
         ),
         ChannelDecl(key="admin", label_key="ui.panels.channels.admin", access="admin"),
         ChannelDecl(key="decisions", label_key="ui.panels.channels.decisions", access="admin"),

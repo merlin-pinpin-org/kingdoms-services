@@ -312,3 +312,31 @@ def _flat_buttons(view: Any) -> list[Any]:
     for top in getattr(view, "children", []) or []:
         walk(top)
     return buttons
+
+
+class TestIdent:
+    """The premade id builders every mod reuses (one convention)."""
+
+    def test_entity_id_embeds_mod_entity_game_and_scope(self) -> None:
+        from kingdoms.modsdk import entity_id
+
+        assert (
+            entity_id("kingdoms", "territory", "aoe2", "Buda Hills")
+            == "kingdoms:territory:aoe2:public:buda_hills"
+        )
+        assert (
+            entity_id("kingdoms", "territory", "aoe2", "Buda Hills", scope="155")
+            == "kingdoms:territory:aoe2:155:buda_hills"
+        )
+
+    def test_view_id_is_scope_then_slug(self) -> None:
+        from kingdoms.modsdk import view_id
+
+        assert view_id("aoe2", "live") == "view:aoe2:live"
+        assert view_id("ladder", "News Feed") == "view:ladder:news-feed"
+
+    def test_footer_renders_the_quotable_line(self) -> None:
+        from kingdoms.modsdk import entity_id, footer
+
+        territory = entity_id("kingdoms", "territory", "aoe2", "Buda Hills")
+        assert footer(territory) == f"-# `{territory}`"

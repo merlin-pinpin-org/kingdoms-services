@@ -23,6 +23,7 @@ civs) is built on this SDK — read its binding as the reference
 example.
 """
 
+from kingdoms.modsdk.ident import entity_id, footer, view_id
 from kingdoms.modsdk.models import ActionResult, ActionSpec, EntityPanelSpec, EntitySpec, Field, MenuSpec
 from kingdoms.modsdk.runtime import ModBinding, bind_mod, register_dynamic_items
 from kingdoms.modsdk.store import EntityStore
@@ -37,5 +38,8 @@ __all__ = [
     "MenuSpec",
     "ModBinding",
     "bind_mod",
+    "entity_id",
+    "footer",
     "register_dynamic_items",
+    "view_id",
 ]

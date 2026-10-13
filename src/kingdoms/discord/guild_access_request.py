@@ -295,7 +295,7 @@ async def _refresh_guild_pins(client: discord.Client, guild_id: str) -> None:
     from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
 
     for spec in registered_static_pins():
-        if spec.key != "view:admin":
+        if spec.key != "view:bot:admin":
             continue
         try:
             await ensure_static_pin(client, spec, guild_id)
