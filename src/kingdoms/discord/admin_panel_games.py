@@ -788,10 +788,6 @@ async def maps_admin_view(game_key: str, from_pin: bool = False, guild_id: str =
     delete_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     delete_row.add_item(GamesMapDeleteSelect(game_key))
     view.add_item(delete_row)
-    action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    action_row.add_item(GamesMapCreateButton(game_key))
-    action_row.add_item(GamesMapCreateButton(game_key, global_scope=True))
-    view.add_item(action_row)
     if not from_pin:
         view.add_item(GamesMapsBackButton(game_key))
     return view

@@ -65,6 +65,8 @@ def test_registered_views_fit_discord_limits() -> None:
             if isinstance(child, discord.ui.Select):
                 if len(child.options) > 25:
                     offenders.append(f"{path}: select with {len(child.options)} options (>25)")
+        if len(view.children) > 5:
+            offenders.append(f"{path}: {len(view.children)} top-level components (>5 — the maps/pools crash)")
         top_rows = [c for c in view.children if isinstance(c, discord.ui.ActionRow)]
         if len(top_rows) > 5:
             offenders.append(f"{path}: {len(top_rows)} top-level action rows (>5)")
