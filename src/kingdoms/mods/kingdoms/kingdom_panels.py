@@ -404,6 +404,7 @@ STRINGS: dict[str, dict[str, Any]] = {
             " — treasury left: {} ⚙️"
         ),
         "market_choose_lord": "💍 Choose the lord to wed:",
+        "market_choose_explorer": "🗺️ Choose the lord to send exploring (48h):",
         "market_choose_civ": "👰 Choose the civilization of the arranged marriage:",
         "market_mariage_ok": (
             "✅ Arranged marriage sealed: **{}** is exclusive to your kingdom"
@@ -747,6 +748,7 @@ STRINGS: dict[str, dict[str, Any]] = {
             " — trésor restant : {} ⚙️"
         ),
         "market_choose_lord": "💍 Choisissez le seigneur à marier :",
+        "market_choose_explorer": "🗺️ Choisissez le seigneur à envoyer explorer (48h) :",
         "market_choose_civ": "👰 Choisissez la civilisation du mariage arrangé :",
         "market_mariage_ok": (
             "✅ Mariage arrangé scellé : **{}** est exclusive à votre royaume"

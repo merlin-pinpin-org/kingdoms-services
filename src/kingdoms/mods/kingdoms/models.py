@@ -139,6 +139,12 @@ class LordModel(BaseModel):
     defense_used: int = Field(default=0, ge=0)
     married_civilization: str | None = None
     marriage_locked_until: int | None = None
+    exploration_locked_until: int | None = None
+    """Explorateur (marche-v2 art. 6): real-time combat lock of the lord
+    sent exploring — 48h FIXED (never scaled by the Parish, unlike the
+    marriage), during which the territory does not exist yet. The lock
+    clears when the scheduler resolves the exploration (the map is
+    drawn then), and a locked lord can neither attack nor defend."""
     royal_marriage: bool = False
     left: bool = False
     left_reason: str | None = None
@@ -299,6 +305,10 @@ class AttackModel(BaseModel):
     """Whether the defending kingdom's bot AI took the defense (D77)."""
     embuscade: bool = False
     """Whether this attack is an Embuscade (T-1h, no weekly budget, D77)."""
+    traquenard: bool = False
+    """Whether the attacker engaged a Traquenard (marche-v2 art. 2): the
+    AI faced becomes Facile (level 1) whatever the base level, and the
+    marriages active at the declaration take +2h of lock."""
     pickban: dict[str, Any] = Field(default_factory=dict)
     """The pré-combat state (D77): attacker_picks/defender_picks (3 ranked
     civilizations each), sabotages (per side, 2 max), validated flags,

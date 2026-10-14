@@ -30,14 +30,18 @@ from kingdoms.mods.kingdoms.service import (
     NoSeasonError,
 )
 from kingdoms.mods.kingdoms.territories import (
-    MapPoolExhaustedError,
     TerritoryNotFoundError,
 )
 
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.attacks import AttackService
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
-    from kingdoms.mods.kingdoms.models import KingdomModel, SeasonState, TerritoryModel
+    from kingdoms.mods.kingdoms.models import (
+        KingdomModel,
+        LordModel,
+        SeasonState,
+        TerritoryModel,
+    )
     from kingdoms.mods.kingdoms.service import KingdomsService
     from kingdoms.mods.kingdoms.storage import KingdomsStore
     from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -45,6 +49,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("kingdoms.economy")
 
 EXPLORATEUR = "explorateur"
+EXPLORATION_LOCK_HOURS = 48
 CORRUPTION = "corruption"
 GARDE_ROYALE = "garde_royale"
 PATROUILLE = "patrouille"
@@ -184,30 +189,96 @@ class EconomyService:
     # ------------------------------------------------------------------
     # Explorateur (D48)
     # ------------------------------------------------------------------
-    async def buy_explorateur(self, kingdom_id: str) -> TerritoryModel:
-        """Receive one random non-out map as an immediate territory (D48).
+    async def buy_explorateur(
+        self,
+        kingdom_id: str,
+        lord_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> LordModel:
+        """Send one lord exploring: 48h combat lock, map at the end (art. 6).
 
-        Consumable: once per season per kingdom. The map is drawn at
-        random among the allowed catalog entries not out yet (§8) - the
-        territory goes to the buyer right away.
+        marche-v2 art. 6 (Drasah 13/10): any ACTIVE lord of the kingdom
+        may explore (not only the King). The chosen lord is locked for
+        48h FIXED (never scaled by the Parish, unlike the marriage) —
+        no attack, no defence — and the territory does not exist yet:
+        the map is drawn when the scheduler resolves the expired
+        exploration (``resolve_due_explorations``). Once per season
+        per kingdom; an exhausted pool refunds at resolution.
         """
         await self._check_consumable(kingdom_id, EXPLORATEUR)
+        timestamp = now or datetime.now(tz=UTC)
+        lord = next(
+            (item for item in await self._kingdoms.lords() if item.id == lord_id),
+            None,
+        )
+        if lord is None or lord.left or lord.kingdom_id != kingdom_id:
+            raise EconomyError("the lord is no active lord of this kingdom")
+        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise EconomyError("the lord is already exploring")
         await self.spend_points(kingdom_id, self._cost(EXPLORATEUR))
-        drawn = await self._territories.drawn_map_keys()
-        pool = [entry.key for entry in self._config.maps if entry.key not in drawn]
-        if not pool:
-            await self.grant_tech_points(kingdom_id, self._cost(EXPLORATEUR))
-            raise MapPoolExhaustedError("no allowed map remains to explore", missing=1)
-        map_key = random.choice(pool)  # noqa: S311 - game draw, not crypto
-        try:
-            territory = await self._territories.draw_map_for(kingdom_id, map_key)
-        except KingdomsModError:
-            await self.grant_tech_points(kingdom_id, self._cost(EXPLORATEUR))
-            raise
+        lord.exploration_locked_until = int(timestamp.timestamp()) + int(
+            EXPLORATION_LOCK_HOURS * 3600
+        )
+        await self._store.upsert_lord(lord.to_mongo())
         await self._count_purchase(kingdom_id, EXPLORATEUR)
-        logger.info("kingdoms: %s explored the map %s", kingdom_id, map_key)
-        await self._record_purchase(kingdom_id, EXPLORATEUR, f"map {map_key}", self._cost(EXPLORATEUR))
-        return territory
+        logger.info(
+            "kingdoms: %s of %s explores until %s",
+            lord.id,
+            kingdom_id,
+            lord.exploration_locked_until,
+        )
+        await self._record_purchase(
+            kingdom_id, EXPLORATEUR, f"lord {lord.id}", self._cost(EXPLORATEUR)
+        )
+        return lord
+
+    async def resolve_due_explorations(
+        self, *, now: datetime | None = None
+    ) -> list[tuple[LordModel, TerritoryModel | None]]:
+        """Resolve every expired exploration (the tick's engine, art. 6).
+
+        When the 48h lock passes, the kingdom receives a brand-new map
+        drawn from the catalog (never an out map) and the lord's lock
+        clears. An exhausted pool refunds the purchase in full and
+        still clears the lock — the pass is idempotent, a restart
+        mid-exploration never draws twice.
+        """
+        timestamp = now or datetime.now(tz=UTC)
+        now_ts = int(timestamp.timestamp())
+        resolved: list[tuple[LordModel, TerritoryModel | None]] = []
+        drawn = await self._territories.drawn_map_keys()
+        for lord in await self._kingdoms.lords():
+            until = int(lord.exploration_locked_until or 0)
+            if until <= 0 or until > now_ts:
+                continue
+            kingdom_id = lord.kingdom_id or ""
+            pool = [
+                entry.key
+                for entry in self._config.maps
+                if entry.key not in drawn
+            ]
+            if not pool:
+                await self.grant_tech_points(kingdom_id, self._cost(EXPLORATEUR))
+                logger.info(
+                    "kingdoms: exploration of %s refunded (pool exhausted)", lord.id
+                )
+                resolved.append((lord, None))
+            else:
+                map_key = random.choice(pool)  # noqa: S311 - game draw, not crypto
+                territory = await self._territories.draw_map_for(kingdom_id, map_key)
+                drawn.add(map_key)
+                logger.info(
+                    "kingdoms: the exploration of %s revealed the map %s",
+                    lord.id,
+                    map_key,
+                )
+                resolved.append((lord, territory))
+            lord.exploration_locked_until = None
+            await self._store.upsert_lord(lord.to_mongo())
+        return resolved
 
     # ------------------------------------------------------------------
     # Corruption (D15/D37)
@@ -239,9 +310,12 @@ class EconomyService:
             raise EconomyError("a kingdom cannot corrupt its own territory")
         if territory.is_protected_at(timestamp):
             raise TerritoryProtectedError("the territory is protected against corruption")
-        # D68: the target kingdom's daily patrol resists the steal.
+        # D68: the target kingdom's daily patrol resists the steal
+        # (3h once Renforcée, marche-v2 art. 5).
         if patrouille_active_at(
-            await self._attacks.technology_state(territory.owner_kingdom_id), timestamp
+            await self._attacks.technology_state(territory.owner_kingdom_id),
+            timestamp,
+            base_level=await self._attacks.base_ai_level(),
         ):
             raise TerritoryProtectedError(
                 "the target kingdom's patrol protects its territories (D68)"

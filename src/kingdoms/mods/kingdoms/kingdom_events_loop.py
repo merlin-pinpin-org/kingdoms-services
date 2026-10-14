@@ -246,6 +246,36 @@ async def _sync_marriage_locks_safe(bot: Any) -> None:
                     )
 
 
+async def _resolve_explorations_safe(bot: Any) -> None:
+    """Resolve the due Explorateur locks (marche-v2 art. 6).
+
+    A 48h exploration ends with a fresh map drawn for the kingdom (or a
+    refund when the pool ran dry). The tick IS the resolution engine:
+    after it, the salon views re-render and the marriage-lock pass (red
+    pseudo + 🔒) drops the livery on its next pass.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        _refresh_realm_views_for_kingdom_safe,
+        _wiring,
+    )
+
+    for guild in list(getattr(bot, "guilds", []) or []):
+        try:
+            wiring = _wiring()
+            resolved = await wiring.economy_service.resolve_due_explorations()
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: exploration resolution failed", exc_info=True)
+            continue
+        kingdoms = {lord.kingdom_id for lord, _ in resolved if lord.kingdom_id}
+        for kingdom_id in sorted(kingdoms):
+            try:
+                await _refresh_realm_views_for_kingdom_safe(guild, kingdom_id)
+            except Exception:
+                logger.warning(
+                    "KINGDOMS EVENTS: post-exploration view refresh failed", exc_info=True
+                )
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -272,6 +302,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
             await run_attack_phases_safe(bot)
         except Exception:
             logger.warning("KINGDOMS EVENTS: attack phases failed", exc_info=True)
+        await _resolve_explorations_safe(bot)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

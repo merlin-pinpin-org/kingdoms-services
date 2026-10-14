@@ -214,7 +214,10 @@ class EmbuscadeError(AttackError):
 
 PATROUILLE_SLOT_KEYS = ("patrouille_slot_1", "patrouille_slot_2")
 PATROUILLE_HOURS = 2
+PATROUILLE_REINFORCED_HOURS = 3
 PATROUILLE_TZ = "Europe/Paris"
+AI_LEVEL_CAP = 5
+TRAQUENARD_LOCK_HOURS = 2
 
 
 def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
@@ -226,12 +229,30 @@ def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
     )
 
 
-def patrouille_active_at(state: TechnologyState, now: datetime) -> bool:
+def patrouille_reinforced(state: TechnologyState, base_level: int) -> bool:
+    """Whether the kingdom's patrols are Renforcées (marche-v2 art. 5).
+
+    The transformation is automatic and free: when the defence bot's AI
+    reaches the ceiling (5, Extrême — the epoch base level plus one per
+    permanent Jeu d'armes purchase), every patrol slot of the kingdom
+    widens from 2h to 3h.
+    """
+    return (
+        min(AI_LEVEL_CAP, base_level + state.purchases.get("jeu_d_armes", 0))
+        >= AI_LEVEL_CAP
+    )
+
+
+def patrouille_active_at(
+    state: TechnologyState, now: datetime, *, base_level: int | None = None
+) -> bool:
     """Whether a patrol slot covers ``now`` (daily 2h slot, D68).
 
     The slot hours are expressed in the players' timezone (Europe/Paris,
     the community's convention); an environment without tzdata falls
-    back to UTC so the rule keeps working everywhere.
+    back to UTC so the rule keeps working everywhere. With a known
+    ``base_level`` the Renforcée widening (3h, marche-v2 art. 5)
+    applies as soon as the defence AI sits at the ceiling.
     """
     try:
         from zoneinfo import ZoneInfo
@@ -239,8 +260,13 @@ def patrouille_active_at(state: TechnologyState, now: datetime) -> bool:
         local = now.astimezone(ZoneInfo(PATROUILLE_TZ))
     except Exception:
         local = now
+    hours = (
+        PATROUILLE_REINFORCED_HOURS
+        if base_level is not None and patrouille_reinforced(state, base_level)
+        else PATROUILLE_HOURS
+    )
     hour = local.hour + local.minute / 60
-    return any(slot <= hour < slot + PATROUILLE_HOURS for slot in patrouille_slots(state))
+    return any(slot <= hour < slot + hours for slot in patrouille_slots(state))
 
 
 def _now() -> datetime:
@@ -318,6 +344,7 @@ class AttackService:
         lobby_url: str,
         *,
         cover_lord_id: str | None = None,
+        use_traquenard: bool = False,
         now: datetime | None = None,
     ) -> AttackModel:
         """Declare a kingdom-vs-kingdom attack on an adversary territory.
@@ -327,7 +354,9 @@ class AttackService:
         the declared territory owner must be another player kingdom.
         The optional cover (Contre-espionnage, D77) displays another
         lord instead of the real attacker until the T-15 reveal — one
-        bought cover is consumed on use.
+        bought cover is consumed on use. The optional Traquenard
+        (marche-v2 art. 2) makes the AI faced Facile and adds +2h of
+        lock to the marriages active in the target kingdom.
         """
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
@@ -349,6 +378,10 @@ class AttackService:
             timestamp,
             self._config.attacks.player_attack_delay_hours,
         )
+        # The Traquenard engages BEFORE the budget is spent: a refused
+        # engagement never consumes the weekly attack.
+        if use_traquenard:
+            await self._engage_traquenard(lord, territory.owner_kingdom_id, timestamp)
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
         attack = AttackModel(
@@ -365,14 +398,16 @@ class AttackService:
             expires_at=timestamp
             + timedelta(hours=self._config.attacks.player_attack_delay_hours),
             cover_lord_id=cover,
+            traquenard=bool(use_traquenard),
         )
         await self._store.upsert_attack(attack.to_mongo())
         logger.info(
-            "kingdoms: %s declared an attack on %s (expires %s%s)",
+            "kingdoms: %s declared an attack on %s (expires %s%s%s)",
             lord.id,
             territory.map_key,
             attack.expires_at.isoformat(),
             " under cover" if cover else "",
+            " with a Traquenard" if use_traquenard else "",
         )
         return attack
 
@@ -446,9 +481,11 @@ class AttackService:
         if territory.is_protected_at(timestamp):
             raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
         # D68: the target kingdom's daily patrol covers all its
-        # territories during the bought 2h slot.
+        # territories during the bought slot (3h once Renforcée, art. 5).
         if patrouille_active_at(
-            await self.technology_state(territory.owner_kingdom_id), timestamp
+            await self.technology_state(territory.owner_kingdom_id),
+            timestamp,
+            base_level=await self.base_ai_level(),
         ):
             raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
         # D59/D60: a fresh marriage locks the lord out of combat.
@@ -456,6 +493,12 @@ class AttackService:
             timestamp.timestamp()
         ):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
+        # marche-v2 art. 6: a lord sent exploring is locked out of
+        # combat for the whole 48h exploration (fixed lock).
+        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         if await self._territory_busy(territory.id):
             raise TerritoryBusyError("the territory already has an ongoing attack")
         return territory
@@ -503,6 +546,11 @@ class AttackService:
             _now().timestamp()
         ):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
+        # marche-v2 art. 6: the exploring lord cannot defend either.
+        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
+            _now().timestamp()
+        ):
+            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         if lord.defense_used >= self._config.attacks.defenses_per_week:
             raise NoBudgetError("the weekly defense budget is spent")
         lord.defense_used += 1
@@ -541,10 +589,19 @@ class AttackService:
             if attack.state is AttackState.DECLARED and attack.defender_lord_id is None:
                 attack.ai_defender = True
                 attack.state = AttackState.DEFENDED
+                # marche-v2 art. 2/5: the level the attacker faces — a
+                # Traquenard forces Facile (1), otherwise the defence
+                # bot's own level (epoch base + Jeu d'armes, ceiling 5).
+                attack.effects["ai_level"] = (
+                    1
+                    if attack.traquenard
+                    else await self.defense_ai_level(attack.defender_kingdom_id)
+                )
                 logger.info(
-                    "kingdoms: no defender on %s — the bot AI of %s takes the defense",
+                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s)",
                     attack.map_key,
                     attack.defender_kingdom_id,
+                    attack.effects["ai_level"],
                 )
             await self._store.upsert_attack(attack.to_mongo())
             revealed.append(attack)
@@ -884,6 +941,11 @@ class AttackService:
         if lord.attack_used >= self._config.attacks.attacks_per_week:
             raise NoBudgetError("the weekly attack budget is spent")
         timestamp = now or _now()
+        # marche-v2 art. 6: an exploring lord can neither attack nor defend.
+        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         territory = await self._territory_by_map(map_key)
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if not owner.is_gaia:
@@ -998,43 +1060,68 @@ class AttackService:
         logger.info("kingdoms: %s bought %s for %s tech points", kingdom_id, technology, cost)
         return state
 
-    async def effective_gaia_ai_level(
-        self, kingdom_id: str, base_level: int
-    ) -> int:
-        """Return the AI level a kingdom faces (D18): Jeu d'armes +1, Traquenard -1.
+    async def _engage_traquenard(
+        self, lord: LordModel, defender_kingdom_id: str, timestamp: datetime
+    ) -> None:
+        """Consume one Traquenard and apply its two effects (art. 2).
 
-        Permanent Jeu d'armes purchases raise the level once each
-        (ceiling 5); each Traquenard lowers it by one (floor 1) until
-        the attack resolves — stacking is data on the purchase counter.
+        The engaged charge makes the AI faced Facile (level 1 whatever
+        the base level — the old -1-per-charge model is gone) and adds
+        +2h of lock to every marriage ACTIVE in the target kingdom at
+        the moment of the declaration — only the marriages already
+        sealed are impacted, a later marriage never is. Any lord of the
+        attacker kingdom engages (the declaration already is).
         """
-        state = await self.technology_state(kingdom_id)
-        # D18: the permanent Jeu d'armes raises the base (ceiling 5);
-        # each engaged Traquenard then lowers it (floor 1).
-        level = min(5, base_level + state.purchases.get("jeu_d_armes", 0))
-        level -= state.purchases.get("traquenard_active", 0)
-        return max(1, level)
-
-    async def engage_traquenard(self, kingdom_id: str) -> TechnologyState:
-        """Engage a bought Traquenard: -1 AI level until the combat ends (D18).
-
-        The purchase counter moves to ``traquenard_active`` so the effect
-        expires (is cleared) when the attack resolves, and can stack.
-        """
-        state = await self.technology_state(kingdom_id)
+        state = await self.technology_state(lord.kingdom_id or "")
         bought = state.purchases.get("traquenard", 0)
         if bought <= 0:
             raise TechnologyLimitReachedError("the kingdom bought no Traquenard")
         state.purchases["traquenard"] = bought - 1
-        state.purchases["traquenard_active"] = state.purchases.get("traquenard_active", 0) + 1
         await self._store.upsert_technology(state.to_mongo())
-        return state
+        now_ts = int(timestamp.timestamp())
+        for target in await self._kingdoms.lords():
+            if (
+                target.kingdom_id != defender_kingdom_id
+                or target.left
+                or target.married_civilization is None
+            ):
+                continue
+            current = int(target.marriage_locked_until or 0)
+            target.marriage_locked_until = max(current, now_ts) + int(
+                TRAQUENARD_LOCK_HOURS * 3600
+            )
+            await self._store.upsert_lord(target.to_mongo())
+        logger.info(
+            "kingdoms: %s engaged a Traquenard against %s (+%sh of marriage locks)",
+            lord.kingdom_id,
+            defender_kingdom_id,
+            TRAQUENARD_LOCK_HOURS,
+        )
 
-    async def expire_traquenard(self, kingdom_id: str) -> TechnologyState:
-        """Clear the engaged Traquenards when the combat ends (D18)."""
+    async def base_ai_level(self) -> int:
+        """Return the season epoch's base AI level (D18 scale, fallback 1)."""
+        season = await self._kingdoms.current_season()
+        if season is not None:
+            key = str(getattr(season, "current_age_key", "") or "")
+            epoch = next((e for e in self._config.ages if e.key == key), None)
+            if epoch is not None:
+                return int(epoch.gaia_ai_level)
+        return 1
+
+    async def defense_ai_level(self, kingdom_id: str) -> int:
+        """Return the kingdom defence bot's AI level (marche-v2 art. 5).
+
+        The base level is the season epoch's (D18: 1=Facile … 5=Extrême);
+        each permanent Jeu d'armes purchase adds one, ceiling 5. This is
+        the level an ATTACKER faces when the kingdom's bot takes the
+        defense (the old Gaïa-only reading is gone — the defence bot is
+        the kingdom's own, a Traquenard aside).
+        """
         state = await self.technology_state(kingdom_id)
-        state.purchases.pop("traquenard_active", None)
-        await self._store.upsert_technology(state.to_mongo())
-        return state
+        return min(
+            AI_LEVEL_CAP,
+            await self.base_ai_level() + state.purchases.get("jeu_d_armes", 0),
+        )
 
     async def sabotage_civilizations(
         self, attack_id: str, attacker_kingdom_id: str, civilizations: list[str]

@@ -729,6 +729,79 @@ async def _sent_message(interaction: Any) -> Any | None:
         return getattr(getattr(interaction, "response", None), "message", None)
 
 
+async def _market_lord_select_view(
+    wiring: KingdomsPanelWiring,
+    king: Any,
+    strings: dict[str, Any],
+    anchor: Any = None,
+) -> discord.ui.View | None:
+    """Build the ephemeral lord select of the Explorateur (None if empty).
+
+    marche-v2 art. 6: any ACTIVE lord of the kingdom may explore (not
+    only the King) — the buyer picks the exploring lord here.
+    """
+    if wiring.kingdoms_service is None:
+        return None
+    kingdom_id = king.kingdom_id or ""
+    try:
+        lords = await wiring.kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOMS MARKET: lord list read failed", exc_info=True)
+        return None
+    candidates = [
+        lord
+        for lord in lords
+        if lord.kingdom_id == kingdom_id and not getattr(lord, "left", False)
+    ]
+    options = [
+        discord.SelectOption(
+            label=str(getattr(lord, "display_name", lord.id))[:100],
+            value=str(lord.id)[:100],
+        )
+        for lord in candidates
+    ][:25]
+    if not options:
+        return None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:market:choose:explorateur",
+        placeholder=str(strings.get("market_choose_explorer") or strings["market_choose_lord"])[:100],
+        options=options,
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        economy = wiring.economy_service
+        if economy is None:
+            await target.response.edit_message(
+                content=strings["market_no_service"], view=None
+            )
+            return
+        try:
+            lord = await economy.buy_explorateur(kingdom_id, chosen[0])
+        except Exception as exc:
+            note = await _market_failure_note(
+                exc, wiring, king, "explorateur",
+                int(getattr(_market_costs(wiring), "explorateur", 0) or 0), strings,
+            )
+            await target.response.edit_message(content=note, view=None)
+            return
+        note = await _market_success_note(
+            wiring, kingdom_id, "explorateur", strings,
+            str(getattr(lord, "display_name", lord.id)),
+        )
+        await target.response.edit_message(content=note, view=None)
+        _market_ttl(anchor or target, getattr(target, "message", None))
+        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return view
+
+
 async def _market_action_select_view(
     wiring: KingdomsPanelWiring,
     king: Any,
@@ -1076,17 +1149,24 @@ class KingdomMarketModal(discord.ui.Modal):
                 strings["market_choose_corrupt"], view=view, ephemeral=True
             )
             return
+        if item == "explorateur":
+            # marche-v2 art. 6: the exploring lord is chosen AFTER the
+            # sheet — 48h lock, the map comes at the end.
+            view = await _market_lord_select_view(wiring, king, strings, anchor=interaction)
+            if view is None:
+                await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+                return
+            await interaction.response.send_message(
+                str(strings.get("market_choose_explorer") or strings["market_choose_lord"]),
+                view=view,
+                ephemeral=True,
+            )
+            return
         await interaction.response.defer(ephemeral=True)
         try:
             if self.kind == "tech":
                 await economy.buy_combat_technology(kingdom_id, item)
                 note = await _market_success_note(wiring, kingdom_id, item, strings)
-            elif item == "explorateur":
-                territory = await economy.buy_explorateur(kingdom_id)
-                detail = strings["market_territory_line"].format(
-                    territory.map_key, territory.owner_kingdom_id
-                )
-                note = await _market_success_note(wiring, kingdom_id, item, strings, detail)
             else:  # mariage_arrange: the token, not the marriage (D60).
                 kingdom = await economy.buy_arranged_marriage_token(kingdom_id)
                 note = str(strings["market_arranged_token_ok"]).format(
@@ -2011,6 +2091,28 @@ async def _sync_member_role(
     return True
 
 
+def _member_lock_flags(lord: Any, now: int) -> tuple[bool, bool]:
+    """Return the (lock, ring) livery flags of one member.
+
+    The red lock livery covers the honeymoon (D59/D60) AND the 48h
+    exploration (marche-v2 art. 6 — the lock is reused verbatim: no
+    attack, no defence, red pseudo + 🔒). The ring only shows on a
+    married member whose lock has expired; an exploring lord never
+    wears both.
+    """
+    until = int(getattr(lord, "marriage_locked_until", 0) or 0) if lord is not None else 0
+    exploring_until = (
+        int(getattr(lord, "exploration_locked_until", 0) or 0) if lord is not None else 0
+    )
+    married = bool(
+        lord is not None
+        and not getattr(lord, "left", False)
+        and getattr(lord, "married_civilization", None) is not None
+    )
+    should_lock = exploring_until > now or (married and until > now)
+    return should_lock, married and not should_lock
+
+
 async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]:
     """Reconcile the lock/ring livery with the live lord documents.
 
@@ -2057,14 +2159,7 @@ async def sync_marriage_lock_roles_safe(guild: discord.Guild | None) -> set[str]
     changed: set[str] = set()
     for member in members.values():
         lord = by_id.get(str(getattr(member, "id", "")))
-        until = int(getattr(lord, "marriage_locked_until", 0) or 0) if lord is not None else 0
-        married = bool(
-            lord is not None
-            and not getattr(lord, "left", False)
-            and getattr(lord, "married_civilization", None) is not None
-        )
-        should_lock = married and until > now
-        should_ring = married and not should_lock
+        should_lock, should_ring = _member_lock_flags(lord, now)
         nick_suffix = (
             _LOCK_NICK_SUFFIX if should_lock else _RING_NICK_SUFFIX if should_ring else None
         )

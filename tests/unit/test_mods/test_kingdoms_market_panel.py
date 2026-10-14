@@ -124,11 +124,9 @@ class FakeEconomyService:
         self.tech_bought.append((kingdom_id, technology))
         return object()
 
-    async def buy_explorateur(self, kingdom_id: str) -> FakeTerritory:
-        self.explorateur_bought.append(kingdom_id)
-        return FakeTerritory(
-            id=f"{kingdom_id}-explored", map_key="islands", owner_kingdom_id=kingdom_id
-        )
+    async def buy_explorateur(self, kingdom_id: str, lord_id: str) -> FakeLord:
+        self.explorateur_bought.append((kingdom_id, lord_id))
+        return FakeLord(id=lord_id, role="lord", kingdom_id=kingdom_id)
 
     async def buy_corruption(self, kingdom_id: str, territory_id: str) -> FakeTerritory:
         self.corrupted.append((kingdom_id, territory_id))
@@ -304,11 +302,14 @@ async def test_action_button_opens_the_territory_select_and_buys() -> None:
     assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
-async def test_explorateur_button_buys_a_random_map_directly() -> None:
-    """D48: the Explorateur needs no select - the map is drawn on click."""
+async def test_explorateur_button_locks_the_chosen_lord() -> None:
+    """marche-v2 art. 6: the Explorateur opens a lord select (48h lock)."""
     economy = FakeEconomyService()
     _wiring(
-        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        lords=[
+            FakeLord(id="111", role="king", kingdom_id="k1"),
+            FakeLord(id="222", role="lord", kingdom_id="k1"),
+        ],
         economy=economy,
     )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
@@ -319,8 +320,18 @@ async def test_explorateur_button_buys_a_random_map_directly() -> None:
 
     submit: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
     await modal.on_submit(submit)
-    assert economy.explorateur_bought == ["k1"]
-    assert "Purchased" in (submit.followup.messages[-1].content or "")
+    # The sheet opens the lord select instead of buying instantly.
+    message = submit.response.message
+    assert message is not None and message.view is not None
+    select = next(iter(message.view.children))
+    assert [opt.value for opt in select.options] == ["111", "222"]
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["222"]}, locale="en-US")
+    choice.message = message
+    await select.callback(choice)
+    assert economy.explorateur_bought == [("k1", "222")]
+    assert choice.followup.messages == []
+    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
 
 
 async def test_patrouille_button_opens_the_slot_select_and_buys() -> None:

@@ -47,6 +47,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "modal_map": "Territoire adverse (clé de carte)",
         "modal_lobby": "URL du lobby de jeu",
         "modal_cover": "Seigneur de couverture (mention, optionnel)",
+        "modal_traquenard": "Traquenard ? (oui/non)",
         "declared_note": "⚔️ Attaque déclarée sur **{map}** — RDV à **{time}** (heure de Paris).",
         "declared_announce": (
             "⚔️ **{attacker}** ({kingdom}) attaque **{map}** 🆚 {defender_kingdom} "
@@ -61,7 +62,10 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🕶️ Reveal T-15 — l'attaque sur **{map}** était menée par **{lord}** "
             "(la couverture tombe)."
         ),
-        "reveal_ai": "🤖 Personne n'a défendu **{map}** — l'IA du royaume **{kingdom}** prend la défense !",
+        "reveal_ai": (
+            "🤖 Personne n'a défendu **{map}** — l'IA du royaume **{kingdom}** prend la défense"
+            " (niveau **{level}**/5) !"
+        ),
         "reveal_defense": "🛡️ La défense de **{map}** est verrouillée — RDV **{time}** (Paris).",
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** civilisations (ton "
@@ -104,6 +108,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "modal_map": "Adversary territory (map key)",
         "modal_lobby": "Game lobby URL",
         "modal_cover": "Cover lord (mention, optional)",
+        "modal_traquenard": "Ambush trap? (yes/no)",
         "declared_note": "⚔️ Attack declared on **{map}** — meeting at **{time}** (Paris time).",
         "declared_announce": (
             "⚔️ **{attacker}** ({kingdom}) attacks **{map}** 🆚 {defender_kingdom} "
@@ -118,7 +123,10 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🕶️ T-15 reveal — the attack on **{map}** was led by **{lord}** "
             "(the cover drops)."
         ),
-        "reveal_ai": "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense!",
+        "reveal_ai": (
+            "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense"
+            " (level **{level}**/5)!"
+        ),
         "reveal_defense": "🛡️ The defense of **{map}** is locked — meeting **{time}** (Paris).",
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilizations (your "
@@ -361,7 +369,15 @@ class KingdomAttackDeclareModal(discord.ui.Modal):
         self.cover_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
             label=strings["modal_cover"][:45], max_length=60, required=False
         )
-        for item in (self.map_input, self.lobby_input, self.cover_input):
+        self.traquenard_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
+            label=strings["modal_traquenard"][:45], max_length=10, required=False
+        )
+        for item in (
+            self.map_input,
+            self.lobby_input,
+            self.cover_input,
+            self.traquenard_input,
+        ):
             self.add_item(item)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -382,6 +398,8 @@ class KingdomAttackDeclareModal(discord.ui.Modal):
                 self.map_input.value.strip(),
                 self.lobby_input.value.strip(),
                 cover_lord_id=cover,
+                use_traquenard=(self.traquenard_input.value or "").strip().lower()
+                in ("oui", "yes", "o", "y"),
             )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
@@ -714,6 +732,7 @@ async def _run_reveals_safe(
                 strings["reveal_ai"].format(
                     map=attack.map_key,
                     kingdom=await _kingdom_name(kingdoms_service, attack.defender_kingdom_id),
+                    level=attack.effects.get("ai_level", 1) if attack.effects else 1,
                 ),
             )
         else:

@@ -18,7 +18,7 @@ carries its own (in kingdom_realms). Once the admin starts the season
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
@@ -83,6 +83,9 @@ def _strings(locale: str) -> dict[str, str]:
             "remparts_guard_none": "aucune",
             "remparts_guard_line": "🛡️ **{0}** — protégée jusqu'à {1}",
             "remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)",
+            "remparts_ai": "🤖 Bot de défense (IA) : **{0}**/5",
+            "remparts_reinforced": "💪 Patrouilles Renforcées (créneaux de 3h)",
+            "roster_exploring": "🗺️ exploration jusqu'à {0}",
             "territory_title": "🗺️ Territoire — {0}",
             "territory_count": "{0} territoire(s)",
             "territory_empty": "Aucun territoire pour le moment.",
@@ -176,6 +179,9 @@ def _strings(locale: str) -> dict[str, str]:
         "remparts_guard_none": "none",
         "remparts_guard_line": "🛡️ **{0}** — shielded until {1}",
         "remparts_guard_button": "🛡️ Royal Guard ({0} ⚙️)",
+            "remparts_ai": "🤖 Defense bot (AI): **{0}**/5",
+            "remparts_reinforced": "💪 Reinforced Patrols (3h slots)",
+            "roster_exploring": "🗺️ exploring until {0}",
         "territory_title": "🗺️ Territory — {0}",
         "territory_count": "{0} territor(y|ies)",
         "territory_empty": "No territory yet.",
@@ -391,6 +397,13 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
         "guard_cost": _guard_cost(service),
         "parish": _parish_state(kingdom, service),
     }
+    state["defense_ai"] = None
+    if attacks_service is not None and hasattr(attacks_service, "defense_ai_level"):
+        try:
+            state["defense_ai"] = await attacks_service.defense_ai_level(kid)
+        except Exception:
+            state["defense_ai"] = None
+    state["reinforced"] = state["defense_ai"] is not None and int(state["defense_ai"]) >= 5
     return state
 
 
@@ -563,6 +576,9 @@ def _build_roster(
                 f" — ⚔️ {int(getattr(member, 'attack_used', 0) or 0)}"
                 f" · 🛡️ {int(getattr(member, 'defense_used', 0) or 0)}"
             )
+            exploring = int(getattr(member, "exploration_locked_until", 0) or 0)
+            if exploring > int(datetime.now(tz=UTC).timestamp()):
+                line += f" {strings['roster_exploring'].format(_lock_until_label(exploring, strings))}"
             if getattr(member, "left", False):
                 line += f" {strings['left_badge']}"
             lines.append(line)
@@ -611,8 +627,9 @@ def _build_patrol(
     import discord
 
     slots = _patrol_slots(state)
+    span = 3 if state.get("reinforced") else 2
     bought = ", ".join(
-        strings["patrol_slot"].format(slot, slot + 2) for slot in slots
+        strings["patrol_slot"].format(slot, slot + span) for slot in slots
     ) or strings["none_f"]
     remaining = max(0, int(state["patrol_limit"]) - len(slots))
     now = datetime.now(tz=UTC)
@@ -624,14 +641,19 @@ def _build_patrol(
         guard_line = strings["remparts_guard_line"].format(
             state["map_names"].get(key, key), _lock_until_label(until, strings)
         )
-    body = "\n".join(
-        [
-            f"**{strings['patrol_bought']}** : {bought}",
-            f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
-            f"**{strings['remparts_guard']}** : {guard_line}",
-            strings["patrol_window"],
-        ]
-    )
+    lines = [
+        f"**{strings['patrol_bought']}** : {bought}",
+        f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
+    ]
+    if state.get("defense_ai") is not None:
+        lines.append(strings["remparts_ai"].format(int(state["defense_ai"])))
+        if state.get("reinforced"):
+            lines.append(strings["remparts_reinforced"])
+    lines += [
+        f"**{strings['remparts_guard']}** : {guard_line}",
+        strings["patrol_window"],
+    ]
+    body = "\n".join(lines)
     from kingdoms.mods.kingdoms.kingdom_persistent import KingdomRempartsGuardButton
 
     return _panel_view_with_buttons(

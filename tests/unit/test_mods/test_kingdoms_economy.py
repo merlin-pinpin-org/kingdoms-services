@@ -27,7 +27,6 @@ from kingdoms.mods.kingdoms.economy import (
     InsufficientPointsError,
     TerritoryProtectedError,
 )
-from kingdoms.mods.kingdoms.territories import MapPoolExhaustedError
 
 from .test_kingdoms_attacks import Bundle as _AttackBundle
 
@@ -59,37 +58,60 @@ async def test_wallet_grant_and_spend() -> None:
         await bundle.economy.spend_points(aquitaine, 2)
 
 
-async def test_explorateur_buys_an_immediate_territory_once() -> None:
-    """D48: two tech points buy one random non-out map, once per season."""
+async def test_explorateur_locks_a_lord_then_resolves_a_map() -> None:
+    """marche-v2 art. 6: the buy locks the chosen lord 48h, the tick draws."""
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.fund(aquitaine, 5)
-    territory = await bundle.economy.buy_explorateur(aquitaine)
-    catalog = {entry.key for entry in bundle.config.maps}
-    assert territory.map_key in catalog
-    assert territory.owner_kingdom_id == aquitaine
+    monday = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
+    lord = await bundle.economy.buy_explorateur(aquitaine, "lord-a", now=monday)
+    assert lord.exploration_locked_until == int((monday + timedelta(hours=48)).timestamp())
     assert await bundle.economy.wallet(aquitaine) == 3
-    # Consumable: a second purchase the same season is refused.
+    # The territory does NOT exist during the lock.
+    assert not [
+        t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine
+    ]
+    # Before expiry: nothing resolves.
+    before = monday + timedelta(hours=47)
+    assert await bundle.economy.resolve_due_explorations(now=before) == []
+    # Consumable: once per season per kingdom.
     await bundle.fund(aquitaine, 5)
     with pytest.raises(EconomyLimitReachedError):
-        await bundle.economy.buy_explorateur(aquitaine)
+        await bundle.economy.buy_explorateur(aquitaine, "king-a", now=monday)
+    # After expiry: a fresh map arrives and the lock clears (idempotent).
+    after = monday + timedelta(hours=48, minutes=1)
+    resolved = await bundle.economy.resolve_due_explorations(now=after)
+    assert len(resolved) == 1
+    resolved_lord, territory = resolved[0]
+    assert resolved_lord.id == "lord-a"
+    assert resolved_lord.exploration_locked_until is None
+    assert territory is not None
+    assert territory.owner_kingdom_id == aquitaine
+    catalog = {entry.key for entry in bundle.config.maps}
+    assert territory.map_key in catalog
+    assert await bundle.economy.resolve_due_explorations(now=after) == []
 
 
-async def test_explorateur_draws_without_duplicate_and_refuses_empty_pool() -> None:
-    """D48: the draw never repeats an out map; an empty pool refunds."""
+async def test_explorator_draws_without_duplicate_and_refunds_empty_pool() -> None:
+    """marche-v2 art. 6: no out map twice; an exhausted pool refunds."""
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
-    await bundle.fund(aquitaine, 5)
-    first = await bundle.economy.buy_explorateur(aquitaine)
-    # The map just drawn is out for everyone (S8): another kingdom
-    # cannot receive it again.
     bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.fund(aquitaine, 5)
     await bundle.fund(bourgogne, 5)
-    second = await bundle.economy.buy_explorateur(bourgogne)
-    assert second.map_key != first.map_key
-    # A tiny catalog exhausts the pool: the purchase refunds and fails.
+    monday = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
+    await bundle.economy.buy_explorateur(aquitaine, "lord-a", now=monday)
+    await bundle.economy.buy_explorateur(bourgogne, "lord-b", now=monday)
+    after = monday + timedelta(hours=48, minutes=1)
+    resolved = await bundle.economy.resolve_due_explorations(now=after)
+    territories = [t for _, t in resolved if t is not None]
+    # Two kingdoms, two DIFFERENT maps (the pool never repeats an out map).
+    assert len(territories) == 2
+    assert len({t.map_key for t in territories}) == 2
+    assert {t.owner_kingdom_id for t in territories} == {aquitaine, bourgogne}
+    # A tiny catalog exhausts the pool: the SECOND resolution refunds.
     base = default_season_config()
     tiny = Bundle(base.model_copy(update={
         "maps": base.maps[:1],
@@ -98,12 +120,19 @@ async def test_explorateur_draws_without_duplicate_and_refuses_empty_pool() -> N
     }))
     await tiny.launch_season()
     king = await tiny.kingdom_id("Aquitaine")
-    await tiny.fund(king, 5)
-    await tiny.economy.buy_explorateur(king)
     other = await tiny.kingdom_id("Bourgogne")
+    await tiny.fund(king, 5)
     await tiny.fund(other, 5)
-    with pytest.raises(MapPoolExhaustedError):
-        await tiny.economy.buy_explorateur(other)
+    await tiny.economy.buy_explorateur(king, "lord-a", now=monday)
+    await tiny.economy.buy_explorateur(other, "lord-b", now=monday)
+    resolved_tiny = await tiny.economy.resolve_due_explorations(now=after)
+    assert len(resolved_tiny) == 2
+    drawn = [t for _, t in resolved_tiny if t is not None]
+    assert len(drawn) == 1  # the only map of the catalog
+    # The exhausted pool refunds the second kingdom and clears the lock.
+    refunded = [pair for pair in resolved_tiny if pair[1] is None]
+    assert len(refunded) == 1
+    assert refunded[0][0].exploration_locked_until is None
     assert await tiny.economy.wallet(other) == 5
 
 

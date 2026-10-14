@@ -24,6 +24,7 @@ from kingdoms.mods.kingdoms.attacks import (
     TechnologyLimitReachedError,
     TerritoryBusyError,
     TerritoryNotAttackableError,
+    patrouille_active_at,
 )
 from kingdoms.mods.kingdoms.config import default_season_config
 from kingdoms.mods.kingdoms.models import (
@@ -298,26 +299,72 @@ async def test_technology_purchase_costs_and_limits_d9_d36() -> None:
         await bundle.attacks.buy_technology(aquitaine, "embuscade")
 
 
-async def test_ai_level_floor_and_ceiling_d18() -> None:
+async def test_defense_ai_level_traquenard_and_reinforced_patrols_marche_v2() -> None:
+    """marche-v2 art. 2/5: defence bot level (cap 5), Traquenard at the
+    declaration, +2h marriage locks on the target, Renforcées patrols."""
     bundle = Bundle()
     await bundle.launch_season()
     await bundle.draw(12)
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    base = await bundle.attacks.base_ai_level()
+    assert base >= 1
+    assert await bundle.attacks.defense_ai_level(bourgogne) == base
+    # Jeu d'armes: each purchase adds one PERMANENT level, ceiling 5.
     state = TechnologyState(
-        _id=aquitaine,
+        _id=bourgogne,
         season_id="s",
         tech_points=10,
         purchases={"jeu_d_armes": 1},
     )
     await bundle.store.upsert_technology(state.to_mongo())
-    # Base 5 + 1 permanent would exceed the ceiling of 5.
-    assert await bundle.attacks.effective_gaia_ai_level(aquitaine, 5) == 5
-    # An engaged Traquenard lowers it by one; it expires with the combat.
+    assert await bundle.attacks.defense_ai_level(bourgogne) == min(5, base + 1)
+    state.purchases["jeu_d_armes"] = 10  # far beyond the ceiling
+    await bundle.store.upsert_technology(state.to_mongo())
+    assert await bundle.attacks.defense_ai_level(bourgogne) == 5
+    # At the ceiling the patrols become Renforcées: the 18h slot now
+    # covers 18h→21h instead of 18h→20h (3h instead of 2h).
+    patrol = TechnologyState(
+        _id=bourgogne,
+        season_id="s",
+        tech_points=0,
+        purchases={"patrouille_slot_1": 18},
+    )
+    await bundle.store.upsert_technology(patrol.to_mongo())
+    twenty_thirty_paris = datetime(2026, 10, 12, 18, 30, tzinfo=UTC)  # 20h30 in Paris
+    assert not patrouille_active_at(
+        patrol, twenty_thirty_paris, base_level=base
+    )
+    assert patrouille_active_at(
+        patrol, twenty_thirty_paris, base_level=5
+    )
+    # The Traquenard engages at the DECLARATION (art. 2): the AI faced
+    # is Facile and every ACTIVE marriage of the target kingdom gains
+    # +2h of lock. A kingdom without stock cannot engage one.
+    monday = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
+    target = (await bundle.owner_maps(bourgogne))[0]
+    with pytest.raises(TechnologyLimitReachedError):
+        await bundle.attacks.declare_attack(
+            "king-a", target, "aoe2de://t", use_traquenard=True, now=monday
+        )
+    funded = TechnologyState(_id=aquitaine, season_id="s", tech_points=10)
+    await bundle.store.upsert_technology(funded.to_mongo())
     await bundle.attacks.buy_technology(aquitaine, "traquenard")
-    await bundle.attacks.engage_traquenard(aquitaine)
-    assert await bundle.attacks.effective_gaia_ai_level(aquitaine, 5) == 4
-    await bundle.attacks.expire_traquenard(aquitaine)
-    assert await bundle.attacks.effective_gaia_ai_level(aquitaine, 5) == 5
+    bought = (await bundle.attacks.technology_state(aquitaine)).purchases["traquenard"]
+    lord_b = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-b")
+    lord_b.married_civilization = "celtes"
+    lord_b.marriage_locked_until = int(monday.timestamp())
+    await bundle.store.upsert_lord(lord_b.to_mongo())
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://t", use_traquenard=True, now=monday
+    )
+    assert attack.traquenard is True
+    # One charge was consumed by the declaration itself.
+    left = (await bundle.attacks.technology_state(aquitaine)).purchases["traquenard"]
+    assert left == bought - 1
+    # The target kingdom's active marriage gained exactly +2h.
+    locked = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-b")
+    assert locked.marriage_locked_until == int((monday + timedelta(hours=2)).timestamp())
 
 
 async def test_sabotage_and_counter_espionage_d12_d28() -> None:
