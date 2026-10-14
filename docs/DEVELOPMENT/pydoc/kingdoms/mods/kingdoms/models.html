@@ -5702,7 +5702,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="TerritoryModel">class <strong>TerritoryModel</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#TerritoryModel">TerritoryModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;map_key:&nbsp;str,&nbsp;owner_kingdom_id:&nbsp;str,&nbsp;drawn_at:&nbsp;datetime.datetime,&nbsp;protected_until:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TerritoryModel">TerritoryModel</a>(*,&nbsp;_id:&nbsp;str,&nbsp;season_id:&nbsp;str,&nbsp;map_key:&nbsp;str,&nbsp;owner_kingdom_id:&nbsp;str,&nbsp;drawn_at:&nbsp;datetime.datetime,&nbsp;protected_until:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;cathedral_until:&nbsp;datetime.datetime&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;sacred:&nbsp;bool&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 A&nbsp;territory&nbsp;of&nbsp;the&nbsp;current&nbsp;season:&nbsp;one&nbsp;AoE2&nbsp;map&nbsp;with&nbsp;an&nbsp;owner.<br>
 &nbsp;<br>
@@ -5716,7 +5716,11 @@ ownership&nbsp;changes&nbsp;through&nbsp;the&nbsp;idempotent&nbsp;transfer&nbsp;
 </dl>
 <hr>
 Methods defined here:<br>
+<dl><dt><a name="TerritoryModel-is_chantier_at"><strong>is_chantier_at</strong></a>(self, now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;Lieu&nbsp;Sacrée&nbsp;chantier&nbsp;still&nbsp;runs&nbsp;(lieu-sacree-v1).</span></dd></dl>
+
 <dl><dt><a name="TerritoryModel-is_protected_at"><strong>is_protected_at</strong></a>(self, now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;anti-attack/anti-corruption&nbsp;shield&nbsp;is&nbsp;active&nbsp;(D15/D37/D47).</span></dd></dl>
+
+<dl><dt><a name="TerritoryModel-is_tech_protected_at"><strong>is_tech_protected_at</strong></a>(self, now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;adverse&nbsp;technologies&nbsp;bounce&nbsp;off&nbsp;(chantier,&nbsp;lieu-sacree-v1).</span></dd></dl>
 
 <dl><dt><a name="TerritoryModel-to_mongo"><strong>to_mongo</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Convert&nbsp;to&nbsp;a&nbsp;MongoDB&nbsp;document.</span></dd></dl>
 
@@ -5733,7 +5737,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'drawn_at': 'datetime', 'id': 'str', 'map_key': 'str', 'owner_kingdom_id': 'str', 'protected_until': 'datetime | None', 'season_id': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'cathedral_until': 'datetime | None', 'drawn_at': 'datetime', 'id': 'str', 'map_key': 'str', 'owner_kingdom_id': 'str', 'protected_until': 'datetime | None', 'sacred': 'bool', 'season_id': 'str'}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -5743,7 +5747,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.TerritoryModel'&gt;, 'config': {'strict': True, 'title': 'TerritoryModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche... 'kingdoms.mods.kingdoms.models.TerritoryModel'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.TerritoryModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'drawn_at': {'metadata': {}, 'schema': {'microseconds_precision': 'truncate', 'type': 'datetime'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'map_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_kingdom_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'protected_until': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'season_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}}, 'model_name': 'TerritoryModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.models.TerritoryModel'&gt;, 'config': {'strict': True, 'title': 'TerritoryModel'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche... 'kingdoms.mods.kingdoms.models.TerritoryModel'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.models.TerritoryModel:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'cathedral_until': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'drawn_at': {'metadata': {}, 'schema': {'microseconds_precision': 'truncate', 'type': 'datetime'}, 'type': 'model-field'}, 'id': {'metadata': {}, 'schema': {'type': 'str'}, 'serialization_alias': '_id', 'type': 'model-field', 'validation_alias': '_id'}, 'map_key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'owner_kingdom_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'protected_until': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'sacred': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'season_id': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}}, 'model_name': 'TerritoryModel', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -5751,7 +5755,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'drawn_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'map_key': FieldInfo(annotation=str, required=True), 'owner_kingdom_id': FieldInfo(annotation=str, required=True), 'protected_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'season_id': FieldInfo(annotation=str, required=True)}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'cathedral_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'drawn_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'map_key': FieldInfo(annotation=str, required=True), 'owner_kingdom_id': FieldInfo(annotation=str, required=True), 'protected_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'sacred': FieldInfo(annotation=bool, required=False, default=False), 'season_id': FieldInfo(annotation=str, required=True)}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -5769,7 +5773,7 @@ Data and other attributes defined here:<br>
     },
 ), definitions=[], cache_strings=True)</dl>
 
-<dl><dt><strong>__signature__</strong> = &lt;Signature (*, _id: str, season_id: str, map_key..._until: datetime.datetime | None = None) -&gt; None&gt;</dl>
+<dl><dt><strong>__signature__</strong> = &lt;Signature (*, _id: str, season_id: str, map_key...ime | None = None, sacred: bool = False) -&gt; None&gt;</dl>
 
 <dl><dt><strong>model_config</strong> = {'strict': True}</dl>
 
@@ -6154,7 +6158,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'drawn_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'map_key': FieldInfo(annotation=str, required=True), 'owner_kingdom_id': FieldInfo(annotation=str, required=True), 'protected_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'season_id': FieldInfo(annotation=str, required=True)}</dl>
+<dl><dt><strong>model_fields</strong> = {'cathedral_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'drawn_at': FieldInfo(annotation=datetime, required=True), 'id': FieldInfo(annotation=str, required=True, alias='_id', alias_priority=2), 'map_key': FieldInfo(annotation=str, required=True), 'owner_kingdom_id': FieldInfo(annotation=str, required=True), 'protected_until': FieldInfo(annotation=Union[datetime, NoneType], required=False, default=None), 'sacred': FieldInfo(annotation=bool, required=False, default=False), 'season_id': FieldInfo(annotation=str, required=True)}</dl>
 
 </td></tr></table></td></tr></table><p>
 <table class="section">
