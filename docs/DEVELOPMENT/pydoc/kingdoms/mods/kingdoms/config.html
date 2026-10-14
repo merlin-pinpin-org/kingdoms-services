@@ -3653,7 +3653,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="ParishSettings">class <strong>ParishSettings</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ParishSettings">ParishSettings</a>(*,&nbsp;tiers:&nbsp;tuple[kingdoms.mods.kingdoms.config.<a href="#ParishTier">ParishTier</a>,&nbsp;...]&nbsp;=&nbsp;(<a href="#ParishTier">ParishTier</a>(key='chapelle',&nbsp;display_name='Chapelle',&nbsp;cost=0,&nbsp;marriage_lock_hours=24,&nbsp;offering=0),&nbsp;<a href="#ParishTier">ParishTier</a>(key='eglise',&nbsp;display_name='Église',&nbsp;cost=2,&nbsp;marriage_lock_hours=12,&nbsp;offering=1),&nbsp;<a href="#ParishTier">ParishTier</a>(key='cathedrale',&nbsp;display_name='Cathédrale',&nbsp;cost=4,&nbsp;marriage_lock_hours=6,&nbsp;offering=2)),&nbsp;lords_day_points:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;1)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ParishSettings">ParishSettings</a>(*,&nbsp;tiers:&nbsp;tuple[kingdoms.mods.kingdoms.config.<a href="#ParishTier">ParishTier</a>,&nbsp;...]&nbsp;=&nbsp;(<a href="#ParishTier">ParishTier</a>(key='chapelle',&nbsp;display_name='Chapelle',&nbsp;cost=0,&nbsp;marriage_lock_hours=24,&nbsp;offering=0),&nbsp;<a href="#ParishTier">ParishTier</a>(key='eglise',&nbsp;display_name='Église',&nbsp;cost=2,&nbsp;marriage_lock_hours=12,&nbsp;offering=1),&nbsp;<a href="#ParishTier">ParishTier</a>(key='cathedrale',&nbsp;display_name='Cathédrale',&nbsp;cost=4,&nbsp;marriage_lock_hours=6,&nbsp;offering=2)),&nbsp;lords_day_points:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;1,&nbsp;cathedral_cost:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;3,&nbsp;cathedral_chantier_hours:&nbsp;Annotated[int,&nbsp;Ge(ge=1)]&nbsp;=&nbsp;72,&nbsp;cathedral_destroy_reward:&nbsp;Annotated[int,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;2)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 The&nbsp;three-palier&nbsp;Paroisse&nbsp;ladder&nbsp;+&nbsp;its&nbsp;refill&nbsp;knobs&nbsp;(D64/D59).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -3675,7 +3675,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'lords_day_points': 'int', 'tiers': 'tuple[ParishTier, ...]'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'cathedral_chantier_hours': 'int', 'cathedral_cost': 'int', 'cathedral_destroy_reward': 'int', 'lords_day_points': 'int', 'tiers': 'tuple[ParishTier, ...]'}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -3685,7 +3685,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.ParishSettings'&gt;, 'config': {'strict': True, 'title': 'ParishSettings'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche... 'kingdoms.mods.kingdoms.config.ParishSettings'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.ParishSettings:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'lords_day_points': {'metadata': {}, 'schema': {'default': 1, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'tiers': {'metadata': {}, 'schema': {'default': (ParishTier(key='chapelle', display_name='Chapelle', cost=0, marriage_lock_hours=24, offering=0), ParishTier(key='eglise', display_name='Église', cost=2, marriage_lock_hours=12, offering=1), ParishTier(key='cathedrale', display_name='Cathédrale', cost=4, marriage_lock_hours=6, offering=2)), 'schema': {'items_schema': [...], 'type': 'tuple', 'variadic_item_index': 0}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'ParishSettings', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.ParishSettings'&gt;, 'config': {'strict': True, 'title': 'ParishSettings'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche... 'kingdoms.mods.kingdoms.config.ParishSettings'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.ParishSettings:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'cathedral_chantier_hours': {'metadata': {}, 'schema': {'default': 72, 'schema': {'ge': 1, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'cathedral_cost': {'metadata': {}, 'schema': {'default': 3, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'cathedral_destroy_reward': {'metadata': {}, 'schema': {'default': 2, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'lords_day_points': {'metadata': {}, 'schema': {'default': 1, 'schema': {'ge': 0, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'tiers': {'metadata': {}, 'schema': {'default': (ParishTier(key='chapelle', display_name='Chapelle', cost=0, marriage_lock_hours=24, offering=0), ParishTier(key='eglise', display_name='Église', cost=2, marriage_lock_hours=12, offering=1), ParishTier(key='cathedrale', display_name='Cathédrale', cost=4, marriage_lock_hours=6, offering=2)), 'schema': {'items_schema': [...], 'type': 'tuple', 'variadic_item_index': 0}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'ParishSettings', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -3693,7 +3693,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'lords_day_points': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=0)]), 'tiers': FieldInfo(annotation=tuple[ParishTier, ...], req...le', cost=4, marriage_lock_hours=6, offering=2)))}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'cathedral_chantier_hours': FieldInfo(annotation=int, required=False, default=72, metadata=[Ge(ge=1)]), 'cathedral_cost': FieldInfo(annotation=int, required=False, default=3, metadata=[Ge(ge=0)]), 'cathedral_destroy_reward': FieldInfo(annotation=int, required=False, default=2, metadata=[Ge(ge=0)]), 'lords_day_points': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=0)]), 'tiers': FieldInfo(annotation=tuple[ParishTier, ...], req...le', cost=4, marriage_lock_hours=6, offering=2)))}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -3711,7 +3711,7 @@ Data and other attributes defined here:<br>
     },
 ), definitions=[], cache_strings=True)</dl>
 
-<dl><dt><strong>__signature__</strong> = &lt;Signature (*, tiers: tuple[kingdoms.mods.kingdo...ay_points: Annotated[int, Ge(ge=0)] = 1) -&gt; None&gt;</dl>
+<dl><dt><strong>__signature__</strong> = &lt;Signature (*, tiers: tuple[kingdoms.mods.kingdo...oy_reward: Annotated[int, Ge(ge=0)] = 2) -&gt; None&gt;</dl>
 
 <dl><dt><strong>model_config</strong> = {'strict': True}</dl>
 
@@ -4096,7 +4096,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'lords_day_points': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=0)]), 'tiers': FieldInfo(annotation=tuple[ParishTier, ...], req...le', cost=4, marriage_lock_hours=6, offering=2)))}</dl>
+<dl><dt><strong>model_fields</strong> = {'cathedral_chantier_hours': FieldInfo(annotation=int, required=False, default=72, metadata=[Ge(ge=1)]), 'cathedral_cost': FieldInfo(annotation=int, required=False, default=3, metadata=[Ge(ge=0)]), 'cathedral_destroy_reward': FieldInfo(annotation=int, required=False, default=2, metadata=[Ge(ge=0)]), 'lords_day_points': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=0)]), 'tiers': FieldInfo(annotation=tuple[ParishTier, ...], req...le', cost=4, marriage_lock_hours=6, offering=2)))}</dl>
 
 </td></tr></table> <p>
 <table class="section">
