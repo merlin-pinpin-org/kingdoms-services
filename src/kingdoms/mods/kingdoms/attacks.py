@@ -485,6 +485,10 @@ class AttackService:
         target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
         if _faucon_released(target_kingdom, timestamp):
             raise EmbuscadeError("the defender released the faucon — immune to technologies")
+        # lieu-sacree-v1: a cathedral chantier resists every adverse
+        # technology — Embuscade included.
+        if territory.is_tech_protected_at(timestamp):
+            raise EmbuscadeError("the territory's chantier resists the Embuscade (lieu-sacree-v1)")
         if not lobby_url.strip():
             raise AttackError("the attacker must provide the game lobby link")
         _refuse_lords_day_execution(
@@ -533,6 +537,9 @@ class AttackService:
             raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
         if territory.is_protected_at(timestamp):
             raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+        # lieu-sacree-v1: a SACRED territory is immune to everything.
+        if territory.sacred:
+            raise TerritoryNotAttackableError("the territory is SACRED — immune to every attack")
         # D68: the target kingdom's daily patrol covers all its
         # territories during the bought slot (3h once Renforcée, art. 5).
         if patrouille_active_at(
@@ -952,10 +959,81 @@ class AttackService:
         attack.winner_kingdom_id = winner_kingdom_id
         attack.resolved_at = _now()
         if winner_kingdom_id == attack.attacker_kingdom_id:
-            await self._territories.transfer(attack.territory_id, winner_kingdom_id)
+            await self._apply_attacker_win(attack)
         await self._store.upsert_attack(attack.to_mongo())
         logger.info("kingdoms: attack on %s resolved for %s", attack.map_key, winner_kingdom_id)
         return attack
+
+    async def _apply_attacker_win(self, attack: AttackModel) -> None:
+        """Apply the attacker's verdict on the attacked territory (D20).
+
+        lieu-sacree-v1 (Drasah 14/10): a victory on a CHANTIER
+        territory destroys ONLY the chantier — the territory stays with
+        its defender, the attacker banks 2 ⚙️ and must RE-ATTACK to
+        conquer. A SACRED territory never transfers (defensive — it
+        cannot be attacked at all).
+        """
+        territory = next(
+            (
+                item
+                for item in await self._territories.territories()
+                if item.id == attack.territory_id
+            ),
+            None,
+        )
+        resolved_at = attack.resolved_at or _now()
+        if territory is not None and territory.is_chantier_at(resolved_at):
+            await self._destroy_cathedral(attack, territory, resolved_at)
+            return
+        if territory is not None and territory.sacred:
+            logger.info(
+                "kingdoms: %s kept — the territory is SACRED",
+                attack.map_key,
+            )
+            return
+        await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
+
+    async def _destroy_cathedral(
+        self,
+        attack: AttackModel,
+        territory: TerritoryModel,
+        now: datetime,
+    ) -> None:
+        """Destroy the chantier of a defeated Lieu Sacrée (lieu-sacree-v1).
+
+        The territory itself is NOT conquered (Drasah's correction
+        14/10): it stays with the defender, the attacker banks the
+        destroy reward (2 ⚙️), and the cathedral auto-rebuilds on
+        ANOTHER territory of the defender — or is lost when none
+        exists (repurchase 3 ⚙️).
+        """
+        settings = self._config.parish
+        territory.cathedral_until = None
+        await self._store.upsert_territory(territory.to_mongo())
+        attacker = await self._kingdom_by_id(attack.attacker_kingdom_id)
+        attacker.tech_points_bank += settings.cathedral_destroy_reward
+        await self._store.upsert_kingdom(attacker.to_mongo())
+        rebuilt = next(
+            (
+                item
+                for item in await self._territories.territories()
+                if item.owner_kingdom_id == attack.defender_kingdom_id
+                and item.id != territory.id
+                and not item.sacred
+                and not item.is_chantier_at(now)
+            ),
+            None,
+        )
+        if rebuilt is not None:
+            rebuilt.cathedral_until = now + timedelta(hours=settings.cathedral_chantier_hours)
+            await self._store.upsert_territory(rebuilt.to_mongo())
+        logger.info(
+            "kingdoms: chantier of %s destroyed by %s (+%d tech for the attacker, %s)",
+            territory.map_key,
+            attack.attacker_kingdom_id,
+            settings.cathedral_destroy_reward,
+            f"rebuilt on {rebuilt.map_key}" if rebuilt is not None else "cathedral LOST",
+        )
 
     async def restitute(self, attack_id: str) -> AttackModel:
         """Admin exception (D17): give the consumed attack budget back."""
@@ -1019,6 +1097,8 @@ class AttackService:
             raise TerritoryNotAttackableError("the free-for-all targets a Gaïa territory")
         if territory.is_protected_at(timestamp):
             raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+        if territory.sacred:
+            raise TerritoryNotAttackableError("the territory is SACRED — immune to every attack")
         attack = next(
             (
                 item

@@ -134,6 +134,11 @@ def _strings(locale: str) -> dict[str, str]:
             "church_arrange_button": "💒 Mariage arrangé ({0})",
             "church_upgrade_button": "⛪ Améliorer → {0} ({1} ⚙️)",
             "church_upgrade_max": "⛪ Cathédrale — palier maximal",
+            "parish_line": "{0} — palier {1}/{2}",
+            "territory_chantier": "⏳ Lieu Sacrée — chantier jusqu'au {0}",
+            "territory_sacred": "⛪ SACRÉ — à vie",
+            "church_chantier_line": "⏳ Lieu Sacrée en chantier sur **{0}** — verdict le {1} (Paris)",
+            "church_sacred_line": "⛪ Lieu Sacrée SACRÉ sur **{0}** — immunisé à vie",
             "church_household_palier": "✨ Notre {0}",
             "church_household": "💒 Les Fidèles du Royaume",
             "church_bachelor": "🎖️ {0} — célibataire · prêt à se marier 💍",
@@ -251,6 +256,11 @@ def _strings(locale: str) -> dict[str, str]:
         "church_arrange_button": "💒 Arranged marriage ({0})",
         "church_upgrade_button": "⛪ Upgrade → {0} ({1} ⚙️)",
         "church_upgrade_max": "⛪ Cathedral — top tier",
+        "parish_line": "{0} — tier {1}/{2}",
+        "territory_chantier": "⏳ Lieu Sacrée — chantier until {0}",
+        "territory_sacred": "⛪ SACRED — forever",
+        "church_chantier_line": "⏳ Lieu Sacrée chantier on **{0}** — verdict on {1} (Paris)",
+        "church_sacred_line": "⛪ SACRED Lieu Sacrée on **{0}** — immune forever",
         "church_household_palier": "✨ Our {0}",
         "church_household": "💒 The Kingdom's Faithful",
         "church_bachelor": "🎖️ {0} — bachelor · ready to marry 💍",
@@ -544,6 +554,21 @@ def _panel_view(
     return view
 
 
+def _parish_overview_line(state: dict[str, Any], strings: dict[str, str]) -> str:
+    """Render the Paroisse slice of the overview (lieu-sacree-v1: real tier).
+
+    A state gathered without the parish slice (partial test states)
+    falls back to the former placeholder line.
+    """
+    parish = state.get("parish") or {}
+    name = parish.get("name")
+    if name:
+        return strings["parish_line"].format(
+            name, parish.get("tier", 1), parish.get("max_tier", 3)
+        )
+    return strings["parish_placeholder"]
+
+
 def _build_overview(
     strings: dict[str, str],
     kingdom: Any,
@@ -574,7 +599,8 @@ def _build_overview(
             f"**{strings['patrol']}** : {patrol}",
             f"**{strings['royal_guard']}** : "
             f"{strings['yes'] if state['purchases'].get('garde_royale') else strings['no']}",
-            f"**{strings['parish']}** : {strings['parish_placeholder']}",
+            f"**{strings['parish']}** : "
+            f"{_parish_overview_line(state, strings)}",
         ]
     )
     from kingdoms.mods.kingdoms.kingdom_persistent import (
@@ -760,6 +786,17 @@ def _build_territory(
             # marche-v2 article 7: the shielded map shows its 🛡️ and the
             # protection END TIME next to its name.
             line += f" {strings['territory_guard'].format(_lock_until_label(int(until.timestamp()), strings))}"
+        # lieu-sacree-v1: the real chantier (⏳ end Paris) and SACRED (⛪)
+        # states show next to the map name — never a stale placeholder.
+        cathedral_until = getattr(territory, "cathedral_until", None)
+        if bool(getattr(territory, "sacred", False)):
+            line += f" {strings['territory_sacred']}"
+        elif cathedral_until is not None and cathedral_until > now:
+            line += (
+                f" {strings['territory_chantier'].format(
+                    _lock_until_label(int(cathedral_until.timestamp()), strings)
+                )}"
+            )
         lines.append(line)
     lines.append(strings["territory_note"])
     return _panel_view(
@@ -869,6 +906,33 @@ def _build_church(
         if index == parish["max_tier"]:
             line += strings["church_ladder_sacree"]
         lines.append(line)
+    # lieu-sacree-v1: the REAL Lieu Sacrée state — every chantier
+    # (⏳ verdict end, Paris) and every SACRED territory of the kingdom.
+    now_dt = datetime.now(tz=UTC)
+    chantiers = [
+        item
+        for item in state["territories"]
+        if getattr(item, "cathedral_until", None) is not None
+        and item.cathedral_until > now_dt
+    ]
+    sacreds = [
+        item for item in state["territories"] if bool(getattr(item, "sacred", False))
+    ]
+    if chantiers or sacreds:
+        lines += [""]
+        for item in chantiers:
+            lines.append(
+                strings["church_chantier_line"].format(
+                    str(getattr(item, "map_key", "")),
+                    _lock_until_label(
+                        int(item.cathedral_until.timestamp()), strings
+                    ),
+                )
+            )
+        for item in sacreds:
+            lines.append(
+                strings["church_sacred_line"].format(str(getattr(item, "map_key", "")))
+            )
     # 📖 la légende — verrou, offrande, jeton, lieu sacrée
     lines += [
         "",
@@ -898,6 +962,7 @@ def _church_buttons(strings: dict[str, str], kingdom: Any, state: dict[str, Any]
     """Build the restart-proof Paroisse buttons of the current palier."""
     from kingdoms.mods.kingdoms.kingdom_persistent import (
         KingdomChurchArrangeButton,
+        KingdomChurchConsecrateButton,
         KingdomChurchMarryButton,
         KingdomChurchUpgradeButton,
     )
@@ -913,6 +978,9 @@ def _church_buttons(strings: dict[str, str], kingdom: Any, state: dict[str, Any]
         )
     else:
         buttons.append(KingdomChurchUpgradeButton(strings, "", 0))
+        # lieu-sacree-v1: at the Cathédrale palier the King may
+        # consecrate a Lieu Sacrée (3 ⚙️, 72h chantier).
+        buttons.append(KingdomChurchConsecrateButton(strings))
     return buttons
 
 

@@ -278,6 +278,15 @@ class ParishSettings(BaseModel):
     lords_day_points: int = Field(default=1, ge=0)
     """Marriage points granted at every Lord's Day (Chapelle bonus, D64)."""
 
+    cathedral_cost: int = Field(default=3, ge=0)
+    """Lieu Sacrée consecration price in tech points (lieu-sacree-v1)."""
+
+    cathedral_chantier_hours: int = Field(default=72, ge=1)
+    """Chantier duration: survives it and the territory becomes SACRED."""
+
+    cathedral_destroy_reward: int = Field(default=2, ge=0)
+    """Tech points banked by an attacker who destroys a chantier."""
+
     def tier(self, level: int) -> ParishTier:
         """Return the palier entry of a level (1-3, clamped)."""
         index = min(max(int(level), 1), len(self.tiers)) - 1

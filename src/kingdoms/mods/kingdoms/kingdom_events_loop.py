@@ -375,6 +375,53 @@ async def _ffa_exploration_tick_safe(bot: Any) -> None:
         logger.warning("KINGDOMS EVENTS: FFA Exploration tick failed", exc_info=True)
 
 
+async def _resolve_cathedrals_safe(bot: Any) -> None:
+    """Turn every expired chantier into a SACRED territory (lieu-sacree-v1).
+
+    The tick replays the 72h verdicts (idempotent through the
+    territory flags) and announces each sacralization in
+    Géopolitique — « ampleur évangélique » — while every per-attack
+    message stays out (zéro spam, Drasah 14/10).
+    """
+    cathedral_service = getattr(bot, "kingdoms_cathedral_service", None)
+    if cathedral_service is None:
+        return
+    if not list(getattr(bot, "guilds", []) or []):
+        return
+    try:
+        consecrated = await cathedral_service.resolve_due()
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: cathedral resolve failed", exc_info=True)
+        return
+    if not consecrated:
+        return
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
+
+    for territory in consecrated:
+        kingdom = None
+        try:
+            kingdoms_service = getattr(bot, "kingdoms_service", None)
+            if kingdoms_service is not None:
+                kingdom = next(
+                    (
+                        item
+                        for item in await kingdoms_service.kingdoms()
+                        if item.id == territory.owner_kingdom_id
+                    ),
+                    None,
+                )
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: cathedral kingdom lookup failed", exc_info=True)
+        name = getattr(kingdom, "name", None) or territory.owner_kingdom_id
+        for guild in list(getattr(bot, "guilds", []) or []):
+            strings = panels_strings(await _guild_locale(bot, str(guild.id)))
+            text = str(strings["cathedral_sacred"]).format(name, territory.map_key)
+            try:
+                await announce_geopolitics(guild, "", text)
+            except Exception:
+                logger.warning("KINGDOMS EVENTS: sacred announcement failed", exc_info=True)
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -403,6 +450,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
             logger.warning("KINGDOMS EVENTS: attack phases failed", exc_info=True)
         await _resolve_explorations_safe(bot)
         await _ffa_exploration_tick_safe(bot)
+        await _resolve_cathedrals_safe(bot)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

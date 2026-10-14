@@ -210,6 +210,15 @@ class TerritoryModel(BaseModel):
     """Anti-attack/anti-corruption shield (D15/D37/D47): Garde Royale
     and Corruption protect a territory until the recorded instant."""
 
+    cathedral_until: datetime | None = None
+    """Lieu Sacrée chantier end (lieu-sacree-v1): while running, the
+    territory resists every adverse technology but stays attackable
+    by CLASSIC attacks with unlimited attempts."""
+
+    sacred: bool = False
+    """SACRED verdict (lieu-sacree-v1): a chantier that survived its
+    72h — immune to everything, forever."""
+
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
         return self.model_dump(by_alias=True)
@@ -227,6 +236,19 @@ class TerritoryModel(BaseModel):
         if until.tzinfo is None:
             until = until.replace(tzinfo=UTC)
         return until > now
+
+    def is_chantier_at(self, now: datetime) -> bool:
+        """Whether the Lieu Sacrée chantier still runs (lieu-sacree-v1)."""
+        if self.cathedral_until is None:
+            return False
+        until = self.cathedral_until
+        if until.tzinfo is None:
+            until = until.replace(tzinfo=UTC)
+        return until > now
+
+    def is_tech_protected_at(self, now: datetime) -> bool:
+        """Whether adverse technologies bounce off (chantier, lieu-sacree-v1)."""
+        return self.is_chantier_at(now)
 
 
 class TechnologyState(BaseModel):

@@ -37,6 +37,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
     try:
         from kingdoms.core.models.db import get_async_database
         from kingdoms.mods.kingdoms.attacks import AttackService
+        from kingdoms.mods.kingdoms.cathedrale import CathedralService
         from kingdoms.mods.kingdoms.config import load_season_config
         from kingdoms.mods.kingdoms.diplomacy import DiplomacyService
         from kingdoms.mods.kingdoms.distributor import DistributorService
@@ -61,8 +62,19 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
         ffa = FFAExplorationService(store, season_config, kingdoms, events)
+        cathedrals = CathedralService(store, season_config, kingdoms, territories)
         return (
-            kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere, ffa
+            kingdoms,
+            territories,
+            attacks,
+            economy,
+            diplomacy,
+            events,
+            time_machine,
+            distributor,
+            voliere,
+            ffa,
+            cathedrals,
         )
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
@@ -90,8 +102,21 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_distributor_service = None
         bot.kingdoms_voliere_service = None
         bot.kingdoms_ffa_service = None
+        bot.kingdoms_cathedral_service = None
     else:
-        kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere, ffa = services
+        (
+            kingdoms,
+            territories,
+            attacks,
+            economy,
+            diplomacy,
+            events,
+            time_machine,
+            distributor,
+            voliere,
+            ffa,
+            cathedrals,
+        ) = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
@@ -102,6 +127,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_distributor_service = distributor
         bot.kingdoms_voliere_service = voliere
         bot.kingdoms_ffa_service = ffa
+        bot.kingdoms_cathedral_service = cathedrals
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)

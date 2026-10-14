@@ -315,6 +315,12 @@ class EconomyService:
             raise EconomyError("a kingdom cannot corrupt its own territory")
         if territory.is_protected_at(timestamp):
             raise TerritoryProtectedError("the territory is protected against corruption")
+        # lieu-sacree-v1: a cathedral chantier resists every adverse
+        # technology — Corruption included; a SACRED territory too.
+        if territory.sacred or territory.is_tech_protected_at(timestamp):
+            raise TerritoryProtectedError(
+                "the territory resists the corruption (Lieu Sacrée, lieu-sacree-v1)"
+            )
         # D68: the target kingdom's daily patrol resists the steal
         # (3h once Renforcée, marche-v2 art. 5).
         if patrouille_active_at(

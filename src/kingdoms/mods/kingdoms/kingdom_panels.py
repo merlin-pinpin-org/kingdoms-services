@@ -496,6 +496,23 @@ STRINGS: dict[str, dict[str, Any]] = {
             "⛪ Parish upgraded: **{0}** (tier {1}/{2}) — treasury left: {3} ⚙️"
         ),
         "church_upgrade_max": "❌ The Parish already sits at the top tier.",
+        "cathedral_consecrate_button": "⛪ Consecrate a Lieu Sacrée (3 ⚙️)",
+        "cathedral_consecrate_choose": "⛪ Choose the territory to consecrate:",
+        "cathedral_consecrate_king_only": "❌ Only the King consecrates a Lieu Sacrée.",
+        "cathedral_consecrate_tier": "❌ The consecration requires the Cathédrale tier.",
+        "cathedral_consecrate_none": "❌ No territory is open to a consecration right now.",
+        "cathedral_consecrate_ok": (
+            "⛪ The chantier runs on **{0}** — verdict on {1} (Paris). "
+            "Until then the territory resists every technology; a classic attack can destroy the chantier."
+        ),
+        "cathedral_consecrated": (
+            "⛪ **{0}** consecrates a Lieu Sacrée on **{1}** — "
+            "72h of chantier: immune to technologies, attackable by classic attacks."
+        ),
+        "cathedral_sacred": (
+            "⛪ **{0}**'s Lieu Sacrée on **{1}** survived its chantier — the territory is now "
+            "**SACRED**: immune to everything, forever."
+        ),
         "church_err_not_in_hand": (
             "❌ This civilization is not in your Alliances hand."
         ),
@@ -876,6 +893,23 @@ STRINGS: dict[str, dict[str, Any]] = {
             "⛪ Paroisse améliorée : **{0}** (palier {1}/{2}) — trésorerie restante : {3} ⚙️"
         ),
         "church_upgrade_max": "❌ La Paroisse est déjà au palier maximal.",
+        "cathedral_consecrate_button": "⛪ Consacrer un Lieu Sacrée (3 ⚙️)",
+        "cathedral_consecrate_choose": "⛪ Choisis le territoire à consacrer :",
+        "cathedral_consecrate_king_only": "❌ Seul le Roi consacre un Lieu Sacrée.",
+        "cathedral_consecrate_tier": "❌ La consécration exige le palier Cathédrale.",
+        "cathedral_consecrate_none": "❌ Aucun territoire n'est disponible à la consécration pour le moment.",
+        "cathedral_consecrate_ok": (
+            "⛪ Le chantier est posé sur **{0}** — verdict le {1} (Paris). "
+            "Jusque-là le territoire résiste à toute technologie ; une attaque classique peut détruire le chantier."
+        ),
+        "cathedral_consecrated": (
+            "⛪ **{0}** consacre un Lieu Sacrée sur **{1}** — "
+            "72h de chantier : immunisé contre les technologies, attaquable en classique."
+        ),
+        "cathedral_sacred": (
+            "⛪ Le Lieu Sacrée de **{0}** sur **{1}** a survécu à son chantier — le territoire est désormais "
+            "**SACRÉ** : immunisé contre tout, à vie."
+        ),
         "church_err_not_in_hand": (
             "❌ Cette civilisation n'est pas dans votre main d'Alliances."
         ),

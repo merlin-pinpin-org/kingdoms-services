@@ -66,6 +66,7 @@ class KingdomsPanelWiring:
     distributor_service: Any = None
     voliere_service: Any = None
     ffa_service: Any = None
+    cathedral_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -107,6 +108,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             distributor_service=getattr(bot, "kingdoms_distributor_service", None),
             voliere_service=getattr(bot, "kingdoms_voliere_service", None),
             ffa_service=getattr(bot, "kingdoms_ffa_service", None),
+            cathedral_service=getattr(bot, "kingdoms_cathedral_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -145,6 +147,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomChurchMarryButton,
         KingdomChurchArrangeButton,
         KingdomChurchUpgradeButton,
+        KingdomChurchConsecrateButton,
         KingdomDistributorButton,
     )
 
@@ -2154,6 +2157,180 @@ class KingdomChurchUpgradeButton(
             ephemeral=True,
         )
         await _refresh_realm_views_for_kingdom_safe(interaction.guild, str(kingdom.id))
+
+
+class _ConsecrateSelect(discord.ui.Select["discord.ui.View"]):
+    """The ephemeral map-key picker of the Consecrate flow (lieu-sacree-v1)."""
+
+    def __init__(
+        self,
+        strings: dict[str, Any],
+        cathedral_service: Any,
+        kingdom: Any,
+        options: list[discord.SelectOption],
+    ) -> None:
+        super().__init__(
+            placeholder=str(strings["cathedral_consecrate_choose"])[:100],
+            options=options,
+        )
+        self._strings = strings
+        self._cathedral_service = cathedral_service
+        self._kingdom = kingdom
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Consecrate the chosen territory and report (best effort)."""
+        map_key = str(self.values[0])
+        await _consecrate_and_report(interaction, self._strings, self._kingdom, map_key)
+
+
+async def _consecrate_and_report(
+    interaction: discord.Interaction,
+    strings: dict[str, Any],
+    kingdom: Any,
+    map_key: str,
+) -> None:
+    """Run the consecration and report it (ephemeral note + Géopolitique)."""
+    wiring = _wiring()
+    cathedral_service = wiring.cathedral_service
+    if cathedral_service is None:
+        await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+        return
+    from kingdoms.mods.kingdoms.cathedrale import (
+        CathedralActiveError,
+        CathedralKingOnlyError,
+        CathedralTierError,
+    )
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        territory = await cathedral_service.consecrate(str(interaction.user.id), map_key)
+    except CathedralKingOnlyError:
+        await interaction.followup.send(strings["cathedral_consecrate_king_only"], ephemeral=True)
+        return
+    except CathedralTierError:
+        await interaction.followup.send(strings["cathedral_consecrate_tier"], ephemeral=True)
+        return
+    except CathedralActiveError:
+        await interaction.followup.send(strings["cathedral_consecrate_none"], ephemeral=True)
+        return
+    except Exception as exc:
+        await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
+        return
+    from zoneinfo import ZoneInfo
+
+    until = territory.cathedral_until
+    until_label = ""
+    if until is not None:
+        until_label = until.astimezone(ZoneInfo("Europe/Paris")).strftime("%d/%m %Hh%M")
+    await interaction.followup.send(
+        str(strings["cathedral_consecrate_ok"]).format(str(territory.map_key), until_label),
+        ephemeral=True,
+    )
+    guild = interaction.guild
+    if guild is not None:
+        from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
+
+        try:
+            await announce_geopolitics(
+                guild,
+                str(interaction.locale) if interaction.locale else "en",
+                str(strings["cathedral_consecrated"]).format(str(kingdom.name), str(territory.map_key)),
+            )
+        except Exception:
+            logger.info("KINGDOMS: consecration announcement skipped", exc_info=True)
+    await _refresh_realm_views_for_kingdom_safe(guild, str(kingdom.id))
+
+
+class KingdomChurchConsecrateButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:church:consecrate",
+):
+    """The restart-proof ⛪ Consecrate button of the Paroisse view (lieu-sacree-v1).
+
+    King only, Cathédrale palier: pays 3 ⚙️ and poses the 72h chantier
+    on one of the kingdom's territories — the ephemeral picker lists
+    them, a single candidate consecrates directly.
+    """
+
+    def __init__(self, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["cathedral_consecrate_button"])[:80],
+                custom_id="kingdoms:church:consecrate",
+                style=discord.ButtonStyle.success,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomChurchConsecrateButton:
+        """Rebuild the consecrate button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Check King + palier, then consecrate (pick when several choices)."""
+        from kingdoms.mods.kingdoms.cathedrale import CathedralError
+
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        cathedral_service = wiring.cathedral_service
+        if wiring.kingdoms_service is None or cathedral_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(
+                strings["cathedral_consecrate_king_only"], ephemeral=True
+            )
+            return
+        kingdom = await _kingdom_by_id_safe(wiring.kingdoms_service, str(king.kingdom_id))
+        if kingdom is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        settings = getattr(
+            getattr(wiring.kingdoms_service, "config", None), "parish", None
+        )
+        if settings is not None and int(getattr(kingdom, "parish_tier", 1) or 1) < len(settings.tiers):
+            await interaction.response.send_message(
+                strings["cathedral_consecrate_tier"], ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            candidates = await cathedral_service.consecratable(str(kingdom.kingdom_id))
+        except CathedralError as exc:
+            await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
+            return
+        if not candidates:
+            await interaction.followup.send(
+                strings["cathedral_consecrate_none"], ephemeral=True
+            )
+            return
+        if len(candidates) == 1:
+            await _consecrate_and_report(interaction, strings, kingdom, str(candidates[0].map_key))
+            return
+        view = discord.ui.View(timeout=300)
+        view.add_item(
+            _ConsecrateSelect(
+                strings,
+                cathedral_service,
+                kingdom,
+                [
+                    discord.SelectOption(label=str(item.map_key)[:100], value=str(item.map_key))
+                    for item in candidates[:25]
+                ],
+            )
+        )
+        await interaction.followup.send(
+            strings["cathedral_consecrate_choose"], view=view, ephemeral=True
+        )
 
 
 async def _revoke_kingdoms_roles(guild: discord.Guild | None, user_id: str) -> None:
