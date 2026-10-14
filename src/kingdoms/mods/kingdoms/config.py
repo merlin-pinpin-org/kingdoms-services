@@ -196,6 +196,26 @@ class EventSettings(BaseModel):
     exploration_second_tech: int = Field(default=3, ge=0)
     exploration_third_tech: int = Field(default=2, ge=0)
     exploration_other_tech: int = Field(default=1, ge=0)
+    # ------------------------------------------------------------------
+    # FFA Exploration (ffa-exploration-v1, Drasah 14/10/2026)
+    # ------------------------------------------------------------------
+    ffa_enabled: bool = True
+    """Whether the Saturday FFA Exploration runs at all."""
+    ffa_one_lord_per_kingdom: bool = True
+    """The admin parameter: ``1 seigneur par royaume`` (default) or
+    ``libre`` — snapshotted on each FFA at the draw, so an admin can
+    flip the default between two Saturdays."""
+    ffa_start_hours: tuple[int, ...] = (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+    """The full Paris hours the Saturday start is drawn among."""
+    ffa_announce_lead_hours: int = Field(default=2, ge=0)
+    """The announcement lands this many hours before the start, and
+    the enrollments open with it (Drasah's revision: no more midnight
+    announcement — 2h before the start)."""
+    ffa_game_minutes: int = Field(default=75, ge=1)
+    """The single FFA game duration (1h15)."""
+    ffa_no_show_lock_hours: int = Field(default=72, ge=0)
+    """A registered participant absent from the game is locked out of
+    combat for this many hours starting AT THE NEXT CYCLE SWITCH."""
 
 
 class CivilizationCondition(BaseModel):

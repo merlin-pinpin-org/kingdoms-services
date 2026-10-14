@@ -42,6 +42,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         from kingdoms.mods.kingdoms.distributor import DistributorService
         from kingdoms.mods.kingdoms.economy import EconomyService
         from kingdoms.mods.kingdoms.events import EventService
+        from kingdoms.mods.kingdoms.ffa_exploration import FFAExplorationService
         from kingdoms.mods.kingdoms.service import KingdomsService
         from kingdoms.mods.kingdoms.storage import MongoKingdomsStore
         from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -59,8 +60,9 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         time_machine = TimeMachineService(store, season_config, kingdoms, events)
         distributor = DistributorService(store, season_config, kingdoms, territories, attacks)
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
+        ffa = FFAExplorationService(store, season_config, kingdoms, events)
         return (
-            kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere
+            kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere, ffa
         )
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
@@ -87,8 +89,9 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_time_service = None
         bot.kingdoms_distributor_service = None
         bot.kingdoms_voliere_service = None
+        bot.kingdoms_ffa_service = None
     else:
-        kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere = services
+        kingdoms, territories, attacks, economy, diplomacy, events, time_machine, distributor, voliere, ffa = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
         bot.kingdoms_attacks_service = attacks
@@ -98,6 +101,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_time_service = time_machine
         bot.kingdoms_distributor_service = distributor
         bot.kingdoms_voliere_service = voliere
+        bot.kingdoms_ffa_service = ffa
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)

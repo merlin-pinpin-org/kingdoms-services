@@ -18,6 +18,7 @@ TERRITORIES_COLLECTION = "kingdoms_territories"
 TECHNOLOGIES_COLLECTION = "kingdoms_technologies"
 ATTACKS_COLLECTION = "kingdoms_attacks"
 SHOWMATCH_COLLECTION = "kingdoms_showmatch"
+FFA_COLLECTION = "kingdoms_ffa"
 SEASON_ARCHIVES_COLLECTION = "kingdoms_season_archives"
 
 
@@ -90,6 +91,14 @@ class KingdomsStore(Protocol):
 
     async def delete_technology(self, kingdom_id: str) -> None:
         """Drop one technology document by ``_id``."""
+        ...
+
+    async def upsert_ffa(self, document: dict[str, Any]) -> None:
+        """Insert or replace one FFA Exploration document by ``_id``."""
+        ...
+
+    async def find_ffas(self) -> list[dict[str, Any]]:
+        """Return every FFA Exploration document."""
         ...
 
     async def upsert_showmatch(self, document: dict[str, Any]) -> None:
@@ -206,6 +215,17 @@ class MongoKingdomsStore:
         """Drop one technology document by ``_id``."""
         await self._database[TECHNOLOGIES_COLLECTION].delete_one({"_id": document_id})
 
+    async def upsert_ffa(self, document: dict[str, Any]) -> None:
+        """Insert or replace one FFA Exploration document by ``_id``."""
+        await self._database[FFA_COLLECTION].replace_one(
+            {"_id": document["_id"]}, document, upsert=True
+        )
+
+    async def find_ffas(self) -> list[dict[str, Any]]:
+        """Return every FFA Exploration document."""
+        cursor = self._database[FFA_COLLECTION].find({})
+        return [dict(doc) async for doc in cursor]
+
     async def upsert_showmatch(self, document: dict[str, Any]) -> None:
         """Insert or replace the ShowMatch document by ``_id``."""
         await self._database[SHOWMATCH_COLLECTION].replace_one(
@@ -231,6 +251,7 @@ class MongoKingdomsStore:
             TECHNOLOGIES_COLLECTION,
             ATTACKS_COLLECTION,
             SHOWMATCH_COLLECTION,
+            FFA_COLLECTION,
         ):
             await self._database[collection].delete_many({})
 

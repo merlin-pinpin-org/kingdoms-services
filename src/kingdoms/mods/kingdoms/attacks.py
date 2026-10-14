@@ -552,9 +552,17 @@ class AttackService:
             timestamp.timestamp()
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+        self._refuse_ffa_no_show(lord, timestamp)
         if await self._territory_busy(territory.id):
             raise TerritoryBusyError("the territory already has an ongoing attack")
         return territory
+
+    def _refuse_ffa_no_show(self, lord: LordModel, timestamp: datetime) -> None:
+        """ffa-exploration-v1: a missed FFA locks the lord out of combat."""
+        if lord.ffa_locked_until is not None and lord.ffa_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise LordLockedError("the lord is locked by a missed FFA (ffa-exploration-v1)")
 
     async def _engage_cover(self, lord: LordModel, cover_lord_id: str) -> str:
         """Validate and consume one cover (Contre-espionnage, D77)."""
@@ -604,6 +612,7 @@ class AttackService:
             _now().timestamp()
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+        self._refuse_ffa_no_show(lord, _now())
         if lord.defense_used >= self._config.attacks.defenses_per_week:
             raise NoBudgetError("the weekly defense budget is spent")
         lord.defense_used += 1
@@ -1003,6 +1012,7 @@ class AttackService:
             timestamp.timestamp()
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
+        self._refuse_ffa_no_show(lord, timestamp)
         territory = await self._territory_by_map(map_key)
         owner = await self._kingdom_by_id(territory.owner_kingdom_id)
         if not owner.is_gaia:

@@ -174,6 +174,13 @@ class LordModel(BaseModel):
     royal_marriage: bool = False
     left: bool = False
     left_reason: str | None = None
+    ffa_locked_until: int | None = None
+    """FFA Exploration no-show lock (ffa-exploration-v1, Drasah
+    14/10/2026): a lord who reserved a Saturday FFA slot and did not
+    show up is locked out of combat (attacks, defenses, Gaïa
+    free-for-alls) for 72h STARTING AT THE NEXT CYCLE SWITCH — the
+    timestamp is computed at result ingestion and enforced exactly
+    like the marriage and exploration locks."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -473,5 +480,56 @@ class ShowMatchModel(BaseModel):
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> ShowMatchModel:
+        """Build from a MongoDB document."""
+        return _from_wire(cls, data)
+
+
+class FFAExplorationModel(BaseModel):
+    """One Saturday FFA Exploration (ffa-exploration-v1, Drasah 14/10/2026).
+
+    The bot draws the start hour at random among the configured full
+    hours (default 10h-20h Paris), announces the FFA 2h before in the
+    Géopolitique salon (the announcement opens the enrollments), and
+    the players reserve a slot through the persistent « Aller
+    explorer » button — first come, first served, up to the Gaïa
+    free-for-all participant ceiling. One single 1h15 game mixes the
+    AI Gaïa and every participant; the ranking comes back through the
+    game contract (D20) and the rewards flow through
+    ``EventService.run_exploration`` (map for the winner + graduated
+    tech points). A registered participant absent from the ranking is
+    a no-show: 72h combat lock starting at the next cycle switch.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(alias="_id")
+    season_id: str
+    date: str
+    """The Saturday this FFA belongs to (ISO date, Paris timezone)."""
+    start_at: datetime
+    """The drawn start time (UTC, tz-aware)."""
+    announce_at: datetime
+    """Start minus the announce lead (2h by default) — when the
+    Géopolitique announcement opens the enrollments."""
+    one_lord_per_kingdom: bool = True
+    """The admin parameter: ``1 seigneur par royaume`` (default) or
+    ``libre`` — snapshotted from the config at the draw."""
+    announced: bool = False
+    started: bool = False
+    finished: bool = False
+    participants: list[str] = Field(default_factory=list)
+    """The lord ids holding a slot (first come, first served)."""
+    ranking: list[str] = Field(default_factory=list)
+    """The lord ids best-first, as reported by the game contract."""
+    no_shows: list[str] = Field(default_factory=list)
+    """The registered participants absent from the game (72h lock)."""
+    resolved_at: datetime | None = None
+
+    def to_mongo(self) -> dict[str, Any]:
+        """Convert to a MongoDB document."""
+        return self.model_dump(by_alias=True)
+
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> FFAExplorationModel:
         """Build from a MongoDB document."""
         return _from_wire(cls, data)

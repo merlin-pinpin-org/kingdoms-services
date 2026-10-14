@@ -422,6 +422,34 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_patrouille_slot_ok": (
             "🛡️ Patrol slot {} unlocked — place the window from the 🧱 Remparts salon."
         ),
+        "ffa_join_button": "🗺️ Aller explorer",
+        "ffa_join_note": (
+            "✅ **{lord}** holds an FFA Exploration slot — **{time}** (Paris time). "
+            "{count}/{max} participant(s)."
+        ),
+        "ffa_left_note": "🚪 **{lord}** released their slot — {count}/{max} participant(s).",
+        "ffa_not_open": "❌ No FFA Exploration is open for enrollment right now.",
+        "ffa_full": "❌ The FFA Exploration is full ({max} participants).",
+        "ffa_kingdom_full": (
+            "❌ Your kingdom already holds a slot (mode: one lord per kingdom)."
+        ),
+        "ffa_locked": (
+            "❌ You are locked (a fresh Explorateur 48h lock or a missed FFA) — "
+            "you cannot enroll."
+        ),
+        "ffa_announce": (
+            "🧭 **FFA Exploration — Saturday {time} (Paris time)**\n"
+            "One FREE {duration}-minute game against the Gaïa AI and the other "
+            "participants — {max} slots, mode: {mode}. Click "
+            "**« Aller explorer »** to reserve yours (first come, first "
+            "served; click again to release it)."
+        ),
+        "ffa_start": (
+            "🧭 **The FFA Exploration starts now** — {count} participant(s), "
+            "{duration} minutes. Good luck!"
+        ),
+        "ffa_mode_one": "one lord per kingdom",
+        "ffa_mode_free": "free slots",
         "market_err_no_points": "❌ The kingdom holds no marriage point.",
         "market_err_no_token": (
             "❌ No arranged marriage in stock — buy a token at the Market."
@@ -774,6 +802,34 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_patrouille_slot_ok": (
             "🛡️ Emplacement de patrouille {} débloqué — pose le créneau depuis le salon 🧱 Remparts."
         ),
+        "ffa_join_button": "🗺️ Aller explorer",
+        "ffa_join_note": (
+            "✅ **{lord}** tient un créneau du FFA Exploration — **{time}** "
+            "(heure de Paris). {count}/{max} participant(s)."
+        ),
+        "ffa_left_note": "🚪 **{lord}** a libéré son créneau — {count}/{max} participant(s).",
+        "ffa_not_open": "❌ Aucun FFA Exploration n'est ouvert aux inscriptions pour le moment.",
+        "ffa_full": "❌ Le FFA Exploration est complet ({max} participants).",
+        "ffa_kingdom_full": (
+            "❌ Ton royaume tient déjà un créneau (mode : 1 seigneur par royaume)."
+        ),
+        "ffa_locked": (
+            "❌ Tu es verrouillé (verrou Explorateur 48h en cours ou FFA manqué) — "
+            "inscription impossible."
+        ),
+        "ffa_announce": (
+            "🧭 **FFA Exploration — samedi {time} (heure de Paris)**\n"
+            "Une partie GRATUITE de {duration} minutes contre l'IA Gaïa et les "
+            "autres participants — {max} places, mode : {mode}. Clique sur "
+            "**« Aller explorer »** pour réserver ton créneau (1er arrivé, "
+            "1er servi ; re-clique pour le libérer)."
+        ),
+        "ffa_start": (
+            "🧭 **Le FFA Exploration commence maintenant** — {count} participant(s), "
+            "{duration} minutes. Bonne chance !"
+        ),
+        "ffa_mode_one": "1 seigneur par royaume",
+        "ffa_mode_free": "places libres",
         "market_err_no_points": "❌ Le royaume ne détient plus de point de mariage.",
         "market_err_no_token": (
             "❌ Aucun mariage arrangé en stock — achetez un jeton au Marché."

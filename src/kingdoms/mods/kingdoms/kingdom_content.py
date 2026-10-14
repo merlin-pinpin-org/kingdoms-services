@@ -323,13 +323,15 @@ async def refresh_channel_descriptions(guild: discord.Guild) -> dict[str, str]:
 
 
 async def _announce_geopolitics_message(
-    guild: discord.Guild, text: str
+    guild: discord.Guild, text: str, view: discord.ui.View | None = None
 ) -> discord.Message | None:
     """Send one Géopolitique announcement; return the live message.
 
     The royal-wedding announcement (Drasah 2026-10-12) attaches ONE
     public « En savoir plus » thread to the message — the caller
-    needs the live message back, not a mere success bool. Best
+    needs the live message back, not a mere success bool. The FFA
+    Exploration announcement (Drasah 2026-10-14) carries the
+    persistent « Aller explorer » button through ``view``. Best
     effort: a missing channel or a refused send returns None and
     never raises.
     """
@@ -337,15 +339,22 @@ async def _announce_geopolitics_message(
     if channel is None:
         return None
     try:
-        return cast(discord.Message, await channel.send(text))
+        if view is None:
+            return cast(discord.Message, await channel.send(text))
+        return cast(discord.Message, await channel.send(text, view=view))
     except Exception:
         logger.warning("KINGDOM CONTENT: geopolitics announcement failed", exc_info=True)
         return None
 
 
-async def announce_geopolitics(guild: discord.Guild, locale: str, text: str) -> bool:
+async def announce_geopolitics(
+    guild: discord.Guild,
+    locale: str,
+    text: str,
+    view: discord.ui.View | None = None,
+) -> bool:
     """Send one announcement in the Géopolitique channel (best effort)."""
-    return await _announce_geopolitics_message(guild, text) is not None
+    return await _announce_geopolitics_message(guild, text, view=view) is not None
 
 
 async def announce_enrollment(

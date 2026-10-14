@@ -276,6 +276,105 @@ async def _resolve_explorations_safe(bot: Any) -> None:
                 )
 
 
+async def _ffa_announce_safe(bot: Any, ffa_service: Any, ffa: Any) -> None:
+    """Announce the drawn FFA in each guild with the join button."""
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
+    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomFFAJoinButton
+
+    events_settings = ffa_service._config.events
+    tz = _ffa_timezone(events_settings)
+    maximum = ffa_service.max_participants()
+    mode_key = "ffa_mode_one" if ffa.one_lord_per_kingdom else "ffa_mode_free"
+    for guild in list(getattr(bot, "guilds", []) or []):
+        strings = panels_strings(await _guild_locale(bot, str(guild.id)))
+        text = str(strings["ffa_announce"]).format(
+            time=ffa.start_at.astimezone(tz).strftime("%Hh%M"),
+            duration=int(events_settings.ffa_game_minutes),
+            max=maximum,
+            mode=strings[mode_key],
+        )
+        view = discord.ui.View(timeout=None)
+        view.add_item(KingdomFFAJoinButton(strings))
+        try:
+            await announce_geopolitics(guild, "", text, view=view)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: FFA announcement failed", exc_info=True)
+
+
+async def _ffa_start_safe(bot: Any, ffa_service: Any, started: Any) -> None:
+    """Announce the FFA start in each guild (best effort)."""
+    from kingdoms.mods.kingdoms.kingdom_panels import _strings as panels_strings
+
+    events_settings = ffa_service._config.events
+    for guild in list(getattr(bot, "guilds", []) or []):
+        strings = panels_strings(await _guild_locale(bot, str(guild.id)))
+        text = str(strings["ffa_start"]).format(
+            count=len(started.participants),
+            duration=int(events_settings.ffa_game_minutes),
+        )
+        try:
+            await announce_geopolitics(guild, "", text)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: FFA start announcement failed", exc_info=True)
+
+
+def _ffa_timezone(events_settings: Any) -> Any:
+    """Resolve the scheduling timezone, UTC as the safe fallback."""
+    from zoneinfo import ZoneInfo
+
+    try:
+        return ZoneInfo(str(getattr(events_settings, "schedule_timezone", "UTC")))
+    except Exception:
+        return ZoneInfo("UTC")
+
+
+async def _ffa_exploration_tick_safe(bot: Any) -> None:
+    """Run the Saturday FFA Exploration tick (ffa-exploration-v1, Drasah 14/10).
+
+    Draw (or read back) this Saturday's random start hour; announce in
+    Géopolitique 2h before — the announcement carries the persistent
+    « Aller explorer » button and opens the enrollments; at the drawn
+    hour the game starts. Every step replays safely through the
+    persisted document (announced/started flags).
+    """
+    ffa_service = getattr(bot, "kingdoms_ffa_service", None)
+    if ffa_service is None:
+        return
+    events_settings = getattr(getattr(ffa_service, "_config", None), "events", None)
+    if events_settings is None or not getattr(events_settings, "ffa_enabled", False):
+        return
+    if not list(getattr(bot, "guilds", []) or []):
+        return
+    now = datetime.now(tz=UTC)
+    try:
+        ffa = await ffa_service.draw_or_get(now)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA draw failed", exc_info=True)
+        return
+    if ffa is None:
+        return
+    try:
+        if ffa_service.due_announce(ffa, now):
+            await _ffa_announce_safe(bot, ffa_service, ffa)
+            await ffa_service.mark_announced(ffa)
+            logger.info(
+                "KINGDOMS EVENTS: FFA Exploration of %s announced (start %s)",
+                ffa.date,
+                ffa.start_at.isoformat(),
+            )
+            return
+        if ffa_service.due_start(ffa, now):
+            started = await ffa_service.start_due(now)
+            if started is None:
+                return
+            await _ffa_start_safe(bot, ffa_service, started)
+            logger.info("KINGDOMS EVENTS: FFA Exploration of %s started", ffa.date)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA Exploration tick failed", exc_info=True)
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -303,6 +402,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         except Exception:
             logger.warning("KINGDOMS EVENTS: attack phases failed", exc_info=True)
         await _resolve_explorations_safe(bot)
+        await _ffa_exploration_tick_safe(bot)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

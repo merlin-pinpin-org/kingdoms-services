@@ -65,6 +65,7 @@ class KingdomsPanelWiring:
     time_service: Any = None
     distributor_service: Any = None
     voliere_service: Any = None
+    ffa_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -105,6 +106,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             time_service=getattr(bot, "kingdoms_time_service", None),
             distributor_service=getattr(bot, "kingdoms_distributor_service", None),
             voliere_service=getattr(bot, "kingdoms_voliere_service", None),
+            ffa_service=getattr(bot, "kingdoms_ffa_service", None),
         )
 
     _WIRING_RESOLVER = _resolve
@@ -134,6 +136,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketLedgerButton,
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
+        KingdomFFAJoinButton,
         KingdomRealmButton,
         KingdomKingNameButton,
         KingdomKingClaimSelect,
@@ -1470,6 +1473,92 @@ class KingdomRempartsPatrouilleButton(
         await interaction.response.send_message(
             strings["market_choose_slot"], view=view, ephemeral=True
         )
+
+
+class KingdomFFAJoinButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:ffa:join",
+):
+    """The restart-proof 🗺️ « Aller explorer » button (ffa-exploration-v1).
+
+    Drasah 14/10/2026: the Saturday FFA Exploration announcement in
+    Géopolitique carries this persistent button. Any lord of the
+    season may click to RESERVE a free slot; a second click before
+    the start RELEASES it (the toggle settles the open withdrawal
+    point — a quitter never blocks a seat).
+    """
+
+    def __init__(self, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["ffa_join_button"])[:80],
+                custom_id="kingdoms:ffa:join",
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomFFAJoinButton:
+        """Rebuild the FFA join button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Toggle the lord's FFA slot (join/leave), ephemeral note."""
+        from kingdoms.mods.kingdoms.attacks import LordLockedError
+        from kingdoms.mods.kingdoms.ffa_exploration import (
+            FFA_JOINED,
+            FFAFullError,
+            FFAKingdomFullError,
+            FFANotOpenError,
+        )
+
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        ffa_service = wiring.ffa_service
+        if ffa_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        try:
+            state, ffa = await ffa_service.enroll(str(interaction.user.id))
+        except FFANotOpenError:
+            await interaction.response.send_message(strings["ffa_not_open"], ephemeral=True)
+            return
+        except FFAFullError:
+            await interaction.response.send_message(
+                str(strings["ffa_full"]).format(max=ffa_service.max_participants()),
+                ephemeral=True,
+            )
+            return
+        except FFAKingdomFullError:
+            await interaction.response.send_message(strings["ffa_kingdom_full"], ephemeral=True)
+            return
+        except LordLockedError:
+            await interaction.response.send_message(strings["ffa_locked"], ephemeral=True)
+            return
+        except Exception as exc:
+            await interaction.response.send_message(
+                _market_error_note(exc, strings), ephemeral=True
+            )
+            return
+        count = len(ffa.participants)
+        maximum = ffa_service.max_participants()
+        if state == FFA_JOINED:
+            note = str(strings["ffa_join_note"]).format(
+                interaction.user.display_name, count, maximum
+            )
+        else:
+            note = str(strings["ffa_left_note"]).format(
+                interaction.user.display_name, count, maximum
+            )
+        await interaction.response.send_message(note, ephemeral=True)
 
 
 class KingdomTraquenardButton(
