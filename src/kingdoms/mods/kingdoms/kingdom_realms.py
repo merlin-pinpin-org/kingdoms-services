@@ -35,7 +35,7 @@ REALMS_PANEL_MARKER = "kingdoms:panel:royaumes"
 REALMS_CHANNEL = "Royaumes"
 REALM_SALONS: tuple[tuple[str, str], ...] = (
     ("salle-du-conseil", "Salle du Conseil"),
-    ("patrouille", "Patrouille"),
+    ("patrouille", "🧱 Remparts"),
     ("seigneurs", "Seigneurs"),
     ("le-royaume", "Le-Royaume"),
     ("territoire", "Territoire"),
@@ -45,7 +45,10 @@ REALM_SALONS: tuple[tuple[str, str], ...] = (
 )
 # Drasah 2026-10-11: the salon « Église » is renamed « Paroisse » (the
 # palier lives inside); the data key ``eglise`` never changes.
-LEGACY_REALM_SALON_NAMES: dict[str, str] = {"eglise": "Église"}
+# Drasah 2026-10-14 (marche-v2 article 7): the salon « Patrouille » is
+# renamed « 🧱 Remparts » (the Garde Royale is piloted inside); the data
+# key ``patrouille`` never changes.
+LEGACY_REALM_SALON_NAMES: dict[str, str] = {"eglise": "Église", "patrouille": "Patrouille"}
 PUBLIC_REALM_SALONS = {"territoire", "alliances"}
 
 STRINGS: dict[str, dict[str, str]] = {
@@ -355,7 +358,8 @@ async def ensure_realm_structure(
             None,
         )
         if existing is None and key in LEGACY_REALM_SALON_NAMES:
-            # adopt the pre-rename salon (Église → Paroisse) by renaming it
+            # adopt the pre-rename salon (Église → Paroisse, Patrouille
+            # → 🧱 Remparts) by renaming it
             legacy = next(
                 (
                     c

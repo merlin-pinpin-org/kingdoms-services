@@ -49,12 +49,10 @@ CORRUPTION = "corruption"
 GARDE_ROYALE = "garde_royale"
 PATROUILLE = "patrouille"
 PATROUILLE_HOURS = 2
-ROYAL_GUARD_HOURS = 24
-ROYAL_GUARD_EXTENSION_HOURS = 3
+ROYAL_GUARD_HOURS = 12
 CORRUPTION_PROTECTION_HOURS = 48
 CORRUPTION_COMPENSATION_TECH = 1
 GUARD_UNTIL_KEY = "garde_royale_until"
-GUARD_EXTENSIONS_KEY = "garde_royale_extensions"
 
 
 class EconomyError(KingdomsModError):
@@ -274,7 +272,7 @@ class EconomyService:
         return fresh
 
     # ------------------------------------------------------------------
-    # Garde Royale (D47)
+    # Garde Royale (marche-v2 article 7, refonte 13/10)
     # ------------------------------------------------------------------
     async def buy_royal_guard(
         self,
@@ -283,10 +281,14 @@ class EconomyService:
         *,
         now: datetime | None = None,
     ) -> TerritoryModel:
-        """Shield one of the kingdom's territories for 24 hours (D47).
+        """Shield ONE kingdom map for 12 hours (marche-v2 article 7).
 
-        No stacking: a territory already shielded cannot be shielded
-        again while the effect lasts - it extends instead.
+        The guard protects that map against everything: Corruption,
+        Embuscade and classic attacks. Not retroactive — attacks
+        already declared before the purchase stay valid. No stacking
+        and no extension: a kingdom carries at most one active guard,
+        and a new guard is a fresh full-price purchase (2 ⚙️ once
+        config follows the spec).
         """
         territory = await self._owned_territory(kingdom_id, territory_id)
         timestamp = now or datetime.now(tz=UTC)
@@ -310,44 +312,6 @@ class EconomyService:
         )
         await self._record_purchase(
             kingdom_id, GARDE_ROYALE, f"map {territory.map_key}", self._cost(GARDE_ROYALE)
-        )
-        return territory
-
-    async def extend_royal_guard(
-        self,
-        kingdom_id: str,
-        territory_id: str,
-        *,
-        now: datetime | None = None,
-    ) -> TerritoryModel:
-        """Extend the active guard: each prolongation costs one more (D61).
-
-        The first extension costs 1 tech point, the second 2, the third
-        3 - each buys three more hours. Only the territory carrying the
-        kingdom's active guard can be extended.
-        """
-        territory = await self._owned_territory(kingdom_id, territory_id)
-        timestamp = now or datetime.now(tz=UTC)
-        until = territory.protected_until
-        if until is None or until <= timestamp:
-            raise TerritoryProtectedError("no royal guard shields this territory")
-        state = await self._attacks.technology_state(kingdom_id)
-        if state.purchases.get(GUARD_UNTIL_KEY, 0) != int(until.timestamp()):
-            raise TerritoryProtectedError("no royal guard shields this territory")
-        extensions = state.purchases.get(GUARD_EXTENSIONS_KEY, 0)
-        await self.spend_points(kingdom_id, 1 + extensions)
-        territory.protected_until = until + timedelta(
-            hours=ROYAL_GUARD_EXTENSION_HOURS
-        )
-        state.purchases[GUARD_UNTIL_KEY] = int(territory.protected_until.timestamp())
-        state.purchases[GUARD_EXTENSIONS_KEY] = extensions + 1
-        await self._store.upsert_technology(state.to_mongo())
-        await self._store.upsert_territory(territory.to_mongo())
-        logger.info(
-            "kingdoms: %s extended the guard on %s until %s",
-            kingdom_id,
-            territory_id,
-            territory.protected_until.isoformat(),
         )
         return territory
 

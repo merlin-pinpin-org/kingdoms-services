@@ -66,6 +66,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomMarketLedgerButton,
         KingdomMarketTechButton,
         KingdomProfileButton,
+        KingdomRempartsGuardButton,
         KingdomRequestButton,
         KingdomRoleInfoButton,
     )
@@ -80,6 +81,7 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
+        KingdomRempartsGuardButton,
         KingdomAttackDeclareButton,
         KingdomAttackDefendButton,
     }

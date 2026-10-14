@@ -74,14 +74,19 @@ def _strings(locale: str) -> dict[str, str]:
             "roster_title": "🎖️ Seigneurs — {0}",
             "roster_empty": "Aucun membre enrôlé pour le moment.",
             "left_badge": "❌ parti",
-            "patrol_title": "🛡️ Patrouille — {0}",
+            "patrol_title": "🧱 Remparts — {0}",
             "patrol_bought": "Tranches achetées",
             "patrol_left": "Achats restants",
             "patrol_window": "Modification : dimanche 23h30 → lundi 10h00 (D68, câblage à venir)",
             "patrol_slot": "{0:02d}h00 → {1:02d}h00 (chaque jour)",
+            "remparts_guard": "Garde Royale",
+            "remparts_guard_none": "aucune",
+            "remparts_guard_line": "🛡️ **{0}** — protégée jusqu'à {1}",
+            "remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)",
             "territory_title": "🗺️ Territoire — {0}",
             "territory_count": "{0} territoire(s)",
             "territory_empty": "Aucun territoire pour le moment.",
+            "territory_guard": "🛡️ protégée jusqu'à {0}",
             "territory_note": "La Corruption transfère le territoire de salon (D58).",
             "territory_pending_body": (
                 "La carte reste secrète pour l'instant.\n"
@@ -162,14 +167,19 @@ def _strings(locale: str) -> dict[str, str]:
         "roster_title": "🎖️ Lords — {0}",
         "roster_empty": "No member enrolled yet.",
         "left_badge": "❌ left",
-        "patrol_title": "🛡️ Patrol — {0}",
+        "patrol_title": "🧱 Remparts — {0}",
         "patrol_bought": "Bought slots",
         "patrol_left": "Purchases left",
         "patrol_window": "Change: Sunday 23:30 → Monday 10:00 (D68, wiring coming soon)",
         "patrol_slot": "{0:02d}:00 → {1:02d}:00 (daily)",
+        "remparts_guard": "Royal Guard",
+        "remparts_guard_none": "none",
+        "remparts_guard_line": "🛡️ **{0}** — shielded until {1}",
+        "remparts_guard_button": "🛡️ Royal Guard ({0} ⚙️)",
         "territory_title": "🗺️ Territory — {0}",
         "territory_count": "{0} territor(y|ies)",
         "territory_empty": "No territory yet.",
+        "territory_guard": "🛡️ shielded until {0}",
         "territory_note": "Corruption moves the territory across salons (D58).",
         "territory_pending_body": (
             "The map stays secret for now.\n"
@@ -378,6 +388,7 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
         "civ_names": _catalog_names(service, "civilizations") if service is not None else {},
         "map_names": _catalog_names(service, "maps") if service is not None else {},
         "patrol_limit": _patrol_limit(service),
+        "guard_cost": _guard_cost(service),
         "parish": _parish_state(kingdom, service),
     }
     return state
@@ -446,6 +457,17 @@ def _patrol_limit(service: Any) -> int:
         return 2
     try:
         return int(limits.limits.get("patrouille", 2))
+    except Exception:
+        return 2
+
+
+def _guard_cost(service: Any) -> int:
+    """Return the configured Garde Royale cost (marche-v2 article 7: 2)."""
+    technologies = getattr(getattr(service, "config", None) if service is not None else None, "technologies", None)
+    if technologies is None:
+        return 2
+    try:
+        return int(getattr(technologies, "garde_royale", 2))
     except Exception:
         return 2
 
@@ -564,12 +586,28 @@ def _patrol_slots(state: dict[str, Any]) -> list[int]:
     return sorted(slots)
 
 
+def _guarded_territory(state: dict[str, Any], now: datetime) -> Any | None:
+    """Return the kingdom's currently guarded territory (None otherwise)."""
+    for territory in state["territories"]:
+        until = getattr(territory, "protected_until", None)
+        if until is not None and until > now:
+            return territory
+    return None
+
+
 def _build_patrol(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the 🛡️ Patrouille state view (D68)."""
+    """Build the 🧱 Remparts state view (D68 patrols + article 7 guard).
+
+    The renamed salon (ex-« Patrouille », marche-v2 article 7) keeps the
+    patrol slots and gains the Garde Royale: the active shield line
+    (map + protection END TIME) and the King's buy button.
+    """
+    from datetime import UTC
+
     import discord
 
     slots = _patrol_slots(state)
@@ -577,18 +615,31 @@ def _build_patrol(
         strings["patrol_slot"].format(slot, slot + 2) for slot in slots
     ) or strings["none_f"]
     remaining = max(0, int(state["patrol_limit"]) - len(slots))
+    now = datetime.now(tz=UTC)
+    guard_line = strings["remparts_guard_none"]
+    guarded = _guarded_territory(state, now)
+    if guarded is not None:
+        key = str(getattr(guarded, "map_key", ""))
+        until = int(guarded.protected_until.timestamp())
+        guard_line = strings["remparts_guard_line"].format(
+            state["map_names"].get(key, key), _lock_until_label(until, strings)
+        )
     body = "\n".join(
         [
             f"**{strings['patrol_bought']}** : {bought}",
             f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
+            f"**{strings['remparts_guard']}** : {guard_line}",
             strings["patrol_window"],
         ]
     )
-    return _panel_view(
+    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomRempartsGuardButton
+
+    return _panel_view_with_buttons(
         strings["patrol_title"].format(getattr(kingdom, "name", "")),
         body,
         f"{VIEW_MARKER_PREFIX}:patrouille",
         discord.Colour.teal(),
+        [KingdomRempartsGuardButton(strings, int(state.get("guard_cost", 2)))],
     )
 
 
@@ -597,15 +648,24 @@ def _build_territory(
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the 🗺️ Territoire state view."""
+    """Build the 🗺️ Territoire state view (guarded maps wear 🛡️ + end)."""
+    from datetime import UTC
+
     import discord
 
+    now = datetime.now(tz=UTC)
     lines = [strings["territory_count"].format(len(state["territories"]))]
     if not state["territories"]:
         lines.append(strings["territory_empty"])
     for territory in state["territories"]:
         key = str(getattr(territory, "map_key", ""))
-        lines.append(f"• **{state['map_names'].get(key, key)}**")
+        line = f"• **{state['map_names'].get(key, key)}**"
+        until = getattr(territory, "protected_until", None)
+        if until is not None and until > now:
+            # marche-v2 article 7: the shielded map shows its 🛡️ and the
+            # protection END TIME next to its name.
+            line += f" {strings['territory_guard'].format(_lock_until_label(int(until.timestamp()), strings))}"
+        lines.append(line)
     lines.append(strings["territory_note"])
     return _panel_view(
         strings["territory_title"].format(getattr(kingdom, "name", "")),

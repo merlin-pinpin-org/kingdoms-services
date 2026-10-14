@@ -1482,7 +1482,9 @@ async def build_market_panel(
             )
         )
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    for key in ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange"):
+    # marche-v2 article 7: the Garde Royale left the market — it is
+    # bought and piloted from the 🧱 Remparts salon.
+    for key in ("explorateur", "corruption", "patrouille", "mariage_arrange"):
         cost = int(getattr(technologies, key))
         action_row.add_item(
             KingdomMarketActionButton(

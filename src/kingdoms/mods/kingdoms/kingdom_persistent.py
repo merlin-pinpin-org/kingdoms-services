@@ -130,6 +130,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
+        KingdomRempartsGuardButton,
         KingdomRealmButton,
         KingdomKingNameButton,
         KingdomKingClaimSelect,
@@ -1066,16 +1067,14 @@ class KingdomMarketModal(discord.ui.Modal):
                 ephemeral=True,
             )
             return
-        if item in ("corruption", "garde_royale"):
+        if item == "corruption":
             view = await _market_action_select_view(wiring, king, item, strings, anchor=interaction)
             if view is None:
                 await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
                 return
-            prompt = {
-                "corruption": strings["market_choose_corrupt"],
-                "garde_royale": strings["market_choose_guard"],
-            }[item]
-            await interaction.response.send_message(prompt, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                strings["market_choose_corrupt"], view=view, ephemeral=True
+            )
             return
         await interaction.response.defer(ephemeral=True)
         try:
@@ -1164,7 +1163,7 @@ class KingdomMarketTechButton(
 class KingdomMarketActionButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
-        r"kingdoms:market:action:(?P<action>explorateur|corruption|garde_royale"
+        r"kingdoms:market:action:(?P<action>explorateur|corruption"
         r"|patrouille|mariage_arrange)"
     ),
 ):
@@ -1218,6 +1217,65 @@ class KingdomMarketActionButton(
                 wiring=wiring,
                 king=king,
             )
+        )
+
+
+class KingdomRempartsGuardButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:remparts:guard",
+):
+    """The restart-proof 🛡️ Garde Royale button of the 🧱 Remparts view.
+
+    marche-v2 article 7 (Drasah 13/10): the Garde Royale is bought and
+    piloted from the renamed Remparts salon, NOT from the market. The
+    King picks the shielded map in an ephemeral select; the guard lasts
+    12h on ONE map (no stacking, no extension, non-retroactive).
+    """
+
+    def __init__(self, strings: dict[str, Any], cost: int) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["remparts_guard_button"]).format(cost)[:80],
+                custom_id="kingdoms:remparts:guard",
+                style=discord.ButtonStyle.primary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRempartsGuardButton:
+        """Rebuild the guard button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        cost = int(getattr(_market_costs(wiring), "garde_royale", 0) or 0)
+        return cls(strings, cost)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the King-only map select of the Garde Royale."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.economy_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
+            return
+        view = await _market_action_select_view(
+            wiring, king, "garde_royale", strings, anchor=interaction
+        )
+        if view is None:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        await interaction.response.send_message(
+            strings["market_choose_guard"], view=view, ephemeral=True
         )
 
 

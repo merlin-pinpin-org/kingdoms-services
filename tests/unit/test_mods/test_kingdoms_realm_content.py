@@ -78,9 +78,10 @@ class _KingdomsService:
 
 
 class _Territory:
-    def __init__(self, map_key: str) -> None:
+    def __init__(self, map_key: str, protected_until: object = None) -> None:
         self.map_key = map_key
         self.owner_kingdom_id = "k-1"
+        self.protected_until = protected_until
 
 
 class _TerritoriesService:
@@ -141,6 +142,19 @@ def _text(message) -> str:
     return message_text(message)
 
 
+def _ids(view) -> set:
+    """Every custom_id of a view, walking the Components V2 tree."""
+    found: set = set()
+    stack = [view]
+    while stack:
+        node = stack.pop()
+        custom_id = getattr(node, "custom_id", None)
+        if custom_id:
+            found.add(str(custom_id))
+        stack.extend(getattr(node, "children", []) or [])
+    return found
+
+
 async def test_all_six_views_land_in_their_salons() -> None:
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
@@ -155,7 +169,14 @@ async def test_all_six_views_land_in_their_salons() -> None:
         "eglise": True,
         "pigeon-voyageur": True,
     }
-    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Paroisse", "Pigeon-Voyageur"):
+    for salon in (
+        "Le-Royaume",
+        "Seigneurs",
+        "🧱 Remparts",
+        "Territoire",
+        "Paroisse",
+        "Pigeon-Voyageur",
+    ):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
     # the Salle du Conseil stays empty (the kingdom's discussion salon)
@@ -186,14 +207,21 @@ async def test_roster_lists_members_with_marriages_and_budgets() -> None:
     assert "⚔️ 1 · 🛡️ 2" in content
 
 
-async def test_patrol_view_shows_bought_slots_and_remaining() -> None:
+async def test_remparts_view_shows_patrols_and_the_guard_button() -> None:
+    """marche-v2 article 7: the renamed 🧱 Remparts salon keeps the patrol
+    slots and gains the Garde Royale line + the King's buy button."""
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _text(_live(_channel(guild, "Patrouille"))[0])
+    channel = _channel(guild, "🧱 Remparts")
+    content = _text(_live(channel)[0])
     assert "02h00 → 04h00" in content  # slot 2 from patrouille_slot_1
     assert "1/2" in content  # one slot bought, limit 2
+    assert "🧱 Remparts" in content
+    assert "Garde Royale" in content
+    message = _live(channel)[0]
+    assert "kingdoms:remparts:guard" in _ids(message.view)
 
 
 async def test_territory_view_lists_owned_maps_with_display_names() -> None:
@@ -204,6 +232,37 @@ async def test_territory_view_lists_owned_maps_with_display_names() -> None:
     content = _text(_live(_channel(guild, "Territoire"))[0])
     assert "**Arabie**" in content
     assert "1 territoire" in content
+    # No active guard: the map wears no 🛡️ badge.
+    assert "protégée" not in content
+
+
+async def test_territory_view_shields_the_guarded_map_with_its_end_time() -> None:
+    """marche-v2 article 7: the guarded map shows 🛡️ + the protection
+    END TIME next to its name."""
+    from datetime import UTC, datetime, timedelta
+
+    guarded_until = datetime.now(tz=UTC) + timedelta(hours=12)
+
+    class _GuardedTerritories:
+        async def territories(self) -> list:
+            return [_Territory("arabia", protected_until=guarded_until)]
+
+    class _GuardedWiring(_Wiring):
+        territories_service = _GuardedTerritories()
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+    await deploy_realm_content(guild, _Kingdom(), _GuardedWiring())
+
+    content = _text(_live(_channel(guild, "Territoire"))[0])
+    assert "**Arabie**" in content
+    assert "🛡️" in content
+    assert "protégée jusqu'à" in content
+
+    # The Remparts view carries the same guard line.
+    remparts = _text(_live(_channel(guild, "🧱 Remparts"))[0])
+    assert "🛡️ **Arabie**" in remparts
+    assert "protégée jusqu'à" in remparts
 
 
 async def test_church_view_shows_the_fidèles_the_palier_ladder_and_the_legend() -> None:
@@ -253,7 +312,14 @@ async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
     await _deploy(guild)
     await _deploy(guild)
 
-    for salon in ("Le-Royaume", "Seigneurs", "Patrouille", "Territoire", "Paroisse", "Pigeon-Voyageur"):
+    for salon in (
+        "Le-Royaume",
+        "Seigneurs",
+        "🧱 Remparts",
+        "Territoire",
+        "Paroisse",
+        "Pigeon-Voyageur",
+    ):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
 

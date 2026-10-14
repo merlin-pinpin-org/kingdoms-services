@@ -99,7 +99,7 @@ class TechnologyCosts(BaseModel):
     jeu_d_armes: int = Field(default=1, ge=0)
     mariage_arrange: int = Field(default=3, ge=0)
     corruption: int = Field(default=4, ge=0)
-    garde_royale: int = Field(default=1, ge=0)
+    garde_royale: int = Field(default=2, ge=0)
 
     limits: dict[str, int] = Field(
         default_factory=lambda: {

@@ -347,6 +347,22 @@ async def test_ensure_realm_structure_renames_the_legacy_eglise_salon() -> None:
     assert len(names) == len(REALM_SALONS)
 
 
+async def test_ensure_realm_structure_renames_the_legacy_patrouille_salon() -> None:
+    """Drasah 2026-10-14 (marche-v2 article 7): a pre-rename « Patrouille »
+    salon is adopted and renamed « 🧱 Remparts » — never duplicated."""
+    guild = MockGuild()
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await guild.create_category(realm_category_name("Avalon"))
+    await guild.create_text_channel("Patrouille", category=category)
+
+    await ensure_realm_structure(guild, kingdom, [])
+
+    names = [channel.name for channel in category.channels]
+    assert names.count("🧱 Remparts") == 1
+    assert "Patrouille" not in names  # renamed in place, not duplicated
+    assert len(names) == len(REALM_SALONS)
+
+
 async def test_ensure_realm_structure_grants_members_the_message_history() -> None:
     """Live regression (Drasah 2026-10-12): a member with no server role
     saw the realm salons but not their content — the member overwrite

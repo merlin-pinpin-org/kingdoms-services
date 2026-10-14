@@ -152,7 +152,7 @@ async def test_corruption_refuses_protected_and_own_territories() -> None:
     await bundle.launch_season()
     aquitaine, bourgogne = await bundle.kingdom_id("Aquitaine"), await bundle.kingdom_id("Bourgogne")
     await bundle.fund(aquitaine, 10)
-    await bundle.fund(bourgogne, 1)
+    await bundle.fund(bourgogne, 2)
     await bundle.draw(1)
     target = next(
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == bourgogne
@@ -168,8 +168,9 @@ async def test_corruption_refuses_protected_and_own_territories() -> None:
         await bundle.economy.buy_corruption(aquitaine, own.id, now=now)
 
 
-async def test_royal_guard_shields_extends_and_refuses_stacking() -> None:
-    """D47/D61: 24h shield, one active guard, rising-cost extensions."""
+async def test_royal_guard_shields_one_map_and_refuses_stacking() -> None:
+    """marche-v2 article 7: 12h shield on ONE map, one active guard per
+    kingdom, no extension — a new guard is a fresh full-price purchase."""
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
@@ -180,25 +181,17 @@ async def test_royal_guard_shields_extends_and_refuses_stacking() -> None:
     ]
     now = datetime.now(tz=UTC)
     guarded = await bundle.economy.buy_royal_guard(aquitaine, owned[0].id, now=now)
-    assert guarded.protected_until == now + timedelta(hours=24)
-    assert await bundle.economy.wallet(aquitaine) == 9
-    # D61: one active guard per kingdom - another territory is refused.
+    assert guarded.protected_until == now + timedelta(hours=12)
+    assert await bundle.economy.wallet(aquitaine) == 8  # 2 ⚙️ (article 7)
+    # One active guard per kingdom - another territory is refused.
     with pytest.raises(GuardAlreadyActiveError):
         await bundle.economy.buy_royal_guard(aquitaine, owned[1].id, now=now)
-    # Extensions cost 1, then 2 (D61) and add three hours each.
-    extended = await bundle.economy.extend_royal_guard(aquitaine, owned[0].id, now=now)
-    assert extended.protected_until == now + timedelta(hours=27)
-    assert await bundle.economy.wallet(aquitaine) == 8
-    extended = await bundle.economy.extend_royal_guard(aquitaine, owned[0].id, now=now)
-    assert extended.protected_until == now + timedelta(hours=30)
-    assert await bundle.economy.wallet(aquitaine) == 6
-    # Only the territory carrying the active guard can be extended.
-    with pytest.raises(TerritoryProtectedError):
-        await bundle.economy.extend_royal_guard(aquitaine, owned[1].id, now=now)
-    # Once the guard expires, a fresh guard may shield another territory.
-    later = now + timedelta(hours=31)
+    # Once the guard expires, a fresh full-price guard shields another
+    # territory (no extension mechanism anymore).
+    later = now + timedelta(hours=13)
     fresh = await bundle.economy.buy_royal_guard(aquitaine, owned[1].id, now=later)
-    assert fresh.protected_until == later + timedelta(hours=24)
+    assert fresh.protected_until == later + timedelta(hours=12)
+    assert await bundle.economy.wallet(aquitaine) == 6
 
 
 async def test_patrouille_buys_daily_slots_and_blocks_aggression() -> None:
@@ -264,7 +257,7 @@ async def test_attacks_respect_the_shield() -> None:
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
-    await bundle.fund(aquitaine, 1)
+    await bundle.fund(aquitaine, 2)
     await bundle.draw(1)
     target = next(
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine

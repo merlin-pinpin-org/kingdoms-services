@@ -25,6 +25,7 @@ from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomChurchArrangeButton,
     KingdomMarketActionButton,
     KingdomMarketTechButton,
+    KingdomRempartsGuardButton,
     KingdomsPanelWiring,
     register_kingdoms_panel_wiring,
 )
@@ -42,7 +43,8 @@ TECH_KEYS = (
     "sabotage",
     "jeu_d_armes",
 )
-ACTION_KEYS = ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange")
+# marche-v2 article 7: the Garde Royale left the market (Remparts salon).
+ACTION_KEYS = ("explorateur", "corruption", "patrouille", "mariage_arrange")
 
 
 @dataclass
@@ -424,7 +426,7 @@ async def test_action_button_answers_no_options_when_empty() -> None:
         territories=FakeTerritoryService(territories=[]),
     )
     interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
-    button = KingdomMarketActionButton("garde_royale", "Garde Royale", discord.ButtonStyle.secondary)
+    button = KingdomMarketActionButton("corruption", "Corruption", discord.ButtonStyle.secondary)
     await button.callback(interaction)
     modal = interaction.response.modal
     assert modal is not None
@@ -434,6 +436,56 @@ async def test_action_button_answers_no_options_when_empty() -> None:
     message = submit.response.message
     assert message is not None
     assert "No option" in (message.content or "")
+
+
+async def test_remparts_guard_button_opens_the_owned_map_select_and_buys() -> None:
+    """marche-v2 article 7: the Garde Royale is piloted from the Remparts
+    salon, not the market — the King shields ONE of the kingdom's maps."""
+    economy = FakeEconomyService()
+    territories = FakeTerritoryService(
+        territories=[
+            FakeTerritory(id="t1", map_key="arabia", owner_kingdom_id="k2"),
+            FakeTerritory(id="t2", map_key="islands", owner_kingdom_id="k1"),
+        ]
+    )
+    _wiring(
+        lords=[FakeLord(id="111", role="king", kingdom_id="k1")],
+        economy=economy,
+        territories=territories,
+    )
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="en-US")
+    button = KingdomRempartsGuardButton(
+        {"remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)"}, 2
+    )
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    select = next(iter(message.view.children))
+    # Only the kingdom's own maps are shieldable (enemy map filtered out).
+    assert [opt.value for opt in select.options] == ["t2"]
+
+    choice: Any = MockInteraction(user=MockUser(id=111), data={"values": ["t2"]}, locale="en-US")
+    choice.message = message
+    await select.callback(choice)
+    assert economy.guarded == [("k1", "t2")]
+    assert "Purchased" in (choice.response.message.content if choice.response.message else "")
+
+
+async def test_remparts_guard_button_refuses_non_kings() -> None:
+    economy = FakeEconomyService()
+    _wiring(
+        lords=[FakeLord(id="222", role="lord", kingdom_id="k1")],
+        economy=economy,
+        territories=FakeTerritoryService(territories=[]),
+    )
+    interaction: Any = MockInteraction(user=MockUser(id=222), locale="en-US")
+    button = KingdomRempartsGuardButton(
+        {"remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)"}, 2
+    )
+    await button.callback(interaction)
+    message = interaction.response.message
+    assert message is not None
+    assert "Kings" in (message.content or "")
 
 
 async def test_deploy_panels_pins_the_market_panel_in_the_marche_channel() -> None:
