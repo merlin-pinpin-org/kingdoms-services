@@ -258,6 +258,18 @@ The&nbsp;attack/defense&nbsp;state&nbsp;machine&nbsp;and&nbsp;combat&nbsp;econom
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="AttackService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms_service: 'KingdomsService', territory_service: 'TerritoryService') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;seams:&nbsp;persistence,&nbsp;config,&nbsp;enrollment,&nbsp;territories.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-activate_traquenard"><strong>activate_traquenard</strong></a>(self, player_id: 'str', target_kingdom_id: 'str', *, now: 'datetime | None' = None) -&gt; 'KingdomModel'</dt><dd><span class="code">Activate&nbsp;a&nbsp;Traquenard&nbsp;against&nbsp;a&nbsp;kingdom&nbsp;(Drasah's&nbsp;recâblage&nbsp;v2).<br>
+&nbsp;<br>
+INDEPENDENT&nbsp;of&nbsp;any&nbsp;declaration&nbsp;(2026-10-14):&nbsp;any&nbsp;lord&nbsp;of&nbsp;the<br>
+activator&nbsp;kingdom&nbsp;triggers&nbsp;it&nbsp;from&nbsp;the&nbsp;kingdom's&nbsp;own&nbsp;salon.&nbsp;Two<br>
+effects&nbsp;—&nbsp;(1)&nbsp;one-shot:&nbsp;+2h&nbsp;of&nbsp;lock&nbsp;on&nbsp;every&nbsp;marriage&nbsp;ALREADY<br>
+sealed&nbsp;in&nbsp;the&nbsp;target&nbsp;kingdom&nbsp;(a&nbsp;later&nbsp;marriage&nbsp;never&nbsp;is);&nbsp;(2)<br>
+a&nbsp;6h&nbsp;window&nbsp;(``traquenard_until``):&nbsp;every&nbsp;attack&nbsp;declared<br>
+against&nbsp;the&nbsp;target&nbsp;while&nbsp;the&nbsp;window&nbsp;is&nbsp;open&nbsp;faces&nbsp;the&nbsp;Facile&nbsp;AI<br>
+(level&nbsp;1&nbsp;whatever&nbsp;the&nbsp;defence&nbsp;bot's&nbsp;real&nbsp;level&nbsp;—&nbsp;the&nbsp;reveal<br>
+shows&nbsp;1/5).&nbsp;One&nbsp;bought&nbsp;charge&nbsp;is&nbsp;consumed&nbsp;at&nbsp;the&nbsp;activation;<br>
+the&nbsp;target&nbsp;learns&nbsp;it&nbsp;only&nbsp;when&nbsp;an&nbsp;attack&nbsp;is&nbsp;actually&nbsp;declared.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-attacks"><strong>attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-base_ai_level"><strong>base_ai_level</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;base&nbsp;AI&nbsp;level&nbsp;(D18&nbsp;scale,&nbsp;fallback&nbsp;1).</span></dd></dl>
@@ -273,16 +285,19 @@ and&nbsp;never&nbsp;resolve&nbsp;afterwards.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-counter_espionage"><strong>counter_espionage</strong></a>(self, attack_id: 'str', defender_kingdom_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;sabotage&nbsp;of&nbsp;an&nbsp;incoming&nbsp;attack&nbsp;(D11/D28).</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, cover_lord_id: 'str | None' = None, use_traquenard: 'bool' = False, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
+<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, cover_lord_id: 'str | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
 &nbsp;<br>
 Any&nbsp;lord&nbsp;declares&nbsp;(D27),&nbsp;the&nbsp;target&nbsp;must&nbsp;be&nbsp;free&nbsp;of&nbsp;any&nbsp;ongoing<br>
 attack&nbsp;(D42),&nbsp;the&nbsp;attacker&nbsp;must&nbsp;have&nbsp;an&nbsp;attack&nbsp;budget&nbsp;left,&nbsp;and<br>
 the&nbsp;declared&nbsp;territory&nbsp;owner&nbsp;must&nbsp;be&nbsp;another&nbsp;player&nbsp;kingdom.<br>
 The&nbsp;optional&nbsp;cover&nbsp;(Contre-espionnage,&nbsp;D77)&nbsp;displays&nbsp;another<br>
 lord&nbsp;instead&nbsp;of&nbsp;the&nbsp;real&nbsp;attacker&nbsp;until&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;—&nbsp;one<br>
-bought&nbsp;cover&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use.&nbsp;The&nbsp;optional&nbsp;Traquenard<br>
-(marche-v2&nbsp;art.&nbsp;2)&nbsp;makes&nbsp;the&nbsp;AI&nbsp;faced&nbsp;Facile&nbsp;and&nbsp;adds&nbsp;+2h&nbsp;of<br>
-lock&nbsp;to&nbsp;the&nbsp;marriages&nbsp;active&nbsp;in&nbsp;the&nbsp;target&nbsp;kingdom.</span></dd></dl>
+bought&nbsp;cover&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use.&nbsp;The&nbsp;Traquenard&nbsp;v2&nbsp;(Drasah<br>
+2026-10-14)&nbsp;is&nbsp;INDEPENDENT&nbsp;of&nbsp;the&nbsp;declaration:&nbsp;the&nbsp;kingdom<br>
+activates&nbsp;it&nbsp;from&nbsp;its&nbsp;own&nbsp;salon&nbsp;(see&nbsp;``activate_traquenard``)<br>
+and&nbsp;every&nbsp;attack&nbsp;declared&nbsp;against&nbsp;the&nbsp;target&nbsp;inside&nbsp;the&nbsp;6h<br>
+window&nbsp;faces&nbsp;the&nbsp;Facile&nbsp;AI&nbsp;—&nbsp;the&nbsp;declaration&nbsp;merely&nbsp;RECORDS&nbsp;the<br>
+flag&nbsp;for&nbsp;the&nbsp;reveal.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-declare_embuscade"><strong>declare_embuscade</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;the&nbsp;exceptional&nbsp;Embuscade&nbsp;(D77):&nbsp;T-1h,&nbsp;no&nbsp;weekly&nbsp;budget.<br>
 &nbsp;<br>
@@ -2002,6 +2017,7 @@ widens&nbsp;from&nbsp;2h&nbsp;to&nbsp;3h.</span></dd></dl>
 <strong>PATROUILLE_SLOT_KEYS</strong> = ('patrouille_slot_1', 'patrouille_slot_2')<br>
 <strong>PATROUILLE_TZ</strong> = 'Europe/Paris'<br>
 <strong>TRAQUENARD_LOCK_HOURS</strong> = 2<br>
+<strong>TRAQUENARD_WINDOW_HOURS</strong> = 6<br>
 <strong>TYPE_CHECKING</strong> = False<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
 <strong>logger</strong> = &lt;Logger kingdoms.attacks (WARNING)&gt;</td></tr></table>
