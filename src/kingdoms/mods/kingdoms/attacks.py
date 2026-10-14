@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.models import (
@@ -184,6 +184,34 @@ class PatrolProtectedError(AttackError):
     message_key = "kingdoms.errors.patrol_protected"
 
 
+class DefenseCutoffError(AttackError):
+    """Raised when the defense closes at T-15 (phases d'attaque, D77)."""
+
+    code = "KINGDOMS_DEFENSE_CUTOFF"
+    message_key = "kingdoms.errors.defense_cutoff"
+
+
+class PickBanError(AttackError):
+    """Base of the pick & ban errors (pré-combat, D77)."""
+
+    code = "KINGDOMS_PICKBAN_ERROR"
+    message_key = "kingdoms.errors.pickban"
+
+
+class PickBanStateError(PickBanError):
+    """Raised when the pick & ban happens outside its window (D77)."""
+
+    code = "KINGDOMS_PICKBAN_STATE"
+    message_key = "kingdoms.errors.pickban_state"
+
+
+class EmbuscadeError(AttackError):
+    """Raised when the Embuscade cannot engage (D77)."""
+
+    code = "KINGDOMS_EMBUSCADE"
+    message_key = "kingdoms.errors.embuscade"
+
+
 PATROUILLE_SLOT_KEYS = ("patrouille_slot_1", "patrouille_slot_2")
 PATROUILLE_HOURS = 2
 PATROUILLE_TZ = "Europe/Paris"
@@ -241,6 +269,25 @@ def _refuse_lords_day_execution(
         )
 
 
+def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
+    """Apply both sides' sabotages to the targeted picks (D77).
+
+    A sabotaged civilization leaves the adversary's ranked picks — the
+    played civ is the best-ranked NON-sabotaged pick of each side. The
+    sabotages themselves stay recorded for the game setup.
+    """
+    result = dict(pickban)
+    attacker_sabotages = list(result.get("attacker_sabotages") or [])
+    defender_sabotages = list(result.get("defender_sabotages") or [])
+    result["attacker_picks"] = [
+        civ for civ in (result.get("attacker_picks") or []) if civ not in defender_sabotages
+    ]
+    result["defender_picks"] = [
+        civ for civ in (result.get("defender_picks") or []) if civ not in attacker_sabotages
+    ]
+    return result
+
+
 class AttackService:
     """The attack/defense state machine and combat economy (§11-§13)."""
 
@@ -270,6 +317,7 @@ class AttackService:
         map_key: str,
         lobby_url: str,
         *,
+        cover_lord_id: str | None = None,
         now: datetime | None = None,
     ) -> AttackModel:
         """Declare a kingdom-vs-kingdom attack on an adversary territory.
@@ -277,33 +325,17 @@ class AttackService:
         Any lord declares (D27), the target must be free of any ongoing
         attack (D42), the attacker must have an attack budget left, and
         the declared territory owner must be another player kingdom.
+        The optional cover (Contre-espionnage, D77) displays another
+        lord instead of the real attacker until the T-15 reveal — one
+        bought cover is consumed on use.
         """
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
-        territory = await self._territory_by_map(map_key)
-        if territory.owner_kingdom_id == lord.kingdom_id:
-            raise TerritoryNotAttackableError("a kingdom cannot attack its own territory")
-        owner = await self._kingdom_by_id(territory.owner_kingdom_id)
-        if owner.is_gaia:
-            raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
-        if territory.is_protected_at(timestamp):
-            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
-        # D68: the target kingdom's daily patrol covers all its
-        # territories during the bought 2h slot.
-        if patrouille_active_at(
-            await self.technology_state(territory.owner_kingdom_id), timestamp
-        ):
-            raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
-        # D59/D60: a fresh marriage locks the lord out of combat.
-        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
-            timestamp.timestamp()
-        ):
-            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
-        if await self._territory_busy(territory.id):
-            raise TerritoryBusyError("the territory already has an ongoing attack")
+        territory = await self._validate_attack_target(lord, map_key, timestamp)
+        cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
         if lord.attack_used >= self._config.attacks.attacks_per_week:
             raise NoBudgetError("the weekly attack budget is spent")
         if not lobby_url.strip():
@@ -332,24 +364,137 @@ class AttackService:
             declared_at=timestamp,
             expires_at=timestamp
             + timedelta(hours=self._config.attacks.player_attack_delay_hours),
+            cover_lord_id=cover,
         )
         await self._store.upsert_attack(attack.to_mongo())
         logger.info(
-            "kingdoms: %s declared an attack on %s (expires %s)",
+            "kingdoms: %s declared an attack on %s (expires %s%s)",
+            lord.id,
+            territory.map_key,
+            attack.expires_at.isoformat(),
+            " under cover" if cover else "",
+        )
+        return attack
+
+    async def declare_embuscade(
+        self,
+        player_id: str,
+        map_key: str,
+        lobby_url: str,
+        *,
+        now: datetime | None = None,
+    ) -> AttackModel:
+        """Declare the exceptional Embuscade (D77): T-1h, no weekly budget.
+
+        The attack meets at T = declaration + 1h sharp — the defense
+        window shrinks to the 45 minutes before the T-15 cutoff. One
+        bought Embuscade is consumed on use; the weekly budget stays
+        intact. No cover: the Embuscade strikes in the open.
+        """
+        season = await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        timestamp = now or _now()
+        territory = await self._validate_attack_target(lord, map_key, timestamp)
+        if not lobby_url.strip():
+            raise AttackError("the attacker must provide the game lobby link")
+        _refuse_lords_day_execution(
+            await self._active_lords_day_window(timestamp),
+            timestamp,
+            self._config.attacks.embuscade_delay_hours,
+        )
+        state = await self.technology_state(lord.kingdom_id)
+        bought = state.purchases.get("embuscade", 0)
+        if bought <= 0:
+            raise EmbuscadeError("the kingdom bought no Embuscade")
+        state.purchases["embuscade"] = bought - 1
+        await self._store.upsert_technology(state.to_mongo())
+        attack = AttackModel(
+            _id=f"{season.id}-a-{territory.id}-{lord.id}",
+            season_id=season.id,
+            kind=AttackKind.PLAYER,
+            territory_id=territory.id,
+            map_key=territory.map_key,
+            defender_kingdom_id=territory.owner_kingdom_id,
+            attacker_lord_id=lord.id,
+            attacker_kingdom_id=lord.kingdom_id,
+            lobby_url=lobby_url.strip(),
+            declared_at=timestamp,
+            expires_at=timestamp + timedelta(hours=self._config.attacks.embuscade_delay_hours),
+            embuscade=True,
+        )
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: %s declared an EMBUSCADE on %s (expires %s)",
             lord.id,
             territory.map_key,
             attack.expires_at.isoformat(),
         )
         return attack
 
+    async def _validate_attack_target(
+        self, lord: LordModel, map_key: str, timestamp: datetime
+    ) -> TerritoryModel:
+        """Run the shared declaration checks on one target territory."""
+        territory = await self._territory_by_map(map_key)
+        if territory.owner_kingdom_id == lord.kingdom_id:
+            raise TerritoryNotAttackableError("a kingdom cannot attack its own territory")
+        owner = await self._kingdom_by_id(territory.owner_kingdom_id)
+        if owner.is_gaia:
+            raise TerritoryNotAttackableError("Gaïa territories are attacked through the free-for-all")
+        if territory.is_protected_at(timestamp):
+            raise TerritoryNotAttackableError("the territory is protected (Garde Royale/Corruption)")
+        # D68: the target kingdom's daily patrol covers all its
+        # territories during the bought 2h slot.
+        if patrouille_active_at(
+            await self.technology_state(territory.owner_kingdom_id), timestamp
+        ):
+            raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
+        # D59/D60: a fresh marriage locks the lord out of combat.
+        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
+            timestamp.timestamp()
+        ):
+            raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
+        if await self._territory_busy(territory.id):
+            raise TerritoryBusyError("the territory already has an ongoing attack")
+        return territory
+
+    async def _engage_cover(self, lord: LordModel, cover_lord_id: str) -> str:
+        """Validate and consume one cover (Contre-espionnage, D77)."""
+        if cover_lord_id == lord.id:
+            raise AttackError("the cover lord cannot be the attacker himself")
+        cover = await self._require_lord(cover_lord_id)
+        if cover.left or cover.kingdom_id is None:
+            raise AttackError("the cover lord is no active lord of the season")
+        state = await self.technology_state(lord.kingdom_id or "")
+        bought = state.purchases.get("contre_espionnage", 0)
+        if bought <= 0:
+            raise AttackError("the kingdom bought no Contre-espionnage")
+        state.purchases["contre_espionnage"] = bought - 1
+        await self._store.upsert_technology(state.to_mongo())
+        return cover.id
+
     async def respond_defense(self, attack_id: str, player_id: str) -> AttackModel:
-        """Answer an attack: any lord of the defending kingdom (D7)."""
+        """Answer an attack: any lord of the defending kingdom (D7).
+
+        The defense closes at T-15 (D77): the cutoff moment is
+        ``expires_at - defense_cutoff_minutes`` — after that the
+        defender can no longer react and the kingdom's bot AI takes
+        the defense instead.
+        """
         await self._require_running_season()
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
             raise AttackStateError("a Gaïa free-for-all has no defending side")
         if attack.state is not AttackState.DECLARED:
             raise AttackStateError("the attack no longer waits for a defender")
+        timestamp = _now()
+        cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
+        if timestamp >= cutoff:
+            raise DefenseCutoffError(
+                "the defense is closed (T-15) — the meeting is set and the bot AI takes over"
+            )
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
@@ -368,38 +513,262 @@ class AttackService:
         logger.info("kingdoms: %s defends the attack on %s", lord.id, attack.map_key)
         return attack
 
-    async def expire_stale(self, *, now: datetime | None = None) -> list[AttackModel]:
-        """Apply the no-defense outcome to every expired declared attack (D8).
+    async def reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Run the T-15 reveal (D77): close the defense, unmask the cover.
 
-        ``auto_victory``: the attacker captures the territory (D17 keeps
-        the attack consumed). ``vs_ai``: the attack moves to ``expired``
-        and waits for the game result against Gaïa's AI — the resolve
-        step then decides the capture.
+        Idempotent through ``revealed`` — the scheduler tick can replay
+        it after every restart. When nobody answered, the defending
+        kingdom's bot AI takes the defense (the D77 vs_ai rule; the
+        legacy auto_victory capture only applies at expiry for attacks
+        the reveal never reached).
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
         if season is not None and season.finished:
             return []
-        # Lord's Day window: the automatic no-defense outcome is an
-        # execution too — it is deferred until the window closes (the
-        # stale attacks are simply picked up on the next call).
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        revealed: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.revealed or attack.is_over:
+                continue
+            cutoff = attack.expires_at - timedelta(
+                minutes=self._config.attacks.defense_cutoff_minutes
+            )
+            if timestamp < cutoff:
+                continue
+            attack.revealed = True
+            if attack.state is AttackState.DECLARED and attack.defender_lord_id is None:
+                attack.ai_defender = True
+                attack.state = AttackState.DEFENDED
+                logger.info(
+                    "kingdoms: no defender on %s — the bot AI of %s takes the defense",
+                    attack.map_key,
+                    attack.defender_kingdom_id,
+                )
+            await self._store.upsert_attack(attack.to_mongo())
+            revealed.append(attack)
+        return revealed
+
+    async def pick_ban_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Mark the attacks whose T-5 pick & ban DMs must leave (D77).
+
+        Idempotent through ``pickban["sent"]``. The AI side
+        auto-validates at the same moment (no human to wait for).
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if attack.pickban.get("sent") or attack.is_over:
+                continue
+            lead = attack.expires_at - timedelta(
+                minutes=self._config.attacks.pick_ban_lead_minutes
+            )
+            if timestamp < lead or timestamp >= attack.expires_at:
+                continue
+            pickban = dict(attack.pickban)
+            pickban["sent"] = True
+            if attack.ai_defender:
+                pickban["defender_validated"] = True  # the AI never stalls
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+        return due
+
+    async def set_picks(
+        self,
+        attack_id: str,
+        player_id: str,
+        picks: list[str],
+        *,
+        sabotages: list[str] | None = None,
+        now: datetime | None = None,
+    ) -> AttackModel:
+        """Submit one side's ranked civilizations and sabotages (D77).
+
+        Each side ranks up to 3 civilizations from ITS OWN hand (blind
+        pick — the adversary's hand is public through Alliances, the
+        espionage stays legal) and engages up to 2 sabotages against
+        civilizations of the ADVERSARY hand. Only the declaring lord
+        picks for the attack side; only the lord who took the defense
+        picks for the defense side.
+        """
+        attack = await self._require_pickban_attack(attack_id, now or _now())
+        side = await self._pick_ban_side(attack, player_id)
+        hand = await self._side_hand(
+            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
+        )
+        required = min(3, len(hand))
+        if len(picks) != required or len(set(picks)) != required:
+            raise PickBanStateError(f"rank exactly {required} distinct civilization(s)")
+        if any(pick not in hand for pick in picks):
+            raise PickBanStateError("every pick must come from your kingdom's hand")
+        sabotages = sabotages or []
+        if len(sabotages) > 2:
+            raise PickBanStateError("at most two sabotages per side")
+        adversary_hand = await self._side_hand(
+            attack.defender_kingdom_id if side == "attacker" else attack.attacker_kingdom_id
+        )
+        if any(civ not in adversary_hand for civ in sabotages):
+            raise PickBanStateError("every sabotage targets the adversary's hand")
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_picks"] = list(picks)
+        pickban[f"{side}_sabotages"] = list(sabotages)
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: pick & ban submitted by %s on the attack on %s", player_id, attack.map_key
+        )
+        return attack
+
+    async def validate_pickban(
+        self, attack_id: str, player_id: str, *, now: datetime | None = None
+    ) -> AttackModel:
+        """Validate one side's pick & ban (D77).
+
+        When both sides validated, the sabotages apply (a sabotaged
+        civilization leaves the targeted picks) and the civilizations
+        are revealed — the played civ is the best-ranked non-sabotaged
+        pick of each side.
+        """
+        attack = await self._require_pickban_attack(attack_id, now or _now())
+        side = await self._pick_ban_side(attack, player_id)
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_validated"] = True
+        if pickban.get("attacker_validated") and pickban.get("defender_validated"):
+            pickban = _apply_sabotages(pickban)
+            pickban["resolved_pickban"] = True
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: pick & ban validated by %s on %s", player_id, attack.map_key)
+        return attack
+
+    async def _require_pickban_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
+        """Fetch the attack and enforce the pré-combat window (D77)."""
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise PickBanStateError("the free-for-all has no pick & ban")
+        if attack.state is not AttackState.DEFENDED:
+            raise PickBanStateError("the pick & ban is not open on this attack")
+        if attack.pickban.get("resolved_pickban"):
+            raise PickBanStateError("the pick & ban is already resolved")
+        if not attack.pickban.get("sent"):
+            raise PickBanStateError("the pick & ban opens at T-5")
+        if timestamp >= attack.expires_at:
+            raise PickBanStateError("the meeting time is reached — the pick & ban is closed")
+        return attack
+
+    async def _pick_ban_side(self, attack: AttackModel, player_id: str) -> str:
+        """Resolve which side the picking player speaks for (D77)."""
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id == attack.attacker_kingdom_id and lord.id == attack.attacker_lord_id:
+            return "attacker"
+        if (
+            lord.kingdom_id == attack.defender_kingdom_id
+            and lord.id == attack.defender_lord_id
+        ):
+            return "defender"
+        raise PickBanStateError("only the two players of the meeting pick & ban")
+
+    async def _side_hand(self, kingdom_id: str) -> list[str]:
+        """Return the kingdom's civilizations (its Alliances hand, D77)."""
+        kingdom = await self._kingdom_by_id(kingdom_id)
+        return list(kingdom.civilizations or [])
+
+    async def expire_stale(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Apply the meeting-time outcome to every expired attack (D8/D77).
+
+        At T (``expires_at``): a defense never locked moves to the
+        kingdom's bot AI (vs_ai default) — legacy ``auto_victory``
+        captures without a game when configured. A locked defense
+        whose pick & ban never resolved is a FORFAIT: the side that
+        missed its validation loses (both missed → the attacker, the
+        present, wins). A resolved pick & ban keeps waiting for the
+        game result (D20) — the RDV itself.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        # Lord's Day window: the automatic outcomes are executions too —
+        # they are deferred until the window closes (the next call picks
+        # the stale attacks up).
         if await self._active_lords_day_window(timestamp) is not None:
             return []
         expired: list[AttackModel] = []
         for attack in await self.attacks():
-            if attack.state is not AttackState.DECLARED or attack.expires_at > timestamp:
+            if attack.is_over or attack.expires_at > timestamp:
                 continue
+            handled = await self._expire_one(attack, timestamp)
+            if handled is None:
+                continue
+            expired.append(attack)
+            logger.info("kingdoms: attack on %s expired (%s)", attack.map_key, attack.state)
+        return expired
+
+    async def _expire_one(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
+        """Apply the meeting-time outcome to ONE expired attack (D77).
+
+        Returns the attack when its state changed (it joins the
+        expired list), ``None`` when the outcome keeps waiting for
+        the game result (D20) or nothing applies.
+        """
+        if attack.state is AttackState.DECLARED:
             if self._config.attacks.no_defense_outcome == "auto_victory":
                 attack.state = AttackState.RESOLVED
                 attack.winner_kingdom_id = attack.attacker_kingdom_id
                 attack.resolved_at = timestamp
                 await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
             else:
-                attack.state = AttackState.EXPIRED
+                # Catch-up of a reveal the tick never ran (restart):
+                # the bot AI takes the defense at the meeting time.
+                attack.revealed = True
+                attack.ai_defender = True
+                attack.state = AttackState.DEFENDED
+                attack.pickban = {
+                    **attack.pickban,
+                    "sent": True,
+                    "defender_validated": True,
+                }
             await self._store.upsert_attack(attack.to_mongo())
-            expired.append(attack)
-            logger.info("kingdoms: attack on %s expired (%s)", attack.map_key, attack.state)
-        return expired
+            return attack
+        if attack.state is not AttackState.DEFENDED or attack.pickban.get("resolved_pickban"):
+            return None
+        return await self._expire_defended(attack, timestamp)
+
+    async def _expire_defended(
+        self, attack: AttackModel, timestamp: datetime
+    ) -> AttackModel | None:
+        """Resolve the un-resolved pick & ban of an expired defense (D77)."""
+        pickban = dict(attack.pickban)
+        attacker_ok = bool(pickban.get("attacker_validated"))
+        defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
+        if attacker_ok and defender_ok:
+            pickban = _apply_sabotages(pickban)
+            pickban["resolved_pickban"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            return None  # validated at the wire — the game decides (D20)
+        if attacker_ok:
+            winner, forfeit = attack.attacker_kingdom_id, "defender"
+        elif defender_ok:
+            winner, forfeit = attack.defender_kingdom_id, "attacker"
+        else:
+            winner, forfeit = attack.attacker_kingdom_id, "both"  # the present wins
+        pickban["forfeit_side"] = forfeit
+        attack.pickban = pickban
+        attack.state = AttackState.RESOLVED
+        attack.winner_kingdom_id = winner
+        attack.resolved_at = timestamp
+        if winner == attack.attacker_kingdom_id:
+            await self._territories.transfer(attack.territory_id, winner)
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
 
     async def cancel_ongoing(self) -> list[AttackModel]:
         """Cancel every ongoing attack before the season verdict.

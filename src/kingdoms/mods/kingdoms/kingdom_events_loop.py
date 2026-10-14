@@ -264,6 +264,14 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
             logger.warning("KINGDOMS EVENTS: due-slot replay failed", exc_info=True)
             continue
         await _snapshot_lords_day_closure_safe(bot, tick_seconds)
+        # D77 attack phases: T-15 reveal, T-5 pick & ban DMs, T forfeits —
+        # every step replays safely through the service-side flags.
+        from kingdoms.mods.kingdoms.kingdom_attack_panel import run_attack_phases_safe
+
+        try:
+            await run_attack_phases_safe(bot)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: attack phases failed", exc_info=True)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

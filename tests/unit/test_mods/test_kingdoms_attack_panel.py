@@ -1,0 +1,239 @@
+"""Kingdoms mod attack panel Discord surface - unit tests (D77).
+
+The pinned Attaquer panel, the persistent declare/defend buttons, the
+declaration modal and the scheduler entry (reveal announcement, pick
+& ban DM dispatch, forfeit announcements) behind the in-memory store.
+"""
+from __future__ import annotations
+
+import re
+from datetime import UTC, datetime
+from typing import Any
+
+import pytest
+
+from kingdoms.mods.kingdoms.kingdom_persistent import (
+    KingdomsPanelWiring,
+    register_kingdoms_panel_wiring,
+)
+from tests.mocks.discord_mock import MockInteraction, MockUser
+
+from .test_kingdoms_attack_phases import PhasesBundle
+
+_SAFE_NOW = datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def _freeze_attacks_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
+    monkeypatch.setattr(attacks_module, "_now", lambda: _SAFE_NOW)
+
+
+class _FakeMessage:
+    def __init__(self, content: str) -> None:
+        self.content = content
+
+    async def delete(self, *, delay: float | None = None) -> None:
+        return None
+
+
+class _History:
+    def __init__(self, items: list[_FakeMessage]) -> None:
+        self.items = items
+
+    def __aiter__(self) -> _History:
+        return self
+
+    async def __anext__(self) -> _FakeMessage:
+        if not self.items:
+            raise StopAsyncIteration
+        return self.items.pop(0)
+
+
+class _FakeChannel:
+    def __init__(self, name: str = "attaquer") -> None:
+        self.name = name
+        self.history_list: list[_FakeMessage] = []
+        self.sent: list[Any] = []
+
+    def history(self, limit: int = 50) -> _History:
+        return _History(list(self.history_list))
+
+    async def send(
+        self, content: str | None = None, *, view: Any = None, **kwargs: Any
+    ) -> Any:
+        message = type("Sent", (), {"content": content, "view": view})()
+        self.sent.append(message)
+        return message
+
+
+class _FakeGuild:
+    def __init__(self, channel: _FakeChannel) -> None:
+        self.id = 1
+        self.text_channels = [channel]
+
+
+class _FakeBot:
+    def __init__(self, bundle: PhasesBundle, channel: _FakeChannel) -> None:
+        self.guilds = [_FakeGuild(channel)]
+        self.kingdoms_service = bundle.kingdoms
+        self.kingdoms_attacks_service = bundle.attacks
+        self.logs_service = None
+
+    def get_user(self, user_id: str) -> Any:
+        return None
+
+    async def fetch_user(self, user_id: int) -> Any:
+        raise RuntimeError("no user resolution in tests")
+
+
+def _wiring(bundle: PhasesBundle) -> None:
+    register_kingdoms_panel_wiring(
+        KingdomsPanelWiring(
+            kingdoms_service=bundle.kingdoms, attacks_service=bundle.attacks
+        )
+    )
+
+
+def test_panel_buttons_rebuild_from_the_wire_in_both_locales() -> None:
+    """Check 30's lesson: the persistent labels exist in both locales."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        ATTACK_PANEL_MARKER,
+        KingdomAttackDeclareButton,
+        KingdomAttackDefendButton,
+        _strings,
+    )
+
+    for locale in ("fr", "en"):
+        strings = _strings(locale)
+        declare = KingdomAttackDeclareButton(strings["declare_button"])
+        assert declare.item.custom_id == "kingdoms:attack:declare"
+        defend = KingdomAttackDefendButton("s1-a-t-king-a", strings["defend_button"])
+        assert defend.item.custom_id == "kingdoms:attack:defend:s1-a-t-king-a"
+        assert ATTACK_PANEL_MARKER
+
+
+async def test_defend_button_rebuilds_with_the_attack_id() -> None:
+    """The restart-proof rebuild keeps the embedded attack id."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton
+
+    match: Any = re.match(
+        r"kingdoms:attack:defend:(?P<attack_id>[A-Za-z0-9_:\-]+)",
+        "kingdoms:attack:defend:s1-a-t-king-a",
+    )
+    button = await KingdomAttackDefendButton.from_custom_id(
+        MockInteraction(locale="en-US"),  # type: ignore[arg-type]
+        None,  # type: ignore[arg-type]
+        match,  # type: ignore[arg-type]
+    )
+    assert button.attack_id == "s1-a-t-king-a"
+    assert button.item.custom_id == "kingdoms:attack:defend:s1-a-t-king-a"
+
+
+async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
+    """The salon deployment pins the marker with a defend button per attack."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        ATTACK_PANEL_MARKER,
+        deploy_attack_panel,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(20)
+    attack = await bundle.fresh_attack()
+    channel = _FakeChannel()
+    channel.history_list = [_FakeMessage("old <!-- kingdoms-attack -->")]
+    await deploy_attack_panel(channel, "fr", bundle.kingdoms, bundle.attacks)
+    assert len(channel.sent) == 1
+    assert ATTACK_PANEL_MARKER in (channel.sent[0].content or "")
+    ids = [item.custom_id for item in channel.sent[0].view.children]
+    assert "kingdoms:attack:declare" in ids
+    assert f"kingdoms:attack:defend:{attack.id}" in ids
+
+
+async def test_declare_modal_declares_the_attack() -> None:
+    """The declaration modal runs declare_attack and confirms (D77)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        KingdomAttackDeclareModal,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    modal = click.response.modal
+    assert isinstance(modal, KingdomAttackDeclareModal)
+    modal.map_input._value = target  # type: ignore[attr-defined]
+    modal.lobby_input._value = "aoe2de://lobby"  # type: ignore[attr-defined]
+    modal.cover_input._value = ""  # type: ignore[attr-defined]
+    submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await modal.on_submit(submit)  # type: ignore[arg-type]
+    attacks = await bundle.attacks.attacks()
+    assert len(attacks) == 1
+    assert str(attacks[0].state.value) == "declared"
+    assert submit.followup.messages
+    assert "Attaque déclarée" in (submit.followup.messages[0].content or "")
+
+
+async def test_defend_button_takes_the_defense() -> None:
+    """The persistent defend button runs respond_defense (D77)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton, _strings
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(22)
+    attack = await bundle.fresh_attack()
+    _wiring(bundle)
+    button = KingdomAttackDefendButton(attack.id, _strings("fr")["defend_button"])
+    interaction = MockInteraction(user=MockUser(id="lord-b"), locale="fr")  # type: ignore[arg-type]
+    await button.callback(interaction)  # type: ignore[arg-type]
+    assert interaction.followup.messages
+    assert "défense de ton royaume" in (interaction.followup.messages[0].content or "")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.defender_lord_id == "lord-b"
+
+
+async def test_scheduler_run_announces_reveal_dm_and_forfeit() -> None:
+    """The tick drives the phases: T-15 reveal, T-5 dispatch, T forfeit."""
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        ATTACK_PANEL_MARKER,
+        run_attack_phases_safe,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(23)
+    attack = await bundle.fresh_attack()
+    channel = _FakeChannel()
+    bot = _FakeBot(bundle, channel)
+    # T-16: nothing is due yet.
+    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 44, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    assert not [m for m in channel.sent if "défendu" in (m.content or "")]
+    # T-2: the reveal runs — nobody defended, the AI takes over.
+    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    assert any("IA" in (m.content or "") for m in channel.sent)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.ai_defender is True
+    assert fresh.pickban["sent"] is True  # the DM dispatch left (fail-safe here)
+    assert any(
+        ATTACK_PANEL_MARKER in (m.content or "") for m in channel.sent
+    )  # the panel re-pinned
+    # T+1: the forfeit lands — the attacker missed his validation.
+    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    assert any("Forfait" in (m.content or "") for m in channel.sent)

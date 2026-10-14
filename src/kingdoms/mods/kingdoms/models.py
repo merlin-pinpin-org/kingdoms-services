@@ -290,6 +290,20 @@ class AttackModel(BaseModel):
     restituted: bool = False
     participants: list[str] = Field(default_factory=list)
     effects: dict[str, Any] = Field(default_factory=dict)
+    cover_lord_id: str | None = None
+    """Phases d'attaque (D77): the cover lord shown instead of the real
+    attacker until the T-15 reveal (Contre-espionnage)."""
+    revealed: bool = False
+    """Whether the T-15 reveal already ran (restart-safe idempotence)."""
+    ai_defender: bool = False
+    """Whether the defending kingdom's bot AI took the defense (D77)."""
+    embuscade: bool = False
+    """Whether this attack is an Embuscade (T-1h, no weekly budget, D77)."""
+    pickban: dict[str, Any] = Field(default_factory=dict)
+    """The pré-combat state (D77): attacker_picks/defender_picks (3 ranked
+    civilizations each), sabotages (per side, 2 max), validated flags,
+    ``sent`` (the T-5 DM left), ``resolved_pickban`` (civs revealed) and
+    ``forfeit_side`` (the side that missed its validation)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

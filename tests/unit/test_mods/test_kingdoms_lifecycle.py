@@ -54,6 +54,10 @@ def test_register_degrades_without_mongo() -> None:
 def test_setup_hook_registers_the_persistent_items() -> None:
     bot = _FakeBot()
     setup_hook(bot)
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        KingdomAttackDefendButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_persistent import (
         KingdomAdminButton,
         KingdomApplyButton,
@@ -76,6 +80,8 @@ def test_setup_hook_registers_the_persistent_items() -> None:
         KingdomMarketTechButton,
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
+        KingdomAttackDeclareButton,
+        KingdomAttackDefendButton,
     }
     assert expected <= bot._dynamic_items
 

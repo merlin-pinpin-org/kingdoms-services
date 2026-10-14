@@ -1682,6 +1682,11 @@ async def _deploy_channel_panel(
 
         await deploy_distributor_panel(channel, locale)
         return "distributeur"
+    if slug == "attaquer":
+        from kingdoms.mods.kingdoms.kingdom_attack_panel import deploy_attack_panel
+
+        await deploy_attack_panel(channel, locale, kingdoms_service)
+        return "attaquer"
     return None
 
 

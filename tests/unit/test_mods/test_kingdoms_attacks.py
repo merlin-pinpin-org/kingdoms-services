@@ -198,8 +198,12 @@ async def test_weekly_budgets_and_recharge_d1() -> None:
     await bundle.attacks.declare_attack("king-a", maps_b[1], "aoe2de://z")  # budget back
 
 
-async def test_no_defense_auto_victory_captures_d8_default() -> None:
-    bundle = Bundle()
+async def test_no_defense_auto_victory_captures_d8_legacy() -> None:
+    """D77: auto_victory is legacy — explicit config only, never default."""
+    config = default_season_config().model_copy(deep=True)
+    assert config.attacks.no_defense_outcome == "vs_ai"  # the D77 default
+    config.attacks.no_defense_outcome = "auto_victory"
+    bundle = Bundle(config)
     await bundle.launch_season()
     await bundle.draw(6)
     aquitaine = await bundle.kingdom_id("Aquitaine")
@@ -215,17 +219,17 @@ async def test_no_defense_auto_victory_captures_d8_default() -> None:
 
 
 async def test_no_defense_vs_ai_waits_for_the_result_d8() -> None:
-    config = default_season_config().model_copy(deep=True)
-    assert config.attacks.no_defense_outcome == "auto_victory"
-    config.attacks.no_defense_outcome = "vs_ai"
-    bundle = Bundle(config)
+    """D77: nobody answers → the defending kingdom's bot AI takes the defense."""
+    bundle = Bundle()
     await bundle.launch_season()
     await bundle.draw(7)
     bourgogne = await bundle.kingdom_id("Bourgogne")
     target = (await bundle.owner_maps(bourgogne))[0]
     attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://x")
     expired = await bundle.attacks.expire_stale(now=attack.expires_at + timedelta(minutes=1))
-    assert expired[0].state is AttackState.EXPIRED
+    assert len(expired) == 1
+    assert expired[0].state is AttackState.DEFENDED
+    assert expired[0].ai_defender is True
     # The result still comes through the game contract (D20).
     resolved = await bundle.attacks.resolve(attack.id, bourgogne)
     assert resolved.winner_kingdom_id == bourgogne
@@ -473,15 +477,15 @@ async def test_forced_lords_day_window_blocks_executions() -> None:
     assert early.expires_at == datetime(2026, 10, 10, 17, 0, tzinfo=UTC)
     assert await bundle.attacks.expire_stale(now=datetime(2026, 10, 10, 20, 0, tzinfo=UTC)) == []
     # Resolve is blocked while the window is open, then works after it.
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
     from kingdoms.mods.kingdoms import attacks as attacks_module
 
-    attacks_module._now = lambda: now  # type: ignore[assignment]
+    attacks_module._now = lambda: datetime(2026, 10, 10, 18, 0, tzinfo=UTC)  # type: ignore[assignment]
     try:
+        await bundle.attacks.respond_defense(attack.id, "lord-b")
         with pytest.raises(LordsDayAttackError):
             await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
     finally:
-        attacks_module._now = lambda: _SAFE_NOW  # type: ignore[assignment]
+        attacks_module._now = lambda: _SAFE_NOW
     resolved = await bundle.attacks.resolve(
         attack.id, await bundle.kingdom_id("Aquitaine")
     )

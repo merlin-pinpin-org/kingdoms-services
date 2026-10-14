@@ -301,7 +301,14 @@ async def test_marriage_lock_blocks_attack_and_defense() -> None:
     await bundle.patch_kingdom_of("lord-a", arranged_marriage_stock=1)
     await bundle.diplomacy.arranged_marriage("lord-a", "shu")
     with pytest.raises(LordLockedError):
-        await bundle.attacks.respond_defense(attack.id, "lord-a")
+        from kingdoms.mods.kingdoms import attacks as attacks_module
+
+        previous = attacks_module._now
+        attacks_module._now = lambda: now  # type: ignore[assignment]
+        try:
+            await bundle.attacks.respond_defense(attack.id, "lord-a")
+        finally:
+            attacks_module._now = previous  # type: ignore[assignment]
 
 
 async def test_defeat_drops_the_marriage_at_the_next_recalculation() -> None:

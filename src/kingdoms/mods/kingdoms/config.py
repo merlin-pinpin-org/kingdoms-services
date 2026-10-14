@@ -129,12 +129,23 @@ class AttackSettings(BaseModel):
     gaia_attack_max_per_kingdom: int = Field(default=1, ge=1)
     gaia_attack_max_total: int = Field(default=7, ge=1)
     gaia_max_participants: int = Field(default=7, ge=1)
-    no_defense_outcome: str = Field(default="auto_victory")
+    defense_cutoff_minutes: int = Field(default=15, ge=0)
+    """Phases d'attaque (D77): the defense closes at T-15 — after that
+    the defender can no longer react, the cover is revealed and the
+    kingdom's bot AI takes the defense when nobody answered."""
+    pick_ban_lead_minutes: int = Field(default=5, ge=0)
+    """Phases d'attaque (D77): the pick & ban DMs leave at T-5; each
+    side ranks 3 civilizations and can engage up to 2 sabotages."""
+    embuscade_delay_hours: int = Field(default=1, ge=1)
+    """Phases d'attaque (D77): the Embuscade declares at T-1h sharp
+    (defense window = 45 minutes through the T-15 cutoff)."""
+    no_defense_outcome: str = Field(default="vs_ai")
     """D8: what happens when no defender answers in the delay.
 
-    ``auto_victory`` (default): the attacker captures the territory;
-    ``vs_ai``: the attack resolves through a game against Gaïa's AI —
-    the result still comes through the game contract (D20)."""
+    ``vs_ai`` (default, D77): the defending kingdom's bot AI takes the
+    defense at T-15 and the game result still comes through the game
+    contract (D20) — auto_victory is legacy (the attacker captured the
+    territory without a game) and no longer the default."""
 
 
 class EventSettings(BaseModel):

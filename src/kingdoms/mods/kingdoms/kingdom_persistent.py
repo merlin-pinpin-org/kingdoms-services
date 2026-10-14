@@ -110,12 +110,18 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
 
 def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     """Re-register every persistent Kingdoms component class on the bot."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        KingdomAttackDefendButton,
+    )
     from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
         KingdomDistributorButton,
     )
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
 
     bot.add_dynamic_items(
+        KingdomAttackDeclareButton,
+        KingdomAttackDefendButton,
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomProfileButton,
