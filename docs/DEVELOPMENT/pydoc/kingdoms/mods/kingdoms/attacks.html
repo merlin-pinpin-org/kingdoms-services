@@ -260,6 +260,8 @@ The&nbsp;attack/defense&nbsp;state&nbsp;machine&nbsp;and&nbsp;combat&nbsp;econom
 
 <dl><dt>async <a name="AttackService-attacks"><strong>attacks</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-base_ai_level"><strong>base_ai_level</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;base&nbsp;AI&nbsp;level&nbsp;(D18&nbsp;scale,&nbsp;fallback&nbsp;1).</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-buy_technology"><strong>buy_technology</strong></a>(self, kingdom_id: 'str', technology: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Buy&nbsp;one&nbsp;combat&nbsp;technology&nbsp;with&nbsp;tech&nbsp;points&nbsp;(D9/D36).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-cancel_ongoing"><strong>cancel_ongoing</strong></a>(self) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Cancel&nbsp;every&nbsp;ongoing&nbsp;attack&nbsp;before&nbsp;the&nbsp;season&nbsp;verdict.<br>
@@ -271,14 +273,16 @@ and&nbsp;never&nbsp;resolve&nbsp;afterwards.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-counter_espionage"><strong>counter_espionage</strong></a>(self, attack_id: 'str', defender_kingdom_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;sabotage&nbsp;of&nbsp;an&nbsp;incoming&nbsp;attack&nbsp;(D11/D28).</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, cover_lord_id: 'str | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
+<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, cover_lord_id: 'str | None' = None, use_traquenard: 'bool' = False, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
 &nbsp;<br>
 Any&nbsp;lord&nbsp;declares&nbsp;(D27),&nbsp;the&nbsp;target&nbsp;must&nbsp;be&nbsp;free&nbsp;of&nbsp;any&nbsp;ongoing<br>
 attack&nbsp;(D42),&nbsp;the&nbsp;attacker&nbsp;must&nbsp;have&nbsp;an&nbsp;attack&nbsp;budget&nbsp;left,&nbsp;and<br>
 the&nbsp;declared&nbsp;territory&nbsp;owner&nbsp;must&nbsp;be&nbsp;another&nbsp;player&nbsp;kingdom.<br>
 The&nbsp;optional&nbsp;cover&nbsp;(Contre-espionnage,&nbsp;D77)&nbsp;displays&nbsp;another<br>
 lord&nbsp;instead&nbsp;of&nbsp;the&nbsp;real&nbsp;attacker&nbsp;until&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;—&nbsp;one<br>
-bought&nbsp;cover&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use.</span></dd></dl>
+bought&nbsp;cover&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use.&nbsp;The&nbsp;optional&nbsp;Traquenard<br>
+(marche-v2&nbsp;art.&nbsp;2)&nbsp;makes&nbsp;the&nbsp;AI&nbsp;faced&nbsp;Facile&nbsp;and&nbsp;adds&nbsp;+2h&nbsp;of<br>
+lock&nbsp;to&nbsp;the&nbsp;marriages&nbsp;active&nbsp;in&nbsp;the&nbsp;target&nbsp;kingdom.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-declare_embuscade"><strong>declare_embuscade</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;the&nbsp;exceptional&nbsp;Embuscade&nbsp;(D77):&nbsp;T-1h,&nbsp;no&nbsp;weekly&nbsp;budget.<br>
 &nbsp;<br>
@@ -294,16 +298,13 @@ The&nbsp;first&nbsp;declarer&nbsp;reserves&nbsp;the&nbsp;territory&nbsp;and&nbsp
 maximum&nbsp;participants,&nbsp;everyone&nbsp;for&nbsp;himself&nbsp;(D6),&nbsp;no&nbsp;time&nbsp;limit<br>
 (D44&nbsp;—&nbsp;the&nbsp;result&nbsp;comes&nbsp;through&nbsp;the&nbsp;game&nbsp;contract).</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-effective_gaia_ai_level"><strong>effective_gaia_ai_level</strong></a>(self, kingdom_id: 'str', base_level: 'int') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;AI&nbsp;level&nbsp;a&nbsp;kingdom&nbsp;faces&nbsp;(D18):&nbsp;Jeu&nbsp;d'armes&nbsp;+1,&nbsp;Traquenard&nbsp;-1.<br>
+<dl><dt>async <a name="AttackService-defense_ai_level"><strong>defense_ai_level</strong></a>(self, kingdom_id: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom&nbsp;defence&nbsp;bot's&nbsp;AI&nbsp;level&nbsp;(marche-v2&nbsp;art.&nbsp;5).<br>
 &nbsp;<br>
-Permanent&nbsp;Jeu&nbsp;d'armes&nbsp;purchases&nbsp;raise&nbsp;the&nbsp;level&nbsp;once&nbsp;each<br>
-(ceiling&nbsp;5);&nbsp;each&nbsp;Traquenard&nbsp;lowers&nbsp;it&nbsp;by&nbsp;one&nbsp;(floor&nbsp;1)&nbsp;until<br>
-the&nbsp;attack&nbsp;resolves&nbsp;—&nbsp;stacking&nbsp;is&nbsp;data&nbsp;on&nbsp;the&nbsp;purchase&nbsp;counter.</span></dd></dl>
-
-<dl><dt>async <a name="AttackService-engage_traquenard"><strong>engage_traquenard</strong></a>(self, kingdom_id: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Engage&nbsp;a&nbsp;bought&nbsp;Traquenard:&nbsp;-1&nbsp;AI&nbsp;level&nbsp;until&nbsp;the&nbsp;combat&nbsp;ends&nbsp;(D18).<br>
-&nbsp;<br>
-The&nbsp;purchase&nbsp;counter&nbsp;moves&nbsp;to&nbsp;``traquenard_active``&nbsp;so&nbsp;the&nbsp;effect<br>
-expires&nbsp;(is&nbsp;cleared)&nbsp;when&nbsp;the&nbsp;attack&nbsp;resolves,&nbsp;and&nbsp;can&nbsp;stack.</span></dd></dl>
+The&nbsp;base&nbsp;level&nbsp;is&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;(D18:&nbsp;1=Facile&nbsp;…&nbsp;5=Extrême);<br>
+each&nbsp;permanent&nbsp;Jeu&nbsp;d'armes&nbsp;purchase&nbsp;adds&nbsp;one,&nbsp;ceiling&nbsp;5.&nbsp;This&nbsp;is<br>
+the&nbsp;level&nbsp;an&nbsp;ATTACKER&nbsp;faces&nbsp;when&nbsp;the&nbsp;kingdom's&nbsp;bot&nbsp;takes&nbsp;the<br>
+defense&nbsp;(the&nbsp;old&nbsp;Gaïa-only&nbsp;reading&nbsp;is&nbsp;gone&nbsp;—&nbsp;the&nbsp;defence&nbsp;bot&nbsp;is<br>
+the&nbsp;kingdom's&nbsp;own,&nbsp;a&nbsp;Traquenard&nbsp;aside).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-expire_stale"><strong>expire_stale</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;meeting-time&nbsp;outcome&nbsp;to&nbsp;every&nbsp;expired&nbsp;attack&nbsp;(D8/D77).<br>
 &nbsp;<br>
@@ -314,8 +315,6 @@ whose&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;never&nbsp;resolved&nbsp;is&nbsp;a&nbsp
 missed&nbsp;its&nbsp;validation&nbsp;loses&nbsp;(both&nbsp;missed&nbsp;→&nbsp;the&nbsp;attacker,&nbsp;the<br>
 present,&nbsp;wins).&nbsp;A&nbsp;resolved&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;keeps&nbsp;waiting&nbsp;for&nbsp;the<br>
 game&nbsp;result&nbsp;(D20)&nbsp;—&nbsp;the&nbsp;RDV&nbsp;itself.</span></dd></dl>
-
-<dl><dt>async <a name="AttackService-expire_traquenard"><strong>expire_traquenard</strong></a>(self, kingdom_id: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Clear&nbsp;the&nbsp;engaged&nbsp;Traquenards&nbsp;when&nbsp;the&nbsp;combat&nbsp;ends&nbsp;(D18).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-5&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
 &nbsp;<br>
@@ -1975,11 +1974,19 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-patrouille_active_at"><strong>patrouille_active_at</strong></a>(state: 'TechnologyState', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;patrol&nbsp;slot&nbsp;covers&nbsp;``now``&nbsp;(daily&nbsp;2h&nbsp;slot,&nbsp;D68).<br>
+<td class="singlecolumn"><dl><dt><a name="-patrouille_active_at"><strong>patrouille_active_at</strong></a>(state: 'TechnologyState', now: 'datetime', *, base_level: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;patrol&nbsp;slot&nbsp;covers&nbsp;``now``&nbsp;(daily&nbsp;2h&nbsp;slot,&nbsp;D68).<br>
 &nbsp;<br>
 The&nbsp;slot&nbsp;hours&nbsp;are&nbsp;expressed&nbsp;in&nbsp;the&nbsp;players'&nbsp;timezone&nbsp;(Europe/Paris,<br>
 the&nbsp;community's&nbsp;convention);&nbsp;an&nbsp;environment&nbsp;without&nbsp;tzdata&nbsp;falls<br>
-back&nbsp;to&nbsp;UTC&nbsp;so&nbsp;the&nbsp;rule&nbsp;keeps&nbsp;working&nbsp;everywhere.</span></dd></dl>
+back&nbsp;to&nbsp;UTC&nbsp;so&nbsp;the&nbsp;rule&nbsp;keeps&nbsp;working&nbsp;everywhere.&nbsp;With&nbsp;a&nbsp;known<br>
+``base_level``&nbsp;the&nbsp;Renforcée&nbsp;widening&nbsp;(3h,&nbsp;marche-v2&nbsp;art.&nbsp;5)<br>
+applies&nbsp;as&nbsp;soon&nbsp;as&nbsp;the&nbsp;defence&nbsp;AI&nbsp;sits&nbsp;at&nbsp;the&nbsp;ceiling.</span></dd></dl>
+ <dl><dt><a name="-patrouille_reinforced"><strong>patrouille_reinforced</strong></a>(state: 'TechnologyState', base_level: 'int') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;kingdom's&nbsp;patrols&nbsp;are&nbsp;Renforcées&nbsp;(marche-v2&nbsp;art.&nbsp;5).<br>
+&nbsp;<br>
+The&nbsp;transformation&nbsp;is&nbsp;automatic&nbsp;and&nbsp;free:&nbsp;when&nbsp;the&nbsp;defence&nbsp;bot's&nbsp;AI<br>
+reaches&nbsp;the&nbsp;ceiling&nbsp;(5,&nbsp;Extrême&nbsp;—&nbsp;the&nbsp;epoch&nbsp;base&nbsp;level&nbsp;plus&nbsp;one&nbsp;per<br>
+permanent&nbsp;Jeu&nbsp;d'armes&nbsp;purchase),&nbsp;every&nbsp;patrol&nbsp;slot&nbsp;of&nbsp;the&nbsp;kingdom<br>
+widens&nbsp;from&nbsp;2h&nbsp;to&nbsp;3h.</span></dd></dl>
  <dl><dt><a name="-patrouille_slots"><strong>patrouille_slots</strong></a>(state: 'TechnologyState') -&gt; 'tuple[int, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom's&nbsp;bought&nbsp;patrol&nbsp;slots&nbsp;(start&nbsp;hours,&nbsp;D68).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -1987,11 +1994,14 @@ back&nbsp;to&nbsp;UTC&nbsp;so&nbsp;the&nbsp;rule&nbsp;keeps&nbsp;working&nbsp;ev
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>COMBAT_TECHNOLOGIES</strong> = ('embuscade', 'traquenard', 'contre_espionnage', 'sabotage', 'jeu_d_armes')<br>
+<td class="singlecolumn"><strong>AI_LEVEL_CAP</strong> = 5<br>
+<strong>COMBAT_TECHNOLOGIES</strong> = ('embuscade', 'traquenard', 'contre_espionnage', 'sabotage', 'jeu_d_armes')<br>
 <strong>GAIA_KINGDOM_KEY</strong> = 'gaia'<br>
 <strong>PATROUILLE_HOURS</strong> = 2<br>
+<strong>PATROUILLE_REINFORCED_HOURS</strong> = 3<br>
 <strong>PATROUILLE_SLOT_KEYS</strong> = ('patrouille_slot_1', 'patrouille_slot_2')<br>
 <strong>PATROUILLE_TZ</strong> = 'Europe/Paris'<br>
+<strong>TRAQUENARD_LOCK_HOURS</strong> = 2<br>
 <strong>TYPE_CHECKING</strong> = False<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
 <strong>logger</strong> = &lt;Logger kingdoms.attacks (WARNING)&gt;</td></tr></table>

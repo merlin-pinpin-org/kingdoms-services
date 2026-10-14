@@ -258,11 +258,15 @@ former&nbsp;owner&nbsp;gains&nbsp;one&nbsp;tech&nbsp;point&nbsp;as&nbsp;compensa
 already&nbsp;protected&nbsp;resists&nbsp;the&nbsp;corruption;&nbsp;the&nbsp;per-season<br>
 purchase&nbsp;limit&nbsp;applies&nbsp;(D58).</span></dd></dl>
 
-<dl><dt>async <a name="EconomyService-buy_explorateur"><strong>buy_explorateur</strong></a>(self, kingdom_id: 'str') -&gt; 'TerritoryModel'</dt><dd><span class="code">Receive&nbsp;one&nbsp;random&nbsp;non-out&nbsp;map&nbsp;as&nbsp;an&nbsp;immediate&nbsp;territory&nbsp;(D48).<br>
+<dl><dt>async <a name="EconomyService-buy_explorateur"><strong>buy_explorateur</strong></a>(self, kingdom_id: 'str', lord_id: 'str', *, now: 'datetime | None' = None) -&gt; 'LordModel'</dt><dd><span class="code">Send&nbsp;one&nbsp;lord&nbsp;exploring:&nbsp;48h&nbsp;combat&nbsp;lock,&nbsp;map&nbsp;at&nbsp;the&nbsp;end&nbsp;(art.&nbsp;6).<br>
 &nbsp;<br>
-Consumable:&nbsp;once&nbsp;per&nbsp;season&nbsp;per&nbsp;kingdom.&nbsp;The&nbsp;map&nbsp;is&nbsp;drawn&nbsp;at<br>
-random&nbsp;among&nbsp;the&nbsp;allowed&nbsp;catalog&nbsp;entries&nbsp;not&nbsp;out&nbsp;yet&nbsp;(§8)&nbsp;-&nbsp;the<br>
-territory&nbsp;goes&nbsp;to&nbsp;the&nbsp;buyer&nbsp;right&nbsp;away.</span></dd></dl>
+marche-v2&nbsp;art.&nbsp;6&nbsp;(Drasah&nbsp;13/10):&nbsp;any&nbsp;ACTIVE&nbsp;lord&nbsp;of&nbsp;the&nbsp;kingdom<br>
+may&nbsp;explore&nbsp;(not&nbsp;only&nbsp;the&nbsp;King).&nbsp;The&nbsp;chosen&nbsp;lord&nbsp;is&nbsp;locked&nbsp;for<br>
+48h&nbsp;FIXED&nbsp;(never&nbsp;scaled&nbsp;by&nbsp;the&nbsp;Parish,&nbsp;unlike&nbsp;the&nbsp;marriage)&nbsp;—<br>
+no&nbsp;attack,&nbsp;no&nbsp;defence&nbsp;—&nbsp;and&nbsp;the&nbsp;territory&nbsp;does&nbsp;not&nbsp;exist&nbsp;yet:<br>
+the&nbsp;map&nbsp;is&nbsp;drawn&nbsp;when&nbsp;the&nbsp;scheduler&nbsp;resolves&nbsp;the&nbsp;expired<br>
+exploration&nbsp;(``resolve_due_explorations``).&nbsp;Once&nbsp;per&nbsp;season<br>
+per&nbsp;kingdom;&nbsp;an&nbsp;exhausted&nbsp;pool&nbsp;refunds&nbsp;at&nbsp;resolution.</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-buy_patrouille"><strong>buy_patrouille</strong></a>(self, kingdom_id: 'str', slot_start: 'int') -&gt; 'int'</dt><dd><span class="code">Buy&nbsp;one&nbsp;daily&nbsp;2h&nbsp;no-aggression&nbsp;slot&nbsp;(D68).<br>
 &nbsp;<br>
@@ -282,6 +286,14 @@ and&nbsp;a&nbsp;new&nbsp;guard&nbsp;is&nbsp;a&nbsp;fresh&nbsp;full-price&nbsp;pu
 config&nbsp;follows&nbsp;the&nbsp;spec).</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-grant_tech_points"><strong>grant_tech_points</strong></a>(self, kingdom_id: 'str', amount: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Credit&nbsp;the&nbsp;kingdom&nbsp;wallet&nbsp;-&nbsp;epochs,&nbsp;exploration,&nbsp;admin&nbsp;grants.</span></dd></dl>
+
+<dl><dt>async <a name="EconomyService-resolve_due_explorations"><strong>resolve_due_explorations</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[tuple[LordModel, TerritoryModel | None]]'</dt><dd><span class="code">Resolve&nbsp;every&nbsp;expired&nbsp;exploration&nbsp;(the&nbsp;tick's&nbsp;engine,&nbsp;art.&nbsp;6).<br>
+&nbsp;<br>
+When&nbsp;the&nbsp;48h&nbsp;lock&nbsp;passes,&nbsp;the&nbsp;kingdom&nbsp;receives&nbsp;a&nbsp;brand-new&nbsp;map<br>
+drawn&nbsp;from&nbsp;the&nbsp;catalog&nbsp;(never&nbsp;an&nbsp;out&nbsp;map)&nbsp;and&nbsp;the&nbsp;lord's&nbsp;lock<br>
+clears.&nbsp;An&nbsp;exhausted&nbsp;pool&nbsp;refunds&nbsp;the&nbsp;purchase&nbsp;in&nbsp;full&nbsp;and<br>
+still&nbsp;clears&nbsp;the&nbsp;lock&nbsp;—&nbsp;the&nbsp;pass&nbsp;is&nbsp;idempotent,&nbsp;a&nbsp;restart<br>
+mid-exploration&nbsp;never&nbsp;draws&nbsp;twice.</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-spend_points"><strong>spend_points</strong></a>(self, kingdom_id: 'str', cost: 'int') -&gt; 'None'</dt><dd><span class="code">Debit&nbsp;the&nbsp;wallet&nbsp;-&nbsp;the&nbsp;seam&nbsp;the&nbsp;other&nbsp;services&nbsp;call&nbsp;(D45).<br>
 &nbsp;<br>
@@ -557,6 +569,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>CORRUPTION_COMPENSATION_TECH</strong> = 1<br>
 <strong>CORRUPTION_PROTECTION_HOURS</strong> = 48<br>
 <strong>EXPLORATEUR</strong> = 'explorateur'<br>
+<strong>EXPLORATION_LOCK_HOURS</strong> = 48<br>
 <strong>GARDE_ROYALE</strong> = 'garde_royale'<br>
 <strong>GUARD_UNTIL_KEY</strong> = 'garde_royale_until'<br>
 <strong>PATROUILLE</strong> = 'patrouille'<br>
