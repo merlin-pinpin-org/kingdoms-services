@@ -1,9 +1,11 @@
-"""Kingdoms mod — the 🪶 Volière panel (voliere-v1, Drasah 14/10/2026).
+"""Kingdoms mod — the 🪶 Volière panel (voliere-v2, Drasah 14/10/2026).
 
 The volière opens from the Le-Royaume view (« Développer la volière »),
-is free from the Âge Féodal and shared by every lord of the kingdom:
-three birds (Corbeau, Faucon, Pigeon), per-action cooldowns carried by
-the kingdom itself.
+is free from the Âge Féodal and shared by every lord of the kingdom.
+Voliere-v2 (Drasah's live-test rulings): one slot per age (Féodal 1,
+Château 2, Impérial 3), each slot takes ONE bird, a bird already owned
+can never be re-taken — and ONE action flies the WHOLE bird (no other
+action of that bird until it lands). Cooldowns stay shared by the realm.
 
 Every answer is a single ephemeral bubble (the volière is discreet by
 nature) with the standard market TTL. The anonymity is player-facing
@@ -48,6 +50,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "voliere_pigeon": "**Pigeon**",
         "ready_in": "ready in {hours}h",
         "ready": "ready",
+        "slot_button": "🪶 Choose a bird",
+        "slot_choose": "🪶 A slot is open — which bird lands in your volière?",
+        "slot_open": "🕳️ Slot to fill — **choose a bird**.",
+        "slot_next": "🔒 Next slot at the **{age}** age.",
+        "bird_chosen": "🪶 The **{bird}** lands in your volière!",
+        "bird_ready": "🪶 **{bird}** — on its perch, ready",
+        "bird_flying": "🕊️ **{bird}** — flying, back <t:{ts}:R>",
+        "bird_not_owned": "❌ The {bird} is not in your volière — choose it in a slot first.",
         "act_corbeau_civ": "🐦‍⬛ Draw a civilization",
         "act_corbeau_verify": "🐦‍⬛ Verify an attack",
         "act_corbeau_track": "🐦‍⬛ Track a lord",
@@ -95,6 +105,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "voliere_pigeon": "**Pigeon**",
         "ready_in": "prêt dans {hours}h",
         "ready": "prêt",
+        "slot_button": "🪶 Choisir un oiseau",
+        "slot_choose": "🪶 Un emplacement est ouvert — quel oiseau atterrit dans ta volière ?",
+        "slot_open": "🕳️ Emplacement à remplir — **choisis un oiseau**.",
+        "slot_next": "🔒 Prochain emplacement à l'âge **{age}**.",
+        "bird_chosen": "🪶 Le **{bird}** atterrit dans ta volière !",
+        "bird_ready": "🪶 **{bird}** — posé sur son perchoir, prêt",
+        "bird_flying": "🕊️ **{bird}** — envolé, il revient <t:{ts}:R>",
+        "bird_not_owned": "❌ Le {bird} n'est pas dans ta volière — choisis-le dans un emplacement d'abord.",
         "act_corbeau_civ": "🐦‍⬛ Piocher une civilisation",
         "act_corbeau_verify": "🐦‍⬛ Vérifier une attaque",
         "act_corbeau_track": "🐦‍⬛ Cibler un seigneur",
@@ -140,6 +158,8 @@ BIRD_LABEL = {
     "pigeon_civ": "Pigeon",
 }
 
+BIRD_NAME: dict[str, str] = {"corbeau": "Corbeau", "faucon": "Faucon", "pigeon": "Pigeon"}
+
 
 def _strings(locale: str) -> dict[str, str]:
     """Return the module strings for one locale (fr by default)."""
@@ -157,58 +177,155 @@ def _now() -> datetime:
     return datetime.now(tz=UTC)
 
 
-async def _cooldown_line(
-    wiring: Any, kingdom_id: str, action: str, strings: dict[str, str]
-) -> str:
-    """One cooldown status line — « prêt dans Xh » (Oracle's suggestion)."""
+async def _voliere_state(wiring: Any, kingdom_id: str) -> dict[str, Any] | None:
+    """Return the volière slot snapshot, or None when unavailable."""
     voliere = wiring.voliere_service
-    label = strings[f"act_{action}"]
+    if voliere is None:
+        return None
     try:
-        ready_at = int(await voliere.cooldown_ready_at(kingdom_id, action))
+        state: dict[str, Any] | None = await voliere.slot_state(kingdom_id)
+        return state
     except Exception:
-        ready_at = 0
-    now_ts = int(_now().timestamp())
-    if ready_at > now_ts:
-        hours = max(1, (ready_at - now_ts + 3599) // 3600)
-        return f"- {label} — {strings['ready_in'].format(hours=hours)}"
-    return f"- {label} — {strings['ready']}"
+        logger.info("VOLIERE: slot_state failed", exc_info=True)
+        return None
 
 
 async def _voliere_content(
-    wiring: Any, kingdom: Any, strings: dict[str, str]
+    wiring: Any, kingdom: Any, strings: dict[str, str], state: dict[str, Any] | None = None
 ) -> str:
-    """Build the Volière sommaire with every cooldown status."""
-    kingdom_id = str(kingdom.id)
+    """Build the Volière sommaire — one line per bird, slots included (v2)."""
+    if state is None:
+        state = await _voliere_state(wiring, str(kingdom.id))
     lines = [
         strings["voliere_title"].format(kingdom=str(getattr(kingdom, "name", ""))),
         strings["voliere_line"],
         "",
-        strings["voliere_corbeau"],
     ]
-    for action in ("corbeau_civ", "corbeau_verify", "corbeau_track"):
-        lines.append(await _cooldown_line(wiring, kingdom_id, action, strings))
-    lines.append(strings["voliere_faucon"])
-    for action in ("faucon_territory", "faucon_sabotage", "faucon_release"):
-        lines.append(await _cooldown_line(wiring, kingdom_id, action, strings))
-    lines.append(strings["voliere_pigeon"])
-    for action in ("pigeon_civ", "pigeon_question", "pigeon_dm"):
-        lines.append(await _cooldown_line(wiring, kingdom_id, action, strings))
+    if state is None:
+        lines.append(strings["no_service"])
+        return "\n".join(lines)
+    now_ts = int(_now().timestamp())
+    cooldowns = {str(k): int(v) for k, v in (state.get("cooldowns") or {}).items()}
+    for bird in [str(b) for b in (state.get("chosen") or [])]:
+        ready_at = cooldowns.get(bird, 0)
+        if ready_at > now_ts:
+            lines.append(strings["bird_flying"].format(bird=BIRD_NAME.get(bird, bird), ts=ready_at))
+        else:
+            lines.append(strings["bird_ready"].format(bird=BIRD_NAME.get(bird, bird)))
+    if int(state.get("open") or 0) > 0:
+        lines.append(strings["slot_open"])
+    next_age = str(state.get("next_age") or "")
+    if next_age:
+        lines.append(strings["slot_next"].format(age=next_age))
     return "\n".join(lines)
 
 
-def _voliere_view(strings: dict[str, str]) -> discord.ui.View:
-    """Build the ephemeral in-session action view of the volière."""
+def _voliere_view(strings: dict[str, str], state: dict[str, Any] | None) -> discord.ui.View:
+    """Build the ephemeral in-session action view of the volière (v2).
+
+    Only the OWNED birds get buttons — a flying bird (cooldown) has its
+    buttons disabled until it lands; an open slot adds the « choose a
+    bird » button.
+    """
     view = discord.ui.View(timeout=600)
+    now_ts = int(_now().timestamp())
+    chosen = [str(b) for b in ((state or {}).get("chosen") or [])]
+    cooldowns = {str(k): int(v) for k, v in ((state or {}).get("cooldowns") or {}).items()}
     for action, style_name in VOLIERE_ACTIONS:
+        bird = action.split("_", 1)[0]
+        if bird not in chosen:
+            continue
         style = getattr(discord.ButtonStyle, style_name, discord.ButtonStyle.secondary)
         button: discord.ui.Button[Any] = discord.ui.Button(
             label=strings[f"act_{action}"][:80],
             custom_id=f"kingdoms:voliere:act:{action}",
             style=style,
+            disabled=cooldowns.get(bird, 0) > now_ts,
         )
         button.callback = _action_callback(action)  # type: ignore[method-assign]
         view.add_item(button)
+    if int((state or {}).get("open") or 0) > 0:
+        choose_button: discord.ui.Button[Any] = discord.ui.Button(
+            label=strings["slot_button"][:80],
+            custom_id="kingdoms:voliere:slot:choose",
+            style=discord.ButtonStyle.success,
+        )
+        choose_button.callback = _slot_button_callback()  # type: ignore[method-assign]
+        view.add_item(choose_button)
     return view
+
+
+def _slot_button_callback() -> Any:
+    """Build the in-session « choose a bird » button callback."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    async def on_click(interaction: discord.Interaction) -> None:
+        await _slot_flow(interaction, _wiring())
+
+    return on_click
+
+
+async def _slot_flow(interaction: discord.Interaction, wiring: Any, *, fresh: bool = False) -> None:
+    """Open the bird-select for one empty volière slot (v2 slots).
+
+    ``fresh`` marks a first response (the persistent realm-view button
+    sends an ephemeral message; in-session buttons edit the bubble).
+    """
+    strings = _strings(_locale(interaction))
+    if wiring.voliere_service is None or wiring.kingdoms_service is None:
+        await interaction.response.send_message(strings["no_service"], ephemeral=True)
+        return
+    lord, kingdom = await _require_lord(interaction, strings, wiring)
+    if lord is None or kingdom is None:
+        return
+    state = await _voliere_state(wiring, str(kingdom.id))
+    available = [str(bird) for bird in ((state or {}).get("available") or [])]
+    if int((state or {}).get("open") or 0) <= 0 or not available:
+        if fresh:
+            await interaction.response.send_message(strings["voliere_line"], ephemeral=True)
+        else:
+            await interaction.response.edit_message(
+                content=strings["voliere_line"], view=None
+            )
+        return
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:voliere:slot:pick",
+        placeholder=strings["slot_choose"][:100],
+        options=[
+            discord.SelectOption(label=BIRD_NAME.get(bird, bird)[:100], value=bird[:100])
+            for bird in available[:25]
+        ],
+    )
+
+    async def on_pick(target: discord.Interaction[Any]) -> None:
+        values = [str(v) for v in (getattr(target, "data", None) or {}).get("values", [])]
+        if not values:
+            return
+        try:
+            await wiring.voliere_service.choose_bird(
+                str(kingdom.id), values[0], now=_now()
+            )
+        except Exception as exc:
+            _failed(target, strings, exc)
+            return
+        logger.info(
+            "kingdoms volière: %s chooses the bird %s (admin trace)", lord.id, values[0]
+        )
+        fresh = await _voliere_state(wiring, str(kingdom.id))
+        content = strings["bird_chosen"].format(bird=BIRD_NAME.get(values[0], values[0]))
+        await target.response.edit_message(
+            content=content, view=_voliere_view(strings, fresh)
+        )
+
+    select.callback = on_pick  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    if fresh:
+        await interaction.response.send_message(
+            content=strings["slot_choose"], view=view, ephemeral=True
+        )
+    else:
+        await interaction.response.edit_message(content=strings["slot_choose"], view=view)
 
 
 def _action_callback(action: str) -> Any:
@@ -282,6 +399,19 @@ async def _draw_action(
         _failed(interaction, strings, exc)
         return
     await interaction.response.edit_message(content=note, view=None)
+    if action in ("corbeau_civ", "pigeon_civ"):
+        # v2 anti-stale rule: a drawn civ lands in the Alliances salon
+        # too (the draft-starter message edits itself in place).
+        try:
+            from kingdoms.mods.kingdoms.kingdom_realms import announce_draft_starter
+
+            guild = interaction.guild
+            if guild is not None:
+                await announce_draft_starter(
+                    guild, kingdom, wiring.kingdoms_service
+                )
+        except Exception:
+            logger.info("VOLIERE: alliances refresh skipped", exc_info=True)
     await _refresh_realm_safe(interaction.guild, str(kingdom.id))
 
 
@@ -301,21 +431,55 @@ async def _run_action(
     if action in ("corbeau_civ", "pigeon_civ", "faucon_territory", "faucon_release"):
         await _draw_action(interaction, wiring, strings, kingdom, action, now)
         return
-    if action == "corbeau_verify":
-        await _verify_flow(interaction, wiring, strings, kingdom)
+    flows: dict[str, Any] = {
+        "corbeau_verify": _verify_flow,
+        "corbeau_track": _track_flow,
+        "faucon_sabotage": _sabotage_flow,
+    }
+    flow = flows.get(action)
+    if flow is not None:
+        await flow(interaction, wiring, strings, kingdom)
         return
-    if action == "corbeau_track":
-        await _track_flow(interaction, wiring, strings, kingdom)
+    if action == "pigeon_question" and await _gate_bird(
+        interaction, wiring, strings, kingdom, "pigeon_question"
+    ):
+        await _question_modal(interaction, wiring, strings, kingdom, lord)
         return
-    if action == "faucon_sabotage":
-        await _sabotage_flow(interaction, wiring, strings, kingdom)
-        return
-    if action == "pigeon_question":
-        await _question_modal(interaction, wiring, strings, lord)
-        return
-    if action == "pigeon_dm":
+    if action == "pigeon_dm" and await _gate_bird(
+        interaction, wiring, strings, kingdom, "pigeon_dm"
+    ):
         await _dm_flow(interaction, wiring, strings, kingdom, lord)
-        return
+
+
+async def _gate_bird(
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    action: str,
+) -> bool:
+    """Peek the bird gates before a modal (no spend — the spend is on submit)."""
+    bird = action.split("_", 1)[0]
+    state = await _voliere_state(wiring, str(kingdom.id))
+    if state is None:
+        await interaction.response.send_message(strings["no_service"], ephemeral=True)
+        return False
+    if bird not in (state.get("chosen") or []):
+        await interaction.response.edit_message(
+            content=strings["bird_not_owned"].format(bird=BIRD_NAME.get(bird, bird)),
+            view=None,
+        )
+        return False
+    ready_at = int((state.get("cooldowns") or {}).get(bird, 0) or 0)
+    if ready_at > int(_now().timestamp()):
+        await interaction.response.edit_message(
+            content=strings["bird_flying"].format(
+                bird=BIRD_NAME.get(bird, bird), ts=ready_at
+            ),
+            view=None,
+        )
+        return False
+    return True
 
 
 # ----------------------------------------------------------------------
@@ -535,7 +699,11 @@ async def _sabotage_flow(
 
 
 async def _question_modal(
-    interaction: discord.Interaction, wiring: Any, strings: dict[str, str], lord: Any
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    lord: Any,
 ) -> None:
     """Pigeon question — one anonymous modal, posted in the Question salon."""
     question_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
@@ -547,6 +715,14 @@ async def _question_modal(
     modal.add_item(question_input)
 
     async def on_submit(target: discord.Interaction[Any]) -> None:
+        try:
+            # v2: the Pigeon flies for the whole question cooldown.
+            await wiring.voliere_service.spend_action(
+                str(kingdom.id), "pigeon_question", now=_now()
+            )
+        except Exception as exc:
+            _failed(target, strings, exc)
+            return
         guild = target.guild
         channel = next(
             (c for c in getattr(guild, "channels", []) if _slug(getattr(c, "name", "")) == "question"),
@@ -647,6 +823,14 @@ async def _dm_flow(
 
         async def on_submit(submit_target: discord.Interaction[Any]) -> None:
             text = str(getattr(dm_input, "value", "") or "")
+            try:
+                # v2: the Pigeon flies for the whole MP cooldown.
+                await wiring.voliere_service.spend_action(
+                    str(kingdom.id), "pigeon_dm", now=_now()
+                )
+            except Exception as exc:
+                _failed(submit_target, strings, exc)
+                return
             logger.info(
                 "kingdoms volière: anonymous MP by %s to %s (admin trace)",
                 lord.id,
@@ -717,9 +901,14 @@ class KingdomVoliereButton(
         lord, kingdom = await _require_lord(interaction, strings, wiring)
         if lord is None or kingdom is None:
             return
-        content = await _voliere_content(wiring, kingdom, strings)
+        state = await _voliere_state(wiring, str(kingdom.id))
+        if state is not None and int(state.get("open") or 0) > 0 and state.get("available"):
+            # v2: an empty slot asks for its bird BEFORE anything else.
+            await _slot_flow(interaction, wiring, fresh=True)
+            return
+        content = await _voliere_content(wiring, kingdom, strings, state)
         await interaction.response.send_message(
-            content=content, view=_voliere_view(strings), ephemeral=True
+            content=content, view=_voliere_view(strings, state), ephemeral=True
         )
 
 

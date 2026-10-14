@@ -102,10 +102,15 @@ class KingdomModel(BaseModel):
     purchase ledger — one ``{"item", "detail", "cost", "at"}`` entry per
     successful Marché buy, newest readable through the ledger modal."""
     voliere_cooldowns: dict[str, int] = Field(default_factory=dict)
-    """Volière (voliere-v1, 2026-10-14): per-action cooldown registry,
-    SHARED by the whole kingdom — one ``{action: unix_ready_at}`` entry
-    per used action (Drasah: the cooldowns are par royaume, not per
-    lord). The acting lord is only recorded in the admin logs."""
+    """Volière (voliere-v2, 2026-10-14): per-BIRD cooldown registry,
+    SHARED by the whole kingdom — one ``{bird: unix_ready_at}`` entry
+    per flown bird (Drasah: ONE action and the WHOLE bird flies until
+    the action's cooldown elapses; the cooldowns are par royaume, not
+    per lord). The acting lord is only recorded in the admin logs."""
+    voliere_slots: list[str] = Field(default_factory=list)
+    """Volière (voliere-v2, 2026-10-14): the birds this kingdom chose,
+    one per age slot — Féodal opens the 1st slot, Château the 2nd,
+    Impérial the 3rd; a bird already owned can never be re-taken."""
     corbeau_tracking: list[dict[str, Any]] = Field(default_factory=list)
     """Volière Corbeau (voliere-v1): the lords currently « suivi » by
     this kingdom — one ``{"lord_id", "until"}`` entry per active

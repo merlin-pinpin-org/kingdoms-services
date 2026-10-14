@@ -1,8 +1,12 @@
-"""Kingdoms mod — the Volière service (voliere-v1, Drasah 14/10/2026).
+"""Kingdoms mod — the Volière service (voliere-v2, Drasah 14/10/2026).
 
-One volière per kingdom, developed for free from the Âge Féodal: three
-birds with per-action cooldowns SHARED by the whole kingdom (any lord
-may act, the cooldown gates the kingdom).
+One volière per kingdom, developed for free from the Âge Féodal. SLOTS
+BY AGE (v2, Drasah's live-test rulings): Féodal opens the 1st slot,
+Château the 2nd, Impérial the 3rd — each slot takes ONE bird, and a
+bird already owned can never be re-taken. ONE action and the WHOLE
+bird flies: no other action of that bird is possible until the
+action's cooldown elapses (the cooldowns stay SHARED by the whole
+kingdom, any lord may act).
 
 - **Corbeau** : piocher une civilisation (168h), vérifier une
   déclaration d'attaque (24h — the Corbeau ALWAYS pierces the
@@ -40,6 +44,13 @@ FEUDAL_AGE_KEY = "feudal_age"
 CORBEAU_ACTIONS = ("corbeau_civ", "corbeau_verify", "corbeau_track")
 FAUCON_ACTIONS = ("faucon_territory", "faucon_sabotage", "faucon_release")
 PIGEON_ACTIONS = ("pigeon_civ", "pigeon_question", "pigeon_dm")
+BIRDS = ("corbeau", "faucon", "pigeon")
+"""The three volière birds (voliere-v2: one per age slot, no repeats)."""
+
+
+def bird_of(action: str) -> str:
+    """Return the bird owning one action (``corbeau_civ`` → corbeau)."""
+    return str(action).split("_", 1)[0]
 
 
 class VoliereError(KingdomsModError):
@@ -117,28 +128,38 @@ class VoliereService:
     def _cooldown_hours(self, action: str) -> int:
         return int(getattr(self.settings, f"{action}_cooldown_hours"))
 
-    def _ready_at(self, kingdom: KingdomModel, action: str) -> int:
-        return int(kingdom.voliere_cooldowns.get(action, 0) or 0)
+    def _ready_at(self, kingdom: KingdomModel, bird: str) -> int:
+        """Return the unix timestamp the BIRD lands at (v2: whole bird)."""
+        return int(kingdom.voliere_cooldowns.get(bird, 0) or 0)
 
     async def cooldown_ready_at(self, kingdom_id: str, action: str) -> int:
-        """Return the unix timestamp the action is ready at (admin/view)."""
+        """Return the unix timestamp the action's bird lands at (admin/view)."""
         kingdom = await self._require_kingdom(kingdom_id)
-        return self._ready_at(kingdom, action)
+        return self._ready_at(kingdom, bird_of(action))
 
     def _check_cooldown(self, kingdom: KingdomModel, action: str, now: datetime) -> None:
-        ready_at = self._ready_at(kingdom, action)
+        ready_at = self._ready_at(kingdom, bird_of(action))
         if ready_at > int(now.timestamp()):
             raise VoliereCooldownError(
-                "the kingdom's volière cooldown is still running",
+                "the bird is still flying — no other action until it lands",
                 action=action,
             )
 
     async def _spend(self, kingdom: KingdomModel, action: str, now: datetime) -> None:
+        """Fly the WHOLE bird for the action's cooldown (voliere-v2)."""
         self._check_cooldown(kingdom, action, now)
         cooldowns = dict(kingdom.voliere_cooldowns)
-        cooldowns[action] = int(now.timestamp()) + self._cooldown_hours(action) * 3600
+        cooldowns[bird_of(action)] = int(now.timestamp()) + self._cooldown_hours(action) * 3600
         kingdom.voliere_cooldowns = cooldowns
         await self._save(kingdom)
+
+    def _require_bird(self, kingdom: KingdomModel, action: str) -> None:
+        """Refuse the action when its bird is not in the volière (v2 slots)."""
+        bird = bird_of(action)
+        if bird not in (kingdom.voliere_slots or []):
+            raise VoliereLockedError(
+                f"the {bird} is not in the kingdom's volière (slot to choose)"
+            )
 
     async def _require_feudal(self, now: datetime) -> None:
         """Refuse every volière action before the Âge Féodal."""
@@ -150,6 +171,88 @@ class VoliereService:
             raise VoliereLockedError("the season declares no Âge Féodal")
         if age_keys.index(season.current_age_key) < age_keys.index(FEUDAL_AGE_KEY):
             raise VoliereLockedError("the season is not yet at the Âge Féodal")
+
+    # ------------------------------------------------------------------
+    # Slots by age (voliere-v2, Drasah's live-test rulings)
+    # ------------------------------------------------------------------
+
+    def _age_index(self, age_key: str) -> int:
+        """Return the age's position in the configured ladder (-1 unknown)."""
+        age_keys = [age.key for age in self._config.ages]
+        return age_keys.index(age_key) if age_key in age_keys else -1
+
+    def slot_capacity(self, age_key: str) -> int:
+        """Return the open slot count at one age (0 before the Féodal).
+
+        Fédal = 1 slot, Château = 2, Impérial = 3 (v2): each age switch
+        opens ONE new slot — never more birds than the ladder allows.
+        """
+        start = self._age_index(FEUDAL_AGE_KEY)
+        if start < 0:
+            return 0
+        return max(0, min(len(BIRDS), self._age_index(age_key) - start + 1))
+
+    async def slot_state(self, kingdom_id: str) -> dict[str, Any]:
+        """Return the volière slot snapshot (capacity, chosen, open, birds)."""
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise VoliereLockedError("no season is running")
+        kingdom = await self._require_kingdom(kingdom_id)
+        capacity = self.slot_capacity(season.current_age_key)
+        chosen = [str(bird) for bird in (kingdom.voliere_slots or [])]
+        age_keys = [age.key for age in self._config.ages]
+        next_age = ""
+        if capacity < len(BIRDS):
+            next_index = self._age_index(FEUDAL_AGE_KEY) + capacity
+            if 0 <= next_index < len(age_keys):
+                next_age = str(age_keys[next_index])
+        return {
+            "capacity": capacity,
+            "chosen": chosen,
+            "open": max(0, capacity - len(chosen)),
+            "available": [bird for bird in BIRDS if bird not in chosen],
+            "age": str(season.current_age_key),
+            "locked": capacity == 0,
+            "next_age": next_age,
+            "cooldowns": {bird: self._ready_at(kingdom, bird) for bird in BIRDS},
+        }
+
+    async def choose_bird(self, kingdom_id: str, bird: str, *, now: datetime) -> str:
+        """Fill one open slot with a bird (v2: never an owned bird twice).
+
+        The slot count follows the age (Fédal 1, Château 2, Impérial 3);
+        the choice order belongs to the players.
+        """
+        await self._require_feudal(now)
+        kingdom = await self._require_kingdom(kingdom_id)
+        season = await self._kingdoms.current_season()
+        if season is None:  # pragma: no cover — _require_feudal guarantees one
+            raise VoliereLockedError("no season is running")
+        chosen = [str(entry) for entry in (kingdom.voliere_slots or [])]
+        capacity = self.slot_capacity(season.current_age_key)
+        if len(chosen) >= capacity:
+            raise VoliereLockedError("no volière slot is open at this age")
+        if bird not in BIRDS:
+            raise VoliereTargetError("unknown bird")
+        if bird in chosen:
+            raise VoliereTargetError("the bird is already in the volière")
+        chosen.append(bird)
+        kingdom.voliere_slots = chosen
+        await self._save(kingdom)
+        logger.info("kingdoms volière: %s chose the bird %s", kingdom_id, bird)
+        return bird
+
+    async def spend_action(self, kingdom_id: str, action: str, *, now: datetime) -> None:
+        """Gate then fly one panel-side action's bird (v2: question, MP).
+
+        The Pigeon's question and anonymous MP live in the panel (modals),
+        but they must obey the SAME gates as every service action: Âge
+        Féodal, bird in a slot, and the whole-bird cooldown.
+        """
+        await self._require_feudal(now)
+        kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, action)
+        await self._spend(kingdom, action, now)
 
     # ------------------------------------------------------------------
     # Draws (Corbeau civ, Faucon territory, Pigeon civ)
@@ -171,6 +274,7 @@ class VoliereService:
         """
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, action)
         await self._spend(kingdom, action, now)
         hand = {str(civ) for civ in kingdom.civilizations}
         married = await self._married_civs()
@@ -193,6 +297,7 @@ class VoliereService:
         """Draw one not-yet-in-game map as a NEW territory for the kingdom."""
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, "faucon_territory")
         await self._spend(kingdom, "faucon_territory", now)
         territories = await self._territories.territories()
         drawn_keys = {str(territory.map_key) for territory in territories}
@@ -219,6 +324,7 @@ class VoliereService:
         """
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, "corbeau_verify")
         await self._spend(kingdom, "corbeau_verify", now)
         attack = next(
             (a for a in await self._attacks.attacks() if a.id == attack_id), None
@@ -237,6 +343,7 @@ class VoliereService:
         """Mark one lord « suivi » — 24h of 24h-delayed attack declarations."""
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, "corbeau_track")
         await self._spend(kingdom, "corbeau_track", now)
         lords = await self._kingdoms.lords()
         target = next((lord for lord in lords if lord.id == target_lord_id), None)
@@ -262,6 +369,7 @@ class VoliereService:
         """Open the Lâcher de faucon — 24h immune to adverse technologies."""
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, "faucon_release")
         await self._spend(kingdom, "faucon_release", now)
         until = int(now.timestamp()) + int(self.settings.faucon_release_window_hours) * 3600
         kingdom.faucon_release_until = until
@@ -279,6 +387,7 @@ class VoliereService:
         """
         await self._require_feudal(now)
         kingdom = await self._require_kingdom(kingdom_id)
+        self._require_bird(kingdom, "faucon_sabotage")
         await self._spend(kingdom, "faucon_sabotage", now)
         attack = next(
             (a for a in await self._attacks.attacks() if a.id == attack_id), None

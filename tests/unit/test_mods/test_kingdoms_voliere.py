@@ -1,11 +1,12 @@
-"""Kingdoms mod volière (voliere-v1, Drasah 14/10/2026) - unit tests.
+"""Kingdoms mod volière (voliere-v2, Drasah 14/10/2026) - unit tests.
 
-Behind an in-memory store: the Féodal gate, the kingdom-SHARED
-cooldowns, the Corbeau draws (civ exclusivity, cover-piercing verify,
-the 24h « suivi » delay on the tracked lord's declarations), the
+Behind an in-memory store: the Féodal gate, the SLOTS BY AGE (Féodal 1,
+Château 2, Impérial 3 — one bird per slot, no repeats), the WHOLE-BIRD
+flight (one action and the bird is gone for its cooldown, the other
+birds stay usable), the kingdom-SHARED cooldowns, the Corbeau draws
+(civ exclusivity, cover-piercing verify, the 24h « suivi » delay), the
 Faucon (not-yet-drawn territory, pick & ban sabotage with the 2-limit,
-the Lâcher immune window), and the technology refusals under the
-Lâcher (Embuscade, Traquenard, Corruption).
+the Lâcher immune window) and the panel-side Pigeon spend (question/MP).
 """
 from __future__ import annotations
 
@@ -50,7 +51,7 @@ class VoliereBundle(Bundle):
                     "civilizations": tuple(
                         CivilizationCondition(key=f"civ-{i}", display_name=f"Civ {i}")
                         for i in range(6)
-                    )
+                    ),
                 }
             )
         )
@@ -79,21 +80,122 @@ class VoliereBundle(Bundle):
 
     async def to_feudal(self) -> None:
         """Move the running season to the Âge Féodal (the volière gate)."""
+        await self.set_age("feudal_age")
+
+    async def set_age(self, age_key: str) -> None:
+        """Move the running season to one age of the ladder."""
         season = await self.kingdoms.current_season()
         assert season is not None
-        season.current_age_key = "feudal_age"
+        season.current_age_key = age_key
         await self.store.upsert_season(season.to_mongo())
+
+    async def choose(self, kingdom_id: str, bird: str) -> str:
+        """Fill one open slot with a bird (the v2 gate before any action)."""
+        return await self.voliere.choose_bird(kingdom_id, bird, now=_NOW)
+
+    async def land(self, kingdom_id: str, bird: str) -> None:
+        """Force one bird back on its perch (test helper for 2-limit)."""
+        kingdom = next(k for k in await self.kingdoms.kingdoms() if k.id == kingdom_id)
+        cooldowns = dict(kingdom.voliere_cooldowns)
+        cooldowns[bird] = 0
+        kingdom.voliere_cooldowns = cooldowns
+        await self.store.upsert_kingdom(kingdom.to_mongo())
+
+
+# ----------------------------------------------------------------------
+# The slots by age (voliere-v2)
+# ----------------------------------------------------------------------
 
 
 async def test_actions_are_locked_before_the_feudal_age() -> None:
-    """voliere-v1: no volière action before the Âge Féodal."""
+    """voliere-v2: neither the slot choice nor an action before the Féodal."""
     bundle = VoliereBundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     with pytest.raises(VoliereLockedError):
+        await bundle.choose(aquitaine, "corbeau")
+    with pytest.raises(VoliereLockedError):
         await bundle.voliere.pick_civilization(
             aquitaine, "corbeau_civ", now=_NOW
         )
+
+
+async def test_slots_follow_the_age_ladder() -> None:
+    """Féodal opens 1 slot, Château 2, Impérial 3 — no more, no less."""
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.to_feudal()
+    state = await bundle.voliere.slot_state(aquitaine)
+    assert state["capacity"] == 1
+    assert state["open"] == 1
+    assert state["next_age"] == "castle_age"
+    await bundle.choose(aquitaine, "corbeau")
+    # The single Féodal slot is filled — a second bird waits for Château.
+    with pytest.raises(VoliereLockedError):
+        await bundle.choose(aquitaine, "faucon")
+    await bundle.set_age("castle_age")
+    await bundle.choose(aquitaine, "faucon")
+    with pytest.raises(VoliereLockedError):
+        await bundle.choose(aquitaine, "pigeon")
+    await bundle.set_age("imperial_age")
+    await bundle.choose(aquitaine, "pigeon")
+    state = await bundle.voliere.slot_state(aquitaine)
+    assert state["capacity"] == 3
+    assert state["open"] == 0
+    assert state["available"] == []
+
+
+async def test_a_bird_can_never_be_taken_twice() -> None:
+    """v2: an already-owned bird is refused (VoliereTargetError)."""
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    await bundle.set_age("imperial_age")
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "corbeau")
+    with pytest.raises(VoliereTargetError):
+        await bundle.choose(aquitaine, "corbeau")
+    with pytest.raises(VoliereTargetError):
+        await bundle.choose(aquitaine, "condor")
+
+
+async def test_actions_require_their_bird_in_a_slot() -> None:
+    """v2: an action whose bird is not owned is refused (VoliereLockedError)."""
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    await bundle.to_feudal()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "pigeon")
+    with pytest.raises(VoliereLockedError):
+        await bundle.voliere.pick_civilization(aquitaine, "corbeau_civ", now=_NOW)
+    with pytest.raises(VoliereLockedError):
+        await bundle.voliere.pick_territory(aquitaine, now=_NOW)
+
+
+async def test_one_action_flies_the_whole_bird() -> None:
+    """v2: after the civ draw, the Corbeau flies — the Pigeon stays usable."""
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    await bundle.set_age("imperial_age")
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "corbeau")
+    await bundle.choose(aquitaine, "pigeon")
+    await bundle.voliere.pick_civilization(aquitaine, "corbeau_civ", now=_NOW)
+    # The WHOLE Corbeau flies: verify is refused for 168h.
+    with pytest.raises(VoliereCooldownError):
+        await bundle.voliere.pick_civilization(
+            aquitaine, "corbeau_civ", now=_NOW + timedelta(hours=1)
+        )
+    # The parallel Pigeon is untouched: its draw works at once.
+    drawn = await bundle.voliere.pick_civilization(
+        aquitaine, "pigeon_civ", now=_NOW + timedelta(hours=1)
+    )
+    assert drawn
+
+
+# ----------------------------------------------------------------------
+# The draws and effects (kept from v1, behind the v2 slots)
+# ----------------------------------------------------------------------
 
 
 async def test_pick_civ_excludes_hand_and_married() -> None:
@@ -102,6 +204,7 @@ async def test_pick_civ_excludes_hand_and_married() -> None:
     await bundle.launch_season()
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "corbeau")
     kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.id == aquitaine)
     hand = set(kingdom.civilizations)
     drawn = await bundle.voliere.pick_civilization(aquitaine, "corbeau_civ", now=_NOW)
@@ -116,6 +219,7 @@ async def test_cooldowns_are_shared_by_the_whole_kingdom() -> None:
     await bundle.launch_season()
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "pigeon")
     await bundle.voliere.pick_civilization(aquitaine, "pigeon_civ", now=_NOW)
     with pytest.raises(VoliereCooldownError):
         await bundle.voliere.pick_civilization(
@@ -135,6 +239,7 @@ async def test_pick_territory_draws_a_not_yet_drawn_map() -> None:
     await bundle.draw(2)
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "faucon")
     before = {
         str(t.map_key) for t in await bundle.territories.territories()
     }
@@ -156,6 +261,7 @@ async def test_verify_pierces_the_cover() -> None:
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.choose(bourgogne, "corbeau")
     await bundle.stock(aquitaine, contre_espionnage=1)
     target = (await bundle.owner_maps(bourgogne))[0]
     # Aquitaine declares under the cover of its second lord.
@@ -175,6 +281,7 @@ async def test_verify_refuses_foreign_attacks() -> None:
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.choose(aquitaine, "corbeau")
     target = (await bundle.owner_maps(bourgogne))[0]
     attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://x", now=_NOW)
     with pytest.raises(VoliereTargetError):
@@ -188,6 +295,7 @@ async def test_tracked_lord_declares_with_the_24h_delay() -> None:
     await bundle.draw(2)
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "corbeau")
     await bundle.voliere.track_lord(aquitaine, "king-b", now=_NOW)
     assert await bundle.voliere.is_lord_tracked("king-b", _NOW)
     target = (await bundle.owner_maps(aquitaine))[0]
@@ -207,6 +315,7 @@ async def test_faucon_release_grants_the_24h_immunity() -> None:
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.choose(bourgogne, "faucon")
     until = await bundle.voliere.release_faucon(bourgogne, now=_NOW)
     assert until == int(_NOW.timestamp()) + 24 * 3600
     assert await bundle.voliere.has_faucon_release(bourgogne, _NOW)
@@ -243,23 +352,25 @@ async def test_faucon_sabotage_counts_in_the_two_limit() -> None:
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
     bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.choose(aquitaine, "faucon")
     target = (await bundle.owner_maps(bourgogne))[0]
     attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://x", now=_NOW)
     attack.pickban = {"sent": True, "resolved_pickban": False}
     await bundle.store.upsert_attack(attack.to_mongo())
     civs = [civ.key for civ in bundle.config.civilizations]
-    # Two sabotages, one per 48h cooldown tick.
+    # Two sabotages — the test lands the faucon between the two cooldowns.
     await bundle.voliere.faucon_sabotage(aquitaine, attack.id, civs[0], now=_NOW)
-    await bundle.voliere.faucon_sabotage(aquitaine, attack.id, civs[1], now=_NOW + timedelta(hours=49))
+    await bundle.land(aquitaine, "faucon")
+    await bundle.voliere.faucon_sabotage(aquitaine, attack.id, civs[1], now=_NOW)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.pickban["attacker_sabotages"] == [civs[0], civs[1]]
     # The 2-limit is reached: a third sabotage is refused.
+    await bundle.land(aquitaine, "faucon")
     with pytest.raises(VoliereTargetError):
-        await bundle.voliere.faucon_sabotage(
-            aquitaine, attack.id, civs[2], now=_NOW + timedelta(hours=98)
-        )
+        await bundle.voliere.faucon_sabotage(aquitaine, attack.id, civs[2], now=_NOW)
     # An outsider kingdom cannot sabotage an attack it is not part of.
     champagne = await bundle.enroll_third()
+    await bundle.choose(champagne, "faucon")
     with pytest.raises(VoliereTargetError):
         await bundle.voliere.faucon_sabotage(champagne, attack.id, civs[0], now=_NOW)
 
@@ -270,10 +381,42 @@ async def test_pool_empty_when_everything_is_drawn() -> None:
     await bundle.launch_season()
     await bundle.to_feudal()
     aquitaine = await bundle.kingdom_id("Aquitaine")
+    await bundle.choose(aquitaine, "faucon")
     for entry in bundle.config.maps:
         await bundle.territories.draw_map_for(aquitaine, entry.key)
     with pytest.raises(VolierePoolEmptyError):
         await bundle.voliere.pick_territory(aquitaine, now=_NOW)
+
+
+# ----------------------------------------------------------------------
+# The panel-side Pigeon spend (question / MP — voliere-v2)
+# ----------------------------------------------------------------------
+
+
+async def test_spend_action_gates_the_pigeon_flows() -> None:
+    """The panel question/MP actions obey slots, cooldowns and the Féodal."""
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    await bundle.to_feudal()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    # No pigeon in the volière — the panel spend is refused.
+    with pytest.raises(VoliereLockedError):
+        await bundle.voliere.spend_action(aquitaine, "pigeon_question", now=_NOW)
+    await bundle.choose(aquitaine, "pigeon")
+    await bundle.voliere.spend_action(aquitaine, "pigeon_question", now=_NOW)
+    # The WHOLE pigeon flies: the anonymous MP is refused for 1h.
+    with pytest.raises(VoliereCooldownError):
+        await bundle.voliere.spend_action(
+            aquitaine, "pigeon_dm", now=_NOW + timedelta(minutes=30)
+        )
+    await bundle.voliere.spend_action(
+        aquitaine, "pigeon_dm", now=_NOW + timedelta(hours=1)
+    )
+
+
+# ----------------------------------------------------------------------
+# The persistent button rebuild
+# ----------------------------------------------------------------------
 
 
 async def test_the_voliere_button_rebuilds_in_both_locales() -> None:
