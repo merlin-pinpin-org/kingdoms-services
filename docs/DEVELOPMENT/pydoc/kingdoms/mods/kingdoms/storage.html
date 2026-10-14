@@ -69,6 +69,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="KingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsStore-find_ffas"><strong>find_ffas</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;FFA&nbsp;Exploration&nbsp;document.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -84,6 +86,8 @@ Methods defined here:<br>
 <dl><dt>async <a name="KingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_attack"><strong>upsert_attack</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;attack&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsStore-upsert_ffa"><strong>upsert_ffa</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;FFA&nbsp;Exploration&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsStore-upsert_kingdom"><strong>upsert_kingdom</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;kingdom&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -163,6 +167,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 
 <dl><dt>async <a name="MongoKingdomsStore-find_attacks"><strong>find_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;attack&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
+<dl><dt>async <a name="MongoKingdomsStore-find_ffas"><strong>find_ffas</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;FFA&nbsp;Exploration&nbsp;document.</span></dd></dl>
+
 <dl><dt>async <a name="MongoKingdomsStore-find_kingdoms"><strong>find_kingdoms</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;kingdom&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-find_lords"><strong>find_lords</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;lord&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
@@ -178,6 +184,8 @@ Async&nbsp;MongoDB&nbsp;adapter&nbsp;for&nbsp;the&nbsp;<a href="#KingdomsStore">
 <dl><dt>async <a name="MongoKingdomsStore-find_territories"><strong>find_territories</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;document&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_attack"><strong>upsert_attack</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;attack&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
+
+<dl><dt>async <a name="MongoKingdomsStore-upsert_ffa"><strong>upsert_ffa</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;FFA&nbsp;Exploration&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
 <dl><dt>async <a name="MongoKingdomsStore-upsert_kingdom"><strong>upsert_kingdom</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;kingdom&nbsp;document&nbsp;by&nbsp;``_id``.</span></dd></dl>
 
@@ -213,6 +221,7 @@ Data descriptors defined here:<br>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ATTACKS_COLLECTION</strong> = 'kingdoms_attacks'<br>
+<strong>FFA_COLLECTION</strong> = 'kingdoms_ffa'<br>
 <strong>KINGDOMS_COLLECTION</strong> = 'kingdoms_kingdoms'<br>
 <strong>LORDS_COLLECTION</strong> = 'kingdoms_lords'<br>
 <strong>SEASONS_COLLECTION</strong> = 'kingdoms_seasons'<br>
