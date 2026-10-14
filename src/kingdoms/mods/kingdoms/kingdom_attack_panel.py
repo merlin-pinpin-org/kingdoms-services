@@ -269,14 +269,39 @@ def _fmt_paris(moment: Any) -> str:
     return when.astimezone(_PARIS).strftime("%d/%m %H:%M")
 
 
-def _attack_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
-    """Return the guild's Attaquer salon (None when absent)."""
+DECLARE_CHANNEL_NAME = "Déclarer une attaque"
+ANNOUNCE_CHANNEL_NAME = "Attaques"
+
+
+def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
+    """Return the guild's « Déclarer une attaque » salon (None when absent).
+
+    Patch restructuration-royaume: the legacy « Attaquer » salon is the
+    declared fallback — the provisioning adopts it by key and
+    ``deploy_attack_panel`` renames it in place.
+    """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if guild is None:
         return None
+    wanted = _slug(DECLARE_CHANNEL_NAME)
+    channels = [
+        c
+        for c in getattr(guild, "text_channels", [])
+        if _slug(getattr(c, "name", "")) in (wanted, "attaquer")
+    ]
+    return next((c for c in channels if _slug(c.name) == wanted), channels[0] if channels else None)
+
+
+def _announce_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
+    """Return the guild's « Attaques » announce salon (None when absent)."""
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    if guild is None:
+        return None
+    wanted = _slug(ANNOUNCE_CHANNEL_NAME)
     return next(
-        (c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) == "attaquer"),
+        (c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) == wanted),
         None,
     )
 
@@ -394,14 +419,25 @@ async def _ongoing_rows(
 
 
 async def deploy_attack_panel(
-    channel: discord.TextChannel,
+    channel: discord.TextChannel | None,
     locale: str,
     kingdoms_service: Any = None,
     attacks_service: Any = None,
 ) -> None:
-    """Pin (or refresh) the attack panel message in the Attaquer salon."""
+    """Pin (or refresh) the attack panel in the Déclarer une attaque salon."""
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
+    if channel is None:
+        return
+    try:
+        if _slug(getattr(channel, "name", "")) != _slug(DECLARE_CHANNEL_NAME):
+            await channel.edit(
+                name=DECLARE_CHANNEL_NAME,
+                reason="kingdoms: rename legacy Attaquer salon (restructuration-royaume)",
+            )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: legacy salon rename failed", exc_info=True)
     wiring = _wiring()
     kingdoms_service = kingdoms_service or wiring.kingdoms_service
     attacks_service = attacks_service or wiring.attacks_service
@@ -424,7 +460,7 @@ async def deploy_attack_panel(
 
 async def refresh_attack_panel_safe(guild: discord.Guild | None, locale: str) -> None:
     """Re-pin one guild's attack panel after a mutation (best effort)."""
-    channel = _attack_channel(guild)
+    channel = _declare_channel(guild)
     if channel is None:
         return
     await deploy_attack_panel(channel, locale)
@@ -802,7 +838,7 @@ async def _announce_declaration_safe(
     guild: Any, wiring: Any, strings: dict[str, str], attack: Any
 ) -> None:
     """Announce the v1-style declaration and open its rights thread."""
-    channel = _attack_channel(guild)
+    channel = _announce_channel(guild)
     if channel is None:
         return
     kingdoms_service = wiring.kingdoms_service
@@ -952,7 +988,7 @@ class KingdomAttackDefendButton(
             strings["defense_done"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             ephemeral=True,
         )
-        channel = _attack_channel(interaction.guild)
+        channel = _announce_channel(interaction.guild)
         await _announce_safe(
             channel,
             strings["defense_announce"].format(
@@ -1040,7 +1076,7 @@ class KingdomAttackJoinButton(
             ),
             ephemeral=True,
         )
-        channel = _attack_channel(interaction.guild)
+        channel = _announce_channel(interaction.guild)
         await _announce_safe(
             channel,
             strings["gaia_join_announce"].format(
@@ -1259,19 +1295,18 @@ async def run_attack_phases_safe(bot: Any) -> None:
     if attacks_service is None:
         return
     for guild in list(getattr(bot, "guilds", [])):
-        channel = _attack_channel(guild)
-        if channel is None:
-            continue
+        announce_channel = _announce_channel(guild)
         locale = await _guild_locale(bot, str(guild.id))
         strings = _strings(locale)
-        try:
-            await _run_reveals_safe(attacks_service, kingdoms_service, channel, strings)
-            for attack in await attacks_service.pick_ban_due():
-                await _send_pickban_dm(bot, channel, attack, kingdoms_service, locale)
-            await _run_forfeits_safe(attacks_service, kingdoms_service, channel, strings)
-        except Exception:
-            logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
-        await deploy_attack_panel(channel, locale, kingdoms_service, attacks_service)
+        if announce_channel is not None:
+            try:
+                await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
+                for attack in await attacks_service.pick_ban_due():
+                    await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
+            except Exception:
+                logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
+        await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
 
 
 async def _run_reveals_safe(

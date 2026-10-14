@@ -1,12 +1,11 @@
 """Kingdoms mod — salons-first live content (kingdoms#138, group 1).
 
 Best-effort refreshers that keep the designer's channels alive with
-the T2 service only: the Époque channel carries the current age (the
-channel itself is renamed on each age switch), the Seigneurs channel
-carries the per-kingdom roster, the Géopolitique channel receives
-the enrollment announcements, the Présentation announce channel pins
-the designer's pitch of the mod, and the Taverne/Règles channels get
-their designer descriptions.
+the T2 service only: the fixed-name 🏺 Âge channel carries the current
+age plus the next age-switch countdown, the Géopolitique channel
+receives the enrollment announcements, the Présentation announce
+channel pins the designer's pitch of the mod, and the Taverne/Règles
+channels get their designer descriptions.
 
 Every refresher is marker-based (edit the marked message when present,
 post otherwise) and never raises: a missing channel or service simply
@@ -20,6 +19,7 @@ not the bot UI.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import discord
@@ -29,11 +29,11 @@ from kingdoms.mods.kingdoms.kingdom_setup import _slug
 logger = logging.getLogger("kingdoms.kingdom_content")
 
 EPOCH_MARKER = "kingdoms:epoch:status"
-LORDS_MARKER = "kingdoms:lords:roster"
 PRESENTATION_MARKER = "kingdoms:presentation"
-EPOCH_FALLBACK_CHANNEL = "Âge sombre"
+EPOCH_FALLBACK_CHANNEL = "🏺 Âge"
+AGE_CHANNEL = "🏺 Âge"
+KINGDOMS_CATEGORY = "Kingdoms"
 GEOPOLITICS_CHANNEL = "Géopolitique"
-LORDS_CHANNEL = "Seigneurs"
 PRESENTATION_CHANNEL = "Présentation"
 TAVERNE_CHANNEL = "Taverne"
 REGLES_FORUM = "Règles"
@@ -87,32 +87,28 @@ REGLES_DESCRIPTION = (
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "epoch_title": "🕰️ Current age",
+        "age_next": "⏭️ Next age switch: Wednesday {day}/{month} at {hour}h{minute} (Paris)",
+        "age_scale": "Age scale",
         "epoch_progress": "Season — cycle {}/{}",
         "epoch_bonus_tech": "Tech points per cycle",
         "epoch_bonus_marriage": "Bonus marriages",
         "epoch_gaia_ai": "Gaïa AI level",
         "epoch_hint": "The age switches automatically on Wednesday at midnight.",
-        "lords_title": "📜 Kingdoms roster",
-        "lords_empty": "No kingdom yet — enrollments are open in Postuler.",
         "lords_king": "King",
-        "lords_lords": "Lords",
-        "lords_pending": "Waiting for a kingdom",
         "geo_founded": "🏛️ The kingdom **{}** has been founded by {} — long live the {}!",
         "geo_joined": "⚔️ {} has joined the kingdom **{}** as a Lord.",
         "geo_queued": "⏳ {} has entered the waiting queue.",
     },
     "fr": {
         "epoch_title": "🕰️ Époque actuelle",
+        "age_next": "⏭️ Prochain passage d'âge : mercredi {day}/{month} à {hour}h{minute} (Paris)",
+        "age_scale": "Échelle des âges",
         "epoch_progress": "Saison — cycle {}/{}",
         "epoch_bonus_tech": "Points de tech par cycle",
         "epoch_bonus_marriage": "Mariages bonus",
         "epoch_gaia_ai": "Niveau d'IA Gaïa",
         "epoch_hint": "L'époque bascule automatiquement le mercredi à minuit.",
-        "lords_title": "📜 Effectifs des royaumes",
-        "lords_empty": "Aucun royaume pour le moment — les inscriptions sont ouvertes dans Postuler.",
         "lords_king": "Roi",
-        "lords_lords": "Seigneurs",
-        "lords_pending": "En attente d'un royaume",
         "geo_founded": "🏛️ Le royaume **{}** a été fondé par {} — longue vie au {} !",
         "geo_joined": "⚔️ {} a rejoint le royaume **{}** en tant que Seigneur.",
         "geo_queued": "⏳ {} est entré dans la file d'attente.",
@@ -135,13 +131,13 @@ def _find_channel(guild: discord.Guild, name: str) -> Any:
 
 
 async def _epoch_channel(guild: discord.Guild) -> Any:
-    """Return the epoch channel, whatever its current age name.
+    """Return the fixed-name 🏺 Âge channel (kingdoms-patch restructuration-royaume).
 
-    The channel is renamed at each age switch (``Âge sombre``,
-    ``Âge féodal``…), so a lookup by any single name would miss it.
-    The stable anchor is the wired ChannelService's resolved category
-    (``kingdoms:epoch`` — database-backed); the declared display name
-    is the fallback for a freshly provisioned guild.
+    The channel keeps its declared key (``kingdoms:epoch`` — the DB
+    resolution adopts the old « Âge sombre » channel), but its NAME is
+    now FIXED: the current age lives in the pinned message, not in the
+    channel name. The stable anchor is the wired ChannelService's
+    resolution; the declared display name is the fallback.
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
     from kingdoms.mods.kingdoms.kingdom_setup import EPOCH_CHANNEL_KEY, MOD_NAME
@@ -187,11 +183,52 @@ async def _current_age(service: Any) -> tuple[Any, str, Any]:
     return age, display, season
 
 
-def _epoch_content(strings: dict[str, str], display: str, age: Any, cycle: int, weeks: int) -> str:
-    """Build the pinned Époque message body for the current age."""
+def _next_age_switch(now: datetime) -> datetime:
+    """Return the next Wednesday 00:00 (Europe/Paris) age switch."""
+    from zoneinfo import ZoneInfo
+
+    paris = ZoneInfo("Europe/Paris")
+    local = now.astimezone(paris)
+    days_ahead = (2 - local.weekday()) % 7  # Wednesday is weekday 2
+    candidate = (local + timedelta(days=days_ahead)).replace(hour=0, minute=0, second=0, microsecond=0)
+    if candidate <= local:
+        candidate += timedelta(days=7)
+    return candidate
+
+
+def _age_scale(strings: dict[str, str], ages: list[Any], current_key: str) -> str:
+    """Render the age scale (● current, ▸ the other ages)."""
+    marks = {
+        str(getattr(age, "key", "")): "●" if str(getattr(age, "key", "")) == str(current_key) else "▸"
+        for age in ages
+    }
+    order = [k for k in marks if marks[k] == "●"] + [k for k in marks if marks[k] == "▸"]
+    display = {str(getattr(age, "key", "")): str(getattr(age, "display_name", "")) for age in ages}
+    parts = [f"{marks[key]} {display.get(key, key)}" for key in order if key in marks]
+    return " ".join(parts)
+
+
+def _epoch_content(
+    strings: dict[str, str],
+    display: str,
+    age: Any,
+    cycle: int,
+    weeks: int,
+    ages: list[Any],
+    next_switch: datetime,
+) -> str:
+    """Build the pinned 🏺 Âge message body (age, countdown, scale)."""
     lines = [
         f"# {strings['epoch_title']} : {display}",
     ]
+    lines.append(
+        str(strings["age_next"]).format(
+            day=f"{next_switch.day:02d}",
+            month=f"{next_switch.month:02d}",
+            hour=f"{next_switch.hour:02d}",
+            minute=f"{next_switch.minute:02d}",
+        )
+    )
     if weeks:
         lines.append(f"**{strings['epoch_progress'].format(cycle, weeks)}**")
     if age is not None:
@@ -202,12 +239,23 @@ def _epoch_content(strings: dict[str, str], display: str, age: Any, cycle: int, 
                 f"- {strings['epoch_gaia_ai']} : {age.gaia_ai_level}/5",
             ]
         )
+    if ages:
+        current_key = str(getattr(age, "key", "")) if age is not None else ""
+        lines.append(f"**{strings['age_scale']}** : {_age_scale(strings, ages, current_key)}")
     lines.extend([f"*{strings['epoch_hint']}*", EPOCH_MARKER])
     return "\n".join(lines)
 
 
 async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_service: Any) -> bool:
-    """Rename the Époque channel to the current age and pin its bonuses."""
+    """Pin the current age in the fixed-name 🏺 Âge salon (kingdoms-patch).
+
+    The channel is NO LONGER renamed at each age switch (Drasah's
+    restructuration-royaume decision): the name stays « 🏺 Âge », the
+    current age, the Wednesday-midnight countdown and the age scale
+    live in the pinned message. A legacy « Âge sombre » channel (or a
+    channel stranded in the legacy Époque category) is migrated once:
+    renamed and moved under Kingdoms.
+    """
     if kingdoms_service is None:
         return False
     channel = await _epoch_channel(guild)
@@ -215,61 +263,27 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
         return False
     try:
         age, display, season = await _current_age(kingdoms_service)
+        ages = list(getattr(kingdoms_service.config, "ages", None) or [])
         content = _epoch_content(
             _strings(locale),
             display,
             age,
             season.current_cycle if season is not None else 0,
             season.weeks if season is not None else 0,
+            ages,
+            _next_age_switch(datetime.now(tz=UTC)),
         )
-        if _slug(channel.name) != _slug(display):
-            await channel.edit(name=display, reason="kingdoms: rename to the current age")
+        if _slug(channel.name) != _slug(AGE_CHANNEL):
+            await channel.edit(name=AGE_CHANNEL, reason="kingdoms: fixed Âge salon name")
+        category = next(
+            (c for c in getattr(guild, "categories", []) if _slug(getattr(c, "name", "")) == _slug(KINGDOMS_CATEGORY)),
+            None,
+        )
+        if category is not None and getattr(channel, "category_id", None) != category.id:
+            await channel.edit(category=category, reason="kingdoms: move Âge under Kingdoms")
         return await _upsert_marked(channel, content, EPOCH_MARKER)
     except Exception:
         logger.warning("KINGDOM CONTENT: epoch refresh skipped", exc_info=True)
-        return False
-
-
-def _roster_content(strings: dict[str, str], kingdoms: list[Any], lords: list[Any]) -> str:
-    """Build the per-kingdom roster body (kings, lords, waiting queue)."""
-    lines = [f"# {strings['lords_title']}"]
-    active = [lord for lord in lords if not lord.left]
-    named = [k for k in kingdoms if not k.is_gaia]
-    if not named:
-        lines.append(strings["lords_empty"])
-    for kingdom in sorted(named, key=lambda k: k.name):
-        members = [lord for lord in active if lord.kingdom_id == kingdom.id and not lord.in_queue]
-        king = next((m for m in members if m.role.value == "king"), None)
-        if king is not None:
-            lines.append(f"\n## {kingdom.name}\n- 👑 {strings['lords_king']} : {king.display_name}")
-        else:
-            lines.append(f"\n## {kingdom.name}\n- 👑 {strings['lords_king']} : —")
-        subjects = [m for m in members if m.role.value != "king"]
-        if subjects:
-            names = ", ".join(m.display_name for m in subjects)
-            lines.append(f"- 🎖️ {strings['lords_lords']} : {names}")
-    waiting = [lord for lord in active if lord.in_queue]
-    if waiting:
-        names = ", ".join(lord.display_name for lord in waiting)
-        lines.append(f"\n⏳ {strings['lords_pending']} : {names}")
-    lines.append(LORDS_MARKER)
-    return "\n".join(lines)
-
-
-async def refresh_lords_roster(guild: discord.Guild, locale: str, kingdoms_service: Any) -> bool:
-    """Post (or refresh) the per-kingdom roster in the Seigneurs channel."""
-    if kingdoms_service is None:
-        return False
-    channel = _find_channel(guild, LORDS_CHANNEL)
-    if channel is None:
-        return False
-    try:
-        kingdoms = await kingdoms_service.kingdoms()
-        lords = await kingdoms_service.lords()
-        content = _roster_content(_strings(locale), kingdoms, lords)
-        return await _upsert_marked(channel, content, LORDS_MARKER)
-    except Exception:
-        logger.warning("KINGDOM CONTENT: lords roster refresh skipped", exc_info=True)
         return False
 
 
@@ -361,11 +375,6 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
             report["époque"] = "deployed"
     except Exception:
         logger.warning("KINGDOM CONTENT: epoch deployment failed", exc_info=True)
-    try:
-        if await refresh_lords_roster(guild, locale, kingdoms_service):
-            report["seigneurs"] = "deployed"
-    except Exception:
-        logger.warning("KINGDOM CONTENT: lords deployment failed", exc_info=True)
     try:
         if await refresh_presentation(guild):
             report["présentation"] = "deployed"

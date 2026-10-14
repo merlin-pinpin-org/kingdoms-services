@@ -3236,14 +3236,12 @@ async def _announce_enrollment_safe(
     kingdom_name: str | None,
     is_king: bool,
 ) -> None:
-    """Best-effort Géopolitique announcement + Seigneurs roster refresh."""
+    """Best-effort Géopolitique enrollment announcement."""
     try:
-        from kingdoms.mods.kingdoms.kingdom_content import announce_enrollment, refresh_lords_roster
+        from kingdoms.mods.kingdoms.kingdom_content import announce_enrollment
 
-        wiring = _wiring()
         if display_name:
             await announce_enrollment(guild, locale, display_name, kingdom_name, is_king)
-        await refresh_lords_roster(guild, locale, wiring.kingdoms_service)
     except Exception:
         logger.info("KINGDOMS: enrollment announcement skipped", exc_info=True)
 

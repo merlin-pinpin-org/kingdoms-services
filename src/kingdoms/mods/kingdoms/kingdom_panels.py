@@ -1686,11 +1686,16 @@ async def _deploy_channel_panel(
 
         await deploy_distributor_panel(channel, locale)
         return "distributeur"
-    if slug == "attaquer":
+    if slug in ("declarer-une-attaque", "attaquer"):
         from kingdoms.mods.kingdoms.kingdom_attack_panel import deploy_attack_panel
 
         await deploy_attack_panel(channel, locale, kingdoms_service)
-        return "attaquer"
+        return "déclarer une attaque"
+    if slug in ("scriptorium", "📜-scriptorium"):
+        from kingdoms.mods.kingdoms.kingdom_scriptorium import deploy_scriptorium_panel
+
+        await deploy_scriptorium_panel(channel, locale, kingdoms_service)
+        return "scriptorium"
     return None
 
 

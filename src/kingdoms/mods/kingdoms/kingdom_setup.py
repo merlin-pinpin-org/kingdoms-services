@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import unicodedata
+from typing import cast
 
 import discord
 from discord import app_commands
@@ -108,7 +109,92 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     epoch_channel = guild.get_channel(int(epoch_id)) if epoch_id and epoch_id.isdigit() else None
     if isinstance(epoch_channel, discord.TextChannel):
         await _enforce_epoch_overwrites(guild, epoch_channel)
+    await cleanup_legacy_structure(guild, str(epoch_id or ""))
     return list(report.created), list(report.adopted)
+
+
+LEGACY_SALON_SLUGS: tuple[str, ...] = ("seigneurs", "diplomatie", "cadastre")
+"""The retired salons-first rubric salons (patch restructuration-royaume):
+their content moved into the Scriptorium ephemeral rubrics."""
+
+LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium")
+"""The retired group categories — the epoch salon now lives under Kingdoms."""
+
+KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
+    "📜 Scriptorium",
+    "Marché",
+    "Géopolitique",
+    "🏺 Âge",
+)
+"""Drasah's chosen order of the four Kingdoms-category salons."""
+
+
+async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
+    """Delete the retired rubric salons (Seigneurs/Diplomatie/Cadastre)."""
+    removed: list[str] = []
+    for slug in LEGACY_SALON_SLUGS:
+        for channel in [c for c in guild.text_channels if _slug(c.name) == slug]:
+            if channel.id == epoch_channel_id:
+                continue
+            try:
+                await channel.delete()
+                removed.append(str(channel.name))
+            except Exception:
+                logger.warning("KINGDOM SETUP: legacy salon removal failed", exc_info=True)
+    return removed
+
+
+async def _cleanup_legacy_categories(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
+    """Delete the retired categories (children first, epoch spared)."""
+    removed: list[str] = []
+    for name in LEGACY_CATEGORY_NAMES:
+        category = _find_category(guild, name)
+        if category is None:
+            continue
+        for channel in list(getattr(category, "channels", []) or []):
+            if getattr(channel, "id", 0) == epoch_channel_id:
+                continue
+            try:
+                await channel.delete()
+                removed.append(str(channel.name))
+            except Exception:
+                logger.warning("KINGDOM SETUP: legacy category child removal failed", exc_info=True)
+        try:
+            await category.delete()
+            removed.append(str(category.name))
+        except Exception:
+            logger.warning("KINGDOM SETUP: legacy category removal failed", exc_info=True)
+    return removed
+
+
+async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
+    """Force Drasah's order of the four Kingdoms-category salons."""
+    category = _find_category(guild, "Kingdoms")
+    if category is None:
+        return
+    for position, name in enumerate(KINGDOMS_CATEGORY_ORDER):
+        channel = _find_channel(guild, category, name)
+        if channel is None:
+            continue
+        try:
+            await cast("discord.TextChannel", channel).edit(position=position)
+        except Exception:
+            logger.warning("KINGDOM SETUP: kingdoms salon reorder failed", exc_info=True)
+
+
+async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> list[str]:
+    """Retire the pre-restructuration salons and categories (best effort).
+
+    Idempotent: missing salons/categories are simply skipped, the epoch
+    channel is NEVER touched (it keeps its declared key, its name and
+    category are managed by ``refresh_epoch_channel``). Returns the
+    display names of what was removed.
+    """
+    epoch_channel_id = int(epoch_id) if epoch_id.isdigit() else 0
+    removed = await _cleanup_legacy_salons(guild, epoch_channel_id)
+    removed += await _cleanup_legacy_categories(guild, epoch_channel_id)
+    await _reorder_kingdoms_salons(guild)
+    return removed
 
 
 def build_setup_report_view(

@@ -20,14 +20,10 @@ channel_groups:
     display_name: Conscription
   - key: kingdoms
     display_name: Kingdoms
-  - key: epoch
-    display_name: Époque
   - key: gaia
     display_name: Royaume Gaïa
   - key: battlefield
     display_name: Champs de Bataille
-  - key: scriptorium
-    display_name: Scriptorium
   - key: admin
     display_name: Admin
     admin_only: true
@@ -81,20 +77,23 @@ channels:
     description: Kingdom validation panel (admin only)
     group: conscription
     admin_only: true
-  - key: geopolitics
-    display_name: Géopolitique
-    description: Announcements, treaties and political rules
+  - key: scriptorium
+    display_name: 📜 Scriptorium
+    description: Sommaire — Cadastre, Diplomatie, Seigneurie (ephemeral rubrics)
     group: kingdoms
   - key: market
     display_name: Marché
     description: Kingdoms market (trades and resources)
     group: kingdoms
+  - key: geopolitics
+    display_name: Géopolitique
+    description: Announcements, treaties and political rules
+    group: kingdoms
   - key: epoch
-    display_name: Âge sombre
-    description: The current age (renamed at each age switch — adopt by group)
-    group: epoch
+    display_name: 🏺 Âge
+    description: The current age and the age scale (fixed name — the age lives in the pinned message)
+    group: kingdoms
     kind: announce
-    adopt: group_single
   - key: patrol
     display_name: Patrouille
     description: Gaia patrol reports
@@ -112,25 +111,17 @@ channels:
     description: Attack delay tracking
     group: battlefield
   - key: attack
-    display_name: Attaquer
-    description: Attack declarations
+    display_name: Déclarer une attaque
+    description: The guided attack declaration panel
+    group: battlefield
+  - key: attacks
+    display_name: Attaques
+    description: Attack announcements (declarations, defenses, reveals)
     group: battlefield
   - key: talks
     display_name: Pourparlers
     description: War negotiations
     group: battlefield
-  - key: lords
-    display_name: Seigneurs
-    description: Lord profiles and orders
-    group: scriptorium
-  - key: diplomacy
-    display_name: Diplomatie
-    description: Alliances and civilizations
-    group: scriptorium
-  - key: cadastre
-    display_name: Cadastre
-    description: Territories and their cadastre effects
-    group: scriptorium
   - key: settings
     display_name: Paramètres
     description: Mod settings panel channel

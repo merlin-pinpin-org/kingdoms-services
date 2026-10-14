@@ -57,6 +57,10 @@ class _FakeChannel:
         self.history_list: list[_FakeMessage] = []
         self.sent: list[Any] = []
 
+    async def edit(self, **kwargs: Any) -> None:
+        if "name" in kwargs:
+            self.name = str(kwargs["name"])
+
     def history(self, limit: int = 50) -> _History:
         return _History(list(self.history_list))
 
@@ -69,14 +73,14 @@ class _FakeChannel:
 
 
 class _FakeGuild:
-    def __init__(self, channel: _FakeChannel) -> None:
+    def __init__(self, *channels: _FakeChannel) -> None:
         self.id = 1
-        self.text_channels = [channel]
+        self.text_channels = list(channels)
 
 
 class _FakeBot:
-    def __init__(self, bundle: PhasesBundle, channel: _FakeChannel) -> None:
-        self.guilds = [_FakeGuild(channel)]
+    def __init__(self, bundle: PhasesBundle, *channels: _FakeChannel) -> None:
+        self.guilds = [_FakeGuild(*channels)]
         self.kingdoms_service = bundle.kingdoms
         self.kingdoms_attacks_service = bundle.attacks
         self.logs_service = None
@@ -379,22 +383,24 @@ async def test_scheduler_run_announces_reveal_dm_and_forfeit() -> None:
     await bundle.launch_season()
     await bundle.draw(23)
     attack = await bundle.fresh_attack()
-    channel = _FakeChannel()
-    bot = _FakeBot(bundle, channel)
+    declare_channel = _FakeChannel("Déclarer une attaque")
+    announce_channel = _FakeChannel("Attaques")
+    bot = _FakeBot(bundle, declare_channel, announce_channel)
     # T-16: nothing is due yet.
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 44, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    assert not [m for m in channel.sent if "défendu" in (m.content or "")]
+    assert not [m for m in announce_channel.sent if "défendu" in (m.content or "")]
     # T-2: the reveal runs — nobody defended, the AI takes over.
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot)
+    channel = announce_channel
     assert any("IA" in (m.content or "") for m in channel.sent)
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.ai_defender is True
     assert fresh.pickban["sent"] is True  # the DM dispatch left (fail-safe here)
     assert any(
-        ATTACK_PANEL_MARKER in (m.content or "") for m in channel.sent
-    )  # the panel re-pinned
+        ATTACK_PANEL_MARKER in (m.content or "") for m in declare_channel.sent
+    )  # the panel re-pinned in the declare salon
     # T+1: the forfeit lands — the attacker missed his validation.
     attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
     await run_attack_phases_safe(bot)
