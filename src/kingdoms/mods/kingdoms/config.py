@@ -148,6 +148,28 @@ class AttackSettings(BaseModel):
     territory without a game) and no longer the default."""
 
 
+class VoliereSettings(BaseModel):
+    """Volière cooldowns in hours (voliere-v1, Drasah 14/10/2026).
+
+    The cooldowns are PER KINGDOM and shared by every lord of the
+    kingdom; the development itself is free from the Âge Féodal.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    corbeau_civ_cooldown_hours: int = Field(default=168, ge=0)
+    corbeau_verify_cooldown_hours: int = Field(default=24, ge=0)
+    corbeau_track_cooldown_hours: int = Field(default=48, ge=0)
+    corbeau_track_window_hours: int = Field(default=24, ge=1)
+    faucon_territory_cooldown_hours: int = Field(default=96, ge=0)
+    faucon_sabotage_cooldown_hours: int = Field(default=48, ge=0)
+    faucon_release_cooldown_hours: int = Field(default=168, ge=0)
+    faucon_release_window_hours: int = Field(default=24, ge=1)
+    pigeon_civ_cooldown_hours: int = Field(default=72, ge=0)
+    pigeon_question_cooldown_hours: int = Field(default=1, ge=0)
+    pigeon_dm_cooldown_hours: int = Field(default=1, ge=0)
+
+
 class EventSettings(BaseModel):
     """Weekly event schedules (reference §16-§17, decision D1).
 
@@ -268,6 +290,7 @@ class KingdomsSeasonConfig(BaseModel):
     parish: ParishSettings = Field(default_factory=ParishSettings)
     attacks: AttackSettings = Field(default_factory=AttackSettings)
     events: EventSettings = Field(default_factory=EventSettings)
+    voliere: VoliereSettings = Field(default_factory=VoliereSettings)
 
 
 def default_map_catalog() -> tuple[MapEntry, ...]:

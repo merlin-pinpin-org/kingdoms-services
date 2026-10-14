@@ -64,6 +64,7 @@ class KingdomsPanelWiring:
     events_service: Any = None
     time_service: Any = None
     distributor_service: Any = None
+    voliere_service: Any = None
 
 
 _WIRING_RESOLVER: Callable[[], KingdomsPanelWiring] | None = None
@@ -103,6 +104,7 @@ def register_kingdoms_panel_bot(bot: Any) -> None:
             events_service=getattr(bot, "kingdoms_events_service", None),
             time_service=getattr(bot, "kingdoms_time_service", None),
             distributor_service=getattr(bot, "kingdoms_distributor_service", None),
+            voliere_service=getattr(bot, "kingdoms_voliere_service", None),
         )
 
     _WIRING_RESOLVER = _resolve

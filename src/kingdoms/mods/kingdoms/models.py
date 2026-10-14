@@ -101,6 +101,20 @@ class KingdomModel(BaseModel):
     """Chambre des comptes (marche-v2, 2026-10-13): the kingdom's dated
     purchase ledger — one ``{"item", "detail", "cost", "at"}`` entry per
     successful Marché buy, newest readable through the ledger modal."""
+    voliere_cooldowns: dict[str, int] = Field(default_factory=dict)
+    """Volière (voliere-v1, 2026-10-14): per-action cooldown registry,
+    SHARED by the whole kingdom — one ``{action: unix_ready_at}`` entry
+    per used action (Drasah: the cooldowns are par royaume, not per
+    lord). The acting lord is only recorded in the admin logs."""
+    corbeau_tracking: list[dict[str, Any]] = Field(default_factory=list)
+    """Volière Corbeau (voliere-v1): the lords currently « suivi » by
+    this kingdom — one ``{"lord_id", "until"}`` entry per active
+    tracking (24h window: every attack the tracked lord declares
+    leaves with the 24h delay)."""
+    faucon_release_until: int | None = None
+    """Volière Faucon (voliere-v1): end (unix) of the active Lâcher de
+    faucon — while it runs the kingdom suffers NO adverse technology
+    effect (Traquenard, sabotages, Embuscade, Corruption)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

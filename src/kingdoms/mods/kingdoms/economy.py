@@ -320,6 +320,18 @@ class EconomyService:
             raise TerritoryProtectedError(
                 "the target kingdom's patrol protects its territories (D68)"
             )
+        # Volière Lâcher de faucon (voliere-v1): the Corruption is an
+        # adverse technology effect — a released victim is immune.
+        victim = next(
+            (k for k in await self._kingdoms.kingdoms() if k.id == territory.owner_kingdom_id),
+            None,
+        )
+        if victim is not None and int(
+            getattr(victim, "faucon_release_until", 0) or 0
+        ) > int(timestamp.timestamp()):
+            raise TerritoryProtectedError(
+                "the victim released the faucon — immune to technologies (voliere-v1)"
+            )
         await self.spend_points(kingdom_id, self._cost(CORRUPTION))
         former_owner = territory.owner_kingdom_id
         await self._territories.transfer(territory_id, kingdom_id)

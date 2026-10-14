@@ -314,6 +314,17 @@ def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
     ]
     return result
 
+CORBEAU_TRACK_DELAY_HOURS = 24
+"""Volière Corbeau (voliere-v1, Drasah 14/10): the delay of every attack
+a « suivi » lord declares — 24h instead of the configured delay, for
+the whole 24h tracking window."""
+
+
+def _faucon_released(kingdom: Any, timestamp: datetime) -> bool:
+    """Whether the kingdom runs an active Lâcher de faucon (voliere-v1)."""
+    return int(getattr(kingdom, "faucon_release_until", 0) or 0) > int(timestamp.timestamp())
+
+
 
 class AttackService:
     """The attack/defense state machine and combat economy (§11-§13)."""
@@ -377,6 +388,11 @@ class AttackService:
             raise NoBudgetError("the weekly attack budget is spent")
         if not lobby_url.strip():
             raise AttackError("the attacker must provide the game lobby link")
+        # Volière Corbeau (voliere-v1): a « suivi » lord declares with
+        # the 24h delay for the whole 24h tracking window.
+        delay_hours = self._config.attacks.player_attack_delay_hours
+        if await self._lord_tracked_by_corbeau(lord.id, timestamp):
+            delay_hours = CORBEAU_TRACK_DELAY_HOURS
         # Drasah's Lord's Day window: declaring inside the window is
         # fine ONLY when the execution (the attack's expiry deadline)
         # lands after the window closes (Monday 10:00) — a game that
@@ -384,7 +400,7 @@ class AttackService:
         _refuse_lords_day_execution(
             await self._active_lords_day_window(timestamp),
             timestamp,
-            self._config.attacks.player_attack_delay_hours,
+            delay_hours,
         )
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
@@ -403,8 +419,7 @@ class AttackService:
             attacker_kingdom_id=lord.kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
-            expires_at=timestamp
-            + timedelta(hours=self._config.attacks.player_attack_delay_hours),
+            expires_at=timestamp + timedelta(hours=delay_hours),
             cover_lord_id=cover,
             traquenard=traquenard,
         )
@@ -418,6 +433,31 @@ class AttackService:
             " through an active Traquenard" if traquenard else "",
         )
         return attack
+
+    async def _lord_tracked_by_corbeau(self, lord_id: str, timestamp: datetime) -> bool:
+        """Whether any kingdom currently « suit » this lord (voliere-v1)."""
+        for kingdom in await self._kingdoms.kingdoms():
+            for entry in kingdom.corbeau_tracking or []:
+                if (
+                    str(entry.get("lord_id")) == lord_id
+                    and int(entry.get("until", 0) or 0) > int(timestamp.timestamp())
+                ):
+                    return True
+        return False
+
+    async def _void_faucon_sabotages(
+        self, attack: AttackModel, pickban: dict[str, Any], timestamp: datetime
+    ) -> dict[str, Any]:
+        """Volière Lâcher de faucon: a released side suffers no sabotage."""
+        kingdoms = {k.id: k for k in await self._kingdoms.kingdoms()}
+        out = dict(pickban)
+        attacker = kingdoms.get(attack.attacker_kingdom_id)
+        defender = kingdoms.get(attack.defender_kingdom_id)
+        if attacker is not None and _faucon_released(attacker, timestamp):
+            out["defender_sabotages"] = []
+        if defender is not None and _faucon_released(defender, timestamp):
+            out["attacker_sabotages"] = []
+        return out
 
     async def declare_embuscade(
         self,
@@ -440,6 +480,11 @@ class AttackService:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
         timestamp = now or _now()
         territory = await self._validate_attack_target(lord, map_key, timestamp)
+        # Volière Lâcher de faucon (voliere-v1): the Embuscade is an
+        # adverse technology effect — a released defender is immune.
+        target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
+        if _faucon_released(target_kingdom, timestamp):
+            raise EmbuscadeError("the defender released the faucon — immune to technologies")
         if not lobby_url.strip():
             raise AttackError("the attacker must provide the game lobby link")
         _refuse_lords_day_execution(
@@ -706,7 +751,9 @@ class AttackService:
         pickban = dict(attack.pickban)
         pickban[f"{side}_validated"] = True
         if pickban.get("attacker_validated") and pickban.get("defender_validated"):
-            pickban = _apply_sabotages(pickban)
+            pickban = _apply_sabotages(
+                await self._void_faucon_sabotages(attack, pickban, now or _now())
+            )
             pickban["resolved_pickban"] = True
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
@@ -814,7 +861,9 @@ class AttackService:
         attacker_ok = bool(pickban.get("attacker_validated"))
         defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
         if attacker_ok and defender_ok:
-            pickban = _apply_sabotages(pickban)
+            pickban = _apply_sabotages(
+                await self._void_faucon_sabotages(attack, pickban, timestamp)
+            )
             pickban["resolved_pickban"] = True
             attack.pickban = pickban
             await self._store.upsert_attack(attack.to_mongo())
@@ -971,6 +1020,12 @@ class AttackService:
             None,
         )
         if attack is None:
+            # Volière Corbeau (voliere-v1): a « suivi » lord declares
+            # with the 24h delay — the Gaïa free-for-all follows the
+            # same rule as the player attacks.
+            delay_hours = self._config.attacks.gaia_attack_delay_hours
+            if await self._lord_tracked_by_corbeau(lord.id, timestamp):
+                delay_hours = CORBEAU_TRACK_DELAY_HOURS
             # Lord's Day window: the Gaïa free-for-all follows the same
             # declare-vs-play rule as the player attacks (D44's "no
             # time limit" stays — the window only refuses an execution
@@ -978,11 +1033,11 @@ class AttackService:
             _refuse_lords_day_execution(
                 await self._active_lords_day_window(timestamp),
                 timestamp,
-                self._config.attacks.gaia_attack_delay_hours,
+                delay_hours,
             )
             lord.attack_used += 1
             await self._store.upsert_lord(lord.to_mongo())
-            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp)
+            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp, delay_hours)
             await self._store.upsert_attack(attack.to_mongo())
             logger.info("kingdoms: %s opens the Gaïa free-for-all on %s", lord.id, territory.map_key)
             return attack
@@ -997,6 +1052,7 @@ class AttackService:
         lord: LordModel,
         lobby_url: str,
         timestamp: datetime,
+        delay_hours: int,
     ) -> AttackModel:
         """Build the first declaration of a Gaïa free-for-all."""
         if lord.kingdom_id is None:
@@ -1012,8 +1068,7 @@ class AttackService:
             attacker_kingdom_id=lord.kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
-            expires_at=timestamp
-            + timedelta(hours=self._config.attacks.gaia_attack_delay_hours),
+            expires_at=timestamp + timedelta(hours=delay_hours),
             participants=[lord.id],
         )
 
@@ -1097,6 +1152,10 @@ class AttackService:
         if target.is_gaia:
             raise TerritoryNotAttackableError("the Traquenard targets a player kingdom")
         timestamp = now or _now()
+        # Volière Lâcher de faucon (voliere-v1): the Traquenard is an
+        # adverse technology effect — a released target is immune.
+        if _faucon_released(target, timestamp):
+            raise TechnologyError("the target released the faucon — immune to technologies")
         state = await self.technology_state(lord.kingdom_id)
         bought = state.purchases.get("traquenard", 0)
         if bought <= 0:

@@ -579,12 +579,22 @@ def _build_overview(
         KingdomMarketLedgerButton,
         KingdomTraquenardButton,
     )
+    from kingdoms.mods.kingdoms.kingdom_voliere_panel import KingdomVoliereButton
+    from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
+        _strings as _voliere_strings,
+    )
 
     buttons: list[Any] = [KingdomMarketLedgerButton(strings["ledger_button"])]
     # The Traquenard button only exists when the kingdom holds a charge
     # (same rule as the cover proposal of the declare flow).
     if int(state.get("purchases", {}).get("traquenard", 0) or 0) > 0:
         buttons.append(KingdomTraquenardButton(strings))
+    # Volière (voliere-v1): always visible — the Féodal gate lives in the
+    # service (VoliereLockedError), so the view stays simple.
+    voliere_locale = "fr" if strings.get("yes") == "oui" else "en"
+    buttons.append(
+        KingdomVoliereButton(_voliere_strings(voliere_locale)["voliere_button"])
+    )
     return _panel_view_with_buttons(
         strings["overview_title"].format(getattr(kingdom, "name", "")),
         body,
