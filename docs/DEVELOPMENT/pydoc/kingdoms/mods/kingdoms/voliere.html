@@ -9,11 +9,15 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.voliere</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/voliere.py">SOURCE_ROOT/mods/kingdoms/voliere.py</a></td></tr></table>
-    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;Volière&nbsp;service&nbsp;(voliere-v1,&nbsp;Drasah&nbsp;14/10/2026).<br>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;Volière&nbsp;service&nbsp;(voliere-v2,&nbsp;Drasah&nbsp;14/10/2026).<br>
 &nbsp;<br>
-One&nbsp;volière&nbsp;per&nbsp;kingdom,&nbsp;developed&nbsp;for&nbsp;free&nbsp;from&nbsp;the&nbsp;Âge&nbsp;Féodal:&nbsp;three<br>
-birds&nbsp;with&nbsp;per-action&nbsp;cooldowns&nbsp;SHARED&nbsp;by&nbsp;the&nbsp;whole&nbsp;kingdom&nbsp;(any&nbsp;lord<br>
-may&nbsp;act,&nbsp;the&nbsp;cooldown&nbsp;gates&nbsp;the&nbsp;kingdom).<br>
+One&nbsp;volière&nbsp;per&nbsp;kingdom,&nbsp;developed&nbsp;for&nbsp;free&nbsp;from&nbsp;the&nbsp;Âge&nbsp;Féodal.&nbsp;SLOTS<br>
+BY&nbsp;AGE&nbsp;(v2,&nbsp;Drasah's&nbsp;live-test&nbsp;rulings):&nbsp;Féodal&nbsp;opens&nbsp;the&nbsp;1st&nbsp;slot,<br>
+Château&nbsp;the&nbsp;2nd,&nbsp;Impérial&nbsp;the&nbsp;3rd&nbsp;—&nbsp;each&nbsp;slot&nbsp;takes&nbsp;ONE&nbsp;bird,&nbsp;and&nbsp;a<br>
+bird&nbsp;already&nbsp;owned&nbsp;can&nbsp;never&nbsp;be&nbsp;re-taken.&nbsp;ONE&nbsp;action&nbsp;and&nbsp;the&nbsp;WHOLE<br>
+bird&nbsp;flies:&nbsp;no&nbsp;other&nbsp;action&nbsp;of&nbsp;that&nbsp;bird&nbsp;is&nbsp;possible&nbsp;until&nbsp;the<br>
+action's&nbsp;cooldown&nbsp;elapses&nbsp;(the&nbsp;cooldowns&nbsp;stay&nbsp;SHARED&nbsp;by&nbsp;the&nbsp;whole<br>
+kingdom,&nbsp;any&nbsp;lord&nbsp;may&nbsp;act).<br>
 &nbsp;<br>
 -&nbsp;**Corbeau**&nbsp;:&nbsp;piocher&nbsp;une&nbsp;civilisation&nbsp;(168h),&nbsp;vérifier&nbsp;une<br>
 &nbsp;&nbsp;déclaration&nbsp;d'attaque&nbsp;(24h&nbsp;—&nbsp;the&nbsp;Corbeau&nbsp;ALWAYS&nbsp;pierces&nbsp;the<br>
@@ -409,7 +413,12 @@ The&nbsp;volière&nbsp;domain&nbsp;logic&nbsp;—&nbsp;cooldowns,&nbsp;draws&nbs
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="VoliereService-__init__"><strong>__init__</strong></a>(self, store: 'Any', config: 'KingdomsSeasonConfig', kingdoms: 'KingdomsService', territories: 'TerritoryService', attacks: 'Any') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="VoliereService-cooldown_ready_at"><strong>cooldown_ready_at</strong></a>(self, kingdom_id: 'str', action: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;unix&nbsp;timestamp&nbsp;the&nbsp;action&nbsp;is&nbsp;ready&nbsp;at&nbsp;(admin/view).</span></dd></dl>
+<dl><dt>async <a name="VoliereService-choose_bird"><strong>choose_bird</strong></a>(self, kingdom_id: 'str', bird: 'str', *, now: 'datetime') -&gt; 'str'</dt><dd><span class="code">Fill&nbsp;one&nbsp;open&nbsp;slot&nbsp;with&nbsp;a&nbsp;bird&nbsp;(v2:&nbsp;never&nbsp;an&nbsp;owned&nbsp;bird&nbsp;twice).<br>
+&nbsp;<br>
+The&nbsp;slot&nbsp;count&nbsp;follows&nbsp;the&nbsp;age&nbsp;(Fédal&nbsp;1,&nbsp;Château&nbsp;2,&nbsp;Impérial&nbsp;3);<br>
+the&nbsp;choice&nbsp;order&nbsp;belongs&nbsp;to&nbsp;the&nbsp;players.</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-cooldown_ready_at"><strong>cooldown_ready_at</strong></a>(self, kingdom_id: 'str', action: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;unix&nbsp;timestamp&nbsp;the&nbsp;action's&nbsp;bird&nbsp;lands&nbsp;at&nbsp;(admin/view).</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-faucon_sabotage"><strong>faucon_sabotage</strong></a>(self, kingdom_id: 'str', attack_id: 'str', civ_key: 'str', *, now: 'datetime') -&gt; 'None'</dt><dd><span class="code">Place&nbsp;a&nbsp;Faucon&nbsp;sabotage&nbsp;on&nbsp;an&nbsp;ongoing&nbsp;attack&nbsp;(pick&nbsp;&amp;&nbsp;ban&nbsp;phase).<br>
 &nbsp;<br>
@@ -428,6 +437,19 @@ the&nbsp;married&nbsp;civilizations&nbsp;(exclusivité&nbsp;D74&nbsp;conservée)
 <dl><dt>async <a name="VoliereService-pick_territory"><strong>pick_territory</strong></a>(self, kingdom_id: 'str', *, now: 'datetime') -&gt; 'str'</dt><dd><span class="code">Draw&nbsp;one&nbsp;not-yet-in-game&nbsp;map&nbsp;as&nbsp;a&nbsp;NEW&nbsp;territory&nbsp;for&nbsp;the&nbsp;kingdom.</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-release_faucon"><strong>release_faucon</strong></a>(self, kingdom_id: 'str', *, now: 'datetime') -&gt; 'int'</dt><dd><span class="code">Open&nbsp;the&nbsp;Lâcher&nbsp;de&nbsp;faucon&nbsp;—&nbsp;24h&nbsp;immune&nbsp;to&nbsp;adverse&nbsp;technologies.</span></dd></dl>
+
+<dl><dt><a name="VoliereService-slot_capacity"><strong>slot_capacity</strong></a>(self, age_key: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;open&nbsp;slot&nbsp;count&nbsp;at&nbsp;one&nbsp;age&nbsp;(0&nbsp;before&nbsp;the&nbsp;Féodal).<br>
+&nbsp;<br>
+Fédal&nbsp;=&nbsp;1&nbsp;slot,&nbsp;Château&nbsp;=&nbsp;2,&nbsp;Impérial&nbsp;=&nbsp;3&nbsp;(v2):&nbsp;each&nbsp;age&nbsp;switch<br>
+opens&nbsp;ONE&nbsp;new&nbsp;slot&nbsp;—&nbsp;never&nbsp;more&nbsp;birds&nbsp;than&nbsp;the&nbsp;ladder&nbsp;allows.</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-slot_state"><strong>slot_state</strong></a>(self, kingdom_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;volière&nbsp;slot&nbsp;snapshot&nbsp;(capacity,&nbsp;chosen,&nbsp;open,&nbsp;birds).</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-spend_action"><strong>spend_action</strong></a>(self, kingdom_id: 'str', action: 'str', *, now: 'datetime') -&gt; 'None'</dt><dd><span class="code">Gate&nbsp;then&nbsp;fly&nbsp;one&nbsp;panel-side&nbsp;action's&nbsp;bird&nbsp;(v2:&nbsp;question,&nbsp;MP).<br>
+&nbsp;<br>
+The&nbsp;Pigeon's&nbsp;question&nbsp;and&nbsp;anonymous&nbsp;MP&nbsp;live&nbsp;in&nbsp;the&nbsp;panel&nbsp;(modals),<br>
+but&nbsp;they&nbsp;must&nbsp;obey&nbsp;the&nbsp;SAME&nbsp;gates&nbsp;as&nbsp;every&nbsp;service&nbsp;action:&nbsp;Âge<br>
+Féodal,&nbsp;bird&nbsp;in&nbsp;a&nbsp;slot,&nbsp;and&nbsp;the&nbsp;whole-bird&nbsp;cooldown.</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-track_lord"><strong>track_lord</strong></a>(self, kingdom_id: 'str', target_lord_id: 'str', *, now: 'datetime') -&gt; 'int'</dt><dd><span class="code">Mark&nbsp;one&nbsp;lord&nbsp;«&nbsp;suivi&nbsp;»&nbsp;—&nbsp;24h&nbsp;of&nbsp;24h-delayed&nbsp;attack&nbsp;declarations.</span></dd></dl>
 
@@ -535,11 +557,19 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </dl>
 </td></tr></table></td></tr></table><p>
 <table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-bird_of"><strong>bird_of</strong></a>(action: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;bird&nbsp;owning&nbsp;one&nbsp;action&nbsp;(``corbeau_civ``&nbsp;→&nbsp;corbeau).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>CORBEAU_ACTIONS</strong> = ('corbeau_civ', 'corbeau_verify', 'corbeau_track')<br>
+<td class="singlecolumn"><strong>BIRDS</strong> = ('corbeau', 'faucon', 'pigeon')<br>
+<strong>CORBEAU_ACTIONS</strong> = ('corbeau_civ', 'corbeau_verify', 'corbeau_track')<br>
 <strong>FAUCON_ACTIONS</strong> = ('faucon_territory', 'faucon_sabotage', 'faucon_release')<br>
 <strong>FEUDAL_AGE_KEY</strong> = 'feudal_age'<br>
 <strong>PIGEON_ACTIONS</strong> = ('pigeon_civ', 'pigeon_question', 'pigeon_dm')<br>

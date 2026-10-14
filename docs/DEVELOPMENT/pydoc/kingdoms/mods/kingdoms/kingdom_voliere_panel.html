@@ -9,12 +9,14 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdom_voliere_panel</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdom_voliere_panel.py">SOURCE_ROOT/mods/kingdoms/kingdom_voliere_panel.py</a></td></tr></table>
-    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;🪶&nbsp;Volière&nbsp;panel&nbsp;(voliere-v1,&nbsp;Drasah&nbsp;14/10/2026).<br>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;🪶&nbsp;Volière&nbsp;panel&nbsp;(voliere-v2,&nbsp;Drasah&nbsp;14/10/2026).<br>
 &nbsp;<br>
 The&nbsp;volière&nbsp;opens&nbsp;from&nbsp;the&nbsp;Le-Royaume&nbsp;view&nbsp;(«&nbsp;Développer&nbsp;la&nbsp;volière&nbsp;»),<br>
-is&nbsp;free&nbsp;from&nbsp;the&nbsp;Âge&nbsp;Féodal&nbsp;and&nbsp;shared&nbsp;by&nbsp;every&nbsp;lord&nbsp;of&nbsp;the&nbsp;kingdom:<br>
-three&nbsp;birds&nbsp;(Corbeau,&nbsp;Faucon,&nbsp;Pigeon),&nbsp;per-action&nbsp;cooldowns&nbsp;carried&nbsp;by<br>
-the&nbsp;kingdom&nbsp;itself.<br>
+is&nbsp;free&nbsp;from&nbsp;the&nbsp;Âge&nbsp;Féodal&nbsp;and&nbsp;shared&nbsp;by&nbsp;every&nbsp;lord&nbsp;of&nbsp;the&nbsp;kingdom.<br>
+Voliere-v2&nbsp;(Drasah's&nbsp;live-test&nbsp;rulings):&nbsp;one&nbsp;slot&nbsp;per&nbsp;age&nbsp;(Féodal&nbsp;1,<br>
+Château&nbsp;2,&nbsp;Impérial&nbsp;3),&nbsp;each&nbsp;slot&nbsp;takes&nbsp;ONE&nbsp;bird,&nbsp;a&nbsp;bird&nbsp;already&nbsp;owned<br>
+can&nbsp;never&nbsp;be&nbsp;re-taken&nbsp;—&nbsp;and&nbsp;ONE&nbsp;action&nbsp;flies&nbsp;the&nbsp;WHOLE&nbsp;bird&nbsp;(no&nbsp;other<br>
+action&nbsp;of&nbsp;that&nbsp;bird&nbsp;until&nbsp;it&nbsp;lands).&nbsp;Cooldowns&nbsp;stay&nbsp;shared&nbsp;by&nbsp;the&nbsp;realm.<br>
 &nbsp;<br>
 Every&nbsp;answer&nbsp;is&nbsp;a&nbsp;single&nbsp;ephemeral&nbsp;bubble&nbsp;(the&nbsp;volière&nbsp;is&nbsp;discreet&nbsp;by<br>
 nature)&nbsp;with&nbsp;the&nbsp;standard&nbsp;market&nbsp;TTL.&nbsp;The&nbsp;anonymity&nbsp;is&nbsp;player-facing<br>
@@ -199,8 +201,9 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BIRD_LABEL</strong> = {'corbeau_civ': 'Corbeau', 'pigeon_civ': 'Pigeon'}<br>
+<strong>BIRD_NAME</strong> = {'corbeau': 'Corbeau', 'faucon': 'Faucon', 'pigeon': 'Pigeon'}<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
 <strong>VOLIERE_ACTIONS</strong> = (('corbeau_civ', 'primary'), ('corbeau_verify', 'secondary'), ('corbeau_track', 'secondary'), ('faucon_territory', 'primary'), ('faucon_sabotage', 'secondary'), ('faucon_release', 'danger'), ('pigeon_civ', 'primary'), ('pigeon_question', 'secondary'), ('pigeon_dm', 'secondary'))<br>
-<strong>__annotations__</strong> = {'VOLIERE_ACTIONS': 'tuple[tuple[str, str], ...]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'BIRD_NAME': 'dict[str, str]', 'VOLIERE_ACTIONS': 'tuple[tuple[str, str], ...]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.voliere_panel (WARNING)&gt;</td></tr></table>
 </body></html>
