@@ -975,7 +975,7 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-deploy_attack_panel"><strong>deploy_attack_panel</strong></a>(channel: 'discord.TextChannel', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;attack&nbsp;panel&nbsp;message&nbsp;in&nbsp;the&nbsp;Attaquer&nbsp;salon.</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-deploy_attack_panel"><strong>deploy_attack_panel</strong></a>(channel: 'discord.TextChannel | None', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;attack&nbsp;panel&nbsp;in&nbsp;the&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;salon.</span></dd></dl>
  <dl><dt><a name="-panel_text"><strong>panel_text</strong></a>(strings: 'dict[str, str]', rows: 'list[str]') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;panel&nbsp;message&nbsp;(title,&nbsp;help,&nbsp;live&nbsp;rows,&nbsp;marker).</span></dd></dl>
  <dl><dt>async <a name="-refresh_attack_panel_safe"><strong>refresh_attack_panel_safe</strong></a>(guild: 'discord.Guild | None', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Re-pin&nbsp;one&nbsp;guild's&nbsp;attack&nbsp;panel&nbsp;after&nbsp;a&nbsp;mutation&nbsp;(best&nbsp;effort).</span></dd></dl>
  <dl><dt>async <a name="-run_attack_phases_safe"><strong>run_attack_phases_safe</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Drive&nbsp;the&nbsp;D77&nbsp;phases&nbsp;for&nbsp;every&nbsp;guild:&nbsp;reveal,&nbsp;DMs,&nbsp;forfeits.</span></dd></dl>
@@ -985,7 +985,9 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>ATTACK_PANEL_MARKER</strong> = '&lt;!-- kingdoms-attack --&gt;'<br>
+<td class="singlecolumn"><strong>ANNOUNCE_CHANNEL_NAME</strong> = 'Attaques'<br>
+<strong>ATTACK_PANEL_MARKER</strong> = '&lt;!-- kingdoms-attack --&gt;'<br>
+<strong>DECLARE_CHANNEL_NAME</strong> = 'Déclarer une attaque'<br>
 <strong>__annotations__</strong> = {'_MAP_TAG_KEYS': 'tuple[tuple[str, str], ...]', '_STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.mods.kingdoms.kingdom_attack_panel (WARNING)&gt;</td></tr></table>
 </body></html>
