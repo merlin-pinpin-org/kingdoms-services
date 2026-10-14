@@ -38,6 +38,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "panel_empty": "🕊️ Aucune attaque en cours.",
         "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — RDV **{time}** (Paris)",
+        "gaia_line": "🦅 **{map}** — bataille Gaïa · {count} combattant(s) — RDV **{time}** (Paris)",
+        "gaia_join_button": "🦅 Rejoindre la bataille",
+        "gaia_join_note": (
+            "🦅 Tu as rejoint la bataille sur **{map}** ({count} combattants) —"
+            " RDV **{time}** (heure de Paris)."
+        ),
+        "gaia_join_announce": "🦅 **{lord}** rejoint la bataille sur **{map}** ({count} combattants) !",
+        "gaia_gone": "❌ Cette bataille n'accepte plus de participants.",
+        "announce_v1_gaia": (
+            "\n🦅 D'autres seigneurs peuvent rejoindre la bataille via le bouton"
+            " **Rejoindre** du panel Attaquer (jusqu'à {max} combattants) !"
+        ),
         "defender_pending": "en attente de défense",
         "defender_ai": "IA 🤖",
         "covered_tag": " 🕶️",
@@ -139,6 +151,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "panel_empty": "🕊️ No ongoing attack.",
         "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — meets **{time}** (Paris)",
+        "gaia_line": "🦅 **{map}** — Gaïa battle · {count} fighter(s) — meets **{time}** (Paris)",
+        "gaia_join_button": "🦅 Join the battle",
+        "gaia_join_note": (
+            "🦅 You joined the battle on **{map}** ({count} fighters) —"
+            " meeting **{time}** (Paris time)."
+        ),
+        "gaia_join_announce": "🦅 **{lord}** joins the battle on **{map}** ({count} fighters)!",
+        "gaia_gone": "❌ This battle no longer accepts participants.",
+        "announce_v1_gaia": (
+            "\n🦅 Other lords may join the battle through the **Join** button of"
+            " the Attack panel (up to {max} fighters)!"
+        ),
         "defender_pending": "waiting for a defender",
         "defender_ai": "AI 🤖",
         "covered_tag": " 🕶️",
@@ -290,11 +314,19 @@ async def _kingdom_name(kingdoms_service: Any, kingdom_id: str | None) -> str:
 
 
 def _panel_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
-    """Build the pinned panel view (declare + one defend button per DECLARED)."""
+    """Build the pinned panel view (declare + defend/join per open attack)."""
+    from kingdoms.mods.kingdoms.models import AttackKind
+
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
     for attack in attacks:
-        if str(getattr(getattr(attack, "state", None), "value", getattr(attack, "state", ""))) == "declared":
+        state = str(getattr(getattr(attack, "state", None), "value", getattr(attack, "state", "")))
+        if state != "declared":
+            continue
+        kind = getattr(attack, "kind", None)
+        if kind is AttackKind.GAIA:
+            view.add_item(KingdomAttackJoinButton(str(attack.id), strings["gaia_join_button"]))
+        elif kind is None or kind is AttackKind.PLAYER:
             view.add_item(KingdomAttackDefendButton(str(attack.id), strings["defend_button"]))
     return view
 
@@ -313,7 +345,7 @@ async def _ongoing_rows(
     attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]
 ) -> tuple[list[str], list[Any]]:
     """Return the live rows of the ongoing attacks and the attacks themselves."""
-    from kingdoms.mods.kingdoms.models import AttackState
+    from kingdoms.mods.kingdoms.models import AttackKind, AttackState
 
     rows: list[str] = []
     attacks: list[Any] = []
@@ -323,8 +355,18 @@ async def _ongoing_rows(
         logger.warning("KINGDOM ATTACK: attack list read failed", exc_info=True)
         return [], []
     for attack in attacks:
+        if getattr(attack, "kind", None) is AttackKind.GAIA:
+            # A Gaïa battle is a free-for-all other lords may join.
+            rows.append(
+                strings["gaia_line"].format(
+                    map=attack.map_key,
+                    count=len(getattr(attack, "participants", None) or []),
+                    time=_fmt_paris(attack.expires_at),
+                )
+            )
+            continue
         if getattr(attack, "kind", "player") is not None and str(getattr(attack, "kind", "")) != "player":
-            continue  # the Gaïa free-for-all keeps its own surface
+            continue  # unknown kinds keep their own surface
         if not attack.revealed and attack.cover_lord_id:
             attacker = await _lord_name(kingdoms_service, attack.cover_lord_id)
             attacker += strings["covered_tag"]
@@ -530,10 +572,16 @@ async def _kingdom_step_options(
     options: list[Any] = []
     protected: list[str] = []
     for kingdom in await kingdoms_service.kingdoms():
-        if getattr(kingdom, "is_gaia", False) or str(kingdom.id) == own_kingdom_id:
+        if str(kingdom.id) == own_kingdom_id:
             continue
         owned = [t for t in territories if t.owner_kingdom_id == kingdom.id]
         if not owned:
+            continue
+        if getattr(kingdom, "is_gaia", False):
+            # Gaïa territories are attackable through the free-for-all
+            # (Drasah 14/10): the epoch's AI defends, any other lord
+            # may then join the battle via the panel's Join button.
+            options.append(_kingdom_option(kingdom, base, len(owned), strings))
             continue
         state = await attacks_service.technology_state(str(kingdom.id))
         if patrouille_active_at(state, now, base_level=base):
@@ -641,7 +689,10 @@ async def _territory_select_view(
         chosen = [str(v) for v in values.get("values", [])]
         if not chosen:
             return
-        await _open_cover_step(wiring, target, strings, chosen[0], own_kingdom_id)
+        await _open_cover_step(
+            wiring, target, strings, chosen[0], own_kingdom_id,
+            is_gaia=bool(getattr(kingdom, "is_gaia", False)),
+        )
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -655,11 +706,23 @@ async def _open_cover_step(
     strings: dict[str, str],
     map_key: str,
     own_kingdom_id: str,
+    *,
+    is_gaia: bool = False,
 ) -> None:
-    """Step 3 — the counter-espionage question (skipped without a charge)."""
+    """Step 3 — the counter-espionage question (skipped without a charge).
+
+    A Gaïa target skips the cover entirely: the free-for-all has no
+    defender to bluff (Drasah 14/10 — Gaïa is attackable like any
+    kingdom, the battle just accepts extra lords).
+    """
     import discord
 
     attacks_service = wiring.attacks_service
+    if is_gaia:
+        await interaction.response.send_modal(
+            KingdomAttackLobbyModal(strings, map_key, None, "", is_gaia=True)
+        )
+        return
     if attacks_service is None:
         await interaction.response.send_modal(
             KingdomAttackLobbyModal(strings, map_key, None, "")
@@ -755,6 +818,11 @@ async def _announce_declaration_safe(
     )
     if getattr(attack, "traquenard", False):
         content += str(strings["announce_v1_traquenard"])
+    if getattr(attack, "kind", None) is not None and str(getattr(attack, "kind", "")) == "gaia":
+        gaia_max = int(
+            getattr(wiring.attacks_service, "gaia_max_participants", 7) or 7
+        )
+        content += str(strings["announce_v1_gaia"]).format(max=gaia_max)
     try:
         message = await channel.send(content)
     except Exception:
@@ -780,19 +848,22 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         map_key: str,
         cover_lord_id: str | None,
         kingdom_name: str,
+        *,
+        is_gaia: bool = False,
     ) -> None:
         super().__init__(title=strings["modal_title"][:45])
         self.strings = strings
         self.map_key = map_key
         self.cover_lord_id = cover_lord_id
         self.kingdom_name = kingdom_name
+        self.is_gaia = is_gaia
         self.lobby_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
             label=strings["modal_lobby"][:45], max_length=200, required=True
         )
         self.add_item(self.lobby_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Declare the attack, confirm, announce (under the cover if any)."""
+        """Declare the attack (Gaïa free-for-all or player attack), confirm, announce."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = self.strings
@@ -800,12 +871,19 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         attacks = wiring.attacks_service
         await interaction.response.defer(ephemeral=True)
         try:
-            attack = await attacks.declare_attack(
-                str(interaction.user.id),
-                self.map_key,
-                self.lobby_input.value.strip(),
-                cover_lord_id=self.cover_lord_id,
-            )
+            if self.is_gaia:
+                attack = await attacks.declare_gaia_attack(
+                    str(interaction.user.id),
+                    self.map_key,
+                    self.lobby_input.value.strip(),
+                )
+            else:
+                attack = await attacks.declare_attack(
+                    str(interaction.user.id),
+                    self.map_key,
+                    self.lobby_input.value.strip(),
+                    cover_lord_id=self.cover_lord_id,
+                )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(
@@ -879,6 +957,96 @@ class KingdomAttackDefendButton(
             channel,
             strings["defense_announce"].format(
                 lord=interaction.user.display_name, map=attack.map_key
+            ),
+        )
+        await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
+
+
+class KingdomAttackJoinButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:join:(?P<attack_id>[A-Za-z0-9_:\-]+)",
+):
+    """The restart-proof join button of one open Gaïa battle.
+
+    Drasah 14/10: a Gaïa territory is attacked through the declare
+    flow like any kingdom; other lords then JOIN the battle from the
+    panel (1v1v1…, one lord per kingdom, up to the participant
+    ceiling) — the lobby URL of the first declarer is the meeting
+    point.
+    """
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:join:{attack_id}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomAttackJoinButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(match["attack_id"], _strings(_locale(interaction))["gaia_join_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Join the open Gaïa battle of this button's attack."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+        from kingdoms.mods.kingdoms.models import AttackKind
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        battle = next(
+            (
+                a
+                for a in await wiring.attacks_service.attacks()
+                if str(a.id) == self.attack_id and not a.is_over
+            ),
+            None,
+        )
+        if (
+            battle is None
+            or getattr(battle, "kind", None) is not AttackKind.GAIA
+            or battle.state.value != "declared"
+        ):
+            await interaction.response.send_message(strings["gaia_gone"], ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            attack = await wiring.attacks_service.declare_gaia_attack(
+                str(interaction.user.id),
+                battle.map_key,
+                str(battle.lobby_url or ""),
+            )
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await interaction.followup.send(
+            strings["gaia_join_note"].format(
+                map=attack.map_key,
+                count=len(attack.participants),
+                time=_fmt_paris(attack.expires_at),
+            ),
+            ephemeral=True,
+        )
+        channel = _attack_channel(interaction.guild)
+        await _announce_safe(
+            channel,
+            strings["gaia_join_announce"].format(
+                lord=interaction.user.display_name,
+                map=attack.map_key,
+                count=len(attack.participants),
             ),
         )
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))

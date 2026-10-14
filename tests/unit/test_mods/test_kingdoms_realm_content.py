@@ -45,6 +45,10 @@ class _Config:
     civilizations = (_Civ("azteques", "Aztèques"),)
     maps = (_Map("arabia", "Arabie"),)
 
+    class attacks:  # noqa: N801 - the season's AttackSettings seam
+        attacks_per_week = 2
+        defenses_per_week = 3
+
 
 class _Lord:
     def __init__(self, **kwargs: object) -> None:
@@ -204,7 +208,9 @@ async def test_roster_lists_members_with_marriages_and_budgets() -> None:
     assert "👑 **Arthur**" in content
     assert "🎖️ **Luc**" in content
     assert "💍 Aztèques" in content
-    assert "⚔️ 1 · 🛡️ 2" in content
+    # Drasah 15/10: the roster shows the REMAINING weekly budgets
+    # (Arthur used 1 attack and 2 defenses of his 2/3 weekly quotas).
+    assert "⚔️ 1/2 · 🛡️ 1/3" in content
 
 
 async def test_remparts_view_shows_patrols_and_the_guard_button() -> None:

@@ -257,6 +257,98 @@ async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
     assert "kingdoms:attack:cover:no" in ids
 
 
+async def test_declare_flow_attacks_gaia_through_the_free_for_all() -> None:
+    """Drasah 15/10: Gaïa is attackable via the guided flow (no cover step)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        KingdomAttackLobbyModal,
+        _strings,
+    )
+    from kingdoms.mods.kingdoms.models import AttackKind
+
+    bundle = PhasesBundle()
+    _, _, gaia = await bundle.launch_season()
+    await bundle.draw(26)
+    gaia_map = (await bundle.owner_maps(gaia))[0]
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    # Step 1 — Gaïa appears in the kingdom select.
+    kingdom_view = click.response.message and click.response.message.view
+    assert kingdom_view is not None
+    kingdom_select = next(
+        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
+    )
+    values = [o.value for o in kingdom_select.options]
+    assert gaia in values
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [gaia]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    # Step 2 — the Gaïa territories show up.
+    territory_view = step.response.message and step.response.message.view
+    assert territory_view is not None
+    territory_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    assert gaia_map in [o.value for o in territory_select.options]
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [gaia_map]}, locale="fr"  # type: ignore[arg-type]
+    )
+    # Step 3 — a Gaïa target skips the cover question: lobby straight away.
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    modal = step2.response.modal
+    assert isinstance(modal, KingdomAttackLobbyModal)
+    assert modal.is_gaia is True
+    modal.lobby_input._value = "aoe2de://gaia"  # type: ignore[attr-defined]
+    submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
+    await modal.on_submit(submit)  # type: ignore[arg-type]
+    attacks = await bundle.attacks.attacks()
+    assert len(attacks) == 1
+    assert attacks[0].kind is AttackKind.GAIA
+    assert attacks[0].participants == ["king-a"]
+    assert submit.followup.messages
+    assert "Attaque déclarée" in (submit.followup.messages[0].content or "")
+
+
+async def test_join_button_adds_a_lord_to_the_gaia_battle() -> None:
+    """Another lord joins the open Gaïa battle from the panel button."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackJoinButton, _strings
+
+    bundle = PhasesBundle()
+    _, _, gaia = await bundle.launch_season()
+    await bundle.draw(27)
+    gaia_map = (await bundle.owner_maps(gaia))[0]
+    battle = await bundle.attacks.declare_gaia_attack("king-a", gaia_map, "aoe2de://g")
+    assert battle.participants == ["king-a"]
+    _wiring(bundle)
+    button = KingdomAttackJoinButton(battle.id, _strings("fr")["gaia_join_button"])
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-b"),  # type: ignore[arg-type]
+        custom_id=f"kingdoms:attack:join:{battle.id}",
+        locale="fr",
+    )
+    await button.callback(click)  # type: ignore[arg-type]
+    assert click.followup.messages
+    assert "rejoint la bataille" in (click.followup.messages[0].content or "")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == battle.id)
+    assert fresh.participants == ["king-a", "king-b"]
+    # A kingdom joins a free-for-all once (D42): king-b cannot rejoin.
+    again = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-b"),  # type: ignore[arg-type]
+        custom_id=f"kingdoms:attack:join:{battle.id}",
+        locale="fr",
+    )
+    await button.callback(again)  # type: ignore[arg-type]
+    assert again.followup.messages
+    assert "❌" in (again.followup.messages[0].content or "")
+
+
 async def test_defend_button_takes_the_defense() -> None:
     """The persistent defend button runs respond_defense (D77)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton, _strings

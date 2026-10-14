@@ -412,6 +412,8 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
         "map_names": _catalog_names(service, "maps") if service is not None else {},
         "patrol_limit": _patrol_limit(service),
         "guard_cost": _guard_cost(service),
+        "attack_budget": _budget_limit(service, "attacks_per_week"),
+        "defense_budget": _budget_limit(service, "defenses_per_week"),
         "parish": _parish_state(kingdom, service),
     }
     state["defense_ai"] = None
@@ -489,6 +491,21 @@ def _patrol_limit(service: Any) -> int:
         return int(limits.limits.get("patrouille", 2))
     except Exception:
         return 2
+
+
+def _budget_limit(service: Any, key: str) -> int:
+    """Return the configured weekly attack/defense budget (default 1).
+
+    Drasah 15/10: the roster shows the budgets each lord still holds,
+    so the panel needs the season's per-lord ceilings.
+    """
+    attacks = getattr(getattr(service, "config", None) if service is not None else None, "attacks", None)
+    if attacks is None:
+        return 1
+    try:
+        return max(0, int(getattr(attacks, key, 1) or 0))
+    except Exception:
+        return 1
 
 
 def _guard_cost(service: Any) -> int:
@@ -597,9 +614,13 @@ def _build_roster(
             civ = getattr(member, "married_civilization", None)
             if civ:
                 line += f" — 💍 {state['civ_names'].get(str(civ), str(civ))}"
+            attack_budget = int(state.get("attack_budget", 1) or 1)
+            defense_budget = int(state.get("defense_budget", 1) or 1)
+            attack_left = max(0, attack_budget - int(getattr(member, "attack_used", 0) or 0))
+            defense_left = max(0, defense_budget - int(getattr(member, "defense_used", 0) or 0))
             line += (
-                f" — ⚔️ {int(getattr(member, 'attack_used', 0) or 0)}"
-                f" · 🛡️ {int(getattr(member, 'defense_used', 0) or 0)}"
+                f" — ⚔️ {attack_left}/{attack_budget}"
+                f" · 🛡️ {defense_left}/{defense_budget}"
             )
             exploring = int(getattr(member, "exploration_locked_until", 0) or 0)
             if exploring > int(datetime.now(tz=UTC).timestamp()):

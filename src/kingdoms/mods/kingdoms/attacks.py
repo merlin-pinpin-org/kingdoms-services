@@ -338,6 +338,11 @@ class AttackService:
         """Return every attack of the current data set."""
         return [AttackModel.from_mongo(doc) for doc in await self._store.find_attacks()]
 
+    @property
+    def gaia_max_participants(self) -> int:
+        """The configured Gaïa free-for-all participant ceiling (§13)."""
+        return int(self._config.attacks.gaia_max_participants)
+
     async def declare_attack(
         self,
         player_id: str,
