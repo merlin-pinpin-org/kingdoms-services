@@ -82,7 +82,8 @@ class _KingdomsService:
 
 
 class _Territory:
-    def __init__(self, map_key: str, protected_until: object = None) -> None:
+    def __init__(self, map_key: str, protected_until: object = None, id: str | None = None) -> None:
+        self.id = id or map_key
         self.map_key = map_key
         self.owner_kingdom_id = "k-1"
         self.protected_until = protected_until
@@ -99,7 +100,12 @@ class _EconomyService:
 
 
 class _TechState:
-    purchases: ClassVar[dict[str, int]] = {"patrouille_slot_1": 2, "garde_royale": 1}
+    # remparts-v2: patrol slot 1 unlocked + placed at 02h, one guard in stock.
+    purchases: ClassVar[dict[str, int]] = {
+        "patrouille_unlock_1": 1,
+        "patrouille_slot_1": 2,
+        "garde_royale_stock": 1,
+    }
 
 
 class _AttacksService:
@@ -222,12 +228,17 @@ async def test_remparts_view_shows_patrols_and_the_guard_button() -> None:
 
     channel = _channel(guild, "🧱 Remparts")
     content = _text(_live(channel)[0])
-    assert "02h00 → 04h00" in content  # slot 2 from patrouille_slot_1
-    assert "1/2" in content  # one slot bought, limit 2
+    assert "Patrouille 1" in content
+    assert "02h00 → 04h00" in content  # slot 1 placed at 02h (remparts-v2)
+    assert "Patrouille 2" in content
+    assert "verrouillée" in content  # slot 2 still locked (market first)
     assert "🧱 Remparts" in content
-    assert "Garde Royale" in content
+    assert "Gardes Royales" in content
+    assert "En réserve : 1" in content  # one guard token in stock
     message = _live(channel)[0]
     assert "kingdoms:remparts:guard" in _ids(message.view)
+    assert "kingdoms:remparts:patrouille:1" in _ids(message.view)
+    assert "kingdoms:remparts:patrouille:2" in _ids(message.view)
 
 
 async def test_territory_view_lists_owned_maps_with_display_names() -> None:
@@ -253,8 +264,22 @@ async def test_territory_view_shields_the_guarded_map_with_its_end_time() -> Non
         async def territories(self) -> list:
             return [_Territory("arabia", protected_until=guarded_until)]
 
+    class _GuardedTechState(_TechState):
+        # remparts-v2: the placed guard leaves its per-map marker.
+        purchases: ClassVar[dict[str, int]] = {
+            "patrouille_unlock_1": 1,
+            "patrouille_slot_1": 2,
+            "garde_royale_stock": 0,
+            "garde_royale_until:arabia": int(guarded_until.timestamp()),
+        }
+
+    class _GuardedAttacks(_AttacksService):
+        async def technology_state(self, kingdom_id: str) -> _TechState:
+            return _GuardedTechState()
+
     class _GuardedWiring(_Wiring):
         territories_service = _GuardedTerritories()
+        attacks_service = _GuardedAttacks()
 
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])

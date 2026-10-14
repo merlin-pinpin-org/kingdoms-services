@@ -22,8 +22,8 @@ from typing import TYPE_CHECKING
 from kingdoms.mods.kingdoms.attacks import (
     PATROUILLE_SLOT_KEYS,
     patrouille_active_at,
-    patrouille_slots,
 )
+from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
     KingdomsModError,
@@ -57,7 +57,12 @@ PATROUILLE_HOURS = 2
 ROYAL_GUARD_HOURS = 12
 CORRUPTION_PROTECTION_HOURS = 48
 CORRUPTION_COMPENSATION_TECH = 1
-GUARD_UNTIL_KEY = "garde_royale_until"
+GARDE_ROYALE_STOCK = "garde_royale_stock"
+"""remparts-v2: bought-but-unplaced royal-guard tokens (no hard limit)."""
+GUARD_TERRITORY_PREFIX = "garde_royale_until:"
+"""remparts-v2: per-territory guard marker — ``garde_royale_until:<tid>``."""
+PATROUILLE_UNLOCK_PREFIX = "patrouille_unlock_"
+"""remparts-v2: slot-unlock markers — slot 1 first, then slot 2."""
 
 
 class EconomyError(KingdomsModError):
@@ -89,7 +94,7 @@ class TerritoryProtectedError(EconomyError):
 
 
 class GuardAlreadyActiveError(EconomyError):
-    """Raised when a kingdom buys a second guard while one is active (D61)."""
+    """Raised when a guard would shield a map that is already guarded (remparts-v2)."""
 
     code = "KINGDOMS_GUARD_ALREADY_ACTIVE"
     message_key = "kingdoms.errors.guard_already_active"
@@ -358,82 +363,141 @@ class EconomyService:
         return fresh
 
     # ------------------------------------------------------------------
-    # Garde Royale (marche-v2 article 7, refonte 13/10)
+    # Garde Royale (remparts-v2, Drasah 14/10: guards in stock)
     # ------------------------------------------------------------------
-    async def buy_royal_guard(
+    async def buy_royal_guard(self, kingdom_id: str, *, now: datetime | None = None) -> int:
+        """Buy ONE royal-guard token at the market (remparts-v2).
+
+        Drasah's ruling breaks the Check 43 single-guard rule: a
+        kingdom may hold SEVERAL guards at once, with NO hard limit
+        (« ça coûte cher quand même » — 2 ⚙️ each). The market sells
+        the token; the King POSSES it from the 🧱 Remparts salon
+        (``place_royal_guard``) on the map of his choice.
+        """
+        del now  # the token carries no expiry — only its placement does
+        await self.spend_points(kingdom_id, self._cost(GARDE_ROYALE))
+        state = await self._attacks.technology_state(kingdom_id)
+        stock = int(state.purchases.get(GARDE_ROYALE_STOCK, 0) or 0) + 1
+        state.purchases[GARDE_ROYALE_STOCK] = stock
+        await self._store.upsert_technology(state.to_mongo())
+        logger.info("kingdoms: %s stocks a royal guard (%d in reserve)", kingdom_id, stock)
+        await self._record_purchase(
+            kingdom_id, GARDE_ROYALE, "en réserve", self._cost(GARDE_ROYALE)
+        )
+        return stock
+
+    async def place_royal_guard(
         self,
         kingdom_id: str,
         territory_id: str,
         *,
         now: datetime | None = None,
     ) -> TerritoryModel:
-        """Shield ONE kingdom map for 12 hours (marche-v2 article 7).
+        """Spend one guard token: shield ONE owned map for 12 hours.
 
-        The guard protects that map against everything: Corruption,
-        Embuscade and classic attacks. Not retroactive — attacks
-        already declared before the purchase stay valid. No stacking
-        and no extension: a kingdom carries at most one active guard,
-        and a new guard is a fresh full-price purchase (2 ⚙️ once
-        config follows the spec).
+        remparts-v2: several guards may fly simultaneously (one per
+        map — a map already shielded takes no second guard, no
+        extension), each for its own 12h window. Not retroactive:
+        attacks declared before the placement stay valid.
         """
-        territory = await self._owned_territory(kingdom_id, territory_id)
         timestamp = now or datetime.now(tz=UTC)
+        territory = await self._owned_territory(kingdom_id, territory_id)
         state = await self._attacks.technology_state(kingdom_id)
-        active_until = state.purchases.get(GUARD_UNTIL_KEY, 0)
-        if active_until > int(timestamp.timestamp()):
-            raise GuardAlreadyActiveError("a royal guard already shields a kingdom territory")
-        if territory.is_protected_at(timestamp):
-            raise TerritoryProtectedError("the royal guard already shields this territory")
-        await self.spend_points(kingdom_id, self._cost(GARDE_ROYALE))
+        stock = int(state.purchases.get(GARDE_ROYALE_STOCK, 0) or 0)
+        if stock <= 0:
+            raise EconomyError(
+                "no royal guard in stock — buy one at the market first (remparts-v2)"
+            )
+        guard_key = f"{GUARD_TERRITORY_PREFIX}{territory.id}"
+        if int(state.purchases.get(guard_key, 0) or 0) > int(timestamp.timestamp()):
+            raise GuardAlreadyActiveError("a royal guard already shields this territory")
+        state.purchases[GARDE_ROYALE_STOCK] = stock - 1
         territory.protected_until = timestamp + timedelta(hours=ROYAL_GUARD_HOURS)
-        state.purchases[GUARD_UNTIL_KEY] = int(territory.protected_until.timestamp())
+        state.purchases[guard_key] = int(territory.protected_until.timestamp())
         await self._store.upsert_technology(state.to_mongo())
         await self._store.upsert_territory(territory.to_mongo())
-        await self._count_purchase(kingdom_id, GARDE_ROYALE)
         logger.info(
-            "kingdoms: %s guards the territory %s until %s",
+            "kingdoms: %s places a royal guard on %s until %s (%d left in stock)",
             kingdom_id,
             territory_id,
             territory.protected_until.isoformat(),
-        )
-        await self._record_purchase(
-            kingdom_id, GARDE_ROYALE, f"map {territory.map_key}", self._cost(GARDE_ROYALE)
+            stock - 1,
         )
         return territory
 
     # ------------------------------------------------------------------
-    # Patrouille (D68)
+    # Patrouille (remparts-v2, Drasah 14/10: slots unlocked, then placed)
     # ------------------------------------------------------------------
-    async def buy_patrouille(self, kingdom_id: str, slot_start: int) -> int:
-        """Buy one daily 2h no-aggression slot (D68).
+    async def buy_patrouille_slot(self, kingdom_id: str, slot_no: int) -> int:
+        """Unlock ONE patrol slot at the market (slot 1, then slot 2).
 
-        The slot covers every kingdom territory during the bought
-        tranche: no player attack, no Corruption (Gaïa never attacks,
-        so the patrol never binds it). Slots start on a 2h grid; the
-        same tranche cannot be bought twice and the per-season limit
-        (2 by default, admin-editable) bounds the purchases.
+        remparts-v2: the patrol is a SKILL, not a consumable — no more
+        per-season purchase limit. The market sells the slot UNLOCK
+        (2 ⚙️ each, slot 1 before slot 2); the King POSSES the daily
+        window from the 🧱 Remparts salon (``place_patrouille``).
         """
+        if slot_no not in (1, 2):
+            raise EconomyError("the patrol slot number must be 1 or 2")
+        state = await self._attacks.technology_state(kingdom_id)
+        unlock_key = f"{PATROUILLE_UNLOCK_PREFIX}{slot_no}"
+        if unlock_key in state.purchases:
+            raise EconomyError(f"the patrol slot {slot_no} is already unlocked")
+        if slot_no == 2 and PATROUILLE_UNLOCK_PREFIX + "1" not in state.purchases:
+            raise EconomyError("the patrol slot 1 must be unlocked first")
+        await self.spend_points(kingdom_id, self._cost(PATROUILLE))
+        state.purchases[unlock_key] = 1
+        await self._store.upsert_technology(state.to_mongo())
+        logger.info("kingdoms: %s unlocks the patrol slot %d", kingdom_id, slot_no)
+        await self._record_purchase(
+            kingdom_id, PATROUILLE, f"slot {slot_no} débloqué", self._cost(PATROUILLE)
+        )
+        return slot_no
+
+    async def place_patrouille(
+        self,
+        kingdom_id: str,
+        slot_no: int,
+        slot_start: int,
+        *,
+        now: datetime | None = None,
+    ) -> int:
+        """Place (or redefine) one unlocked patrol slot's daily window.
+
+        The window is a 2h tranche applied EVERY day and stays fixed
+        for the whole cycle; redefinition is possible ONLY during the
+        Jour du Seigneur (Sunday 23:30 → Monday 10:00, Paris). The
+        FIRST placement of a freshly unlocked slot is free of that
+        constraint — an empty slot has nothing to redefine.
+        """
+        if slot_no not in (1, 2):
+            raise EconomyError("the patrol slot number must be 1 or 2")
         if slot_start not in range(0, 24, PATROUILLE_HOURS):
             raise EconomyError("the patrol slot must start on the 2h grid (0, 2, … 22)")
-        await self._check_consumable(kingdom_id, PATROUILLE)
+        timestamp = now or datetime.now(tz=UTC)
         state = await self._attacks.technology_state(kingdom_id)
-        if slot_start in patrouille_slots(state):
-            raise EconomyError("this patrol slot is already bought")
-        await self.spend_points(kingdom_id, self._cost(PATROUILLE))
-        free = next(
-            (key for key in PATROUILLE_SLOT_KEYS if key not in state.purchases), None
-        )
-        if free is None:
-            raise EconomyError("this patrol slot is already bought")
-        state.purchases[free] = slot_start
+        unlock_key = f"{PATROUILLE_UNLOCK_PREFIX}{slot_no}"
+        if unlock_key not in state.purchases:
+            raise EconomyError(f"the patrol slot {slot_no} is not unlocked (market first)")
+        slot_key = PATROUILLE_SLOT_KEYS[slot_no - 1]
+        if slot_key in state.purchases:
+            season = await self._kingdoms.current_season()
+            if season is None:
+                raise EconomyError("no season is running")
+            if active_lords_day_window(self._config, season, timestamp) is None:
+                raise EconomyError(
+                    "the patrol window is fixed — it changes only on the Lord's Day"
+                )
+        other_slots = [
+            value
+            for key, value in state.purchases.items()
+            if key in PATROUILLE_SLOT_KEYS and key != slot_key
+        ]
+        if slot_start in other_slots:
+            raise EconomyError("another patrol slot already covers this tranche")
+        state.purchases[slot_key] = slot_start
         await self._store.upsert_technology(state.to_mongo())
-        await self._count_purchase(kingdom_id, PATROUILLE)
-        logger.info("kingdoms: %s patrols the daily slot %sh", kingdom_id, slot_start)
-        await self._record_purchase(
-            kingdom_id,
-            PATROUILLE,
-            f"{slot_start:02d}h00 → {slot_start + PATROUILLE_HOURS:02d}h00",
-            self._cost(PATROUILLE),
+        logger.info(
+            "kingdoms: %s places the patrol slot %d at %02dh", kingdom_id, slot_no, slot_start
         )
         return slot_start
 

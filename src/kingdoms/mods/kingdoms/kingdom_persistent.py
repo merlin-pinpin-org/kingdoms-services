@@ -133,6 +133,7 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomMarketActionButton,
         KingdomMarketLedgerButton,
         KingdomRempartsGuardButton,
+        KingdomRempartsPatrouilleButton,
         KingdomRealmButton,
         KingdomKingNameButton,
         KingdomKingClaimSelect,
@@ -811,15 +812,16 @@ async def _market_action_select_view(
     strings: dict[str, Any],
     anchor: Any = None,
 ) -> discord.ui.View | None:
-    """Build the ephemeral territory select of one special action (None when empty)."""
+    """Build the ephemeral territory select of one special action (None when empty).
+
+    remparts-v2: only the Corruption still walks this flow — the Garde
+    Royale is a TOKEN bought here and PLACED from the Remparts salon.
+    """
     if wiring.territories_service is None:
         return None
     kingdom_id = king.kingdom_id or ""
     territories = await wiring.territories_service.territories()
-    owned = [t for t in territories if t.owner_kingdom_id == kingdom_id]
-    candidates = owned if action == "garde_royale" else [
-        t for t in territories if t.owner_kingdom_id != kingdom_id
-    ]
+    candidates = [t for t in territories if t.owner_kingdom_id != kingdom_id]
     options: list[discord.SelectOption] = [
         discord.SelectOption(
             label=strings["market_territory_line"].format(t.map_key, t.owner_kingdom_id)[:100],
@@ -847,10 +849,7 @@ async def _market_action_select_view(
             )
             return
         try:
-            if action == "corruption":
-                territory = await economy.buy_corruption(kingdom_id, chosen[0])
-            else:
-                territory = await economy.buy_royal_guard(kingdom_id, chosen[0])
+            territory = await economy.buy_corruption(kingdom_id, chosen[0])
         except Exception as exc:
             cost = int(getattr(_market_costs(wiring), action, 0) or 0)
             note = await _market_failure_note(exc, wiring, king, action, cost, strings)
@@ -860,59 +859,6 @@ async def _market_action_select_view(
             territory.map_key, territory.owner_kingdom_id
         )
         note = await _market_success_note(wiring, kingdom_id, action, strings, detail)
-        await target.response.edit_message(content=note, view=None)
-        _market_ttl(anchor or target, getattr(target, "message", None))
-        await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
-
-    select.callback = on_choose  # type: ignore[method-assign, assignment]
-    view = discord.ui.View(timeout=600)
-    view.add_item(select)
-    return view
-
-
-def _market_patrouille_view(strings: dict[str, Any], anchor: Any = None) -> discord.ui.View:
-    """Build the ephemeral patrol-slot select (D68: daily 2h tranches)."""
-    select: discord.ui.Select[Any] = discord.ui.Select(
-        custom_id="kingdoms:market:choose:patrouille",
-        placeholder=strings["market_action"]["patrouille"][:100],
-        options=[
-            discord.SelectOption(
-                label=strings["market_slot_line"].format(start, start + 2),
-                value=str(start),
-            )
-            for start in range(0, 24, 2)
-        ],
-    )
-
-    async def on_choose(target: discord.Interaction[Any]) -> None:
-        values = getattr(target, "data", None) or {}
-        chosen = [str(v) for v in values.get("values", [])]
-        if not chosen:
-            return
-        wiring = _wiring()
-        economy = wiring.economy_service
-        if economy is None:
-            await target.response.edit_message(
-                content=strings["market_no_service"], view=None
-            )
-            return
-        king = await _king_of(wiring.kingdoms_service, str(target.user.id))
-        if king is None:
-            await target.response.edit_message(content=strings["market_not_king"], view=None)
-            return
-        kingdom_id = king.kingdom_id or ""
-        slot = int(chosen[0])
-        try:
-            await economy.buy_patrouille(kingdom_id, slot)
-        except Exception as exc:
-            cost = int(getattr(_market_costs(wiring), "patrouille", 0) or 0)
-            note = await _market_failure_note(exc, wiring, king, "patrouille", cost, strings)
-            await target.response.edit_message(content=note, view=None)
-            return
-        note = await _market_success_note(
-            wiring, kingdom_id, "patrouille", strings,
-            strings["market_slot_line"].format(slot, slot + 2),
-        )
         await target.response.edit_message(content=note, view=None)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
@@ -1115,6 +1061,18 @@ class KingdomMarketModal(discord.ui.Modal):
         self.fiche.label = str(strings["market_fiche_input"])[:45]
         self.fiche.default = fiche[:4000]
 
+    async def _next_patrouille_slot(
+        self, wiring: KingdomsPanelWiring, kingdom_id: str
+    ) -> int:
+        """Return the next patrol slot to unlock (1 first, then 2)."""
+        state = None
+        if wiring.attacks_service is not None:
+            try:
+                state = await wiring.attacks_service.technology_state(kingdom_id)
+            except Exception:
+                state = None
+        return 1 if not _patrouille_unlocked(state) else 2
+
     async def _buy_note(self, interaction: discord.Interaction, note: str, refresh: bool = True) -> None:
         message: Any = cast(Any, await interaction.followup.send(note, ephemeral=True))
         _market_ttl(interaction, message)
@@ -1134,14 +1092,6 @@ class KingdomMarketModal(discord.ui.Modal):
             await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
             return
         kingdom_id = king.kingdom_id or ""
-        if item == "patrouille":
-            # The patrol slot is chosen AFTER the sheet (single bubble).
-            await interaction.response.send_message(
-                strings["market_choose_slot"],
-                view=_market_patrouille_view(strings, anchor=interaction),
-                ephemeral=True,
-            )
-            return
         if item == "corruption":
             view = await _market_action_select_view(wiring, king, item, strings, anchor=interaction)
             if view is None:
@@ -1169,6 +1119,18 @@ class KingdomMarketModal(discord.ui.Modal):
             if self.kind == "tech":
                 await economy.buy_combat_technology(kingdom_id, item)
                 note = await _market_success_note(wiring, kingdom_id, item, strings)
+            elif item == "garde_royale":
+                # remparts-v2: the market sells the TOKEN — the King
+                # places it from the 🧱 Remparts salon.
+                stock = await economy.buy_royal_guard(kingdom_id)
+                note = str(strings["market_garde_token_ok"]).format(stock)
+            elif item == "patrouille":
+                # remparts-v2: the market sells the slot UNLOCK (slot 1
+                # first, then slot 2) — the King places the window from
+                # the 🧱 Remparts salon.
+                slot_no = await self._next_patrouille_slot(wiring, kingdom_id)
+                await economy.buy_patrouille_slot(kingdom_id, slot_no)
+                note = str(strings["market_patrouille_slot_ok"]).format(slot_no)
             else:  # mariage_arrange: the token, not the marriage (D60).
                 kingdom = await economy.buy_arranged_marriage_token(kingdom_id)
                 note = str(strings["market_arranged_token_ok"]).format(
@@ -1179,6 +1141,14 @@ class KingdomMarketModal(discord.ui.Modal):
             await self._buy_note(interaction, note, refresh=False)
             return
         await self._buy_note(interaction, note)
+
+
+def _patrouille_unlocked(state: Any) -> bool:
+    """Whether the patrol slot 1 is already unlocked (remparts-v2)."""
+    if state is None:
+        return False
+    purchases = getattr(state, "purchases", None) or {}
+    return "patrouille_unlock_1" in purchases
 
 
 class KingdomMarketTechButton(
@@ -1246,7 +1216,7 @@ class KingdomMarketActionButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
         r"kingdoms:market:action:(?P<action>explorateur|corruption"
-        r"|patrouille|mariage_arrange)"
+        r"|garde_royale|patrouille|mariage_arrange)"
     ),
 ):
     """The restart-proof button opening one special-action purchase flow."""
@@ -1306,18 +1276,18 @@ class KingdomRempartsGuardButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:remparts:guard",
 ):
-    """The restart-proof 🛡️ Garde Royale button of the 🧱 Remparts view.
+    """The restart-proof 🛡️ « Placer un Garde Royal » button (remparts-v2).
 
-    marche-v2 article 7 (Drasah 13/10): the Garde Royale is bought and
-    piloted from the renamed Remparts salon, NOT from the market. The
-    King picks the shielded map in an ephemeral select; the guard lasts
-    12h on ONE map (no stacking, no extension, non-retroactive).
+    remparts-v2 (Drasah 14/10): the Marché sells guard TOKENS (several
+    simultaneously, no hard limit); the King POSSES them here on the
+    map of his choice — one guard per map, 12h each, non-retroactive.
+    King only.
     """
 
-    def __init__(self, strings: dict[str, Any], cost: int) -> None:
+    def __init__(self, strings: dict[str, Any]) -> None:
         super().__init__(
             discord.ui.Button(
-                label=str(strings["remparts_guard_button"]).format(cost)[:80],
+                label=str(strings["remparts_guard_button"])[:80],
                 custom_id="kingdoms:remparts:guard",
                 style=discord.ButtonStyle.primary,
             )
@@ -1333,13 +1303,116 @@ class KingdomRempartsGuardButton(
     ) -> KingdomRempartsGuardButton:
         """Rebuild the guard button from the wire."""
         locale = str(interaction.locale) if interaction.locale else "en"
-        strings = _strings(locale)
-        wiring = _wiring()
-        cost = int(getattr(_market_costs(wiring), "garde_royale", 0) or 0)
-        return cls(strings, cost)
+        return cls(_strings(locale))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the King-only map select of the Garde Royale."""
+        """Open the King-only owned-map select and place one guard token."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.economy_service is None or wiring.territories_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        king = await _king_of(wiring.kingdoms_service, str(interaction.user.id))
+        if king is None:
+            await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
+            return
+        kingdom_id = king.kingdom_id or ""
+        owned = [
+            t
+            for t in await wiring.territories_service.territories()
+            if t.owner_kingdom_id == kingdom_id
+        ]
+        if not owned:
+            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
+            return
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="kingdoms:remparts:choose:guard",
+            placeholder=str(strings["remparts_place_guard_choose"])[:100],
+            options=[
+                discord.SelectOption(
+                    label=str(getattr(t, "map_key", t.id))[:100], value=str(t.id)[:100]
+                )
+                for t in owned[:25]
+            ],
+        )
+
+        async def on_choose(target: discord.Interaction[Any]) -> None:
+            values = getattr(target, "data", None) or {}
+            chosen = [str(v) for v in values.get("values", [])]
+            if not chosen:
+                return
+            economy = wiring.economy_service
+            if economy is None:
+                await target.response.edit_message(
+                    content=strings["market_no_service"], view=None
+                )
+                return
+            try:
+                territory = await economy.place_royal_guard(kingdom_id, chosen[0])
+            except Exception as exc:
+                await target.response.edit_message(
+                    content=_market_error_note(exc, strings),
+                    view=None,
+                )
+                _market_ttl(interaction, getattr(target, "message", None))
+                return
+            until = datetime.fromtimestamp(
+                int(territory.protected_until.timestamp()), tz=ZoneInfo("Europe/Paris")
+            )
+            note = str(strings["remparts_guard_placed"]).format(
+                str(getattr(territory, "map_key", chosen[0])),
+                until.strftime("%d/%m %H:%M"),
+            )
+            await target.response.edit_message(content=note, view=None)
+            _market_ttl(interaction, getattr(target, "message", None))
+            await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+        select.callback = on_choose  # type: ignore[method-assign, assignment]
+        view = discord.ui.View(timeout=600)
+        view.add_item(select)
+        await interaction.response.send_message(
+            strings["remparts_place_guard_choose"], view=view, ephemeral=True
+        )
+
+
+class KingdomRempartsPatrouilleButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:remparts:patrouille:(?P<slot>[12])",
+):
+    """The restart-proof 🛡️ « Placer Patrouille 1 / 2 » button (remparts-v2).
+
+    remparts-v2 (Drasah 14/10): the patrols are a SKILL — the Marché
+    unlocks the slot (1 then 2), the King POSSES the daily 2h window
+    here. The window stays FIXED for the whole cycle and may only be
+    REDEFINED during the Jour du Seigneur (the service enforces the
+    window). King only.
+    """
+
+    def __init__(self, slot: int, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["remparts_patrouille_button"]).format(slot)[:80],
+                custom_id=f"kingdoms:remparts:patrouille:{slot}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.slot = int(slot)
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRempartsPatrouilleButton:
+        """Rebuild the patrol button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(int(match.group("slot")), _strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the King-only tranche select and place the patrol window."""
         locale = str(interaction.locale) if interaction.locale else "en"
         strings = _strings(locale)
         wiring = _wiring()
@@ -1350,14 +1423,52 @@ class KingdomRempartsGuardButton(
         if king is None:
             await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
             return
-        view = await _market_action_select_view(
-            wiring, king, "garde_royale", strings, anchor=interaction
+        kingdom_id = king.kingdom_id or ""
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"kingdoms:remparts:choose:patrouille:{self.slot}",
+            placeholder=str(strings["market_choose_slot"])[:100],
+            options=[
+                discord.SelectOption(
+                    label=str(strings["market_slot_line"]).format(start, start + 2),
+                    value=str(start),
+                )
+                for start in range(0, 24, 2)
+            ],
         )
-        if view is None:
-            await interaction.response.send_message(strings["market_no_options"], ephemeral=True)
-            return
+
+        async def on_choose(target: discord.Interaction[Any]) -> None:
+            values = getattr(target, "data", None) or {}
+            chosen = [str(v) for v in values.get("values", [])]
+            if not chosen:
+                return
+            economy = wiring.economy_service
+            if economy is None:
+                await target.response.edit_message(
+                    content=strings["market_no_service"], view=None
+                )
+                return
+            slot = int(chosen[0])
+            try:
+                await economy.place_patrouille(kingdom_id, self.slot, slot)
+            except Exception as exc:
+                await target.response.edit_message(
+                    content=_market_error_note(exc, strings),
+                    view=None,
+                )
+                _market_ttl(interaction, getattr(target, "message", None))
+                return
+            note = str(strings["remparts_patrouille_placed"]).format(
+                self.slot, slot, slot + 2
+            )
+            await target.response.edit_message(content=note, view=None)
+            _market_ttl(interaction, getattr(target, "message", None))
+            await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+        select.callback = on_choose  # type: ignore[method-assign, assignment]
+        view = discord.ui.View(timeout=600)
+        view.add_item(select)
         await interaction.response.send_message(
-            strings["market_choose_guard"], view=view, ephemeral=True
+            strings["market_choose_slot"], view=view, ephemeral=True
         )
 
 

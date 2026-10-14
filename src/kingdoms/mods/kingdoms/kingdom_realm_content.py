@@ -75,14 +75,27 @@ def _strings(locale: str) -> dict[str, str]:
             "roster_empty": "Aucun membre enrôlé pour le moment.",
             "left_badge": "❌ parti",
             "patrol_title": "🧱 Remparts — {0}",
-            "patrol_bought": "Tranches achetées",
-            "patrol_left": "Achats restants",
-            "patrol_window": "Modification : dimanche 23h30 → lundi 10h00 (D68, câblage à venir)",
+            "patrol_window": (
+                "🔄 Redéfinition des créneaux : uniquement pendant le Jour du"
+                " Seigneur (dimanche 23h30 → lundi 10h00)."
+            ),
             "patrol_slot": "{0:02d}h00 → {1:02d}h00 (chaque jour)",
-            "remparts_guard": "Garde Royale",
+            "remparts_patrouille_slot": "🛡️ **Patrouille {0}**",
+            "remparts_patrouille_unplaced": "débloquée — à poser",
+            "remparts_patrouille_locked": "verrouillée (2 ⚙️ au Marché)",
+            "remparts_guard": "Gardes Royales",
             "remparts_guard_none": "aucune",
             "remparts_guard_line": "🛡️ **{0}** — protégée jusqu'à {1}",
-            "remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)",
+            "remparts_guard_stock": "En réserve : {0}",
+            "remparts_guard_button": "🛡️ Placer un Garde Royal",
+            "remparts_patrouille_button": "🛡️ Placer Patrouille {0}",
+            "remparts_place_guard_choose": "🛡️ Choisis la map à protéger :",
+            "remparts_guard_placed": (
+                "🛡️ La Garde Royale protège **{0}** jusqu'au {1} (heure de Paris)."
+            ),
+            "remparts_patrouille_placed": (
+                "✅ Patrouille {0} posée : {1:02d}h00 → {2:02d}h00 (chaque jour)."
+            ),
             "traquenard_button": "🪤 Utiliser un Traquenard",
             "traquenard_choose": "🪤 Contre quel royaume activer le Traquenard ?",
             "traquenard_done": (
@@ -180,14 +193,27 @@ def _strings(locale: str) -> dict[str, str]:
         "roster_empty": "No member enrolled yet.",
         "left_badge": "❌ left",
         "patrol_title": "🧱 Remparts — {0}",
-        "patrol_bought": "Bought slots",
-        "patrol_left": "Purchases left",
-        "patrol_window": "Change: Sunday 23:30 → Monday 10:00 (D68, wiring coming soon)",
+        "patrol_window": (
+            "🔄 Window redefinition: only during the Lord's Day"
+            " (Sunday 23:30 → Monday 10:00)."
+        ),
         "patrol_slot": "{0:02d}:00 → {1:02d}:00 (daily)",
-        "remparts_guard": "Royal Guard",
+        "remparts_patrouille_slot": "🛡️ **Patrol {0}**",
+        "remparts_patrouille_unplaced": "unlocked — to be placed",
+        "remparts_patrouille_locked": "locked (2 ⚙️ at the Market)",
+        "remparts_guard": "Royal Guards",
         "remparts_guard_none": "none",
         "remparts_guard_line": "🛡️ **{0}** — shielded until {1}",
-        "remparts_guard_button": "🛡️ Royal Guard ({0} ⚙️)",
+        "remparts_guard_stock": "In reserve: {0}",
+        "remparts_guard_button": "🛡️ Place a Royal Guard",
+        "remparts_patrouille_button": "🛡️ Place Patrol {0}",
+        "remparts_place_guard_choose": "🛡️ Choose the map to shield:",
+        "remparts_guard_placed": (
+            "🛡️ The Royal Guard shields **{0}** until {1} (Paris time)."
+        ),
+        "remparts_patrouille_placed": (
+            "✅ Patrol {0} placed: {1:02d}:00 → {2:02d}:00 (daily)."
+        ),
             "traquenard_button": "🪤 Use a Traquenard",
             "traquenard_choose": "🪤 Against which kingdom should the Traquenard be activated?",
             "traquenard_done": (
@@ -410,8 +436,6 @@ async def _gather_state(kingdom: Any, wiring: Any) -> dict[str, Any]:
         ),
         "civ_names": _catalog_names(service, "civilizations") if service is not None else {},
         "map_names": _catalog_names(service, "maps") if service is not None else {},
-        "patrol_limit": _patrol_limit(service),
-        "guard_cost": _guard_cost(service),
         "attack_budget": _budget_limit(service, "attacks_per_week"),
         "defense_budget": _budget_limit(service, "defenses_per_week"),
         "parish": _parish_state(kingdom, service),
@@ -482,17 +506,6 @@ def _parish_state(kingdom: Any, service: Any) -> dict[str, Any]:
     }
 
 
-def _patrol_limit(service: Any) -> int:
-    """Return the configured per-season patrol purchase limit (default 2)."""
-    limits = getattr(getattr(service, "config", None) if service is not None else None, "technologies", None)
-    if limits is None:
-        return 2
-    try:
-        return int(limits.limits.get("patrouille", 2))
-    except Exception:
-        return 2
-
-
 def _budget_limit(service: Any, key: str) -> int:
     """Return the configured weekly attack/defense budget (default 1).
 
@@ -506,17 +519,6 @@ def _budget_limit(service: Any, key: str) -> int:
         return max(0, int(getattr(attacks, key, 1) or 0))
     except Exception:
         return 1
-
-
-def _guard_cost(service: Any) -> int:
-    """Return the configured Garde Royale cost (marche-v2 article 7: 2)."""
-    technologies = getattr(getattr(service, "config", None) if service is not None else None, "technologies", None)
-    if technologies is None:
-        return 2
-    try:
-        return int(getattr(technologies, "garde_royale", 2))
-    except Exception:
-        return 2
 
 
 def _panel_view(
@@ -658,66 +660,81 @@ def _patrol_slots(state: dict[str, Any]) -> list[int]:
     return sorted(slots)
 
 
-def _guarded_territory(state: dict[str, Any], now: datetime) -> Any | None:
-    """Return the kingdom's currently guarded territory (None otherwise)."""
-    for territory in state["territories"]:
-        until = getattr(territory, "protected_until", None)
-        if until is not None and until > now:
-            return territory
-    return None
-
-
 def _build_patrol(
     strings: dict[str, str],
     kingdom: Any,
     state: dict[str, Any],
 ) -> Any:
-    """Build the 🧱 Remparts state view (D68 patrols + article 7 guard).
+    """Build the 🧱 Remparts view (remparts-v2, Drasah 14/10).
 
-    The renamed salon (ex-« Patrouille », marche-v2 article 7) keeps the
-    patrol slots and gains the Garde Royale: the active shield line
-    (map + protection END TIME) and the King's buy button.
+    The view carries the defence AI level, the Patrouille 1 / 2 slots
+    (placed window, unlocked-but-unplaced, or locked behind a market
+    purchase) and the Garde Royale lines (one per shielded map, the
+    reserve count) — plus the three King-only PLACEMENT buttons (the
+    market sells, Remparts places).
     """
     from datetime import UTC
 
     import discord
 
-    slots = _patrol_slots(state)
+    purchases = dict(state.get("purchases") or {})
     span = 3 if state.get("reinforced") else 2
-    bought = ", ".join(
-        strings["patrol_slot"].format(slot, slot + span) for slot in slots
-    ) or strings["none_f"]
-    remaining = max(0, int(state["patrol_limit"]) - len(slots))
     now = datetime.now(tz=UTC)
-    guard_line = strings["remparts_guard_none"]
-    guarded = _guarded_territory(state, now)
-    if guarded is not None:
-        key = str(getattr(guarded, "map_key", ""))
-        until = int(guarded.protected_until.timestamp())
-        guard_line = strings["remparts_guard_line"].format(
-            state["map_names"].get(key, key), _lock_until_label(until, strings)
-        )
-    lines = [
-        f"**{strings['patrol_bought']}** : {bought}",
-        f"**{strings['patrol_left']}** : {remaining}/{state['patrol_limit']}",
-    ]
+    now_ts = int(now.timestamp())
+    lines: list[str] = []
     if state.get("defense_ai") is not None:
         lines.append(strings["remparts_ai"].format(int(state["defense_ai"])))
         if state.get("reinforced"):
             lines.append(strings["remparts_reinforced"])
-    lines += [
-        f"**{strings['remparts_guard']}** : {guard_line}",
-        strings["patrol_window"],
-    ]
+    # Patrouille 1 / Patrouille 2 — placed, unlocked or locked (v2).
+    for slot_no in (1, 2):
+        unlock_key = f"patrouille_unlock_{slot_no}"
+        slot_key = f"patrouille_slot_{slot_no}"
+        if slot_key in purchases:
+            window = strings["remparts_patrouille_placed"].format(
+                slot_no, int(purchases[slot_key]), int(purchases[slot_key]) + span
+            )
+        elif unlock_key in purchases:
+            window = strings["remparts_patrouille_unplaced"]
+        else:
+            window = strings["remparts_patrouille_locked"]
+        lines.append(f"{strings['remparts_patrouille_slot'].format(slot_no)} : {window}")
+    # Gardes Royales — one line per shielded map + the reserve (v2).
+    guard_lines: list[str] = []
+    for territory in state["territories"]:
+        guard_key = f"garde_royale_until:{getattr(territory, 'id', '')}"
+        until_ts = int(purchases.get(guard_key, 0) or 0)
+        if until_ts <= now_ts:
+            continue
+        key = str(getattr(territory, "map_key", ""))
+        guard_lines.append(
+            strings["remparts_guard_line"].format(
+                state["map_names"].get(key, key), _lock_until_label(until_ts, strings)
+            )
+        )
+    guard_block = "\n".join(guard_lines) or strings["remparts_guard_none"]
+    lines.append(f"**{strings['remparts_guard']}** :")
+    lines.append(guard_block)
+    stock = int(purchases.get("garde_royale_stock", 0) or 0)
+    if stock > 0:
+        lines.append(strings["remparts_guard_stock"].format(stock))
+    lines.append(strings["patrol_window"])
     body = "\n".join(lines)
-    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomRempartsGuardButton
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomRempartsGuardButton,
+        KingdomRempartsPatrouilleButton,
+    )
 
     return _panel_view_with_buttons(
         strings["patrol_title"].format(getattr(kingdom, "name", "")),
         body,
         f"{VIEW_MARKER_PREFIX}:patrouille",
         discord.Colour.teal(),
-        [KingdomRempartsGuardButton(strings, int(state.get("guard_cost", 2)))],
+        [
+            KingdomRempartsGuardButton(strings),
+            KingdomRempartsPatrouilleButton(1, strings),
+            KingdomRempartsPatrouilleButton(2, strings),
+        ],
     )
 
 

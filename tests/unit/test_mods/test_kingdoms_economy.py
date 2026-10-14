@@ -187,7 +187,9 @@ async def test_corruption_refuses_protected_and_own_territories() -> None:
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == bourgogne
     )
     now = datetime.now(tz=UTC)
-    await bundle.economy.buy_royal_guard(bourgogne, target.id, now=now)
+    # remparts-v2: buy the token at the market, then place it in Remparts.
+    await bundle.economy.buy_royal_guard(bourgogne, now=now)
+    await bundle.economy.place_royal_guard(bourgogne, target.id, now=now)
     with pytest.raises(TerritoryProtectedError):
         await bundle.economy.buy_corruption(aquitaine, target.id, now=now)
     own = next(
@@ -197,9 +199,10 @@ async def test_corruption_refuses_protected_and_own_territories() -> None:
         await bundle.economy.buy_corruption(aquitaine, own.id, now=now)
 
 
-async def test_royal_guard_shields_one_map_and_refuses_stacking() -> None:
-    """marche-v2 article 7: 12h shield on ONE map, one active guard per
-    kingdom, no extension — a new guard is a fresh full-price purchase."""
+async def test_royal_guard_tokens_stack_and_shield_many_maps() -> None:
+    """remparts-v2: no hard limit — several guards may fly at once, one
+    per map, each for its own 12h; a map already shielded takes no
+    second guard (no extension either)."""
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")
@@ -209,45 +212,72 @@ async def test_royal_guard_shields_one_map_and_refuses_stacking() -> None:
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine
     ]
     now = datetime.now(tz=UTC)
-    guarded = await bundle.economy.buy_royal_guard(aquitaine, owned[0].id, now=now)
+    # The market sells tokens; several may pile up in stock.
+    assert await bundle.economy.buy_royal_guard(aquitaine, now=now) == 1
+    assert await bundle.economy.buy_royal_guard(aquitaine, now=now) == 2
+    assert await bundle.economy.wallet(aquitaine) == 6  # 2 ⚙️ per token
+    # Placing is King business in Remparts: two maps shielded at once.
+    guarded = await bundle.economy.place_royal_guard(aquitaine, owned[0].id, now=now)
     assert guarded.protected_until == now + timedelta(hours=12)
-    assert await bundle.economy.wallet(aquitaine) == 8  # 2 ⚙️ (article 7)
-    # One active guard per kingdom - another territory is refused.
+    other = await bundle.economy.place_royal_guard(aquitaine, owned[1].id, now=now)
+    assert other.protected_until == now + timedelta(hours=12)
+    # Placing without a token in stock is refused.
+    with pytest.raises(EconomyError):
+        await bundle.economy.place_royal_guard(aquitaine, owned[2].id, now=now)
+    # Stacking on the SAME map is refused (one guard per map, no extension).
+    await bundle.economy.buy_royal_guard(aquitaine, now=now)  # 3rd token back in stock
     with pytest.raises(GuardAlreadyActiveError):
-        await bundle.economy.buy_royal_guard(aquitaine, owned[1].id, now=now)
-    # Once the guard expires, a fresh full-price guard shields another
-    # territory (no extension mechanism anymore).
+        await bundle.economy.place_royal_guard(aquitaine, owned[0].id, now=now)
+    # Once the shield expires a fresh placement goes through.
     later = now + timedelta(hours=13)
-    fresh = await bundle.economy.buy_royal_guard(aquitaine, owned[1].id, now=later)
+    fresh = await bundle.economy.place_royal_guard(aquitaine, owned[0].id, now=later)
     assert fresh.protected_until == later + timedelta(hours=12)
-    assert await bundle.economy.wallet(aquitaine) == 6
+    assert await bundle.economy.wallet(aquitaine) == 4
 
 
-async def test_patrouille_buys_daily_slots_and_blocks_aggression() -> None:
-    """D68: two daily 2h slots max; the slot blocks attacks and Corruption."""
+async def test_patrouille_slots_unlock_then_place_the_daily_window() -> None:
+    """remparts-v2: the market sells the slot UNLOCK (1 then 2); the
+    window is placed in Remparts — first placement anytime, redefinition
+    only during the Lord's Day (Sunday 23:30 → Monday 10:00 Paris)."""
     bundle = Bundle()
     await bundle.launch_season()
-    aquitaine, bourgogne = await bundle.kingdom_id("Aquitaine"), await bundle.kingdom_id("Bourgogne")
+    aquitaine = await bundle.kingdom_id("Aquitaine")
     await bundle.fund(aquitaine, 10)
-    assert await bundle.economy.buy_patrouille(aquitaine, 2) == 2
-    assert await bundle.economy.buy_patrouille(aquitaine, 22) == 22
-    assert await bundle.economy.wallet(aquitaine) == 6  # 2 techs per slot
-    # Limit: 2 purchases per season (D68).
-    with pytest.raises(EconomyLimitReachedError):
-        await bundle.economy.buy_patrouille(aquitaine, 4)
-    # The same tranche cannot be bought twice.
+    # Slot 1 before slot 2, no per-season limit anymore (skill, not consumable).
+    assert await bundle.economy.buy_patrouille_slot(aquitaine, 1) == 1
+    assert await bundle.economy.buy_patrouille_slot(aquitaine, 2) == 2
+    assert await bundle.economy.wallet(aquitaine) == 6  # 2 ⚙️ per unlock
+    with pytest.raises(EconomyError):
+        await bundle.economy.buy_patrouille_slot(aquitaine, 3)
+    with pytest.raises(EconomyError):
+        await bundle.economy.buy_patrouille_slot(aquitaine, 1)  # already unlocked
     fresh = Bundle()
     await fresh.launch_season()
     king = await fresh.kingdom_id("Aquitaine")
     await fresh.fund(king, 10)
-    await fresh.economy.buy_patrouille(king, 2)
     with pytest.raises(EconomyError):
-        await fresh.economy.buy_patrouille(king, 2)
-    # Slots start on the 2h grid only.
+        await fresh.economy.buy_patrouille_slot(king, 2)  # slot 1 first
+    # Placing requires the unlock, then the 2h grid.
     with pytest.raises(EconomyError):
-        await fresh.economy.buy_patrouille(king, 3)
+        await fresh.economy.place_patrouille(king, 1, 2)
+    await fresh.economy.buy_patrouille_slot(king, 1)
+    with pytest.raises(EconomyError):
+        await fresh.economy.place_patrouille(king, 1, 3)  # off-grid
+    # First placement is free of the Lord's-Day constraint (empty slot).
+    assert await fresh.economy.place_patrouille(king, 1, 2, now=datetime(2026, 1, 15, tzinfo=UTC)) == 2
+    # Redefinition OUTSIDE the Lord's Day is refused…
+    with pytest.raises(EconomyError):
+        await fresh.economy.place_patrouille(king, 1, 4, now=datetime(2026, 1, 15, 12, tzinfo=UTC))
+    # …and accepted inside it (Monday 08:00 Paris, window opened Sunday 23:30).
+    assert await fresh.economy.place_patrouille(king, 1, 4, now=datetime(2026, 1, 19, 7, tzinfo=UTC)) == 4
+    # The same tranche cannot be covered by two slots.
+    await fresh.economy.buy_patrouille_slot(king, 2)
+    with pytest.raises(EconomyError):
+        await fresh.economy.place_patrouille(king, 2, 4, now=datetime(2026, 1, 19, 7, tzinfo=UTC))
+    assert await fresh.economy.place_patrouille(king, 2, 6, now=datetime(2026, 1, 19, 7, tzinfo=UTC)) == 6
     # During the slot (02:30 Paris = 01:30 UTC in January) the kingdom
     # resists player attacks (D68) and Corruption.
+    assert await bundle.economy.place_patrouille(aquitaine, 1, 2) == 2
     await bundle.draw(1)
     target = next(
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine
@@ -255,6 +285,7 @@ async def test_patrouille_buys_daily_slots_and_blocks_aggression() -> None:
     in_slot = datetime(2026, 1, 15, 1, 30, tzinfo=UTC)
     with pytest.raises(PatrolProtectedError):
         await bundle.attacks.declare_attack("king-b", target.map_key, "aoe2de://x", now=in_slot)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
     await bundle.fund(bourgogne, 4)
     with pytest.raises(TerritoryProtectedError):
         await bundle.economy.buy_corruption(bourgogne, target.id, now=in_slot)
@@ -277,8 +308,9 @@ async def test_royal_guard_requires_ownership() -> None:
     foreign = next(
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == bourgogne
     )
+    await bundle.economy.buy_royal_guard(aquitaine)
     with pytest.raises(EconomyError):
-        await bundle.economy.buy_royal_guard(aquitaine, foreign.id)
+        await bundle.economy.place_royal_guard(aquitaine, foreign.id)
 
 
 async def test_attacks_respect_the_shield() -> None:
@@ -291,7 +323,8 @@ async def test_attacks_respect_the_shield() -> None:
     target = next(
         t for t in await bundle.territories.territories() if t.owner_kingdom_id == aquitaine
     )
-    await bundle.economy.buy_royal_guard(aquitaine, target.id)
+    await bundle.economy.buy_royal_guard(aquitaine)
+    await bundle.economy.place_royal_guard(aquitaine, target.id)
     with pytest.raises(TerritoryNotAttackableError):
         await bundle.attacks.declare_attack("king-b", target.map_key, "aoe2de://lobby")
     # Once the shield expires the attack goes through.

@@ -343,13 +343,15 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "combat. Blocked if the map is under Royal Guard. 2 per season."
             ),
             "garde_royale": (
-                "Shields ONE kingdom map for 12h against everything "
-                "(Corruption, Ambush, classic attacks). Piloted from the "
-                "Remparts salon."
+                "Buys ONE Royal Guard token (several may be held at once, "
+                "no limit). The King then places it from the Remparts "
+                "salon: 12h of immunity on ONE chosen map."
             ),
             "patrouille": (
-                "Immunity against incoming attacks on a chosen daily 2h slot. "
-                "Max 2 per season (3h when Reinforced)."
+                "Unlocks ONE patrol slot (slot 1, then slot 2). The King "
+                "places the daily 2h window from the Remparts salon — "
+                "fixed for the cycle, redefined on the Lord's Day "
+                "(3h when Reinforced)."
             ),
             "mariage_arrange": (
                 "A 💰 token to consume at the Parish: arranged marriage of a "
@@ -393,7 +395,7 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_insufficient": "❌ Not enough tech points.",
         "market_err_limit": "❌ The per-season purchase limit is reached.",
         "market_err_protected": "❌ This territory is protected.",
-        "market_err_guard_active": "❌ A Royal Guard is already active.",
+        "market_err_guard_active": "❌ This map is already shielded by a Royal Guard.",
         "market_err_already_married": "❌ This lord is already married.",
         "market_err_civ_taken": "❌ This civilization is already claimed by an active marriage.",
         "market_err_civ_unknown": "❌ Marriage refused.",
@@ -413,6 +415,12 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_unknown": "❌ Purchase refused ({}).",
         "market_arranged_token_ok": (
             "💒 Arranged-marriage token bought — stock: {}. Consume it at the Parish."
+        ),
+        "market_garde_token_ok": (
+            "🛡️ Royal Guard bought — in reserve: {}. Place it from the 🧱 Remparts salon."
+        ),
+        "market_patrouille_slot_ok": (
+            "🛡️ Patrol slot {} unlocked — place the window from the 🧱 Remparts salon."
         ),
         "market_err_no_points": "❌ The kingdom holds no marriage point.",
         "market_err_no_token": (
@@ -686,13 +694,15 @@ STRINGS: dict[str, dict[str, Any]] = {
                 "2 par saison."
             ),
             "garde_royale": (
-                "Protège UNE map du royaume pendant 12h contre tout "
-                "(Corruption, Embuscade, attaques classiques). Pilotée depuis "
-                "le salon Remparts."
+                "Achète UNE Garde Royale en réserve (plusieurs gardes "
+                "possibles, sans limite). Le Roi la pose ensuite depuis "
+                "le salon Remparts : 12h d'immunité sur UNE map au choix."
             ),
             "patrouille": (
-                "Immunité contre les attaques entrantes sur une tranche de 2h "
-                "choisie, chaque jour. Max 2 par saison (3h si Renforcée)."
+                "Débloque UN emplacement de patrouille (slot 1 puis slot 2). "
+                "Le Roi pose le créneau quotidien de 2h depuis le salon "
+                "Remparts — figé pour le cycle, redéfini le Jour du "
+                "Seigneur (3h si Renforcée)."
             ),
             "mariage_arrange": (
                 "Jeton 💰 à consommer à la Paroisse : mariage arrangé d'un "
@@ -737,7 +747,7 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_insufficient": "❌ Pas assez de points de tech.",
         "market_err_limit": "❌ La limite d'achats pour cette saison est atteinte.",
         "market_err_protected": "❌ Ce territoire est protégé.",
-        "market_err_guard_active": "❌ Une Garde Royale est déjà active.",
+        "market_err_guard_active": "❌ Cette map est déjà protégée par une Garde Royale.",
         "market_err_already_married": "❌ Ce seigneur est déjà marié.",
         "market_err_civ_taken": "❌ Cette civilisation est déjà visée par un mariage actif.",
         "market_err_civ_unknown": "❌ Mariage refusé.",
@@ -757,6 +767,12 @@ STRINGS: dict[str, dict[str, Any]] = {
         "market_err_unknown": "❌ Achat refusé ({}).",
         "market_arranged_token_ok": (
             "💒 Mariage arrangé acheté — stock : {}. Consommez-le à la Paroisse."
+        ),
+        "market_garde_token_ok": (
+            "🛡️ Garde Royale achetée — en réserve : {}. Pose-la depuis le salon 🧱 Remparts."
+        ),
+        "market_patrouille_slot_ok": (
+            "🛡️ Emplacement de patrouille {} débloqué — pose le créneau depuis le salon 🧱 Remparts."
         ),
         "market_err_no_points": "❌ Le royaume ne détient plus de point de mariage.",
         "market_err_no_token": (
@@ -1484,9 +1500,10 @@ async def build_market_panel(
             )
         )
     action_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    # marche-v2 article 7: the Garde Royale left the market — it is
-    # bought and piloted from the 🧱 Remparts salon.
-    for key in ("explorateur", "corruption", "patrouille", "mariage_arrange"):
+    # marche-v2 article 7 became remparts-v2 (Drasah 14/10): the Garde
+    # Royale returns to the market as a TOKEN purchase — the Remparts
+    # salon keeps the PLACEMENT.
+    for key in ("explorateur", "corruption", "garde_royale", "patrouille", "mariage_arrange"):
         cost = int(getattr(technologies, key))
         action_row.add_item(
             KingdomMarketActionButton(
