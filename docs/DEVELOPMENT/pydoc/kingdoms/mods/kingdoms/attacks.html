@@ -49,13 +49,21 @@ territory&nbsp;transfer&nbsp;on&nbsp;capture.</span></p>
 <dl>
 <dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#AttackNotFoundError">AttackNotFoundError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#DefenseCutoffError">DefenseCutoffError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#EmbuscadeError">EmbuscadeError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#GaiaAttackFullError">GaiaAttackFullError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#LordLockedError">LordLockedError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#LordsDayAttackError">LordsDayAttackError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NoBudgetError">NoBudgetError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#NotEnrolledError">NotEnrolledError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PatrolProtectedError">PatrolProtectedError</a>
-</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#SeasonClosedError">SeasonClosedError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PickBanError">PickBanError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#PickBanStateError">PickBanStateError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#SeasonClosedError">SeasonClosedError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#TechnologyError">TechnologyError</a>
 </dt><dd>
 <dl>
@@ -263,11 +271,21 @@ and&nbsp;never&nbsp;resolve&nbsp;afterwards.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-counter_espionage"><strong>counter_espionage</strong></a>(self, attack_id: 'str', defender_kingdom_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Cancel&nbsp;the&nbsp;sabotage&nbsp;of&nbsp;an&nbsp;incoming&nbsp;attack&nbsp;(D11/D28).</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
+<dl><dt>async <a name="AttackService-declare_attack"><strong>declare_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, cover_lord_id: 'str | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;on&nbsp;an&nbsp;adversary&nbsp;territory.<br>
 &nbsp;<br>
 Any&nbsp;lord&nbsp;declares&nbsp;(D27),&nbsp;the&nbsp;target&nbsp;must&nbsp;be&nbsp;free&nbsp;of&nbsp;any&nbsp;ongoing<br>
 attack&nbsp;(D42),&nbsp;the&nbsp;attacker&nbsp;must&nbsp;have&nbsp;an&nbsp;attack&nbsp;budget&nbsp;left,&nbsp;and<br>
-the&nbsp;declared&nbsp;territory&nbsp;owner&nbsp;must&nbsp;be&nbsp;another&nbsp;player&nbsp;kingdom.</span></dd></dl>
+the&nbsp;declared&nbsp;territory&nbsp;owner&nbsp;must&nbsp;be&nbsp;another&nbsp;player&nbsp;kingdom.<br>
+The&nbsp;optional&nbsp;cover&nbsp;(Contre-espionnage,&nbsp;D77)&nbsp;displays&nbsp;another<br>
+lord&nbsp;instead&nbsp;of&nbsp;the&nbsp;real&nbsp;attacker&nbsp;until&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;—&nbsp;one<br>
+bought&nbsp;cover&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-declare_embuscade"><strong>declare_embuscade</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;the&nbsp;exceptional&nbsp;Embuscade&nbsp;(D77):&nbsp;T-1h,&nbsp;no&nbsp;weekly&nbsp;budget.<br>
+&nbsp;<br>
+The&nbsp;attack&nbsp;meets&nbsp;at&nbsp;T&nbsp;=&nbsp;declaration&nbsp;+&nbsp;1h&nbsp;sharp&nbsp;—&nbsp;the&nbsp;defense<br>
+window&nbsp;shrinks&nbsp;to&nbsp;the&nbsp;45&nbsp;minutes&nbsp;before&nbsp;the&nbsp;T-15&nbsp;cutoff.&nbsp;One<br>
+bought&nbsp;Embuscade&nbsp;is&nbsp;consumed&nbsp;on&nbsp;use;&nbsp;the&nbsp;weekly&nbsp;budget&nbsp;stays<br>
+intact.&nbsp;No&nbsp;cover:&nbsp;the&nbsp;Embuscade&nbsp;strikes&nbsp;in&nbsp;the&nbsp;open.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-declare_gaia_attack"><strong>declare_gaia_attack</strong></a>(self, player_id: 'str', map_key: 'str', lobby_url: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Declare&nbsp;or&nbsp;join&nbsp;the&nbsp;Gaïa&nbsp;free-for-all&nbsp;on&nbsp;a&nbsp;Gaïa&nbsp;territory.<br>
 &nbsp;<br>
@@ -287,14 +305,22 @@ the&nbsp;attack&nbsp;resolves&nbsp;—&nbsp;stacking&nbsp;is&nbsp;data&nbsp;on&n
 The&nbsp;purchase&nbsp;counter&nbsp;moves&nbsp;to&nbsp;``traquenard_active``&nbsp;so&nbsp;the&nbsp;effect<br>
 expires&nbsp;(is&nbsp;cleared)&nbsp;when&nbsp;the&nbsp;attack&nbsp;resolves,&nbsp;and&nbsp;can&nbsp;stack.</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-expire_stale"><strong>expire_stale</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;no-defense&nbsp;outcome&nbsp;to&nbsp;every&nbsp;expired&nbsp;declared&nbsp;attack&nbsp;(D8).<br>
+<dl><dt>async <a name="AttackService-expire_stale"><strong>expire_stale</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;meeting-time&nbsp;outcome&nbsp;to&nbsp;every&nbsp;expired&nbsp;attack&nbsp;(D8/D77).<br>
 &nbsp;<br>
-``auto_victory``:&nbsp;the&nbsp;attacker&nbsp;captures&nbsp;the&nbsp;territory&nbsp;(D17&nbsp;keeps<br>
-the&nbsp;attack&nbsp;consumed).&nbsp;``vs_ai``:&nbsp;the&nbsp;attack&nbsp;moves&nbsp;to&nbsp;``expired``<br>
-and&nbsp;waits&nbsp;for&nbsp;the&nbsp;game&nbsp;result&nbsp;against&nbsp;Gaïa's&nbsp;AI&nbsp;—&nbsp;the&nbsp;resolve<br>
-step&nbsp;then&nbsp;decides&nbsp;the&nbsp;capture.</span></dd></dl>
+At&nbsp;T&nbsp;(``expires_at``):&nbsp;a&nbsp;defense&nbsp;never&nbsp;locked&nbsp;moves&nbsp;to&nbsp;the<br>
+kingdom's&nbsp;bot&nbsp;AI&nbsp;(vs_ai&nbsp;default)&nbsp;—&nbsp;legacy&nbsp;``auto_victory``<br>
+captures&nbsp;without&nbsp;a&nbsp;game&nbsp;when&nbsp;configured.&nbsp;A&nbsp;locked&nbsp;defense<br>
+whose&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;never&nbsp;resolved&nbsp;is&nbsp;a&nbsp;FORFAIT:&nbsp;the&nbsp;side&nbsp;that<br>
+missed&nbsp;its&nbsp;validation&nbsp;loses&nbsp;(both&nbsp;missed&nbsp;→&nbsp;the&nbsp;attacker,&nbsp;the<br>
+present,&nbsp;wins).&nbsp;A&nbsp;resolved&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;keeps&nbsp;waiting&nbsp;for&nbsp;the<br>
+game&nbsp;result&nbsp;(D20)&nbsp;—&nbsp;the&nbsp;RDV&nbsp;itself.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-expire_traquenard"><strong>expire_traquenard</strong></a>(self, kingdom_id: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Clear&nbsp;the&nbsp;engaged&nbsp;Traquenards&nbsp;when&nbsp;the&nbsp;combat&nbsp;ends&nbsp;(D18).</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-5&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
+&nbsp;<br>
+Idempotent&nbsp;through&nbsp;``pickban["sent"]``.&nbsp;The&nbsp;AI&nbsp;side<br>
+auto-validates&nbsp;at&nbsp;the&nbsp;same&nbsp;moment&nbsp;(no&nbsp;human&nbsp;to&nbsp;wait&nbsp;for).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-recharge_weekly_budgets"><strong>recharge_weekly_budgets</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Recharge&nbsp;every&nbsp;lord's&nbsp;weekly&nbsp;budgets&nbsp;at&nbsp;the&nbsp;cycle&nbsp;switch&nbsp;(D1).</span></dd></dl>
 
@@ -304,16 +330,45 @@ The&nbsp;winner&nbsp;is&nbsp;either&nbsp;the&nbsp;attacker&nbsp;(capture)&nbsp;o
 (conservation);&nbsp;Gaïa&nbsp;can&nbsp;also&nbsp;keep&nbsp;its&nbsp;territory&nbsp;in&nbsp;a<br>
 free-for-all&nbsp;nobody&nbsp;won.</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-respond_defense"><strong>respond_defense</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Answer&nbsp;an&nbsp;attack:&nbsp;any&nbsp;lord&nbsp;of&nbsp;the&nbsp;defending&nbsp;kingdom&nbsp;(D7).</span></dd></dl>
+<dl><dt>async <a name="AttackService-respond_defense"><strong>respond_defense</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Answer&nbsp;an&nbsp;attack:&nbsp;any&nbsp;lord&nbsp;of&nbsp;the&nbsp;defending&nbsp;kingdom&nbsp;(D7).<br>
+&nbsp;<br>
+The&nbsp;defense&nbsp;closes&nbsp;at&nbsp;T-15&nbsp;(D77):&nbsp;the&nbsp;cutoff&nbsp;moment&nbsp;is<br>
+``expires_at&nbsp;-&nbsp;defense_cutoff_minutes``&nbsp;—&nbsp;after&nbsp;that&nbsp;the<br>
+defender&nbsp;can&nbsp;no&nbsp;longer&nbsp;react&nbsp;and&nbsp;the&nbsp;kingdom's&nbsp;bot&nbsp;AI&nbsp;takes<br>
+the&nbsp;defense&nbsp;instead.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-restitute"><strong>restitute</strong></a>(self, attack_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Admin&nbsp;exception&nbsp;(D17):&nbsp;give&nbsp;the&nbsp;consumed&nbsp;attack&nbsp;budget&nbsp;back.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-reveal_due"><strong>reveal_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Run&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;(D77):&nbsp;close&nbsp;the&nbsp;defense,&nbsp;unmask&nbsp;the&nbsp;cover.<br>
+&nbsp;<br>
+Idempotent&nbsp;through&nbsp;``revealed``&nbsp;—&nbsp;the&nbsp;scheduler&nbsp;tick&nbsp;can&nbsp;replay<br>
+it&nbsp;after&nbsp;every&nbsp;restart.&nbsp;When&nbsp;nobody&nbsp;answered,&nbsp;the&nbsp;defending<br>
+kingdom's&nbsp;bot&nbsp;AI&nbsp;takes&nbsp;the&nbsp;defense&nbsp;(the&nbsp;D77&nbsp;vs_ai&nbsp;rule;&nbsp;the<br>
+legacy&nbsp;auto_victory&nbsp;capture&nbsp;only&nbsp;applies&nbsp;at&nbsp;expiry&nbsp;for&nbsp;attacks<br>
+the&nbsp;reveal&nbsp;never&nbsp;reached).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-sabotage_civilizations"><strong>sabotage_civilizations</strong></a>(self, attack_id: 'str', attacker_kingdom_id: 'str', civilizations: 'list[str]') -&gt; 'AttackModel'</dt><dd><span class="code">Snipe&nbsp;civilizations&nbsp;on&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;(D12/D28).<br>
 &nbsp;<br>
 Kingdom-vs-kingdom&nbsp;only,&nbsp;at&nbsp;most&nbsp;two&nbsp;sniped&nbsp;civilizations&nbsp;per<br>
 game;&nbsp;the&nbsp;effect&nbsp;is&nbsp;recorded&nbsp;on&nbsp;the&nbsp;attack&nbsp;for&nbsp;the&nbsp;game&nbsp;setup.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-set_picks"><strong>set_picks</strong></a>(self, attack_id: 'str', player_id: 'str', picks: 'list[str]', *, sabotages: 'list[str] | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Submit&nbsp;one&nbsp;side's&nbsp;ranked&nbsp;civilizations&nbsp;and&nbsp;sabotages&nbsp;(D77).<br>
+&nbsp;<br>
+Each&nbsp;side&nbsp;ranks&nbsp;up&nbsp;to&nbsp;3&nbsp;civilizations&nbsp;from&nbsp;ITS&nbsp;OWN&nbsp;hand&nbsp;(blind<br>
+pick&nbsp;—&nbsp;the&nbsp;adversary's&nbsp;hand&nbsp;is&nbsp;public&nbsp;through&nbsp;Alliances,&nbsp;the<br>
+espionage&nbsp;stays&nbsp;legal)&nbsp;and&nbsp;engages&nbsp;up&nbsp;to&nbsp;2&nbsp;sabotages&nbsp;against<br>
+civilizations&nbsp;of&nbsp;the&nbsp;ADVERSARY&nbsp;hand.&nbsp;Only&nbsp;the&nbsp;declaring&nbsp;lord<br>
+picks&nbsp;for&nbsp;the&nbsp;attack&nbsp;side;&nbsp;only&nbsp;the&nbsp;lord&nbsp;who&nbsp;took&nbsp;the&nbsp;defense<br>
+picks&nbsp;for&nbsp;the&nbsp;defense&nbsp;side.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-technology_state"><strong>technology_state</strong></a>(self, kingdom_id: 'str') -&gt; 'TechnologyState'</dt><dd><span class="code">Return&nbsp;(creating&nbsp;when&nbsp;absent)&nbsp;the&nbsp;kingdom's&nbsp;technology&nbsp;state.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-validate_pickban"><strong>validate_pickban</strong></a>(self, attack_id: 'str', player_id: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Validate&nbsp;one&nbsp;side's&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;(D77).<br>
+&nbsp;<br>
+When&nbsp;both&nbsp;sides&nbsp;validated,&nbsp;the&nbsp;sabotages&nbsp;apply&nbsp;(a&nbsp;sabotaged<br>
+civilization&nbsp;leaves&nbsp;the&nbsp;targeted&nbsp;picks)&nbsp;and&nbsp;the&nbsp;civilizations<br>
+are&nbsp;revealed&nbsp;—&nbsp;the&nbsp;played&nbsp;civ&nbsp;is&nbsp;the&nbsp;best-ranked&nbsp;non-sabotaged<br>
+pick&nbsp;of&nbsp;each&nbsp;side.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -388,6 +443,172 @@ Methods inherited from <a href="builtins.html#BaseException">builtins.BaseExcept
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
 <dl><dt><a name="AttackStateError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#AttackStateError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DefenseCutoffError">class <strong>DefenseCutoffError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DefenseCutoffError">DefenseCutoffError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;defense&nbsp;closes&nbsp;at&nbsp;T-15&nbsp;(phases&nbsp;d'attaque,&nbsp;D77).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#DefenseCutoffError">DefenseCutoffError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_DEFENSE_CUTOFF'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.defense_cutoff'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="DefenseCutoffError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="DefenseCutoffError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="DefenseCutoffError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DefenseCutoffError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DefenseCutoffError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DefenseCutoffError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DefenseCutoffError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="EmbuscadeError">class <strong>EmbuscadeError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#EmbuscadeError">EmbuscadeError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;Embuscade&nbsp;cannot&nbsp;engage&nbsp;(D77).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#EmbuscadeError">EmbuscadeError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_EMBUSCADE'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.embuscade'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="EmbuscadeError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="EmbuscadeError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="EmbuscadeError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="EmbuscadeError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="EmbuscadeError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#EmbuscadeError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#EmbuscadeError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -975,6 +1196,173 @@ Methods inherited from <a href="builtins.html#BaseException">builtins.BaseExcept
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
 <dl><dt><a name="PatrolProtectedError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PatrolProtectedError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PickBanError">class <strong>PickBanError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PickBanError">PickBanError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Base&nbsp;of&nbsp;the&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;errors&nbsp;(pré-combat,&nbsp;D77).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#PickBanError">PickBanError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_PICKBAN_ERROR'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.pickban'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="PickBanError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="PickBanError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="PickBanError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="PickBanError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PickBanError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PickBanError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="PickBanError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PickBanError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="PickBanError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PickBanError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="PickBanError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PickBanError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PickBanStateError">class <strong>PickBanStateError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#PickBanError">PickBanError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PickBanStateError">PickBanStateError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;happens&nbsp;outside&nbsp;its&nbsp;window&nbsp;(D77).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#PickBanStateError">PickBanStateError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#PickBanError">PickBanError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_PICKBAN_STATE'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.pickban_state'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="PickBanStateError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="PickBanStateError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="PickBanStateError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PickBanStateError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="PickBanStateError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PickBanStateError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#PickBanStateError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
