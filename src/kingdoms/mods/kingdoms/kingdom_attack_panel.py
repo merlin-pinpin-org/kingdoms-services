@@ -58,6 +58,46 @@ _STRINGS: dict[str, dict[str, str]] = {
         "failed": "❌ {message}",
         "not_a_lord": "❌ Tu n'es pas un seigneur actif d'un royaume.",
         "no_service": "❌ Le service des attaques est indisponible.",
+        "no_target": "❌ Aucun royaume adverse attaquable pour le moment.",
+        "choose_kingdom": "🎯 **Choisis le royaume à attaquer :**",
+        "protected_line": "🛡️ Sous patrouille (impossible d'attaquer) : {kingdoms}",
+        "patrol_kingdom": "**{name}** jusqu'à {end}h00",
+        "ai_level_desc": "IA de défense : {level}/5 · {count} territoire(s)",
+        "choose_territory": "🗺️ **Choisis le territoire de {kingdom} à attaquer :**",
+        "traquenard_hint": (
+            "🪤 Info : un royaume peut activer un Traquenard sur son adversaire — l'IA de"
+            " défense devient Facile pendant 6h et les mariages scellés prennent +2h de verrou."
+        ),
+        "cover_question": (
+            "🕶️ Utiliser un contre-espionnage ? (1 charge — l'attaque sera annoncée sous"
+            " le pseudo d'un autre seigneur, démasqué au reveal T-15)"
+        ),
+        "cover_yes_button": "🕶️ OUI — bluffer",
+        "cover_no_button": "❌ NON — à visage découvert",
+        "choose_cover": "🕶️ Sous le pseudo de quel seigneur déclarer l'attaque ?",
+        "announce_v1": (
+            "⚔️ {attacker} du royaume {kingdom} a lancé une attaque sur le royaume"
+            " {defender} !\n📅 {date}\nBonne chance aux combattants ! 🍀"
+        ),
+        "announce_v1_traquenard": (
+            "\n🪤 Un Traquenard est actif — l'IA du royaume défenseur est Facile (fenêtre 6h) !"
+        ),
+        "date_full": "{weekday} {day}/{month}/{year} à {hour}h{minute}",
+        "weekdays": "Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche",
+        "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
+        "thread_body": (
+            "📜 **Déroulé de l'attaque & droits du défenseur**\n"
+            "• **T-15** — reveal : le bluff (s'il y en a un) tombe ; sans défenseur,"
+            " l'IA du royaume prend la défense.\n"
+            "• **T-5** — le défenseur reçoit ses DM pick & ban.\n"
+            "• **T** — échéance : sans résultat, le territoire reste au défenseur"
+            " (forfait de l'attaquant).\n"
+            "🛡️ N'importe quel seigneur du royaume défenseur peut défendre via le"
+            " bouton du panel **Déclarer une attaque**.\n"
+            "🪤 Un royaume peut activer un Traquenard sur son adversaire : l'IA de"
+            " défense devient Facile pendant 6h et les mariages scellés prennent +2h"
+            " de verrou."
+        ),
         "reveal_cover": (
             "🕶️ Reveal T-15 — l'attaque sur **{map}** était menée par **{lord}** "
             "(la couverture tombe)."
@@ -119,6 +159,45 @@ _STRINGS: dict[str, dict[str, str]] = {
         "failed": "❌ {message}",
         "not_a_lord": "❌ You are no active lord of a kingdom.",
         "no_service": "❌ The attack service is unavailable.",
+        "no_target": "❌ No adversary kingdom is attackable right now.",
+        "choose_kingdom": "🎯 **Choose the kingdom to attack:**",
+        "protected_line": "🛡️ Under patrol (cannot be attacked): {kingdoms}",
+        "patrol_kingdom": "**{name}** until {end}:00",
+        "ai_level_desc": "Defense AI: {level}/5 · {count} territor(y|ies)",
+        "choose_territory": "🗺️ **Choose the territory of {kingdom} to attack:**",
+        "traquenard_hint": (
+            "🪤 Info: a kingdom may activate a Traquenard on its adversary — the defense"
+            " AI turns Easy for 6h and sealed marriages gain +2h of lock."
+        ),
+        "cover_question": (
+            "🕶️ Use a counter-espionage? (1 charge — the attack is announced under"
+            " another lord's name, unmasked at the T-15 reveal)"
+        ),
+        "cover_yes_button": "🕶️ YES — bluff",
+        "cover_no_button": "❌ NO — open-faced",
+        "choose_cover": "🕶️ Under which lord's name should the attack be declared?",
+        "announce_v1": (
+            "⚔️ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
+            " {defender}!\n📅 {date}\nGood luck to the fighters! 🍀"
+        ),
+        "announce_v1_traquenard": (
+            "\n🪤 A Traquenard is active — the defender kingdom's AI is Easy (6h window)!"
+        ),
+        "date_full": "{weekday} {day}/{month}/{year} at {hour}:{minute}",
+        "weekdays": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
+        "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
+        "thread_body": (
+            "📜 **Attack rundown & defender rights**\n"
+            "• **T-15** — reveal: the bluff (if any) drops; with no defender, the"
+            " kingdom's AI takes the defense.\n"
+            "• **T-5** — the defender receives their pick & ban DMs.\n"
+            "• **T** — deadline: with no result, the territory stays with the"
+            " defender (attacker forfeit).\n"
+            "🛡️ Any lord of the defending kingdom may defend via the button of the"
+            " **Declare an attack** panel.\n"
+            "🪤 A kingdom may activate a Traquenard on its adversary: the defense AI"
+            " turns Easy for 6h and sealed marriages gain +2h of lock."
+        ),
         "reveal_cover": (
             "🕶️ T-15 reveal — the attack on **{map}** was led by **{lord}** "
             "(the cover drops)."
@@ -339,7 +418,13 @@ class KingdomAttackDeclareButton(
         return cls(_strings(_locale(interaction))["declare_button"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Guard the click, then open the declaration modal."""
+        """Guard the click, then open the GUIDED declaration flow.
+
+        Drasah's recâblage (2026-10-14): the bare modal is replaced by
+        a guided ephemeral flow — kingdom → territory → (cover?) →
+        lobby — so the attacker SEES the defense AI level, the patrol
+        shields and the cadastre of every option before choosing.
+        """
         from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
 
         strings = _strings(_locale(interaction))
@@ -351,34 +436,360 @@ class KingdomAttackDeclareButton(
         if lord is None:
             await interaction.response.send_message(strings["not_a_lord"], ephemeral=True)
             return
-        await interaction.response.send_modal(KingdomAttackDeclareModal(strings))
+        content, view = await _kingdom_select_view(
+            wiring, str(getattr(lord, "kingdom_id", "") or ""), strings
+        )
+        if view is None:
+            await interaction.response.send_message(strings["no_target"], ephemeral=True)
+            return
+        await interaction.response.send_message(content, view=view, ephemeral=True)
 
 
-class KingdomAttackDeclareModal(discord.ui.Modal):
-    """The declaration form: territory, lobby URL, optional cover lord."""
+def _fmt_paris_full(moment: Any, strings: dict[str, str]) -> str:
+    """Format a moment as « Vendredi 29/08/2025 à 19h15 » (the players' clock)."""
+    when = moment if isinstance(moment, datetime) else datetime.fromtimestamp(moment, tz=_PARIS)
+    local = when.astimezone(_PARIS)
+    weekdays = str(strings.get("weekdays", "")).split(",")
+    weekday = weekdays[local.weekday()] if len(weekdays) == 7 else local.strftime("%A")
+    return str(strings["date_full"]).format(
+        weekday=weekday,
+        day=f"{local.day:02d}",
+        month=f"{local.month:02d}",
+        year=local.year,
+        hour=f"{local.hour:02d}",
+        minute=f"{local.minute:02d}",
+    )
 
-    def __init__(self, strings: dict[str, str]) -> None:
+
+def _kingdom_mention(guild: Any, name: str) -> str:
+    """Mention the kingdom's Discord role when it exists (bold fallback)."""
+    roles = list(getattr(guild, "roles", []) or [])
+    role = next((r for r in roles if getattr(r, "name", "") == name), None)
+    if role is not None:
+        return str(getattr(role, "mention", f"**{name}**"))
+    return f"**{name}**"
+
+
+_MAP_TAG_KEYS: tuple[tuple[str, str], ...] = (
+    ("water", "💧"),
+    ("open", "🌞"),
+    ("nomad", "🌾"),
+    ("desert", "🏜️"),
+    ("mountain", "⛰️"),
+    ("marsh", "🪷"),
+    ("lakes", "🏞️"),
+    ("golden", "✨"),
+    ("start_wall", "🧱"),
+)
+
+
+def _map_description(entry: Any, strings: dict[str, str]) -> str:
+    """One select-option description: the map's tags + cadastre bonus."""
+    types = getattr(entry, "types", None)
+    tags = [icon for key, icon in _MAP_TAG_KEYS if bool(getattr(types, key, False))]
+    bonus = str((getattr(entry, "cadastre", None) or {}).get("bonus", "") or "")
+    parts = [" ".join(tags)] if tags else []
+    if bonus:
+        parts.append(bonus)
+    return " · ".join(parts)[:100]
+
+
+def _kingdom_option(
+    kingdom: Any, level: int, count: int, strings: dict[str, str]
+) -> discord.SelectOption:
+    """One step-1 option: the kingdom, its defence AI level and map count."""
+    import discord
+
+    return discord.SelectOption(
+        label=str(kingdom.name)[:100],
+        value=str(kingdom.id)[:100],
+        description=strings["ai_level_desc"].format(level=level, count=count)[:100],
+    )
+
+
+async def _kingdom_step_options(
+    wiring: Any,
+    own_kingdom_id: str,
+    strings: dict[str, str],
+    now: Any,
+    base: int,
+) -> tuple[list[Any], list[str]]:
+    """Classify every kingdom as attackable or patrol-protected (step 1)."""
+    from kingdoms.mods.kingdoms.attacks import (
+        patrouille_active_at,
+        patrouille_reinforced,
+        patrouille_slots,
+    )
+
+    kingdoms_service = wiring.kingdoms_service
+    attacks_service = wiring.attacks_service
+    territories_service = wiring.territories_service
+    territories = (
+        await territories_service.territories() if territories_service is not None else []
+    )
+    options: list[Any] = []
+    protected: list[str] = []
+    for kingdom in await kingdoms_service.kingdoms():
+        if getattr(kingdom, "is_gaia", False) or str(kingdom.id) == own_kingdom_id:
+            continue
+        owned = [t for t in territories if t.owner_kingdom_id == kingdom.id]
+        if not owned:
+            continue
+        state = await attacks_service.technology_state(str(kingdom.id))
+        if patrouille_active_at(state, now, base_level=base):
+            slots = patrouille_slots(state)
+            span = 3 if patrouille_reinforced(state, base) else 2
+            end = (slots[-1] + span) % 24 if slots else 0
+            protected.append(
+                strings["patrol_kingdom"].format(name=str(kingdom.name), end=f"{end:02d}")
+            )
+            continue
+        level = await attacks_service.defense_ai_level(str(kingdom.id))
+        options.append(_kingdom_option(kingdom, level, len(owned), strings))
+    return options, protected
+
+
+async def _kingdom_select_view(
+    wiring: Any, own_kingdom_id: str, strings: dict[str, str]
+) -> tuple[str, discord.ui.View | None]:
+    """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible)."""
+    from datetime import UTC, datetime
+
+    import discord
+
+    kingdoms_service = wiring.kingdoms_service
+    attacks_service = wiring.attacks_service
+    if kingdoms_service is None or attacks_service is None:
+        return "", None
+    now = datetime.now(tz=UTC)
+    base = await attacks_service.base_ai_level()
+    options, protected = await _kingdom_step_options(wiring, own_kingdom_id, strings, now, base)
+    if not options:
+        return "", None
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:choose:kingdom",
+        placeholder=str(strings["choose_kingdom"])[:100],
+        options=options[:25],
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        content, view = await _territory_select_view(wiring, own_kingdom_id, chosen[0], strings)
+        if view is None:
+            await target.response.edit_message(content=strings["no_target"], view=None)
+            return
+        await target.response.edit_message(content=content, view=view)
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    lines = [str(strings["choose_kingdom"])]
+    if protected:
+        lines.append(str(strings["protected_line"]).format(kingdoms=" · ".join(protected)))
+    lines.append(str(strings["traquenard_hint"]))
+    return "\n".join(lines), view
+
+
+async def _territory_select_view(
+    wiring: Any, own_kingdom_id: str, kingdom_id: str, strings: dict[str, str]
+) -> tuple[str, discord.ui.View | None]:
+    """Step 2 — the territories of the chosen kingdom (tags + cadastre)."""
+    import discord
+
+    kingdoms_service = wiring.kingdoms_service
+    territories_service = wiring.territories_service
+    if kingdoms_service is None or territories_service is None:
+        return "", None
+    kingdom = next(
+        (k for k in await kingdoms_service.kingdoms() if str(k.id) == kingdom_id), None
+    )
+    if kingdom is None:
+        return "", None
+    catalog = {
+        str(getattr(entry, "key", "")): entry
+        for entry in getattr(getattr(kingdoms_service, "config", None), "maps", None) or ()
+    }
+    owned = [
+        t for t in await territories_service.territories() if t.owner_kingdom_id == kingdom_id
+    ]
+    if not owned:
+        return "", None
+    options = [
+        discord.SelectOption(
+            label=str(
+                getattr(catalog.get(str(t.map_key), None), "display_name", None)
+                or t.map_key
+            )[:100],
+            value=str(t.map_key)[:100],
+            description=_map_description(
+                catalog.get(str(t.map_key), None), strings
+            ),
+        )
+        for t in owned
+    ][:25]
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:attack:choose:territory",
+        placeholder=str(strings["choose_territory"])[:100],
+        options=options,
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = getattr(target, "data", None) or {}
+        chosen = [str(v) for v in values.get("values", [])]
+        if not chosen:
+            return
+        await _open_cover_step(wiring, target, strings, chosen[0], own_kingdom_id)
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    return str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**"), view
+
+
+async def _open_cover_step(
+    wiring: Any,
+    interaction: discord.Interaction[Any],
+    strings: dict[str, str],
+    map_key: str,
+    own_kingdom_id: str,
+) -> None:
+    """Step 3 — the counter-espionage question (skipped without a charge)."""
+    import discord
+
+    attacks_service = wiring.attacks_service
+    if attacks_service is None:
+        await interaction.response.send_modal(
+            KingdomAttackLobbyModal(strings, map_key, None, "")
+        )
+        return
+    state = await attacks_service.technology_state(own_kingdom_id)
+    if state.purchases.get("contre_espionnage", 0) <= 0:
+        await interaction.response.send_modal(
+            KingdomAttackLobbyModal(strings, map_key, None, "")
+        )
+        return
+    view = discord.ui.View(timeout=600)
+
+    async def open_lobby(cover_lord_id: str | None, target: discord.Interaction[Any]) -> None:
+        await target.response.send_modal(
+            KingdomAttackLobbyModal(strings, map_key, cover_lord_id, "")
+        )
+
+    async def on_yes(target: discord.Interaction[Any]) -> None:
+        lords = [
+            lord
+            for lord in await wiring.kingdoms_service.lords()
+            if lord.kingdom_id == own_kingdom_id
+            and not getattr(lord, "left", False)
+            and str(lord.id) != str(target.user.id)
+        ]
+        if not lords:
+            await open_lobby(None, target)
+            return
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="kingdoms:attack:choose:cover",
+            placeholder=str(strings["choose_cover"])[:100],
+            options=[
+                discord.SelectOption(
+                    label=str(getattr(lord, "display_name", lord.id))[:100],
+                    value=str(lord.id)[:100],
+                )
+                for lord in lords
+            ][:25],
+        )
+
+        async def on_cover(chosen: discord.Interaction[Any]) -> None:
+            values = getattr(chosen, "data", None) or {}
+            picked = [str(v) for v in values.get("values", [])]
+            await open_lobby(picked[0] if picked else None, chosen)
+
+        select.callback = on_cover  # type: ignore[method-assign, assignment]
+        cover_view = discord.ui.View(timeout=600)
+        cover_view.add_item(select)
+        await target.response.edit_message(
+            content=str(strings["choose_cover"]), view=cover_view
+        )
+
+    async def on_no(target: discord.Interaction[Any]) -> None:
+        await open_lobby(None, target)
+
+    yes: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["cover_yes_button"])[:80],
+        style=discord.ButtonStyle.primary,
+        custom_id="kingdoms:attack:cover:yes",
+    )
+    no: discord.ui.Button[Any] = discord.ui.Button(
+        label=str(strings["cover_no_button"])[:80],
+        style=discord.ButtonStyle.secondary,
+        custom_id="kingdoms:attack:cover:no",
+    )
+    yes.callback = on_yes  # type: ignore[method-assign, assignment]
+    no.callback = on_no  # type: ignore[method-assign, assignment]
+    view.add_item(yes)
+    view.add_item(no)
+    await interaction.response.edit_message(
+        content=str(strings["cover_question"]), view=view
+    )
+
+
+async def _announce_declaration_safe(
+    guild: Any, wiring: Any, strings: dict[str, str], attack: Any
+) -> None:
+    """Announce the v1-style declaration and open its rights thread."""
+    channel = _attack_channel(guild)
+    if channel is None:
+        return
+    kingdoms_service = wiring.kingdoms_service
+    shown_id = attack.cover_lord_id or attack.attacker_lord_id
+    attacker = f"<@{shown_id}>"
+    attacker_name = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
+    defender_name = await _kingdom_name(kingdoms_service, attack.defender_kingdom_id)
+    content = str(strings["announce_v1"]).format(
+        attacker=attacker,
+        kingdom=_kingdom_mention(guild, attacker_name),
+        defender=_kingdom_mention(guild, defender_name),
+        date=_fmt_paris_full(attack.expires_at, strings),
+    )
+    if getattr(attack, "traquenard", False):
+        content += str(strings["announce_v1_traquenard"])
+    try:
+        message = await channel.send(content)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: declaration announcement failed", exc_info=True)
+        return
+    try:
+        thread = await message.create_thread(
+            name=str(strings["thread_title"]).format(
+                kingdom=attacker_name, defender=defender_name, map=attack.map_key
+            )[:100]
+        )
+        await thread.send(str(strings["thread_body"]))
+    except Exception:
+        logger.warning("KINGDOM ATTACK: declaration thread failed", exc_info=True)
+
+
+class KingdomAttackLobbyModal(discord.ui.Modal):
+    """Final step — the game lobby URL (the territory is already chosen)."""
+
+    def __init__(
+        self,
+        strings: dict[str, str],
+        map_key: str,
+        cover_lord_id: str | None,
+        kingdom_name: str,
+    ) -> None:
         super().__init__(title=strings["modal_title"][:45])
         self.strings = strings
-        self.map_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
-            label=strings["modal_map"][:45], max_length=100, required=True
-        )
+        self.map_key = map_key
+        self.cover_lord_id = cover_lord_id
+        self.kingdom_name = kingdom_name
         self.lobby_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
             label=strings["modal_lobby"][:45], max_length=200, required=True
         )
-        self.cover_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
-            label=strings["modal_cover"][:45], max_length=60, required=False
-        )
-        self.traquenard_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
-            label=strings["modal_traquenard"][:45], max_length=10, required=False
-        )
-        for item in (
-            self.map_input,
-            self.lobby_input,
-            self.cover_input,
-            self.traquenard_input,
-        ):
-            self.add_item(item)
+        self.add_item(self.lobby_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Declare the attack, confirm, announce (under the cover if any)."""
@@ -388,22 +799,18 @@ class KingdomAttackDeclareModal(discord.ui.Modal):
         wiring = _wiring()
         attacks = wiring.attacks_service
         await interaction.response.defer(ephemeral=True)
-        cover = None
-        digits = re.search(r"\d{5,}", self.cover_input.value or "")
-        if digits is not None:
-            cover = digits.group()
         try:
             attack = await attacks.declare_attack(
                 str(interaction.user.id),
-                self.map_input.value.strip(),
+                self.map_key,
                 self.lobby_input.value.strip(),
-                cover_lord_id=cover,
-                use_traquenard=(self.traquenard_input.value or "").strip().lower()
-                in ("oui", "yes", "o", "y"),
+                cover_lord_id=self.cover_lord_id,
             )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
+            await interaction.followup.send(
+                strings["failed"].format(message=message), ephemeral=True
+            )
             return
         await interaction.followup.send(
             strings["declared_note"].format(
@@ -411,21 +818,7 @@ class KingdomAttackDeclareModal(discord.ui.Modal):
             ),
             ephemeral=True,
         )
-        channel = _attack_channel(interaction.guild)
-        shown_id = attack.cover_lord_id or attack.attacker_lord_id
-        await _announce_safe(
-            channel,
-            strings["declared_announce"].format(
-                attacker=await _lord_name(wiring.kingdoms_service, shown_id)
-                + (strings["covered_tag"] if attack.cover_lord_id else ""),
-                kingdom=await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id),
-                map=attack.map_key,
-                defender_kingdom=await _kingdom_name(
-                    wiring.kingdoms_service, attack.defender_kingdom_id
-                ),
-                time=_fmt_paris(attack.expires_at),
-            ),
-        )
+        await _announce_declaration_safe(interaction.guild, wiring, strings, attack)
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
 
 

@@ -1359,6 +1359,113 @@ class KingdomRempartsGuardButton(
         )
 
 
+class KingdomTraquenardButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:traquenard:activate",
+):
+    """The restart-proof 🪤 Traquenard button of the Le-Royaume view.
+
+    marche-v2 article 2 (recâblage v2, Drasah 14/10): the Traquenard is
+    INDEPENDENT of any declaration — any lord of the kingdom triggers it
+    from the kingdom's own salon. It opens a 6h Facile-AI window on the
+    chosen adversary kingdom (every attack declared in that window faces
+    the level-1 AI) and adds +2h of lock on the target's already-sealed
+    marriages. The button is only rendered while the kingdom holds at
+    least one bought charge.
+    """
+
+    def __init__(self, strings: dict[str, Any]) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=str(strings["traquenard_button"])[:80],
+                custom_id="kingdoms:traquenard:activate",
+                style=discord.ButtonStyle.danger,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomTraquenardButton:
+        """Rebuild the Traquenard button from the wire."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral adversary-kingdom select of the Traquenard."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.attacks_service is None or wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None:
+            await interaction.response.send_message(strings["market_not_king"], ephemeral=True)
+            return
+        kingdom_id = lord.kingdom_id or ""
+        kingdoms = await wiring.kingdoms_service.kingdoms()
+        options = [
+            discord.SelectOption(label=str(getattr(k, "name", "") or k.kingdom_id)[:100], value=k.kingdom_id[:100])
+            for k in kingdoms
+            if not getattr(k, "is_gaia", False) and k.kingdom_id != kingdom_id
+        ][:25]
+        if not options:
+            await interaction.response.send_message(strings["traquenard_no_target"], ephemeral=True)
+            return
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="kingdoms:traquenard:choose",
+            placeholder=str(strings["traquenard_choose"])[:100],
+            options=options,
+        )
+
+        async def on_choose(target: discord.Interaction[Any]) -> None:
+            values = getattr(target, "data", None) or {}
+            chosen = [str(v) for v in values.get("values", [])]
+            if not chosen:
+                return
+            attacks = wiring.attacks_service
+            if attacks is None:
+                await target.response.edit_message(
+                    content=strings["market_no_service"], view=None
+                )
+                return
+            try:
+                victim = await attacks.activate_traquenard(
+                    str(target.user.id), chosen[0]
+                )
+            except Exception as exc:
+                await target.response.edit_message(
+                    content=str(strings["traquenard_failed"]).format(
+                        message=getattr(exc, "message", str(exc))
+                    ),
+                    view=None,
+                )
+                return
+            until = datetime.fromtimestamp(
+                int(getattr(victim, "traquenard_until", 0) or 0),
+                tz=ZoneInfo("Europe/Paris"),
+            )
+            note = str(strings["traquenard_done"]).format(
+                kingdom=str(getattr(victim, "name", "") or chosen[0]),
+                time=until.strftime("%d/%m %H:%M"),
+            )
+            await target.response.edit_message(content=note, view=None)
+            _market_ttl(interaction, getattr(target, "message", None))
+            await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
+
+        select.callback = on_choose  # type: ignore[method-assign, assignment]
+        view = discord.ui.View(timeout=600)
+        view.add_item(select)
+        await interaction.response.send_message(
+            strings["traquenard_choose"], view=view, ephemeral=True
+        )
+
+
 def _market_ledger_text(wiring: KingdomsPanelWiring, kingdom: Any, strings: dict[str, Any]) -> str:
     """Build the chambre-des-comptes register (balance + reverse purchases)."""
     registry = list(getattr(kingdom, "market_registry", None) or [])

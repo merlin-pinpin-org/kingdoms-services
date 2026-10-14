@@ -83,6 +83,15 @@ def _strings(locale: str) -> dict[str, str]:
             "remparts_guard_none": "aucune",
             "remparts_guard_line": "🛡️ **{0}** — protégée jusqu'à {1}",
             "remparts_guard_button": "🛡️ Garde Royale ({0} ⚙️)",
+            "traquenard_button": "🪤 Utiliser un Traquenard",
+            "traquenard_choose": "🪤 Contre quel royaume activer le Traquenard ?",
+            "traquenard_done": (
+                "🪤 Traquenard activé contre **{kingdom}** — l'IA de défense devient"
+                " Facile pendant 6h (jusqu'à {time}) et les mariages scellés prennent"
+                " +2h de verrou."
+            ),
+            "traquenard_failed": "❌ {message}",
+            "traquenard_no_target": "❌ Aucun royaume adverse à cibler.",
             "remparts_ai": "🤖 Bot de défense (IA) : **{0}**/5",
             "remparts_reinforced": "💪 Patrouilles Renforcées (créneaux de 3h)",
             "roster_exploring": "🗺️ exploration jusqu'à {0}",
@@ -179,6 +188,14 @@ def _strings(locale: str) -> dict[str, str]:
         "remparts_guard_none": "none",
         "remparts_guard_line": "🛡️ **{0}** — shielded until {1}",
         "remparts_guard_button": "🛡️ Royal Guard ({0} ⚙️)",
+            "traquenard_button": "🪤 Use a Traquenard",
+            "traquenard_choose": "🪤 Against which kingdom should the Traquenard be activated?",
+            "traquenard_done": (
+                "🪤 Traquenard activated against **{kingdom}** — the defense AI turns"
+                " Easy for 6h (until {time}) and sealed marriages gain +2h of lock."
+            ),
+            "traquenard_failed": "❌ {message}",
+            "traquenard_no_target": "❌ No adversary kingdom to target.",
             "remparts_ai": "🤖 Defense bot (AI): **{0}**/5",
             "remparts_reinforced": "💪 Reinforced Patrols (3h slots)",
             "roster_exploring": "🗺️ exploring until {0}",
@@ -541,14 +558,22 @@ def _build_overview(
             f"**{strings['parish']}** : {strings['parish_placeholder']}",
         ]
     )
-    from kingdoms.mods.kingdoms.kingdom_persistent import KingdomMarketLedgerButton
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomMarketLedgerButton,
+        KingdomTraquenardButton,
+    )
 
+    buttons: list[Any] = [KingdomMarketLedgerButton(strings["ledger_button"])]
+    # The Traquenard button only exists when the kingdom holds a charge
+    # (same rule as the cover proposal of the declare flow).
+    if int(state.get("purchases", {}).get("traquenard", 0) or 0) > 0:
+        buttons.append(KingdomTraquenardButton(strings))
     return _panel_view_with_buttons(
         strings["overview_title"].format(getattr(kingdom, "name", "")),
         body,
         f"{VIEW_MARKER_PREFIX}:le-royaume",
         discord.Colour.gold(),
-        [KingdomMarketLedgerButton(strings["ledger_button"])],
+        buttons,
     )
 
 

@@ -91,7 +91,9 @@ class _FakeBot:
 def _wiring(bundle: PhasesBundle) -> None:
     register_kingdoms_panel_wiring(
         KingdomsPanelWiring(
-            kingdoms_service=bundle.kingdoms, attacks_service=bundle.attacks
+            kingdoms_service=bundle.kingdoms,
+            attacks_service=bundle.attacks,
+            territories_service=bundle.territories,
         )
     )
 
@@ -152,11 +154,11 @@ async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
     assert f"kingdoms:attack:defend:{attack.id}" in ids
 
 
-async def test_declare_modal_declares_the_attack() -> None:
-    """The declaration modal runs declare_attack and confirms (D77)."""
+async def test_declare_flow_declares_the_attack() -> None:
+    """The GUIDED flow (kingdom → territory → cover → lobby) declares (recâblage)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomAttackDeclareButton,
-        KingdomAttackDeclareModal,
+        KingdomAttackLobbyModal,
         _strings,
     )
 
@@ -173,11 +175,31 @@ async def test_declare_modal_declares_the_attack() -> None:
     )
     button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
     await button.callback(click)  # type: ignore[arg-type]
-    modal = click.response.modal
-    assert isinstance(modal, KingdomAttackDeclareModal)
-    modal.map_input._value = target  # type: ignore[attr-defined]
+    # Step 1 — the kingdom select (Bourgogne visible with its AI level).
+    kingdom_view = (click.response.message or None) and click.response.message.view
+    assert kingdom_view is not None
+    kingdom_select = next(c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom")
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    assert step.response.message is not None
+    # Step 2 — the territory select of the chosen kingdom.
+    territory_view = step.response.message.view
+    assert territory_view is not None
+    territory_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+    )
+    # Step 3 — no contre-espionnage stock: the lobby modal opens directly.
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    modal = step2.response.modal
+    assert isinstance(modal, KingdomAttackLobbyModal)
+    assert modal.map_key == target
+    assert modal.cover_lord_id is None
     modal.lobby_input._value = "aoe2de://lobby"  # type: ignore[attr-defined]
-    modal.cover_input._value = ""  # type: ignore[attr-defined]
     submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
     await modal.on_submit(submit)  # type: ignore[arg-type]
     attacks = await bundle.attacks.attacks()
@@ -185,6 +207,54 @@ async def test_declare_modal_declares_the_attack() -> None:
     assert str(attacks[0].state.value) == "declared"
     assert submit.followup.messages
     assert "Attaque déclarée" in (submit.followup.messages[0].content or "")
+
+
+async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
+    """The cover question appears only when a contre-espionnage charge exists."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(25)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    kingdom_view = click.response.message and click.response.message.view
+    assert kingdom_view is not None
+    kingdom_select = next(
+        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
+    )
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    territory_view = step.response.message and step.response.message.view
+    territory_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    # The cover question (OUI/NON) replaces the territory select.
+    assert step2.response.message is not None
+    cover_view = step2.response.message.view
+    assert cover_view is not None
+    ids = [c.custom_id for c in cover_view.children]
+    assert "kingdoms:attack:cover:yes" in ids
+    assert "kingdoms:attack:cover:no" in ids
 
 
 async def test_defend_button_takes_the_defense() -> None:

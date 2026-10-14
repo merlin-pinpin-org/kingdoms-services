@@ -218,6 +218,7 @@ PATROUILLE_REINFORCED_HOURS = 3
 PATROUILLE_TZ = "Europe/Paris"
 AI_LEVEL_CAP = 5
 TRAQUENARD_LOCK_HOURS = 2
+TRAQUENARD_WINDOW_HOURS = 6
 
 
 def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
@@ -344,7 +345,6 @@ class AttackService:
         lobby_url: str,
         *,
         cover_lord_id: str | None = None,
-        use_traquenard: bool = False,
         now: datetime | None = None,
     ) -> AttackModel:
         """Declare a kingdom-vs-kingdom attack on an adversary territory.
@@ -354,9 +354,12 @@ class AttackService:
         the declared territory owner must be another player kingdom.
         The optional cover (Contre-espionnage, D77) displays another
         lord instead of the real attacker until the T-15 reveal — one
-        bought cover is consumed on use. The optional Traquenard
-        (marche-v2 art. 2) makes the AI faced Facile and adds +2h of
-        lock to the marriages active in the target kingdom.
+        bought cover is consumed on use. The Traquenard v2 (Drasah
+        2026-10-14) is INDEPENDENT of the declaration: the kingdom
+        activates it from its own salon (see ``activate_traquenard``)
+        and every attack declared against the target inside the 6h
+        window faces the Facile AI — the declaration merely RECORDS the
+        flag for the reveal.
         """
         season = await self._require_running_season()
         lord = await self._require_lord(player_id)
@@ -378,12 +381,12 @@ class AttackService:
             timestamp,
             self._config.attacks.player_attack_delay_hours,
         )
-        # The Traquenard engages BEFORE the budget is spent: a refused
-        # engagement never consumes the weekly attack.
-        if use_traquenard:
-            await self._engage_traquenard(lord, territory.owner_kingdom_id, timestamp)
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
+        target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
+        traquenard = int(getattr(target_kingdom, "traquenard_until", 0) or 0) > int(
+            timestamp.timestamp()
+        )
         attack = AttackModel(
             _id=f"{season.id}-a-{territory.id}-{lord.id}",
             season_id=season.id,
@@ -398,7 +401,7 @@ class AttackService:
             expires_at=timestamp
             + timedelta(hours=self._config.attacks.player_attack_delay_hours),
             cover_lord_id=cover,
-            traquenard=bool(use_traquenard),
+            traquenard=traquenard,
         )
         await self._store.upsert_attack(attack.to_mongo())
         logger.info(
@@ -407,7 +410,7 @@ class AttackService:
             territory.map_key,
             attack.expires_at.isoformat(),
             " under cover" if cover else "",
-            " with a Traquenard" if use_traquenard else "",
+            " through an active Traquenard" if traquenard else "",
         )
         return attack
 
@@ -1060,43 +1063,65 @@ class AttackService:
         logger.info("kingdoms: %s bought %s for %s tech points", kingdom_id, technology, cost)
         return state
 
-    async def _engage_traquenard(
-        self, lord: LordModel, defender_kingdom_id: str, timestamp: datetime
-    ) -> None:
-        """Consume one Traquenard and apply its two effects (art. 2).
+    async def activate_traquenard(
+        self,
+        player_id: str,
+        target_kingdom_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> KingdomModel:
+        """Activate a Traquenard against a kingdom (Drasah's recâblage v2).
 
-        The engaged charge makes the AI faced Facile (level 1 whatever
-        the base level — the old -1-per-charge model is gone) and adds
-        +2h of lock to every marriage ACTIVE in the target kingdom at
-        the moment of the declaration — only the marriages already
-        sealed are impacted, a later marriage never is. Any lord of the
-        attacker kingdom engages (the declaration already is).
+        INDEPENDENT of any declaration (2026-10-14): any lord of the
+        activator kingdom triggers it from the kingdom's own salon. Two
+        effects — (1) one-shot: +2h of lock on every marriage ALREADY
+        sealed in the target kingdom (a later marriage never is); (2)
+        a 6h window (``traquenard_until``): every attack declared
+        against the target while the window is open faces the Facile AI
+        (level 1 whatever the defence bot's real level — the reveal
+        shows 1/5). One bought charge is consumed at the activation;
+        the target learns it only when an attack is actually declared.
         """
-        state = await self.technology_state(lord.kingdom_id or "")
+        await self._require_running_season()
+        lord = await self._require_lord(player_id)
+        if lord.kingdom_id is None or lord.left:
+            raise NotEnrolledError("the player belongs to no kingdom of the current season")
+        if target_kingdom_id == lord.kingdom_id:
+            raise AttackError("the Traquenard targets another kingdom, never its own")
+        target = await self._kingdom_by_id(target_kingdom_id)
+        if target.is_gaia:
+            raise TerritoryNotAttackableError("the Traquenard targets a player kingdom")
+        timestamp = now or _now()
+        state = await self.technology_state(lord.kingdom_id)
         bought = state.purchases.get("traquenard", 0)
         if bought <= 0:
             raise TechnologyLimitReachedError("the kingdom bought no Traquenard")
         state.purchases["traquenard"] = bought - 1
         await self._store.upsert_technology(state.to_mongo())
         now_ts = int(timestamp.timestamp())
-        for target in await self._kingdoms.lords():
+        # (1) one-shot: +2h on the target's already-sealed marriages.
+        for victim in await self._kingdoms.lords():
             if (
-                target.kingdom_id != defender_kingdom_id
-                or target.left
-                or target.married_civilization is None
+                victim.kingdom_id != target_kingdom_id
+                or victim.left
+                or victim.married_civilization is None
             ):
                 continue
-            current = int(target.marriage_locked_until or 0)
-            target.marriage_locked_until = max(current, now_ts) + int(
+            current = int(victim.marriage_locked_until or 0)
+            victim.marriage_locked_until = max(current, now_ts) + int(
                 TRAQUENARD_LOCK_HOURS * 3600
             )
-            await self._store.upsert_lord(target.to_mongo())
+            await self._store.upsert_lord(victim.to_mongo())
+        # (2) the 6h Facile window on the target kingdom.
+        target.traquenard_until = now_ts + int(TRAQUENARD_WINDOW_HOURS * 3600)
+        await self._store.upsert_kingdom(target.to_mongo())
         logger.info(
-            "kingdoms: %s engaged a Traquenard against %s (+%sh of marriage locks)",
+            "kingdoms: %s activated a Traquenard against %s (Facile AI for %sh, +2h locks)",
             lord.kingdom_id,
-            defender_kingdom_id,
-            TRAQUENARD_LOCK_HOURS,
+            target_kingdom_id,
+            TRAQUENARD_WINDOW_HOURS,
         )
+        return target
 
     async def base_ai_level(self) -> int:
         """Return the season epoch's base AI level (D18 scale, fallback 1)."""

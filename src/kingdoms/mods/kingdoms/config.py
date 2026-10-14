@@ -277,36 +277,51 @@ def default_map_catalog() -> tuple[MapEntry, ...]:
     with no local override; every entry (and its cadastre effects) is
     admin-editable data through ``config/kingdoms/season.yaml``.
     """
-    def _map(key: str, name: str, **flags: bool) -> MapEntry:
-        return MapEntry(key=key, display_name=name, types=MapTypes(**flags))
+    def _map(key: str, name: str, *, bonus: str | None = None, **flags: bool) -> MapEntry:
+        # Drasah's cadastre v1 (2026-10-14): the map's cadastre bonus is
+        # stored as admin-editable text — the display slices show it, the
+        # effects are wired by the later cadastre slices. /semaine and
+        # /dimanche share one meaning (a weekly charge).
+        return MapEntry(
+            key=key,
+            display_name=name,
+            types=MapTypes(**flags),
+            cadastre={"bonus": bonus} if bonus else {},
+        )
 
     return (
         _map("arabia", "Arabia", open=True, desert=True),
-        _map("acropolis", "Acropolis", mountain=True, open=True),
-        _map("african-clearing", "African Clearing", open=True),
+        _map("acropolis", "Acropolis", bonus="Offre un contre-espionnage/semaine", mountain=True, open=True),
+        _map("african-clearing", "African Clearing", bonus="Offre la civilisation des Maliens", open=True),
         _map("altai", "Altai", mountain=True),
-        _map("amazon-tunnel", "Amazon Tunnel", start_wall=True, marsh=True),
-        _map("arena", "Arena", start_wall=True),
+        _map("amazon-tunnel", "Amazon Tunnel", bonus="Offre la civilisation des Incas", start_wall=True, marsh=True),
+        _map("arena", "Arena", bonus="Offre une technologie « Jeu d'armes »", start_wall=True),
         _map("babel", "Babel"),
-        _map("black-forest", "Black Forest", water=True),
+        _map("black-forest", "Black Forest", bonus="Offre la civilisation des Celtes", water=True),
         _map("cenotes", "Cenotes", water=True, open=True),
         _map("continental", "Continental", water=True),
         _map("crater-lake", "Crater Lake", water=True, lakes=True),
-        _map("fortress", "Fortress", start_wall=True),
-        _map("ghost-lake", "Ghost Lake", lakes=True, open=True),
-        _map("gold-rush", "Gold Rush", golden=True),
+        _map("fortress", "Fortress", bonus="Offre une technologie « Jeu d'armes »", start_wall=True),
+        _map(
+            "ghost-lake",
+            "Ghost Lake",
+            bonus="Offre les civilisations des Polonais & des Slaves",
+            lakes=True,
+            open=True,
+        ),
+        _map("gold-rush", "Gold Rush", bonus="Offre un point de technologie/semaine", golden=True),
         _map("hideout", "Hideout", mountain=True),
         _map("highland", "Highland", water=True, mountain=True),
-        _map("islands", "Islands", water=True),
+        _map("islands", "Islands", bonus="Offre la civilisation des Britanniques", water=True),
         _map("megarandom", "Megarandom"),
-        _map("migration", "Migration", water=True),
-        _map("mongolia", "Mongolia", nomad=True, open=True),
+        _map("migration", "Migration", bonus="Offre une exploration/semaine", water=True),
+        _map("mongolia", "Mongolia", bonus="Offre la civilisation des Mongols", nomad=True, open=True),
         _map("nomad", "Nomad", nomad=True),
         _map("oasis", "Oasis", desert=True, open=True),
         _map("steppe", "Steppe", open=True, nomad=True),
         _map("salt-marsh", "Salt Marsh", marsh=True),
         _map("siberia", "Siberia", water=True),
-        _map("yucatan", "Yucatan", open=True),
+        _map("yucatan", "Yucatan", bonus="Offre la civilisation des Mayas", open=True),
     )
 
 

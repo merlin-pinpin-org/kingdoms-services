@@ -90,6 +90,13 @@ class KingdomModel(BaseModel):
     arranged_marriage_stock: int = Field(default=0, ge=0)
     """Jeton(s) de mariage arrangé bought at the Marché (3 🔬 each, D60),
     consumed at the Paroisse button — never from the marriage points."""
+    traquenard_until: int | None = None
+    """Fin (timestamp Unix) de la fenêtre Traquenard ACTIVE contre ce
+    royaume (Drasah 2026-10-14, recâblage v2) : pendant la fenêtre l'IA
+    de défense du royaume est Facile (niveau 1) pour TOUTE attaque
+    adverse. La fenêtre s'ouvre à l'activation (le royaume activant
+    consomme une charge, voir ``activate_traquenard``) — les verrous
+    de mariage +2h, eux, sont appliqués en one-shot à ce moment-là."""
     market_registry: list[dict[str, Any]] = Field(default_factory=list)
     """Chambre des comptes (marche-v2, 2026-10-13): the kingdom's dated
     purchase ledger — one ``{"item", "detail", "cost", "at"}`` entry per

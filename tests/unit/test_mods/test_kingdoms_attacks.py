@@ -338,15 +338,13 @@ async def test_defense_ai_level_traquenard_and_reinforced_patrols_marche_v2() ->
     assert patrouille_active_at(
         patrol, twenty_thirty_paris, base_level=5
     )
-    # The Traquenard engages at the DECLARATION (art. 2): the AI faced
-    # is Facile and every ACTIVE marriage of the target kingdom gains
-    # +2h of lock. A kingdom without stock cannot engage one.
+    # The Traquenard is INDEPENDENT of the declaration (recâblage v2):
+    # any lord triggers it from the salon — a 6h Facile window opens on
+    # the target kingdom and every ALREADY-SEALED marriage gains +2h.
     monday = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
     target = (await bundle.owner_maps(bourgogne))[0]
     with pytest.raises(TechnologyLimitReachedError):
-        await bundle.attacks.declare_attack(
-            "king-a", target, "aoe2de://t", use_traquenard=True, now=monday
-        )
+        await bundle.attacks.activate_traquenard("king-a", bourgogne, now=monday)
     funded = TechnologyState(_id=aquitaine, season_id="s", tech_points=10)
     await bundle.store.upsert_technology(funded.to_mongo())
     await bundle.attacks.buy_technology(aquitaine, "traquenard")
@@ -355,16 +353,29 @@ async def test_defense_ai_level_traquenard_and_reinforced_patrols_marche_v2() ->
     lord_b.married_civilization = "celtes"
     lord_b.marriage_locked_until = int(monday.timestamp())
     await bundle.store.upsert_lord(lord_b.to_mongo())
-    attack = await bundle.attacks.declare_attack(
-        "king-a", target, "aoe2de://t", use_traquenard=True, now=monday
-    )
-    assert attack.traquenard is True
-    # One charge was consumed by the declaration itself.
+    victim = await bundle.attacks.activate_traquenard("king-a", bourgogne, now=monday)
+    assert victim.id == bourgogne
+    assert victim.traquenard_until == int((monday + timedelta(hours=6)).timestamp())
+    # One charge was consumed by the activation itself.
     left = (await bundle.attacks.technology_state(aquitaine)).purchases["traquenard"]
     assert left == bought - 1
-    # The target kingdom's active marriage gained exactly +2h.
+    # The target kingdom's sealed marriage gained exactly +2h.
     locked = next(item for item in await bundle.kingdoms.lords() if item.id == "lord-b")
     assert locked.marriage_locked_until == int((monday + timedelta(hours=2)).timestamp())
+    # An attack declared inside the window faces the Facile AI (1/5).
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "aoe2de://t", now=monday
+    )
+    assert attack.traquenard is True
+    # No Traquenard window, no traquenard flag on a later declaration.
+    other = (await bundle.owner_maps(bourgogne))[1]
+    king_a = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
+    king_a.attack_used = 0
+    await bundle.store.upsert_lord(king_a.to_mongo())
+    plain = await bundle.attacks.declare_attack(
+        "king-a", other, "aoe2de://t", now=monday + timedelta(hours=7)
+    )
+    assert plain.traquenard is False
 
 
 async def test_sabotage_and_counter_espionage_d12_d28() -> None:
