@@ -268,24 +268,37 @@ the&nbsp;map&nbsp;is&nbsp;drawn&nbsp;when&nbsp;the&nbsp;scheduler&nbsp;resolves&
 exploration&nbsp;(``resolve_due_explorations``).&nbsp;Once&nbsp;per&nbsp;season<br>
 per&nbsp;kingdom;&nbsp;an&nbsp;exhausted&nbsp;pool&nbsp;refunds&nbsp;at&nbsp;resolution.</span></dd></dl>
 
-<dl><dt>async <a name="EconomyService-buy_patrouille"><strong>buy_patrouille</strong></a>(self, kingdom_id: 'str', slot_start: 'int') -&gt; 'int'</dt><dd><span class="code">Buy&nbsp;one&nbsp;daily&nbsp;2h&nbsp;no-aggression&nbsp;slot&nbsp;(D68).<br>
+<dl><dt>async <a name="EconomyService-buy_patrouille_slot"><strong>buy_patrouille_slot</strong></a>(self, kingdom_id: 'str', slot_no: 'int') -&gt; 'int'</dt><dd><span class="code">Unlock&nbsp;ONE&nbsp;patrol&nbsp;slot&nbsp;at&nbsp;the&nbsp;market&nbsp;(slot&nbsp;1,&nbsp;then&nbsp;slot&nbsp;2).<br>
 &nbsp;<br>
-The&nbsp;slot&nbsp;covers&nbsp;every&nbsp;kingdom&nbsp;territory&nbsp;during&nbsp;the&nbsp;bought<br>
-tranche:&nbsp;no&nbsp;player&nbsp;attack,&nbsp;no&nbsp;Corruption&nbsp;(Gaïa&nbsp;never&nbsp;attacks,<br>
-so&nbsp;the&nbsp;patrol&nbsp;never&nbsp;binds&nbsp;it).&nbsp;Slots&nbsp;start&nbsp;on&nbsp;a&nbsp;2h&nbsp;grid;&nbsp;the<br>
-same&nbsp;tranche&nbsp;cannot&nbsp;be&nbsp;bought&nbsp;twice&nbsp;and&nbsp;the&nbsp;per-season&nbsp;limit<br>
-(2&nbsp;by&nbsp;default,&nbsp;admin-editable)&nbsp;bounds&nbsp;the&nbsp;purchases.</span></dd></dl>
+remparts-v2:&nbsp;the&nbsp;patrol&nbsp;is&nbsp;a&nbsp;SKILL,&nbsp;not&nbsp;a&nbsp;consumable&nbsp;—&nbsp;no&nbsp;more<br>
+per-season&nbsp;purchase&nbsp;limit.&nbsp;The&nbsp;market&nbsp;sells&nbsp;the&nbsp;slot&nbsp;UNLOCK<br>
+(2&nbsp;⚙️&nbsp;each,&nbsp;slot&nbsp;1&nbsp;before&nbsp;slot&nbsp;2);&nbsp;the&nbsp;King&nbsp;POSSES&nbsp;the&nbsp;daily<br>
+window&nbsp;from&nbsp;the&nbsp;🧱&nbsp;Remparts&nbsp;salon&nbsp;(``place_patrouille``).</span></dd></dl>
 
-<dl><dt>async <a name="EconomyService-buy_royal_guard"><strong>buy_royal_guard</strong></a>(self, kingdom_id: 'str', territory_id: 'str', *, now: 'datetime | None' = None) -&gt; 'TerritoryModel'</dt><dd><span class="code">Shield&nbsp;ONE&nbsp;kingdom&nbsp;map&nbsp;for&nbsp;12&nbsp;hours&nbsp;(marche-v2&nbsp;article&nbsp;7).<br>
+<dl><dt>async <a name="EconomyService-buy_royal_guard"><strong>buy_royal_guard</strong></a>(self, kingdom_id: 'str', *, now: 'datetime | None' = None) -&gt; 'int'</dt><dd><span class="code">Buy&nbsp;ONE&nbsp;royal-guard&nbsp;token&nbsp;at&nbsp;the&nbsp;market&nbsp;(remparts-v2).<br>
 &nbsp;<br>
-The&nbsp;guard&nbsp;protects&nbsp;that&nbsp;map&nbsp;against&nbsp;everything:&nbsp;Corruption,<br>
-Embuscade&nbsp;and&nbsp;classic&nbsp;attacks.&nbsp;Not&nbsp;retroactive&nbsp;—&nbsp;attacks<br>
-already&nbsp;declared&nbsp;before&nbsp;the&nbsp;purchase&nbsp;stay&nbsp;valid.&nbsp;No&nbsp;stacking<br>
-and&nbsp;no&nbsp;extension:&nbsp;a&nbsp;kingdom&nbsp;carries&nbsp;at&nbsp;most&nbsp;one&nbsp;active&nbsp;guard,<br>
-and&nbsp;a&nbsp;new&nbsp;guard&nbsp;is&nbsp;a&nbsp;fresh&nbsp;full-price&nbsp;purchase&nbsp;(2&nbsp;⚙️&nbsp;once<br>
-config&nbsp;follows&nbsp;the&nbsp;spec).</span></dd></dl>
+Drasah's&nbsp;ruling&nbsp;breaks&nbsp;the&nbsp;Check&nbsp;43&nbsp;single-guard&nbsp;rule:&nbsp;a<br>
+kingdom&nbsp;may&nbsp;hold&nbsp;SEVERAL&nbsp;guards&nbsp;at&nbsp;once,&nbsp;with&nbsp;NO&nbsp;hard&nbsp;limit<br>
+(«&nbsp;ça&nbsp;coûte&nbsp;cher&nbsp;quand&nbsp;même&nbsp;»&nbsp;—&nbsp;2&nbsp;⚙️&nbsp;each).&nbsp;The&nbsp;market&nbsp;sells<br>
+the&nbsp;token;&nbsp;the&nbsp;King&nbsp;POSSES&nbsp;it&nbsp;from&nbsp;the&nbsp;🧱&nbsp;Remparts&nbsp;salon<br>
+(``place_royal_guard``)&nbsp;on&nbsp;the&nbsp;map&nbsp;of&nbsp;his&nbsp;choice.</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-grant_tech_points"><strong>grant_tech_points</strong></a>(self, kingdom_id: 'str', amount: 'int') -&gt; 'KingdomModel'</dt><dd><span class="code">Credit&nbsp;the&nbsp;kingdom&nbsp;wallet&nbsp;-&nbsp;epochs,&nbsp;exploration,&nbsp;admin&nbsp;grants.</span></dd></dl>
+
+<dl><dt>async <a name="EconomyService-place_patrouille"><strong>place_patrouille</strong></a>(self, kingdom_id: 'str', slot_no: 'int', slot_start: 'int', *, now: 'datetime | None' = None) -&gt; 'int'</dt><dd><span class="code">Place&nbsp;(or&nbsp;redefine)&nbsp;one&nbsp;unlocked&nbsp;patrol&nbsp;slot's&nbsp;daily&nbsp;window.<br>
+&nbsp;<br>
+The&nbsp;window&nbsp;is&nbsp;a&nbsp;2h&nbsp;tranche&nbsp;applied&nbsp;EVERY&nbsp;day&nbsp;and&nbsp;stays&nbsp;fixed<br>
+for&nbsp;the&nbsp;whole&nbsp;cycle;&nbsp;redefinition&nbsp;is&nbsp;possible&nbsp;ONLY&nbsp;during&nbsp;the<br>
+Jour&nbsp;du&nbsp;Seigneur&nbsp;(Sunday&nbsp;23:30&nbsp;→&nbsp;Monday&nbsp;10:00,&nbsp;Paris).&nbsp;The<br>
+FIRST&nbsp;placement&nbsp;of&nbsp;a&nbsp;freshly&nbsp;unlocked&nbsp;slot&nbsp;is&nbsp;free&nbsp;of&nbsp;that<br>
+constraint&nbsp;—&nbsp;an&nbsp;empty&nbsp;slot&nbsp;has&nbsp;nothing&nbsp;to&nbsp;redefine.</span></dd></dl>
+
+<dl><dt>async <a name="EconomyService-place_royal_guard"><strong>place_royal_guard</strong></a>(self, kingdom_id: 'str', territory_id: 'str', *, now: 'datetime | None' = None) -&gt; 'TerritoryModel'</dt><dd><span class="code">Spend&nbsp;one&nbsp;guard&nbsp;token:&nbsp;shield&nbsp;ONE&nbsp;owned&nbsp;map&nbsp;for&nbsp;12&nbsp;hours.<br>
+&nbsp;<br>
+remparts-v2:&nbsp;several&nbsp;guards&nbsp;may&nbsp;fly&nbsp;simultaneously&nbsp;(one&nbsp;per<br>
+map&nbsp;—&nbsp;a&nbsp;map&nbsp;already&nbsp;shielded&nbsp;takes&nbsp;no&nbsp;second&nbsp;guard,&nbsp;no<br>
+extension),&nbsp;each&nbsp;for&nbsp;its&nbsp;own&nbsp;12h&nbsp;window.&nbsp;Not&nbsp;retroactive:<br>
+attacks&nbsp;declared&nbsp;before&nbsp;the&nbsp;placement&nbsp;stay&nbsp;valid.</span></dd></dl>
 
 <dl><dt>async <a name="EconomyService-resolve_due_explorations"><strong>resolve_due_explorations</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[tuple[LordModel, TerritoryModel | None]]'</dt><dd><span class="code">Resolve&nbsp;every&nbsp;expired&nbsp;exploration&nbsp;(the&nbsp;tick's&nbsp;engine,&nbsp;art.&nbsp;6).<br>
 &nbsp;<br>
@@ -318,7 +331,7 @@ Data descriptors defined here:<br>
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#GuardAlreadyActiveError">GuardAlreadyActiveError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
-Raised&nbsp;when&nbsp;a&nbsp;kingdom&nbsp;buys&nbsp;a&nbsp;second&nbsp;guard&nbsp;while&nbsp;one&nbsp;is&nbsp;active&nbsp;(D61).<br>&nbsp;</span></td></tr>
+Raised&nbsp;when&nbsp;a&nbsp;guard&nbsp;would&nbsp;shield&nbsp;a&nbsp;map&nbsp;that&nbsp;is&nbsp;already&nbsp;guarded&nbsp;(remparts-v2).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.economy.html#GuardAlreadyActiveError">GuardAlreadyActiveError</a></dd>
@@ -571,10 +584,12 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <strong>EXPLORATEUR</strong> = 'explorateur'<br>
 <strong>EXPLORATION_LOCK_HOURS</strong> = 48<br>
 <strong>GARDE_ROYALE</strong> = 'garde_royale'<br>
-<strong>GUARD_UNTIL_KEY</strong> = 'garde_royale_until'<br>
+<strong>GARDE_ROYALE_STOCK</strong> = 'garde_royale_stock'<br>
+<strong>GUARD_TERRITORY_PREFIX</strong> = 'garde_royale_until:'<br>
 <strong>PATROUILLE</strong> = 'patrouille'<br>
 <strong>PATROUILLE_HOURS</strong> = 2<br>
 <strong>PATROUILLE_SLOT_KEYS</strong> = ('patrouille_slot_1', 'patrouille_slot_2')<br>
+<strong>PATROUILLE_UNLOCK_PREFIX</strong> = 'patrouille_unlock_'<br>
 <strong>ROYAL_GUARD_HOURS</strong> = 12<br>
 <strong>TYPE_CHECKING</strong> = False<br>
 <strong>UTC</strong> = datetime.timezone.utc<br>
