@@ -123,9 +123,21 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
         KingdomDistributorButton,
     )
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import (
+        KingdomSeigneurieButton,
+        KingdomSeigneurieSelect,
+    )
     from kingdoms.mods.kingdoms.kingdom_time_panel import KingdomTimeButton
+    from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
+        KingdomTheftButton,
+        KingdomVoliereButton,
+    )
 
     bot.add_dynamic_items(
+        KingdomVoliereButton,
+        KingdomTheftButton,
+        KingdomSeigneurieButton,
+        KingdomSeigneurieSelect,
         KingdomAttackDeclareButton,
         KingdomAttackDefendButton,
         KingdomApplyButton,
@@ -801,6 +813,11 @@ async def _market_lord_select_view(
             wiring, kingdom_id, "explorateur", strings,
             str(getattr(lord, "display_name", lord.id)),
         )
+        await _record_clicked_chronicle(
+            wiring, str(target.user.id), "market_purchase",
+            item=_market_label("explorateur", strings),
+            cost=str(int(getattr(_market_costs(wiring), "explorateur", 0) or 0)),
+        )
         await target.response.edit_message(content=note, view=None)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
@@ -865,6 +882,11 @@ async def _market_action_select_view(
             territory.map_key, territory.owner_kingdom_id
         )
         note = await _market_success_note(wiring, kingdom_id, action, strings, detail)
+        await _record_clicked_chronicle(
+            wiring, str(target.user.id), "market_purchase",
+            item=_market_label(action, strings),
+            cost=str(int(getattr(_market_costs(wiring), action, 0) or 0)),
+        )
         await target.response.edit_message(content=note, view=None)
         _market_ttl(anchor or target, getattr(target, "message", None))
         await _refresh_realm_views_for_kingdom_safe(target.guild, kingdom_id)
@@ -1146,6 +1168,11 @@ class KingdomMarketModal(discord.ui.Modal):
             note = await _market_failure_note(exc, wiring, king, item, self.cost, strings)
             await self._buy_note(interaction, note, refresh=False)
             return
+        await _record_clicked_chronicle(
+            wiring, str(interaction.user.id), "market_purchase",
+            item=_market_label(item, strings),
+            cost=str(int(self.cost or 0)),
+        )
         await self._buy_note(interaction, note)
 
 
@@ -1794,6 +1821,38 @@ async def _lord_of(kingdoms_service: Any, user_id: str) -> Any | None:
     )
 
 
+async def _record_clicked_chronicle(
+    wiring: KingdomsPanelWiring,
+    user_id: str,
+    kind: str,
+    **params: str,
+) -> None:
+    """BEST-EFFORT chronicle on the CLICKING lord (Seigneurie V2 rule).
+
+    Marché/Paroisse/Cathédrale: the entry lands on the lord who really
+    clicked (the King), never on the kingdom — a chronicle failure is
+    logged but never breaks the game action it follows.
+    """
+    if wiring.kingdoms_service is None:
+        return
+    try:
+        from kingdoms.mods.kingdoms import chronicle
+        from kingdoms.mods.kingdoms.game_clock import game_now
+
+        lord = await _lord_of(wiring.kingdoms_service, str(user_id))
+        if lord is None:
+            return
+        await chronicle.record(
+            lord,
+            kind,
+            now=game_now(),
+            store=wiring.kingdoms_service._store,
+            **params,
+        )
+    except Exception:
+        logger.info("KINGDOMS: chronicle record skipped", exc_info=True)
+
+
 async def _kingdom_by_id_safe(kingdoms_service: Any, kingdom_id: str) -> Any | None:
     """Return the kingdom document behind a defensive lookup (None on failure)."""
     if kingdoms_service is None or not kingdom_id:
@@ -2141,6 +2200,10 @@ class KingdomChurchUpgradeButton(
         except Exception as exc:
             await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
             return
+        await _record_clicked_chronicle(
+            wiring, str(interaction.user.id), "parish_upgrade",
+            tier=str(int(getattr(kingdom, "parish_tier", 1) or 1)),
+        )
         wallet = int(getattr(kingdom, "tech_points_bank", 0) or 0)
         tier = _parish_tier_of(wiring.kingdoms_service, kingdom)
         tiers = getattr(
@@ -2216,6 +2279,10 @@ async def _consecrate_and_report(
     except Exception as exc:
         await interaction.followup.send(_market_error_note(exc, strings), ephemeral=True)
         return
+    await _record_clicked_chronicle(
+        wiring, str(interaction.user.id), "cathedral_consecrated",
+        territory=str(territory.map_key),
+    )
     from zoneinfo import ZoneInfo
 
     until = territory.cathedral_until

@@ -23,9 +23,10 @@ from __future__ import annotations
 import logging
 import random
 from datetime import UTC, date, datetime, time, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 from zoneinfo import ZoneInfo
 
+from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.attacks import LordLockedError
 from kingdoms.mods.kingdoms.events import cron_slots_between
 from kingdoms.mods.kingdoms.game_clock import game_now
@@ -224,6 +225,13 @@ class FFAExplorationService:
         if player_id in ffa.participants:
             ffa.participants = [p for p in ffa.participants if p != player_id]
             await self._store.upsert_ffa(ffa.to_mongo())
+            await chronicle.record(
+                lord,
+                chronicle.KIND_FFA_LEFT,
+                now=timestamp,
+                store=self._store,
+                date=str(ffa.date),
+            )
             logger.info("kingdoms: %s leaves the FFA Exploration of %s", player_id, ffa.date)
             return FFA_LEFT, ffa
         # marche-v2 art. 6: a lord sent exploring (48h lock) may
@@ -242,6 +250,13 @@ class FFAExplorationService:
         self._refuse_second_kingdom_slot(lord, ffa, lords)
         ffa.participants = [*ffa.participants, player_id]
         await self._store.upsert_ffa(ffa.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_FFA_JOINED,
+            now=timestamp,
+            store=self._store,
+            date=str(ffa.date),
+        )
         logger.info(
             "kingdoms: %s takes the FFA Exploration slot of %s", player_id, ffa.date
         )
@@ -332,6 +347,26 @@ class FFAExplorationService:
             report.get("rewards"),
             ffa.no_shows,
         )
+        # Seigneurie V2 (Drasah 15/10): the result shows on EVERY
+        # participant's own chronicle — rank + reward for the ranked,
+        # no-show for the absent (they clicked the enroll button).
+        rewards = {str(key): int(value) for key, value in dict(cast(Any, report.get("rewards")) or {}).items()}
+        kingdom_ranks = {
+            kingdom_id: index + 1 for index, kingdom_id in enumerate(kingdom_ranking)
+        }
+        for lord_id in ffa.ranking:
+            lord = lords.get(lord_id)
+            if lord is None:
+                continue
+            await chronicle.record(
+                lord,
+                chronicle.KIND_FFA_RESULT,
+                now=timestamp,
+                store=self._store,
+                date=str(ffa.date),
+                rank=str(kingdom_ranks.get(str(lord.kingdom_id), 0)),
+                reward=str(rewards.get(str(lord.kingdom_id), 0)),
+            )
         # The no-show lock: 72h starting at the NEXT cycle switch.
         lock_until = await self._no_show_lock_until(timestamp)
         for lord_id in ffa.no_shows:
@@ -340,6 +375,15 @@ class FFAExplorationService:
                 continue
             lord.ffa_locked_until = int(lock_until.timestamp())
             await self._store.upsert_lord(lord.to_mongo())
+            await chronicle.record(
+                lord,
+                chronicle.KIND_FFA_RESULT,
+                now=timestamp,
+                store=self._store,
+                date=str(ffa.date),
+                rank="no-show",
+                reward="0",
+            )
             logger.info(
                 "kingdoms: %s missed the FFA — locked until %s",
                 lord_id,

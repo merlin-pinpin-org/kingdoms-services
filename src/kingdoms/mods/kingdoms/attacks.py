@@ -17,6 +17,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import (
@@ -430,6 +431,14 @@ class AttackService:
             traquenard=traquenard,
         )
         await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_ATTACK_DECLARED,
+            now=timestamp,
+            store=self._store,
+            map=territory.map_key,
+            target=target_kingdom.name,
+        )
         logger.info(
             "kingdoms: %s declared an attack on %s (expires %s%s%s)",
             lord.id,
@@ -523,6 +532,14 @@ class AttackService:
             embuscade=True,
         )
         await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_EMBUSCADE,
+            now=timestamp,
+            store=self._store,
+            map=territory.map_key,
+            target=target_kingdom.name,
+        )
         logger.info(
             "kingdoms: %s declared an EMBUSCADE on %s (expires %s)",
             lord.id,
@@ -633,6 +650,13 @@ class AttackService:
         attack.state = AttackState.DEFENDED
         attack.defender_lord_id = lord.id
         await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_DEFENSE,
+            now=_now(),
+            store=self._store,
+            map=attack.map_key,
+        )
         logger.info("kingdoms: %s defends the attack on %s", lord.id, attack.map_key)
         return attack
 
@@ -753,6 +777,15 @@ class AttackService:
         pickban[f"{side}_sabotages"] = list(sabotages)
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
+        picker = await self._require_lord(player_id)
+        await chronicle.record(
+            picker,
+            chronicle.KIND_PICKBAN,
+            now=now or _now(),
+            store=self._store,
+            map=attack.map_key,
+            side=side,
+        )
         logger.info(
             "kingdoms: pick & ban submitted by %s on the attack on %s", player_id, attack.map_key
         )
@@ -967,8 +1000,43 @@ class AttackService:
         if winner_kingdom_id == attack.attacker_kingdom_id:
             await self._apply_attacker_win(attack)
         await self._store.upsert_attack(attack.to_mongo())
+        await self._record_verdicts(attack)
         logger.info("kingdoms: attack on %s resolved for %s", attack.map_key, winner_kingdom_id)
         return attack
+
+    async def _record_verdicts(self, attack: AttackModel) -> None:
+        """Chronicle the verdict on BOTH clickers (Seigneurie V2).
+
+        Drasah's fundamental rule inverted: the RESULT shows on the
+        ATTACKER's and the DEFENDER's own fiches — the attacker
+        clicked « déclarer », the defender clicked « défendre »; the
+        verdict is a fact of those clicked actions, never of the
+        kingdom as a whole.
+        """
+        timestamp = attack.resolved_at or _now()
+        attacker_won = attack.winner_kingdom_id == attack.attacker_kingdom_id
+        lords = await self._kingdoms.lords()
+        attacker = next((one for one in lords if one.id == attack.attacker_lord_id), None)
+        if attacker is not None:
+            await chronicle.record(
+                attacker,
+                chronicle.KIND_ATTACK_RESULT,
+                now=timestamp,
+                store=self._store,
+                map=attack.map_key,
+                outcome="victoire" if attacker_won else "defaite",
+            )
+        if attack.defender_lord_id is not None:
+            defender = next((one for one in lords if one.id == attack.defender_lord_id), None)
+            if defender is not None:
+                await chronicle.record(
+                    defender,
+                    chronicle.KIND_DEFENSE_RESULT,
+                    now=timestamp,
+                    store=self._store,
+                    map=attack.map_key,
+                    outcome="victoire" if not attacker_won else "defaite",
+                )
 
     async def _apply_attacker_win(self, attack: AttackModel) -> None:
         """Apply the attacker's verdict on the attacked territory (D20).
@@ -1051,6 +1119,13 @@ class AttackService:
         await self._store.upsert_lord(lord.to_mongo())
         attack.restituted = True
         await self._store.upsert_attack(attack.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_RESTITUTION,
+            now=_now(),
+            store=self._store,
+            map=attack.map_key,
+        )
         logger.info("kingdoms: attack budget restituted to %s (admin)", lord.id)
         return attack
 

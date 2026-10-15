@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Any, ClassVar
 
 from kingdoms.core.exceptions import ErrorContext, KingdomsError
+from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import (
@@ -408,6 +409,9 @@ class KingdomsService:
         lord.left = True
         lord.left_reason = reason or None
         await self._store.upsert_lord(lord.to_mongo())
+        await chronicle.record(
+            lord, chronicle.KIND_LEFT, now=game_now(), store=self._store
+        )
         logger.info("kingdoms: player %s left the season (%s)", player_id, reason)
 
     async def assign(self, player_id: str, kingdom_name: str, role: LordRole) -> LordModel:
@@ -638,6 +642,13 @@ class KingdomsService:
             display_name=display_name,
         )
         await self._store.upsert_lord(lord.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_CROWNED,
+            now=game_now(),
+            store=self._store,
+            kingdom=kingdom.name,
+        )
         logger.info("kingdoms: %s founded %s as King", player_id, kingdom.name)
         return lord
 
@@ -702,6 +713,13 @@ class KingdomsService:
         lord.kingdom_id = kingdom.id
         lord.in_queue = False
         await self._store.upsert_lord(lord.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_CROWNED,
+            now=game_now(),
+            store=self._store,
+            kingdom=kingdom.name,
+        )
         logger.info("kingdoms: %s claimed the throne of %s", player_id, kingdom.name)
         return kingdom
 
@@ -785,6 +803,13 @@ class KingdomsService:
                 in_queue=True,
             )
             await self._store.upsert_lord(lord.to_mongo())
+            await chronicle.record(
+                lord,
+                chronicle.KIND_ENROLLED,
+                now=game_now(),
+                store=self._store,
+                status="queue",
+            )
             logger.info("kingdoms: %s joined the waiting queue", player_id)
             return lord
         kingdom = await self._find_kingdom_by_name(kingdom_name)
@@ -801,6 +826,13 @@ class KingdomsService:
             display_name=display_name,
         )
         await self._store.upsert_lord(lord.to_mongo())
+        await chronicle.record(
+            lord,
+            chronicle.KIND_ENROLLED,
+            now=game_now(),
+            store=self._store,
+            kingdom=kingdom.name,
+        )
         logger.info("kingdoms: %s joined %s as Lord", player_id, kingdom.name)
         return lord
 

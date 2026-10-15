@@ -17,6 +17,7 @@ import re
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
@@ -875,6 +876,23 @@ class DiplomacyService:
         if civilization not in kingdom.civilizations:
             kingdom.civilizations = [*kingdom.civilizations, civilization]
         await self._store.upsert_kingdom(kingdom.to_mongo())
+        kind = (
+            chronicle.KIND_ROYAL_MARRIAGE
+            if royal
+            else (
+                chronicle.KIND_ARRANGED_MARRIAGE
+                if hours is not None
+                else chronicle.KIND_MARRIAGE
+            )
+        )
+        await chronicle.record(
+            lord,
+            kind,
+            now=now,
+            store=self._store,
+            civ=civilization,
+            tier=str(getattr(kingdom, "parish_tier", 1)),
+        )
 
     async def record_defeat(self, kingdom_id: str) -> None:
         """Flag a combat defeat: the marriages drop at the next cycle (D34)."""
