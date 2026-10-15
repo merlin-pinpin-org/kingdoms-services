@@ -244,17 +244,37 @@ class ProfileAddAccountButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the add-account modal."""
-        await interaction.response.send_modal(ProfileAddAccountModal())
+        """Open the add-account modal (game select built at click time)."""
+        await interaction.response.send_modal(ProfileAddAccountModal(await _game_select_options()))
+
+
+async def _game_select_options() -> list[discord.SelectOption]:
+    """Build the game picker's options: the known games, aoe2 first."""
+    options = [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)]
+    try:
+        from kingdoms.discord.admin_panel_games import _games_wiring
+
+        service = _games_wiring()
+        if service is not None:
+            for key in [g for g in await service.list_game_keys() if g != "aoe2"]:
+                options.append(discord.SelectOption(label=key, value=key))
+    except Exception:
+        logger.warning("PROFILE ADD: game list read failed — aoe2 only", exc_info=True)
+    return options[:25]
+
 
 
 class ProfileAddAccountModal(discord.ui.Modal):
-    """The add-account form: game key + profile id."""
+    """The add-account form: game select (aoe2 preselected) + profile id."""
 
-    def __init__(self) -> None:
+    def __init__(self, options: list[discord.SelectOption] | None = None) -> None:
         super().__init__(title="Ajouter un compte", timeout=None)
-        self.game: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Jeu (aoe2)", default="aoe2", max_length=16, required=True
+        self.game: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="home:profile:add:game",
+            options=options or [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)],
+            placeholder="Jeu du compte...",
+            min_values=1,
+            max_values=1,
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Profile id", max_length=64, required=True
@@ -268,9 +288,10 @@ class ProfileAddAccountModal(discord.ui.Modal):
         if registration is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
+        chosen = (self.game.values or ["aoe2"])[0]
         try:
             await registration.bind_profile(
-                str(interaction.user.id), str(self.game.value).strip(), str(self.profile_id.value).strip()
+                str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
             )
         except Exception:
             logger.warning("PROFILE ADD failed", exc_info=True)

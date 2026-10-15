@@ -153,8 +153,12 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
   custom_id ou se relit en base au clic.
 - **LayoutView / Components V2** : budget d'enfants par vue (40),
   Sections avec accessory, ActionRow de 5 — les posts longs paginent.
-- **Modals** : formulaires courts (TextInput) ; un modal ne peut pas
-  ouvrir un autre modal — la chaîne passe par un message ephemeral.
+- **Modals** : formulaires courts (TextInput) **et selects** — depuis
+  les nouveaux composants de modal (discord.py >= 2.6), un select vit
+  dans le modal et sa valeur se lit à la soumission via
+  ``select.values`` (le ``Modal._refresh`` peuple l'item depuis le
+  payload). Un modal ne peut toujours pas ouvrir un autre modal —
+  la chaîne passe par un message ephemeral.
 - **PermissionOverwrite** : le provisionnement des salons restreint
   `default_role` (lecture) et ouvre `guild.me` (écriture/gestion).
 - **Les messages ephemeral** : visibles uniquement par leur
