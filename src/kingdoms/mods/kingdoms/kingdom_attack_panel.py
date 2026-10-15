@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 
 import discord
 
+from kingdoms.mods.kingdoms.game_clock import game_now
+
 logger = logging.getLogger(__name__)
 
 ATTACK_PANEL_MARKER = "<!-- kingdoms-attack -->"
@@ -637,15 +639,13 @@ async def _kingdom_select_view(
     wiring: Any, own_kingdom_id: str, strings: dict[str, str]
 ) -> tuple[str, discord.ui.View | None]:
     """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible)."""
-    from datetime import UTC, datetime
-
     import discord
 
     kingdoms_service = wiring.kingdoms_service
     attacks_service = wiring.attacks_service
     if kingdoms_service is None or attacks_service is None:
         return "", None
-    now = datetime.now(tz=UTC)
+    now = game_now()
     base = await attacks_service.base_ai_level()
     options, protected = await _kingdom_step_options(wiring, own_kingdom_id, strings, now, base)
     if not options:

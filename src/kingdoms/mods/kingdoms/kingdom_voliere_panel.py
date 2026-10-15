@@ -19,11 +19,12 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import discord
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
 logger = logging.getLogger("kingdoms.voliere_panel")
@@ -174,7 +175,7 @@ def _locale(interaction: discord.Interaction) -> str:
 
 def _now() -> datetime:
     """Return the wall clock used by the panel (hookable in tests)."""
-    return datetime.now(tz=UTC)
+    return game_now()
 
 
 async def _voliere_state(wiring: Any, kingdom_id: str) -> dict[str, Any] | None:

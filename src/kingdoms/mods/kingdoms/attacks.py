@@ -14,10 +14,11 @@ territory transfer on capture.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms.events import active_lords_day_window
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import (
     GAIA_KINGDOM_KEY,
     AttackKind,
@@ -271,8 +272,13 @@ def patrouille_active_at(
 
 
 def _now() -> datetime:
-    """Return the current UTC time (seam for deterministic tests)."""
-    return datetime.now(tz=UTC)
+    """Return the game clock: real now + the season's test offset.
+
+    machine-temps-v2: the seam for deterministic tests AND the
+    game-clock offset — the battle phases (T-15/T-5), locks and
+    cooldowns ride the game clock, not the wall clock.
+    """
+    return game_now()
 
 
 def _refuse_lords_day_execution(
