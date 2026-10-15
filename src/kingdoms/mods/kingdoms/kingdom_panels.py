@@ -39,6 +39,7 @@ from kingdoms.discord.commands_i18n import localized
 from kingdoms.discord.ui import (
     GREEN,
 )
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 from kingdoms.mods.kingdoms.snapshot import season_label
 
@@ -132,7 +133,6 @@ async def refresh_changelog(guild: discord.Guild, locale: str) -> bool:
 
 async def post_update_note(guild: discord.Guild, locale: str, note: str) -> bool:
     """Post a dated changelog note in the Update channel."""
-    from datetime import datetime
     from zoneinfo import ZoneInfo
 
     channel = next((c for c in guild.text_channels if c.name.lower() == UPDATE_CHANNEL), None)
@@ -142,7 +142,7 @@ async def post_update_note(guild: discord.Guild, locale: str, note: str) -> bool
         tz = ZoneInfo("Europe/Paris")
     except Exception:
         tz = None
-    now = datetime.now(tz) if tz else datetime.now()
+    now = game_now().astimezone(tz) if tz else game_now()
     stamp = now.strftime("%d/%m/%Y %H:%M")
     await channel.send(f"**🕘 Update — {stamp}**\n{note}")
     return True

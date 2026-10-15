@@ -18,10 +18,11 @@ carries its own (in kingdom_realms). Once the admin starts the season
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 
 if TYPE_CHECKING:
@@ -661,7 +662,7 @@ def _build_roster(
                 f" · 🛡️ {defense_left}/{defense_budget}"
             )
             exploring = int(getattr(member, "exploration_locked_until", 0) or 0)
-            if exploring > int(datetime.now(tz=UTC).timestamp()):
+            if exploring > int(game_now().timestamp()):
                 line += f" {strings['roster_exploring'].format(_lock_until_label(exploring, strings))}"
             if getattr(member, "left", False):
                 line += f" {strings['left_badge']}"
@@ -699,13 +700,11 @@ def _build_patrol(
     reserve count) — plus the three King-only PLACEMENT buttons (the
     market sells, Remparts places).
     """
-    from datetime import UTC
-
     import discord
 
     purchases = dict(state.get("purchases") or {})
     span = 3 if state.get("reinforced") else 2
-    now = datetime.now(tz=UTC)
+    now = game_now()
     now_ts = int(now.timestamp())
     lines: list[str] = []
     if state.get("defense_ai") is not None:
@@ -770,11 +769,9 @@ def _build_territory(
     state: dict[str, Any],
 ) -> Any:
     """Build the 🗺️ Territoire state view (guarded maps wear 🛡️ + end)."""
-    from datetime import UTC
-
     import discord
 
-    now = datetime.now(tz=UTC)
+    now = game_now()
     lines = [strings["territory_count"].format(len(state["territories"]))]
     if not state["territories"]:
         lines.append(strings["territory_empty"])
@@ -908,7 +905,7 @@ def _build_church(
         lines.append(line)
     # lieu-sacree-v1: the REAL Lieu Sacrée state — every chantier
     # (⏳ verdict end, Paris) and every SACRED territory of the kingdom.
-    now_dt = datetime.now(tz=UTC)
+    now_dt = game_now()
     chantiers = [
         item
         for item in state["territories"]
