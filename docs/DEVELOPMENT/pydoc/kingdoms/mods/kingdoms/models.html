@@ -527,7 +527,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="AttackModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="AttackModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="AttackModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -535,7 +535,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="AttackModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="AttackModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="AttackModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="AttackModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -565,7 +565,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="AttackModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="AttackModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="AttackModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="AttackModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -606,17 +606,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="AttackModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -681,7 +678,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="AttackModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="AttackModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="AttackModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -755,7 +752,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="AttackModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -775,7 +772,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="AttackModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="AttackModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -807,11 +804,6 @@ Returns:<br>
 
 <dl><dt><a name="AttackModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -832,11 +824,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -1389,7 +1376,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="ChronicleEntryModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="ChronicleEntryModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="ChronicleEntryModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="ChronicleEntryModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -1397,7 +1384,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="ChronicleEntryModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="ChronicleEntryModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="ChronicleEntryModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="ChronicleEntryModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -1427,7 +1414,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="ChronicleEntryModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="ChronicleEntryModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="ChronicleEntryModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="ChronicleEntryModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -1468,17 +1455,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="ChronicleEntryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="ChronicleEntryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -1543,7 +1527,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="ChronicleEntryModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="ChronicleEntryModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="ChronicleEntryModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -1617,7 +1601,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="ChronicleEntryModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="ChronicleEntryModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -1637,7 +1621,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="ChronicleEntryModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="ChronicleEntryModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -1669,11 +1653,6 @@ Returns:<br>
 
 <dl><dt><a name="ChronicleEntryModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -1694,11 +1673,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -1862,7 +1836,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="DuelModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="DuelModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="DuelModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -1870,7 +1844,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="DuelModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="DuelModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="DuelModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="DuelModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -1900,7 +1874,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="DuelModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="DuelModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="DuelModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="DuelModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -1941,17 +1915,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="DuelModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -2016,7 +1987,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="DuelModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="DuelModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="DuelModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -2090,7 +2061,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="DuelModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -2110,7 +2081,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="DuelModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="DuelModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -2142,11 +2113,6 @@ Returns:<br>
 
 <dl><dt><a name="DuelModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -2167,11 +2133,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -2342,7 +2303,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="FFAExplorationModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="FFAExplorationModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="FFAExplorationModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="FFAExplorationModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -2350,7 +2311,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="FFAExplorationModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="FFAExplorationModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="FFAExplorationModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="FFAExplorationModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -2380,7 +2341,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="FFAExplorationModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="FFAExplorationModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="FFAExplorationModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="FFAExplorationModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -2421,17 +2382,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="FFAExplorationModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="FFAExplorationModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -2496,7 +2454,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="FFAExplorationModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="FFAExplorationModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="FFAExplorationModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -2570,7 +2528,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="FFAExplorationModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="FFAExplorationModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -2590,7 +2548,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="FFAExplorationModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="FFAExplorationModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -2622,11 +2580,6 @@ Returns:<br>
 
 <dl><dt><a name="FFAExplorationModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -2647,11 +2600,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -2815,7 +2763,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="KingdomModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="KingdomModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="KingdomModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -2823,7 +2771,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="KingdomModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="KingdomModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="KingdomModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="KingdomModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -2853,7 +2801,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="KingdomModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="KingdomModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="KingdomModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -2894,17 +2842,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="KingdomModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -2969,7 +2914,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="KingdomModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="KingdomModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="KingdomModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -3043,7 +2988,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="KingdomModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -3063,7 +3008,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="KingdomModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="KingdomModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -3095,11 +3040,6 @@ Returns:<br>
 
 <dl><dt><a name="KingdomModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -3120,11 +3060,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -4072,7 +4007,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="LordModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="LordModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="LordModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="LordModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -4080,7 +4015,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="LordModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="LordModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="LordModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="LordModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -4110,7 +4045,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="LordModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="LordModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="LordModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="LordModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -4151,17 +4086,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="LordModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="LordModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -4226,7 +4158,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="LordModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="LordModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="LordModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -4300,7 +4232,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="LordModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="LordModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -4320,7 +4252,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="LordModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="LordModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -4352,11 +4284,6 @@ Returns:<br>
 
 <dl><dt><a name="LordModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -4377,11 +4304,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -4927,7 +4849,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="SeasonState-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="SeasonState-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="SeasonState-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -4935,7 +4857,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="SeasonState-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="SeasonState-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="SeasonState-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="SeasonState-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -4965,7 +4887,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="SeasonState-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="SeasonState-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="SeasonState-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="SeasonState-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -5006,17 +4928,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="SeasonState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -5081,7 +5000,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="SeasonState-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="SeasonState-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="SeasonState-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -5155,7 +5074,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="SeasonState-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -5175,7 +5094,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="SeasonState-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="SeasonState-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -5207,11 +5126,6 @@ Returns:<br>
 
 <dl><dt><a name="SeasonState-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -5232,11 +5146,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -5399,7 +5308,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="ShowMatchModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="ShowMatchModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="ShowMatchModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -5407,7 +5316,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="ShowMatchModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="ShowMatchModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="ShowMatchModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="ShowMatchModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -5437,7 +5346,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="ShowMatchModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="ShowMatchModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="ShowMatchModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -5478,17 +5387,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="ShowMatchModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -5553,7 +5459,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="ShowMatchModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="ShowMatchModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="ShowMatchModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -5627,7 +5533,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="ShowMatchModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -5647,7 +5553,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="ShowMatchModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="ShowMatchModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -5679,11 +5585,6 @@ Returns:<br>
 
 <dl><dt><a name="ShowMatchModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -5704,11 +5605,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -5878,7 +5774,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="TechnologyState-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="TechnologyState-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="TechnologyState-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -5886,7 +5782,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="TechnologyState-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="TechnologyState-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="TechnologyState-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TechnologyState-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -5916,7 +5812,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="TechnologyState-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="TechnologyState-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="TechnologyState-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -5957,17 +5853,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TechnologyState-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -6032,7 +5925,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="TechnologyState-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="TechnologyState-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="TechnologyState-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -6106,7 +5999,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="TechnologyState-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -6126,7 +6019,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="TechnologyState-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="TechnologyState-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -6158,11 +6051,6 @@ Returns:<br>
 
 <dl><dt><a name="TechnologyState-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -6183,11 +6071,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
@@ -6355,7 +6238,7 @@ Data and other attributes defined here:<br>
 Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
 <dl><dt><a name="TerritoryModel-__copy__"><strong>__copy__</strong></a>(self) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;shallow&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'Dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
+<dl><dt><a name="TerritoryModel-__deepcopy__"><strong>__deepcopy__</strong></a>(self, memo: 'dict[int, Any] | None' = None) -&gt; 'Self'</dt><dd><span class="code">Returns&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.</span></dd></dl>
 
 <dl><dt><a name="TerritoryModel-__delattr__"><strong>__delattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
 
@@ -6363,7 +6246,7 @@ Methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.Base
 
 <dl><dt><a name="TerritoryModel-__getattr__"><strong>__getattr__</strong></a>(self, item: 'str') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="TerritoryModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'Dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="TerritoryModel-__getstate__"><strong>__getstate__</strong></a>(self) -&gt; 'dict[Any, Any]'</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TerritoryModel-__init__"><strong>__init__</strong></a>(self, /, **data: 'Any') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;a&nbsp;new&nbsp;model&nbsp;by&nbsp;parsing&nbsp;and&nbsp;validating&nbsp;input&nbsp;data&nbsp;from&nbsp;keyword&nbsp;arguments.<br>
 &nbsp;<br>
@@ -6393,7 +6276,7 @@ validated&nbsp;to&nbsp;form&nbsp;a&nbsp;valid&nbsp;model.<br>
 
 <dl><dt><a name="TerritoryModel-__setattr__"><strong>__setattr__</strong></a>(self, name: 'str', value: 'Any') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'Dict[Any, Any]') -&gt; 'None'</dt></dl>
+<dl><dt><a name="TerritoryModel-__setstate__"><strong>__setstate__</strong></a>(self, state: 'dict[Any, Any]') -&gt; 'None'</dt></dl>
 
 <dl><dt><a name="TerritoryModel-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
@@ -6434,17 +6317,14 @@ Returns&nbsp;a&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;(e.g.&nbsp;the&nbsp;value&nbsp;of&nbsp;[cached&nbsp;properties][functools.cached_property]).<br>
 &nbsp;<br>
 Args:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;A&nbsp;mapping&nbsp;of&nbsp;values&nbsp;to&nbsp;update&nbsp;the&nbsp;copied&nbsp;model.&nbsp;Updates&nbsp;are&nbsp;*not*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applied&nbsp;recursively,&nbsp;and&nbsp;no&nbsp;validation&nbsp;is&nbsp;performed&nbsp;on&nbsp;updated&nbsp;values.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only&nbsp;the&nbsp;known&nbsp;fields&nbsp;are&nbsp;updated&nbsp;(if&nbsp;unknown&nbsp;keys&nbsp;are&nbsp;being&nbsp;passed&nbsp;and<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;model&nbsp;has&nbsp;[`extra`][pydantic.ConfigDict.extra]&nbsp;set&nbsp;to&nbsp;`'allow'`,&nbsp;they<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;added&nbsp;as&nbsp;extra&nbsp;data).<br>
-&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Whether&nbsp;a&nbsp;[deep&nbsp;copy][copy.deepcopy]&nbsp;of&nbsp;the&nbsp;model&nbsp;should&nbsp;be&nbsp;performed.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;update:&nbsp;Values&nbsp;to&nbsp;change/add&nbsp;in&nbsp;the&nbsp;new&nbsp;model.&nbsp;Note:&nbsp;the&nbsp;data&nbsp;is&nbsp;not&nbsp;validated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;before&nbsp;creating&nbsp;the&nbsp;new&nbsp;model.&nbsp;You&nbsp;should&nbsp;trust&nbsp;this&nbsp;data.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deep:&nbsp;Set&nbsp;to&nbsp;`True`&nbsp;to&nbsp;make&nbsp;a&nbsp;deep&nbsp;copy&nbsp;of&nbsp;the&nbsp;model.<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;model&nbsp;instance.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'Dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
+<dl><dt><a name="TerritoryModel-model_dump"><strong>model_dump</strong></a>(self, *, mode: "Literal['json', 'python'] | str" = 'python', include: 'IncEx | None' = None, exclude: 'IncEx | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, exclude_unset: 'bool' = False, exclude_defaults: 'bool' = False, exclude_none: 'bool' = False, exclude_computed_fields: 'bool' = False, round_trip: 'bool' = False, warnings: "bool | Literal['none', 'warn', 'error']" = True, fallback: 'Callable[[Any], Any] | None' = None, serialize_as_any: 'bool' = False, polymorphic_serialization: 'bool | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">!!!&nbsp;abstract&nbsp;"Usage&nbsp;Documentation"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[`model_dump`](../concepts/serialization.md#python-mode)<br>
 &nbsp;<br>
 Generate&nbsp;a&nbsp;dictionary&nbsp;representation&nbsp;of&nbsp;the&nbsp;model,&nbsp;optionally&nbsp;specifying&nbsp;which&nbsp;fields&nbsp;to&nbsp;include&nbsp;or&nbsp;exclude.<br>
@@ -6509,7 +6389,7 @@ This&nbsp;is&nbsp;useful&nbsp;if&nbsp;you&nbsp;want&nbsp;to&nbsp;do&nbsp;some&nb
 
 <hr>
 Class methods inherited from <a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>:<br>
-<dl><dt><a name="TerritoryModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'TypeForm[Any] | tuple[TypeForm[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
+<dl><dt><a name="TerritoryModel-__class_getitem__"><strong>__class_getitem__</strong></a>(typevar_values: 'type[Any] | tuple[type[Any], ...]') -&gt; 'type[BaseModel] | _forward_ref.PydanticRecursiveRef'</dt></dl>
 
 <dl><dt><a name="TerritoryModel-__get_pydantic_core_schema__"><strong>__get_pydantic_core_schema__</strong></a>(source: 'type[BaseModel]', handler: 'GetCoreSchemaHandler', /) -&gt; 'CoreSchema'</dt></dl>
 
@@ -6583,7 +6463,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;`Model`&nbsp;class&nbsp;with&nbsp;validated&nbsp;data.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'Dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
+<dl><dt><a name="TerritoryModel-model_json_schema"><strong>model_json_schema</strong></a>(by_alias: 'bool' = True, ref_template: 'str' = '#/$defs/{model}', schema_generator: 'type[GenerateJsonSchema]' = &lt;class 'pydantic.json_schema.GenerateJsonSchema'&gt;, mode: 'JsonSchemaMode' = 'validation', *, union_format: "Literal['any_of', 'primitive_type_array']" = 'any_of') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Generates&nbsp;a&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;a&nbsp;model&nbsp;class.<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;by_alias:&nbsp;Whether&nbsp;to&nbsp;use&nbsp;attribute&nbsp;aliases&nbsp;or&nbsp;not.<br>
@@ -6603,7 +6483,7 @@ Args:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;JSON&nbsp;schema&nbsp;for&nbsp;the&nbsp;given&nbsp;model&nbsp;class.</span></dd></dl>
 
-<dl><dt><a name="TerritoryModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[TypeForm[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
+<dl><dt><a name="TerritoryModel-model_parametrized_name"><strong>model_parametrized_name</strong></a>(params: 'tuple[type[Any], ...]') -&gt; 'str'</dt><dd><span class="code">Compute&nbsp;the&nbsp;class&nbsp;name&nbsp;for&nbsp;parametrizations&nbsp;of&nbsp;generic&nbsp;classes.<br>
 &nbsp;<br>
 This&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;achieve&nbsp;a&nbsp;custom&nbsp;naming&nbsp;scheme&nbsp;for&nbsp;generic&nbsp;BaseModels.<br>
 &nbsp;<br>
@@ -6635,11 +6515,6 @@ Returns:<br>
 
 <dl><dt><a name="TerritoryModel-model_validate"><strong>model_validate</strong></a>(obj: 'Any', *, strict: 'bool | None' = None, extra: 'ExtraValues | None' = None, from_attributes: 'bool | None' = None, context: 'Any | None' = None, by_alias: 'bool | None' = None, by_name: 'bool | None' = None) -&gt; 'Self'</dt><dd><span class="code">Validate&nbsp;a&nbsp;pydantic&nbsp;model&nbsp;instance.<br>
 &nbsp;<br>
-If&nbsp;validation&nbsp;fails,&nbsp;the&nbsp;resulting&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;reports&nbsp;the<br>
-rejected&nbsp;locations&nbsp;and&nbsp;values.&nbsp;[Logfire](../integrations/logfire.md)&nbsp;can&nbsp;retain&nbsp;the&nbsp;complete&nbsp;validation<br>
-input&nbsp;and&nbsp;surrounding&nbsp;trace&nbsp;context&nbsp;for&nbsp;production&nbsp;debugging&nbsp;(see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md)).<br>
-&nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;obj:&nbsp;The&nbsp;object&nbsp;to&nbsp;validate.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;strict:&nbsp;Whether&nbsp;to&nbsp;enforce&nbsp;types&nbsp;strictly.<br>
@@ -6660,11 +6535,6 @@ Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[JSON&nbsp;Parsing](../concepts/json.md#json-parsing)<br>
 &nbsp;<br>
 Validate&nbsp;the&nbsp;given&nbsp;JSON&nbsp;data&nbsp;against&nbsp;the&nbsp;Pydantic&nbsp;model.<br>
-&nbsp;<br>
-A&nbsp;[`ValidationError`][pydantic_core.ValidationError]&nbsp;raised&nbsp;here&nbsp;reports&nbsp;the&nbsp;rejected&nbsp;locations&nbsp;and<br>
-values,&nbsp;but&nbsp;may&nbsp;not&nbsp;retain&nbsp;the&nbsp;complete&nbsp;source&nbsp;document.&nbsp;Recording&nbsp;validations&nbsp;with<br>
-[Logfire](../integrations/logfire.md)&nbsp;keeps&nbsp;the&nbsp;complete&nbsp;JSON&nbsp;input&nbsp;alongside&nbsp;the&nbsp;error&nbsp;—&nbsp;see<br>
-[Troubleshooting&nbsp;validation&nbsp;errors](../errors/troubleshooting.md).<br>
 &nbsp;<br>
 Args:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;json_data:&nbsp;The&nbsp;JSON&nbsp;data&nbsp;to&nbsp;validate.<br>
