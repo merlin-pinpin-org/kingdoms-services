@@ -41,7 +41,7 @@ def _config() -> KingdomsSeasonConfig:
         ),
         civilizations=(
             CivilizationCondition(key="celtes", display_name="Celtes", requires_map_keys=("black-forest",)),
-            CivilizationCondition(key="chinois", display_name="Chinois", requires_map_types=("water",)),
+            CivilizationCondition(key="chinois", display_name="Chinois", requires_map_types=("eau",)),
             CivilizationCondition(key="shu", display_name="Shu", requires_civilization="chinois"),
             CivilizationCondition(key="wei", display_name="Wei", requires_civilization="chinois"),
             CivilizationCondition(key="wu", display_name="Wu", requires_civilization="chinois"),
@@ -112,7 +112,7 @@ async def test_losing_the_territory_drops_the_civilization() -> None:
 
 
 async def test_water_maps_unlock_chinese_and_its_chain() -> None:
-    """D33: a water map unlocks the Chinese and the Shu/Wei/Wu chain."""
+    """D33: an Eau-tag map unlocks the Chinese and the Shu/Wei/Wu chain."""
     bundle = Bundle()
     await bundle.launch_season()
     aquitaine = await bundle.kingdom_id("Aquitaine")

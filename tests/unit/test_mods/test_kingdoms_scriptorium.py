@@ -133,7 +133,7 @@ async def test_cadastre_rubric_shows_bonus() -> None:
     entry.display_name = "Acropolis"
     entry.key = "acropolis"
     entry.cadastre = {"bonus": "Offre un contre-espionnage/semaine"}
-    entry.types = _SimpleNS(mountain=True)
+    entry.types = _SimpleNS(montagne=True)
 
     content = _cadastre_content(_strings("fr"), [entry])
     assert "Acropolis" in content
