@@ -505,14 +505,33 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="CivilizationCondition">class <strong>CivilizationCondition</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#CivilizationCondition">CivilizationCondition</a>(*,&nbsp;key:&nbsp;str,&nbsp;display_name:&nbsp;str,&nbsp;requires_map_keys:&nbsp;tuple[str,&nbsp;...]&nbsp;=&nbsp;(),&nbsp;requires_map_types:&nbsp;tuple[str,&nbsp;...]&nbsp;=&nbsp;(),&nbsp;requires_civilization:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;requires_kingdom_name_pattern:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#CivilizationCondition">CivilizationCondition</a>(*,&nbsp;key:&nbsp;str,&nbsp;display_name:&nbsp;str,&nbsp;requires_map_keys:&nbsp;tuple[str,&nbsp;...]&nbsp;=&nbsp;(),&nbsp;min_map_key_count:&nbsp;Annotated[int,&nbsp;Ge(ge=1)]&nbsp;=&nbsp;1,&nbsp;requires_map_types:&nbsp;tuple[str,&nbsp;...]&nbsp;=&nbsp;(),&nbsp;min_map_type_count:&nbsp;Annotated[int,&nbsp;Ge(ge=1)]&nbsp;=&nbsp;1,&nbsp;min_map_count:&nbsp;Annotated[int&nbsp;|&nbsp;None,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;None,&nbsp;max_map_count:&nbsp;Annotated[int&nbsp;|&nbsp;None,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;None,&nbsp;requires_civilization:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;requires_kingdom_name_pattern:&nbsp;str&nbsp;|&nbsp;None&nbsp;=&nbsp;None,&nbsp;requires_tech_points:&nbsp;Annotated[int&nbsp;|&nbsp;None,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;None,&nbsp;requires_marriages:&nbsp;Annotated[int&nbsp;|&nbsp;None,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;None,&nbsp;requires_civilization_count:&nbsp;Annotated[int&nbsp;|&nbsp;None,&nbsp;Ge(ge=0)]&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-One&nbsp;civilization&nbsp;unlock&nbsp;condition&nbsp;(CIVILIZATIONS.md,&nbsp;issue&nbsp;#160).<br>
+One&nbsp;civilization&nbsp;unlock&nbsp;condition&nbsp;(Diplomatie&nbsp;V1,&nbsp;Drasah&nbsp;15/10/2026).<br>
 &nbsp;<br>
-Pure&nbsp;data:&nbsp;``requires_map_keys``/``requires_map_types``&nbsp;match&nbsp;the<br>
-owned&nbsp;territories,&nbsp;``requires_civilization``&nbsp;chains&nbsp;(Shu/Wei/Wu<br>
-behind&nbsp;Chinois),&nbsp;and&nbsp;``requires_kingdom_name_pattern``&nbsp;covers&nbsp;the<br>
-referential&nbsp;Hungarian&nbsp;rule&nbsp;(the&nbsp;admin&nbsp;tunes&nbsp;the&nbsp;pattern).<br>&nbsp;</span></td></tr>
+Pure&nbsp;data&nbsp;—&nbsp;the&nbsp;engine&nbsp;(``DiplomacyService._condition_met``)&nbsp;reads<br>
+ONLY&nbsp;these&nbsp;fields.&nbsp;V1&nbsp;semantics:<br>
+&nbsp;<br>
+-&nbsp;``requires_map_keys``&nbsp;+&nbsp;``min_map_key_count``&nbsp;—&nbsp;owning&nbsp;at&nbsp;least<br>
+&nbsp;&nbsp;``min_map_key_count``&nbsp;of&nbsp;the&nbsp;listed&nbsp;maps&nbsp;unlocks&nbsp;(default&nbsp;1:&nbsp;ANY<br>
+&nbsp;&nbsp;of&nbsp;them&nbsp;—&nbsp;the&nbsp;Japonais&nbsp;Archipel&nbsp;OU&nbsp;Ile&nbsp;volcanique&nbsp;already&nbsp;rides<br>
+&nbsp;&nbsp;this;&nbsp;Goths/Hindoustanis&nbsp;count&nbsp;several);<br>
+-&nbsp;``requires_map_types``&nbsp;+&nbsp;``min_map_type_count``&nbsp;—&nbsp;owning&nbsp;at&nbsp;least<br>
+&nbsp;&nbsp;``min_map_type_count``&nbsp;territories&nbsp;carrying&nbsp;one&nbsp;of&nbsp;the&nbsp;Drasah<br>
+&nbsp;&nbsp;tags&nbsp;(default&nbsp;1,&nbsp;the&nbsp;binary&nbsp;v0&nbsp;behaviour);<br>
+-&nbsp;``min_map_count``&nbsp;/&nbsp;``max_map_count``&nbsp;—&nbsp;the&nbsp;total&nbsp;owned-territory<br>
+&nbsp;&nbsp;thresholds&nbsp;(Chinois&nbsp;«&nbsp;moins&nbsp;de&nbsp;3&nbsp;»&nbsp;→&nbsp;max&nbsp;2,&nbsp;«&nbsp;plus&nbsp;de&nbsp;N&nbsp;»&nbsp;→<br>
+&nbsp;&nbsp;N+1:&nbsp;the&nbsp;comparison&nbsp;stays&nbsp;inclusive&nbsp;in&nbsp;the&nbsp;data);<br>
+-&nbsp;``requires_civilization``&nbsp;—&nbsp;the&nbsp;unlock&nbsp;chain&nbsp;(Shu/Wei/Wu&nbsp;behind<br>
+&nbsp;&nbsp;Chinois);<br>
+-&nbsp;``requires_kingdom_name_pattern``&nbsp;—&nbsp;the&nbsp;referential&nbsp;Hungarian&nbsp;rule<br>
+&nbsp;&nbsp;(Royaume&nbsp;des&nbsp;HeN);<br>
+-&nbsp;``requires_tech_points``&nbsp;—&nbsp;the&nbsp;kingdom's&nbsp;banked&nbsp;tech&nbsp;points<br>
+&nbsp;&nbsp;(Birmans);<br>
+-&nbsp;``requires_marriages``&nbsp;—&nbsp;the&nbsp;kingdom's&nbsp;married-lord&nbsp;count<br>
+&nbsp;&nbsp;(Bohémiens&nbsp;«&nbsp;marié&nbsp;deux&nbsp;fois&nbsp;»);<br>
+-&nbsp;``requires_civilization_count``&nbsp;—&nbsp;the&nbsp;number&nbsp;of&nbsp;civilizations&nbsp;the<br>
+&nbsp;&nbsp;kingdom&nbsp;already&nbsp;holds&nbsp;(Portugais&nbsp;«&nbsp;plus&nbsp;de&nbsp;4&nbsp;»&nbsp;→&nbsp;5).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.config.html#CivilizationCondition">CivilizationCondition</a></dd>
@@ -528,7 +547,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'display_name': 'str', 'key': 'str', 'requires_civilization': 'str | None', 'requires_kingdom_name_pattern': 'str | None', 'requires_map_keys': 'tuple[str, ...]', 'requires_map_types': 'tuple[str, ...]'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'display_name': 'str', 'key': 'str', 'max_map_count': 'int | None', 'min_map_count': 'int | None', 'min_map_key_count': 'int', 'min_map_type_count': 'int', 'requires_civilization': 'str | None', 'requires_civilization_count': 'int | None', 'requires_kingdom_name_pattern': 'str | None', 'requires_map_keys': 'tuple[str, ...]', ...}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -538,7 +557,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.CivilizationCondition'&gt;, 'config': {'strict': True, 'title': 'CivilizationCondition'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...oms.mods.kingdoms.config.CivilizationCondition'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.CivilizationCondition:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'display_name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'requires_civilization': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_kingdom_name_pattern': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_map_keys': {'metadata': {}, 'schema': {'default': (), 'schema': {'items_schema': [...], 'type': 'tuple', 'variadic_item_index': 0}, 'type': 'default'}, 'type': 'model-field'}, 'requires_map_types': {'metadata': {}, 'schema': {'default': (), 'schema': {'items_schema': [...], 'type': 'tuple', 'variadic_item_index': 0}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'CivilizationCondition', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.CivilizationCondition'&gt;, 'config': {'strict': True, 'title': 'CivilizationCondition'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...oms.mods.kingdoms.config.CivilizationCondition'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.CivilizationCondition:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'display_name': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'key': {'metadata': {}, 'schema': {'type': 'str'}, 'type': 'model-field'}, 'max_map_count': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'min_map_count': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'min_map_key_count': {'metadata': {}, 'schema': {'default': 1, 'schema': {'ge': 1, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'min_map_type_count': {'metadata': {}, 'schema': {'default': 1, 'schema': {'ge': 1, 'type': 'int'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_civilization': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_civilization_count': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_kingdom_name_pattern': {'metadata': {}, 'schema': {'default': None, 'schema': {'schema': {...}, 'type': 'nullable'}, 'type': 'default'}, 'type': 'model-field'}, 'requires_map_keys': {'metadata': {}, 'schema': {'default': (), 'schema': {'items_schema': [...], 'type': 'tuple', 'variadic_item_index': 0}, 'type': 'default'}, 'type': 'model-field'}, ...}, 'model_name': 'CivilizationCondition', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -546,7 +565,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'display_name': FieldInfo(annotation=str, required=True), 'key': FieldInfo(annotation=str, required=True), 'requires_civilization': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_kingdom_name_pattern': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_map_keys': FieldInfo(annotation=tuple[str, ...], required=False, default=()), 'requires_map_types': FieldInfo(annotation=tuple[str, ...], required=False, default=())}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'display_name': FieldInfo(annotation=str, required=True), 'key': FieldInfo(annotation=str, required=True), 'max_map_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'min_map_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'min_map_key_count': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=1)]), 'min_map_type_count': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=1)]), 'requires_civilization': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_civilization_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'requires_kingdom_name_pattern': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_map_keys': FieldInfo(annotation=tuple[str, ...], required=False, default=()), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -564,7 +583,7 @@ Data and other attributes defined here:<br>
     },
 ), definitions=[], cache_strings=True)</dl>
 
-<dl><dt><strong>__signature__</strong> = &lt;Signature (*, key: str, display_name: str, requ...kingdom_name_pattern: str | None = None) -&gt; None&gt;</dl>
+<dl><dt><strong>__signature__</strong> = &lt;Signature (*, key: str, display_name: str, requ... Annotated[int | None, Ge(ge=0)] = None) -&gt; None&gt;</dl>
 
 <dl><dt><strong>model_config</strong> = {'strict': True}</dl>
 
@@ -949,7 +968,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'display_name': FieldInfo(annotation=str, required=True), 'key': FieldInfo(annotation=str, required=True), 'requires_civilization': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_kingdom_name_pattern': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_map_keys': FieldInfo(annotation=tuple[str, ...], required=False, default=()), 'requires_map_types': FieldInfo(annotation=tuple[str, ...], required=False, default=())}</dl>
+<dl><dt><strong>model_fields</strong> = {'display_name': FieldInfo(annotation=str, required=True), 'key': FieldInfo(annotation=str, required=True), 'max_map_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'min_map_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'min_map_key_count': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=1)]), 'min_map_type_count': FieldInfo(annotation=int, required=False, default=1, metadata=[Ge(ge=1)]), 'requires_civilization': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_civilization_count': FieldInfo(annotation=Union[int, NoneType], required=False, default=None, metadata=[Ge(ge=0)]), 'requires_kingdom_name_pattern': FieldInfo(annotation=Union[str, NoneType], required=False, default=None), 'requires_map_keys': FieldInfo(annotation=tuple[str, ...], required=False, default=()), ...}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -2756,18 +2775,29 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><a name="MapTypes">class <strong>MapTypes</strong></a>(<a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MapTypes">MapTypes</a>(*,&nbsp;water:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;open:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;nomad:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;desert:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;mountain:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;marsh:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;lakes:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;golden:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;start_wall:&nbsp;bool&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MapTypes">MapTypes</a>(*,&nbsp;eau:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;hybride:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;objectif:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;nomade:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;foret:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;montagne:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;desert:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;marais:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;ouverte:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;chaotique:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;mur_depart:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;ferme:&nbsp;bool&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
-Map&nbsp;type&nbsp;flags&nbsp;(CIVILIZATIONS.md&nbsp;reference&nbsp;taxonomy).<br>
+The&nbsp;12&nbsp;Drasah&nbsp;cadastre&nbsp;tags&nbsp;(machine-temps…&nbsp;non&nbsp;—&nbsp;cadastre-diplomatie-v1).<br>
 &nbsp;<br>
-Pure&nbsp;data:&nbsp;the&nbsp;flags&nbsp;drive&nbsp;the&nbsp;cadastre&nbsp;effects&nbsp;and&nbsp;civilization<br>
-conditions&nbsp;of&nbsp;later&nbsp;slices&nbsp;(T5/T6);&nbsp;this&nbsp;slice&nbsp;only&nbsp;stores&nbsp;them.<br>&nbsp;</span></td></tr>
+Drasah's&nbsp;official&nbsp;nomenclature&nbsp;(15/10/2026,&nbsp;source&nbsp;of&nbsp;truth:<br>
+``cadastre-maps-liste.md``):&nbsp;``eau``&nbsp;(true&nbsp;water&nbsp;victory),&nbsp;``hybride``<br>
+(winnable&nbsp;by&nbsp;land&nbsp;—&nbsp;NOT&nbsp;the&nbsp;Eau&nbsp;tag),&nbsp;``objectif``&nbsp;(a&nbsp;precise&nbsp;victory<br>
+spot,&nbsp;often&nbsp;mid),&nbsp;``nomade``,&nbsp;``foret``,&nbsp;``montagne``,&nbsp;``desert``,<br>
+``marais``,&nbsp;``ouverte``&nbsp;(and&nbsp;its&nbsp;inverse&nbsp;``ferme``),&nbsp;``chaotique``&nbsp;and<br>
+``mur_depart``&nbsp;(start&nbsp;wall).&nbsp;These&nbsp;tags&nbsp;REPLACE&nbsp;the&nbsp;embryonic&nbsp;v0<br>
+flags&nbsp;—&nbsp;NOT&nbsp;1:1&nbsp;(ex.&nbsp;Douves&nbsp;d'équipe&nbsp;=&nbsp;Hybride,&nbsp;Falaise&nbsp;=&nbsp;Chaotique,<br>
+Lac&nbsp;Fantôme&nbsp;=&nbsp;Ouverte).&nbsp;They&nbsp;drive&nbsp;the&nbsp;Diplomatie&nbsp;civ&nbsp;conditions<br>
+AND&nbsp;the&nbsp;Scriptorium/panel&nbsp;displays.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="kingdoms.mods.kingdoms.config.html#MapTypes">MapTypes</a></dd>
 <dd><a href="pydantic.main.html#BaseModel">pydantic.main.BaseModel</a></dd>
 <dd><a href="builtins.html#object">builtins.object</a></dd>
 </dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MapTypes-has"><strong>has</strong></a>(self, tag: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;one&nbsp;Drasah&nbsp;tag&nbsp;is&nbsp;set&nbsp;(unknown&nbsp;tags&nbsp;read&nbsp;as&nbsp;False).</span></dd></dl>
+
 <hr>
 Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
@@ -2777,7 +2807,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
 
-<dl><dt><strong>__annotations__</strong> = {'desert': 'bool', 'golden': 'bool', 'lakes': 'bool', 'marsh': 'bool', 'mountain': 'bool', 'nomad': 'bool', 'open': 'bool', 'start_wall': 'bool', 'water': 'bool'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'chaotique': 'bool', 'desert': 'bool', 'eau': 'bool', 'ferme': 'bool', 'foret': 'bool', 'hybride': 'bool', 'marais': 'bool', 'montagne': 'bool', 'mur_depart': 'bool', 'nomade': 'bool', ...}</dl>
 
 <dl><dt><strong>__class_vars__</strong> = set()</dl>
 
@@ -2787,7 +2817,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_computed_fields__</strong> = {}</dl>
 
-<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.MapTypes'&gt;, 'config': {'strict': True, 'title': 'MapTypes'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...&lt;class 'kingdoms.mods.kingdoms.config.MapTypes'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.MapTypes:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'desert': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'golden': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'lakes': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'marsh': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'mountain': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'nomad': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'open': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'start_wall': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'water': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}}, 'model_name': 'MapTypes', 'type': 'model-fields'}, 'type': 'model'}</dl>
+<dl><dt><strong>__pydantic_core_schema__</strong> = {'cls': &lt;class 'kingdoms.mods.kingdoms.config.MapTypes'&gt;, 'config': {'strict': True, 'title': 'MapTypes'}, 'custom_init': False, 'metadata': {'pydantic_js_functions': [&lt;bound method BaseModel.__get_pydantic_json_sche...&lt;class 'kingdoms.mods.kingdoms.config.MapTypes'&gt;&gt;]}, 'ref': 'kingdoms.mods.kingdoms.config.MapTypes:MEMORY_ADDRESS', 'root_model': False, 'schema': {'computed_fields': [], 'fields': {'chaotique': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'desert': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'eau': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'ferme': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'foret': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'hybride': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'marais': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'montagne': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'mur_depart': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, 'nomade': {'metadata': {}, 'schema': {'default': False, 'schema': {'type': 'bool'}, 'type': 'default'}, 'type': 'model-field'}, ...}, 'model_name': 'MapTypes', 'type': 'model-fields'}, 'type': 'model'}</dl>
 
 <dl><dt><strong>__pydantic_custom_init__</strong> = False</dl>
 
@@ -2795,7 +2825,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__pydantic_extra_info__</strong> = None</dl>
 
-<dl><dt><strong>__pydantic_fields__</strong> = {'desert': FieldInfo(annotation=bool, required=False, default=False), 'golden': FieldInfo(annotation=bool, required=False, default=False), 'lakes': FieldInfo(annotation=bool, required=False, default=False), 'marsh': FieldInfo(annotation=bool, required=False, default=False), 'mountain': FieldInfo(annotation=bool, required=False, default=False), 'nomad': FieldInfo(annotation=bool, required=False, default=False), 'open': FieldInfo(annotation=bool, required=False, default=False), 'start_wall': FieldInfo(annotation=bool, required=False, default=False), 'water': FieldInfo(annotation=bool, required=False, default=False)}</dl>
+<dl><dt><strong>__pydantic_fields__</strong> = {'chaotique': FieldInfo(annotation=bool, required=False, default=False), 'desert': FieldInfo(annotation=bool, required=False, default=False), 'eau': FieldInfo(annotation=bool, required=False, default=False), 'ferme': FieldInfo(annotation=bool, required=False, default=False), 'foret': FieldInfo(annotation=bool, required=False, default=False), 'hybride': FieldInfo(annotation=bool, required=False, default=False), 'marais': FieldInfo(annotation=bool, required=False, default=False), 'montagne': FieldInfo(annotation=bool, required=False, default=False), 'mur_depart': FieldInfo(annotation=bool, required=False, default=False), 'nomade': FieldInfo(annotation=bool, required=False, default=False), ...}</dl>
 
 <dl><dt><strong>__pydantic_generic_metadata__</strong> = {'args': (), 'origin': None, 'parameters': ()}</dl>
 
@@ -2813,7 +2843,7 @@ Data and other attributes defined here:<br>
     },
 ), definitions=[], cache_strings=True)</dl>
 
-<dl><dt><strong>__signature__</strong> = &lt;Signature (*, water: bool = False, open: bool =... bool = False, start_wall: bool = False) -&gt; None&gt;</dl>
+<dl><dt><strong>__signature__</strong> = &lt;Signature (*, eau: bool = False, hybride: bool ...part: bool = False, ferme: bool = False) -&gt; None&gt;</dl>
 
 <dl><dt><strong>model_config</strong> = {'strict': True}</dl>
 
@@ -3198,7 +3228,7 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 
 <dl><dt><strong>model_computed_fields</strong> = {}</dl>
 
-<dl><dt><strong>model_fields</strong> = {'desert': FieldInfo(annotation=bool, required=False, default=False), 'golden': FieldInfo(annotation=bool, required=False, default=False), 'lakes': FieldInfo(annotation=bool, required=False, default=False), 'marsh': FieldInfo(annotation=bool, required=False, default=False), 'mountain': FieldInfo(annotation=bool, required=False, default=False), 'nomad': FieldInfo(annotation=bool, required=False, default=False), 'open': FieldInfo(annotation=bool, required=False, default=False), 'start_wall': FieldInfo(annotation=bool, required=False, default=False), 'water': FieldInfo(annotation=bool, required=False, default=False)}</dl>
+<dl><dt><strong>model_fields</strong> = {'chaotique': FieldInfo(annotation=bool, required=False, default=False), 'desert': FieldInfo(annotation=bool, required=False, default=False), 'eau': FieldInfo(annotation=bool, required=False, default=False), 'ferme': FieldInfo(annotation=bool, required=False, default=False), 'foret': FieldInfo(annotation=bool, required=False, default=False), 'hybride': FieldInfo(annotation=bool, required=False, default=False), 'marais': FieldInfo(annotation=bool, required=False, default=False), 'montagne': FieldInfo(annotation=bool, required=False, default=False), 'mur_depart': FieldInfo(annotation=bool, required=False, default=False), 'nomade': FieldInfo(annotation=bool, required=False, default=False), ...}</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -5907,11 +5937,19 @@ Data and other attributes inherited from <a href="pydantic.main.html#BaseModel">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-default_map_catalog"><strong>default_map_catalog</strong></a>() -&gt; 'tuple[MapEntry, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;default&nbsp;allowed-map&nbsp;catalog&nbsp;(issue&nbsp;#163,&nbsp;§6).<br>
+<td class="singlecolumn"><dl><dt><a name="-default_map_catalog"><strong>default_map_catalog</strong></a>() -&gt; 'tuple[MapEntry, ...]'</dt><dd><span class="code">Return&nbsp;Drasah's&nbsp;official&nbsp;97-map&nbsp;cadastre&nbsp;(cadastre-diplomatie-v1).<br>
 &nbsp;<br>
-A&nbsp;starter&nbsp;catalog&nbsp;of&nbsp;classic&nbsp;AoE2&nbsp;maps&nbsp;so&nbsp;the&nbsp;season&nbsp;is&nbsp;playable<br>
-with&nbsp;no&nbsp;local&nbsp;override;&nbsp;every&nbsp;entry&nbsp;(and&nbsp;its&nbsp;cadastre&nbsp;effects)&nbsp;is<br>
-admin-editable&nbsp;data&nbsp;through&nbsp;``config/kingdoms/season.yaml``.</span></dd></dl>
+RULE&nbsp;(Drasah&nbsp;15/10/2026,&nbsp;frozen):&nbsp;this&nbsp;list&nbsp;ERASES&nbsp;the&nbsp;v0&nbsp;catalog&nbsp;—<br>
+any&nbsp;map&nbsp;of&nbsp;the&nbsp;old&nbsp;code&nbsp;absent&nbsp;from&nbsp;this&nbsp;list&nbsp;DOES&nbsp;NOT&nbsp;EXIST&nbsp;(the<br>
+v0&nbsp;Altai,&nbsp;Babel,&nbsp;Hideout,&nbsp;Highland&nbsp;and&nbsp;Siberia&nbsp;are&nbsp;gone,&nbsp;and&nbsp;the<br>
+ex-English&nbsp;labels&nbsp;become&nbsp;Drasah's&nbsp;French&nbsp;ones,&nbsp;verbatim).&nbsp;Every<br>
+entry&nbsp;carries&nbsp;its&nbsp;cadastre&nbsp;bonus&nbsp;as&nbsp;display&nbsp;text&nbsp;(the&nbsp;official<br>
+acquisition&nbsp;condition&nbsp;lives&nbsp;in&nbsp;the&nbsp;Diplomatie&nbsp;—&nbsp;a&nbsp;bonus&nbsp;text&nbsp;may<br>
+diverge,&nbsp;ex.&nbsp;3&nbsp;maps&nbsp;display&nbsp;the&nbsp;Vikings&nbsp;while&nbsp;Iles&nbsp;du&nbsp;Nord&nbsp;alone<br>
+unlocks&nbsp;them)&nbsp;and&nbsp;its&nbsp;Drasah&nbsp;tags.&nbsp;GARNISON&nbsp;bonuses&nbsp;are&nbsp;IGNORED&nbsp;in<br>
+V1&nbsp;(priority&nbsp;3,&nbsp;V2)&nbsp;—&nbsp;Clairière&nbsp;fortifiée,&nbsp;Douves&nbsp;d'équipe,<br>
+Isthme&nbsp;keep&nbsp;no&nbsp;bonus&nbsp;at&nbsp;all;&nbsp;Embranchement,&nbsp;Le&nbsp;passage&nbsp;keep&nbsp;only<br>
+their&nbsp;first&nbsp;one.&nbsp;Plaine&nbsp;and&nbsp;Prairie&nbsp;carry&nbsp;no&nbsp;tag&nbsp;in&nbsp;Drasah's&nbsp;list.</span></dd></dl>
  <dl><dt><a name="-default_season_config"><strong>default_season_config</strong></a>() -&gt; 'KingdomsSeasonConfig'</dt><dd><span class="code">Return&nbsp;the&nbsp;Season&nbsp;II&nbsp;default&nbsp;configuration&nbsp;(reference&nbsp;§15,&nbsp;D18).</span></dd></dl>
  <dl><dt><a name="-load_season_config"><strong>load_season_config</strong></a>(config_dir: 'Path') -&gt; 'KingdomsSeasonConfig'</dt><dd><span class="code">Load&nbsp;the&nbsp;season&nbsp;configuration&nbsp;from&nbsp;``&lt;config_dir&gt;/kingdoms/season.yaml``.<br>
 &nbsp;<br>

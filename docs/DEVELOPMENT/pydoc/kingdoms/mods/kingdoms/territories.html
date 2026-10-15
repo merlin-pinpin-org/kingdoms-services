@@ -263,6 +263,15 @@ The&nbsp;replacement&nbsp;goes&nbsp;to&nbsp;the&nbsp;same&nbsp;owner&nbsp;with&n
 Fails&nbsp;atomically&nbsp;when&nbsp;no&nbsp;replacement&nbsp;exists&nbsp;—&nbsp;the&nbsp;drawn&nbsp;map&nbsp;then<br>
 stays&nbsp;in&nbsp;place&nbsp;and&nbsp;the&nbsp;admin&nbsp;is&nbsp;warned&nbsp;(issue&nbsp;#163&nbsp;spec&nbsp;4).</span></dd></dl>
 
+<dl><dt>async <a name="TerritoryService-migrate_removed_map_keys"><strong>migrate_removed_map_keys</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Remap&nbsp;the&nbsp;territories&nbsp;of&nbsp;removed&nbsp;v0&nbsp;maps&nbsp;onto&nbsp;the&nbsp;new&nbsp;catalog.<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;migrated&nbsp;count.&nbsp;The&nbsp;replacement&nbsp;map&nbsp;follows&nbsp;the<br>
+``_REMOVED_MAP_FALLBACKS``&nbsp;cousin,&nbsp;or&nbsp;any&nbsp;undrawn&nbsp;catalog&nbsp;map&nbsp;—<br>
+a&nbsp;territory&nbsp;is&nbsp;NEVER&nbsp;left&nbsp;pointing&nbsp;at&nbsp;a&nbsp;map&nbsp;that&nbsp;no&nbsp;longer<br>
+exists.&nbsp;Runs&nbsp;once&nbsp;per&nbsp;process&nbsp;(the&nbsp;flag),&nbsp;at&nbsp;the&nbsp;first<br>
+territory&nbsp;read,&nbsp;so&nbsp;every&nbsp;entry&nbsp;point&nbsp;(boot,&nbsp;restore,&nbsp;attack)<br>
+converges.</span></dd></dl>
+
 <dl><dt>async <a name="TerritoryService-territories"><strong>territories</strong></a>(self) -&gt; 'list[TerritoryModel]'</dt><dd><span class="code">Return&nbsp;every&nbsp;territory&nbsp;of&nbsp;the&nbsp;current&nbsp;data&nbsp;set.</span></dd></dl>
 
 <dl><dt>async <a name="TerritoryService-territory_count_by_kingdom"><strong>territory_count_by_kingdom</strong></a>(self) -&gt; 'dict[str, int]'</dt><dd><span class="code">Return&nbsp;owned-territory&nbsp;counts&nbsp;per&nbsp;kingdom&nbsp;id&nbsp;(Conquest&nbsp;basis,&nbsp;T8).</span></dd></dl>
@@ -280,12 +289,17 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'_REMOVED_MAP_FALLBACKS': 'ClassVar[dict[str, tuple[str, ...]]]'}</dl>
+
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False<br>
+<td class="singlecolumn"><strong>ClassVar</strong> = typing.ClassVar<br>
+<strong>TYPE_CHECKING</strong> = False<br>
 <strong>logger</strong> = &lt;Logger kingdoms.territories (WARNING)&gt;</td></tr></table>
 </body></html>
