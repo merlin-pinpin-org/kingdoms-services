@@ -13,6 +13,7 @@ actual dispatch, command tree and service wiring.
 from __future__ import annotations
 
 import socket
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -76,3 +77,17 @@ def kingdoms_bot(bot_config: BotConfig) -> KingdomsBot:
 def simcord_bot(kingdoms_bot: KingdomsBot) -> KingdomsBot:
     """Hand the real bot to SimCord's environment runner."""
     return kingdoms_bot
+
+
+@pytest.fixture(autouse=True)
+def _reset_game_clock_offset() -> Iterator[None]:
+    """Keep the game-clock offset cache at 0 around EVERY test.
+
+    machine-temps-v2: ``game_clock`` holds a process-wide offset cache
+    — one test's ``advance_duration`` must never leak into the next.
+    """
+    from kingdoms.mods.kingdoms import game_clock
+
+    game_clock.set_game_offset(0)
+    yield
+    game_clock.set_game_offset(0)
