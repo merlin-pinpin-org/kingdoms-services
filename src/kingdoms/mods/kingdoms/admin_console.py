@@ -300,6 +300,7 @@ class AdminConsole:
         spec = COMMANDES.get(command)
         if spec is None:
             return strings["unknown"].format(command=command)
+        reply: str
         try:
             reply = await spec.handler(self, args)
         except (DebugError, KingdomsModError) as error:
