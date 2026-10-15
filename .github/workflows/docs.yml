@@ -35,10 +35,15 @@ jobs:
           else
             echo "::error::docs/DEVELOPMENT/pydoc is stale — regenerate with 'make docs' and commit"
             cat /tmp/pydoc-diff.txt
-            while IFS= read -r f; do
-              diff "$f" "docs/DEVELOPMENT/pydoc/${f#/tmp/pydoc-fresh/}" \
-                | head -20 | sed "s/^/LINE/" \
-                | while IFS= read -r line; do echo "::error::$line"; done
-            done < <(grep '^Files' /tmp/pydoc-diff.txt | awk '{print $2}' | head -3)
+            sed -n '26,31p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk1
+            sed -n '32,37p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk2
+            sed -n '38,43p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk3
+            sed -n '44,49p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk4
+            sed -n '50,55p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk5
+            sed -n '56,62p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk6
+            sed -n '1,10p' /tmp/pydoc-diff.txt > /tmp/chunk0
+            for c in 0 1 2 3 4 5 6; do
+              echo "::error::CHUNK$c $(tr '\n' '~' < /tmp/chunk$c)"
+            done
             exit 1
           fi
