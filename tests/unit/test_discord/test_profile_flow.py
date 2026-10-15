@@ -352,3 +352,30 @@ async def test_validation_seam_says_not_configured_without_stats() -> None:
     finally:
         if original is not None:
             platform.GameProviderClient = original  # type: ignore[assignment]
+
+
+def test_add_modal_payload_shape_is_the_proven_one() -> None:
+    """The add modal rides the exact shape that opens in production.
+
+    Regression guard (2026-10-15): a TextInput wrapped in a Label never
+    opened (silent 50035). The proven shape: the select in a Label (type
+    18), the TextInput naked in an ActionRow (type 1) carrying its own
+    label.
+    """
+    from discord import SelectOption
+
+    from kingdoms.discord.home import ProfileAddAccountModal
+
+    modal = ProfileAddAccountModal([SelectOption(label="AoE2", value="aoe2", default=True)])
+    payload = modal.to_components()
+    types = [c.get("type") for c in payload]
+    assert 18 in types, "the game select must ride a Label component"
+    assert 1 in types, "the text input must ride the classic ActionRow"
+    for component in payload:
+        if component.get("type") == 18:
+            assert component["component"]["type"] == 3, "the Label wraps the select"
+            assert component.get("label"), "the Label carries its own text"
+        if component.get("type") == 1:
+            inner = component["components"][0]
+            assert inner["type"] == 4, "the ActionRow wraps the TextInput"
+            assert inner.get("label") == "Profile id (insights.aoe2.com)"

@@ -329,17 +329,13 @@ class ProfileAddAccountModal(discord.ui.Modal):
             max_values=1,
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Profile id",
-            placeholder="Ex. 4828497 ( depuis insights.aoe2.com )",
+            label="Profile id (insights.aoe2.com)",
+            placeholder="Ex. 4828497",
             max_length=64,
             required=True,
         )
         self.add_item(discord.ui.Label(text="Jeu du compte", component=self.game))
-        self.add_item(discord.ui.Label(
-            text="Profile id",
-            description="Ton id de joueur AoE2 : dans insights.aoe2.com, c'est le nombre dans l'URL de ta page profil.",
-            component=self.profile_id,
-        ))
+        self.add_item(self.profile_id)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Bind the account, audit, confirm, then refresh the profile view."""

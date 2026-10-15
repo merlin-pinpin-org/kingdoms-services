@@ -19,6 +19,7 @@ import importlib
 import inspect
 import pkgutil
 from pathlib import Path
+from typing import Any
 
 import discord
 import pytest
@@ -142,3 +143,70 @@ def test_source_scans_for_bare_modal_selects() -> None:
                 continue
             if pattern_select in line and "Select" in line and "Label" not in line:
                 pytest.fail(f"{path}:{line.strip()} adds a bare select to a modal")
+
+
+# --- Discord's documented payload limits (Component Reference, oct. 2025) ---
+_LABEL_TEXT_MAX = 45
+_LABEL_DESCRIPTION_MAX = 100
+_PLACEHOLDER_MAX = 100
+_TEXT_INPUT_LABEL_MAX = 45
+
+
+def test_modal_payloads_respect_discord_limits() -> None:
+    """Every modal's serialized payload respects Discord's documented limits.
+
+    The 50035 rejections are silent for the user (the modal never opens)
+    and invisible to the logs \u2014 only a payload-level guard catches
+    them before the deploy: label text <= 45, description <= 100,
+    placeholder <= 100, TextInput label <= 45.
+    """
+    offenders: list[str] = []
+
+    def check(item: Any, where: str) -> None:
+        text = getattr(item, "text", None)
+        if text is not None and len(text) > _LABEL_TEXT_MAX:
+            offenders.append(f"{where}: Label text {len(text)} > {_LABEL_TEXT_MAX}")
+        description = getattr(item, "description", None)
+        if description is not None and len(description) > _LABEL_DESCRIPTION_MAX:
+            offenders.append(f"{where}: Label description {len(description)} > {_LABEL_DESCRIPTION_MAX}")
+        placeholder = getattr(item, "placeholder", None)
+        if placeholder is not None and len(placeholder) > _PLACEHOLDER_MAX:
+            offenders.append(f"{where}: placeholder {len(placeholder)} > {_PLACEHOLDER_MAX}")
+        inner_label = getattr(item, "label", None)
+        if type(item).__name__ == "TextInput" and inner_label and len(inner_label) > _TEXT_INPUT_LABEL_MAX:
+            offenders.append(f"{where}: TextInput label {len(inner_label)} > {_TEXT_INPUT_LABEL_MAX}")
+
+    for cls in _modal_classes():
+        modal = _instantiate(cls)
+        if modal is None:
+            continue
+        for child in modal.children:
+            check(child, cls.__name__)
+            inner = getattr(child, "component", None)
+            if inner is not None:
+                check(inner, f"{cls.__name__} (inner)")
+
+    assert not offenders, "Discord rejects the modal payload (50035, the modal never opens): " + "; ".join(offenders)
+
+
+def test_modal_textinputs_keep_the_proven_action_row_pattern() -> None:
+    """TextInput rides the repo's proven pattern: naked in an ActionRow.
+
+    The legacy pattern (TextInput with its own ``label`` in an implicit
+    ActionRow) works everywhere in production; wrapping a TextInput in
+    a Label component is NOT supported by discord.py 2.7's serializer
+    (the inner deprecated ``label`` leaks into the payload and Discord
+    rejects the modal \u2014 regression of 2026-10-15). Only selects need
+    the Label wrapper.
+    """
+    offenders: list[str] = []
+    for cls in _modal_classes():
+        modal = _instantiate(cls)
+        if modal is None:
+            continue
+        for child in modal.children:
+            if isinstance(child, discord.ui.Label) and isinstance(child.component, discord.ui.TextInput):
+                offenders.append(f"{cls.__name__}: TextInput wrapped in a Label")
+    assert not offenders, (
+        "TextInput must stay naked (ActionRow pattern), only selects ride a Label: " + "; ".join(offenders)
+    )
