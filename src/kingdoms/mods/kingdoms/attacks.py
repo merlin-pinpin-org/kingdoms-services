@@ -421,7 +421,10 @@ class AttackService:
             timestamp.timestamp()
         )
         attack = AttackModel(
-            _id=f"{season.id}-a-{territory.id}-{lord.id}",
+            # attaques-score-v1: the epoch suffix makes the id unique —
+            # a re-attack of the same territory by the same lord used
+            # to OVERWRITE the previous attack document.
+            _id=f"{season.id}-a-{territory.id}-{lord.id}-{int(timestamp.timestamp())}",
             season_id=season.id,
             kind=AttackKind.PLAYER,
             territory_id=territory.id,
@@ -523,7 +526,8 @@ class AttackService:
         state.purchases["embuscade"] = bought - 1
         await self._store.upsert_technology(state.to_mongo())
         attack = AttackModel(
-            _id=f"{season.id}-a-{territory.id}-{lord.id}",
+            # attaques-score-v1: epoch-unique id (see declare_attack).
+            _id=f"{season.id}-a-{territory.id}-{lord.id}-{int(timestamp.timestamp())}",
             season_id=season.id,
             kind=AttackKind.PLAYER,
             territory_id=territory.id,
@@ -946,6 +950,329 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
+    # ------------------------------------------------------------------
+    # The RDV score phase (attaques-score-v1)
+    # ------------------------------------------------------------------
+    async def score_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Open the score phase at T for every resolved pick & ban.
+
+        The tick moves the attack to the new ``MEETING`` state: the
+        RDV itself. Idempotent through ``score["opened"]`` — a restart
+        replays nothing. Un-resolved pick & bans keep the legacy
+        forfeit path (``_expire_defended``) — the two rules coexist.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.DEFENDED:
+                continue
+            if attack.is_over or not attack.pickban.get("resolved_pickban"):
+                continue
+            if attack.score.get("opened") or timestamp < attack.expires_at:
+                continue
+            score = dict(attack.score)
+            score["opened"] = True
+            score["ready"] = []
+            # The T+5 no-show line, epoch seconds (Mongo-proof).
+            score["ready_deadline"] = int(
+                (attack.expires_at + timedelta(minutes=self.READY_GRACE_MINUTES)).timestamp()
+            )
+            attack.score = score
+            attack.state = AttackState.MEETING
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info("kingdoms: score phase opened on %s (meeting)", attack.map_key)
+        return due
+
+    READY_GRACE_MINUTES = 5
+
+    async def mark_ready(self, attack_id: str, player_id: str) -> AttackModel:
+        """Record one player's « Prêt » click in the score phase.
+
+        Idempotent — a double click adds nothing. Only the two players
+        of the meeting confirm; the AI defender never does.
+        """
+        attack = await self._require_meeting(attack_id)
+        self._require_score_player(attack, player_id)
+        ready = list(attack.score.get("ready") or [])
+        if player_id not in ready:
+            ready.append(player_id)
+            score = dict(attack.score)
+            score["ready"] = ready
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.info("kingdoms: %s is ready on the meeting of %s", player_id, attack.map_key)
+        return attack
+
+    async def ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Apply the T+5 no-show line of every open meeting.
+
+        A player without « Prêt » at T+5 loses the meeting (the other
+        camp wins, immediate resolution). Both human players missing →
+        double forfait: the territory stays with the defender (the
+        attack ends ``expired``, no transfer). Vs AI the attacker is
+        the only one who can no-show. The tick replays it safely —
+        resolved meetings leave the MEETING state.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        if await self._active_lords_day_window(timestamp) is not None:
+            return []
+        handled: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            deadline = int(attack.score.get("ready_deadline") or 0)
+            if timestamp.timestamp() < deadline:
+                continue
+            ready = set(attack.score.get("ready") or [])
+            attacker_ready = attack.attacker_lord_id in ready
+            defender_needed = not attack.ai_defender and attack.defender_lord_id is not None
+            defender_ready = attack.defender_lord_id in ready
+            if attacker_ready and (defender_ready or not defender_needed):
+                continue  # both present — the game decides
+            if not attacker_ready and defender_ready:
+                await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
+            elif attacker_ready:
+                await self._apply_noshow(attack, attack.attacker_kingdom_id, "defender", timestamp)
+            elif not defender_needed:
+                # vs AI: only the attacker confirms — he no-showed.
+                await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
+            else:
+                # double no-show: double forfait, no transfer (Drasah).
+                score = dict(attack.score)
+                score["noshow"] = "both"
+                attack.score = score
+                attack.state = AttackState.EXPIRED
+                attack.resolved_at = timestamp
+                await self._store.upsert_attack(attack.to_mongo())
+                logger.warning(
+                    "kingdoms: double no-show on %s — double forfait, territory kept",
+                    attack.map_key,
+                )
+            handled.append(attack)
+        return handled
+
+    async def _apply_noshow(
+        self, attack: AttackModel, winner: str, noshow_side: str, timestamp: datetime
+    ) -> None:
+        """Resolve a meeting by the T+5 no-show of one side."""
+        score = dict(attack.score)
+        score["noshow"] = noshow_side
+        attack.score = score
+        await self._resolve_score(attack, winner, timestamp)
+        logger.warning(
+            "kingdoms: %s no-showed the meeting of %s — %s wins",
+            noshow_side,
+            attack.map_key,
+            winner,
+        )
+
+    async def declare_score(
+        self,
+        attack_id: str,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> tuple[AttackModel, str]:
+        """Declare the game result of a meeting (attaques-score-v1).
+
+        Returns ``(attack, outcome)`` where outcome is ``"resolved"``
+        (the result was applied — consensus or the unilatéral fait-foi
+        rule, vs AI included), ``"already"`` (the same result of an
+        already resolved attack — idempotent) or ``"disputed"`` (a
+        contrary declaration after the resolution: the score phase
+        flags ``disputed`` and the admins arbitrate — see
+        ``resolve_dispute``).
+        """
+        await self._require_running_season()
+        timestamp = now or _now()
+        if await self._active_lords_day_window(timestamp) is not None and not bypass_guard(
+            "lords-day score window"
+        ):
+            raise LordsDayAttackError(
+                "the result cannot be declared inside the Lord's Day window "
+                "(declare it after the window closes)"
+            )
+        attack = await self._find_attack(attack_id)
+        if attack.kind is not AttackKind.PLAYER:
+            raise AttackStateError("the free-for-all has no score phase")
+        game_id = (game_id or "").strip()
+        if not game_id:
+            raise AttackError("the game id is required")
+        allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
+        if winner_kingdom_id not in allowed:
+            raise AttackStateError("this kingdom took no part in the attack")
+        if attack.is_over:
+            score = dict(attack.score)
+            declarations = dict(score.get("declarations") or {})
+            declarations[player_id] = {
+                "winner": winner_kingdom_id,
+                "game_id": game_id,
+                "at": int(timestamp.timestamp()),
+            }
+            score["declarations"] = declarations
+            score["game_id"] = game_id
+            if attack.winner_kingdom_id == winner_kingdom_id:
+                await self._store.upsert_attack(attack.to_mongo())
+                return attack, "already"
+            score["disputed"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms: DISPUTE on %s — %s declares %s after the %s resolution",
+                attack.map_key,
+                player_id,
+                winner_kingdom_id,
+                attack.winner_kingdom_id,
+            )
+            return attack, "disputed"
+        if attack.state is not AttackState.MEETING:
+            raise AttackStateError("the score phase is not open on this attack")
+        self._require_score_player(attack, player_id)
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
+        declarations[player_id] = {
+            "winner": winner_kingdom_id,
+            "game_id": game_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["declarations"] = declarations
+        score["game_id"] = game_id
+        attack.score = score
+        # The FIRST declaring player's result FAIT FOI (Drasah 15/10) —
+        # consensus is only the happy case where both agree; a contrary
+        # declaration lands AFTER the resolution as a dispute.
+        await self._resolve_score(attack, winner_kingdom_id, timestamp)
+        logger.info(
+            "kingdoms: result declared on %s by %s (game %s) — %s wins",
+            attack.map_key,
+            player_id,
+            game_id,
+            winner_kingdom_id,
+        )
+        return attack, "resolved"
+
+    async def _resolve_score(
+        self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime
+    ) -> None:
+        """Apply the game result of a meeting (D20), idempotently."""
+        attack.state = AttackState.RESOLVED
+        attack.winner_kingdom_id = winner_kingdom_id
+        attack.resolved_at = timestamp
+        if winner_kingdom_id == attack.attacker_kingdom_id:
+            await self._apply_attacker_win(attack)
+        await self._store.upsert_attack(attack.to_mongo())
+        await self._record_verdicts(attack)
+
+    async def _require_meeting(self, attack_id: str) -> AttackModel:
+        """Fetch the attack and enforce the open score phase."""
+        attack = await self._find_attack(attack_id)
+        if attack.state is not AttackState.MEETING:
+            raise AttackStateError("the score phase is not open on this attack")
+        return attack
+
+    def _require_score_player(self, attack: AttackModel, player_id: str) -> str:
+        """Resolve which side the declaring player speaks for."""
+        if player_id == attack.attacker_lord_id:
+            return "attacker"
+        if player_id == attack.defender_lord_id and not attack.ai_defender:
+            return "defender"
+        raise AttackStateError("only the two players of the meeting declare a result")
+
+    async def resolve_dispute(
+        self, attack_id: str, admin_choice: str, *, now: datetime | None = None
+    ) -> AttackModel:
+        """Admin arbitration of a disputed meeting (attaques-score-v1).
+
+        ``admin_choice`` is ``"attacker"``, ``"defender"`` (the side
+        that actually won) or ``"both"`` (double forfait). Best-effort
+        override: a reversed attacker win gives the territory back,
+        a new attacker win applies the usual chantier/sacré rules —
+        the chantier case cannot be undone (logged limitation).
+        """
+        timestamp = now or _now()
+        attack = await self._find_attack(attack_id)
+        if not attack.score.get("disputed"):
+            raise AttackStateError("this attack carries no dispute")
+        if admin_choice not in ("attacker", "defender", "both"):
+            raise AttackError("admin_choice must be attacker, defender or both")
+        score = dict(attack.score)
+        score["admin_choice"] = admin_choice
+        score["disputed"] = False
+        attack.score = score
+        territory = next(
+            (
+                item
+                for item in await self._territories.territories()
+                if item.id == attack.territory_id
+            ),
+            None,
+        )
+        if admin_choice == "both":
+            previous = attack.winner_kingdom_id
+            attack.state = AttackState.EXPIRED
+            attack.winner_kingdom_id = None
+            attack.resolved_at = timestamp
+            if (
+                territory is not None
+                and previous == attack.attacker_kingdom_id
+                and territory.owner_kingdom_id == previous
+            ):
+                await self._territories.transfer(attack.territory_id, attack.defender_kingdom_id)
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms: admin arbitration on %s — double forfait, territory kept",
+                attack.map_key,
+            )
+            return attack
+        winner = (
+            attack.attacker_kingdom_id
+            if admin_choice == "attacker"
+            else attack.defender_kingdom_id
+        )
+        if attack.winner_kingdom_id == winner:
+            await self._store.upsert_attack(attack.to_mongo())  # confirm the resolution
+            logger.warning(
+                "kingdoms: admin arbitration on %s confirmed the %s win",
+                attack.map_key,
+                winner,
+            )
+            return attack
+        attack.winner_kingdom_id = winner
+        attack.state = AttackState.RESOLVED
+        attack.resolved_at = timestamp
+        if winner == attack.attacker_kingdom_id:
+            if territory is not None and territory.is_chantier_at(timestamp):
+                logger.warning(
+                    "kingdoms: admin arbitration on %s hits a CHANTIER — cannot be undone",
+                    attack.map_key,
+                )
+            await self._apply_attacker_win(attack)
+        else:
+            if (
+                territory is not None
+                and territory.owner_kingdom_id == attack.attacker_kingdom_id
+            ):
+                await self._territories.transfer(attack.territory_id, attack.defender_kingdom_id)
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.warning(
+            "kingdoms: admin arbitration on %s overrode the result — %s wins",
+            attack.map_key,
+            winner,
+        )
+        return attack
+
+
     async def cancel_ongoing(self) -> list[AttackModel]:
         """Cancel every ongoing attack before the season verdict.
 
@@ -956,7 +1283,11 @@ class AttackService:
         """
         cancelled: list[AttackModel] = []
         for attack in await self.attacks():
-            if attack.state not in (AttackState.DECLARED, AttackState.DEFENDED):
+            if attack.state not in (
+                AttackState.DECLARED,
+                AttackState.DEFENDED,
+                AttackState.MEETING,
+            ):
                 continue
             attack.state = AttackState.EXPIRED
             await self._store.upsert_attack(attack.to_mongo())
@@ -985,8 +1316,13 @@ class AttackService:
                 return attack  # idempotent replay of the same result
             raise AttackStateError("the attack is already resolved with another winner")
         # A Gaïa free-for-all has no defending step (D44): it resolves
-        # from DECLARED once the game result comes in.
-        allowed_states: tuple[AttackState, ...] = (AttackState.DEFENDED, AttackState.EXPIRED)
+        # from DECLARED once the game result comes in. A MEETING (the
+        # RDV, attaques-score-v1) resolves from the score phase.
+        allowed_states: tuple[AttackState, ...] = (
+            AttackState.DEFENDED,
+            AttackState.MEETING,
+            AttackState.EXPIRED,
+        )
         if attack.kind is AttackKind.GAIA:
             allowed_states = (AttackState.DECLARED, AttackState.DEFENDED, AttackState.EXPIRED)
         if attack.state not in allowed_states:

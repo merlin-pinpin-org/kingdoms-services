@@ -342,13 +342,16 @@ class AttackState(StrEnum):
     """State machine of an attack (reference §12).
 
     ``declared`` waits for a defender until the delay expires;
-    ``defended`` waits for the game result; ``expired`` applied the
-    admin-configured no-defense outcome; ``resolved`` carries the final
+    ``defended`` waits for the pick & ban (D77); ``meeting``
+    (attaques-score-v1) is the RDV itself — the pick & ban resolved,
+    the score phase (Prêt, declarations, dispute) is open; ``expired``
+    applied the no-defense outcome; ``resolved`` carries the final
     winner (capture or conservation) and never moves again.
     """
 
     DECLARED = "declared"
     DEFENDED = "defended"
+    MEETING = "meeting"
     EXPIRED = "expired"
     RESOLVED = "resolved"
 
@@ -405,6 +408,13 @@ class AttackModel(BaseModel):
     civilizations each), sabotages (per side, 2 max), validated flags,
     ``sent`` (the T-5 DM left), ``resolved_pickban`` (civs revealed) and
     ``forfeit_side`` (the side that missed its validation)."""
+    score: dict[str, Any] = Field(default_factory=dict)
+    """The RDV score phase (attaques-score-v1): ``opened`` (the phase
+    started at T), ``ready`` (the player ids that clicked Prêt),
+    ``ready_deadline`` (epoch seconds — the T+5 no-show line),
+    ``declarations`` (player id -> winner/game_id/at), ``game_id`` (the
+    last declared game) and ``disputed`` (a contrary declaration came
+    in after the resolution — admin arbitration needed)."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

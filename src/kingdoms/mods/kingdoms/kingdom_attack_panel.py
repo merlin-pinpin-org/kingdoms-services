@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -141,6 +141,42 @@ _STRINGS: dict[str, dict[str, str]] = {
         "forfeit_side": "🏳️ Forfait sur **{map}** — **{side}** a manqué la validation : victoire de **{kingdom}**.",
         "side_attacker": "l'attaquant",
         "side_defender": "le défenseur",
+        "score_dm": (
+            "🏟️ **RDV — {map}**\nLe pick & ban est résolu — civilisations en jeu :"
+            "**{civs}**.\nConfirme ta présence avant **{time}** puis déclare le"
+            " résultat avec l'**ID de la game**. Un manqué au RDV est un forfait !"
+        ),
+        "score_ready": "✅ Prêt",
+        "score_win_attacker": "🏆 Victoire attaquant",
+        "score_win_defender": "🏆 Victoire défenseur",
+        "score_ready_done": "✅ Présence confirmée — déclare le résultat après la partie.",
+        "score_modal_title": "Résultat de la game",
+        "score_modal_label": "ID de la game (requis)",
+        "score_modal_placeholder": "ex. 123456",
+        "score_resolved": (
+            "🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."
+        ),
+        "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
+        "score_disputed": (
+            "⚖️ Ta déclaration contredit le résultat déjà enregistré — les admins"
+            " arbitrent (game {game})."
+        ),
+        "noshow_side": (
+            "🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."
+        ),
+        "noshow_both": (
+            "🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste"
+            " à son propriétaire."
+        ),
+        "dispute_admin_dm": (
+            "⚖️ **Litige — {map}**\n{declarations}\nTranche le résultat (game {game})."
+        ),
+        "dispute_win_attacker": "⚖️ Tranche : attaquant",
+        "dispute_win_defender": "⚖️ Tranche : défenseur",
+        "dispute_double": "🏳️ Double forfait",
+        "dispute_applied": "⚖️ Arbitrage appliqué — **{kingdom}** remporte **{map}**.",
+        "dispute_forfeit": "⚖️ Arbitrage appliqué — double forfait sur **{map}**.",
+        "dispute_not_admin": "❌ Seuls les bot-admins arbitrent un litige.",
     },
     "en": {
         "panel_title": "⚔️ **Battlefield — Attack**",
@@ -253,6 +289,43 @@ _STRINGS: dict[str, dict[str, str]] = {
         "forfeit_side": "🏳️ Forfeit on **{map}** — **{side}** missed the validation: victory of **{kingdom}**.",
         "side_attacker": "the attacker",
         "side_defender": "the defender",
+        "score_dm": (
+            "🏟️ **Meeting — {map}**\nThe pick & ban is resolved — civilizations in"
+            " play: **{civs}**.\nConfirm your presence before **{time}** then"
+            " declare the result with the **game ID**. A miss at the meeting is"
+            " a forfeit!"
+        ),
+        "score_ready": "✅ Ready",
+        "score_win_attacker": "🏆 Attacker wins",
+        "score_win_defender": "🏆 Defender wins",
+        "score_ready_done": "✅ Presence confirmed — declare the result after the game.",
+        "score_modal_title": "Game result",
+        "score_modal_label": "Game ID (required)",
+        "score_modal_placeholder": "e.g. 123456",
+        "score_resolved": (
+            "🏆 Result recorded — **{winner}** wins **{map}** (game {game})."
+        ),
+        "score_already": "✅ This result was already recorded — nothing to do.",
+        "score_disputed": (
+            "⚖️ Your declaration contradicts the recorded result — the admins"
+            " arbitrate (game {game})."
+        ),
+        "noshow_side": (
+            "🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."
+        ),
+        "noshow_both": (
+            "🏳️ **{map}** — double forfeit: no player at the meeting, the territory"
+            " stays with its owner."
+        ),
+        "dispute_admin_dm": (
+            "⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."
+        ),
+        "dispute_win_attacker": "⚖️ Rule: attacker",
+        "dispute_win_defender": "⚖️ Rule: defender",
+        "dispute_double": "🏳️ Double forfeit",
+        "dispute_applied": "⚖️ Arbitration applied — **{kingdom}** wins **{map}**.",
+        "dispute_forfeit": "⚖️ Arbitration applied — double forfeit on **{map}**.",
+        "dispute_not_admin": "❌ Only bot-admins arbitrate a dispute.",
     },
 }
 
@@ -1307,7 +1380,11 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
                 for attack in await attacks_service.pick_ban_due():
                     await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                for attack in await attacks_service.score_due():
+                    await _send_score_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                await _register_score_views_safe(bot, attacks_service, locale)
                 await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
+                await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
             except Exception:
                 logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
         await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
@@ -1364,3 +1441,306 @@ async def _run_forfeits_safe(
                     map=attack.map_key, side=strings[f"side_{side}"], kingdom=kingdom
                 ),
             )
+
+
+# ----------------------------------------------------------------------
+# The RDV score phase (attaques-score-v1)
+# ----------------------------------------------------------------------
+SCORE_CHOICE_SIDE = {"attacker": "score_win_attacker", "defender": "score_win_defender"}
+
+
+class KingdomScoreView(discord.ui.View):
+    """The persistent DM view of the RDV: Prêt + result declaration.
+
+    Restart-safe: the tick re-registers one view per meeting player
+    (``bot.add_view``) so the custom ids keep answering after every
+    restart, and the DMs leave only once (``score_due`` idempotence).
+    """
+
+    def __init__(
+        self,
+        attack_id: str,
+        player_id: str,
+        winners: dict[str, str],
+        locale: str,
+        announce_channel: Any = None,
+    ) -> None:
+        super().__init__(timeout=None)
+        self.attack_id = attack_id
+        self.player_id = player_id
+        self.winners = winners  # side -> kingdom id
+        self.announce_channel = announce_channel
+        strings = _strings(locale)
+        self.strings = strings
+        ready: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+            label=strings["score_ready"][:80],
+            custom_id=f"kingdoms:attack:score:ready:{attack_id}:{player_id}",
+            style=discord.ButtonStyle.secondary,
+        )
+        ready.callback = self._on_ready  # type: ignore[method-assign]
+        self.add_item(ready)
+        for side, key in SCORE_CHOICE_SIDE.items():
+            button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+                label=strings[key][:80],
+                custom_id=f"kingdoms:attack:score:win:{side}:{attack_id}:{player_id}",
+                style=discord.ButtonStyle.primary,
+            )
+            button.callback = self._make_on_win(side)  # type: ignore[method-assign]
+            self.add_item(button)
+
+    async def _on_ready(self, interaction: discord.Interaction) -> None:
+        """Confirm the presence at the meeting (the T+5 no-show line)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = self.strings
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        try:
+            await wiring.attacks_service.mark_ready(self.attack_id, self.player_id)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.response.send_message(
+                strings["failed"].format(message=message), ephemeral=True
+            )
+            return
+        await interaction.response.send_message(strings["score_ready_done"], ephemeral=True)
+
+    def _make_on_win(self, side: str) -> Any:
+        """Open the game-id modal for the declared winning side."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        async def _on_win(interaction: discord.Interaction) -> None:
+            wiring = _wiring()
+            if wiring.attacks_service is None:
+                await interaction.response.send_message(self.strings["no_service"], ephemeral=True)
+                return
+            await interaction.response.send_modal(
+                KingdomScoreModal(self, self.winners[side], side)
+            )
+
+        return _on_win
+
+
+class KingdomScoreModal(discord.ui.Modal):
+    """The game-id + result declaration modal (attaques-score-v1)."""
+
+    def __init__(self, view: KingdomScoreView, winner_kingdom_id: str, side: str) -> None:
+        super().__init__(title=view.strings["score_modal_title"][:45], timeout=300)
+        self.score_view = view
+        self.winner_kingdom_id = winner_kingdom_id
+        self.side = side
+        self.game_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=view.strings["score_modal_label"][:45],
+            placeholder=view.strings["score_modal_placeholder"][:100],
+            required=True,
+            max_length=100,
+        )
+        self.add_item(self.game_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Apply the declaration — fait foi; a contrary one disputes."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        view = self.score_view
+        strings = view.strings
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        game_id = str(self.game_input.value or "").strip()
+        try:
+            attack, outcome = await wiring.attacks_service.declare_score(
+                view.attack_id, view.player_id, self.winner_kingdom_id, game_id
+            )
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.response.send_message(
+                strings["failed"].format(message=message), ephemeral=True
+            )
+            return
+        if outcome == "disputed":
+            await interaction.response.send_message(
+                strings["score_disputed"].format(game=game_id), ephemeral=True
+            )
+            await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+            return
+        if outcome == "already":
+            await interaction.response.send_message(strings["score_already"], ephemeral=True)
+            return
+        winner = await _kingdom_name(wiring.kingdoms_service, attack.winner_kingdom_id)
+        await interaction.response.send_message(
+            strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id),
+            ephemeral=True,
+        )
+        await _announce_safe(
+            view.announce_channel,
+            strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id),
+        )
+
+
+class KingdomDisputeView(discord.ui.View):
+    """The admin arbitration view of a disputed meeting (bot-admin only)."""
+
+    def __init__(self, attack_id: str, locale: str) -> None:
+        super().__init__(timeout=None)
+        self.attack_id = attack_id
+        strings = _strings(locale)
+        self.strings = strings
+        for choice, key in (
+            ("attacker", "dispute_win_attacker"),
+            ("defender", "dispute_win_defender"),
+            ("both", "dispute_double"),
+        ):
+            button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+                label=strings[key][:80],
+                custom_id=f"kingdoms:attack:dispute:{choice}:{attack_id}",
+                style=discord.ButtonStyle.danger,
+            )
+            button.callback = self._make_on_arbitrate(choice)  # type: ignore[method-assign]
+            self.add_item(button)
+
+    def _make_on_arbitrate(self, choice: str) -> Any:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        async def _on_arbitrate(interaction: discord.Interaction) -> None:
+            strings = self.strings
+            wiring = _wiring()
+            if str(getattr(interaction.user, "id", "")) not in (wiring.bot_admins or ()):
+                await interaction.response.send_message(
+                    strings["dispute_not_admin"], ephemeral=True
+                )
+                return
+            if wiring.attacks_service is None:
+                await interaction.response.send_message(strings["no_service"], ephemeral=True)
+                return
+            try:
+                attack = await wiring.attacks_service.resolve_dispute(self.attack_id, choice)
+            except Exception as exc:
+                message = getattr(exc, "message", None) or str(exc)
+                await interaction.response.send_message(
+                    strings["failed"].format(message=message), ephemeral=True
+                )
+                return
+            if choice == "both":
+                await interaction.response.send_message(
+                    strings["dispute_forfeit"].format(map=attack.map_key), ephemeral=True
+                )
+            else:
+                kingdom = await _kingdom_name(wiring.kingdoms_service, attack.winner_kingdom_id)
+                await interaction.response.send_message(
+                    strings["dispute_applied"].format(kingdom=kingdom, map=attack.map_key),
+                    ephemeral=True,
+                )
+
+        return _on_arbitrate
+
+
+def _score_civs(attack: Any) -> str:
+    """Return the post-sabotage civilizations of the meeting (D77)."""
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    mine = pickban.get("attacker_picks") or []
+    theirs = pickban.get("defender_picks") or []
+    return f"{', '.join(mine) or '—'} 🆚 {', '.join(theirs) or '—'}"
+
+
+async def _send_score_dm(
+    bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str
+) -> None:
+    """Send the RDV DM (Prêt + result buttons) to each human player."""
+    strings = _strings(locale)
+    winners = {
+        "attacker": str(attack.attacker_kingdom_id),
+        "defender": str(attack.defender_kingdom_id),
+    }
+    deadline = int((attack.score or {}).get("ready_deadline") or 0)
+    from datetime import datetime as _dt
+
+    when = _fmt_paris(_dt.fromtimestamp(deadline, tz=UTC)) if deadline else "—"
+    content = strings["score_dm"].format(
+        map=attack.map_key, civs=_score_civs(attack), time=when
+    )
+    for player_id in _score_players(attack):
+        view = KingdomScoreView(
+            str(attack.id), str(player_id), winners, locale, announce_channel=channel
+        )
+        try:
+            bot.add_view(view)  # restart-safe callbacks from the first second
+        except Exception:
+            logger.warning("KINGDOM ATTACK: score view registration failed", exc_info=True)
+        await _dm_user_safe(bot, str(player_id), content, view)
+
+
+def _score_players(attack: Any) -> list[str]:
+    """Return the human players of the meeting (the AI never declares)."""
+    players = [str(attack.attacker_lord_id)]
+    if attack.defender_lord_id and not attack.ai_defender:
+        players.append(str(attack.defender_lord_id))
+    return players
+
+
+async def _register_score_views_safe(bot: Any, attacks_service: Any, locale: str) -> None:
+    """Re-register the DM views of every open meeting after a restart."""
+    try:
+        meetings = [
+            attack
+            for attack in await attacks_service.attacks()
+            if getattr(attack, "state", None) is not None
+            and str(attack.state) == "meeting"
+            and (attack.score or {}).get("opened")
+        ]
+    except Exception:
+        logger.warning("KINGDOM ATTACK: meeting scan failed", exc_info=True)
+        return
+    for attack in meetings:
+        winners = {
+            "attacker": str(attack.attacker_kingdom_id),
+            "defender": str(attack.defender_kingdom_id),
+        }
+        for player_id in _score_players(attack):
+            try:
+                bot.add_view(
+                    KingdomScoreView(str(attack.id), str(player_id), winners, locale)
+                )
+            except Exception:
+                logger.warning("KINGDOM ATTACK: score view re-registration failed", exc_info=True)
+
+
+async def _dm_admins_dispute_safe(
+    bot: Any, wiring: Any, attack: Any, strings: dict[str, str]
+) -> None:
+    """DM the bot-admins a disputed meeting with the arbitration buttons."""
+    declarations = (attack.score or {}).get("declarations") or {}
+    lines = [
+        f"• <@{player}> → {decl.get('winner')} (game {decl.get('game_id')})"
+        for player, decl in declarations.items()
+    ]
+    content = strings["dispute_admin_dm"].format(
+        map=attack.map_key,
+        declarations="\n".join(lines) or "—",
+        game=(attack.score or {}).get("game_id") or "—",
+    )
+    view = KingdomDisputeView(str(attack.id), "fr")
+    for admin_id in wiring.bot_admins or ():
+        await _dm_user_safe(bot, str(admin_id), content, view)
+
+
+async def _run_noshows_safe(
+    attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
+) -> None:
+    """Announce the T+5 no-show resolutions of the meetings."""
+    for attack in await attacks_service.ready_due():
+        noshow = (attack.score or {}).get("noshow")
+        if not noshow:
+            continue
+        if noshow == "both":
+            await _announce_safe(channel, strings["noshow_both"].format(map=attack.map_key))
+            continue
+        kingdom = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
+        await _announce_safe(
+            channel,
+            strings["noshow_side"].format(
+                map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom
+            ),
+        )

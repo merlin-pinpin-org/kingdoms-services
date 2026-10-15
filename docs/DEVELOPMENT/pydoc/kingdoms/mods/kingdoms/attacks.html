@@ -314,6 +314,16 @@ The&nbsp;first&nbsp;declarer&nbsp;reserves&nbsp;the&nbsp;territory&nbsp;and&nbsp
 maximum&nbsp;participants,&nbsp;everyone&nbsp;for&nbsp;himself&nbsp;(D6),&nbsp;no&nbsp;time&nbsp;limit<br>
 (D44&nbsp;—&nbsp;the&nbsp;result&nbsp;comes&nbsp;through&nbsp;the&nbsp;game&nbsp;contract).</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-declare_score"><strong>declare_score</strong></a>(self, attack_id: 'str', player_id: 'str', winner_kingdom_id: 'str', game_id: 'str', *, now: 'datetime | None' = None) -&gt; 'tuple[AttackModel, str]'</dt><dd><span class="code">Declare&nbsp;the&nbsp;game&nbsp;result&nbsp;of&nbsp;a&nbsp;meeting&nbsp;(attaques-score-v1).<br>
+&nbsp;<br>
+Returns&nbsp;``(attack,&nbsp;outcome)``&nbsp;where&nbsp;outcome&nbsp;is&nbsp;``"resolved"``<br>
+(the&nbsp;result&nbsp;was&nbsp;applied&nbsp;—&nbsp;consensus&nbsp;or&nbsp;the&nbsp;unilatéral&nbsp;fait-foi<br>
+rule,&nbsp;vs&nbsp;AI&nbsp;included),&nbsp;``"already"``&nbsp;(the&nbsp;same&nbsp;result&nbsp;of&nbsp;an<br>
+already&nbsp;resolved&nbsp;attack&nbsp;—&nbsp;idempotent)&nbsp;or&nbsp;``"disputed"``&nbsp;(a<br>
+contrary&nbsp;declaration&nbsp;after&nbsp;the&nbsp;resolution:&nbsp;the&nbsp;score&nbsp;phase<br>
+flags&nbsp;``disputed``&nbsp;and&nbsp;the&nbsp;admins&nbsp;arbitrate&nbsp;—&nbsp;see<br>
+``resolve_dispute``).</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-defense_ai_level"><strong>defense_ai_level</strong></a>(self, kingdom_id: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom&nbsp;defence&nbsp;bot's&nbsp;AI&nbsp;level&nbsp;(marche-v2&nbsp;art.&nbsp;5).<br>
 &nbsp;<br>
 The&nbsp;base&nbsp;level&nbsp;is&nbsp;the&nbsp;season&nbsp;epoch's&nbsp;(D18:&nbsp;1=Facile&nbsp;…&nbsp;5=Extrême);<br>
@@ -332,10 +342,24 @@ missed&nbsp;its&nbsp;validation&nbsp;loses&nbsp;(both&nbsp;missed&nbsp;→&nbsp;
 present,&nbsp;wins).&nbsp;A&nbsp;resolved&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;keeps&nbsp;waiting&nbsp;for&nbsp;the<br>
 game&nbsp;result&nbsp;(D20)&nbsp;—&nbsp;the&nbsp;RDV&nbsp;itself.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-mark_ready"><strong>mark_ready</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Record&nbsp;one&nbsp;player's&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;click&nbsp;in&nbsp;the&nbsp;score&nbsp;phase.<br>
+&nbsp;<br>
+Idempotent&nbsp;—&nbsp;a&nbsp;double&nbsp;click&nbsp;adds&nbsp;nothing.&nbsp;Only&nbsp;the&nbsp;two&nbsp;players<br>
+of&nbsp;the&nbsp;meeting&nbsp;confirm;&nbsp;the&nbsp;AI&nbsp;defender&nbsp;never&nbsp;does.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-5&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
 &nbsp;<br>
 Idempotent&nbsp;through&nbsp;``pickban["sent"]``.&nbsp;The&nbsp;AI&nbsp;side<br>
 auto-validates&nbsp;at&nbsp;the&nbsp;same&nbsp;moment&nbsp;(no&nbsp;human&nbsp;to&nbsp;wait&nbsp;for).</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-ready_due"><strong>ready_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;T+5&nbsp;no-show&nbsp;line&nbsp;of&nbsp;every&nbsp;open&nbsp;meeting.<br>
+&nbsp;<br>
+A&nbsp;player&nbsp;without&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;at&nbsp;T+5&nbsp;loses&nbsp;the&nbsp;meeting&nbsp;(the&nbsp;other<br>
+camp&nbsp;wins,&nbsp;immediate&nbsp;resolution).&nbsp;Both&nbsp;human&nbsp;players&nbsp;missing&nbsp;→<br>
+double&nbsp;forfait:&nbsp;the&nbsp;territory&nbsp;stays&nbsp;with&nbsp;the&nbsp;defender&nbsp;(the<br>
+attack&nbsp;ends&nbsp;``expired``,&nbsp;no&nbsp;transfer).&nbsp;Vs&nbsp;AI&nbsp;the&nbsp;attacker&nbsp;is<br>
+the&nbsp;only&nbsp;one&nbsp;who&nbsp;can&nbsp;no-show.&nbsp;The&nbsp;tick&nbsp;replays&nbsp;it&nbsp;safely&nbsp;—<br>
+resolved&nbsp;meetings&nbsp;leave&nbsp;the&nbsp;MEETING&nbsp;state.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-recharge_weekly_budgets"><strong>recharge_weekly_budgets</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Recharge&nbsp;every&nbsp;lord's&nbsp;weekly&nbsp;budgets&nbsp;at&nbsp;the&nbsp;cycle&nbsp;switch&nbsp;(D1).</span></dd></dl>
 
@@ -344,6 +368,14 @@ auto-validates&nbsp;at&nbsp;the&nbsp;same&nbsp;moment&nbsp;(no&nbsp;human&nbsp;t
 The&nbsp;winner&nbsp;is&nbsp;either&nbsp;the&nbsp;attacker&nbsp;(capture)&nbsp;or&nbsp;the&nbsp;defender<br>
 (conservation);&nbsp;Gaïa&nbsp;can&nbsp;also&nbsp;keep&nbsp;its&nbsp;territory&nbsp;in&nbsp;a<br>
 free-for-all&nbsp;nobody&nbsp;won.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-resolve_dispute"><strong>resolve_dispute</strong></a>(self, attack_id: 'str', admin_choice: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Admin&nbsp;arbitration&nbsp;of&nbsp;a&nbsp;disputed&nbsp;meeting&nbsp;(attaques-score-v1).<br>
+&nbsp;<br>
+``admin_choice``&nbsp;is&nbsp;``"attacker"``,&nbsp;``"defender"``&nbsp;(the&nbsp;side<br>
+that&nbsp;actually&nbsp;won)&nbsp;or&nbsp;``"both"``&nbsp;(double&nbsp;forfait).&nbsp;Best-effort<br>
+override:&nbsp;a&nbsp;reversed&nbsp;attacker&nbsp;win&nbsp;gives&nbsp;the&nbsp;territory&nbsp;back,<br>
+a&nbsp;new&nbsp;attacker&nbsp;win&nbsp;applies&nbsp;the&nbsp;usual&nbsp;chantier/sacré&nbsp;rules&nbsp;—<br>
+the&nbsp;chantier&nbsp;case&nbsp;cannot&nbsp;be&nbsp;undone&nbsp;(logged&nbsp;limitation).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-respond_defense"><strong>respond_defense</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Answer&nbsp;an&nbsp;attack:&nbsp;any&nbsp;lord&nbsp;of&nbsp;the&nbsp;defending&nbsp;kingdom&nbsp;(D7).<br>
 &nbsp;<br>
@@ -366,6 +398,13 @@ the&nbsp;reveal&nbsp;never&nbsp;reached).</span></dd></dl>
 &nbsp;<br>
 Kingdom-vs-kingdom&nbsp;only,&nbsp;at&nbsp;most&nbsp;two&nbsp;sniped&nbsp;civilizations&nbsp;per<br>
 game;&nbsp;the&nbsp;effect&nbsp;is&nbsp;recorded&nbsp;on&nbsp;the&nbsp;attack&nbsp;for&nbsp;the&nbsp;game&nbsp;setup.</span></dd></dl>
+
+<dl><dt>async <a name="AttackService-score_due"><strong>score_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Open&nbsp;the&nbsp;score&nbsp;phase&nbsp;at&nbsp;T&nbsp;for&nbsp;every&nbsp;resolved&nbsp;pick&nbsp;&amp;&nbsp;ban.<br>
+&nbsp;<br>
+The&nbsp;tick&nbsp;moves&nbsp;the&nbsp;attack&nbsp;to&nbsp;the&nbsp;new&nbsp;``MEETING``&nbsp;state:&nbsp;the<br>
+RDV&nbsp;itself.&nbsp;Idempotent&nbsp;through&nbsp;``score["opened"]``&nbsp;—&nbsp;a&nbsp;restart<br>
+replays&nbsp;nothing.&nbsp;Un-resolved&nbsp;pick&nbsp;&amp;&nbsp;bans&nbsp;keep&nbsp;the&nbsp;legacy<br>
+forfeit&nbsp;path&nbsp;(``_expire_defended``)&nbsp;—&nbsp;the&nbsp;two&nbsp;rules&nbsp;coexist.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-set_picks"><strong>set_picks</strong></a>(self, attack_id: 'str', player_id: 'str', picks: 'list[str]', *, sabotages: 'list[str] | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Submit&nbsp;one&nbsp;side's&nbsp;ranked&nbsp;civilizations&nbsp;and&nbsp;sabotages&nbsp;(D77).<br>
 &nbsp;<br>
@@ -398,6 +437,10 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>READY_GRACE_MINUTES</strong> = 5</dl>
+
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">

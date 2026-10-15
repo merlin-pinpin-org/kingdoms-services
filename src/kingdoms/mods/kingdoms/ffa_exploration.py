@@ -84,6 +84,19 @@ def _schedule_timezone(config: KingdomsSeasonConfig) -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
+def _aware(value: datetime) -> datetime:
+    """Mongo BSON returns NAIVE datetimes — normalize to UTC.
+
+    attaques-score-v1 fix: docs written aware come back naive from
+    Mongo, and ``now >= ffa.start_at`` crashed the events loop every
+    tick (TypeError naive vs aware). Normalizing at the comparison is
+    defensive for every doc, old or new.
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value
+
+
 def _saturday(now: datetime, tz: ZoneInfo) -> date:
     """Return the local date of the (most recent) Saturday of ``now``."""
     local = now.astimezone(tz)
@@ -176,7 +189,9 @@ class FFAExplorationService:
         """Whether the Géopolitique announcement is due (2h before)."""
         if ffa.announced:
             return False
-        return now >= ffa.announce_at
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=UTC)
+        return now >= _aware(ffa.announce_at)
 
     async def mark_announced(self, ffa: FFAExplorationModel) -> FFAExplorationModel:
         """Flag the FFA as announced — enrollments open from now on."""
@@ -188,7 +203,9 @@ class FFAExplorationService:
         """Whether the FFA game is due to start."""
         if ffa.started or ffa.finished:
             return False
-        return now >= ffa.start_at
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=UTC)
+        return now >= _aware(ffa.start_at)
 
     # ------------------------------------------------------------------
     # Enrollments (the « Aller explorer » button)
@@ -214,7 +231,7 @@ class FFAExplorationService:
             or not ffa.announced
             or ffa.started
             or ffa.finished
-            or timestamp >= ffa.start_at
+            or timestamp >= _aware(ffa.start_at)
         ):
             raise FFANotOpenError("no FFA Exploration accepts enrollments right now")
         lords = {item.id: item for item in await self._kingdoms.lords()}
