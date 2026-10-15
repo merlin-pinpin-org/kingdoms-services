@@ -33,10 +33,10 @@ class _FixedProvider:
         return object() if mod in self._mods else None
 
 
-def test_standard_buttons_are_the_five_platform_views() -> None:
-    """The standards are exactly status/profile/games/users/admin, in order."""
+def test_standard_buttons_are_the_platform_views() -> None:
+    """The standards are exactly status/profile/games/mods/users/admin, in order."""
     home = HomeService(_FakeRegistry())
-    assert [b.view for b in home.standard_buttons()] == ["status", "profile", "games", "users", "admin"]
+    assert [b.view for b in home.standard_buttons()] == ["status", "profile", "games", "mods", "users", "admin"]
 
 
 def test_buttons_include_only_mods_with_a_home_view() -> None:

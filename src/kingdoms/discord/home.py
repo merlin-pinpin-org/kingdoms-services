@@ -181,8 +181,17 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
-    user_id = str(interaction.user.id)
     await interaction.response.defer(ephemeral=True)
+    await _profile_followup(interaction)
+
+
+async def _profile_followup(interaction: discord.Interaction) -> None:
+    """Send the profile view as a followup (the response is already acked)."""
+    registration = getattr(interaction.client, "registration_service", None)
+    if registration is None:
+        await interaction.followup.send(await reply(interaction, "not_configured"), ephemeral=True)
+        return
+    user_id = str(interaction.user.id)
     bindings = await registration.list_bindings(user_id)
     blocks: list[Any] = []
     if not bindings:
@@ -244,8 +253,14 @@ class ProfileAddAccountButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the add-account modal (game select built at click time)."""
-        await interaction.response.send_modal(ProfileAddAccountModal(await _game_select_options()))
+        """Open the add-account modal (game options, aoe2-only fallback)."""
+        import asyncio
+
+        try:
+            options = await asyncio.wait_for(_game_select_options(), timeout=2.5)
+        except Exception:
+            options = None
+        await interaction.response.send_modal(ProfileAddAccountModal(options))
 
 
 async def _game_select_options() -> list[discord.SelectOption]:
@@ -485,14 +500,15 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
             await interaction.response.defer()
             return
         game_key, _, profile_id = chosen.partition("|")
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             await registration.unlink_profile(str(interaction.user.id), game_key, profile_id)
         except Exception:
             logger.warning("PROFILE REMOVE failed", exc_info=True)
-            await interaction.response.send_message(await reply(interaction, "remove_failed"), ephemeral=True)
+            await interaction.followup.send(await reply(interaction, "remove_failed"), ephemeral=True)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        await _view_profile(interaction)
+        await interaction.followup.send("Compte retir\u00e9 \u2014 voil\u00e0 ton profil \u00e0 jour :", ephemeral=True)
+        await _profile_followup(interaction)
 
 
 async def _view_games(interaction: discord.Interaction) -> None:
@@ -513,45 +529,70 @@ async def _tree_channel_link(guild_id: str, scope: str, key: str) -> str:
     return f"<#{channel_id}>" if channel_id else ""
 
 
-async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
-    """Render the guild's games: bullet points, channel/forum links."""
-    from kingdoms.discord.bot.factory import KingdomsBot
+
+
+async def _granted_games_with_counts(
+    guild_id: str, fallback: tuple[str, ...]
+) -> tuple[tuple[str, ...], dict[str, tuple[int, int, int]]]:
+    """Read the guild's granted games with their catalog counts."""
     from kingdoms.discord.maps_forum import maps_forum_wiring_ready
+
+    games = fallback
+    counts: dict[str, tuple[int, int, int]] = {}
+    if not maps_forum_wiring_ready():
+        return games, counts
+    try:
+        from kingdoms.discord.admin_panel_games import _games_wiring
+        from kingdoms.discord.wiring import granted_game_keys
+
+        service = _games_wiring()
+        if service is None:
+            return games, counts
+        games = await granted_game_keys(guild_id, tuple(await service.list_game_keys()))
+        for key in games:
+            civs = sum(1 for c in await service.list_factions(key) if c.archived_at is None)
+            maps = sum(1 for m in await service.list_maps(key) if m.archived_at is None)
+            pools = sum(1 for pl in await service.list_map_pools(key) if pl.archived_at is None)
+            counts[key] = (civs, maps, pools)
+    except Exception:
+        logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
+    return games, counts
+
+
+async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Render the guild's games: one section per game, links, counts."""
+    from kingdoms.discord.bot.factory import KingdomsBot
 
     bot = interaction.client
     await interaction.response.defer(ephemeral=True)
-    lines: list[str] = []
     games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
-    if maps_forum_wiring_ready():
-        try:
-            from kingdoms.discord.admin_panel_games import _games_wiring
-            from kingdoms.discord.wiring import granted_game_keys
+    games, counts = await _granted_games_with_counts(guild_id, games)
 
-            service = _games_wiring()
-            if service is not None:
-                games = await granted_game_keys(guild_id, tuple(await service.list_game_keys()))
-        except Exception:
-            logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
+    header = "# \U0001f3ae Jeux\nLes jeux du serveur, leurs donn\u00e9es et leurs salons."
+    blocks: list[Any] = [discord.ui.TextDisplay(header)]
     if not games:
-        lines.append("_Aucun jeu configuré._")
+        blocks.append(discord.ui.TextDisplay("_Aucun jeu configur\u00e9._"))
     for game in games[:25]:
-        points: list[str] = []
+        civs, maps, pools = counts.get(game, (0, 0, 0))
         general = await _tree_channel_link(guild_id, f"games/{game}", "general")
+        civs_link = await _tree_channel_link(guild_id, f"games/{game}", "civs")
+        maps_link = await _tree_channel_link(guild_id, f"games/{game}", "maps")
+        pools_link = await _tree_channel_link(guild_id, f"games/{game}", "map-pools")
+        lines = [f"## \u2694\ufe0f {game}"]
+        stats = f"{civs} civs \u00b7 {maps} maps \u00b7 {pools} map pools"
+        lines.append(stats)
         if general:
-            points.append(f"général : {general}")
-        for label, key in (("civs", "civs"), ("maps", "maps"), ("map pools", "map-pools")):
-            link = await _tree_channel_link(guild_id, f"games/{game}", key)
-            if link:
-                points.append(f"{label} : {link}")
-        detail = f" \u2014 {', '.join(points)}" if points else ""
-        lines.append(f"\u2022 **{game}**{detail}")
+            lines.append(f"\u2022 G\u00e9n\u00e9ral : {general}")
+        if civs_link:
+            lines.append(f"\u2022 Civilisations : {civs_link}")
+        if maps_link:
+            lines.append(f"\u2022 Maps : {maps_link}")
+        if pools_link:
+            lines.append(f"\u2022 Map pools : {pools_link}")
+        blocks.append(discord.ui.Separator())
+        blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view = discord.ui.LayoutView(timeout=None)
-    view.add_item(
-        discord.ui.Container(
-            discord.ui.TextDisplay("# \U0001f3ae Jeux\n\n" + "\n".join(lines)),
-            accent_colour=discord.Colour(0x5865F2),
-        )
-    )
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     await interaction.followup.send(view=view, ephemeral=True)
 
 
@@ -684,6 +725,18 @@ async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, An
     return unique
 
 
+
+
+async def _is_guild_member(guild: Any, user_id: int) -> bool:
+    """Whether one user is a member of the guild (cache first, then fetch)."""
+    if guild.get_member(user_id) is not None:
+        return True
+    try:
+        return await guild.fetch_member(user_id) is not None
+    except Exception:
+        return False
+
+
 async def _view_users(interaction: discord.Interaction) -> None:
     """Render the guild's roster: members with linked profiles (name + game)."""
     bot = interaction.client
@@ -709,8 +762,7 @@ async def _view_users(interaction: discord.Interaction) -> None:
     lines: list[str] = []
     for binding in unique:
         user_id = str(binding.get("user_id", ""))
-        member = guild.get_member(int(user_id)) if user_id.isdigit() else None
-        if member is None:
+        if not user_id.isdigit() or not await _is_guild_member(guild, int(user_id)):
             continue
         profile = binding.get("profile") or {}
         name = (
@@ -919,6 +971,7 @@ async def build_home_menu_for_guild(home: HomeService, bot: Any, guild_id: str) 
         "status": ("ui.homes.btn_status", "Status"),
         "profile": ("ui.homes.btn_profile", "Profile"),
         "games": ("ui.homes.btn_games", "Games"),
+        "mods": ("ui.homes.btn_mods", "Mods"),
         "users": ("ui.homes.btn_users", "Users"),
         "admin": ("ui.homes.btn_admin", "Admin"),
     }

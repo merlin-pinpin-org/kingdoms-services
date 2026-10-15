@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 HOME_MARKER = "home:pin:"
-HOME_BUTTON_IDS = ("status", "profile", "games", "users", "admin")
+HOME_BUTTON_IDS = ("status", "profile", "games", "mods", "users", "admin")
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +85,7 @@ class HomeService:
             HomeButton(view="status", label=self._label("status", "Status"), emoji="🧭"),
             HomeButton(view="profile", label=self._label("profile", "Profile"), emoji="👤"),
             HomeButton(view="games", label=self._label("games", "Games"), emoji="🎮"),
+            HomeButton(view="mods", label=self._label("mods", "Mods"), emoji="🧩"),
             HomeButton(view="users", label=self._label("users", "Users"), emoji="👥"),
             HomeButton(view="admin", label=self._label("admin", "Admin"), emoji="🛡"),
         ]

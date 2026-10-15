@@ -18,16 +18,35 @@ _NBSP_RE = re.compile("\u00a0")
 
 _SECTION_LABELS = {
     "unique unit": "unique_unit",
+    "unique units": "unique_unit",
     "unité unique": "unique_unit",
+    "unités uniques": "unique_unit",
     "unique tech": "unique_techs",
     "unique techs": "unique_techs",
+    "unique technology": "unique_techs",
+    "unique technologies": "unique_techs",
     "tech uniques": "unique_techs",
     "techs uniques": "unique_techs",
+    "techniques uniques": "unique_techs",
     "technologies uniques": "unique_techs",
     "team bonus": "team_bonus",
     "bonus d'équipe": "team_bonus",
     "bonus d' équipe": "team_bonus",
 }
+
+# Apostrophe-agnostic team-bonus matching: the dataset mixes ' (U+0027)
+# and U+2019 (right single quotation mark) across locales and civs.
+_TEAM_BONUS_RE = re.compile(r"^bonus\s+d.{0,2}équipe$")
+
+
+def _section_key(label: str) -> str | None:
+    """Resolve one bold label to its section key (apostrophe-tolerant)."""
+    key = _SECTION_LABELS.get(label)
+    if key is not None:
+        return key
+    if _TEAM_BONUS_RE.fullmatch(label):
+        return "team_bonus"
+    return None
 
 
 @dataclass
@@ -76,8 +95,8 @@ def parse_civ_help(help_text: str) -> CivContent:
             continue
         bold = _B_RE.search(line)
         if bold:
-            label = _strip_html(bold.group(1)).rstrip(":").strip().lower()
-            key = _SECTION_LABELS.get(label)
+            label = _NBSP_RE.sub(" ", _strip_html(bold.group(1))).rstrip(":").strip().lower()
+            key = _section_key(label)
             if key is not None:
                 current = key
                 tail = _strip_html(_B_RE.sub("", line)).rstrip(":").strip()
