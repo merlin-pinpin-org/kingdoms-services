@@ -35,8 +35,10 @@ jobs:
           else
             echo "::error::docs/DEVELOPMENT/pydoc is stale — regenerate with 'make docs' and commit"
             cat /tmp/pydoc-diff.txt
-            head -10 /tmp/pydoc-diff.txt | while IFS= read -r line; do
-              [ -n "$line" ] && echo "::error::DIFF $line"
-            done
+            while IFS= read -r f; do
+              diff "$f" "docs/DEVELOPMENT/pydoc/${f#/tmp/pydoc-fresh/}" \
+                | head -20 | sed "s/^/LINE/" \
+                | while IFS= read -r line; do echo "::error::$line"; done
+            done < <(grep '^Files' /tmp/pydoc-diff.txt | awk '{print $2}' | head -3)
             exit 1
           fi
