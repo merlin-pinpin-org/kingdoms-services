@@ -39,7 +39,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cadastre_empty": "The map catalog is empty.",
         "diplomatie_title": "# 🤝 Diplomatie — civilizations and their conditions",
         "diplomatie_empty": "No civilization declared yet.",
-        "diplomatie_conditions_tbd": "Unlock conditions: to come.",
+        "diplomatie_condition_map": "own the map {maps}",
+        "diplomatie_condition_map_type": "own at least {count} map(s) of type {types}",
+        "diplomatie_condition_min_maps": "own at least {count} map(s)",
+        "diplomatie_condition_max_maps": "own at most {count} map(s)",
+        "diplomatie_condition_civ": "hold the {civ} civilization",
+        "diplomatie_condition_pattern": "belong to the {pattern} kingdom",
+        "diplomatie_condition_tech": "hold at least {count} tech point(s)",
+        "diplomatie_condition_marriages": "have at least {count} married lord(s)",
+        "diplomatie_condition_civ_count": "hold at least {count} civilization(s)",
         "seigneurie_title": "# 🛡️ Seigneurie — lords and remaining budgets",
         "seigneurie_empty": "No kingdom yet — enrollments are open in Postuler.",
         "seigneurie_king": "King",
@@ -57,7 +65,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cadastre_empty": "Le catalogue de maps est vide.",
         "diplomatie_title": "# 🤝 Diplomatie — civilisations et leurs conditions",
         "diplomatie_empty": "Aucune civilisation déclarée pour le moment.",
-        "diplomatie_conditions_tbd": "Conditions d'obtention : à venir.",
+        "diplomatie_condition_map": "posséder la map {maps}",
+        "diplomatie_condition_map_type": "posséder au moins {count} map(s) de type {types}",
+        "diplomatie_condition_min_maps": "posséder au moins {count} map(s)",
+        "diplomatie_condition_max_maps": "posséder au plus {count} map(s)",
+        "diplomatie_condition_civ": "posséder la civilisation {civ}",
+        "diplomatie_condition_pattern": "appartenir au royaume {pattern}",
+        "diplomatie_condition_tech": "posséder au moins {count} point(s) technologique(s)",
+        "diplomatie_condition_marriages": "avoir au moins {count} seigneur(s) marié(s)",
+        "diplomatie_condition_civ_count": "posséder au moins {count} civilisation(s)",
         "seigneurie_title": "# 🛡️ Seigneurie — seigneurs et budgets restants",
         "seigneurie_empty": "Aucun royaume pour le moment — les inscriptions sont ouvertes dans Postuler.",
         "seigneurie_king": "Roi",
@@ -99,15 +115,82 @@ def _cadastre_content(strings: dict[str, str], maps: list[Any]) -> str:
     return "\n".join(lines)
 
 
+def _diplomatie_condition_text(civ: Any, strings: dict[str, str], maps: list[Any]) -> str:
+    """Render one civilization's official acquisition condition (V1).
+
+    cadastre-diplomatie-v1 (Drasah 15/10): the Diplomatie is the
+    SOURCE of truth for civ acquisition — the maps' cadastre bonus
+    texts are display-only and may diverge. Map keys read as their
+    display names.
+    """
+    by_key = {str(getattr(entry, "key", "")): str(getattr(entry, "display_name", "?")) for entry in maps}
+    conditions: list[str] = []
+    if getattr(civ, "requires_map_keys", None):
+        names = ", ".join(by_key.get(key, key) for key in civ.requires_map_keys)
+        conditions.append(strings["diplomatie_condition_map"].format(maps=names))
+    if getattr(civ, "requires_map_types", None):
+        conditions.append(
+            strings["diplomatie_condition_map_type"].format(
+                count=int(getattr(civ, "min_map_type_count", 1) or 1),
+                types=", ".join(civ.requires_map_types),
+            )
+        )
+    if getattr(civ, "min_map_count", None) is not None:
+        conditions.append(
+            strings["diplomatie_condition_min_maps"].format(count=int(civ.min_map_count))
+        )
+    if getattr(civ, "max_map_count", None) is not None:
+        conditions.append(
+            strings["diplomatie_condition_max_maps"].format(count=int(civ.max_map_count))
+        )
+    if getattr(civ, "requires_civilization", None):
+        conditions.append(
+            strings["diplomatie_condition_civ"].format(civ=str(civ.requires_civilization))
+        )
+    if getattr(civ, "requires_kingdom_name_pattern", None):
+        conditions.append(
+            strings["diplomatie_condition_pattern"].format(
+                pattern=str(civ.requires_kingdom_name_pattern)
+            )
+        )
+    if getattr(civ, "requires_tech_points", None) is not None:
+        conditions.append(
+            strings["diplomatie_condition_tech"].format(count=int(civ.requires_tech_points))
+        )
+    if getattr(civ, "requires_marriages", None) is not None:
+        conditions.append(
+            strings["diplomatie_condition_marriages"].format(count=int(civ.requires_marriages))
+        )
+    if getattr(civ, "requires_civilization_count", None) is not None:
+        conditions.append(
+            strings["diplomatie_condition_civ_count"].format(
+                count=int(civ.requires_civilization_count)
+            )
+        )
+    return " · ".join(conditions)
+
+
 def _diplomatie_content(strings: dict[str, str], civilizations: list[Any]) -> str:
-    """Build the Diplomatie rubric: civilizations + placeholder conditions."""
+    """Build the Diplomatie rubric: civilizations + official conditions."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    maps: list[Any] = []
+    try:
+        wiring = _wiring()
+        service = wiring.kingdoms_service
+        config = getattr(service, "config", None) if service is not None else None
+        maps = list(getattr(config, "maps", ()) or ())
+    except Exception:
+        maps = []
+
     lines = [strings["diplomatie_title"], ""]
     if not civilizations:
         lines.append(strings["diplomatie_empty"])
         return "\n".join(lines)
     for civ in civilizations:
         name = str(getattr(civ, "display_name", getattr(civ, "key", "?")))
-        lines.append(f"- **{name}** — {strings['diplomatie_conditions_tbd']}")
+        condition = _diplomatie_condition_text(civ, strings, maps)
+        lines.append(f"- **{name}** — {condition}" if condition else f"- **{name}**")
     return "\n".join(lines)
 
 

@@ -551,15 +551,19 @@ def _kingdom_mention(guild: Any, name: str) -> str:
 
 
 _MAP_TAG_KEYS: tuple[tuple[str, str], ...] = (
-    ("water", "💧"),
-    ("open", "🌞"),
-    ("nomad", "🌾"),
+    # The 12 Drasah cadastre tags (cadastre-diplomatie-v1, 15/10).
+    ("eau", "💧"),
+    ("hybride", "🌊"),
+    ("objectif", "🎯"),
+    ("nomade", "🌾"),
+    ("foret", "🌲"),
+    ("montagne", "⛰️"),
     ("desert", "🏜️"),
-    ("mountain", "⛰️"),
-    ("marsh", "🪷"),
-    ("lakes", "🏞️"),
-    ("golden", "✨"),
-    ("start_wall", "🧱"),
+    ("marais", "🪷"),
+    ("ouverte", "🌞"),
+    ("chaotique", "🌀"),
+    ("mur_depart", "🧱"),
+    ("ferme", "🔒"),
 )
 
 
