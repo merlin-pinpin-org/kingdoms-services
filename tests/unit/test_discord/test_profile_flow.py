@@ -246,3 +246,72 @@ async def test_add_button_opens_label_wrapped_modal(monkeypatch: Any) -> None:
     assert interaction.response.modals, "the button must open a modal"
     payload = interaction.response.modals[0].to_components()
     assert any(c.get("type") == 18 for c in payload), "the game select must be Label-wrapped"
+
+
+@pytest.mark.asyncio
+async def test_add_failure_names_the_provider(monkeypatch: Any) -> None:
+    """A provider failure answers with the provider's name and DMs admins."""
+    registration = _FakeRegistration()
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+
+    async def _boom(user_id: str, game_key: str, profile_id: str) -> dict[str, Any]:
+        raise RuntimeError("profile 848567 is not valid for game aoe2")
+
+    registration.bind_profile = _boom  # type: ignore[method-assign]
+    admins_dmed: list[str] = []
+
+    async def _dm(bot: Any, admin_ids: tuple[str, ...], content: str) -> None:
+        admins_dmed.append(content)
+
+    monkeypatch.setattr("kingdoms.discord.error_report.dm_admins", _dm)
+
+    class _Status:
+        bot_admins = ("111",)
+
+    interaction.client.status_service = _Status()  # type: ignore[attr-defined]
+    modal = home_module.ProfileAddAccountModal(
+        [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)]
+    )
+    object.__setattr__(modal.game, "_values", ["aoe2"])
+    object.__setattr__(modal.profile_id, "_value", "848567")
+    await modal.on_submit(interaction)
+    contents = [str(m.content) for m in interaction.followup.messages]
+    assert any("ext-librematch" in c for c in contents), "the error must name the provider"
+    assert admins_dmed and "RuntimeError" in admins_dmed[0], "the admins must receive the stack"
+
+
+@pytest.mark.asyncio
+async def test_profile_view_shows_alias_names() -> None:
+    """The profile line shows the provider alias, never a bare '?'."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:111",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "848567",
+                "profile": {"aliases": ["Merlin Pinpin"]},
+            }
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    # the view is a Components V2 LayoutView: walk its text displays
+    await home_module._profile_followup(interaction)
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    view = getattr(interaction.followup.messages[-1], "kwargs", {}).get("view")
+    assert view is not None, "the profile view must be sent"
+    for item in getattr(view, "children", None) or ():
+        walk(item)
+    assert any("Merlin Pinpin" in t for t in texts), (
+        "the alias must be displayed instead of '?'"
+    )

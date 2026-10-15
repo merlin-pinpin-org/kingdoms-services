@@ -29,6 +29,7 @@ for the process's lifetime.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 from typing import Any
@@ -209,7 +210,12 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
         lines = [f"## {game}"]
         for entry in entries:
             profile = entry.get("profile") or {}
-            name = profile.get("display_name") or profile.get("name") or "?"
+            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
+            name = (
+                str(profile.get("display_name") or profile.get("name") or "")
+                or (aliases[0] if aliases else "")
+                or "?"
+            )
             pid = entry.get("profile_id", "?")
             player = players_by_id.get(user_id)
             elo = f" — {player.get('rating')} elo" if player else ""
@@ -224,6 +230,38 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(await _profile_header(interaction, user_id)), *blocks))
     view.add_item(row)
     await interaction.followup.send(view=view, ephemeral=True)
+
+
+
+
+PROFILE_PROVIDER = "ext-librematch (aoe2)"
+
+
+async def _report_profile_error(
+    interaction: discord.Interaction,
+    action: str,
+    game_key: str,
+    exc: BaseException,
+) -> None:
+    """Log the precise failure and DM the admins (spam-guarded)."""
+    import traceback
+
+    logger.warning("PROFILE %s failed (game %s): %s", action, game_key, exc, exc_info=True)
+    bot = interaction.client
+    admins = tuple(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
+    detail = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__, limit=8))
+    content = (
+        f"**Erreur profil \u2014 {action}**\n"
+        f"Jeu : `{game_key}` \u00b7 Provider : `{PROFILE_PROVIDER}`\n"
+        f"Utilisateur : <@{interaction.user.id}>\n"
+        f"Erreur : `{type(exc).__name__}: {exc}`\n"
+        f"```\n{detail[:1500]}\n```"
+    )
+    from kingdoms.discord.error_report import dm_admins
+
+    with contextlib.suppress(Exception):
+        if admins:
+            await dm_admins(bot, admins, content)
 
 
 class ProfileAddAccountButton(
@@ -309,16 +347,21 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
             )
         except Exception as exc:
-            logger.warning("PROFILE ADD failed: %s", exc, exc_info=True)
+            await _report_profile_error(interaction, "profile.add", chosen, exc)
             reason = str(exc).lower()
             if "déjà" in reason or "already" in reason:
                 note = "Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil."
             elif "no profile seam" in reason or "unknown game" in reason:
                 note = f"Le jeu {chosen} n'est pas configuré pour l'inscription."
+            elif "valid" in reason or "inconnu" in reason:
+                note = (
+                    f"Ajout échoué : le provider {PROFILE_PROVIDER} n'a pas reconnu "
+                    f"le profil `{str(self.profile_id.value).strip()}` — l'erreur précise part aux admins."
+                )
             else:
                 note = (
-                    "Ajout échoué : le provider n'a pas reconnu ce profil "
-                    "(vérifie le profile id, ou le provider est injoignable — vois les logs du bot)."
+                    f"Ajout échoué : le provider {PROFILE_PROVIDER} n'a pas répondu "
+                    "— l'erreur précise part aux admins."
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
@@ -517,8 +560,11 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
                     removed.append(f"{game_key} (`{profile_id}`)")
                 else:
                     failed += 1
-            except Exception:
-                logger.warning("PROFILE REMOVE failed (entry %s)", entry, exc_info=True)
+                    await _report_profile_error(
+                        interaction, "profile.remove", game_key, RuntimeError(f"binding not found: {entry}")
+                    )
+            except Exception as exc:
+                await _report_profile_error(interaction, "profile.remove", game_key, exc)
                 failed += 1
         if removed:
             listed = ", ".join(removed)

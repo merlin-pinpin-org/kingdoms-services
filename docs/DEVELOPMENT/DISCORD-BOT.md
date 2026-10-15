@@ -162,6 +162,12 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
   — un select nu est rejeté silencieusement par l'API (le bouton
   semble ne pas répondre). Un modal ne peut toujours pas ouvrir un
   autre modal — la chaîne passe par un message ephemeral.
+  `send_modal` exige le token de réponse : toute lecture avant lui doit
+  être rapide (timeout 2,5 s + fallback). Un flux utilisateur qui
+  échoue répond avec la cause précise (provider, jeu, quoi
+  vérifier) et DM la stack aux BOT_ADMINS via
+  ``kingdoms.discord.error_report.dm_admins`` — garde anti-spam : un
+  DM par (type d'erreur, surface) et 5 minutes.
 - **PermissionOverwrite** : le provisionnement des salons restreint
   `default_role` (lecture) et ouvre `guild.me` (écriture/gestion).
 - **Les messages ephemeral** : visibles uniquement par leur
