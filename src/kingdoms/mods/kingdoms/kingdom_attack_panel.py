@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -32,14 +32,12 @@ _STRINGS: dict[str, dict[str, str]] = {
     "fr": {
         "panel_title": "⚔️ **Champ de bataille — Attaquer**",
         "panel_help": (
-            "Déclarez une attaque sur un territoire adverse — le RDV est fixé à T.\n"
-            "La défense reste ouverte jusqu'à T-15 : après le reveal, plus personne "
-            "ne répond (l'IA du royaume défend à votre place).\n"
-            "À T-5, le pick & ban part en MP : 3 civilisations classées de votre "
-            "main, jusqu'à 2 sabotages, validation des deux côtés avant T."
+            "Déclarez une attaque sur un territoire adverse — le RDV est fixé à l'heure affichée.\n"
+            "Déroulé : **Siège** (la défense reste ouverte) → **Draft** (reveal puis pick & ban "
+            "en MP) → **RDV** (confirmez votre présence) → **Score** (la game, déclarez le résultat)."
         ),
         "panel_empty": "🕊️ Aucune attaque en cours.",
-        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — RDV **{time}** (Paris)",
+        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — RDV **{time}** (Paris) · {phase}",
         "gaia_line": "🦅 **{map}** — bataille Gaïa · {count} combattant(s) — RDV **{time}** (Paris)",
         "gaia_join_button": "🦅 Rejoindre la bataille",
         "gaia_join_note": (
@@ -52,6 +50,10 @@ _STRINGS: dict[str, dict[str, str]] = {
             "\n🦅 D'autres seigneurs peuvent rejoindre la bataille via le bouton"
             " **Rejoindre** du panel Attaquer (jusqu'à {max} combattants) !"
         ),
+        "phase_siege": "Siège",
+        "phase_draft": "Draft",
+        "phase_ready": "RDV",
+        "phase_score": "Score",
         "defender_pending": "en attente de défense",
         "defender_ai": "IA 🤖",
         "covered_tag": " 🕶️",
@@ -84,7 +86,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "cover_question": (
             "🕶️ Utiliser un contre-espionnage ? (1 charge — l'attaque sera annoncée sous"
-            " le pseudo d'un autre seigneur, démasqué au reveal T-15)"
+            " le pseudo d'un autre seigneur, démasqué à la fin du Siège)"
         ),
         "cover_yes_button": "🕶️ OUI — bluffer",
         "cover_no_button": "❌ NON — à visage découvert",
@@ -101,11 +103,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
         "thread_body": (
             "📜 **Déroulé de l'attaque & droits du défenseur**\n"
-            "• **T-15** — reveal : le bluff (s'il y en a un) tombe ; sans défenseur,"
-            " l'IA du royaume prend la défense.\n"
-            "• **T-5** — le défenseur reçoit ses DM pick & ban.\n"
-            "• **T** — échéance : sans résultat, le territoire reste au défenseur"
-            " (forfait de l'attaquant).\n"
+            "• **Siège** — la défense reste ouverte ; à la fin du Siège (reveal), le bluff"
+            " (s'il y en a un) tombe et sans défenseur l'IA du royaume prend la défense.\n"
+            "• **Draft** — le pick & ban part en MP : 3 civilisations classées de votre"
+            " main, jusqu'à 2 sabotages, validation des deux côtés.\n"
+            "• **RDV** — chaque camp confirme sa présence (« Prêt ») : une absence au RDV"
+            " est un forfait.\n"
+            "• **Score** — la game : déclarez le résultat avec l'ID de la game.\n"
             "🛡️ N'importe quel seigneur du royaume défenseur peut défendre via le"
             " bouton du panel **Déclarer une attaque**.\n"
             "🪤 Un royaume peut activer un Traquenard sur son adversaire : l'IA de"
@@ -113,7 +117,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             " de verrou."
         ),
         "reveal_cover": (
-            "🕶️ Reveal T-15 — l'attaque sur **{map}** était menée par **{lord}** "
+            "🕶️ Reveal — l'attaque sur **{map}** était menée par **{lord}** "
             "(la couverture tombe)."
         ),
         "reveal_ai": (
@@ -124,7 +128,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** civilisations (ton "
             "classement ordonne les replis) et sabotes jusqu'à **2** civilisations "
-            "de la main adverse. Valide avant T — un manqué est un forfait !\n"
+            "de la main adverse. Valide avant l'heure du RDV — un manqué est un forfait !\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
         ),
         "pickban_pick": "Choix {n}",
@@ -142,9 +146,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "side_attacker": "l'attaquant",
         "side_defender": "le défenseur",
         "score_dm": (
-            "🏟️ **RDV — {map}**\nLe pick & ban est résolu — civilisations en jeu :"
-            "**{civs}**.\nConfirme ta présence avant **{time}** puis déclare le"
+            "🏟️ **RDV — {map}**\nLe Draft est résolu — civilisations en jeu :"
+            "**{civs}**.\nConfirme ta présence avec **Prêt**, puis joue et déclare le"
             " résultat avec l'**ID de la game**. Un manqué au RDV est un forfait !"
+        ),
+        "score_not_ready": (
+            "❌ Confirme ta présence au RDV d'abord — clique **Prêt** avant de"
+            " déclarer le résultat."
+        ),
+        "score_reminder_dm": (
+            "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — pense à déclarer"
+            " le résultat de la game (avec l'**ID de la game**) via les boutons du DM !"
         ),
         "score_ready": "✅ Prêt",
         "score_win_attacker": "🏆 Victoire attaquant",
@@ -181,14 +193,12 @@ _STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "panel_title": "⚔️ **Battlefield — Attack**",
         "panel_help": (
-            "Declare an attack on an adversary territory — the meeting is set at T.\n"
-            "The defense stays open until T-15: after the reveal nobody answers "
-            "anymore (the kingdom's AI defends instead).\n"
-            "At T-5 the pick & ban lands in your DMs: 3 ranked civilizations "
-            "from your hand, up to 2 sabotages, both sides validate before T."
+            "Declare an attack on an adversary territory — the meeting is set at the displayed time.\n"
+            "Flow: **Siege** (the defense stays open) → **Draft** (reveal then DM pick & ban) "
+            "→ **Meeting** (confirm your presence) → **Score** (the game, declare the result)."
         ),
         "panel_empty": "🕊️ No ongoing attack.",
-        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — meets **{time}** (Paris)",
+        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — meets **{time}** (Paris) · {phase}",
         "gaia_line": "🦅 **{map}** — Gaïa battle · {count} fighter(s) — meets **{time}** (Paris)",
         "gaia_join_button": "🦅 Join the battle",
         "gaia_join_note": (
@@ -201,6 +211,10 @@ _STRINGS: dict[str, dict[str, str]] = {
             "\n🦅 Other lords may join the battle through the **Join** button of"
             " the Attack panel (up to {max} fighters)!"
         ),
+        "phase_siege": "Siege",
+        "phase_draft": "Draft",
+        "phase_ready": "Meeting",
+        "phase_score": "Score",
         "defender_pending": "waiting for a defender",
         "defender_ai": "AI 🤖",
         "covered_tag": " 🕶️",
@@ -233,7 +247,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "cover_question": (
             "🕶️ Use a counter-espionage? (1 charge — the attack is announced under"
-            " another lord's name, unmasked at the T-15 reveal)"
+            " another lord's name, unmasked at the end of the Siege)"
         ),
         "cover_yes_button": "🕶️ YES — bluff",
         "cover_no_button": "❌ NO — open-faced",
@@ -250,18 +264,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
         "thread_body": (
             "📜 **Attack rundown & defender rights**\n"
-            "• **T-15** — reveal: the bluff (if any) drops; with no defender, the"
-            " kingdom's AI takes the defense.\n"
-            "• **T-5** — the defender receives their pick & ban DMs.\n"
-            "• **T** — deadline: with no result, the territory stays with the"
-            " defender (attacker forfeit).\n"
+            "• **Siege** — the defense stays open; at the end of the Siege (reveal), the"
+            " bluff (if any) drops and with no defender the kingdom's AI takes the defense.\n"
+            "• **Draft** — the pick & ban lands in the DMs: 3 ranked civilizations, up to"
+            " 2 sabotages, both sides validate.\n"
+            "• **Meeting** — each side confirms their presence (« Ready »): a miss at the"
+            " meeting is a forfeit.\n"
+            "• **Score** — the game: declare the result with the game ID.\n"
             "🛡️ Any lord of the defending kingdom may defend via the button of the"
             " **Declare an attack** panel.\n"
             "🪤 A kingdom may activate a Traquenard on its adversary: the defense AI"
             " turns Easy for 6h and sealed marriages gain +2h of lock."
         ),
         "reveal_cover": (
-            "🕶️ T-15 reveal — the attack on **{map}** was led by **{lord}** "
+            "🕶️ Reveal — the attack on **{map}** was led by **{lord}** "
             "(the cover drops)."
         ),
         "reveal_ai": (
@@ -272,7 +288,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilizations (your "
             "ranking orders the fallbacks) and sabotage up to **2** civilizations "
-            "of the adversary hand. Validate before T — a miss is a forfeit!\n"
+            "of the adversary hand. Validate before the meeting time — a miss is a forfeit!\n"
             "Your hand: {hand}\nAdversary hand: {theirs}"
         ),
         "pickban_pick": "Choice {n}",
@@ -290,10 +306,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "side_attacker": "the attacker",
         "side_defender": "the defender",
         "score_dm": (
-            "🏟️ **Meeting — {map}**\nThe pick & ban is resolved — civilizations in"
-            " play: **{civs}**.\nConfirm your presence before **{time}** then"
+            "🏟️ **Meeting — {map}**\nThe Draft is resolved — civilizations in"
+            " play: **{civs}**.\nConfirm your presence with **Ready**, then play and"
             " declare the result with the **game ID**. A miss at the meeting is"
             " a forfeit!"
+        ),
+        "score_not_ready": (
+            "❌ Confirm your presence at the meeting first — click **Ready** before"
+            " declaring the result."
+        ),
+        "score_reminder_dm": (
+            "⏰ **Meeting — {map}**: no result declared for 3 hours — remember to"
+            " declare the game result (with the **game ID**) through the DM buttons!"
         ),
         "score_ready": "✅ Ready",
         "score_win_attacker": "🏆 Attacker wins",
@@ -332,6 +356,11 @@ _STRINGS: dict[str, dict[str, str]] = {
 
 def _strings(locale: str) -> dict[str, str]:
     return _STRINGS["fr"] if str(locale).lower().startswith("fr") else _STRINGS["en"]
+
+
+def _phase_display(token: str, strings: dict[str, str]) -> str:
+    """Render one engine phase token as its player-facing label."""
+    return strings.get(f"phase_{token}", token.capitalize())
 
 
 def _locale(interaction: discord.Interaction) -> str:
@@ -445,6 +474,7 @@ async def _ongoing_rows(
     attacks_service: Any, kingdoms_service: Any, strings: dict[str, str]
 ) -> tuple[list[str], list[Any]]:
     """Return the live rows of the ongoing attacks and the attacks themselves."""
+    from kingdoms.mods.kingdoms.attacks import phase_label
     from kingdoms.mods.kingdoms.models import AttackKind, AttackState
 
     rows: list[str] = []
@@ -488,6 +518,7 @@ async def _ongoing_rows(
                 kingdom=kingdom,
                 defender=defender,
                 time=_fmt_paris(attack.expires_at),
+                phase=_phase_display(phase_label(attack), strings),
             )
         )
     return rows, attacks
@@ -1382,6 +1413,9 @@ async def run_attack_phases_safe(bot: Any) -> None:
                     await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
                 for attack in await attacks_service.score_due():
                     await _send_score_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
+                for attack in await attacks_service.score_reminder_due():
+                    await _send_score_reminder_dm(bot, attack, locale)
                 await _register_score_views_safe(bot, attacks_service, locale)
                 await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
                 await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
@@ -1555,6 +1589,14 @@ class KingdomScoreModal(discord.ui.Modal):
                 view.attack_id, view.player_id, self.winner_kingdom_id, game_id
             )
         except Exception as exc:
+            from kingdoms.mods.kingdoms.attacks import ScoreNotReadyError
+
+            if isinstance(exc, ScoreNotReadyError):
+                # attaques-phases-v2: the Prêt gate answers with its own line.
+                await interaction.response.send_message(
+                    strings["score_not_ready"], ephemeral=True
+                )
+                return
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(
                 strings["failed"].format(message=message), ephemeral=True
@@ -1654,13 +1696,9 @@ async def _send_score_dm(
         "attacker": str(attack.attacker_kingdom_id),
         "defender": str(attack.defender_kingdom_id),
     }
-    deadline = int((attack.score or {}).get("ready_deadline") or 0)
-    from datetime import datetime as _dt
-
-    when = _fmt_paris(_dt.fromtimestamp(deadline, tz=UTC)) if deadline else "—"
-    content = strings["score_dm"].format(
-        map=attack.map_key, civs=_score_civs(attack), time=when
-    )
+    # attaques-phases-v2: the T+5 forfeit deadline is internal — the DM
+    # shows the phase, never the clock (Drasah 15/10).
+    content = strings["score_dm"].format(map=attack.map_key, civs=_score_civs(attack))
     for player_id in _score_players(attack):
         view = KingdomScoreView(
             str(attack.id), str(player_id), winners, locale, announce_channel=channel
@@ -1670,6 +1708,13 @@ async def _send_score_dm(
         except Exception:
             logger.warning("KINGDOM ATTACK: score view registration failed", exc_info=True)
         await _dm_user_safe(bot, str(player_id), content, view)
+
+
+async def _send_score_reminder_dm(bot: Any, attack: Any, locale: str) -> None:
+    """Send the 3h no-result reminder DM to each human player (no auto-forfeit)."""
+    content = _strings(locale)["score_reminder_dm"].format(map=attack.map_key)
+    for player_id in _score_players(attack):
+        await _dm_user_safe(bot, player_id, content)
 
 
 def _score_players(attack: Any) -> list[str]:

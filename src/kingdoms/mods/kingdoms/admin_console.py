@@ -50,6 +50,14 @@ _JOURNAL_MAX = 100
 _TIME_RE = re.compile(r"^(\d+)-(\d+)$")
 _PARAMS_RE = re.compile(r"([^=,]+)=([^,]*)")
 
+PHASES_FR: dict[str, str] = {
+    "siege": "Siège",
+    "draft": "Draft",
+    "ready": "RDV",
+    "score": "Score",
+}
+"""The console's French phase names (attaques-phases-v2)."""
+
 
 # ----------------------------------------------------------------------
 # The strings (FR first — the console is Drasah's private test salon)
@@ -565,11 +573,14 @@ async def _cmd_voir_attaques(console: AdminConsole, args: list[str]) -> str:
         return CONSOLE_STRINGS["fr"]["empty"]
     lines = []
     for attack in running:
+        # attaques-phases-v2: the named phase (Siège/Draft/RDV/Score) —
+        # the T-15/T-5/T clock stays internal (Drasah 15/10).
+        phase = PHASES_FR.get(str(attack.get("phase")), str(attack.get("state")))
         lines.append(
-            "⚔️ {id} · {map} · {state} · échéance {deadline} (dans {left})".format(
+            "⚔️ {id} · {map} · {phase} · échéance {deadline} (dans {left})".format(
                 id=attack["id"],
                 map=attack["map"],
-                state=attack["state"],
+                phase=phase,
                 deadline=attack["expires_at"].strftime("%d/%m %H:%M"),
                 left=_remaining(attack["expires_at"] - datetime.now(tz=attack["expires_at"].tzinfo)),
             )

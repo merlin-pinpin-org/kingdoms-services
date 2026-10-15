@@ -350,7 +350,8 @@ async def test_voir_attaques_lists_the_ongoing_attacks() -> None:
     console = _console(bundle)
     attack_id = await _declared(bundle)
     reply = await console.dispatch("voir_attaques")
-    assert attack_id in reply and "declared" in reply
+    # attaques-phases-v2: the named phase replaces the raw state.
+    assert attack_id in reply and "Siège" in reply
 
 
 async def test_fin_attaque_cranks_reveal_then_pickban() -> None:

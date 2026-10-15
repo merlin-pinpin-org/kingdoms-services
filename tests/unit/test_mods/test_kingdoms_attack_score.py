@@ -172,7 +172,9 @@ async def test_vs_ai_only_the_attacker_confirms() -> None:
     assert [item.id for item in due] == [attack.id]
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.ai_defender is True
-    # The attacker declares alone — validated direct.
+    # The attacker declares alone — his Prêt is the presence proof
+    # (attaques-phases-v2 gate), then the declaration validates direct.
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "king-a", fresh.attacker_kingdom_id, "g-123", now=_T
     )
@@ -205,6 +207,7 @@ async def test_unilateral_declaration_fait_foi() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "king-a", aquitaine, "g-42", now=_T
     )
@@ -226,6 +229,7 @@ async def test_contradory_declaration_raises_a_dispute() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)
@@ -247,6 +251,7 @@ async def test_admin_arbitration_overrides_the_result() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
     await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)
@@ -265,6 +270,7 @@ async def test_admin_arbitration_double_forfait() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
     await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)

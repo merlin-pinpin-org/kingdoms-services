@@ -500,6 +500,8 @@ class DebugService:
 
     async def list_attacks(self) -> list[dict[str, Any]]:
         """Every ONGOING attack: id, phase, deadline (the id source)."""
+        from kingdoms.mods.kingdoms.attacks import phase_label
+
         running: list[dict[str, Any]] = []
         for attack in await self._attacks.attacks():
             if attack.is_over:
@@ -509,6 +511,9 @@ class DebugService:
                     "id": attack.id,
                     "map": attack.map_key,
                     "state": str(attack.state),
+                    # attaques-phases-v2: the player-facing phase name token
+                    # (siege/draft/ready/score) — T-15/T-5/T stay internal.
+                    "phase": phase_label(attack),
                     "expires_at": attack.expires_at,
                 }
             )

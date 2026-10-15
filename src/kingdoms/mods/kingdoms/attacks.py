@@ -208,6 +208,18 @@ class PickBanStateError(PickBanError):
     message_key = "kingdoms.errors.pickban_state"
 
 
+class ScoreNotReadyError(AttackStateError):
+    """Raised when a score declaration comes from a player without « Prêt ».
+
+    attaques-phases-v2 FIX: before this gate a player could declare a
+    result without confirming the RDV presence and short-circuit the
+    T+5 no-show line (Check 57 follow-up).
+    """
+
+    code = "KINGDOMS_SCORE_NOT_READY"
+    message_key = "kingdoms.errors.score_not_ready"
+
+
 class EmbuscadeError(AttackError):
     """Raised when the Embuscade cannot engage (D77)."""
 
@@ -333,6 +345,30 @@ the whole 24h tracking window."""
 def _faucon_released(kingdom: Any, timestamp: datetime) -> bool:
     """Whether the kingdom runs an active Lâcher de faucon (voliere-v1)."""
     return int(getattr(kingdom, "faucon_release_until", 0) or 0) > int(timestamp.timestamp())
+
+
+def expected_score_players(attack: AttackModel) -> list[str]:
+    """Return the players whose « Prêt » the meeting waits for (never the AI)."""
+    players = [str(attack.attacker_lord_id)]
+    if not attack.ai_defender and attack.defender_lord_id is not None:
+        players.append(str(attack.defender_lord_id))
+    return players
+
+
+def phase_label(attack: AttackModel) -> str:
+    """Return the player-facing phase of an attack (attaques-phases-v2).
+
+    The internal T-15/T-5/T/T+5 clock is never shown to a player —
+    one label per window instead (Drasah 15/10): ``siege``
+    (declaration + defense, before the reveal), ``draft`` (reveal +
+    pick & ban), ``ready`` (the RDV presence) and ``score`` (the game
+    and its declaration — or a finished attack).
+    """
+    if attack.state is AttackState.MEETING:
+        return "score" if attack.score.get("all_ready") else "ready"
+    if attack.is_over or getattr(attack, "revealed", False):
+        return "score" if attack.is_over else "draft"
+    return "siege"
 
 
 
@@ -978,6 +1014,8 @@ class AttackService:
             score = dict(attack.score)
             score["opened"] = True
             score["ready"] = []
+            # The game-start moment, epoch seconds — the 3h reminder base.
+            score["opened_at"] = int(timestamp.timestamp())
             # The T+5 no-show line, epoch seconds (Mongo-proof).
             score["ready_deadline"] = int(
                 (attack.expires_at + timedelta(minutes=self.READY_GRACE_MINUTES)).timestamp()
@@ -991,22 +1029,36 @@ class AttackService:
 
     READY_GRACE_MINUTES = 5
 
-    async def mark_ready(self, attack_id: str, player_id: str) -> AttackModel:
+    SCORE_REMINDER_HOURS = 3
+
+    async def mark_ready(
+        self, attack_id: str, player_id: str, *, now: datetime | None = None
+    ) -> AttackModel:
         """Record one player's « Prêt » click in the score phase.
 
         Idempotent — a double click adds nothing. Only the two players
-        of the meeting confirm; the AI defender never does.
+        of the meeting confirm; the AI defender never does. The
+        attaque-phases-v2 early close: as soon as EVERY expected
+        player is Prêt the score phase is « open » right away
+        (``all_ready``) — the T+5 deadline stays the forfeit line, it
+        is never a minimum wait (Drasah 15/10).
         """
         attack = await self._require_meeting(attack_id)
         self._require_score_player(attack, player_id)
+        timestamp = now or _now()
         ready = list(attack.score.get("ready") or [])
+        score = dict(attack.score)
         if player_id not in ready:
             ready.append(player_id)
-            score = dict(attack.score)
             score["ready"] = ready
-            attack.score = score
-            await self._store.upsert_attack(attack.to_mongo())
-            logger.info("kingdoms: %s is ready on the meeting of %s", player_id, attack.map_key)
+        if not score.get("all_ready") and set(ready) >= set(expected_score_players(attack)):
+            score["all_ready"] = int(timestamp.timestamp())
+            logger.info(
+                "kingdoms: everyone is ready on the meeting of %s — score phase open",
+                attack.map_key,
+            )
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
         return attack
 
     async def ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
@@ -1075,6 +1127,36 @@ class AttackService:
             winner,
         )
 
+    async def score_reminder_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Flag every 3h-old result-less meeting for a reminder DM.
+
+        attaques-phases-v2 (Drasah 15/10): three hours after the score
+        phase opened with no declared result, both players get a DM
+        reminder — the panel stays active, there is NO auto-forfeit.
+        Idempotent through ``score["reminded"]`` — the tick replays it
+        safely, the DM leaves only once.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score)
+            opened_at = int(score.get("opened_at") or 0)
+            if not opened_at or score.get("reminded") or score.get("declarations"):
+                continue
+            if timestamp.timestamp() < opened_at + self.SCORE_REMINDER_HOURS * 3600:
+                continue
+            score["reminded"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.info("kingdoms: 3h score reminder due on %s", attack.map_key)
+        return due
+
     async def declare_score(
         self,
         attack_id: str,
@@ -1139,6 +1221,14 @@ class AttackService:
         if attack.state is not AttackState.MEETING:
             raise AttackStateError("the score phase is not open on this attack")
         self._require_score_player(attack, player_id)
+        # attaques-phases-v2 FIX (gate Prêt): a player without « Prêt »
+        # cannot declare — the T+5 no-show line cannot be short-circuited
+        # by a fast declaration anymore (Check 57 follow-up).
+        if player_id not in (attack.score.get("ready") or []):
+            raise ScoreNotReadyError(
+                "confirm your presence at the meeting first (the Prêt button) "
+                "before declaring a result"
+            )
         score = dict(attack.score)
         declarations = dict(score.get("declarations") or {})
         declarations[player_id] = {

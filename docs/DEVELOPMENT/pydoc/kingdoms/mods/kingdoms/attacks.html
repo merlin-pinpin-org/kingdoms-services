@@ -50,7 +50,12 @@ territory&nbsp;transfer&nbsp;on&nbsp;capture.</span></p>
 <dl>
 <dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#AttackNotFoundError">AttackNotFoundError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a>
-</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#DefenseCutoffError">DefenseCutoffError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#ScoreNotReadyError">ScoreNotReadyError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#DefenseCutoffError">DefenseCutoffError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#EmbuscadeError">EmbuscadeError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#GaiaAttackFullError">GaiaAttackFullError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.attacks.html#LordLockedError">LordLockedError</a>
@@ -342,10 +347,14 @@ missed&nbsp;its&nbsp;validation&nbsp;loses&nbsp;(both&nbsp;missed&nbsp;→&nbsp;
 present,&nbsp;wins).&nbsp;A&nbsp;resolved&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;keeps&nbsp;waiting&nbsp;for&nbsp;the<br>
 game&nbsp;result&nbsp;(D20)&nbsp;—&nbsp;the&nbsp;RDV&nbsp;itself.</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-mark_ready"><strong>mark_ready</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Record&nbsp;one&nbsp;player's&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;click&nbsp;in&nbsp;the&nbsp;score&nbsp;phase.<br>
+<dl><dt>async <a name="AttackService-mark_ready"><strong>mark_ready</strong></a>(self, attack_id: 'str', player_id: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Record&nbsp;one&nbsp;player's&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;click&nbsp;in&nbsp;the&nbsp;score&nbsp;phase.<br>
 &nbsp;<br>
 Idempotent&nbsp;—&nbsp;a&nbsp;double&nbsp;click&nbsp;adds&nbsp;nothing.&nbsp;Only&nbsp;the&nbsp;two&nbsp;players<br>
-of&nbsp;the&nbsp;meeting&nbsp;confirm;&nbsp;the&nbsp;AI&nbsp;defender&nbsp;never&nbsp;does.</span></dd></dl>
+of&nbsp;the&nbsp;meeting&nbsp;confirm;&nbsp;the&nbsp;AI&nbsp;defender&nbsp;never&nbsp;does.&nbsp;The<br>
+attaque-phases-v2&nbsp;early&nbsp;close:&nbsp;as&nbsp;soon&nbsp;as&nbsp;EVERY&nbsp;expected<br>
+player&nbsp;is&nbsp;Prêt&nbsp;the&nbsp;score&nbsp;phase&nbsp;is&nbsp;«&nbsp;open&nbsp;»&nbsp;right&nbsp;away<br>
+(``all_ready``)&nbsp;—&nbsp;the&nbsp;T+5&nbsp;deadline&nbsp;stays&nbsp;the&nbsp;forfeit&nbsp;line,&nbsp;it<br>
+is&nbsp;never&nbsp;a&nbsp;minimum&nbsp;wait&nbsp;(Drasah&nbsp;15/10).</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-pick_ban_due"><strong>pick_ban_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Mark&nbsp;the&nbsp;attacks&nbsp;whose&nbsp;T-5&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;DMs&nbsp;must&nbsp;leave&nbsp;(D77).<br>
 &nbsp;<br>
@@ -406,6 +415,14 @@ RDV&nbsp;itself.&nbsp;Idempotent&nbsp;through&nbsp;``score["opened"]``&nbsp;—&
 replays&nbsp;nothing.&nbsp;Un-resolved&nbsp;pick&nbsp;&amp;&nbsp;bans&nbsp;keep&nbsp;the&nbsp;legacy<br>
 forfeit&nbsp;path&nbsp;(``_expire_defended``)&nbsp;—&nbsp;the&nbsp;two&nbsp;rules&nbsp;coexist.</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-score_reminder_due"><strong>score_reminder_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Flag&nbsp;every&nbsp;3h-old&nbsp;result-less&nbsp;meeting&nbsp;for&nbsp;a&nbsp;reminder&nbsp;DM.<br>
+&nbsp;<br>
+attaques-phases-v2&nbsp;(Drasah&nbsp;15/10):&nbsp;three&nbsp;hours&nbsp;after&nbsp;the&nbsp;score<br>
+phase&nbsp;opened&nbsp;with&nbsp;no&nbsp;declared&nbsp;result,&nbsp;both&nbsp;players&nbsp;get&nbsp;a&nbsp;DM<br>
+reminder&nbsp;—&nbsp;the&nbsp;panel&nbsp;stays&nbsp;active,&nbsp;there&nbsp;is&nbsp;NO&nbsp;auto-forfeit.<br>
+Idempotent&nbsp;through&nbsp;``score["reminded"]``&nbsp;—&nbsp;the&nbsp;tick&nbsp;replays&nbsp;it<br>
+safely,&nbsp;the&nbsp;DM&nbsp;leaves&nbsp;only&nbsp;once.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-set_picks"><strong>set_picks</strong></a>(self, attack_id: 'str', player_id: 'str', picks: 'list[str]', *, sabotages: 'list[str] | None' = None, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Submit&nbsp;one&nbsp;side's&nbsp;ranked&nbsp;civilizations&nbsp;and&nbsp;sabotages&nbsp;(D77).<br>
 &nbsp;<br>
 Each&nbsp;side&nbsp;ranks&nbsp;up&nbsp;to&nbsp;3&nbsp;civilizations&nbsp;from&nbsp;ITS&nbsp;OWN&nbsp;hand&nbsp;(blind<br>
@@ -440,6 +457,8 @@ Data descriptors defined here:<br>
 <hr>
 Data and other attributes defined here:<br>
 <dl><dt><strong>READY_GRACE_MINUTES</strong> = 5</dl>
+
+<dl><dt><strong>SCORE_REMINDER_HOURS</strong> = 3</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -1531,6 +1550,94 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ScoreNotReadyError">class <strong>ScoreNotReadyError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ScoreNotReadyError">ScoreNotReadyError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;a&nbsp;score&nbsp;declaration&nbsp;comes&nbsp;from&nbsp;a&nbsp;player&nbsp;without&nbsp;«&nbsp;Prêt&nbsp;».<br>
+&nbsp;<br>
+attaques-phases-v2&nbsp;FIX:&nbsp;before&nbsp;this&nbsp;gate&nbsp;a&nbsp;player&nbsp;could&nbsp;declare&nbsp;a<br>
+result&nbsp;without&nbsp;confirming&nbsp;the&nbsp;RDV&nbsp;presence&nbsp;and&nbsp;short-circuit&nbsp;the<br>
+T+5&nbsp;no-show&nbsp;line&nbsp;(Check&nbsp;57&nbsp;follow-up).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#ScoreNotReadyError">ScoreNotReadyError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackStateError">AttackStateError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_SCORE_NOT_READY'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.score_not_ready'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="ScoreNotReadyError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="ScoreNotReadyError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="ScoreNotReadyError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ScoreNotReadyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ScoreNotReadyError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScoreNotReadyError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ScoreNotReadyError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="SeasonClosedError">class <strong>SeasonClosedError</strong></a>(<a href="kingdoms.mods.kingdoms.attacks.html#AttackError">AttackError</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
@@ -2038,7 +2145,8 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-patrouille_active_at"><strong>patrouille_active_at</strong></a>(state: 'TechnologyState', now: 'datetime', *, base_level: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;patrol&nbsp;slot&nbsp;covers&nbsp;``now``&nbsp;(daily&nbsp;2h&nbsp;slot,&nbsp;D68).<br>
+<td class="singlecolumn"><dl><dt><a name="-expected_score_players"><strong>expected_score_players</strong></a>(attack: 'AttackModel') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;the&nbsp;players&nbsp;whose&nbsp;«&nbsp;Prêt&nbsp;»&nbsp;the&nbsp;meeting&nbsp;waits&nbsp;for&nbsp;(never&nbsp;the&nbsp;AI).</span></dd></dl>
+ <dl><dt><a name="-patrouille_active_at"><strong>patrouille_active_at</strong></a>(state: 'TechnologyState', now: 'datetime', *, base_level: 'int | None' = None) -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;a&nbsp;patrol&nbsp;slot&nbsp;covers&nbsp;``now``&nbsp;(daily&nbsp;2h&nbsp;slot,&nbsp;D68).<br>
 &nbsp;<br>
 The&nbsp;slot&nbsp;hours&nbsp;are&nbsp;expressed&nbsp;in&nbsp;the&nbsp;players'&nbsp;timezone&nbsp;(Europe/Paris,<br>
 the&nbsp;community's&nbsp;convention);&nbsp;an&nbsp;environment&nbsp;without&nbsp;tzdata&nbsp;falls<br>
@@ -2052,6 +2160,13 @@ reaches&nbsp;the&nbsp;ceiling&nbsp;(5,&nbsp;Extrême&nbsp;—&nbsp;the&nbsp;epoc
 permanent&nbsp;Jeu&nbsp;d'armes&nbsp;purchase),&nbsp;every&nbsp;patrol&nbsp;slot&nbsp;of&nbsp;the&nbsp;kingdom<br>
 widens&nbsp;from&nbsp;2h&nbsp;to&nbsp;3h.</span></dd></dl>
  <dl><dt><a name="-patrouille_slots"><strong>patrouille_slots</strong></a>(state: 'TechnologyState') -&gt; 'tuple[int, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;kingdom's&nbsp;bought&nbsp;patrol&nbsp;slots&nbsp;(start&nbsp;hours,&nbsp;D68).</span></dd></dl>
+ <dl><dt><a name="-phase_label"><strong>phase_label</strong></a>(attack: 'AttackModel') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;player-facing&nbsp;phase&nbsp;of&nbsp;an&nbsp;attack&nbsp;(attaques-phases-v2).<br>
+&nbsp;<br>
+The&nbsp;internal&nbsp;T-15/T-5/T/T+5&nbsp;clock&nbsp;is&nbsp;never&nbsp;shown&nbsp;to&nbsp;a&nbsp;player&nbsp;—<br>
+one&nbsp;label&nbsp;per&nbsp;window&nbsp;instead&nbsp;(Drasah&nbsp;15/10):&nbsp;``siege``<br>
+(declaration&nbsp;+&nbsp;defense,&nbsp;before&nbsp;the&nbsp;reveal),&nbsp;``draft``&nbsp;(reveal&nbsp;+<br>
+pick&nbsp;&amp;&nbsp;ban),&nbsp;``ready``&nbsp;(the&nbsp;RDV&nbsp;presence)&nbsp;and&nbsp;``score``&nbsp;(the&nbsp;game<br>
+and&nbsp;its&nbsp;declaration&nbsp;—&nbsp;or&nbsp;a&nbsp;finished&nbsp;attack).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
