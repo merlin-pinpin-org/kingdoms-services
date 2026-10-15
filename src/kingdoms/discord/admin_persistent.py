@@ -158,7 +158,10 @@ async def _reply(interaction: discord.Interaction, key: str) -> str:
 
 async def _degrade(interaction: discord.Interaction, message: str) -> None:
     try:
-        await interaction.response.send_message(message, ephemeral=True)
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
     except Exception:
         logger.warning("ADMIN PANEL (persistent): degradation answer failed", exc_info=True)
 
@@ -421,7 +424,12 @@ async def _handle_read_only(interaction: discord.Interaction) -> None:
 
 
 async def _handle_roles(interaction: discord.Interaction) -> None:
-    """Show the roles view ephemerally (core roles + mod-declared roles)."""
+    """Show the roles view ephemerally (core roles + mod-declared roles).
+
+    The interaction is acked FIRST \u2014 the guard's role lookups and the
+    view's Mongo reads ride behind the defer, never inside the 3s window.
+    """
+    await interaction.response.defer(ephemeral=True, thinking=True)
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
@@ -435,7 +443,7 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
 
     view = await build_roles_view(interaction, wiring)
     try:
-        await interaction.response.send_message(view=view, ephemeral=True)
+        await interaction.followup.send(view=view, ephemeral=True)
     except Exception:
         logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
 

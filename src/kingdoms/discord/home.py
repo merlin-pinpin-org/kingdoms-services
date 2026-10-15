@@ -29,7 +29,6 @@ for the process's lifetime.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import re
 from typing import Any
@@ -130,18 +129,18 @@ async def open_home_menu(interaction: discord.Interaction) -> None:
 
 async def open_home_view(interaction: discord.Interaction, view_key: str) -> None:
     """Answer a home click with the matching ephemeral view."""
-    if view_key == "home":
-        await open_home_menu(interaction)
-    elif view_key == "status":
-        await _view_status(interaction)
-    elif view_key == "profile":
-        await _view_profile(interaction)
-    elif view_key == "games":
-        await _view_games(interaction)
-    elif view_key == "users":
-        await _view_users(interaction)
-    elif view_key == "admin":
-        await _view_admin(interaction)
+    simple = {
+        "home": open_home_menu,
+        "status": _view_status,
+        "profile": _view_profile,
+        "games": _view_games,
+        "mods": _view_mods,
+        "users": _view_users,
+        "admin": _view_admin,
+    }
+    handler = simple.get(view_key)
+    if handler is not None:
+        await handler(interaction)
     elif view_key.startswith("guild-admin:"):
         await _view_admin_for_guild(interaction, view_key[len("guild-admin:") :])
     elif view_key.startswith("guild-games:"):
@@ -294,27 +293,29 @@ class ProfileAddAccountModal(discord.ui.Modal):
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Profile id", max_length=64, required=True
         )
-        self.add_item(self.game)
+        self.add_item(discord.ui.Label(text="Jeu du compte", component=self.game))
         self.add_item(self.profile_id)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Bind the account, audit, confirm."""
+        """Bind the account, audit, confirm, then refresh the profile view."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         chosen = (self.game.values or ["aoe2"])[0]
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
             )
         except Exception:
             logger.warning("PROFILE ADD failed", exc_info=True)
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Ajout échoué (profil inconnu du provider, ou déjà lié).", ephemeral=True
             )
             return
-        await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
+        await interaction.followup.send(await reply(interaction, "profile_linked"), ephemeral=True)
+        await _profile_followup(interaction)
 
 
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
@@ -359,11 +360,13 @@ class ProfileRenameButton(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the rename modal, prefilled with the current nickname."""
+        import asyncio
+
         current = ""
         identity = getattr(interaction.client, "identity_service", None)
         if identity is not None:
             try:
-                user = await identity.get_user(f"discord:{interaction.user.id}")
+                user = await asyncio.wait_for(identity.get_user(f"discord:{interaction.user.id}"), timeout=2.5)
                 current = user.display_name if user is not None and user.display_name else ""
             except Exception:
                 current = ""
@@ -385,12 +388,13 @@ class ProfileRenameModal(discord.ui.Modal):
         self.add_item(self.name)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Persist the new name, confirm."""
+        """Persist the new name, confirm, then refresh the profile view."""
         identity = getattr(interaction.client, "identity_service", None)
         if identity is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
         user_id = f"discord:{interaction.user.id}"
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             user = await identity.get_user(user_id)
             if user is None:
@@ -401,20 +405,41 @@ class ProfileRenameModal(discord.ui.Modal):
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
-            await interaction.response.send_message("Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True)
+            await interaction.followup.send("Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True)
             return
         except Exception:
             logger.warning("PROFILE RENAME failed", exc_info=True)
-            await interaction.response.send_message("Renommage impossible pour le moment.", ephemeral=True)
+            await interaction.followup.send("Renommage impossible pour le moment.", ephemeral=True)
             return
-        await interaction.response.send_message(f"Pseudo mis à jour ✅ — {self.name.value}", ephemeral=True)
+        await interaction.followup.send(f"Pseudo mis à jour ✅ — {self.name.value}", ephemeral=True)
+        await _profile_followup(interaction)
+
+
+def _remove_options(bindings: list[dict[str, Any]]) -> list[discord.SelectOption]:
+    """Build the remove modal's options: name + game + profile id."""
+    options: list[discord.SelectOption] = []
+    for b in bindings[:25]:
+        profile = b.get("profile") or {}
+        label = str(
+            profile.get("display_name")
+            or next(iter(profile.get("aliases") or []), None)
+            or b.get("profile_id", "?")
+        )[:100]
+        options.append(
+            discord.SelectOption(
+                label=label,
+                value=f"{b.get('game_key', '')}|{b.get('profile_id', '')}",
+                description=f"{b.get('game_key', '?')} \u00b7 {b.get('profile_id', '?')}"[:100],
+            )
+        )
+    return options
 
 
 class ProfileRemoveAccountButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"home:profile:remove",
 ):
-    """Open the remove-account select (ephemeral state rides the wire)."""
+    """Open the remove-account modal (multi-select of the linked accounts)."""
 
     def __init__(self) -> None:
         super().__init__(
@@ -436,79 +461,64 @@ class ProfileRemoveAccountButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Confirm with a select of the user's accounts (name + game)."""
+        """Open the multi-select remove modal (accounts read fast, aoe2 cap)."""
+        import asyncio
+
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        bindings = await registration.list_bindings(str(interaction.user.id))
-        options = [
-            discord.SelectOption(
-                label=str(
-                    (b.get("profile") or {}).get("display_name")
-                    or next(iter((b.get("profile") or {}).get("aliases") or []), None)
-                    or b.get("profile_id", "?")
-                )[:100],
-                value=f"{b.get('game_key', '')}|{b.get('profile_id', '')}",
-                description=f"{b.get('game_key', '?')} · {b.get('profile_id', '?')}"[:100],
-            )
-            for b in bindings[:25]
-        ]
-        if not options:
-            await interaction.followup.send(await reply(interaction, "no_account"), ephemeral=True)
-            return
-        await interaction.followup.send(
-            "Quel compte retirer ?",
-            view=ProfileRemoveSelectView(options),
-            ephemeral=True,
-        )
-
-
-class ProfileRemoveSelectView(discord.ui.View):
-    """The remove-account select (ephemeral, short-lived)."""
-
-    def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(timeout=None)
-        self.add_item(ProfileRemoveSelect(options))
-
-    async def on_error(self, interaction: discord.Interaction[discord.Client], error: Exception, item: Any) -> None:
-        """Log and answer quietly (the surface is ephemeral)."""
-        logger.warning("PROFILE REMOVE failed", exc_info=error)
-        with contextlib.suppress(Exception):
-            await interaction.response.send_message(await reply(interaction, "remove_failed"), ephemeral=True)
-
-
-class ProfileRemoveSelect(discord.ui.Select[Any]):
-    """The account picker of the remove flow (multi-account, 25 max)."""
-
-    def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Compte à retirer...")
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Unlink the chosen account, confirm, then refresh the profile view."""
-        registration = getattr(interaction.client, "registration_service", None)
-        if registration is None:
-            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
-            return
-        data = interaction.data
-        raw = getattr(data, "values", None) if data is not None else None
-        if raw is None and isinstance(data, dict):
-            raw = data.get("values")
-        chosen = str(next(iter(raw))) if isinstance(raw, (list, tuple)) and raw else ""
-        if not chosen:
-            await interaction.response.defer()
-            return
-        game_key, _, profile_id = chosen.partition("|")
-        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
-            await registration.unlink_profile(str(interaction.user.id), game_key, profile_id)
+            bindings = await asyncio.wait_for(registration.list_bindings(str(interaction.user.id)), timeout=2.5)
         except Exception:
-            logger.warning("PROFILE REMOVE failed", exc_info=True)
-            await interaction.followup.send(await reply(interaction, "remove_failed"), ephemeral=True)
+            bindings = []
+        if not bindings:
+            await interaction.response.send_message(await reply(interaction, "no_account"), ephemeral=True)
             return
-        await interaction.followup.send("Compte retir\u00e9 \u2014 voil\u00e0 ton profil \u00e0 jour :", ephemeral=True)
-        await _profile_followup(interaction)
+        await interaction.response.send_modal(ProfileRemoveAccountModal(_remove_options(bindings)))
+
+
+class ProfileRemoveAccountModal(discord.ui.Modal):
+    """The remove-account form: one multi-select of the linked accounts."""
+
+    def __init__(self, options: list[discord.SelectOption]) -> None:
+        super().__init__(title="Retirer des comptes", timeout=None)
+        self.accounts: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id="home:profile:remove:select",
+            options=options,
+            placeholder="Comptes \u00e0 retirer...",
+            min_values=1,
+            max_values=len(options),
+        )
+        self.add_item(discord.ui.Label(text="Comptes \u00e0 retirer", component=self.accounts))
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Unlink every chosen account, then refresh the profile view."""
+        registration = getattr(interaction.client, "registration_service", None)
+        if registration is None:
+            await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
+            return
+        chosen = list(self.accounts.values or [])
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        removed: list[str] = []
+        failed = 0
+        for entry in chosen:
+            game_key, _, profile_id = str(entry).partition("|")
+            try:
+                if await registration.unlink_profile(str(interaction.user.id), game_key, profile_id):
+                    removed.append(f"{game_key} (`{profile_id}`)")
+                else:
+                    failed += 1
+            except Exception:
+                logger.warning("PROFILE REMOVE failed (entry %s)", entry, exc_info=True)
+                failed += 1
+        if removed:
+            listed = ", ".join(removed)
+            await interaction.followup.send(f"Comptes retir\u00e9s : {listed}.", ephemeral=True)
+        if failed:
+            await interaction.followup.send(await reply(interaction, "remove_failed"), ephemeral=True)
+        if removed:
+            await _profile_followup(interaction)
 
 
 async def _view_games(interaction: discord.Interaction) -> None:
@@ -654,10 +664,21 @@ async def _view_mods(interaction: discord.Interaction) -> None:
     """Render the guild's granted mods with their channels."""
     from kingdoms.discord.guild_context import require_guild_context
 
-    guild_id = await require_guild_context(interaction, "guild-games:mods")
+    guild_id = await require_guild_context(interaction, "guild-mods:mods")
     if guild_id is None:
         return
-    await interaction.response.defer(ephemeral=True)
+    await _view_mods_for_guild(interaction, guild_id)
+
+
+async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Render the guild's mods (DM re-dispatch friendly: ack first, then read)."""
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
+    await interaction.followup.send(view=await _mods_layout(interaction.client, guild_id), ephemeral=True)
+
+
+async def _mods_layout(bot: Any, guild_id: str) -> discord.ui.LayoutView:
+    """Build the guild's mods view: granted mods with their channels."""
     from kingdoms.discord.wiring import build_guild_access_service, guild_access_platform
 
     _, all_mods = guild_access_platform()
@@ -679,7 +700,7 @@ async def _view_mods(interaction: discord.Interaction) -> None:
         admin = await _tree_channel_link(guild_id, f"mods/{mod}", "admin")
         if admin:
             channels.append(f"admin : {admin}")
-        detail = f" \u2014 {', '.join(channels)}" if channels else " \u2014 salons dédiés à venir"
+        detail = f" \u2014 {', '.join(channels)}" if channels else " \u2014 salons d\u00e9di\u00e9s \u00e0 venir"
         lines.append(f"\u2022 **{mod}**{detail}")
     if not lines:
         lines.append("_Aucun mod actif pour cette guilde._")
@@ -687,13 +708,14 @@ async def _view_mods(interaction: discord.Interaction) -> None:
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(
-                "# \U0001f9e9 Mods\n\n" + "\n".join(lines)
+                "# \U0001f9e9 Mods\n\n"
+                + "\n".join(lines)
                 + "\n\n\U0001f4d6 Documentation : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS"
             ),
             accent_colour=discord.Colour(0x5865F2),
         )
     )
-    await interaction.followup.send(view=view, ephemeral=True)
+    return view
 
 
 async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, Any]]:
@@ -739,17 +761,23 @@ async def _is_guild_member(guild: Any, user_id: int) -> bool:
 
 async def _view_users(interaction: discord.Interaction) -> None:
     """Render the guild's roster: members with linked profiles (name + game)."""
-    bot = interaction.client
-    registration = getattr(bot, "registration_service", None)
+    registration = getattr(interaction.client, "registration_service", None)
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
         return
     from kingdoms.discord.guild_context import require_guild_context
 
-    guild_id = await require_guild_context(interaction, "guild-games:users")
+    guild_id = await require_guild_context(interaction, "guild-users:users")
     if guild_id is None:
         return
-    await interaction.response.defer(ephemeral=True)
+    await _view_users_for_guild(interaction, guild_id)
+
+
+async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
+    """Render the guild's roster (DM re-dispatch friendly: ack first)."""
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
+    bot = interaction.client
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
         await interaction.followup.send("Roster indisponible (store non configuré).", ephemeral=True)
@@ -805,6 +833,10 @@ async def open_home_view_for_guild(interaction: discord.Interaction, view_key: s
         await _view_admin_for_guild(interaction, guild_id)
     elif view_key.startswith("guild-games:"):
         await _view_game_for_guild(interaction, view_key[len("guild-games:") :])
+    elif view_key.startswith("guild-mods:"):
+        await _view_mods_for_guild(interaction, guild_id)
+    elif view_key.startswith("guild-users:"):
+        await _view_users_for_guild(interaction, guild_id)
     else:
         await interaction.response.send_message("Vue inconnue.", ephemeral=True)
 

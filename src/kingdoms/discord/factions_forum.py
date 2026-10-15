@@ -44,7 +44,7 @@ def _civ_post_layout(
     header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
     if source:
         header += f"\n{source}"
-    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header)]
+    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header), discord.ui.Separator()]
     for index, (label, items) in enumerate(sections):
         if index:
             blocks.append(discord.ui.Separator())
