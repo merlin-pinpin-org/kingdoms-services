@@ -329,10 +329,17 @@ class ProfileAddAccountModal(discord.ui.Modal):
             max_values=1,
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Profile id", max_length=64, required=True
+            label="Profile id",
+            placeholder="Ex. 4828497 ( depuis insights.aoe2.com )",
+            max_length=64,
+            required=True,
         )
         self.add_item(discord.ui.Label(text="Jeu du compte", component=self.game))
-        self.add_item(self.profile_id)
+        self.add_item(discord.ui.Label(
+            text="Profile id",
+            description="Ton id de joueur AoE2 : dans insights.aoe2.com, c'est le nombre dans l'URL de ta page profil.",
+            component=self.profile_id,
+        ))
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Bind the account, audit, confirm, then refresh the profile view."""
@@ -361,8 +368,9 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             elif "valid" in reason or "inconnu" in reason:
                 note = (
-                    f"Ajout échoué : le provider {PROFILE_PROVIDER} n'a pas reconnu "
-                    f"le profil `{str(self.profile_id.value).strip()}` — l'erreur précise part aux admins."
+                    f"Ajout échoué : le provider {PROFILE_PROVIDER} ne connaît pas "
+                    f"le profil `{str(self.profile_id.value).strip()}`. Vérifie ton id sur "
+                    "insights.aoe2.com (le nombre dans l'URL de ta page profil)."
                 )
             else:
                 note = (
