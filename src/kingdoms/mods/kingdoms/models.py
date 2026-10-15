@@ -49,6 +49,22 @@ class LordRole(StrEnum):
     LORD = "lord"
 
 
+class ChronicleEntryModel(BaseModel):
+    """One FACTUAL deed of a lord's chronicle (Seigneurie V2, Drasah 15/10).
+
+    Exactly-timestamped. Only actions the lord REALLY CLICKED are recorded — never actions
+    suffered, never system events. ``params`` carries the display
+    values (civ, target, map, outcome…) as strings; the fiche renders
+    one FR/EN template per ``kind``.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    at: int
+    kind: str
+    params: dict[str, str] = Field(default_factory=dict)
+
+
 class KingdomValidation(StrEnum):
     """The admin-side validation state of a kingdom (rule 35, D70).
 
@@ -120,6 +136,17 @@ class KingdomModel(BaseModel):
     """Volière Faucon (voliere-v1): end (unix) of the active Lâcher de
     faucon — while it runs the kingdom suffers NO adverse technology
     effect (Traquenard, sabotages, Embuscade, Corruption)."""
+    corbeau_theft: dict[str, Any] | None = None
+    """Volière Corbeau (corbeau-v3, Drasah 15/10/2026): the kingdom's
+    ONE active ⚙️ theft — ``None`` when no theft is running. States:
+    ``pending`` (sent, execution 1h away) → ``awaiting_continue``
+    (1st ⚙️ stolen, alarm ringing, 5-minute contest window, thief
+    prompted) → ``settled_first`` (STOP or window elapsed: 1 ⚙️ kept)
+    / ``continuing`` (thief answered CONTINUER, 2nd ⚙️ attempt in the
+    window) → ``settled_both`` (2 ⚙️ kept) / ``dead`` (contested:
+    corbeau dead, EVERYTHING lost, slot purged). Fields: ``id``,
+    ``thief_lord_id``, ``target_kingdom_id``, ``target_kingdom_name``,
+    ``execute_at``, ``contest_until``, ``state``, ``stolen``."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""
@@ -181,6 +208,15 @@ class LordModel(BaseModel):
     free-for-alls) for 72h STARTING AT THE NEXT CYCLE SWITCH — the
     timestamp is computed at result ingestion and enforced exactly
     like the marriage and exploration locks."""
+    insight_name: str | None = None
+    """AoE II Insight pseudo (Seigneurie V2, Drasah 15/10/2026): the
+    external ladder identity displayed on the fiche seigneur — the
+    field is entered Merlin-side (treated as if the field exists)."""
+    chronicle: list[ChronicleEntryModel] = Field(default_factory=list)
+    """Lord chronique (Seigneurie V2, Drasah 15/10/2026): the FACTUAL,
+    exactly-timestamped log of the actions the lord REALLY CLICKED —
+    capped (oldest dropped), visible through the fiche only while a
+    Corbeau ``corbeau_track`` of the CONSULTING kingdom is active."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

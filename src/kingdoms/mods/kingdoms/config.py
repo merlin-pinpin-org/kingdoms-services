@@ -171,10 +171,17 @@ class VoliereSettings(BaseModel):
 
     model_config = ConfigDict(strict=True)
 
-    corbeau_civ_cooldown_hours: int = Field(default=168, ge=0)
+    corbeau_civ_cooldown_hours: int = Field(default=72, ge=0)
     corbeau_verify_cooldown_hours: int = Field(default=24, ge=0)
     corbeau_track_cooldown_hours: int = Field(default=48, ge=0)
     corbeau_track_window_hours: int = Field(default=24, ge=1)
+    corbeau_theft_delay_hours: int = Field(default=1, ge=0)
+    """Corbeau vol de ⚙️ (corbeau-v3): delay between the send and the
+    execution (the Corbeau flies 1h before the first theft lands)."""
+    corbeau_theft_contest_minutes: int = Field(default=5, ge=0)
+    """Corbeau vol de ⚙️ (corbeau-v3): the 5-minute window the robbed
+    kingdom has to CONTEST after the alarm rings (first ⚙️ already
+    stolen — the contest kills the Corbeau and refunds EVERYTHING)."""
     faucon_territory_cooldown_hours: int = Field(default=96, ge=0)
     faucon_sabotage_cooldown_hours: int = Field(default=48, ge=0)
     faucon_release_cooldown_hours: int = Field(default=168, ge=0)

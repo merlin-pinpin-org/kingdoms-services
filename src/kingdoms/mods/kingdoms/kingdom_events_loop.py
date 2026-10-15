@@ -72,6 +72,36 @@ _ANNOUNCE_STRINGS: dict[str, dict[str, str]] = {
 }
 
 
+_THEFT_STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "alarm": (
+            "🐦‍⬛ **CORBEAU ALARM** — {thief} steals **{points} ⚙️** from the bank! "
+            "You may CONTEST until <t:{ts}:R> ({minutes}-minute window). "
+            "The thief may go for a 2nd ⚙️ — a contest kills the Corbeau and refunds EVERYTHING."
+        ),
+        "prompt": (
+            "🐦‍⬛ The Corbeau steals **{points} ⚙️** from **{target}**! Continue?\n"
+            "🛑 STOP = fly home safe with the 1st ⚙️; ➡️ CONTINUE = go for the 2nd "
+            "(a contest before <t:{ts}:R> kills the Corbeau and you leave with NOTHING). "
+            "No answer = automatic safe return with the 1st ⚙️."
+        ),
+    },
+    "fr": {
+        "alarm": (
+            "🐦‍⬛ **ALARME CORBEAU** — {thief} vole **{points} ⚙️** dans la banque ! "
+            "Vous pouvez CONTESTER jusqu'à <t:{ts}:R> (fenêtre de {minutes} min). "
+            "Le voleur peut tenter un 2e ⚙️ — une contestation tue le Corbeau et restitue TOUT."
+        ),
+        "prompt": (
+            "🐦‍⬛ Le Corbeau vole **{points} ⚙️** à **{target}** ! Continuer ?\n"
+            "🛑 STOP = repartir sain et sauf avec le 1er ⚙️ ; ➡️ CONTINUER = tenter le 2e "
+            "(une contestation avant <t:{ts}:R> tue le Corbeau et vous repartez sans rien). "
+            "Sans réponse, il repart automatiquement avec le 1er ⚙️."
+        ),
+    },
+}
+
+
 def _strings(locale: str) -> dict[str, str]:
     return _ANNOUNCE_STRINGS["fr"] if str(locale).lower().startswith("fr") else _ANNOUNCE_STRINGS["en"]
 
@@ -423,6 +453,119 @@ async def _resolve_cathedrals_safe(bot: Any) -> None:
                 logger.warning("KINGDOMS EVENTS: sacred announcement failed", exc_info=True)
 
 
+def _theft_strings(locale: str) -> dict[str, str]:
+    return _THEFT_STRINGS["fr"] if str(locale).lower().startswith("fr") else _THEFT_STRINGS["en"]
+
+
+async def _realm_realm_channel_safe(guild: Any, kingdom_name: str) -> Any:
+    """Find a kingdom's Le-Royaume salon (best effort, read-only)."""
+    from kingdoms.mods.kingdoms.kingdom_realms import _find_realm_category
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    category = _find_realm_category(guild, kingdom_name)
+    if category is None:
+        return None
+    return next(
+        (
+            channel
+            for channel in getattr(category, "channels", [])
+            if _slug(getattr(channel, "name", "")) == _slug("Le-Royaume")
+        ),
+        None,
+    )
+
+
+async def _resolve_corbeau_thefts_safe(bot: Any) -> None:
+    """Execute the due corbeau ⚙️ thefts and ring the alarms (corbeau-v3).
+
+    The tick IS the theft engine (idempotent through the theft states):
+    a pending theft past its 1-hour ``execute_at`` steals the 1st ⚙️,
+    opens the 5-minute contest window, sends the ALARM (persistent 🛡️
+    Contester button) to the robbed kingdom's Le-Royaume salon and the
+    « Continuer ? » prompt (➡️/🛑 persistent buttons) to the thief's.
+    A bank at 0 settles silently. Best effort on every Discord step.
+    """
+    voliere = getattr(bot, "kingdoms_voliere_service", None)
+    kingdoms_service = getattr(bot, "kingdoms_service", None)
+    if voliere is None or kingdoms_service is None:
+        return
+    if not list(getattr(bot, "guilds", []) or []):
+        return
+    try:
+        executed = await voliere.resolve_due_thefts(now=game_now())
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: corbeau theft resolution failed", exc_info=True)
+        return
+    if not executed:
+        return
+    try:
+        kingdoms = {str(k.id): k for k in await kingdoms_service.kingdoms()}
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: theft kingdoms lookup failed", exc_info=True)
+        return
+    minutes = int(
+        getattr(getattr(voliere, "settings", None), "corbeau_theft_contest_minutes", 5)
+    )
+    for theft in executed:
+        await _ring_theft_alarms_safe(bot, theft, kingdoms, minutes)
+        logger.info(
+            "KINGDOMS EVENTS: corbeau theft %s executed (%s ⚙️ from %s)",
+            theft.get("id"),
+            theft.get("stolen", 0),
+            theft.get("target_kingdom_name"),
+        )
+
+
+async def _ring_theft_alarms_safe(
+    bot: Any, theft: dict[str, Any], kingdoms: dict[str, Any], minutes: int
+) -> None:
+    """Send the ALARM (robbed side) and the prompt (thief side), best effort."""
+    from kingdoms.mods.kingdoms.kingdom_voliere_panel import (
+        theft_alarm_view,
+        theft_prompt_view,
+    )
+
+    theft_id = str(theft.get("id"))
+    target_name = str(theft.get("target_kingdom_name") or "")
+    thief_name = str(
+        getattr(kingdoms.get(str(theft.get("thief_kingdom_id"))), "name", "")
+        or str(theft.get("thief_kingdom_id"))
+    )
+    points = int(theft.get("stolen", 0) or 0)
+    for guild in list(getattr(bot, "guilds", []) or []):
+        locale = await _guild_locale(bot, str(guild.id))
+        strings = _theft_strings(locale)
+        try:
+            # ALARM — the robbed kingdom's Le-Royaume salon.
+            target_channel = await _realm_realm_channel_safe(guild, target_name)
+            if target_channel is not None:
+                await target_channel.send(
+                    strings["alarm"].format(
+                        thief=thief_name,
+                        points=points,
+                        ts=int(theft.get("contest_until", 0) or 0),
+                        minutes=minutes,
+                    ),
+                    view=theft_alarm_view(locale),
+                )
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: theft alarm failed", exc_info=True)
+        try:
+            # PROMPT — the thief kingdom's Le-Royaume salon.
+            thief_channel = await _realm_realm_channel_safe(guild, thief_name)
+            if thief_channel is not None:
+                await thief_channel.send(
+                    strings["prompt"].format(
+                        points=points,
+                        target=target_name,
+                        ts=int(theft.get("contest_until", 0) or 0),
+                    ),
+                    view=theft_prompt_view(locale, theft_id),
+                )
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: theft prompt failed", exc_info=True)
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
@@ -456,6 +599,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
         await _resolve_explorations_safe(bot)
         await _ffa_exploration_tick_safe(bot)
         await _resolve_cathedrals_safe(bot)
+        await _resolve_corbeau_thefts_safe(bot)
         if not reports:
             continue
         logger.info("KINGDOMS EVENTS: %s due slot(s) replayed", len(reports))

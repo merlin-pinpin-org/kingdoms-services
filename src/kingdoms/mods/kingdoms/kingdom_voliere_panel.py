@@ -24,6 +24,7 @@ from typing import Any
 
 import discord
 
+from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
@@ -59,7 +60,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "bird_ready": "🪶 **{bird}** — on its perch, ready",
         "bird_flying": "🕊️ **{bird}** — flying, back <t:{ts}:R>",
         "bird_not_owned": "❌ The {bird} is not in your volière — choose it in a slot first.",
-        "act_corbeau_civ": "🐦‍⬛ Draw a civilization",
+        "act_corbeau_civ": "🐦‍⬛ Steal tech points",
         "act_corbeau_verify": "🐦‍⬛ Verify an attack",
         "act_corbeau_track": "🐦‍⬛ Track a lord",
         "act_faucon_territory": "🦅 Draw a territory",
@@ -71,7 +72,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "civ_drawn": "🎲 The {bird} draws the civilization **{civ}**.",
         "territory_drawn": "🎲 The faucon draws the territory **{map}** — it joins your kingdom.",
         "verify_choose": "🐦‍⬛ Which attack should the Corbeau inspect?",
-        "verify_result": "🐦‍⬛ The real attacker of **{map}** is **{name}**.",
+        "verify_result": (
+            "🐦‍⬛ The real attacker of **{map}** is **{name}**.\n"
+            "🗡️ His civilizations: **{civs}**.\n"
+            "♟️ Edge: the defender sets his 3 civilizations AFTER."
+        ),
         "verify_no_target": "❌ No ongoing attack targets your kingdom.",
         "track_choose": "🐦‍⬛ Which lord should the Corbeau track?",
         "track_done": "🐦‍⬛ **{name}** is tracked for 24h — every attack he declares leaves with a 24h delay.",
@@ -92,6 +97,25 @@ _STRINGS: dict[str, dict[str, str]] = {
         "dm_sent": "🕊️ The MP reached every lord of **{kingdom}** — nobody sees the sender.",
         "dm_no_target": "❌ No other player kingdom.",
         "dm_failed": "❌ The MP could not reach any lord.",
+        "theft_choose": "🐦‍⬛ Which kingdom should the Corbeau raid?",
+        "theft_sent": (
+            "🐦‍⬛ The Corbeau flies to **{kingdom}** — the theft executes "
+            "<t:{ts}:R> (alarm + 5-minute contest window there)."
+        ),
+        "theft_no_target": "❌ No other player kingdom.",
+        "theft_contest_button": "🛡️ Contest",
+        "theft_continue_button": "➡️ Continue (2nd ⚙️)",
+        "theft_stop_button": "🛑 Stop (keep the 1st ⚙️)",
+        "theft_stopped": "🐦‍⬛ The Corbeau flies home safe with **{points} ⚙️**.",
+        "theft_continuing": (
+            "🐦‍⬛ The Corbeau goes for the 2nd ⚙️ — nobody contests before "
+            "<t:{ts}:R> and it leaves with **{points} ⚙️**."
+        ),
+        "theft_contested": (
+            "🛡️ CONTEST WON — the Corbeau dies, **{points} ⚙️** refunded to the bank. "
+            "The thief's Corbeau slot is lost (buyable again at the next Age)."
+        ),
+        "theft_not_yours": "❌ This theft does not involve your kingdom.",
         "failed": "❌ {message}",
         "no_service": "❌ The volière service is unavailable.",
         "not_a_lord": "❌ You belong to no kingdom of the current season.",
@@ -114,7 +138,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "bird_ready": "🪶 **{bird}** — posé sur son perchoir, prêt",
         "bird_flying": "🕊️ **{bird}** — envolé, il revient <t:{ts}:R>",
         "bird_not_owned": "❌ Le {bird} n'est pas dans ta volière — choisis-le dans un emplacement d'abord.",
-        "act_corbeau_civ": "🐦‍⬛ Piocher une civilisation",
+        "act_corbeau_civ": "🐦‍⬛ Voler des points technologiques",
         "act_corbeau_verify": "🐦‍⬛ Vérifier une attaque",
         "act_corbeau_track": "🐦‍⬛ Cibler un seigneur",
         "act_faucon_territory": "🦅 Piocher un territoire",
@@ -126,7 +150,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "civ_drawn": "🎲 Le {bird} pioche la civilisation **{civ}**.",
         "territory_drawn": "🎲 Le faucon pioche le territoire **{map}** — il rejoint ton royaume.",
         "verify_choose": "🐦‍⬛ Quelle attaque le Corbeau doit-il inspecter ?",
-        "verify_result": "🐦‍⬛ Le véritable attaquant de **{map}** est **{name}**.",
+        "verify_result": (
+            "🐦‍⬛ Le véritable attaquant de **{map}** est **{name}**.\n"
+            "🗡️ Ses civilisations : **{civs}**.\n"
+            "♟️ Avantage : le défenseur définit ses 3 civilisations APRÈS."
+        ),
         "verify_no_target": "❌ Aucune attaque en cours ne vise ton royaume.",
         "track_choose": "🐦‍⬛ Quel seigneur le Corbeau doit-il cibler ?",
         "track_done": "🐦‍⬛ **{name}** est suivi 24h — toutes ses déclarations d'attaque partent avec un délai de 24h.",
@@ -147,6 +175,25 @@ _STRINGS: dict[str, dict[str, str]] = {
         "dm_sent": "🕊️ Le MP est parvenu à chaque seigneur de **{kingdom}** — personne ne voit l'expéditeur.",
         "dm_no_target": "❌ Aucun autre royaume.",
         "dm_failed": "❌ Le MP n'a pu atteindre aucun seigneur.",
+        "theft_choose": "🐦‍⬛ Quel royaume le Corbeau doit-il piller ?",
+        "theft_sent": (
+            "🐦‍⬛ Le Corbeau s'envole vers **{kingdom}** — le vol s'exécute "
+            "<t:{ts}:R> (alarme + fenêtre de contestation de 5 min là-bas)."
+        ),
+        "theft_no_target": "❌ Aucun autre royaume.",
+        "theft_contest_button": "🛡️ Contester",
+        "theft_continue_button": "➡️ Continuer (2e ⚙️)",
+        "theft_stop_button": "🛑 STOP (garder le 1er ⚙️)",
+        "theft_stopped": "🐦‍⬛ Le Corbeau repart sain et sauf avec **{points} ⚙️**.",
+        "theft_continuing": (
+            "🐦‍⬛ Le Corbeau tente le 2e ⚙️ — personne ne conteste avant "
+            "<t:{ts}:R> et il repart avec **{points} ⚙️**."
+        ),
+        "theft_contested": (
+            "🛡️ CONTESTATION RÉUSSIE — le Corbeau meurt, **{points} ⚙️** restitués "
+            "à la banque. Le slot Corbeau du voleur est perdu (rachetable à l'Âge suivant)."
+        ),
+        "theft_not_yours": "❌ Ce vol n'implique pas ton royaume.",
         "failed": "❌ {message}",
         "no_service": "❌ Le service volière est indisponible.",
         "not_a_lord": "❌ Tu n'appartiens à aucun royaume de la saison en cours.",
@@ -312,6 +359,16 @@ async def _slot_flow(interaction: discord.Interaction, wiring: Any, *, fresh: bo
         logger.info(
             "kingdoms volière: %s chooses the bird %s (admin trace)", lord.id, values[0]
         )
+        try:
+            await chronicle.record(
+                lord,
+                chronicle.KIND_BIRD_CHOSEN,
+                now=_now(),
+                store=wiring.kingdoms_service._store,
+                bird=values[0],
+            )
+        except Exception:
+            logger.info("VOLIERE: bird chronicle skipped", exc_info=True)
         fresh = await _voliere_state(wiring, str(kingdom.id))
         content = strings["bird_chosen"].format(bird=BIRD_NAME.get(values[0], values[0]))
         await target.response.edit_message(
@@ -364,6 +421,27 @@ async def _require_lord(interaction: discord.Interaction, strings: dict[str, str
     return (lord, kingdom)
 
 
+async def _record_action(wiring: Any, lord: Any, action: str, **params: str) -> None:
+    """Chronicle one CLICKED volière action on the acting lord (Seigneurie V2).
+
+    Panel-level actions (the modals, the selects, the draws) never pass
+    through a service that could record them — the panel knows the
+    acting lord through ``_require_lord`` and records here, best-effort.
+    """
+    try:
+        store = wiring.kingdoms_service._store
+        await chronicle.record(
+            lord,
+            chronicle.KIND_VOLIERE_ACTION,
+            now=_now(),
+            store=store,
+            action=action,
+            **params,
+        )
+    except Exception:
+        logger.info("VOLIERE: chronicle record skipped", exc_info=True)
+
+
 async def _refresh_realm_safe(guild: Any, kingdom_id: str) -> None:
     """Best-effort realm view refresh after a kingdom mutation."""
     try:
@@ -383,19 +461,26 @@ async def _draw_action(
     kingdom: Any,
     action: str,
     now: Any,
+    lord: Any = None,
 ) -> None:
     """Run one draw-style action (civ, territory, lâcher) and edit the bubble."""
     voliere = wiring.voliere_service
     try:
-        if action in ("corbeau_civ", "pigeon_civ"):
+        if action == "pigeon_civ":
             civ = await voliere.pick_civilization(str(kingdom.id), action, now=now)
             note = strings["civ_drawn"].format(bird=BIRD_LABEL[action], civ=civ)
+            if lord is not None:
+                await _record_action(wiring, lord, action, civ=civ)
         elif action == "faucon_territory":
             map_key = await voliere.pick_territory(str(kingdom.id), now=now)
             note = strings["territory_drawn"].format(map=map_key)
+            if lord is not None:
+                await _record_action(wiring, lord, action, map=map_key)
         else:
             await voliere.release_faucon(str(kingdom.id), now=now)
             note = strings["release_done"]
+            if lord is not None:
+                await _record_action(wiring, lord, action)
     except Exception as exc:
         _failed(interaction, strings, exc)
         return
@@ -429,8 +514,13 @@ async def _run_action(
         return
     logger.info("kingdoms volière: %s runs %s (admin trace)", lord.id, action)
     now = _now()
-    if action in ("corbeau_civ", "pigeon_civ", "faucon_territory", "faucon_release"):
-        await _draw_action(interaction, wiring, strings, kingdom, action, now)
+    if action == "corbeau_civ":
+        # corbeau-v3 (Drasah 15/10): the Corbeau no longer draws a
+        # civilization — it STEALS ⚙️ from a target kingdom's bank.
+        await _theft_flow(interaction, wiring, strings, kingdom, lord)
+        return
+    if action in ("pigeon_civ", "faucon_territory", "faucon_release"):
+        await _draw_action(interaction, wiring, strings, kingdom, action, now, lord)
         return
     flows: dict[str, Any] = {
         "corbeau_verify": _verify_flow,
@@ -439,7 +529,7 @@ async def _run_action(
     }
     flow = flows.get(action)
     if flow is not None:
-        await flow(interaction, wiring, strings, kingdom)
+        await flow(interaction, wiring, strings, kingdom, lord)
         return
     if action == "pigeon_question" and await _gate_bird(
         interaction, wiring, strings, kingdom, "pigeon_question"
@@ -489,7 +579,11 @@ async def _gate_bird(
 
 
 async def _verify_flow(
-    interaction: discord.Interaction, wiring: Any, strings: dict[str, str], kingdom: Any
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    lord: Any = None,
 ) -> None:
     """Corbeau verify — select one ongoing attack against the kingdom."""
     voliere = wiring.voliere_service
@@ -522,14 +616,25 @@ async def _verify_flow(
         if not values:
             return
         try:
-            name = await voliere.verify_attack(str(kingdom.id), values[0], now=_now())
+            inspection = await voliere.inspect_attack(
+                str(kingdom.id), values[0], now=_now()
+            )
         except Exception as exc:
             _failed(target, strings, exc)
             return
         attack = next((a for a in attacks if a.id == values[0]), None)
-        map_key = str(getattr(attack, "map_key", values[0]))
+        map_key = str(attack.map_key) if attack is not None else str(inspection["map_key"])
+        civs = ", ".join(inspection["attacker_civs"]) or strings["unknown"]
         await target.response.edit_message(
-            content=strings["verify_result"].format(map=map_key, name=name), view=None
+            content=strings["verify_result"].format(
+                map=map_key,
+                name=str(inspection["attacker_name"]),
+                civs=civs,
+            ),
+            view=None,
+        )
+        await _record_action(
+            wiring, lord, "corbeau_verify", map=map_key, target=str(inspection["attacker_name"])
         )
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
@@ -541,7 +646,11 @@ async def _verify_flow(
 
 
 async def _track_flow(
-    interaction: discord.Interaction, wiring: Any, strings: dict[str, str], kingdom: Any
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    lord: Any = None,
 ) -> None:
     """Corbeau track — select one lord of another player kingdom."""
     voliere = wiring.voliere_service
@@ -593,6 +702,7 @@ async def _track_flow(
         await target.response.edit_message(
             content=strings["track_done"].format(name=target_name), view=None
         )
+        await _record_action(wiring, lord, "corbeau_track", target=target_name)
 
     select.callback = on_choose  # type: ignore[method-assign, assignment]
     view = discord.ui.View(timeout=600)
@@ -603,7 +713,11 @@ async def _track_flow(
 
 
 async def _sabotage_flow(
-    interaction: discord.Interaction, wiring: Any, strings: dict[str, str], kingdom: Any
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    lord: Any = None,
 ) -> None:
     """Faucon sabotage — select the attack, then the adversary civilization."""
     voliere = wiring.voliere_service
@@ -683,6 +797,9 @@ async def _sabotage_flow(
                 ),
                 view=None,
             )
+            await _record_action(
+                wiring, lord, "faucon_sabotage", civ=chosen[0], map=str(attack.map_key)
+            )
 
         civ_select.callback = on_civ  # type: ignore[method-assign, assignment]
         civ_view = discord.ui.View(timeout=600)
@@ -737,6 +854,7 @@ async def _question_modal(
         logger.info(
             "kingdoms volière: anonymous question by %s (admin trace)", lord.id
         )
+        await _record_action(wiring, lord, "pigeon_question")
         try:
             await channel.create_thread(
                 name=str(getattr(question_input, "value", "") or "")[:90],
@@ -837,6 +955,9 @@ async def _dm_flow(
                 lord.id,
                 target_kingdom.id,
             )
+            await _record_action(
+                wiring, lord, "pigeon_dm", kingdom=str(target_kingdom.name)
+            )
             sent = await _dm_kingdom_lords(
                 wiring, submit_target, target_kingdom.id, text
             )
@@ -857,6 +978,228 @@ async def _dm_flow(
     view = discord.ui.View(timeout=600)
     view.add_item(select)
     await interaction.response.edit_message(content=strings["dm_choose"], view=view)
+
+
+# ----------------------------------------------------------------------
+# The corbeau theft flow + the restart-proof alarm buttons (corbeau-v3)
+# ----------------------------------------------------------------------
+
+
+async def _theft_flow(
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    kingdom: Any,
+    lord: Any,
+) -> None:
+    """Corbeau theft — select the target kingdom, the Corbeau flies 1h (v3).
+
+    Nothing is stolen at the click: the execution (alarm + 5-minute
+    contest window on the robbed side, « Continuer ? » prompt on the
+    thief side) happens ``corbeau_theft_delay_hours`` later, in the
+    events loop.
+    """
+    voliere = wiring.voliere_service
+    kingdoms = [
+        k
+        for k in await wiring.kingdoms_service.kingdoms()
+        if not getattr(k, "is_gaia", False) and k.id != kingdom.id
+    ]
+    if not kingdoms:
+        await interaction.response.edit_message(
+            content=strings["theft_no_target"], view=None
+        )
+        return
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        custom_id="kingdoms:voliere:theft:choose",
+        placeholder=strings["theft_choose"][:100],
+        options=[
+            discord.SelectOption(
+                label=str(k.name)[:100],
+                value=str(k.id)[:100],
+                description=f"⚙️ {int(getattr(k, 'tech_points_bank', 0) or 0)}"[:100],
+            )
+            for k in kingdoms[:25]
+        ],
+    )
+
+    async def on_choose(target: discord.Interaction[Any]) -> None:
+        values = [str(v) for v in (getattr(target, "data", None) or {}).get("values", [])]
+        if not values:
+            return
+        target_kingdom = next((k for k in kingdoms if k.id == values[0]), None)
+        if target_kingdom is None:
+            return
+        try:
+            theft = await voliere.send_corbeau_theft(
+                str(kingdom.id), values[0], str(lord.id), now=_now()
+            )
+        except Exception as exc:
+            _failed(target, strings, exc)
+            return
+        await target.response.edit_message(
+            content=strings["theft_sent"].format(
+                kingdom=str(target_kingdom.name), ts=int(theft["execute_at"])
+            ),
+            view=None,
+        )
+
+    select.callback = on_choose  # type: ignore[method-assign, assignment]
+    view = discord.ui.View(timeout=600)
+    view.add_item(select)
+    await interaction.response.edit_message(
+        content=strings["theft_choose"], view=view
+    )
+
+
+def theft_alarm_view(locale: str) -> discord.ui.View:
+    """Build the RESTART-PROOF alarm button view (one locale, no closure).
+
+    Used by the events loop: the alarm message sent to the robbed
+    kingdom's Le-Royaume salon carries the persistent 🛡️ Contester
+    button — a restart never loses the contest window.
+    """
+    strings = _strings(locale)
+    view = discord.ui.View(timeout=None)
+    view.add_item(
+        KingdomTheftButton("contest", "", strings["theft_contest_button"])
+    )
+    return view
+
+
+def theft_prompt_view(locale: str, theft_id: str) -> discord.ui.View:
+    """Build the thief's persistent « Continuer ? » prompt view."""
+    strings = _strings(locale)
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomTheftButton("continue", theft_id, strings["theft_continue_button"]))
+    view.add_item(KingdomTheftButton("stop", theft_id, strings["theft_stop_button"]))
+    return view
+
+
+class KingdomTheftButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:corbeau:theft:(?P<action>contest|continue|stop):(?P<theft_id>[^:]*)",
+):
+    """The restart-proof theft button (corbeau-v3, Drasah 15/10).
+
+    ``contest`` lives on the ROBBED side's alarm message; ``continue``
+    and ``stop`` live on the thief's prompt message. The theft id rides
+    the custom id for the thief-side buttons; the contest side finds
+    the theft by target (theft_id stays in the custom id too, both are
+    checked server-side).
+    """
+
+    def __init__(self, action: str, theft_id: str, label: str) -> None:
+        style = (
+            discord.ButtonStyle.danger
+            if action == "contest"
+            else (
+                discord.ButtonStyle.primary
+                if action == "continue"
+                else discord.ButtonStyle.secondary
+            )
+        )
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:corbeau:theft:{action}:{theft_id}",
+                style=style,
+            )
+        )
+        self.action = action
+        self.theft_id = theft_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomTheftButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        action = str(match.group("action"))
+        strings = _strings(_locale(interaction))
+        label = {
+            "contest": strings["theft_contest_button"],
+            "continue": strings["theft_continue_button"],
+            "stop": strings["theft_stop_button"],
+        }[action]
+        return cls(action, str(match.group("theft_id")), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Run the contest / continue / stop, then edit the bubble."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        voliere = wiring.voliere_service
+        if voliere is None or wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        lord, kingdom = await _require_lord(interaction, strings, wiring)
+        if lord is None or kingdom is None:
+            return
+        try:
+            if self.action == "contest":
+                theft_id = self.theft_id
+                if not theft_id:
+                    # alarm button built without the id: find the theft
+                    # that targets THIS kingdom (the one to contest).
+                    theft_id = next(
+                        (
+                            str(k.corbeau_theft.get("id"))
+                            for k in await wiring.kingdoms_service.kingdoms()
+                            if k.corbeau_theft is not None
+                            and str(k.corbeau_theft.get("target_kingdom_id"))
+                            == str(kingdom.id)
+                            and str(k.corbeau_theft.get("state"))
+                            in ("awaiting_continue", "continuing")
+                        ),
+                        "",
+                    )
+                if not theft_id:
+                    raise VoliereTheftLookupError(strings["theft_not_yours"])
+                result = await voliere.contest_theft(
+                    theft_id, str(kingdom.id), now=_now()
+                )
+                try:
+                    await chronicle.record(
+                        lord,
+                        chronicle.KIND_CORBEAU_CONTESTED,
+                        now=_now(),
+                        store=wiring.kingdoms_service._store,
+                        thief=str(result.get("thief_kingdom_name", "")),
+                    )
+                except Exception:
+                    logger.info("VOLIERE: contest chronicle skipped", exc_info=True)
+                content = strings["theft_contested"].format(
+                    points=int(result.get("refunded", 0) or 0)
+                )
+            else:
+                result = await voliere.continue_theft(
+                    self.theft_id,
+                    str(kingdom.id),
+                    self.action == "continue",
+                    now=_now(),
+                )
+                if self.action == "continue":
+                    content = strings["theft_continuing"].format(
+                        ts=int(result.get("contest_until", 0) or 0),
+                        points=int(result.get("stolen", 0) or 0),
+                    )
+                else:
+                    content = strings["theft_stopped"].format(
+                        points=int(result.get("stolen", 0) or 0)
+                    )
+        except Exception as exc:
+            _failed(interaction, strings, exc)
+            return
+        await interaction.response.edit_message(content=content, view=None)
+
+
+class VoliereTheftLookupError(Exception):
+    """Raised when no active theft involves the clicking kingdom."""
 
 
 # ----------------------------------------------------------------------
