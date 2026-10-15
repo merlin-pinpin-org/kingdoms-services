@@ -126,12 +126,37 @@ async def test_player_stats_without_api_key_degrades_to_none() -> None:
 
 
 @pytest.mark.asyncio
-async def test_player_stats_serves_leaderboard_blocks() -> None:
-    """With a key and a leaderboard reply, stats come back as blocks."""
+async def test_player_stats_serves_identity_and_leaderboard_blocks() -> None:
+    """A GetPersonalStat reply yields the identity entries plus stats blocks.
+
+    The real reply shape (aoe-api.worldsedgelink.com,
+    /community/leaderboard/GetPersonalStat): ``statGroups[].members[]``
+    carries the identity (alias, country, clan), ``leaderboardStats[]``
+    the per-board stats.
+    """
     payload = {
-        "result": [
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [
             {
-                "profileId": "12345",
+                "id": 1103946,
+                "name": "",
+                "type": 1,
+                "members": [
+                    {
+                        "profile_id": 12345,
+                        "name": "/xboxlive/XYZ",
+                        "alias": "qmaxquique",
+                        "leaderboardregion_id": 4,
+                        "country": "ar",
+                        "clanlist_name": "TATO",
+                    }
+                ],
+            }
+        ],
+        "leaderboardStats": [
+            {
+                "profile_id": 12345,
+                "leaderboard_id": 3,
                 "rank": 42,
                 "rating": 1600,
                 "wins": 30,
@@ -139,7 +164,7 @@ async def test_player_stats_serves_leaderboard_blocks() -> None:
                 "streak": 3,
                 "games": 55,
             }
-        ]
+        ],
     }
     adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     stats = await adapter.player_stats("12345")
@@ -148,15 +173,44 @@ async def test_player_stats_serves_leaderboard_blocks() -> None:
     assert stats.blocks, "at least one leaderboard block"
     block = stats.blocks[0]
     entries = {e.key: e.value for e in block.entries}
+    assert entries["alias"] == "qmaxquique"
+    assert entries["country"] == "ar"
+    assert entries["clan"] == "TATO"
     assert entries["rank"] == "42"
     assert entries["rating"] == "1600"
     assert entries["wins"] == "30"
 
 
 @pytest.mark.asyncio
+async def test_player_stats_identity_only_profile_still_serves() -> None:
+    """A profile known but unranked serves its identity (registration valid)."""
+    payload = {
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [
+            {
+                "id": 1,
+                "members": [
+                    {"profile_id": 12345, "name": "/steam/XYZ", "alias": "someplayer", "country": "fr"}
+                ],
+            }
+        ],
+        "leaderboardStats": [],
+    }
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
+    stats = await adapter.player_stats("12345")
+    assert stats is not None
+    entries = {e.key: e.value for e in stats.blocks[0].entries}
+    assert entries["alias"] == "someplayer"
+
+
+@pytest.mark.asyncio
 async def test_player_stats_unknown_profile_returns_none() -> None:
-    """A leaderboard reply without the profile degrades to None."""
-    payload = {"result": [{"profileId": "other", "rank": 1}]}
+    """A GetPersonalStat reply without the profile degrades to None."""
+    payload = {
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [],
+        "leaderboardStats": [],
+    }
     adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     assert await adapter.player_stats("12345") is None
 

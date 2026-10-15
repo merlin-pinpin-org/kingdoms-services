@@ -89,7 +89,11 @@ class Aoe2ProfileValidationSeam:
         stats = await client.get_player_stats(profile_id)
         if stats is None:
             return None
+        entries = [e for b in stats.blocks for e in b.entries]
+        aliases = [e.value for e in entries if e.key == "alias"]
+        if not aliases:
+            aliases = [e.value for e in entries][:5]
         return {
             "profile_id": profile_id,
-            "aliases": [e.value for b in stats.blocks for e in b.entries][:5],
+            "aliases": aliases[:5],
         }
