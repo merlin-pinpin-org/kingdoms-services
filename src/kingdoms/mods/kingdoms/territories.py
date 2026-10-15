@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import TerritoryModel
@@ -68,9 +68,67 @@ class TerritoryService:
         self._store = store
         self._config = config
         self._kingdoms = kingdoms_service
+        self._map_migration_done = False
+
+    # cadastre-diplomatie-v1 (Drasah 15/10): the official map list
+    # ERASES the v0 catalog; the v0-only maps (Altai, Babel,
+    # Hideout, Highland, Siberia) no longer exist. A territory drawn
+    # before the patch and still referencing one is REMAPPED here to a
+    # close cousin of the new catalog — best effort, once per process.
+    _REMOVED_MAP_FALLBACKS: ClassVar[dict[str, tuple[str, ...]]] = {
+        "altai": ("conquete-de-la-montagne", "crete-montagneuse"),
+        "babel": ("huis-clos", "megarandom"),
+        "hideout": ("crete-montagneuse", "chaine-de-montagne"),
+        "highland": ("montagnes", "kilimandjaro"),
+        "siberia": ("scandinavie", "nomade-marin"),
+    }
+
+    async def migrate_removed_map_keys(self) -> int:
+        """Remap the territories of removed v0 maps onto the new catalog.
+
+        Returns the migrated count. The replacement map follows the
+        ``_REMOVED_MAP_FALLBACKS`` cousin, or any undrawn catalog map —
+        a territory is NEVER left pointing at a map that no longer
+        exists. Runs once per process (the flag), at the first
+        territory read, so every entry point (boot, restore, attack)
+        converges.
+        """
+        if self._map_migration_done:
+            return 0
+        self._map_migration_done = True
+        catalog = [entry.key for entry in self._config.maps]
+        catalog_set = set(catalog)
+        if not catalog_set:
+            return 0
+        migrated = 0
+        for territory in await self.territories():
+            if territory.map_key in catalog_set:
+                continue
+            already = await self.drawn_map_keys()
+            already.discard(territory.map_key)
+            candidates = [
+                key
+                for key in self._REMOVED_MAP_FALLBACKS.get(territory.map_key, ())
+                if key in catalog_set and key not in already
+            ]
+            if not candidates:
+                candidates = [key for key in catalog if key not in already]
+            if not candidates:
+                continue
+            territory.map_key = candidates[0]
+            await self._store.upsert_territory(territory.to_mongo())
+            migrated += 1
+            logger.info(
+                "kingdoms: territory %s remapped onto %s (cadastre v1 migration)",
+                territory.id,
+                territory.map_key,
+            )
+        return migrated
 
     async def territories(self) -> list[TerritoryModel]:
         """Return every territory of the current data set."""
+        if not self._map_migration_done:
+            await self.migrate_removed_map_keys()
         return [TerritoryModel.from_mongo(doc) for doc in await self._store.find_territories()]
 
     async def drawn_map_keys(self) -> set[str]:

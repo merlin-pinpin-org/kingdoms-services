@@ -31,23 +31,37 @@ class NameRules(BaseModel):
 
 
 class MapTypes(BaseModel):
-    """Map type flags (CIVILIZATIONS.md reference taxonomy).
+    """The 12 Drasah cadastre tags (machine-temps… non — cadastre-diplomatie-v1).
 
-    Pure data: the flags drive the cadastre effects and civilization
-    conditions of later slices (T5/T6); this slice only stores them.
+    Drasah's official nomenclature (15/10/2026, source of truth:
+    ``cadastre-maps-liste.md``): ``eau`` (true water victory), ``hybride``
+    (winnable by land — NOT the Eau tag), ``objectif`` (a precise victory
+    spot, often mid), ``nomade``, ``foret``, ``montagne``, ``desert``,
+    ``marais``, ``ouverte`` (and its inverse ``ferme``), ``chaotique`` and
+    ``mur_depart`` (start wall). These tags REPLACE the embryonic v0
+    flags — NOT 1:1 (ex. Douves d'équipe = Hybride, Falaise = Chaotique,
+    Lac Fantôme = Ouverte). They drive the Diplomatie civ conditions
+    AND the Scriptorium/panel displays.
     """
 
     model_config = ConfigDict(strict=True)
 
-    water: bool = False
-    open: bool = False
-    nomad: bool = False
+    eau: bool = False
+    hybride: bool = False
+    objectif: bool = False
+    nomade: bool = False
+    foret: bool = False
+    montagne: bool = False
     desert: bool = False
-    mountain: bool = False
-    marsh: bool = False
-    lakes: bool = False
-    golden: bool = False
-    start_wall: bool = False
+    marais: bool = False
+    ouverte: bool = False
+    chaotique: bool = False
+    mur_depart: bool = False
+    ferme: bool = False
+
+    def has(self, tag: str) -> bool:
+        """Whether one Drasah tag is set (unknown tags read as False)."""
+        return bool(getattr(self, tag, False))
 
 
 class MapEntry(BaseModel):
@@ -219,12 +233,31 @@ class EventSettings(BaseModel):
 
 
 class CivilizationCondition(BaseModel):
-    """One civilization unlock condition (CIVILIZATIONS.md, issue #160).
+    """One civilization unlock condition (Diplomatie V1, Drasah 15/10/2026).
 
-    Pure data: ``requires_map_keys``/``requires_map_types`` match the
-    owned territories, ``requires_civilization`` chains (Shu/Wei/Wu
-    behind Chinois), and ``requires_kingdom_name_pattern`` covers the
-    referential Hungarian rule (the admin tunes the pattern).
+    Pure data — the engine (``DiplomacyService._condition_met``) reads
+    ONLY these fields. V1 semantics:
+
+    - ``requires_map_keys`` + ``min_map_key_count`` — owning at least
+      ``min_map_key_count`` of the listed maps unlocks (default 1: ANY
+      of them — the Japonais Archipel OU Ile volcanique already rides
+      this; Goths/Hindoustanis count several);
+    - ``requires_map_types`` + ``min_map_type_count`` — owning at least
+      ``min_map_type_count`` territories carrying one of the Drasah
+      tags (default 1, the binary v0 behaviour);
+    - ``min_map_count`` / ``max_map_count`` — the total owned-territory
+      thresholds (Chinois « moins de 3 » → max 2, « plus de N » →
+      N+1: the comparison stays inclusive in the data);
+    - ``requires_civilization`` — the unlock chain (Shu/Wei/Wu behind
+      Chinois);
+    - ``requires_kingdom_name_pattern`` — the referential Hungarian rule
+      (Royaume des HeN);
+    - ``requires_tech_points`` — the kingdom's banked tech points
+      (Birmans);
+    - ``requires_marriages`` — the kingdom's married-lord count
+      (Bohémiens « marié deux fois »);
+    - ``requires_civilization_count`` — the number of civilizations the
+      kingdom already holds (Portugais « plus de 4 » → 5).
     """
 
     model_config = ConfigDict(strict=True)
@@ -232,9 +265,16 @@ class CivilizationCondition(BaseModel):
     key: str
     display_name: str
     requires_map_keys: tuple[str, ...] = ()
+    min_map_key_count: int = Field(default=1, ge=1)
     requires_map_types: tuple[str, ...] = ()
+    min_map_type_count: int = Field(default=1, ge=1)
+    min_map_count: int | None = Field(default=None, ge=0)
+    max_map_count: int | None = Field(default=None, ge=0)
     requires_civilization: str | None = None
     requires_kingdom_name_pattern: str | None = None
+    requires_tech_points: int | None = Field(default=None, ge=0)
+    requires_marriages: int | None = Field(default=None, ge=0)
+    requires_civilization_count: int | None = Field(default=None, ge=0)
 
 
 class ShowMatchSettings(BaseModel):
@@ -323,57 +363,131 @@ class KingdomsSeasonConfig(BaseModel):
 
 
 def default_map_catalog() -> tuple[MapEntry, ...]:
-    """Return the default allowed-map catalog (issue #163, §6).
+    """Return Drasah's official 97-map cadastre (cadastre-diplomatie-v1).
 
-    A starter catalog of classic AoE2 maps so the season is playable
-    with no local override; every entry (and its cadastre effects) is
-    admin-editable data through ``config/kingdoms/season.yaml``.
+    RULE (Drasah 15/10/2026, frozen): this list ERASES the v0 catalog —
+    any map of the old code absent from this list DOES NOT EXIST (the
+    v0 Altai, Babel, Hideout, Highland and Siberia are gone, and the
+    ex-English labels become Drasah's French ones, verbatim). Every
+    entry carries its cadastre bonus as display text (the official
+    acquisition condition lives in the Diplomatie — a bonus text may
+    diverge, ex. 3 maps display the Vikings while Iles du Nord alone
+    unlocks them) and its Drasah tags. GARNISON bonuses are IGNORED in
+    V1 (priority 3, V2) — Clairière fortifiée, Douves d'équipe,
+    Isthme keep no bonus at all; Embranchement, Le passage keep only
+    their first one. Plaine and Prairie carry no tag in Drasah's list.
     """
-    def _map(key: str, name: str, *, bonus: str | None = None, **flags: bool) -> MapEntry:
-        # Drasah's cadastre v1 (2026-10-14): the map's cadastre bonus is
-        # stored as admin-editable text — the display slices show it, the
-        # effects are wired by the later cadastre slices. /semaine and
-        # /dimanche share one meaning (a weekly charge).
-        return MapEntry(
+    rows: tuple[tuple[str, str, str, str | None], ...] = (
+        # (key, display_name, Drasah tags, cadastre bonus — verbatim)
+        ("acropolis", "Acropolis", "montagne,ouverte", "Offre un contre-espionnage/semaine"),
+        ("arabia", "Arabie", "ouverte,desert", None),
+        ("archipel", "Archipel", "hybride,eau", "Offre la civilisation des Japonais"),
+        ("arena", "Arène", "mur_depart", "Offre une technologie « Jeu d'armes »"),
+        ("atacama", "Atacama", "desert,objectif", None),
+        ("baltique", "Baltique", "eau", "Réduit d'une heure le délai de l'une de vos agressions classiques"),
+        ("banc-de-sable", "Banc de Sable", "eau", None),
+        ("bancs", "Bancs", "hybride", None),
+        ("bois-creux", "Bois Creux", "foret", "Offre un sabotage/semaine"),
+        ("budapest", "Budapest", "eau", "Offre un contre-espionnage/semaine"),
+        ("carrefour", "Carrefour", "hybride", None),
+        ("cenotes", "Cénotes", "hybride", None),
+        ("chaine-de-montagne", "Chaîne de Montagne", "montagne", None),
+        ("clairiere", "Clairière", "foret", None),
+        ("african-clearing", "Clairière Africaine", "nomade", "Offre la civilisation des Maliens"),
+        ("clairiere-fortifiee", "Clairière fortifiée", "mur_depart", None),
+        ("colline-aux-loups", "Colline aux loups", "montagne,objectif", "Offre un sabotage/Dimanche"),
+        ("conquete-de-la-montagne", "Conquête de la Montagne", "montagne", None),
+        ("continental", "Continent", "hybride", None),
+        ("cote", "Côte", "hybride", "Offre la civilisation des Bengalis"),
+        ("cratere", "Cratère", "montagne,objectif", None),
+        ("crete-montagneuse", "Crète Montagneuse", "montagne", None),
+        ("delta-du-nil", "Delta du Nil", "nomade,eau", "Offre la civilisation des Sarrasins"),
+        ("douves-d-equipe", "Douves d'équipe", "hybride", None),
+        ("dune-montagneuse", "Dune Montagneuse", "montagne,desert", None),
+        ("embranchement", "Embranchement", "hybride", "Offre un sabotage/semaine"),
+        ("migration", "Emigration", "eau,objectif", "Offre une exploration/semaine"),
+        ("eruption", "Eruption", "montagne,objectif", None),
+        ("faille-sableuse", "Faille sableuse", "desert,ouverte", None),
+        ("falaise", "Falaise", "chaotique", "Offre un sabotage/Dimanche"),
+        ("flot-dore", "Flot doré", "objectif,hybride", "Offre un point technologie/Dimanche"),
+        ("foret-cotiere", "Forêt côtière", "foret,hybride", "Offre une Embuscade/Dimanche"),
+        ("black-forest", "Forêt noire", "foret", "Offre la civilisation des Celtes"),
+        ("fortress", "Forteresse", "mur_depart", "Offre une technologie « Jeu d'armes »"),
+        ("forteresse-circulaire", "Forteresse Circulaire", "mur_depart", None),
+        ("gorges", "Gorges", "montagne", "Offre la civilisation des Géorgiens"),
+        ("gouffre-dore", "Gouffre doré", "objectif", "Offre un point de technologie/Dimanche"),
+        ("groenland", "Groenland", "hybride", "Offre la civilisation des Vikings"),
+        ("haboob", "Haboob", "desert,chaotique", None),
+        ("hamburger", "Hamburger", "hybride", "Offre la civilisation des Bourguignons"),
+        ("huis-clos", "Huis Clos", "ouverte", None),
+        ("ile-volcanique", "Ile volcanique", "hybride,montagne", "Offre la civilisation des Japonais"),
+        ("islands", "Iles", "eau", "Offre la civilisation des Britanniques"),
+        ("iles-du-nord", "Iles du Nord", "eau", "Offre la civilisation des Vikings"),
+        ("ile-du-pacifique", "Ile du Pacifique", "eau", "Offre la civilisation des Malais"),
+        ("ile-marecageuse", "Ile marécageuse", "eau,marais", "Offre une « Embuscade »/Dimanche"),
+        ("ile-partenaire", "Ile partenaire", "eau", "Offre un mariage/semaine"),
+        ("isthme", "Isthme", "hybride", None),
+        ("jungle-de-la-mangrove", "Jungle de la mangrove", "marais,foret,hybride", "Offre la civilisation "
+         "des Aztèques"),
+        ("karsts", "Karsts", "ouverte", None),
+        ("kawasan", "Kawasan", "hybride", None),
+        ("kilimandjaro", "Kilimandjaro", "montagne", None),
+        ("la-cite-des-lacs", "La cité des lacs", "hybride", None),
+        ("crater-lake", "Lac du cratère", "eau", None),
+        ("ghost-lake", "Lac Fantôme", "ouverte", "Offre les civilisations des Polonais & des Slaves"),
+        ("lac-glacial", "Lac Glacial", "hybride", None),
+        ("lac-alpin", "Lac Alpins", "ouverte", None),
+        ("le-fort-de-la-colline", "Le fort de la colline", "mur_depart,montagne", "Augmente votre capacité "
+         "de patrouille de 1"),
+        ("le-passage", "Le passage", "eau", "Offre une exploration/dimanche"),
+        ("lombardie", "Lombardie", "ouverte", "Offre la civilisation des Italiens & des Siciliens"),
+        ("marais", "Marais", "marais,ouverte", None),
+        ("marais-d-or", "Marais d'or", "marais,objectif,hybride", "Offre un point de technologie/dimanche"),
+        ("salt-marsh", "Marais salants", "ouverte,marais", None),
+        ("marche", "Marché", "ouverte", "Offre la civilisation des Perses"),
+        ("mediterranee", "Méditerranée", "hybride", "Réduit le délai minimum de vos agressions classiques d'une heure"),
+        ("megarandom", "Megarandom", "chaotique", None),
+        ("michi", "Michi", "foret,ferme", None),
+        ("mongolia", "Mongolie", "ouverte", "Offre la civilisation des Mongols"),
+        ("montagnes", "Montagnes", "montagne,hybride", None),
+        ("nomad", "Nomade", "nomade,hybride", None),
+        ("nomade-marin", "Nomade Marin", "nomade,eau", None),
+        ("nomade-terrestre", "Nomade terrestre", "nomade", None),
+        ("oasis", "Oasis", "desert,ferme", None),
+        ("passage-montagneux", "Passage montagneux", "nomade,montagne", "Augmente le délai d'attaque minimum "
+         "de vos adversaires de 1h"),
+        ("pataugeoire", "Pataugeoire", "marais,objectif,ouverte", None),
+        ("pierre-runiques", "Pierre runiques", "ouverte", "Offre un mariage/dimanche"),
+        ("plaine", "Plaine", "", None),
+        ("prairie", "Prairie", "", None),
+        ("quatre-lacs", "Quatre lacs", "hybride", None),
+        ("refuge", "Refuge", "mur_depart", "Offre la map Emigration OU 2 points de technologie"),
+        ("repercussions", "Répercussions", "ouverte,objectif", "Offre la civilisation des Huns"),
+        ("rivieres", "Rivières", "hybride", None),
+        ("gold-rush", "Ruée vers l'or", "ouverte,objectif", "Offre un point technologie/Dimanche"),
+        ("scandinavie", "Scandinavie", "hybride", "Offre la civilisation des Vikings"),
+        ("serengeti", "Serengeti", "ouverte", "Offre la civilisation des Éthiopiens"),
+        ("socotra", "Socotra", "chaotique", None),
+        ("sources-des-dunes", "Sources des dunes", "desert,hybride", None),
+        ("sources-sacrees", "Sources sacrées", "ouverte", "Offre un mariage arrangé/dimanche · "
+         "Offre la civilisation des Khmers"),
+        ("steppe", "Steppe", "nomade", None),
+        ("terrain-escarpe", "Terrain escarpé", "montagne,ouverte", "Offre une Embuscade/semaine"),
+        ("terre-de-la-folie", "Terre de la folie", "ouverte", None),
+        ("terre-verdoyante", "Terre verdoyante", "ouverte", None),
+        ("tourbiere", "Tourbière", "marais,nomade", "Offre la civilisation des Vietnamiens"),
+        ("amazon-tunnel", "Tunnel Amazonien", "foret,ferme", "Offre la civilisation des Incas"),
+        ("vallee", "Vallée", "ouverte", None),
+        ("yucatan", "Yucatan", "ferme", "Offre la civilisation des Mayas"),
+    )
+    return tuple(
+        MapEntry(
             key=key,
             display_name=name,
-            types=MapTypes(**flags),
+            types=MapTypes(**{tag: True for tag in tags.split(",") if tag}),
             cadastre={"bonus": bonus} if bonus else {},
         )
-
-    return (
-        _map("arabia", "Arabia", open=True, desert=True),
-        _map("acropolis", "Acropolis", bonus="Offre un contre-espionnage/semaine", mountain=True, open=True),
-        _map("african-clearing", "African Clearing", bonus="Offre la civilisation des Maliens", open=True),
-        _map("altai", "Altai", mountain=True),
-        _map("amazon-tunnel", "Amazon Tunnel", bonus="Offre la civilisation des Incas", start_wall=True, marsh=True),
-        _map("arena", "Arena", bonus="Offre une technologie « Jeu d'armes »", start_wall=True),
-        _map("babel", "Babel"),
-        _map("black-forest", "Black Forest", bonus="Offre la civilisation des Celtes", water=True),
-        _map("cenotes", "Cenotes", water=True, open=True),
-        _map("continental", "Continental", water=True),
-        _map("crater-lake", "Crater Lake", water=True, lakes=True),
-        _map("fortress", "Fortress", bonus="Offre une technologie « Jeu d'armes »", start_wall=True),
-        _map(
-            "ghost-lake",
-            "Ghost Lake",
-            bonus="Offre les civilisations des Polonais & des Slaves",
-            lakes=True,
-            open=True,
-        ),
-        _map("gold-rush", "Gold Rush", bonus="Offre un point de technologie/semaine", golden=True),
-        _map("hideout", "Hideout", mountain=True),
-        _map("highland", "Highland", water=True, mountain=True),
-        _map("islands", "Islands", bonus="Offre la civilisation des Britanniques", water=True),
-        _map("megarandom", "Megarandom"),
-        _map("migration", "Migration", bonus="Offre une exploration/semaine", water=True),
-        _map("mongolia", "Mongolia", bonus="Offre la civilisation des Mongols", nomad=True, open=True),
-        _map("nomad", "Nomad", nomad=True),
-        _map("oasis", "Oasis", desert=True, open=True),
-        _map("steppe", "Steppe", open=True, nomad=True),
-        _map("salt-marsh", "Salt Marsh", marsh=True),
-        _map("siberia", "Siberia", water=True),
-        _map("yucatan", "Yucatan", bonus="Offre la civilisation des Mayas", open=True),
+        for key, name, tags, bonus in rows
     )
 
 

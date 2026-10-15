@@ -540,11 +540,18 @@ class DiplomacyService:
             if kingdom.is_gaia:
                 continue
             owned = await self._owned_map_keys(kingdom.id)
+            married_count = sum(
+                1
+                for lord in lords
+                if lord.kingdom_id == kingdom.id
+                and not lord.left
+                and lord.married_civilization is not None
+            )
             # the un-wed draft drops at the Lord's Day (Drasah's rule);
             # only condition-met and married civilizations survive here
             unlocked: list[str] = []
             for civ in self._config.civilizations:
-                if self._condition_met(civ, kingdom, owned, unlocked):
+                if await self._condition_met(civ, kingdom, owned, unlocked, married_count):
                     if civ.key not in unlocked:
                         unlocked.append(civ.key)
             secured = [
@@ -598,45 +605,91 @@ class DiplomacyService:
         return not (
             civ.requires_map_keys
             or civ.requires_map_types
+            or civ.min_map_count is not None
+            or civ.max_map_count is not None
             or civ.requires_civilization is not None
             or civ.requires_kingdom_name_pattern is not None
+            or civ.requires_tech_points is not None
+            or civ.requires_marriages is not None
+            or civ.requires_civilization_count is not None
         )
 
-    def _condition_met(
+    async def _condition_met(
         self,
         civ: CivilizationCondition,
         kingdom: KingdomModel,
         owned: list[str],
         unlocked: list[str],
+        married_count: int,
     ) -> bool:
-        """Evaluate one unlock condition (data, never code)."""
-        if civ.requires_map_keys and any(key in owned for key in civ.requires_map_keys):
+        """Evaluate one unlock condition (data, never code).
+
+        cadastre-diplomatie-v1 (Drasah 15/10): the
+        engine grows from the binary v0 to the threshold counters: map
+        counts, N maps of a Drasah tag, tech points, marriages and the
+        held-civilization count. Each field stands alone — ANY met
+        field unlocks (multi-OR across types stays a V2 concern, the
+        map-keys ANY-of already covers the V1 Japonais case).
+
+        NOTE: this used to call ``_owns_map_type`` WITHOUT the await —
+        a requires_map_types condition always evaluated truthy (the
+        coroutine object). No civ carried one until now, so nothing
+        regressed; the bug is fixed with the threshold rewrite.
+        """
+        if await self._map_condition_met(civ, kingdom, owned):
             return True
-        if civ.requires_map_types and self._owns_map_type(kingdom.id, civ.requires_map_types):
+        if civ.min_map_count is not None and len(owned) >= civ.min_map_count:
+            return True
+        if civ.max_map_count is not None and len(owned) <= civ.max_map_count:
             return True
         if civ.requires_civilization is not None:
             base = civ.requires_civilization
             return base in unlocked or base in kingdom.civilizations
         if civ.requires_kingdom_name_pattern is not None:
             return re.fullmatch(civ.requires_kingdom_name_pattern, kingdom.name) is not None
+        if civ.requires_tech_points is not None and (
+            int(kingdom.tech_points_bank) >= civ.requires_tech_points
+        ):
+            return True
+        if civ.requires_marriages is not None and married_count >= civ.requires_marriages:
+            return True
+        if civ.requires_civilization_count is not None and (
+            len(set(unlocked) | set(kingdom.civilizations)) >= civ.requires_civilization_count
+        ):
+            return True
         return False
 
-    async def _owns_map_type(self, kingdom_id: str, types: tuple[str, ...]) -> bool:
-        """Whether the kingdom owns a territory of one of the map types."""
+    async def _map_condition_met(
+        self,
+        civ: CivilizationCondition,
+        kingdom: KingdomModel,
+        owned: list[str],
+    ) -> bool:
+        """Map-based unlock branches: ANY-of keys and Drasah-tag counts."""
+        if civ.requires_map_keys:
+            held = sum(1 for key in civ.requires_map_keys if key in owned)
+            if held >= max(1, int(civ.min_map_key_count)):
+                return True
+        if civ.requires_map_types and await self._count_map_type(
+            kingdom.id, civ.requires_map_types
+        ) >= max(1, int(civ.min_map_type_count)):
+            return True
+        return False
+
+    async def _count_map_type(self, kingdom_id: str, types: tuple[str, ...]) -> int:
+        """Count the kingdom's territories carrying one of the Drasah tags."""
         territories = await self._territories.territories()
+        catalog = {entry.key: entry for entry in self._config.maps}
+        count = 0
         for territory in territories:
             if territory.owner_kingdom_id != kingdom_id:
                 continue
-            entry = next(
-                (item for item in self._config.maps if item.key == territory.map_key),
-                None,
-            )
+            entry = catalog.get(territory.map_key)
             if entry is None:
                 continue
-            flags = entry.types.model_dump()
-            if any(flags.get(name, False) for name in types):
-                return True
-        return False
+            if any(entry.types.has(name) for name in types):
+                count += 1
+        return count
 
     async def _owned_map_keys(self, kingdom_id: str) -> list[str]:
         """Return the map keys owned by the kingdom."""
