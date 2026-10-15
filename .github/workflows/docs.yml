@@ -35,15 +35,5 @@ jobs:
           else
             echo "::error::docs/DEVELOPMENT/pydoc is stale — regenerate with 'make docs' and commit"
             cat /tmp/pydoc-diff.txt
-            sed -n '26,31p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk1
-            sed -n '32,37p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk2
-            sed -n '38,43p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk3
-            sed -n '44,49p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk4
-            sed -n '50,55p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk5
-            sed -n '56,62p' /tmp/pydoc-fresh/kingdoms/mods/kingdoms.html > /tmp/chunk6
-            sed -n '1,10p' /tmp/pydoc-diff.txt > /tmp/chunk0
-            for c in 0 1 2 3 4 5 6; do
-              echo "::error::CHUNK$c $(tr '\n' '~' < /tmp/chunk$c)"
-            done
             exit 1
           fi
