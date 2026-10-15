@@ -18,10 +18,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from kingdoms.mods.kingdoms.events import active_lords_day_window
+from kingdoms.mods.kingdoms.game_clock import game_now, sync_game_offset
 from kingdoms.mods.kingdoms.kingdom_content import announce_geopolitics
 
 logger = logging.getLogger("kingdoms.events_loop")
@@ -203,7 +204,7 @@ async def _snapshot_lords_day_closure_safe(bot: Any, tick_seconds: int) -> None:
         season = await kingdoms.current_season()
         if season is None:
             return
-        now = datetime.now(tz=UTC)
+        now = game_now()
         window_now = active_lords_day_window(kingdoms.config, season, now)
         window_before = active_lords_day_window(
             kingdoms.config, season, now - timedelta(seconds=tick_seconds)
@@ -347,7 +348,7 @@ async def _ffa_exploration_tick_safe(bot: Any) -> None:
         return
     if not list(getattr(bot, "guilds", []) or []):
         return
-    now = datetime.now(tz=UTC)
+    now = game_now()
     try:
         ffa = await ffa_service.draw_or_get(now)
     except Exception:
@@ -426,6 +427,10 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
         await asyncio.sleep(tick_seconds)
+        # machine-temps-v2: re-sync the game-clock offset cache from
+        # the persisted season every tick — a restarted (or wiped)
+        # process converges back to the test offset within one tick.
+        await sync_game_offset(getattr(bot, "kingdoms_service", None))
         await _sync_marriage_locks_safe(bot)
         events = getattr(bot, "kingdoms_events_service", None)
         if events is None:
@@ -435,7 +440,7 @@ async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
             continue
         snapshotter = _auto_snapshotter(getattr(bot, "kingdoms_time_service", None))
         try:
-            reports = await events.run_due(datetime.now(tz=UTC), snapshotter=snapshotter)
+            reports = await events.run_due(game_now(), snapshotter=snapshotter)
         except Exception:
             logger.warning("KINGDOMS EVENTS: due-slot replay failed", exc_info=True)
             continue

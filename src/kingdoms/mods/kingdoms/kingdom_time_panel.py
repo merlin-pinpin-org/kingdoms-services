@@ -30,6 +30,8 @@ from zoneinfo import ZoneInfo
 
 import discord
 
+from kingdoms.mods.kingdoms.game_clock import format_offset, parse_duration
+
 logger = logging.getLogger("kingdoms.time_panel")
 
 TIME_PANEL_MARKER = "<!-- kingdoms-time -->"
@@ -65,6 +67,32 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plus1d_button": "+1 day",
         "plus3d_button": "+3 days",
         "plus7d_button": "+7 days",
+        "free_jump_button": "⏱ Free jump…",
+        "reset_clock_button": "⏱ Reset clock",
+        "jump_modal_title": "⏱ Free time jump",
+        "jump_modal_label": "Duration to jump (m/h/d)",
+        "jump_modal_placeholder": "90m / 2h / 3d / 1d2h30m",
+        "jump_modal_bad": (
+            "The duration `{text}` does not parse — use minutes, hours, days"
+            " (« 90m », « 2h », « 3d », « 1d2h30m »)."
+        ),
+        "jump_duration_done": (
+            "⏩ Jump of **{duration}** done ({reports} slot(s) replayed)"
+            " — offset now {offset}."
+        ),
+        "jump_confirm_title": "⚠️ Jump of **{duration}** is more than 7 days. Confirm the jump:",
+        "jump_confirm": "✅ Confirm jump",
+        "jump_cancel": "❌ Cancel",
+        "jump_cancelled": "Cancelled — nothing was touched.",
+        "reset_confirm_title": (
+            "⚠️ Reset the game clock? The offset goes back to 0 and the game"
+            " resumes **PAUSED**. A snapshot « avant reset horloge » is taken"
+            " first. Confirm:"
+        ),
+        "reset_confirm": "✅ Confirm reset",
+        "reset_cancel": "❌ Cancel",
+        "reset_done": "⏱ Clock reset — offset 0, game **PAUSED** (⏯ to resume). Snapshot saved.",
+        "offset_line": "⏱ Test offset: {offset} (test tooling — the game clock runs ahead of real time)",
         "next_cycle_button": "⏭ Next cycle",
         "next_age_button": "⏭ Next age",
         "season_end_button": "⏭ Season end",
@@ -120,6 +148,38 @@ _STRINGS: dict[str, dict[str, str]] = {
         "plus1d_button": "+1 jour",
         "plus3d_button": "+3 jours",
         "plus7d_button": "+7 jours",
+        "free_jump_button": "⏱ Saut libre…",
+        "reset_clock_button": "⏱ Réinitialiser l'horloge",
+        "jump_modal_title": "⏱ Saut libre dans le temps",
+        "jump_modal_label": "Durée du saut (m/h/j)",
+        "jump_modal_placeholder": "90m / 2h / 3j / 1j2h30m",
+        "jump_modal_bad": (
+            "La durée `{text}` ne se lit pas — utilisez minutes, heures, jours"
+            " (« 90m », « 2h », « 3j », « 1j2h30m »)."
+        ),
+        "jump_duration_done": (
+            "⏩ Saut de **{duration}** effectué ({reports} créneau(x) rejoué(s))"
+            " — décalage actuel {offset}."
+        ),
+        "jump_confirm_title": "⚠️ Un saut de **{duration}** dépasse 7 jours. Confirmer le saut :",
+        "jump_confirm": "✅ Confirmer le saut",
+        "jump_cancel": "❌ Annuler",
+        "jump_cancelled": "Annulé — rien n'a été touché.",
+        "reset_confirm_title": (
+            "⚠️ Réinitialiser l'horloge du jeu ? Le décalage revient à 0 et la"
+            " partie reprend **EN PAUSE**. Un snapshot « avant reset horloge »"
+            " est pris d'abord. Confirmer :"
+        ),
+        "reset_confirm": "✅ Confirmer le reset",
+        "reset_cancel": "❌ Annuler",
+        "reset_done": (
+            "⏱ Horloge réinitialisée — décalage 0, partie **EN PAUSE**"
+            " (⏯ pour reprendre). Snapshot sauvegardé."
+        ),
+        "offset_line": (
+            "⏱ Décalage de test : {offset} (outils de test — l'horloge du jeu"
+            " est en avance sur l'heure réelle)"
+        ),
         "next_cycle_button": "⏭ Prochain cycle",
         "next_age_button": "⏭ Prochain âge",
         "season_end_button": "⏭ Fin de saison",
@@ -221,6 +281,11 @@ def status_text(strings: dict[str, str], status: dict[str, Any], locale: str = "
         )
     if status.get("frozen"):
         lines.append(strings["frozen_line"])
+    # machine-temps-v2: the test offset line — shown ONLY when the
+    # clock runs ahead of real time (a normal game never sees it).
+    offset = int(status.get("offset") or 0)
+    if offset:
+        lines.append(strings["offset_line"].format(offset=format_offset(offset)))
     if status.get("season") is not None:
         lines.append(strings["next_cycle_line"].format(
             next_cycle=_fmt(status.get("next_cycle_at"), locale, tz_name)
@@ -256,6 +321,8 @@ def build_time_view(locale: str) -> discord.ui.View:
             ("plus1d", strings["plus1d_button"], discord.ButtonStyle.primary),
             ("plus3d", strings["plus3d_button"], discord.ButtonStyle.primary),
             ("plus7d", strings["plus7d_button"], discord.ButtonStyle.primary),
+            ("free-jump", strings["free_jump_button"], discord.ButtonStyle.success),
+            ("reset-clock", strings["reset_clock_button"], discord.ButtonStyle.danger),
         ],
         [
             ("next-cycle", strings["next_cycle_button"], discord.ButtonStyle.primary),
@@ -422,7 +489,8 @@ class KingdomTimeButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=(
         r"kingdoms:time:(?P<action>refresh|freeze|snapshot|restore|back-setup"
-        r"|plus1d|plus3d|plus7d|next-cycle|next-age|season-end"
+        r"|plus1d|plus3d|plus7d|free-jump|reset-clock"
+        r"|next-cycle|next-age|season-end"
         r"|prev-cycle|prev-age|prev-lords-day|lords-enter|lords-exit)"
     ),
 ):
@@ -453,6 +521,8 @@ class KingdomTimeButton(
             "plus1d": strings["plus1d_button"],
             "plus3d": strings["plus3d_button"],
             "plus7d": strings["plus7d_button"],
+            "free-jump": strings["free_jump_button"],
+            "reset-clock": strings["reset_clock_button"],
             "next-cycle": strings["next_cycle_button"],
             "next-age": strings["next_age_button"],
             "season-end": strings["season_end_button"],
@@ -471,6 +541,8 @@ class KingdomTimeButton(
             "plus1d": discord.ButtonStyle.primary,
             "plus3d": discord.ButtonStyle.primary,
             "plus7d": discord.ButtonStyle.primary,
+            "free-jump": discord.ButtonStyle.success,
+            "reset-clock": discord.ButtonStyle.danger,
             "next-cycle": discord.ButtonStyle.primary,
             "next-age": discord.ButtonStyle.primary,
             "season-end": discord.ButtonStyle.danger,
@@ -720,12 +792,166 @@ async def _action_lords_exit(interaction: discord.Interaction, strings: dict[str
     await _refresh_panel_message_safe(interaction)
 
 
+# ----------------------------------------------------------------------
+# machine-temps-v2 — the free-jump modal and its confirmations
+# ----------------------------------------------------------------------
+async def _finish_duration_jump(
+    interaction: discord.Interaction,
+    strings: dict[str, str],
+    seconds: int,
+    result: dict[str, Any],
+) -> None:
+    """Report a done jump, announce its slots, refresh the panel."""
+    await interaction.followup.send(
+        strings["jump_duration_done"].format(
+            duration=format_offset(seconds),
+            reports=len(result.get("reports", []) or []),
+            offset=format_offset(int(result.get("offset", 0)) or 0),
+        ),
+        ephemeral=True,
+    )
+    locale = str(interaction.locale) if interaction.locale else "fr"
+    await _announce_reports_safe(interaction.guild, locale, list(result.get("reports", []) or []))
+    await _refresh_panel_message_safe(interaction)
+
+
+class KingdomTimeJumpConfirmView(discord.ui.View):
+    """The ephemeral confirm of a free jump longer than 7 days."""
+
+    def __init__(self, strings: dict[str, str], seconds: int, text: str) -> None:
+        super().__init__(timeout=180)
+        self.strings = strings
+        self.seconds = seconds
+        self.text = text
+
+    @discord.ui.button(label="✅", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
+        """Run the confirmed long jump."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        await interaction.response.defer(ephemeral=True)
+        wiring = _wiring()
+        if wiring.time_service is None:
+            await interaction.followup.send(self.strings["no_service"], ephemeral=True)
+            return
+        try:
+            result = await wiring.time_service.advance_duration(self.text)
+        except Exception as exc:
+            await interaction.followup.send(
+                self.strings["failed"].format(type(exc).__name__), ephemeral=True
+            )
+            return
+        await _finish_duration_jump(interaction, self.strings, self.seconds, dict(result))
+
+    @discord.ui.button(label="❌", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
+        """Cancel — nothing is touched."""
+        await interaction.response.send_message(self.strings["jump_cancelled"], ephemeral=True)
+
+
+class KingdomTimeJumpModal(discord.ui.Modal):
+    """The free-duration jump modal (« 90m », « 2h », « 3d », « 1d2h30m »)."""
+
+    def __init__(self, strings: dict[str, str]) -> None:
+        super().__init__(title=strings["jump_modal_title"], timeout=300)
+        self.strings = strings
+        self.duration_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
+            label=strings["jump_modal_label"],
+            placeholder=strings["jump_modal_placeholder"],
+            min_length=1,
+            max_length=20,
+            required=True,
+        )
+        self.add_item(self.duration_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Parse the typed duration, confirm past 7 days, else jump now."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = self.strings
+        wiring = _wiring()
+        if wiring.time_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        text = str(self.duration_input.value or "").strip()
+        try:
+            seconds = parse_duration(text)
+        except ValueError:
+            await interaction.response.send_message(
+                strings["jump_modal_bad"].format(text=text), ephemeral=True
+            )
+            return
+        if seconds > 7 * 86400:
+            await interaction.response.send_message(
+                strings["jump_confirm_title"].format(duration=format_offset(seconds)),
+                view=KingdomTimeJumpConfirmView(strings, seconds, text),
+                ephemeral=True,
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            result = await wiring.time_service.advance_duration(text)
+        except Exception as exc:
+            await interaction.followup.send(
+                strings["failed"].format(type(exc).__name__), ephemeral=True
+            )
+            return
+        await _finish_duration_jump(interaction, strings, seconds, dict(result))
+
+
+class KingdomTimeResetConfirmView(discord.ui.View):
+    """The ephemeral confirm of the ⏱ reset-clock button."""
+
+    def __init__(self, strings: dict[str, str]) -> None:
+        super().__init__(timeout=180)
+        self.strings = strings
+
+    @discord.ui.button(label="✅", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
+        """Snapshot first, then drop the offset and resume PAUSED."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        await interaction.response.defer(ephemeral=True)
+        wiring = _wiring()
+        if wiring.time_service is None:
+            await interaction.followup.send(self.strings["no_service"], ephemeral=True)
+            return
+        try:
+            await wiring.time_service.reset_clock()
+        except Exception as exc:
+            await interaction.followup.send(
+                self.strings["failed"].format(type(exc).__name__), ephemeral=True
+            )
+            return
+        await interaction.followup.send(self.strings["reset_done"], ephemeral=True)
+        await _refresh_panel_message_safe(interaction)
+
+    @discord.ui.button(label="❌", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
+        """Cancel — nothing is touched."""
+        await interaction.response.send_message(self.strings["jump_cancelled"], ephemeral=True)
+
+
+async def _action_free_jump(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Open the free-duration jump modal."""
+    await interaction.response.send_modal(KingdomTimeJumpModal(strings))
+
+
+async def _action_reset_clock(interaction: discord.Interaction, strings: dict[str, str]) -> None:
+    """Ask for the confirmation before the clock reset."""
+    await interaction.response.send_message(
+        strings["reset_confirm_title"], view=KingdomTimeResetConfirmView(strings), ephemeral=True
+    )
+
+
 _HANDLERS = {
     "refresh": _action_refresh,
     "freeze": _action_freeze,
     "snapshot": _action_snapshot,
     "restore": _action_restore,
     "back-setup": _action_back_setup,
+    "free-jump": _action_free_jump,
+    "reset-clock": _action_reset_clock,
     "next-cycle": _action_next_cycle,
     "next-age": _action_next_age,
     "season-end": _action_season_end,
