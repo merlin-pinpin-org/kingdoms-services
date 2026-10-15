@@ -39,9 +39,10 @@ for&nbsp;the&nbsp;admin&nbsp;(anti-abus,&nbsp;arbitrage&nbsp;Drasah).</span></p>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.mods.kingdoms.chronicle.html">kingdoms.mods.kingdoms.chronicle</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
 </td><td class="multicolumn"><a href="random.html">random</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -64,6 +65,7 @@ for&nbsp;the&nbsp;admin&nbsp;(anti-abus,&nbsp;arbitrage&nbsp;Drasah).</span></p>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.voliere.html#VoliereLockedError">VoliereLockedError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.voliere.html#VolierePoolEmptyError">VolierePoolEmptyError</a>
 </dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.voliere.html#VoliereTargetError">VoliereTargetError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.voliere.html#VoliereTheftError">VoliereTheftError</a>
 </dt></dl>
 </dd>
 </dl>
@@ -418,6 +420,20 @@ The&nbsp;volière&nbsp;domain&nbsp;logic&nbsp;—&nbsp;cooldowns,&nbsp;draws&nbs
 The&nbsp;slot&nbsp;count&nbsp;follows&nbsp;the&nbsp;age&nbsp;(Fédal&nbsp;1,&nbsp;Château&nbsp;2,&nbsp;Impérial&nbsp;3);<br>
 the&nbsp;choice&nbsp;order&nbsp;belongs&nbsp;to&nbsp;the&nbsp;players.</span></dd></dl>
 
+<dl><dt>async <a name="VoliereService-contest_theft"><strong>contest_theft</strong></a>(self, theft_id: 'str', kingdom_id: 'str', *, now: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">CONTEST&nbsp;a&nbsp;theft&nbsp;from&nbsp;the&nbsp;robbed&nbsp;kingdom&nbsp;(5-minute&nbsp;window).<br>
+&nbsp;<br>
+Success&nbsp;=&nbsp;the&nbsp;Corbeau&nbsp;DIES,&nbsp;EVERYTHING&nbsp;is&nbsp;refunded&nbsp;to&nbsp;the<br>
+robbed&nbsp;bank&nbsp;(even&nbsp;the&nbsp;1st&nbsp;⚙️)&nbsp;and&nbsp;the&nbsp;thief&nbsp;kingdom&nbsp;loses&nbsp;its<br>
+Corbeau&nbsp;SLOT&nbsp;(buyable&nbsp;again&nbsp;at&nbsp;the&nbsp;next&nbsp;Âge,&nbsp;voliere-v2&nbsp;rule).</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-continue_theft"><strong>continue_theft</strong></a>(self, theft_id: 'str', kingdom_id: 'str', go_on: 'bool', *, now: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Answer&nbsp;the&nbsp;thief's&nbsp;«&nbsp;Souhaitez-vous&nbsp;continuer&nbsp;?&nbsp;»&nbsp;prompt.<br>
+&nbsp;<br>
+STOP&nbsp;→&nbsp;the&nbsp;thief&nbsp;keeps&nbsp;the&nbsp;1st&nbsp;⚙️&nbsp;SAFE&nbsp;(nothing&nbsp;to&nbsp;contest<br>
+anymore).&nbsp;CONTINUER&nbsp;→&nbsp;the&nbsp;Corbeau&nbsp;goes&nbsp;for&nbsp;the&nbsp;2nd&nbsp;⚙️:&nbsp;RISKY&nbsp;—<br>
+a&nbsp;contest&nbsp;inside&nbsp;the&nbsp;window&nbsp;kills&nbsp;the&nbsp;Corbeau&nbsp;and&nbsp;refunds<br>
+EVERYTHING&nbsp;(even&nbsp;the&nbsp;1st&nbsp;⚙️);&nbsp;no&nbsp;contest&nbsp;and&nbsp;the&nbsp;thief&nbsp;leaves<br>
+with&nbsp;BOTH&nbsp;(settled&nbsp;at&nbsp;the&nbsp;window's&nbsp;close).</span></dd></dl>
+
 <dl><dt>async <a name="VoliereService-cooldown_ready_at"><strong>cooldown_ready_at</strong></a>(self, kingdom_id: 'str', action: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;unix&nbsp;timestamp&nbsp;the&nbsp;action's&nbsp;bird&nbsp;lands&nbsp;at&nbsp;(admin/view).</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-faucon_sabotage"><strong>faucon_sabotage</strong></a>(self, kingdom_id: 'str', attack_id: 'str', civ_key: 'str', *, now: 'datetime') -&gt; 'None'</dt><dd><span class="code">Place&nbsp;a&nbsp;Faucon&nbsp;sabotage&nbsp;on&nbsp;an&nbsp;ongoing&nbsp;attack&nbsp;(pick&nbsp;&amp;&nbsp;ban&nbsp;phase).<br>
@@ -426,6 +442,13 @@ Same&nbsp;effect&nbsp;as&nbsp;a&nbsp;pick&nbsp;&amp;&nbsp;ban&nbsp;sabotage&nbsp
 adversary-side&nbsp;2-limit&nbsp;(no&nbsp;3rd&nbsp;sabotage,&nbsp;Drasah's&nbsp;ruling).</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-has_faucon_release"><strong>has_faucon_release</strong></a>(self, kingdom_id: 'str', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;kingdom&nbsp;runs&nbsp;an&nbsp;active&nbsp;Lâcher&nbsp;de&nbsp;faucon.</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-inspect_attack"><strong>inspect_attack</strong></a>(self, kingdom_id: 'str', attack_id: 'str', *, now: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Inspect&nbsp;one&nbsp;attack&nbsp;against&nbsp;the&nbsp;kingdom&nbsp;(corbeau-v3&nbsp;asymmetry).<br>
+&nbsp;<br>
+Drasah's&nbsp;inversion&nbsp;(15/10):&nbsp;the&nbsp;ATTACKER&nbsp;reveals&nbsp;their&nbsp;3<br>
+civilizations&nbsp;FIRST&nbsp;—&nbsp;the&nbsp;defender&nbsp;then&nbsp;sets&nbsp;their&nbsp;own&nbsp;picks<br>
+AFTER&nbsp;the&nbsp;verification,&nbsp;with&nbsp;the&nbsp;attacker's&nbsp;hand&nbsp;known.&nbsp;The<br>
+cover&nbsp;is&nbsp;always&nbsp;pierced&nbsp;(Drasah's&nbsp;arbitration).</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-is_lord_tracked"><strong>is_lord_tracked</strong></a>(self, lord_id: 'str', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;any&nbsp;kingdom&nbsp;currently&nbsp;«&nbsp;suit&nbsp;»&nbsp;this&nbsp;lord.</span></dd></dl>
 
@@ -437,6 +460,26 @@ the&nbsp;married&nbsp;civilizations&nbsp;(exclusivité&nbsp;D74&nbsp;conservée)
 <dl><dt>async <a name="VoliereService-pick_territory"><strong>pick_territory</strong></a>(self, kingdom_id: 'str', *, now: 'datetime') -&gt; 'str'</dt><dd><span class="code">Draw&nbsp;one&nbsp;not-yet-in-game&nbsp;map&nbsp;as&nbsp;a&nbsp;NEW&nbsp;territory&nbsp;for&nbsp;the&nbsp;kingdom.</span></dd></dl>
 
 <dl><dt>async <a name="VoliereService-release_faucon"><strong>release_faucon</strong></a>(self, kingdom_id: 'str', *, now: 'datetime') -&gt; 'int'</dt><dd><span class="code">Open&nbsp;the&nbsp;Lâcher&nbsp;de&nbsp;faucon&nbsp;—&nbsp;24h&nbsp;immune&nbsp;to&nbsp;adverse&nbsp;technologies.</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-resolve_due_thefts"><strong>resolve_due_thefts</strong></a>(self, *, now: 'datetime') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Advance&nbsp;every&nbsp;due&nbsp;theft&nbsp;(events-loop&nbsp;tick,&nbsp;idempotent&nbsp;per&nbsp;tick).<br>
+&nbsp;<br>
+-&nbsp;a&nbsp;``pending``&nbsp;theft&nbsp;past&nbsp;``execute_at``&nbsp;steals&nbsp;the&nbsp;1st&nbsp;⚙️&nbsp;from<br>
+&nbsp;&nbsp;the&nbsp;target&nbsp;bank&nbsp;(ALL&nbsp;that&nbsp;remains&nbsp;when&nbsp;the&nbsp;bank&nbsp;holds&nbsp;less<br>
+&nbsp;&nbsp;than&nbsp;2&nbsp;—&nbsp;a&nbsp;bank&nbsp;at&nbsp;0&nbsp;settles&nbsp;the&nbsp;theft&nbsp;with&nbsp;nothing&nbsp;and&nbsp;NO<br>
+&nbsp;&nbsp;continue&nbsp;prompt),&nbsp;opens&nbsp;the&nbsp;5-minute&nbsp;contest&nbsp;window&nbsp;and&nbsp;the<br>
+&nbsp;&nbsp;thief's&nbsp;«&nbsp;Continuer&nbsp;?&nbsp;»&nbsp;prompt&nbsp;—&nbsp;the&nbsp;returned&nbsp;list&nbsp;carries<br>
+&nbsp;&nbsp;the&nbsp;thefts&nbsp;the&nbsp;loop&nbsp;must&nbsp;ALARM&nbsp;about;<br>
+-&nbsp;an&nbsp;``awaiting_continue``&nbsp;window&nbsp;past&nbsp;``contest_until``&nbsp;settles<br>
+&nbsp;&nbsp;the&nbsp;thief's&nbsp;safe&nbsp;1st&nbsp;⚙️&nbsp;(no&nbsp;answer&nbsp;=&nbsp;auto-repart,&nbsp;Drasah);<br>
+-&nbsp;a&nbsp;``continuing``&nbsp;window&nbsp;past&nbsp;``contest_until``&nbsp;settles&nbsp;BOTH&nbsp;⚙️.</span></dd></dl>
+
+<dl><dt>async <a name="VoliereService-send_corbeau_theft"><strong>send_corbeau_theft</strong></a>(self, kingdom_id: 'str', target_kingdom_id: 'str', lord_id: 'str', *, now: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Send&nbsp;the&nbsp;Corbeau&nbsp;to&nbsp;steal&nbsp;⚙️&nbsp;from&nbsp;a&nbsp;target&nbsp;kingdom's&nbsp;bank.<br>
+&nbsp;<br>
+The&nbsp;action&nbsp;executes&nbsp;1h&nbsp;AFTER&nbsp;the&nbsp;send&nbsp;(``corbeau_theft_delay_hours``):<br>
+nothing&nbsp;is&nbsp;stolen&nbsp;yet&nbsp;—&nbsp;the&nbsp;alarm,&nbsp;the&nbsp;5-minute&nbsp;contest&nbsp;window<br>
+and&nbsp;the&nbsp;thief's&nbsp;«&nbsp;Continuer&nbsp;?&nbsp;»&nbsp;prompt&nbsp;all&nbsp;open&nbsp;at&nbsp;execution.<br>
+ONE&nbsp;theft&nbsp;at&nbsp;a&nbsp;time&nbsp;per&nbsp;kingdom;&nbsp;the&nbsp;whole-bird&nbsp;cooldown&nbsp;(72h)<br>
+flies&nbsp;at&nbsp;the&nbsp;send.</span></dd></dl>
 
 <dl><dt><a name="VoliereService-slot_capacity"><strong>slot_capacity</strong></a>(self, age_key: 'str') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;open&nbsp;slot&nbsp;count&nbsp;at&nbsp;one&nbsp;age&nbsp;(0&nbsp;before&nbsp;the&nbsp;Féodal).<br>
 &nbsp;<br>
@@ -457,7 +500,9 @@ Féodal,&nbsp;bird&nbsp;in&nbsp;a&nbsp;slot,&nbsp;and&nbsp;the&nbsp;whole-bird&n
 &nbsp;<br>
 The&nbsp;Corbeau&nbsp;ALWAYS&nbsp;pierces&nbsp;the&nbsp;contre-espionnage&nbsp;cover&nbsp;(Drasah's<br>
 arbitration):&nbsp;the&nbsp;returned&nbsp;name&nbsp;is&nbsp;the&nbsp;true&nbsp;attacker,&nbsp;cover&nbsp;or<br>
-not.&nbsp;Returns&nbsp;the&nbsp;attacker's&nbsp;display&nbsp;name.</span></dd></dl>
+not.&nbsp;Returns&nbsp;the&nbsp;attacker's&nbsp;display&nbsp;name&nbsp;(corbeau-v3:&nbsp;the&nbsp;full<br>
+inspection&nbsp;—&nbsp;name,&nbsp;lord,&nbsp;map&nbsp;and&nbsp;the&nbsp;attacker's&nbsp;3&nbsp;civilizations&nbsp;—<br>
+lives&nbsp;in&nbsp;:meth:`inspect_attack`;&nbsp;this&nbsp;stays&nbsp;the&nbsp;str&nbsp;seam).</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
@@ -472,6 +517,10 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
 </dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>THEFT_ACTIVE_STATES</strong> = ('pending', 'awaiting_continue', 'continuing')</dl>
+
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
@@ -537,6 +586,89 @@ Methods inherited from <a href="builtins.html#BaseException">builtins.BaseExcept
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
 <dl><dt><a name="VoliereTargetError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#VoliereTargetError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="VoliereTheftError">class <strong>VoliereTheftError</strong></a>(<a href="kingdoms.mods.kingdoms.voliere.html#VoliereError">VoliereError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#VoliereTheftError">VoliereTheftError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;on&nbsp;a&nbsp;corbeau&nbsp;⚙️&nbsp;theft&nbsp;rule&nbsp;violation&nbsp;(corbeau-v3).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.voliere.html#VoliereTheftError">VoliereTheftError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.voliere.html#VoliereError">VoliereError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_VOLIERE_THEFT'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.voliere_theft'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="VoliereTheftError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="VoliereTheftError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="VoliereTheftError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="VoliereTheftError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="VoliereTheftError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="VoliereTheftError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="VoliereTheftError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="VoliereTheftError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="VoliereTheftError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#VoliereTheftError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="VoliereTheftError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#VoliereTheftError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
