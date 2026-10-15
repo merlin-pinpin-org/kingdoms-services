@@ -20,6 +20,7 @@ from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.territories import (
     MapPoolExhaustedError,
     TerritoryService,
@@ -375,7 +376,7 @@ class EventService:
         window stays open until ``exit_lords_day_phase`` closes it or
         the forced range ends on its own.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         report: dict[str, object] = dict(await self.run_cycle_switch(seed=seed))
         season = await self._require_season()
         duration = timedelta(days=1) - _cycle_slot_offset(self._config) + timedelta(

@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import TerritoryModel
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
@@ -240,7 +240,7 @@ class TerritoryService:
             season_id=territory.season_id,
             map_key=replacement_key,
             owner_kingdom_id=territory.owner_kingdom_id,
-            drawn_at=datetime.now(tz=UTC),
+            drawn_at=game_now(),
         )
         await self._store.upsert_territory(replacement.to_mongo())
         logger.info(
@@ -283,5 +283,5 @@ class TerritoryService:
             season_id=season.id,
             map_key=map_key,
             owner_kingdom_id=owner_kingdom_id,
-            drawn_at=datetime.now(tz=UTC),
+            drawn_at=game_now(),
         )

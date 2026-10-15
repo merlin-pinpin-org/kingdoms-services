@@ -26,9 +26,10 @@ Two design rules decided with Drasah:
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.service import KingdomNotFoundError, KingdomsModError
 from kingdoms.mods.kingdoms.territories import TerritoryNotFoundError
 
@@ -368,7 +369,7 @@ class DistributorService:
         if territory is None:
             raise TerritoryNotFoundError("this map is not a drawn territory")
         if hours > 0:
-            territory.protected_until = datetime.now(tz=UTC) + timedelta(hours=hours)
+            territory.protected_until = game_now() + timedelta(hours=hours)
         else:
             territory.protected_until = None
         await self._store.upsert_territory(territory.to_mongo())
@@ -396,7 +397,7 @@ class DistributorService:
             lord.marriage_locked_until = None
         else:
             lord.marriage_locked_until = int(
-                (datetime.now(tz=UTC) + timedelta(hours=hours)).timestamp()
+                (game_now() + timedelta(hours=hours)).timestamp()
             )
         await self._store.upsert_lord(lord.to_mongo())
         logger.info("kingdoms distributor: %s marriage lock=%s", lord_id, hours)
