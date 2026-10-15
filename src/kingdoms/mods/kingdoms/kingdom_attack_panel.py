@@ -1370,7 +1370,9 @@ async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
     return list(getattr(kingdom, "civilizations", None) or []) if kingdom else []
 
 
-async def _dm_user_safe(bot: Any, user_id: str, content: str, view: discord.ui.View) -> None:
+async def _dm_user_safe(
+    bot: Any, user_id: str, content: str, view: discord.ui.View | None = None
+) -> None:
     """Best-effort DM to one player."""
     try:
         user = getattr(bot, "get_user", lambda _id: None)(user_id)
