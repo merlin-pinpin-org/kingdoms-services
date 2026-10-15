@@ -379,3 +379,29 @@ def test_add_modal_payload_shape_is_the_proven_one() -> None:
             inner = component["components"][0]
             assert inner["type"] == 4, "the ActionRow wraps the TextInput"
             assert inner.get("label") == "Profile id (insights.aoe2.com)"
+
+
+@pytest.mark.asyncio
+async def test_remove_failure_names_the_entry() -> None:
+    """A failed removal names the game/profile and the reason."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:999",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "999",
+                "profile": {"aliases": ["Ghost"]},
+            }
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    options = [discord.SelectOption(label="Ghost", value="aoe2|999")]
+    modal = home_module.ProfileRemoveAccountModal(options)
+    object.__setattr__(modal.accounts, "_values", ["aoe2|ghost"])  # stale value: not bound
+    await modal.on_submit(interaction)
+    contents = [str(m.content) for m in interaction.followup.messages]
+    assert any("Retrait échoué pour" in c and "aoe2" in c for c in contents), (
+        "the failure message must name the entry"
+    )

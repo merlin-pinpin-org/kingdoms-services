@@ -562,25 +562,28 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
         chosen = list(self.accounts.values or [])
         await interaction.response.defer(ephemeral=True, thinking=True)
         removed: list[str] = []
-        failed = 0
+        failures: list[str] = []
         for entry in chosen:
             game_key, _, profile_id = str(entry).partition("|")
             try:
                 if await registration.unlink_profile(str(interaction.user.id), game_key, profile_id):
                     removed.append(f"{game_key} (`{profile_id}`)")
                 else:
-                    failed += 1
+                    failures.append(f"{game_key} `{profile_id}` (introuvable)")
                     await _report_profile_error(
                         interaction, "profile.remove", game_key, RuntimeError(f"binding not found: {entry}")
                     )
             except Exception as exc:
+                failures.append(f"{game_key} `{profile_id}` ({type(exc).__name__})")
                 await _report_profile_error(interaction, "profile.remove", game_key, exc)
-                failed += 1
         if removed:
             listed = ", ".join(removed)
             await interaction.followup.send(f"Comptes retir\u00e9s : {listed}.", ephemeral=True)
-        if failed:
-            await interaction.followup.send(await reply(interaction, "remove_failed"), ephemeral=True)
+        if failures:
+            await interaction.followup.send(
+                "Retrait \u00e9chou\u00e9 pour : " + ", ".join(failures) + " \u2014 le d\u00e9tail part aux admins.",
+                ephemeral=True,
+            )
         if removed:
             await _profile_followup(interaction)
 
