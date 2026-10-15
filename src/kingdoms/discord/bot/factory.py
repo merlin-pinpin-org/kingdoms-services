@@ -207,6 +207,7 @@ class KingdomsBot(discord.Client):
         register_games_admin_section()
         register_games_admin_items(self)
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
+        from kingdoms.discord.admin_tree import register_admin_tree_items
         from kingdoms.discord.entity_admin_menu import register_entity_admin_items
         from kingdoms.discord.guild_access_request import register_guild_access_request_items
         from kingdoms.discord.guild_context import register_guild_context_items
@@ -219,6 +220,7 @@ class KingdomsBot(discord.Client):
 
         register_roles_admin_items(self)
         register_admin_dm_items(self)
+        register_admin_tree_items(self)
         register_guild_access_request_items(self)
 
         if self.state_service is not None:
@@ -964,6 +966,9 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
             return self._builders.get(mod)
 
     bot.home_service = HomeService(registry, _DiscordModHomeViews(bot.mod_home_builders))
+    from kingdoms.discord.home import hold_home_bot
+
+    hold_home_bot(bot)
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)

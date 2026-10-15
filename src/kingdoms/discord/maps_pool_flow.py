@@ -182,6 +182,12 @@ class MapPoolPickerSelect(
                 await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
             )
             return
+        if self.map_id in pool.map_ids:
+            await interaction.response.send_message(
+                f"**{entry.name}** est d\u00e9j\u00e0 dans **{pool.name}**.",
+                ephemeral=True,
+            )
+            return
         try:
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, self.map_id))
         except Exception:
@@ -344,6 +350,11 @@ class PoolMapPickerView(discord.ui.View):
         if pool is None or entry is None:
             await interaction.response.edit_message(content="Map ou pool introuvable.")
             return
+        if map_id in pool.map_ids:
+            await interaction.response.edit_message(
+                content=f"**{entry.name}** est d\u00e9j\u00e0 dans **{pool.name}**."
+            )
+            return
         try:
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, map_id))
         except Exception:
@@ -393,6 +404,11 @@ class PoolAddMapByIdModal(discord.ui.Modal):
         entry = await service.get_map(map_id)
         if pool is None or entry is None:
             await interaction.followup.send("Map ou pool introuvable.", ephemeral=True)
+            return
+        if entry.id in pool.map_ids:
+            await interaction.followup.send(
+                f"**{entry.name}** est d\u00e9j\u00e0 dans **{pool.name}**.", ephemeral=True
+            )
             return
         try:
             await service.update_map_pool(pool.id, map_ids=(*pool.map_ids, entry.id))

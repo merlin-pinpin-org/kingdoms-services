@@ -19,7 +19,7 @@ from kingdoms.discord.admin import (
     build_main_menu,
     register_admin_command,
 )
-from kingdoms.discord.admin_panel_dynamic import PIN_CHANNEL_MENU_ID, PIN_LOCALE_SELECT_ID
+from kingdoms.discord.admin_tree import _NS as TREE_NS
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
 
 
@@ -68,8 +68,8 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
-    assert PIN_LOCALE_SELECT_ID in customs, "the guild language select is on the main menu"
-    assert PIN_CHANNEL_MENU_ID in customs, "the managed-channel picker is on the main menu"
+    assert f"{TREE_NS}:lang" in customs, "the guild language select is on the main menu"
+    assert f"{TREE_NS}:channels" in customs, "the tree-channel picker is on the main menu"
     # the tree owns the channels: the admin panel resolves by stored id
     # (never through the managed services), so no service resolution here.
     await client.close()
@@ -355,8 +355,8 @@ class _RoutingFailureLogsService(_FakeAdminLogsService):
 
 @pytest.mark.asyncio
 async def test_admin_command_shows_the_mods_select_when_sections_exist() -> None:
-    """With a registered mod section, /admin answers the pin surface
-    carrying the mods route select (admin:pin:mod:mods)."""
+    """With a registered mod section, /admin answers the new admin menu
+    (language/channels/roles) — the mod routing left the main panel."""
     from kingdoms.discord.admin_panel_mods import (
         AdminModSection,
         mod_section_route_id,
@@ -379,7 +379,7 @@ async def test_admin_command_shows_the_mods_select_when_sections_exist() -> None
         await command._callback(interaction)  # type: ignore[union-attr]
         assert interaction.followup.messages, "the panel arrives through the followup"
         customs = _custom_ids(interaction.followup.messages[-1].layout)
-        assert mod_section_route_id("mods") in customs, "the mods select is on the panel"
+        assert mod_section_route_id("mods") not in customs, "the mods select left the main panel"
     finally:
         unregister_admin_mod_section("testmod")
         await client.close()

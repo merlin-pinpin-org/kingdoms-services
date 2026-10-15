@@ -50,7 +50,6 @@ from kingdoms.discord.admin import (
     MANAGED_CHANNELS,
     VISIBILITY_ADMIN_ONLY,
     VISIBILITY_PUBLIC,
-    _managed_channel_status,
     _resolve_managed_channel,
     _t,
 )
@@ -475,71 +474,15 @@ async def build_pin_main_menu(
     locale: str = "en",
     admin_channel_service: Any = None,
 ) -> discord.ui.LayoutView:
-    """Build the pinned main menu: fully dynamic, no captured state."""
-    from kingdoms.discord.admin_panel_mods import (
-        PinModRouteSelect,
-    )
+    """Build the pinned admin menu: the new admin menu, frozen (stateless items).
 
-    status = await _managed_channel_status(logs_service, guild_id, admin_channel_service)
-    view = discord.ui.LayoutView(timeout=None)
-    container_blocks = [
-        discord.ui.TextDisplay(f"# \u2699\ufe0f {_t(catalog, locale, 'title')}"),
-        discord.ui.Separator(),
-        discord.ui.TextDisplay(f"## \ud83c\udf0d {_t(catalog, locale, 'language')}"),
-        discord.ui.TextDisplay(_t(catalog, locale, "language_hint", value=_LOCALE_LABELS.get(locale, locale))),
-        _select_row(PinLocaleSelect(locale)),
-        discord.ui.Separator(),
-        discord.ui.TextDisplay(f"## \ud83d\udccb {_t(catalog, locale, 'channels')}"),
-        _select_row(
-            PinChannelMenu.create(
-                catalog,
-                locale,
-                status,
-                placeholder=_t(catalog, locale, "channels_placeholder"),
-            )
-        ),
-        discord.ui.Separator(),
-        discord.ui.TextDisplay("## \U0001f9e9 R\u00f4les"),
-        _roles_row(_t(catalog, locale, "roles_button")),
-        discord.ui.Separator(),
-        discord.ui.TextDisplay(
-            "## \U0001f513 Acc\u00e8s jeux/mods\n"
-            "Rien n'est actif par d\u00e9faut : la guilde doit demander l'acc\u00e8s aux "
-            "jeux et mods ; un bot admin l'approuve depuis ses DMs."
-        ),
-    ]
-    if guild_id:
-        container_blocks.append(_access_request_row(guild_id))
-    from kingdoms.discord.admin_panel_mods import registered_admin_game_sections
+    The games/mods access management lives in the scope admin menus
+    (games/admin, mods/admin) — never here.
+    """
+    from kingdoms.discord.admin_tree import build_admin_menu
 
-    granted_games = await _granted_games(guild_id)
-    if granted_games:
-        container_blocks.append(discord.ui.Separator())
-        listed = ", ".join(f"`{key}`" for key in granted_games)
-        container_blocks.append(discord.ui.TextDisplay(f"## \ud83c\udfae Jeux\n{listed}"))
-        from kingdoms.discord.admin_panel_games import GamesGrantedReopenButton, GamesGrantedSelect
-
-        game_options = [discord.SelectOption(label=key, value=key) for key in granted_games[:25]]
-        container_blocks.append(_select_row(GamesGrantedSelect(game_options)))
-        if granted_games:
-            container_blocks.append(_select_row(GamesGrantedReopenButton(granted_games[0])))
-    if registered_admin_game_sections():
-        container_blocks.append(discord.ui.Separator())
-        container_blocks.append(discord.ui.TextDisplay("## \ud83d\udd27 Mods"))
-        container_blocks.append(
-            _select_row(
-                PinModRouteSelect.create(
-                    placeholder=_t(catalog, locale, "mods_placeholder"),
-                )
-            )
-        )
-    view.add_item(
-        discord.ui.Container(
-            *container_blocks,
-            accent_colour=discord.Colour(BLURPLE),
-        )
-    )
-    return view
+    del logs_service, catalog, admin_channel_service
+    return await build_admin_menu(guild_id, locale)
 
 
 async def build_pin_channel_menu(

@@ -90,6 +90,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
                         ("home:open:status", _tr(catalog, "ui.homes.btn_status", locale), "📊"),
                         ("home:open:profile", _tr(catalog, "ui.homes.btn_profile", locale), "🪪"),
                         ("home:open:games", _tr(catalog, "ui.homes.btn_games", locale), "🎮"),
+                        ("home:open:mods", _tr(catalog, "ui.homes.btn_mods", locale), "🧩"),
                     ),
                 ),
             )
@@ -116,7 +117,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
                 MenuSection(
                     heading_key=_tr(catalog, "ui.homes.heading_navigate", locale, "Navigation"),
                     buttons=(
-                        ("home:open:games", _tr(catalog, "ui.homes.btn_mods", locale), "🧩"),
+                        ("home:open:mods", _tr(catalog, "ui.homes.btn_mods", locale), "🧩"),
                     ),
                 ),
             )
@@ -157,6 +158,7 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                     view_id=scope_view_key(scope, "admin"),
                     sections=(
                         MenuSection(
+                            heading_key=_tr(catalog, "ui.homes.heading_data", locale, "Données"),
                             buttons=(
                                 (
                                     "admin:pin:modgames:section:civs:aoe2",
@@ -175,45 +177,68 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                                 ),
                             ),
                         ),
+                        MenuSection(
+                            heading_key=_tr(catalog, "ui.homes.heading_actions", locale, "Actions"),
+                            buttons=(
+                                (
+                                    "admin:pin:modgames:maps:import:guild:aoe2",
+                                    _tr(catalog, "ui.homes.btn_add_map", locale, "Ajouter une map"),
+                                    "🌟",
+                                ),
+                                (
+                                    "admin:pin:modgames:pools:create:aoe2",
+                                    _tr(catalog, "ui.homes.btn_create_pool", locale, "Créer un map pool"),
+                                    "🧱",
+                                ),
+                            ),
+                        ),
                     ),
                 )
             )
         if scope in ("games", "mods"):
-            # the perimeter management: granted list, access request,
-            # channels and roles (the shared admin dispatches)
+            # the perimeter management: granted list, request, revoke,
+            # and the scope's own channels (the shared admin dispatches)
             kind = "games" if scope == "games" else "mods"
-            extra = (
-                (
-                    _tr(
+            granted_line = await _granted_line(bot, guild_id, kind)
+            extra = (granted_line,) if granted_line else ()
+            if scope == "mods":
+                extra = (*extra, _tr(
                         catalog,
                         "ui.homes.mods_doc_line",
                         locale,
-                        "📖 Documentation des mods : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS",
+                        "\U0001f4d6 Documentation des mods : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS",
                     ),
                 )
-                if scope == "mods"
-                else ()
-            )
+            list_view = "games" if scope == "games" else "mods"
             return build_menu(
                 MenuSpec(
-                    title=_tr(catalog, f"ui.homes.{kind}_admin_title", locale, f"{kind} — admin"),
+                    title=_tr(catalog, f"ui.homes.{kind}_admin_title", locale, f"{kind} \u2014 admin"),
                     description=_tr(
                         catalog,
                         f"ui.homes.{kind}_admin_description",
                         locale,
-                        "Les périmètres accordés, les demandes d'accès et la configuration.",
+                        "Les p\u00e9rim\u00e8tres accord\u00e9s, les demandes d'acc\u00e8s et la configuration.",
                     ),
                     extra_lines=extra,
                     view_id=scope_view_key(scope, "admin"),
                     sections=(
                         MenuSection(
-                            heading_key=_tr(catalog, "ui.homes.heading_perimeters", locale, "Périmètres"),
+                            heading_key=_tr(catalog, "ui.homes.heading_perimeters", locale, "P\u00e9rim\u00e8tres"),
                             buttons=(
-                                ("home:open:games", _tr(catalog, "ui.homes.btn_list", locale, "Liste"), "📋"),
+                                (
+                                    f"home:open:{list_view}",
+                                    _tr(catalog, "ui.homes.btn_list", locale, "Liste"),
+                                    "\U0001f4cb",
+                                ),
                                 (
                                     f"admin:access:open:{guild_id}",
-                                    _tr(catalog, "ui.homes.btn_request_access", locale, "Demander l'accès"),
-                                    "✉️",
+                                    _tr(catalog, "ui.homes.btn_request_access", locale, "Demander l'acc\u00e8s"),
+                                    "\u2709\ufe0f",
+                                ),
+                                (
+                                    f"admin:access:revoke:{guild_id}",
+                                    _tr(catalog, "ui.homes.btn_revoke_access", locale, "Retirer l'acc\u00e8s"),
+                                    "\U0001f5f2\ufe0f",
                                 ),
                             ),
                         ),
@@ -222,8 +247,8 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                             buttons=(
                                 (
                                     "admin:pin:button:roles",
-                                    _tr(catalog, "ui.homes.btn_channels_roles", locale, "Salons & rôles"),
-                                    "🛠️",
+                                    _tr(catalog, "ui.homes.btn_channels_roles", locale, "Salons & r\u00f4les"),
+                                    "\U0001f6e0\ufe0f",
                                 ),
                             ),
                         ),
@@ -253,6 +278,29 @@ def _admin_builder(bot: Any, scope: str) -> Any:
         )
 
     return _build
+
+
+
+
+async def _granted_line(bot: Any, guild_id: str, kind: str) -> str:
+    """Render the guild's granted games/mods as one menu line (empty when none)."""
+    from kingdoms.discord.wiring import build_guild_access_service
+
+    service = build_guild_access_service()
+    if service is None:
+        return ""
+    try:
+        if kind == "games":
+            granted = await service.enabled_games(guild_id)
+        else:
+            granted = await service.enabled_mods(guild_id)
+    except Exception:
+        logger.warning("SCOPE PINS: granted keys read failed (guild %s)", guild_id, exc_info=True)
+        return ""
+    if not granted:
+        return ""
+    listed = ", ".join(f"`{key}`" for key in granted)
+    return f"**Accord\u00e9s** : {listed}"
 
 
 def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:

@@ -298,7 +298,8 @@ class TestPostRestartClicks:
         await item.callback(interaction)
         message = interaction.response.message
         assert message is not None and message.layout is not None
-        assert PIN_CHANNEL_MENU_ID in _custom_ids(message.layout), "back lands on the main menu"
+        rendered = str(_custom_ids(message.layout))
+        assert "admin:tree" in rendered, "back lands on the new main menu"
 
 
 class TestClickTimeGuards:

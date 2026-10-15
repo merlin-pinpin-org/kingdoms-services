@@ -61,16 +61,6 @@ def _civ_post_layout(
     blocks.append(discord.ui.Separator())
     blocks.append(discord.ui.TextDisplay(footer(entry_id)))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    actions: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    actions.add_item(
-        discord.ui.Button(
-            label="Actions à venir",
-            custom_id=f"faction:todo:{entry_id}"[:100],
-            style=discord.ButtonStyle.secondary,
-            disabled=True,
-        )
-    )
-    view.add_item(actions)
     return view
 
 

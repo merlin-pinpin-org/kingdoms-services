@@ -388,9 +388,149 @@ async def _delete_pending_admin_dms(bot: Any, guild_id: str, requested_at: str) 
             )
 
 
+
+
+class GuildAccessRevokeButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:revoke:(?P<guild_id>\d+)",
+):
+    """Open the granted-keys picker to revoke one access (guild admins)."""
+
+    def __init__(self, guild_id: str) -> None:
+        self.guild_id = guild_id
+        super().__init__(
+            discord.ui.Button(
+                label="Retirer un acc\u00e8s",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:revoke:{guild_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessRevokeButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("guild_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard (guild admins), then open the granted-keys picker."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if not await _guard_admin_deferred(interaction):
+            return
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        granted: list[str] = []
+        try:
+            doc = await service.get(self.guild_id)
+            if doc:
+                granted = [f"game:{k}" for k in doc.get("games") or []]
+                granted += [f"mod:{k}" for k in doc.get("mods") or []]
+        except Exception:
+            logger.exception("ACCESS REVOKE list failed (guild %s)", self.guild_id)
+            await interaction.followup.send("Listing impossible (voir les logs).", ephemeral=True)
+            return
+        if not granted:
+            await interaction.followup.send("Aucun acc\u00e8s accord\u00e9 \u00e0 retirer.", ephemeral=True)
+            return
+        options = [discord.SelectOption(label=key, value=key) for key in granted[:25]]
+        picker = discord.ui.View(timeout=None)
+        picker.add_item(GuildAccessRevokeSelect(self.guild_id, options))
+        await interaction.followup.send(
+            "Choisis l'acc\u00e8s \u00e0 retirer \u00e0 la guilde :",
+            view=picker,
+            ephemeral=True,
+        )
+
+
+class GuildAccessRevokeSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:revokesel:(?P<guild_id>\d+)",
+):
+    """Revoke one granted game/mod (the chosen value is the key)."""
+
+    def __init__(self, guild_id: str, options: list[discord.SelectOption]) -> None:
+        self.guild_id = guild_id
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:revokesel:{guild_id}"[:100],
+                options=options,
+                placeholder="Acc\u00e8s \u00e0 retirer...",
+                max_values=min(25, len(options)),
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessRevokeSelect:
+        """Rebuild the options at click time (the guild's granted keys)."""
+        del interaction, item
+        guild_id = match.group("guild_id")
+        service = await _access_service()
+        granted: list[str] = []
+        if service is not None:
+            try:
+                doc = await service.get(guild_id)
+                if doc:
+                    granted = [f"game:{k}" for k in doc.get("games") or []]
+                    granted += [f"mod:{k}" for k in doc.get("mods") or []]
+            except Exception:
+                granted = []
+        options = [discord.SelectOption(label=key, value=key) for key in granted[:25]] or [
+            discord.SelectOption(label="Aucun acc\u00e8s accord\u00e9", value="none")
+        ]
+        return cls(guild_id, options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Revoke the chosen keys, then confirm."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if not await _guard_admin_deferred(interaction):
+            return
+        data: Any = interaction.data or {}
+        chosen = [str(v) for v in (data.get("values") or []) if v and v != "none"]
+        if not chosen:
+            await interaction.followup.send("Rien \u00e0 retirer \u2014 aucune s\u00e9lection.", ephemeral=True)
+            return
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        from kingdoms.core.services.guild_access import GuildAccessError
+
+        try:
+            for key in chosen:
+                await service.revoke(self.guild_id, key)
+        except GuildAccessError as error:
+            await interaction.followup.send(f"Retrait refus\u00e9 : {error}", ephemeral=True)
+            return
+        except Exception:
+            logger.exception("ACCESS REVOKE failed (guild %s)", self.guild_id)
+            await interaction.followup.send("Retrait \u00e9chou\u00e9 (voir les logs).", ephemeral=True)
+            return
+        await interaction.followup.send(
+            f"Acc\u00e8s retir\u00e9 : {', '.join(chosen)} \u2014 le menu se met \u00e0 jour \u00e0 la prochaine sync.",
+            ephemeral=True,
+        )
+
+
+
 def register_guild_access_request_items(bot: discord.Client) -> None:
     """Register the request surface's persistent dynamic items."""
     bot.add_dynamic_items(GuildAccessRequestSelect)
     bot.add_dynamic_items(GuildAccessRequestButton)
     bot.add_dynamic_items(GuildAccessApproveButton)
     bot.add_dynamic_items(GuildAccessDenyButton)
+    bot.add_dynamic_items(GuildAccessRevokeButton)
+    bot.add_dynamic_items(GuildAccessRevokeSelect)

@@ -90,6 +90,7 @@ async def test_main_menu_hides_without_sections() -> None:
     view = await build_pin_main_menu(_Logs(), "1")  # type: ignore[arg-type]
     rendered = str(getattr(view, "to_components", lambda: [])())
     assert "admin:pin:mod:" not in rendered
+    assert "admin:tree:lang" in rendered
 
 
 async def test_main_menu_renders_registered_sections() -> None:
@@ -102,8 +103,8 @@ async def test_main_menu_renders_registered_sections() -> None:
 
     view = await build_pin_main_menu(_Logs(), "1")  # type: ignore[arg-type]
     rendered = str(view.to_components())
-    assert "admin:pin:mod:" in rendered
-    assert "Kingdoms" in rendered
+    assert "admin:tree:" in rendered
+    assert "Kingdoms" not in rendered  # the mod sections left the main menu
 
 
 async def test_callback_denies_non_admin() -> None:

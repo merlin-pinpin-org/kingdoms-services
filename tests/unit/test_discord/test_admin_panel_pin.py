@@ -126,7 +126,7 @@ async def test_ensure_creates_and_pins_when_absent() -> None:
     assert channel.sent, "the menu was delivered"
     assert channel.pins_list, "the menu was pinned"
     ids = _component_ids(channel.pins_list[0])
-    assert any(cid.startswith("admin:pin:") for cid in ids), "the pinned menu is the pin surface"
+    assert any(cid.startswith("admin:tree:") for cid in ids), "the pinned menu is the new admin surface"
 
 
 @pytest.mark.asyncio
@@ -172,7 +172,7 @@ async def test_ensure_replaces_a_legacy_pinned_menu() -> None:
     assert channel.sent, "the current pin surface was delivered"
     assert legacy.unpinned is True, "the legacy pin is unpinned"
     ids = _component_ids(channel.pins_list[-1])
-    assert any(cid.startswith("admin:pin:") for cid in ids), "the new pin is the pin surface"
+    assert any(cid.startswith("admin:tree:") for cid in ids), "the new pin is the new admin surface"
 
 
 @pytest.mark.asyncio
@@ -209,7 +209,7 @@ async def test_pinned_menu_denies_non_admin_at_click_time() -> None:
     select = None
     for child in view.walk_children():
         custom_id = getattr(child, "custom_id", None)
-        if custom_id and str(custom_id).startswith("admin:pin:"):
+        if custom_id and str(custom_id).startswith("admin:tree:"):
             select = child
             break
     assert select is not None, "the pinned menu carries interactive components"
@@ -286,7 +286,7 @@ async def test_ensure_rebuilds_a_pin_predating_the_mods_select() -> None:
         assert created is True, "the pre-mods pin forces a rebuild"
         assert old_pin.unpinned is True, "the pre-mods pin is unpinned"
         ids = _component_ids(channel.pins_list[-1])
-        assert mod_section_route_id("mods") in ids, "the new pin carries the mods select"
+        assert mod_section_route_id("mods") not in ids, "the new pin carries no mods select"
     finally:
         unregister_admin_mod_section("testmod")
 

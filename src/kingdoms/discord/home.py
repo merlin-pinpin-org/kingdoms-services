@@ -145,7 +145,7 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
     elif view_key.startswith("guild-admin:"):
         await _view_admin_for_guild(interaction, view_key[len("guild-admin:") :])
     elif view_key.startswith("guild-games:"):
-        await _view_games_for_guild(interaction, view_key[len("guild-games:") :])
+        await _view_game_for_guild(interaction, view_key[len("guild-games:") :])
     elif view_key.startswith("mod:"):
         await _view_mod(interaction, view_key[4:])
     else:
@@ -212,7 +212,7 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     row.add_item(ProfileAddAccountButton())
     row.add_item(ProfileRenameButton())
     if bindings:
-        row.add_item(ProfileRemoveAccountButton([str(b.get("profile_id", "")) for b in bindings]))
+        row.add_item(ProfileRemoveAccountButton())
     view.add_item(discord.ui.Container(discord.ui.TextDisplay(await _profile_header(interaction, user_id)), *blocks))
     view.add_item(row)
     await interaction.followup.send(view=view, ephemeral=True)
@@ -227,7 +227,7 @@ class ProfileAddAccountButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Add an account", style=discord.ButtonStyle.success, custom_id="home:profile:add"
+                label="Ajouter un compte", style=discord.ButtonStyle.success, custom_id="home:profile:add"
             )
         )
 
@@ -252,9 +252,9 @@ class ProfileAddAccountModal(discord.ui.Modal):
     """The add-account form: game key + profile id."""
 
     def __init__(self) -> None:
-        super().__init__(title="Add an account", timeout=None)
+        super().__init__(title="Ajouter un compte", timeout=None)
         self.game: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Game (aoe2)", default="aoe2", max_length=16, required=True
+            label="Jeu (aoe2)", default="aoe2", max_length=16, required=True
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
             label="Profile id", max_length=64, required=True
@@ -275,7 +275,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
         except Exception:
             logger.warning("PROFILE ADD failed", exc_info=True)
             await interaction.response.send_message(
-                "Ajout echoue (profile inconnu du provider, ou deja lie).", ephemeral=True
+                "Ajout échoué (profil inconnu du provider, ou déjà lié).", ephemeral=True
             )
             return
         await interaction.response.send_message(await reply(interaction, "profile_linked"), ephemeral=True)
@@ -285,15 +285,15 @@ async def _profile_header(interaction: discord.Interaction, user_id: str) -> str
     """Build the profile header: the user's chosen name when known."""
     identity = getattr(interaction.client, "identity_service", None)
     if identity is None:
-        return "# 👤 Ton profil"
+        return "# 👤 Ton profil — pseudo : (non défini)"
     try:
         user = await identity.get_user(f"discord:{user_id}")
     except Exception:
         logger.warning("HOME: identity lookup failed", exc_info=True)
-        return "# 👤 Ton profil"
+        return "# 👤 Ton profil — pseudo : (non défini)"
     if user is None or not user.display_name:
-        return "# 👤 Ton profil"
-    return f"# 👤 {user.display_name}"
+        return "# 👤 Ton profil — pseudo : (non défini)"
+    return f"# 👤 Ton profil — pseudo : {user.display_name}"
 
 
 class ProfileRenameButton(
@@ -305,7 +305,7 @@ class ProfileRenameButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Change nickname", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+                label="Changer de pseudo", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
             )
         )
 
@@ -322,17 +322,29 @@ class ProfileRenameButton(
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Open the rename modal."""
-        await interaction.response.send_modal(ProfileRenameModal())
+        """Open the rename modal, prefilled with the current nickname."""
+        current = ""
+        identity = getattr(interaction.client, "identity_service", None)
+        if identity is not None:
+            try:
+                user = await identity.get_user(f"discord:{interaction.user.id}")
+                current = user.display_name if user is not None and user.display_name else ""
+            except Exception:
+                current = ""
+        await interaction.response.send_modal(ProfileRenameModal(current))
 
 
 class ProfileRenameModal(discord.ui.Modal):
     """The rename form: the user's chosen name (1-16 chars)."""
 
-    def __init__(self) -> None:
-        super().__init__(title="Your nickname", timeout=None)
+    def __init__(self, current: str = "") -> None:
+        super().__init__(title="Ton pseudo", timeout=None)
         self.name: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Nickname (16 chars max)", max_length=16, min_length=1, required=True
+            label="Pseudo (16 caractères max)",
+            max_length=16,
+            min_length=1,
+            required=True,
+            default=current or None,
         )
         self.add_item(self.name)
 
@@ -359,7 +371,7 @@ class ProfileRenameModal(discord.ui.Modal):
             logger.warning("PROFILE RENAME failed", exc_info=True)
             await interaction.response.send_message("Renommage impossible pour le moment.", ephemeral=True)
             return
-        await interaction.response.send_message("Pseudo mis à jour ✅", ephemeral=True)
+        await interaction.response.send_message(f"Pseudo mis à jour ✅ — {self.name.value}", ephemeral=True)
 
 
 class ProfileRemoveAccountButton(
@@ -368,11 +380,10 @@ class ProfileRemoveAccountButton(
 ):
     """Open the remove-account select (ephemeral state rides the wire)."""
 
-    def __init__(self, profile_ids: list[str] | None = None) -> None:
-        self.profile_ids = profile_ids or []
+    def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Remove an account", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label="Retirer un compte", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 
@@ -384,35 +395,34 @@ class ProfileRemoveAccountButton(
         match: re.Match[str],
         /,
     ) -> ProfileRemoveAccountButton:
-        """Rebuild the item; the profile list is rebuilt from the bindings."""
-        registration = getattr(interaction.client, "registration_service", None)
-        ids: list[str] = []
-        if registration is not None:
-            try:
-                bindings = await registration.list_bindings(str(interaction.user.id))
-                ids = [str(b.get("profile_id", "")) for b in bindings]
-            except Exception:
-                ids = []
-        return cls(ids)
+        """Rebuild the item from the wire (bindings resolve at click time)."""
+        del interaction, item, match
+        return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Confirm with a select of the user's accounts."""
+        """Confirm with a select of the user's accounts (name + game)."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
             return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         bindings = await registration.list_bindings(str(interaction.user.id))
         options = [
             discord.SelectOption(
-                label=str((b.get("profile") or {}).get("display_name") or b.get("profile_id", "?")),
-                value=str(b.get("profile_id", "")),
+                label=str(
+                    (b.get("profile") or {}).get("display_name")
+                    or next(iter((b.get("profile") or {}).get("aliases") or []), None)
+                    or b.get("profile_id", "?")
+                )[:100],
+                value=f"{b.get('game_key', '')}|{b.get('profile_id', '')}",
+                description=f"{b.get('game_key', '?')} · {b.get('profile_id', '?')}"[:100],
             )
             for b in bindings[:25]
         ]
         if not options:
-            await interaction.response.send_message(await reply(interaction, "no_account"), ephemeral=True)
+            await interaction.followup.send(await reply(interaction, "no_account"), ephemeral=True)
             return
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Quel compte retirer ?",
             view=ProfileRemoveSelectView(options),
             ephemeral=True,
@@ -434,13 +444,13 @@ class ProfileRemoveSelectView(discord.ui.View):
 
 
 class ProfileRemoveSelect(discord.ui.Select[Any]):
-    """The account picker of the remove flow."""
+    """The account picker of the remove flow (multi-account, 25 max)."""
 
     def __init__(self, options: list[discord.SelectOption]) -> None:
-        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Account to remove...")
+        super().__init__(custom_id="home:profile:remove:select", options=options, placeholder="Compte à retirer...")
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Unlink the chosen account, confirm."""
+        """Unlink the chosen account, confirm, then refresh the profile view."""
         registration = getattr(interaction.client, "registration_service", None)
         if registration is None:
             await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
@@ -453,13 +463,15 @@ class ProfileRemoveSelect(discord.ui.Select[Any]):
         if not chosen:
             await interaction.response.defer()
             return
+        game_key, _, profile_id = chosen.partition("|")
         try:
-            await registration.unlink_profile(str(interaction.user.id), "aoe2", chosen)
+            await registration.unlink_profile(str(interaction.user.id), game_key, profile_id)
         except Exception:
             logger.warning("PROFILE REMOVE failed", exc_info=True)
             await interaction.response.send_message(await reply(interaction, "remove_failed"), ephemeral=True)
             return
-        await interaction.response.edit_message(content="Compte retire.", view=None)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await _view_profile(interaction)
 
 
 async def _view_games(interaction: discord.Interaction) -> None:
@@ -472,55 +484,157 @@ async def _view_games(interaction: discord.Interaction) -> None:
     await _view_games_for_guild(interaction, guild_id)
 
 
+async def _tree_channel_link(guild_id: str, scope: str, key: str) -> str:
+    """Resolve one tree channel into a Discord mention (empty when unknown)."""
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    channel_id = await stored_channel_id(guild_id, scope, key)
+    return f"<#{channel_id}>" if channel_id else ""
+
+
 async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
-    """Render the guild's known games, catalog sizes and provider status."""
+    """Render the guild's games: bullet points, channel/forum links."""
     from kingdoms.discord.bot.factory import KingdomsBot
     from kingdoms.discord.maps_forum import maps_forum_wiring_ready
 
     bot = interaction.client
-    embed = discord.Embed(title="🎮 Jeux", color=0x5865F2)
+    await interaction.response.defer(ephemeral=True)
     lines: list[str] = []
+    games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     if maps_forum_wiring_ready():
         try:
             from kingdoms.discord.admin_panel_games import _games_wiring
+            from kingdoms.discord.wiring import granted_game_keys
 
             service = _games_wiring()
             if service is not None:
-                for key in (await service.list_game_keys())[:25]:
-                    maps = await service.list_maps(key)
-                    pools = await service.list_map_pools(key)
-                    provider = await _provider_status(bot, key)
-                    active = sum(1 for m in maps if m.archived_at is None)
-                    lines.append(f"**{key}** — {active} maps actives, {len(pools)} pools — {provider}")
+                games = await granted_game_keys(guild_id, tuple(await service.list_game_keys()))
         except Exception:
             logger.warning("GAMES VIEW failed to read the catalog", exc_info=True)
+    if not games:
+        lines.append("_Aucun jeu configuré._")
+    for game in games[:25]:
+        points: list[str] = []
+        general = await _tree_channel_link(guild_id, f"games/{game}", "general")
+        if general:
+            points.append(f"général : {general}")
+        for label, key in (("civs", "civs"), ("maps", "maps"), ("map pools", "map-pools")):
+            link = await _tree_channel_link(guild_id, f"games/{game}", key)
+            if link:
+                points.append(f"{label} : {link}")
+        detail = f" \u2014 {', '.join(points)}" if points else ""
+        lines.append(f"\u2022 **{game}**{detail}")
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("# \U0001f3ae Jeux\n\n" + "\n".join(lines)),
+            accent_colour=discord.Colour(0x5865F2),
+        )
+    )
+    await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _view_game_for_guild(interaction: discord.Interaction, game_key: str) -> None:
+    """One game's dashboard: players, civs, maps, pools + forum links."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, f"guild-games:{game_key}")
+    if guild_id is None:
+        return
+    await interaction.response.defer(ephemeral=True)
+    from kingdoms.discord.admin_panel_games import _games_wiring
+
+    service = _games_wiring()
+    bot = interaction.client
+    players = 0
+    roster = getattr(bot, "_registration_database", None)
+    if roster is not None:
+        try:
+            players = len(await roster.list_bindings_for_game(game_key))
+        except Exception:
+            players = 0
+    civs = maps = pools = 0
+    if service is not None:
+        try:
+            civs = sum(1 for c in await service.list_factions(game_key) if c.archived_at is None)
+            maps = sum(1 for m in await service.list_maps(game_key) if m.archived_at is None)
+            pools = sum(1 for p in await service.list_map_pools(game_key) if p.archived_at is None)
+        except Exception:
+            logger.warning("GAME VIEW catalog read failed", exc_info=True)
+
+    civs_link = await _tree_channel_link(guild_id, f"games/{game_key}", "civs")
+    maps_link = await _tree_channel_link(guild_id, f"games/{game_key}", "maps")
+    pools_link = await _tree_channel_link(guild_id, f"games/{game_key}", "map-pools")
+
+    def bullet(label: str, count: int, lnk: str) -> str:
+        text = f"\u2022 {label} : **{count}**"
+        return f"{text} \u2014 {lnk}" if lnk else text
+
+    lines = [
+        f"# \u2694\ufe0f {game_key}",
+        "",
+        f"\u2022 Joueurs avec un compte li\u00e9 : **{players}**",
+        bullet("Civs", civs, civs_link),
+        bullet("Maps", maps, maps_link),
+        bullet("Map pools", pools, pools_link),
+    ]
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("\n".join(lines)),
+            accent_colour=discord.Colour(0x5865F2),
+        )
+    )
+    await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _view_mods(interaction: discord.Interaction) -> None:
+    """Render the guild's granted mods with their channels."""
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-games:mods")
+    if guild_id is None:
+        return
+    await interaction.response.defer(ephemeral=True)
+    from kingdoms.discord.wiring import build_guild_access_service, guild_access_platform
+
+    _, all_mods = guild_access_platform()
+    granted: tuple[str, ...] = ()
+    service = build_guild_access_service()
+    if service is not None:
+        try:
+            granted = await service.enabled_mods(guild_id)
+        except Exception:
+            logger.warning("MODS VIEW access read failed", exc_info=True)
+    if service is None:
+        granted = tuple(all_mods)
+    lines: list[str] = []
+    for mod in (granted or all_mods)[:25]:
+        channels: list[str] = []
+        general = await _tree_channel_link(guild_id, f"mods/{mod}", "general")
+        if general:
+            channels.append(general)
+        admin = await _tree_channel_link(guild_id, f"mods/{mod}", "admin")
+        if admin:
+            channels.append(f"admin : {admin}")
+        detail = f" \u2014 {', '.join(channels)}" if channels else " \u2014 salons dédiés à venir"
+        lines.append(f"\u2022 **{mod}**{detail}")
     if not lines:
-        games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
-        for game in games:
-            provider = await _provider_status(bot, game)
-            lines.append(f"**{game}** — {provider}")
-    embed.description = "\n".join(lines) if lines else "Aucun jeu configure."
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+        lines.append("_Aucun mod actif pour cette guilde._")
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(
+                "# \U0001f9e9 Mods\n\n" + "\n".join(lines)
+                + "\n\n\U0001f4d6 Documentation : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS"
+            ),
+            accent_colour=discord.Colour(0x5865F2),
+        )
+    )
+    await interaction.followup.send(view=view, ephemeral=True)
 
 
-async def _provider_status(bot: Any, game: str) -> str:
-    """Probe one game's provider through its live adapter (best-effort)."""
-    import asyncio
-
-    adapter = getattr(bot, "_home_providers", {}).get(game)
-    if adapter is None:
-        return "❔ aucun provider configuré"
-    try:
-        maps = await asyncio.wait_for(adapter.list_maps(), timeout=5)
-        del maps  # the probe checks reachability, not the lobby-scoped map list
-        return "✅ provider en ligne"
-    except TimeoutError:
-        return "⚠️ timeout"
-    except Exception:
-        return "⚠️ indisponible"
-
-
-async def _collect_roster_bindings(bot: Any) -> list[dict[str, Any]]:
+async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, Any]]:
     """Collect the bindings across every known game (deduplicated)."""
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
@@ -528,11 +642,13 @@ async def _collect_roster_bindings(bot: Any) -> list[dict[str, Any]]:
     bindings: list[dict[str, Any]] = []
     try:
         from kingdoms.discord.admin_panel_games import _games_wiring
+        from kingdoms.discord.wiring import granted_game_keys
 
         service = _games_wiring()
-        if service is not None:
-            for key in (await service.list_game_keys())[:5]:
-                bindings.extend(await roster.list_bindings_for_game(key))
+        catalog = tuple(await service.list_game_keys()) if service is not None else ()
+        keys = await granted_game_keys(guild_id, catalog) if guild_id else catalog
+        for key in keys[:5]:
+            bindings.extend(await roster.list_bindings_for_game(key))
     except Exception:
         logger.warning("USERS VIEW catalog listing failed", exc_info=True)
     if not bindings:
@@ -548,33 +664,56 @@ async def _collect_roster_bindings(bot: Any) -> list[dict[str, Any]]:
 
 
 async def _view_users(interaction: discord.Interaction) -> None:
-    """Render the guild's roster with linked profiles."""
+    """Render the guild's roster: members with linked profiles (name + game)."""
     bot = interaction.client
     registration = getattr(bot, "registration_service", None)
     if registration is None:
         await interaction.response.send_message(await reply(interaction, "not_configured"), ephemeral=True)
+        return
+    from kingdoms.discord.guild_context import require_guild_context
+
+    guild_id = await require_guild_context(interaction, "guild-games:users")
+    if guild_id is None:
         return
     await interaction.response.defer(ephemeral=True)
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
         await interaction.followup.send("Roster indisponible (store non configuré).", ephemeral=True)
         return
-    unique = await _collect_roster_bindings(bot)
-    if not unique:
-        await interaction.followup.send("Aucun compte lié pour l'instant.", ephemeral=True)
+    guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
+    if guild is None:
+        await interaction.followup.send("Guilde introuvable.", ephemeral=True)
         return
-    lines = []
-    for binding in sorted(unique, key=lambda b: str(b.get("user_id", "")))[:25]:
-        user_id = binding.get("user_id", "")
+    unique = await _collect_roster_bindings(bot, guild_id)
+    lines: list[str] = []
+    for binding in unique:
+        user_id = str(binding.get("user_id", ""))
+        member = guild.get_member(int(user_id)) if user_id.isdigit() else None
+        if member is None:
+            continue
         profile = binding.get("profile") or {}
-        name = profile.get("display_name") or "?"
-        lines.append(f"<@{user_id}> — {name} (`{binding.get('profile_id', '?')}`)")
-    embed = discord.Embed(
-        title=f"👥 Joueurs enregistrés ({len(unique)})",
-        description="\n".join(lines),
-        color=0x5865F2,
+        name = (
+            profile.get("display_name")
+            or next(iter(profile.get("aliases") or []), None)
+            or "?"
+        )
+        game = binding.get("game_key", "?")
+        lines.append(f"\u2022 <@{user_id}> \u2014 **{name}** \u00b7 `{game}` (`{binding.get('profile_id', '?')}`)")
+        if len(lines) >= 25:
+            break
+    if not lines:
+        await interaction.followup.send("Aucun membre de cette guilde n'a de compte lié.", ephemeral=True)
+        return
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(
+                f"# \U0001f465 Joueurs enregistrés ({len(lines)})\n\n" + "\n".join(lines)
+            ),
+            accent_colour=discord.Colour(0x5865F2),
+        )
     )
-    await interaction.followup.send(embed=embed, ephemeral=True)
+    await interaction.followup.send(view=view, ephemeral=True)
 
 
 async def _view_admin(interaction: discord.Interaction) -> None:
@@ -592,46 +731,29 @@ async def open_home_view_for_guild(interaction: discord.Interaction, view_key: s
     if view_key.startswith("guild-admin:"):
         await _view_admin_for_guild(interaction, guild_id)
     elif view_key.startswith("guild-games:"):
-        await _view_games_for_guild(interaction, guild_id)
+        await _view_game_for_guild(interaction, view_key[len("guild-games:") :])
     else:
         await interaction.response.send_message("Vue inconnue.", ephemeral=True)
 
 
 async def _view_admin_for_guild(interaction: discord.Interaction, guild_id: str) -> None:
-    """Open the admin panel for one guild (ephemeral, guarded at click time)."""
-    from kingdoms.discord.bot.factory import KingdomsBot
+    """Open the new admin menu ephemerally, guarded at click time."""
     from kingdoms.discord.guards import require_admin
 
     bot = interaction.client
-    if not isinstance(bot, KingdomsBot):
+    admins = tuple(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
+    if not await require_admin(interaction, admins, getattr(bot, "roles_service", None)):
         return
-    admins = tuple(bot.status_service.bot_admins)
-    allowed = await require_admin(interaction, admins, bot.roles_service)
-    if not allowed:
-        return
-    from kingdoms.discord.admin_panel_dynamic import build_pin_main_menu
+    from kingdoms.discord.admin_tree import build_admin_menu
 
-    logs_service = getattr(bot, "logs_service", None)
-    admin_channel_service = getattr(bot, "admin_channel_service", None)
-    if logs_service is None:
-        await interaction.response.send_message(
-            "Le panneau admin n'est pas configuré sur ce process.",
-            ephemeral=True,
-        )
-        return
-    guild_id = str(interaction.guild_id) if interaction.guild_id else ""
-    try:
-        locale = await logs_service.get_locale(guild_id)
-    except Exception:
-        locale = "en"
-    view = await build_pin_main_menu(
-        logs_service,
-        guild_id,
-        getattr(bot, "messages", None),
-        locale,
-        admin_channel_service,
-    )
-    await interaction.response.send_message(view=view, ephemeral=True)
+    logs = getattr(bot, "logs_service", None)
+    locale = "en"
+    if logs is not None:
+        try:
+            locale = str(await logs.get_locale(guild_id) or "en")
+        except Exception:
+            locale = "en"
+    await interaction.response.send_message(view=await build_admin_menu(guild_id, locale), ephemeral=True)
 
 
 async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
@@ -759,14 +881,66 @@ async def _register_menu_message(bot: discord.Client, guild_id: str, channel_id:
         logger.warning("PINNED HOME MENU registry register failed - best-effort")
 
 
-def build_home_menu_view(bot: Any, guild_id: str) -> discord.ui.LayoutView:
-    """Build the pinned home menu layout for a guild (refresher entry)."""
-    del guild_id
+async def build_home_menu_view(bot: Any, guild_id: str) -> discord.ui.LayoutView:
+    """Build the pinned home menu layout for a guild (localized labels)."""
     home = getattr(bot, "home_service", None)
     if home is None:
         return discord.ui.LayoutView(timeout=None)
+    return await build_home_menu_for_guild(home, bot, guild_id)
 
-    return build_home_menu(home)
+
+async def build_home_menu_for_guild(home: HomeService, bot: Any, guild_id: str) -> discord.ui.LayoutView:
+    """Build the home menu with the guild's localized button labels."""
+    from kingdoms.core.services.home import HomeButton
+    from kingdoms.discord.commands_i18n import tr_guild
+
+    label_keys = {
+        "status": ("ui.homes.btn_status", "Status"),
+        "profile": ("ui.homes.btn_profile", "Profile"),
+        "games": ("ui.homes.btn_games", "Games"),
+        "users": ("ui.homes.btn_users", "Users"),
+        "admin": ("ui.homes.btn_admin", "Admin"),
+    }
+
+    async def localized(view: str, fallback: str) -> str:
+        if view.startswith("mod:"):
+            return await tr_guild(guild_id, bot, "ui.homes.btn_mods", fallback)
+        key, default = label_keys.get(view, ("", fallback))
+        if not key:
+            return fallback
+        return await tr_guild(guild_id, bot, key, default)
+
+    buttons = [
+        HomeButton(view=b.view, label=await localized(b.view, b.label), emoji=b.emoji)
+        for b in home.buttons()
+    ]
+    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for i, button in enumerate(buttons):
+        if i and i % 5 == 0:
+            rows.append(row)
+            row = discord.ui.ActionRow()
+        row.add_item(
+            discord.ui.Button(
+                custom_id=f"home:open:{button.view}",
+                label=button.label,
+                emoji=discord.PartialEmoji.from_str(button.emoji) if button.emoji else None,
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+    rows.append(row)
+    from kingdoms.discord.pinned_marks import pinned_mark
+
+    view = discord.ui.LayoutView(timeout=None)
+    header = "## \U0001f3d0 Kingdoms\nBienvenue \u2014 chaque bouton ouvre une vue r\u00e9serv\u00e9e \u00e0 toi."
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay(header),
+            *rows,
+            discord.ui.TextDisplay(pinned_mark(HOME_MESSAGE_KEY)),
+        )
+    )
+    return view
 
 
 def register_home_command(
@@ -781,15 +955,32 @@ def register_home_command(
         description=localized("commands.home_description", "The guild's home menu"),
     )
     async def home_command(interaction: discord.Interaction) -> None:
-        """Answer /home with the home menu (ephemeral)."""
-        await interaction.response.send_message(view=build_home_menu(home), ephemeral=True)
+        """Answer /home with the home menu (ephemeral, localized)."""
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        await interaction.response.send_message(
+            view=await build_home_menu_for_guild(home, interaction.client, guild_id),
+            ephemeral=True,
+        )
 
 
 def _async_layout(home: HomeService) -> Any:
     """Return the awaited-layout builder expected by PinnedMenuService."""
 
     async def build(guild_id: str) -> discord.ui.LayoutView:
-        del guild_id
-        return build_home_menu(home)
+        return await build_home_menu_for_guild(home, _home_bot_ref(), guild_id)
 
     return build
+
+
+def _home_bot_ref() -> Any:
+    """Resolve the running client held by the home module (boot wiring)."""
+    return _HOME_BOT_REF[0] if _HOME_BOT_REF else None
+
+
+def hold_home_bot(bot: Any) -> None:
+    """Hold the running client so the pinned menu renders localized labels."""
+    _HOME_BOT_REF.clear()
+    _HOME_BOT_REF.append(bot)
+
+
+_HOME_BOT_REF: list[Any] = []
