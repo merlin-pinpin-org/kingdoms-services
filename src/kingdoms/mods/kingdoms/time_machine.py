@@ -25,6 +25,13 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms.events import _schedule_timezone, cron_slots_between
+from kingdoms.mods.kingdoms.game_clock import (
+    format_offset,
+    game_now,
+    game_offset_seconds,
+    parse_duration,
+    set_game_offset,
+)
 
 if TYPE_CHECKING:
     from kingdoms.mods.kingdoms.models import SeasonState
@@ -85,11 +92,25 @@ class TimeMachineService:
     # Status — the game clock (Drasah's "voir le temps de jeu")
     # ------------------------------------------------------------------
     async def status(self, *, now: datetime | None = None) -> dict[str, Any]:
-        """Return the game clock and the upcoming key moments."""
-        timestamp = now or datetime.now(tz=UTC)
+        """Return the game clock and the upcoming key moments.
+
+        machine-temps-v2: the clock reads the GAME time (real now +
+        the season's persisted ``clock_offset``) — the process cache
+        re-syncs from the season here, so a restarted bot converges
+        back to the test offset on the first panel read.
+        """
         season = await self._kingdoms.current_season()
+        if season is not None:
+            set_game_offset(int(getattr(season, "clock_offset", 0) or 0))
+        timestamp = now or game_now()
         if season is None:
-            return {"season": None, "now": timestamp, "snapshot_count": len(await self.snapshots())}
+            return {
+                "season": None,
+                "now": timestamp,
+                "real_now": datetime.now(tz=UTC),
+                "offset": game_offset_seconds(),
+                "snapshot_count": len(await self.snapshots()),
+            }
         tz = _schedule_timezone(self._config)
         cycle_slots = cron_slots_between(
             self._config.events.cycle_cron, season.started_at, timestamp + _HORIZON, tz
@@ -113,6 +134,8 @@ class TimeMachineService:
         return {
             "season": season.id,
             "now": timestamp,
+            "real_now": datetime.now(tz=UTC),
+            "offset": int(getattr(season, "clock_offset", 0) or 0),
             "started_at": season.started_at,
             "cycle": season.current_cycle,
             "weeks": season.weeks,
@@ -141,7 +164,7 @@ class TimeMachineService:
         one-click rewind buttons restore the latest snapshot of a
         given moment. Manual snapshots carry ``None``.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         snapshot: dict[str, Any] = {
             "_id": f"tm-{timestamp:%Y%m%d-%H%M%S-%f}-{_slugify(label)}",
             "kind": TIME_MACHINE_KIND,
@@ -185,7 +208,7 @@ class TimeMachineService:
         clock to now within one tick and undo the rewind — the admin
         resumes deliberately (the freeze toggle) when the test is done.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         snapshot = next(
             (doc for doc in await self.snapshots() if doc.get("_id") == snapshot_id), None
         )
@@ -208,6 +231,11 @@ class TimeMachineService:
         for document in snapshot.get("showmatches", []):
             await self._store.upsert_showmatch(document)
         restored_frozen = await self._set_frozen(True)
+        # machine-temps-v2: the restored season carries the offset of
+        # its day — a rewind is a TRUE return, clock included.
+        restored_season = await self._kingdoms.current_season()
+        if restored_season is not None:
+            set_game_offset(int(getattr(restored_season, "clock_offset", 0) or 0))
         logger.info(
             "kingdoms: time-machine snapshot %r restored (frozen=%s)", snapshot_id, restored_frozen
         )
@@ -264,8 +292,30 @@ class TimeMachineService:
         """
         await self._store.wipe_season_data()
         season = await self._kingdoms.launch()
+        set_game_offset(0)
         logger.info("kingdoms: time-machine back-to-setup (fresh season %s)", season.id)
         return {"season": season.id, "phase": season.phase}
+
+    async def reset_clock(self) -> dict[str, Any]:
+        """Reset the game clock back to the real time (machine-temps-v2).
+
+        Snapshot the current state first (« avant reset horloge », the
+        reset is reversible like every other mutation), drop the
+        season's ``clock_offset`` back to 0 and freeze the season: a
+        reset mid-test resumes PAUSED, deliberately (Drasah 14/10) —
+        the scheduler would otherwise catch up on real time.
+        """
+        timestamp = game_now()
+        season = await self._kingdoms.current_season()
+        if season is None:
+            raise TimeMachineError("no season is running")
+        backup = await self.create_snapshot("avant reset horloge", now=timestamp)
+        season.clock_offset = 0
+        season.frozen = True
+        await self._store.upsert_season(season.to_mongo())
+        set_game_offset(0)
+        logger.info("kingdoms: time-machine clock reset (backup %s)", backup["_id"])
+        return {"backup": backup["_id"], "offset": 0, "frozen": True}
 
     # ------------------------------------------------------------------
     # Fast-forward — advance and jump (Drasah's "accélérer le temps")
@@ -274,15 +324,47 @@ class TimeMachineService:
         """Fast-forward ``days`` days: snapshot, then replay the missed slots."""
         if days <= 0:
             raise TimeMachineError("the fast-forward needs a positive number of days")
-        timestamp = now or datetime.now(tz=UTC)
+        return await self.advance_seconds(days * 86400, now=now, label=f"avant +{days}j")
+
+    async def advance_duration(
+        self, text: str, *, now: datetime | None = None
+    ) -> dict[str, Any]:
+        """Fast-forward a FREE duration (« 90m », « 2h », « 15m », « 3d »).
+
+        machine-temps-v2 (Drasah 14/10): the admin types the jump
+        length; the parser accepts minutes, hours and days, alone or
+        combined (« 1d2h30m »). The shortcut buttons (+1/+3/+7 days)
+        ride the same offset path.
+        """
+        try:
+            seconds = parse_duration(text)
+        except ValueError as exc:
+            raise TimeMachineError(str(exc)) from exc
+        return await self.advance_seconds(seconds, now=now, label=f"avant saut {text.strip()}")
+
+    async def advance_seconds(
+        self, seconds: int, *, now: datetime | None = None, label: str | None = None
+    ) -> dict[str, Any]:
+        """Advance the game clock by ``seconds``: snapshot, replay, offset.
+
+        The game clock = real clock + ``clock_offset``: a jump of D
+        seconds adds D to the persisted offset, replays every due slot
+        up to the new game time (``run_due``) and elapses the marriage
+        locks with the same delta. Negative jumps are refused — a
+        rewind goes through the snapshots, never through the clock.
+        """
+        if seconds <= 0:
+            raise TimeMachineError("the jump needs a strictly positive duration")
+        timestamp = now or game_now()
         await self._require_started_season()
-        return await self._advance_to(timestamp + timedelta(days=days), f"avant +{days}j", timestamp)
+        target = timestamp + timedelta(seconds=seconds)
+        return await self._advance_to(target, label or f"avant +{format_offset(seconds)}", timestamp)
 
     async def jump_to(self, moment: str, *, now: datetime | None = None) -> dict[str, Any]:
         """Jump to the next key moment: cycle switch, age switch or season end."""
         if moment not in _MOMENTS:
             raise TimeMachineError(f"unknown moment {moment!r}")
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         season = await self._require_started_season()
         labels = {
             "next_cycle": "avant saut cycle",
@@ -336,17 +418,29 @@ class TimeMachineService:
             await self.create_snapshot(f"auto avant {kind}", now=timestamp, moment=kind)
 
         backup = await self.create_snapshot(label, now=timestamp)
+        # machine-temps-v2: the jump rides the offset — the persisted
+        # ``clock_offset`` grows by the jump length, the process cache
+        # follows, and every ``game_now()`` read shifts with it.
+        delta = int((target - timestamp).total_seconds())
+        season = await self._require_started_season()
+        season.clock_offset = int(getattr(season, "clock_offset", 0) or 0) + delta
+        await self._store.upsert_season(season.to_mongo())
+        set_game_offset(int(season.clock_offset))
         reports = await self._events.run_due(target, snapshotter=_slot_snapshotter)
         # The locks live on the wall clock (D34) but the game just
         # jumped forward: elapse the honeymoons with the game clock so
         # a "+N days" also expires the marriage locks (Drasah's
         # 2026-10-12 livery test flow). Best effort, never blocks.
-        delta = int((target - timestamp).total_seconds())
         try:
             await self._kingdoms._shift_marriage_locks(delta)
         except Exception:
             logger.warning("kingdoms: time-machine lock shift failed", exc_info=True)
-        return {"backup": backup["_id"], "reports": reports, "target": target}
+        return {
+            "backup": backup["_id"],
+            "reports": reports,
+            "target": target,
+            "offset": int(season.clock_offset),
+        }
 
     def _next_slot(self, cron: str, started_at: datetime, timestamp: datetime) -> datetime | None:
         """Return the first cron slot strictly after ``timestamp``."""

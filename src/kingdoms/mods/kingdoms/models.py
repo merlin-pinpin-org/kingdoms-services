@@ -424,6 +424,14 @@ class SeasonState(BaseModel):
     the field default to False (the game never pauses on its own).
     """
     winner_kingdom_id: str | None = None
+    clock_offset: int = Field(default=0, ge=0)
+    """Game-clock test offset in seconds (machine-temps-v2, Drasah
+    14/10): the whole mod reads ``game_now() = real now + clock_offset``
+    through the single seam — battle phases, locks, cooldowns and the
+    cron slots all ride the game clock. Test tooling ONLY: a normal
+    game always runs at 0. Never negative (a rewind goes through the
+    time-machine snapshots, never through the clock). Snapshots carry
+    the field: a restore replays the offset of its day verbatim."""
     lords_day_forced_start: datetime | None = None
     """Manual test override: when set (with ``lords_day_forced_end``),
     the Lord's Day window is FORCED open between the two timestamps —
