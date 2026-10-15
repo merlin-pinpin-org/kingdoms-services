@@ -61,7 +61,6 @@ def _find_channel(
     return None
 
 
-
 EPOCH_CATEGORY = "Époque"
 """The group that holds the renameable current-age channel (kingdoms#138):
 the channel is renamed at each age switch, so the core adopts it by group
@@ -87,6 +86,7 @@ async def _enforce_epoch_overwrites(guild: discord.Guild, channel: discord.TextC
     except Exception:
         logger.warning("KINGDOM SETUP: epoch overwrites failed", exc_info=True)
 
+
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
     """Provision the declared salons-first structure through the core.
 
@@ -101,14 +101,19 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     wiring = _wiring()
     channel_service = wiring.channel_service
     if channel_service is None:
-        raise RuntimeError(
-            "the ChannelService is not wired — the salons-first bootstrap needs the platform services"
-        )
+        raise RuntimeError("the ChannelService is not wired — the salons-first bootstrap needs the platform services")
     report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
     epoch_id = report.channel_ids.get(EPOCH_CHANNEL_KEY)
     epoch_channel = guild.get_channel(int(epoch_id)) if epoch_id and epoch_id.isdigit() else None
     if isinstance(epoch_channel, discord.TextChannel):
         await _enforce_epoch_overwrites(guild, epoch_channel)
+    # admin-console-v1: the console salon gets its pinned welcome message.
+    console_id = report.channel_ids.get("console")
+    console_channel = guild.get_channel(int(console_id)) if console_id and console_id.isdigit() else None
+    if isinstance(console_channel, discord.TextChannel):
+        from kingdoms.mods.kingdoms.admin_console import ensure_console_welcome
+
+        await ensure_console_welcome(console_channel)
     await cleanup_legacy_structure(guild, str(epoch_id or ""))
     return list(report.created), list(report.adopted)
 

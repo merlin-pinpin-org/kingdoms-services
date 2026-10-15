@@ -142,14 +142,22 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="DebugService">class <strong>DebugService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DebugService">DebugService</a>(store:&nbsp;'Any',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms:&nbsp;'KingdomsService',&nbsp;territories:&nbsp;'TerritoryService',&nbsp;attacks:&nbsp;'Any',&nbsp;voliere:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DebugService">DebugService</a>(store:&nbsp;'Any',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms:&nbsp;'KingdomsService',&nbsp;territories:&nbsp;'TerritoryService',&nbsp;attacks:&nbsp;'Any',&nbsp;voliere:&nbsp;'Any',&nbsp;*,&nbsp;time_machine:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;targeted-mutation&nbsp;toolkit&nbsp;behind&nbsp;/kingdoms-admin&nbsp;debug.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="DebugService-__init__"><strong>__init__</strong></a>(self, store: 'Any', config: 'KingdomsSeasonConfig', kingdoms: 'KingdomsService', territories: 'TerritoryService', attacks: 'Any', voliere: 'Any') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="DebugService-__init__"><strong>__init__</strong></a>(self, store: 'Any', config: 'KingdomsSeasonConfig', kingdoms: 'KingdomsService', territories: 'TerritoryService', attacks: 'Any', voliere: 'Any', *, time_machine: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="DebugService-adjust_bank"><strong>adjust_bank</strong></a>(self, kingdom_ref: 'str', delta: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Credit&nbsp;(or&nbsp;debit,&nbsp;negative)&nbsp;⚙️&nbsp;on&nbsp;a&nbsp;kingdom's&nbsp;tech&nbsp;bank.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-admin_result"><strong>admin_result</strong></a>(self, attack_id: 'str', kingdom_ref: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;admin&nbsp;face-check:&nbsp;override&nbsp;a&nbsp;result&nbsp;/&nbsp;arbitrate&nbsp;a&nbsp;dispute.<br>
+&nbsp;<br>
+``resultat&nbsp;&lt;id&gt;&nbsp;&lt;royaume&gt;``&nbsp;—&nbsp;the&nbsp;named&nbsp;kingdom&nbsp;wins.&nbsp;When&nbsp;the<br>
+attack&nbsp;carries&nbsp;no&nbsp;dispute&nbsp;yet,&nbsp;one&nbsp;is&nbsp;opened&nbsp;first&nbsp;so&nbsp;the<br>
+production&nbsp;``resolve_dispute``&nbsp;path&nbsp;applies&nbsp;the&nbsp;reversal&nbsp;(the<br>
+chantier&nbsp;limitation&nbsp;included).&nbsp;``double``/``les&nbsp;deux``&nbsp;reads&nbsp;as<br>
+the&nbsp;double&nbsp;forfait.</span></dd></dl>
 
 <dl><dt>async <a name="DebugService-advance_attack"><strong>advance_attack</strong></a>(self, attack_id: 'str', stage: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Force&nbsp;one&nbsp;running&nbsp;attack&nbsp;to&nbsp;its&nbsp;next&nbsp;D77&nbsp;phase.<br>
 &nbsp;<br>
@@ -167,6 +175,19 @@ STOP/CONTINUE&nbsp;settles&nbsp;on&nbsp;its&nbsp;own).</span></dd></dl>
 
 <dl><dt>async <a name="DebugService-clear_lock"><strong>clear_lock</strong></a>(self, lord_ref: 'str', lock: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Purge&nbsp;one&nbsp;real-time&nbsp;lock&nbsp;of&nbsp;a&nbsp;lord&nbsp;(Explorateur/no-show/marriage).</span></dd></dl>
 
+<dl><dt>async <a name="DebugService-credit_market"><strong>credit_market</strong></a>(self, kingdom_ref: 'str', entity: 'str', qty: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Credit&nbsp;a&nbsp;Marché&nbsp;entity&nbsp;on&nbsp;a&nbsp;kingdom&nbsp;(forced&nbsp;purchase,&nbsp;no&nbsp;cost).<br>
+&nbsp;<br>
+Consumable&nbsp;counters&nbsp;(explorateur,&nbsp;corruption,&nbsp;embuscade)&nbsp;are<br>
+REFUNDED&nbsp;—&nbsp;the&nbsp;per-season&nbsp;consumption&nbsp;goes&nbsp;down,&nbsp;the&nbsp;limit<br>
+opens&nbsp;again.&nbsp;Stocks&nbsp;and&nbsp;charges&nbsp;(garde,&nbsp;traquenard,&nbsp;patrouille)<br>
+are&nbsp;CREDITED&nbsp;—&nbsp;the&nbsp;tokens/slots&nbsp;rise&nbsp;exactly&nbsp;like&nbsp;a&nbsp;paid&nbsp;buy.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-force_next_phase"><strong>force_next_phase</strong></a>(self, attack_id: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Advance&nbsp;ONE&nbsp;running&nbsp;attack&nbsp;by&nbsp;exactly&nbsp;ONE&nbsp;cran&nbsp;(fin_attaque).<br>
+&nbsp;<br>
+The&nbsp;console's&nbsp;repeated&nbsp;`fin_attaque`:&nbsp;DECLARED&nbsp;→&nbsp;reveal,&nbsp;DEFENDED<br>
+→&nbsp;pick&amp;ban&nbsp;→&nbsp;meeting/score&nbsp;phase&nbsp;→&nbsp;the&nbsp;T+5&nbsp;no-show&nbsp;line.&nbsp;Each<br>
+call&nbsp;inspects&nbsp;the&nbsp;current&nbsp;state&nbsp;and&nbsp;forces&nbsp;the&nbsp;NEXT&nbsp;step&nbsp;only.</span></dd></dl>
+
 <dl><dt>async <a name="DebugService-grant_bird"><strong>grant_bird</strong></a>(self, kingdom_ref: 'str', bird: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Put&nbsp;a&nbsp;bird&nbsp;back&nbsp;on&nbsp;its&nbsp;perch&nbsp;(slot&nbsp;restored,&nbsp;cooldown&nbsp;landed).<br>
 &nbsp;<br>
 Restores&nbsp;the&nbsp;age&nbsp;SLOT&nbsp;of&nbsp;a&nbsp;flown&nbsp;or&nbsp;dead&nbsp;bird&nbsp;—&nbsp;the&nbsp;corbeau<br>
@@ -175,13 +196,38 @@ the&nbsp;production&nbsp;rule;&nbsp;the&nbsp;debug&nbsp;panel&nbsp;un-does&nbsp;
 
 <dl><dt>async <a name="DebugService-grant_civ"><strong>grant_civ</strong></a>(self, kingdom_ref: 'str', civ: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Force&nbsp;a&nbsp;civilization&nbsp;into&nbsp;a&nbsp;kingdom's&nbsp;hand&nbsp;(diplomacy&nbsp;tests).</span></dd></dl>
 
+<dl><dt>async <a name="DebugService-grant_marriages"><strong>grant_marriages</strong></a>(self, kingdom_ref: 'str', count: 'int', civs: 'list[str] | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Stock&nbsp;N&nbsp;marriages&nbsp;on&nbsp;a&nbsp;kingdom's&nbsp;lords&nbsp;(civs&nbsp;optional).<br>
+&nbsp;<br>
+``ajouter_mariage``&nbsp;—&nbsp;the&nbsp;civs&nbsp;in&nbsp;argument&nbsp;first,&nbsp;then&nbsp;the<br>
+kingdom's&nbsp;hand,&nbsp;then&nbsp;the&nbsp;config&nbsp;pool&nbsp;(never&nbsp;a&nbsp;married&nbsp;civ).<br>
+The&nbsp;console&nbsp;tests&nbsp;the&nbsp;marié&nbsp;N&nbsp;fois&nbsp;diplomacy&nbsp;conditions&nbsp;with<br>
+this,&nbsp;without&nbsp;a&nbsp;single&nbsp;player&nbsp;click.</span></dd></dl>
+
 <dl><dt>async <a name="DebugService-grant_territory"><strong>grant_territory</strong></a>(self, map_key: 'str', kingdom_ref: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Hand&nbsp;one&nbsp;territory&nbsp;to&nbsp;a&nbsp;kingdom&nbsp;(direct&nbsp;owner&nbsp;transfer).</span></dd></dl>
 
 <dl><dt>async <a name="DebugService-inject_chronicle"><strong>inject_chronicle</strong></a>(self, lord_ref: 'str', kind: 'str', params: 'dict[str, str]', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Append&nbsp;one&nbsp;FACTICE&nbsp;chronicle&nbsp;entry&nbsp;on&nbsp;a&nbsp;lord&nbsp;(display&nbsp;tests).</span></dd></dl>
 
+<dl><dt>async <a name="DebugService-list_attacks"><strong>list_attacks</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Every&nbsp;ONGOING&nbsp;attack:&nbsp;id,&nbsp;phase,&nbsp;deadline&nbsp;(the&nbsp;id&nbsp;source).</span></dd></dl>
+
 <dl><dt>async <a name="DebugService-reset_voliere_cooldown"><strong>reset_voliere_cooldown</strong></a>(self, kingdom_ref: 'str', bird: 'str', ready_in_minutes: 'int' = 0, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Land&nbsp;one&nbsp;bird&nbsp;NOW&nbsp;(or&nbsp;``ready_in_minutes``&nbsp;minutes&nbsp;from&nbsp;now).</span></dd></dl>
 
+<dl><dt>async <a name="DebugService-restitute_budget"><strong>restitute_budget</strong></a>(self, lord_ref: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Give&nbsp;one&nbsp;weekly&nbsp;attack&nbsp;budget&nbsp;back&nbsp;to&nbsp;a&nbsp;lord&nbsp;(console&nbsp;D17).</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-skip_to_next_event"><strong>skip_to_next_event</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Jump&nbsp;the&nbsp;game&nbsp;clock&nbsp;to&nbsp;the&nbsp;next&nbsp;scheduled&nbsp;passage&nbsp;(`skippe`).<br>
+&nbsp;<br>
+The&nbsp;earliest&nbsp;of&nbsp;the&nbsp;next&nbsp;cycle&nbsp;switch&nbsp;(JdS),&nbsp;the&nbsp;next&nbsp;age&nbsp;switch<br>
+and&nbsp;the&nbsp;season&nbsp;end&nbsp;—&nbsp;the&nbsp;Machine&nbsp;à&nbsp;temps&nbsp;replays&nbsp;every&nbsp;missed<br>
+slot&nbsp;on&nbsp;the&nbsp;way&nbsp;(the&nbsp;passage&nbsp;actually&nbsp;RUNS,&nbsp;natural&nbsp;draws).</span></dd></dl>
+
 <dl><dt>async <a name="DebugService-status"><strong>status</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Report&nbsp;the&nbsp;debug&nbsp;state:&nbsp;bypass&nbsp;flag&nbsp;+&nbsp;running&nbsp;corbeau&nbsp;thefts.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-view_cooldowns"><strong>view_cooldowns</strong></a>(self, kingdom_ref: 'str | None' = None, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Read&nbsp;the&nbsp;aggregated&nbsp;CD&nbsp;panel:&nbsp;birds,&nbsp;locks&nbsp;and&nbsp;running&nbsp;attacks.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-view_kingdom"><strong>view_kingdom</strong></a>(self, kingdom_ref: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;full&nbsp;kingdom&nbsp;fiche:&nbsp;bank,&nbsp;birds,&nbsp;locks&nbsp;window,&nbsp;tier,&nbsp;civs.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-view_lord"><strong>view_lord</strong></a>(self, lord_ref: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;lord&nbsp;fiche:&nbsp;budgets,&nbsp;marriage,&nbsp;real-time&nbsp;locks,&nbsp;chronicle.</span></dd></dl>
+
+<dl><dt>async <a name="DebugService-view_theft"><strong>view_theft</strong></a>(self, kingdom_ref: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;corbeau&nbsp;theft&nbsp;state&nbsp;of&nbsp;one&nbsp;kingdom&nbsp;(phase,&nbsp;stolen,&nbsp;window).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

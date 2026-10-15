@@ -10,6 +10,7 @@ The designer strings live in the FR/EN dict below; command names and
 descriptions localize through the shared catalog
 (``commands.kingdoms_admin_*`` keys).
 """
+
 from __future__ import annotations
 
 import logging
@@ -66,22 +67,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "denied": "You are not allowed to do that — this action is reserved for bot admins.",
         "launched_free": "🚀 Season **{season}** launched — players may found kingdoms and enroll.",
         "launched_imposed": (
-            "🚀 Season **{season}** launched with imposed kingdoms: {kingdoms} "
-            "— players enroll and you assign them."
+            "🚀 Season **{season}** launched with imposed kingdoms: {kingdoms} — players enroll and you assign them."
         ),
         "reset_done": "🧹 Season data reset — no season is running now.",
         "status_none": "No season is running. Launch one with `/kingdoms-admin launch`.",
         "status_line": (
-            "🚀 Season **{season}** — cycle {cycle}/{weeks} — {kingdoms} kingdoms, "
-            "{queue} player(s) waiting."
+            "🚀 Season **{season}** — cycle {cycle}/{weeks} — {kingdoms} kingdoms, {queue} player(s) waiting."
         ),
         "name_approved": "✅ The kingdom name **{kingdom}** is approved.",
         "name_refused": "❌ The name of **{kingdom}** was refused — it now reads `{fallback}`.",
         "assigned": "🎖️ {player} joined **{kingdom}** as {role}.",
-        "replaced": (
-            "🔁 {incoming} replaces {outgoing} in **{kingdom}** — "
-            "weekly attack/defense state inherited."
-        ),
+        "replaced": ("🔁 {incoming} replaces {outgoing} in **{kingdom}** — weekly attack/defense state inherited."),
     },
     "fr": {
         "group_description": "Gestion de la saison Kingdoms : lancement, reset, noms, affectations",
@@ -127,15 +123,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "reset_done": "🧹 Données de saison réinitialisées — aucune saison en cours.",
         "status_none": "Aucune saison en cours. Lancez-en une avec `/kingdoms-admin lancer`.",
         "status_line": (
-            "🚀 Saison **{season}** — cycle {cycle}/{weeks} — {kingdoms} royaumes, "
-            "{queue} joueur(s) en attente."
+            "🚀 Saison **{season}** — cycle {cycle}/{weeks} — {kingdoms} royaumes, {queue} joueur(s) en attente."
         ),
         "name_approved": "✅ Le nom du royaume **{kingdom}** est validé.",
         "name_refused": "❌ Le nom de **{kingdom}** a été refusé — il s'appelle désormais `{fallback}`.",
         "assigned": "🎖️ {player} a rejoint **{kingdom}** comme {role}.",
         "replaced": (
-            "🔁 {incoming} remplace {outgoing} dans **{kingdom}** — "
-            "l'état attaque/défense de la semaine est hérité."
+            "🔁 {incoming} remplace {outgoing} dans **{kingdom}** — l'état attaque/défense de la semaine est hérité."
         ),
     },
 }
@@ -169,6 +163,7 @@ ERROR_STRINGS: dict[str, dict[str, str]] = {
     },
 }
 
+
 def _locale_key(locale: discord.Locale | None) -> str:
     """Resolve an interaction locale to its string-set key (English fallback)."""
     if locale is not None and str(locale).startswith("fr"):
@@ -195,7 +190,7 @@ def register_kingdoms_admin_command(
     service: KingdomsService | None,
     bot_admins: tuple[str, ...],
     roles_service: object | None = None,
-    debug_service: object | None = None,
+    debug_service: object | None = None,  # admin-console-v1: unused (the console owns DebugService)
 ) -> None:
     """Register the /kingdoms-admin command group on the command tree."""
     group = app_commands.Group(
@@ -215,10 +210,9 @@ def register_kingdoms_admin_command(
     _register_decide_name(group, service, guard)
     _register_assign(group, service, guard)
     _register_replace(group, service, guard)
-    if debug_service is not None:
-        from kingdoms.mods.kingdoms.admin_debug import register_debug_subgroup
-
-        register_debug_subgroup(group, debug_service, guard)
+    # admin-console-v1: the /kingdoms-admin debug slash subgroup is GONE
+    # (silent sync failures) — Drasah's test toolkit lives in the
+    # 🛠 console-admin salon (admin_console.py) behind DebugService.
 
 
 def _make_guard(
@@ -307,9 +301,7 @@ async def _answer_launch(
     season: SeasonState,
 ) -> None:
     """Answer a launch with the free-founding mode message."""
-    await interaction.followup.send(
-        strings["launched_free"].format(season=season.id), ephemeral=True
-    )
+    await interaction.followup.send(strings["launched_free"].format(season=season.id), ephemeral=True)
     logger.info("kingdoms: season launched by %s", interaction.user.id)
     if interaction.guild is not None:
         from kingdoms.mods.kingdoms.kingdom_persistent import _ensure_realms_after_launch
@@ -452,9 +444,7 @@ async def _answer_decision(
 ) -> None:
     """Answer a name decision with the approved or refused message."""
     if decision == "approve":
-        await interaction.followup.send(
-            strings["name_approved"].format(kingdom=target.name), ephemeral=True
-        )
+        await interaction.followup.send(strings["name_approved"].format(kingdom=target.name), ephemeral=True)
     else:
         await interaction.followup.send(
             strings["name_refused"].format(kingdom=kingdom, fallback=target.name),
@@ -581,9 +571,7 @@ def _register_replace(
             await interaction.followup.send(_error_text(interaction.locale, error), ephemeral=True)
             return
         kingdoms = await svc.kingdoms()
-        kingdom_name = next(
-            (kingdom.name for kingdom in kingdoms if kingdom.id == lord.kingdom_id), ""
-        )
+        kingdom_name = next((kingdom.name for kingdom in kingdoms if kingdom.id == lord.kingdom_id), "")
         await interaction.followup.send(
             strings["replaced"].format(
                 incoming=incoming.display_name,

@@ -140,6 +140,11 @@ channels:
     description: Admin test injector — hand elements to a kingdom (admin only)
     group: admin
     admin_only: true
+  - key: console
+    display_name: 🛠 console-admin
+    description: The admin test console — text commands, answers in the salon (admin only)
+    group: admin
+    admin_only: true
   - key: requests
     display_name: Demandes
     description: Edit/leave requests (admin only)

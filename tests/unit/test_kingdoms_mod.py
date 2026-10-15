@@ -3,6 +3,7 @@
 Covers the two acceptance criteria testable without Discord: the
 season config is data (changing it changes behavior, not code) and the
 season-state boundary (models round-trip, tech invariants D36)."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -51,6 +52,7 @@ class TestModDeclaration:
             "attacks",
             "bug",
             "distributor",
+            "console",  # admin-console-v1: the 🛠 console-admin salon
             "epoch",
             "exploration",
             "geopolitics",

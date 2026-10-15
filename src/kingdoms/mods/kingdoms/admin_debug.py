@@ -14,6 +14,7 @@ Everything is ephemeral and LOGGED; every mutation names who did what.
 The Machine à temps stays the GLOBAL time-jump tool — this panel only
 does targeted, single-document mutations.
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,7 +26,7 @@ from discord import app_commands
 
 from kingdoms.mods.kingdoms import chronicle
 from kingdoms.mods.kingdoms.game_clock import game_now
-from kingdoms.mods.kingdoms.models import LordModel
+from kingdoms.mods.kingdoms.models import AttackState, LordModel
 from kingdoms.mods.kingdoms.service import KingdomsModError
 
 if TYPE_CHECKING:  # pragma: no cover — import cycles never at runtime
@@ -102,6 +103,8 @@ class DebugService:
         territories: TerritoryService,
         attacks: Any,
         voliere: Any,
+        *,
+        time_machine: Any = None,
     ) -> None:
         self._store = store
         self._config = config
@@ -109,6 +112,10 @@ class DebugService:
         self._territories = territories
         self._attacks = attacks
         self._voliere = voliere
+        # admin-console-v1: the console's `skippe` rides the Machine à
+        # temps — optional so the existing wiring (and the tests) keep
+        # the six-argument construction.
+        self._time_machine = time_machine
 
     # -- lookups --------------------------------------------------------
 
@@ -117,11 +124,7 @@ class DebugService:
         kingdoms = await self._kingdoms.kingdoms()
         target = str(name_or_id).strip()
         found = next(
-            (
-                k
-                for k in kingdoms
-                if k.id == target or k.name.casefold() == target.casefold()
-            ),
+            (k for k in kingdoms if k.id == target or k.name.casefold() == target.casefold()),
             None,
         )
         if found is None:
@@ -135,8 +138,7 @@ class DebugService:
             (
                 lord
                 for lord in await self._kingdoms.lords()
-                if lord.id == target
-                or str(lord.display_name).casefold() == target.casefold()
+                if lord.id == target or str(lord.display_name).casefold() == target.casefold()
             ),
             None,
         )
@@ -161,7 +163,7 @@ class DebugService:
         if bird not in BIRDS and bird != "all":
             raise DebugError(f"unknown bird: {bird}")
         cooldowns = dict(kingdom.voliere_cooldowns)
-        for key in (BIRDS if bird == "all" else (bird,)):
+        for key in BIRDS if bird == "all" else (bird,):
             cooldowns[key] = timestamp
         kingdom.voliere_cooldowns = cooldowns
         await self._save_kingdom(kingdom)
@@ -173,9 +175,7 @@ class DebugService:
         )
         return {"kingdom": kingdom.name, "bird": bird, "ready_at": timestamp}
 
-    async def grant_bird(
-        self, kingdom_ref: str, bird: str, *, now: datetime | None = None
-    ) -> dict[str, Any]:
+    async def grant_bird(self, kingdom_ref: str, bird: str, *, now: datetime | None = None) -> dict[str, Any]:
         """Put a bird back on its perch (slot restored, cooldown landed).
 
         Restores the age SLOT of a flown or dead bird — the corbeau
@@ -202,9 +202,7 @@ class DebugService:
 
     # -- verrous ----------------------------------------------------------
 
-    async def clear_lock(
-        self, lord_ref: str, lock: str, *, now: datetime | None = None
-    ) -> dict[str, Any]:
+    async def clear_lock(self, lord_ref: str, lock: str, *, now: datetime | None = None) -> dict[str, Any]:
         """Purge one real-time lock of a lord (Explorateur/no-show/marriage)."""
         del now
         lord = await self._lord(lord_ref)
@@ -230,9 +228,7 @@ class DebugService:
 
     # -- attaques -----------------------------------------------------------
 
-    async def advance_attack(
-        self, attack_id: str, stage: str, *, now: datetime | None = None
-    ) -> dict[str, Any]:
+    async def advance_attack(self, attack_id: str, stage: str, *, now: datetime | None = None) -> dict[str, Any]:
         """Force one running attack to its next D77 phase.
 
         ``reveal`` pulls the game start so the T-15 defense cutoff and
@@ -364,9 +360,7 @@ class DebugService:
 
     # -- corbeau v3 ------------------------------------------------------------
 
-    async def advance_theft(
-        self, kingdom_ref: str, stage: str, *, now: datetime | None = None
-    ) -> dict[str, Any]:
+    async def advance_theft(self, kingdom_ref: str, stage: str, *, now: datetime | None = None) -> dict[str, Any]:
         """Fast-forward the corbeau-v3 theft clock of one kingdom.
 
         ``execute`` moves the 1h send delay to NOW and runs the due
@@ -400,6 +394,364 @@ class DebugService:
             [str(t.get("id")) for t in executed] or "nothing",
         )
         return {"kingdom": kingdom.name, "stage": stage, "executed": len(executed)}
+
+    # -- fiches / lectures (admin-console-v1) --------------------------------
+
+    async def view_kingdom(self, kingdom_ref: str) -> dict[str, Any]:
+        """Return the full kingdom fiche: bank, birds, locks window, tier, civs."""
+        kingdom = await self._kingdom(kingdom_ref)
+        return {
+            "kind": "kingdom",
+            "id": kingdom.id,
+            "name": kingdom.name,
+            "bank": int(kingdom.tech_points_bank),
+            "marriage_points": int(kingdom.marriage_points),
+            "arranged_stock": int(kingdom.arranged_marriage_stock),
+            "parish_tier": int(kingdom.parish_tier),
+            "birds": sorted(str(bird) for bird in (kingdom.voliere_slots or [])),
+            "cooldowns": dict(kingdom.voliere_cooldowns or {}),
+            "traquenard_until": kingdom.traquenard_until,
+            "hand": list(kingdom.civilizations),
+            "secured": list(kingdom.secured_civilizations),
+        }
+
+    async def view_lord(self, lord_ref: str) -> dict[str, Any]:
+        """Return the lord fiche: budgets, marriage, real-time locks, chronicle."""
+        lord = await self._lord(lord_ref)
+        kingdom = next(
+            (k for k in await self._kingdoms.kingdoms() if k.id == lord.kingdom_id),
+            None,
+        )
+        return {
+            "kind": "lord",
+            "id": lord.id,
+            "name": lord.display_name,
+            "kingdom": kingdom.name if kingdom is not None else "—",
+            "role": str(lord.role),
+            "attack_used": int(lord.attack_used),
+            "defense_used": int(lord.defense_used),
+            "married_civilization": lord.married_civilization,
+            "marriage_locked_until": lord.marriage_locked_until,
+            "exploration_locked_until": lord.exploration_locked_until,
+            "ffa_locked_until": lord.ffa_locked_until,
+            "chronicle": len(lord.chronicle),
+        }
+
+    async def view_cooldowns(self, kingdom_ref: str | None = None, *, now: datetime | None = None) -> dict[str, Any]:
+        """Read the aggregated CD panel: birds, locks and running attacks."""
+        moment = now or game_now()
+        timestamp = int(moment.timestamp())
+        kingdoms = [await self._kingdom(kingdom_ref)] if kingdom_ref else await self._kingdoms.kingdoms()
+        lords = await self._kingdoms.lords()
+        attacks = await self._attacks.attacks()
+        panels: list[dict[str, Any]] = []
+        for kingdom in kingdoms:
+            birds = {
+                str(bird): max(0, int(ready) - timestamp)
+                for bird, ready in dict(kingdom.voliere_cooldowns or {}).items()
+                if int(ready) > timestamp
+            }
+            locks = [
+                {
+                    "lord": lord.display_name,
+                    "lock": lock,
+                    "left": max(0, int(until) - timestamp),
+                }
+                for lord in lords
+                if lord.kingdom_id == kingdom.id and not lord.left
+                for lock, until in (
+                    ("marriage", lord.marriage_locked_until),
+                    ("exploration", lord.exploration_locked_until),
+                    ("ffa", lord.ffa_locked_until),
+                )
+                if until is not None and int(until) > timestamp
+            ]
+            traquenard = kingdom.traquenard_until
+            running = [
+                {
+                    "id": attack.id,
+                    "map": attack.map_key,
+                    "state": str(attack.state),
+                    "left": max(0, int((attack.expires_at - moment).total_seconds())),
+                }
+                for attack in attacks
+                if not attack.is_over and kingdom.id in (attack.attacker_kingdom_id, attack.defender_kingdom_id)
+            ]
+            panels.append(
+                {
+                    "kingdom": kingdom.name,
+                    "birds": birds,
+                    "locks": locks,
+                    "traquenard_left": max(0, int(traquenard) - timestamp) if traquenard else 0,
+                    "attacks": running,
+                }
+            )
+        return {"kingdoms": panels, "now": moment}
+
+    async def view_theft(self, kingdom_ref: str) -> dict[str, Any]:
+        """Return the corbeau theft state of one kingdom (phase, stolen, window)."""
+        kingdom = await self._kingdom(kingdom_ref)
+        theft = dict(kingdom.corbeau_theft or {})
+        if not theft:
+            raise DebugError(f"{kingdom.name} runs no corbeau theft")
+        return {"kingdom": kingdom.name, **theft}
+
+    # -- attaques (console) ---------------------------------------------------
+
+    async def list_attacks(self) -> list[dict[str, Any]]:
+        """Every ONGOING attack: id, phase, deadline (the id source)."""
+        running: list[dict[str, Any]] = []
+        for attack in await self._attacks.attacks():
+            if attack.is_over:
+                continue
+            running.append(
+                {
+                    "id": attack.id,
+                    "map": attack.map_key,
+                    "state": str(attack.state),
+                    "expires_at": attack.expires_at,
+                }
+            )
+        return running
+
+    async def force_next_phase(self, attack_id: str, *, now: datetime | None = None) -> dict[str, Any]:
+        """Advance ONE running attack by exactly ONE cran (fin_attaque).
+
+        The console's repeated `fin_attaque`: DECLARED → reveal, DEFENDED
+        → pick&ban → meeting/score phase → the T+5 no-show line. Each
+        call inspects the current state and forces the NEXT step only.
+        """
+        moment = now or game_now()
+        attacks = await self._attacks.attacks()
+        attack = next((a for a in attacks if a.id == str(attack_id)), None)
+        if attack is None:
+            raise DebugError(f"unknown attack: {attack_id}")
+        if attack.is_over:
+            raise DebugError(f"the attack {attack_id} is already over")
+        # 1-2: DECLARED or unrevealed DEFENDED → pull the reveal.
+        if attack.state is AttackState.DECLARED or (attack.state is AttackState.DEFENDED and not attack.revealed):
+            return await self.advance_attack(attack_id, "reveal", now=moment)
+        # 3: DEFENDED, reveal done, pick&ban DMs not due yet → pull them.
+        if attack.state is AttackState.DEFENDED and not attack.pickban.get("sent"):
+            return await self.advance_attack(attack_id, "pickban", now=moment)
+        # 4: pick&ban open but un-resolved → the T meeting moment (forfeit
+        # line, or the game-decides wait).
+        if attack.state is AttackState.DEFENDED and not attack.pickban.get("resolved_pickban"):
+            return await self.advance_attack(attack_id, "expire", now=moment)
+        # 5: pick&ban resolved, score phase not opened → open the MEETING.
+        if attack.state is AttackState.DEFENDED:
+            attack.expires_at = moment
+            await self._store.upsert_attack(attack.to_mongo())
+            opened = await self._attacks.score_due(now=moment)
+            logger.warning(
+                "kingdoms DEBUG: attack %s forced to the score phase by admin",
+                attack_id,
+            )
+            return {
+                "attack": attack_id,
+                "stage": "score",
+                "ran": [a.map_key for a in opened] or ["nothing"],
+            }
+        # 6: MEETING → the T+5 no-show line, now.
+        if attack.state is AttackState.MEETING:
+            score = dict(attack.score)
+            score["ready_deadline"] = int(moment.timestamp()) - 1
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            handled = await self._attacks.ready_due(now=moment)
+            logger.warning(
+                "kingdoms DEBUG: attack %s forced past the no-show line by admin",
+                attack_id,
+            )
+            return {
+                "attack": attack_id,
+                "stage": "noshow",
+                "ran": [a.map_key for a in handled] or ["nothing (both ready — declare the result)"],
+            }
+        raise DebugError(f"the attack {attack_id} sits in no forcible state")
+
+    async def admin_result(self, attack_id: str, kingdom_ref: str, *, now: datetime | None = None) -> dict[str, Any]:
+        """Apply the admin face-check: override a result / arbitrate a dispute.
+
+        ``resultat <id> <royaume>`` — the named kingdom wins. When the
+        attack carries no dispute yet, one is opened first so the
+        production ``resolve_dispute`` path applies the reversal (the
+        chantier limitation included). ``double``/``les deux`` reads as
+        the double forfait.
+        """
+        moment = now or game_now()
+        attacks = await self._attacks.attacks()
+        attack = next((a for a in attacks if a.id == str(attack_id)), None)
+        if attack is None:
+            raise DebugError(f"unknown attack: {attack_id}")
+        target = str(kingdom_ref).strip().casefold()
+        if target in ("double", "les deux", "les2"):
+            choice = "both"
+        else:
+            kingdom = await self._kingdom(kingdom_ref)
+            if kingdom.id == attack.attacker_kingdom_id:
+                choice = "attacker"
+            elif kingdom.id == attack.defender_kingdom_id:
+                choice = "defender"
+            else:
+                raise DebugError(f"{kingdom.name} sits on neither side of {attack_id}")
+        if not attack.score.get("opened") and not attack.score.get("disputed"):
+            raise DebugError(f"the attack {attack_id} reached no meeting — use fin_attaque first")
+        if not attack.score.get("disputed"):
+            score = dict(attack.score)
+            score["disputed"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms DEBUG: admin face-check opened the arbitration of %s",
+                attack_id,
+            )
+        resolved = await self._attacks.resolve_dispute(attack_id, choice, now=moment)
+        return {
+            "attack": attack_id,
+            "choice": choice,
+            "state": str(resolved.state),
+            "winner": resolved.winner_kingdom_id,
+        }
+
+    async def restitute_budget(self, lord_ref: str) -> dict[str, Any]:
+        """Give one weekly attack budget back to a lord (console D17)."""
+        lord = await self._lord(lord_ref)
+        before = int(lord.attack_used)
+        lord.attack_used = max(0, before - 1)
+        await self._save_lord(lord)
+        logger.warning(
+            "kingdoms DEBUG: attack budget restituted to %s by admin (%s → %s)",
+            lord.display_name,
+            before,
+            lord.attack_used,
+        )
+        return {"lord": lord.display_name, "before": before, "after": lord.attack_used}
+
+    # -- économie / marché (console) ------------------------------------------
+
+    async def grant_marriages(self, kingdom_ref: str, count: int, civs: list[str] | None = None) -> dict[str, Any]:
+        """Stock N marriages on a kingdom's lords (civs optional).
+
+        ``ajouter_mariage`` — the civs in argument first, then the
+        kingdom's hand, then the config pool (never a married civ).
+        The console tests the marié N fois diplomacy conditions with
+        this, without a single player click.
+        """
+        kingdom = await self._kingdom(kingdom_ref)
+        count = int(count)
+        if count <= 0:
+            raise DebugError("the marriage count must be positive")
+        lords = [
+            lord
+            for lord in await self._kingdoms.lords()
+            if lord.kingdom_id == kingdom.id and not lord.left and lord.married_civilization is None
+        ]
+        if len(lords) < count:
+            raise DebugError(f"{kingdom.name} counts only {len(lords)} unmarried active lords")
+        taken = {
+            str(lord.married_civilization)
+            for lord in await self._kingdoms.lords()
+            if lord.married_civilization is not None
+        }
+        pool = [str(civ) for civ in (civs or [])]
+        pool += [civ for civ in kingdom.civilizations if civ not in pool]
+        pool += [
+            civ.key
+            for civ in self._config.civilizations
+            if civ.key not in pool and civ.key not in kingdom.civilizations
+        ]
+        granted: dict[str, str] = {}
+        for lord in lords[:count]:
+            civ = next((entry for entry in pool if entry not in taken and entry not in granted.values()), None)
+            if civ is None:
+                raise DebugError("no unmarried civilization left in the pool")
+            lord.married_civilization = civ
+            await self._save_lord(lord)
+            granted[lord.display_name] = civ
+        logger.warning(
+            "kingdoms DEBUG: %d marriage(s) stocked on %s by admin (%s)",
+            count,
+            kingdom.name,
+            granted,
+        )
+        return {"kingdom": kingdom.name, "granted": granted}
+
+    async def credit_market(self, kingdom_ref: str, entity: str, qty: int) -> dict[str, Any]:
+        """Credit a Marché entity on a kingdom (forced purchase, no cost).
+
+        Consumable counters (explorateur, corruption, embuscade) are
+        REFUNDED — the per-season consumption goes down, the limit
+        opens again. Stocks and charges (garde, traquenard, patrouille)
+        are CREDITED — the tokens/slots rise exactly like a paid buy.
+        """
+        kingdom = await self._kingdom(kingdom_ref)
+        entity = str(entity).strip().casefold()
+        qty = int(qty)
+        state = await self._attacks.technology_state(kingdom.id)
+        purchases = dict(state.purchases)
+        if entity in ("explorateur", "corruption", "embuscade"):
+            purchases[entity] = max(0, int(purchases.get(entity, 0) or 0) - max(1, qty))
+        elif entity in ("garde", "garde_royale"):
+            purchases["garde_royale_stock"] = int(purchases.get("garde_royale_stock", 0) or 0) + max(1, qty)
+        elif entity == "traquenard":
+            purchases["traquenard"] = int(purchases.get("traquenard", 0) or 0) + max(1, qty)
+        elif entity == "patrouille":
+            unlocked = 1
+            for slot in (1, 2):
+                if unlocked > max(1, qty):
+                    break
+                purchases[f"patrouille_unlock_{slot}"] = 1
+                unlocked += 1
+        else:
+            raise DebugError(
+                "unknown market entity (explorateur, garde, traquenard, patrouille, corruption, embuscade)"
+            )
+        state.purchases = purchases
+        await self._store.upsert_technology(state.to_mongo())
+        logger.warning(
+            "kingdoms DEBUG: market entity %s of %s credited by admin → %s",
+            entity,
+            kingdom.name,
+            purchases,
+        )
+        return {"kingdom": kingdom.name, "entity": entity, "purchases": purchases}
+
+    # -- temps / événements (console) -----------------------------------------
+
+    async def skip_to_next_event(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Jump the game clock to the next scheduled passage (`skippe`).
+
+        The earliest of the next cycle switch (JdS), the next age switch
+        and the season end — the Machine à temps replays every missed
+        slot on the way (the passage actually RUNS, natural draws).
+        """
+        if self._time_machine is None:
+            raise DebugError("the time machine is not wired")
+        status = await self._time_machine.status(now=now)
+        if status.get("season") is None:
+            raise DebugError("no season is running")
+        moment = status["now"]
+        candidates = [
+            (label, status[key])
+            for label, key in (
+                ("cycle (JdS)", "next_cycle_at"),
+                ("âge", "next_age_at"),
+                ("fin de saison", "season_end_at"),
+            )
+            if status.get(key) is not None and status[key] > moment
+        ]
+        if not candidates:
+            raise DebugError("no upcoming event — the season is at its end")
+        label, target = min(candidates, key=lambda pair: pair[1])
+        seconds = int((target - moment).total_seconds())
+        report = await self._time_machine.advance_seconds(seconds, now=moment, label=f"skippe → {label}")
+        logger.warning(
+            "kingdoms DEBUG: skippe to the next %s by admin (+%ds)",
+            label,
+            seconds,
+        )
+        return {"event": label, "target": target, "reports": report.get("reports")}
 
     # -- état ----------------------------------------------------------------
 
@@ -556,9 +908,8 @@ def _debug_strings(locale: Any) -> dict[str, str]:
     key = "fr" if locale is not None and str(locale).startswith("fr") else "en"
     return DEBUG_STRINGS[key]
 
-def register_debug_subgroup(
-    group: app_commands.Group, debug_service: Any, guard: Any
-) -> None:
+
+def register_debug_subgroup(group: app_commands.Group, debug_service: Any, guard: Any) -> None:
     """Attach the ``/kingdoms-admin debug`` slash subgroup (Drasah's tests)."""
     from discord import app_commands
 
@@ -596,9 +947,7 @@ async def _check(
     if not await guard(interaction):
         return False
     if debug_service is None:
-        await interaction.followup.send(
-            _debug_strings(interaction.locale)["denied"], ephemeral=True
-        )
+        await interaction.followup.send(_debug_strings(interaction.locale)["denied"], ephemeral=True)
         return False
     return True
 
@@ -611,9 +960,7 @@ async def _run(interaction: discord.Interaction, coro: Any) -> None:
         await interaction.followup.send(f"⚠️ {error}", ephemeral=True)
         return
     local = _debug_strings(interaction.locale)
-    await interaction.followup.send(
-        local["done"].format(report=_fmt_report(report)), ephemeral=True
-    )
+    await interaction.followup.send(local["done"].format(report=_fmt_report(report)), ephemeral=True)
 
 
 def _register_voliere_reset(debug: app_commands.Group, debug_service: Any, guard: Any) -> None:
@@ -921,9 +1268,7 @@ def _register_bypass(debug: app_commands.Group, debug_service: Any, guard: Any) 
         enabled = str(state.value) == "on"
         set_admin_bypass(enabled, source="slash")
         local = _debug_strings(interaction.locale)
-        await interaction.followup.send(
-            local["bypass_on"] if enabled else local["bypass_off"], ephemeral=True
-        )
+        await interaction.followup.send(local["bypass_on"] if enabled else local["bypass_off"], ephemeral=True)
 
 
 def _register_debug_status(debug: app_commands.Group, debug_service: Any, guard: Any) -> None:
@@ -944,9 +1289,7 @@ def _register_debug_status(debug: app_commands.Group, debug_service: Any, guard:
             return
         local = _debug_strings(interaction.locale)
         report = await debug_service.status()
-        thefts = ", ".join(
-            f"{entry['kingdom']} ({entry['state']})" for entry in report.get("thefts", [])
-        ) or "—"
+        thefts = ", ".join(f"{entry['kingdom']} ({entry['state']})" for entry in report.get("thefts", [])) or "—"
         await interaction.followup.send(
             local["status_line"].format(
                 bypass="ON" if report.get("bypass") else "OFF",
