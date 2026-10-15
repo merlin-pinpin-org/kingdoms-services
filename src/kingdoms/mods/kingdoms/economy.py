@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import random
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from kingdoms.mods.kingdoms.attacks import (
@@ -24,6 +24,7 @@ from kingdoms.mods.kingdoms.attacks import (
     patrouille_active_at,
 )
 from kingdoms.mods.kingdoms.events import active_lords_day_window
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
     KingdomsModError,
@@ -212,7 +213,7 @@ class EconomyService:
         per kingdom; an exhausted pool refunds at resolution.
         """
         await self._check_consumable(kingdom_id, EXPLORATEUR)
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         lord = next(
             (item for item in await self._kingdoms.lords() if item.id == lord_id),
             None,
@@ -251,7 +252,7 @@ class EconomyService:
         still clears the lock — the pass is idempotent, a restart
         mid-exploration never draws twice.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         now_ts = int(timestamp.timestamp())
         resolved: list[tuple[LordModel, TerritoryModel | None]] = []
         drawn = await self._territories.drawn_map_keys()
@@ -304,7 +305,7 @@ class EconomyService:
         purchase limit applies (D58).
         """
         await self._check_consumable(kingdom_id, CORRUPTION)
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         territories = await self._territories.territories()
         territory = next(
             (item for item in territories if item.id == territory_id), None
@@ -406,7 +407,7 @@ class EconomyService:
         extension), each for its own 12h window. Not retroactive:
         attacks declared before the placement stay valid.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         territory = await self._owned_territory(kingdom_id, territory_id)
         state = await self._attacks.technology_state(kingdom_id)
         stock = int(state.purchases.get(GARDE_ROYALE_STOCK, 0) or 0)
@@ -479,7 +480,7 @@ class EconomyService:
             raise EconomyError("the patrol slot number must be 1 or 2")
         if slot_start not in range(0, 24, PATROUILLE_HOURS):
             raise EconomyError("the patrol slot must start on the 2h grid (0, 2, … 22)")
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         state = await self._attacks.technology_state(kingdom_id)
         unlock_key = f"{PATROUILLE_UNLOCK_PREFIX}{slot_no}"
         if unlock_key not in state.purchases:

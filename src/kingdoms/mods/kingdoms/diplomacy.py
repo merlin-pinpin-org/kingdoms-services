@@ -14,9 +14,10 @@ from __future__ import annotations
 import logging
 import random
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
     KingdomsModError,
@@ -666,7 +667,7 @@ class DiplomacyService:
         (D74): a civilization already claimed by an active marriage -
         any kingdom - is never targeted twice.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         season = await self._require_season()
         del season
         self._check_civilization(civilization)
@@ -721,7 +722,7 @@ class DiplomacyService:
         arranged marriage locks the lord out of combat for 6 real
         hours (D60).
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         self._check_civilization(civilization)
         lord = next(
             (item for item in await self._kingdoms.lords() if item.id == player_id),

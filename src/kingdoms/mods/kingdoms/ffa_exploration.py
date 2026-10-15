@@ -28,6 +28,7 @@ from zoneinfo import ZoneInfo
 
 from kingdoms.mods.kingdoms.attacks import LordLockedError
 from kingdoms.mods.kingdoms.events import cron_slots_between
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import FFAExplorationModel
 from kingdoms.mods.kingdoms.service import KingdomsModError, NoSeasonError
 
@@ -203,7 +204,7 @@ class FFAExplorationService:
         TOGGLE — clicking « Aller explorer » again before the start
         RELEASES the slot, so a withdrawer never blocks a seat.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
         ffa = await self.current(timestamp)
@@ -278,7 +279,7 @@ class FFAExplorationService:
         now: datetime | None = None,
     ) -> FFAExplorationModel | None:
         """Flip the due FFA to started; return it when it just started."""
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         ffa = await self.current(timestamp)
         if ffa is None or not self.due_start(ffa, timestamp):
             return None
@@ -303,7 +304,7 @@ class FFAExplorationService:
         future by construction — a no-show on Saturday is locked from
         the following Sunday 23:30).
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
         ffa = await self.current(timestamp)
