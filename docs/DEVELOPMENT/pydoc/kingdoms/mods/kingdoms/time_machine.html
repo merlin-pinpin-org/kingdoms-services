@@ -137,6 +137,21 @@ The&nbsp;game&nbsp;clock:&nbsp;status,&nbsp;reversible&nbsp;fast-forward,&nbsp;s
 
 <dl><dt>async <a name="TimeMachineService-advance"><strong>advance</strong></a>(self, days: 'int', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fast-forward&nbsp;``days``&nbsp;days:&nbsp;snapshot,&nbsp;then&nbsp;replay&nbsp;the&nbsp;missed&nbsp;slots.</span></dd></dl>
 
+<dl><dt>async <a name="TimeMachineService-advance_duration"><strong>advance_duration</strong></a>(self, text: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Fast-forward&nbsp;a&nbsp;FREE&nbsp;duration&nbsp;(«&nbsp;90m&nbsp;»,&nbsp;«&nbsp;2h&nbsp;»,&nbsp;«&nbsp;15m&nbsp;»,&nbsp;«&nbsp;3d&nbsp;»).<br>
+&nbsp;<br>
+machine-temps-v2&nbsp;(Drasah&nbsp;14/10):&nbsp;the&nbsp;admin&nbsp;types&nbsp;the&nbsp;jump<br>
+length;&nbsp;the&nbsp;parser&nbsp;accepts&nbsp;minutes,&nbsp;hours&nbsp;and&nbsp;days,&nbsp;alone&nbsp;or<br>
+combined&nbsp;(«&nbsp;1d2h30m&nbsp;»).&nbsp;The&nbsp;shortcut&nbsp;buttons&nbsp;(+1/+3/+7&nbsp;days)<br>
+ride&nbsp;the&nbsp;same&nbsp;offset&nbsp;path.</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-advance_seconds"><strong>advance_seconds</strong></a>(self, seconds: 'int', *, now: 'datetime | None' = None, label: 'str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Advance&nbsp;the&nbsp;game&nbsp;clock&nbsp;by&nbsp;``seconds``:&nbsp;snapshot,&nbsp;replay,&nbsp;offset.<br>
+&nbsp;<br>
+The&nbsp;game&nbsp;clock&nbsp;=&nbsp;real&nbsp;clock&nbsp;+&nbsp;``clock_offset``:&nbsp;a&nbsp;jump&nbsp;of&nbsp;D<br>
+seconds&nbsp;adds&nbsp;D&nbsp;to&nbsp;the&nbsp;persisted&nbsp;offset,&nbsp;replays&nbsp;every&nbsp;due&nbsp;slot<br>
+up&nbsp;to&nbsp;the&nbsp;new&nbsp;game&nbsp;time&nbsp;(``run_due``)&nbsp;and&nbsp;elapses&nbsp;the&nbsp;marriage<br>
+locks&nbsp;with&nbsp;the&nbsp;same&nbsp;delta.&nbsp;Negative&nbsp;jumps&nbsp;are&nbsp;refused&nbsp;—&nbsp;a<br>
+rewind&nbsp;goes&nbsp;through&nbsp;the&nbsp;snapshots,&nbsp;never&nbsp;through&nbsp;the&nbsp;clock.</span></dd></dl>
+
 <dl><dt>async <a name="TimeMachineService-back_to_setup"><strong>back_to_setup</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Wipe&nbsp;the&nbsp;season&nbsp;data&nbsp;(NO&nbsp;archive)&nbsp;and&nbsp;relaunch&nbsp;in&nbsp;setup.<br>
 &nbsp;<br>
 Drasah's&nbsp;rules&nbsp;(2026-10-11):&nbsp;the&nbsp;players&nbsp;are&nbsp;sent&nbsp;back&nbsp;to&nbsp;the<br>
@@ -156,6 +171,14 @@ given&nbsp;moment.&nbsp;Manual&nbsp;snapshots&nbsp;carry&nbsp;``None``.</span></
 <dl><dt>async <a name="TimeMachineService-freeze"><strong>freeze</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">Pause&nbsp;the&nbsp;game&nbsp;clock:&nbsp;the&nbsp;scheduler&nbsp;replays&nbsp;no&nbsp;slot.</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-jump_to"><strong>jump_to</strong></a>(self, moment: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Jump&nbsp;to&nbsp;the&nbsp;next&nbsp;key&nbsp;moment:&nbsp;cycle&nbsp;switch,&nbsp;age&nbsp;switch&nbsp;or&nbsp;season&nbsp;end.</span></dd></dl>
+
+<dl><dt>async <a name="TimeMachineService-reset_clock"><strong>reset_clock</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Reset&nbsp;the&nbsp;game&nbsp;clock&nbsp;back&nbsp;to&nbsp;the&nbsp;real&nbsp;time&nbsp;(machine-temps-v2).<br>
+&nbsp;<br>
+Snapshot&nbsp;the&nbsp;current&nbsp;state&nbsp;first&nbsp;(«&nbsp;avant&nbsp;reset&nbsp;horloge&nbsp;»,&nbsp;the<br>
+reset&nbsp;is&nbsp;reversible&nbsp;like&nbsp;every&nbsp;other&nbsp;mutation),&nbsp;drop&nbsp;the<br>
+season's&nbsp;``clock_offset``&nbsp;back&nbsp;to&nbsp;0&nbsp;and&nbsp;freeze&nbsp;the&nbsp;season:&nbsp;a<br>
+reset&nbsp;mid-test&nbsp;resumes&nbsp;PAUSED,&nbsp;deliberately&nbsp;(Drasah&nbsp;14/10)&nbsp;—<br>
+the&nbsp;scheduler&nbsp;would&nbsp;otherwise&nbsp;catch&nbsp;up&nbsp;on&nbsp;real&nbsp;time.</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-restore"><strong>restore</strong></a>(self, snapshot_id: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Restore&nbsp;a&nbsp;snapshot&nbsp;verbatim&nbsp;—&nbsp;a&nbsp;true,&nbsp;reversible&nbsp;rewind.<br>
 &nbsp;<br>
@@ -178,7 +201,12 @@ close),&nbsp;``end``&nbsp;(the&nbsp;season&nbsp;verdict).</span></dd></dl>
 ``moment``&nbsp;filters&nbsp;to&nbsp;one&nbsp;key&nbsp;moment's&nbsp;snapshots&nbsp;(None&nbsp;lists<br>
 every&nbsp;snapshot,&nbsp;tagged&nbsp;or&nbsp;not).</span></dd></dl>
 
-<dl><dt>async <a name="TimeMachineService-status"><strong>status</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;game&nbsp;clock&nbsp;and&nbsp;the&nbsp;upcoming&nbsp;key&nbsp;moments.</span></dd></dl>
+<dl><dt>async <a name="TimeMachineService-status"><strong>status</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;the&nbsp;game&nbsp;clock&nbsp;and&nbsp;the&nbsp;upcoming&nbsp;key&nbsp;moments.<br>
+&nbsp;<br>
+machine-temps-v2:&nbsp;the&nbsp;clock&nbsp;reads&nbsp;the&nbsp;GAME&nbsp;time&nbsp;(real&nbsp;now&nbsp;+<br>
+the&nbsp;season's&nbsp;persisted&nbsp;``clock_offset``)&nbsp;—&nbsp;the&nbsp;process&nbsp;cache<br>
+re-syncs&nbsp;from&nbsp;the&nbsp;season&nbsp;here,&nbsp;so&nbsp;a&nbsp;restarted&nbsp;bot&nbsp;converges<br>
+back&nbsp;to&nbsp;the&nbsp;test&nbsp;offset&nbsp;on&nbsp;the&nbsp;first&nbsp;panel&nbsp;read.</span></dd></dl>
 
 <dl><dt>async <a name="TimeMachineService-unfreeze"><strong>unfreeze</strong></a>(self) -&gt; 'bool'</dt><dd><span class="code">Resume&nbsp;the&nbsp;game&nbsp;clock&nbsp;(the&nbsp;scheduler&nbsp;catches&nbsp;up&nbsp;on&nbsp;its&nbsp;next&nbsp;tick).</span></dd></dl>
 
