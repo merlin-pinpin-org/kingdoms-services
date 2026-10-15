@@ -441,11 +441,12 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
         return
     from kingdoms.discord.admin_roles import build_roles_view
 
-    view = await build_roles_view(interaction, wiring)
     try:
+        view = await build_roles_view(interaction, wiring)
         await interaction.followup.send(view=view, ephemeral=True)
     except Exception:
         logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
+        await _fail(interaction, "Le panneau des r\u00f4les a \u00e9chou\u00e9 \u2014 voir les logs du bot.")
 
 
 def register_admin_persistent_items(bot: discord.Client) -> None:

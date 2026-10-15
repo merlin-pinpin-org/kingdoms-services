@@ -157,8 +157,11 @@ Des mécaniques de la bibliothèque — changent en upgradeant discord.py.
   les nouveaux composants de modal (discord.py >= 2.6), un select vit
   dans le modal et sa valeur se lit à la soumission via
   ``select.values`` (le ``Modal._refresh`` peuple l'item depuis le
-  payload). Un modal ne peut toujours pas ouvrir un autre modal —
-  la chaîne passe par un message ephemeral.
+  payload). **Un select dans un modal DOIT être enveloppé dans un
+  composant Label** (``discord.ui.Label(text=..., component=select)``)
+  — un select nu est rejeté silencieusement par l'API (le bouton
+  semble ne pas répondre). Un modal ne peut toujours pas ouvrir un
+  autre modal — la chaîne passe par un message ephemeral.
 - **PermissionOverwrite** : le provisionnement des salons restreint
   `default_role` (lecture) et ouvre `guild.me` (écriture/gestion).
 - **Les messages ephemeral** : visibles uniquement par leur

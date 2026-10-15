@@ -5,7 +5,7 @@ reconstruction contract — a click is restart-proof):
 
 - ``admin:tree:lang`` — the guild's language (select);
 - ``admin:tree:channels`` — the picker of every tree channel the bot
-  manages (autopin/autoheal by design); the sub-menu shows the
+  manages; the sub-menu shows the
   channel's status and offers a reroute (a native channel select,
   since Discord's ChannelSelect cannot be pre-filtered) and a
   read-only lock toggle;
@@ -28,23 +28,43 @@ logger = logging.getLogger("kingdoms.admin.tree")
 
 _NS = "admin:tree"
 
-_TREE_CHANNELS: tuple[tuple[str, str, str], ...] = (
-    ("root", "general", "🏠 Racine — général"),
-    ("root", "discussions", "💬 Racine — discussions"),
-    ("bot", "logs", "📜 Bot — logs"),
-    ("bot", "admin", "🛠️ Bot — admin"),
-    ("bot", "decisions", "⚖️ Bot — décisions"),
-    ("games", "general", "🎮 Games — général"),
-    ("games", "admin", "🛠️ Games — admin"),
-    ("games/aoe2", "general", "⚔️ AoE2 — général"),
-    ("games/aoe2", "live", "📡 AoE2 — live"),
-    ("games/aoe2", "civs", "🏛️ AoE2 — civs (forum)"),
-    ("games/aoe2", "maps", "🌍 AoE2 — maps (forum)"),
-    ("games/aoe2", "map-pools", "🧱 AoE2 — map pools (forum)"),
-    ("games/aoe2", "admin", "🛠️ AoE2 — admin"),
-    ("mods", "general", "🧩 Mods — général"),
-    ("mods", "admin", "🛠️ Mods — admin"),
-)
+_PIN_ROLES: dict[str, str] = {
+    "general": "menu d'accueil \u00e9pingl\u00e9 (ce salon n'accueille que ce menu)",
+    "admin": "menu d'administration \u00e9pingl\u00e9 (ce salon n'accueille que ce menu)",
+}
+
+_AUDIENCES = {
+    "public": "lecture \u00b7 \u00e9criture : tous",
+    "readonly": "lecture : tous \u00b7 \u00e9criture : personne",
+    "admin": "acc\u00e8s : bot-admins uniquement",
+}
+
+
+def _pin_role(channel_key: str) -> str:
+    """Describe the pinned view a channel hosts (empty when it hosts none)."""
+    return _PIN_ROLES.get(channel_key, "")
+
+
+def _audience(access: str) -> str:
+    """Render one channel's access band as a human sentence."""
+    return _AUDIENCES.get(access, access)
+
+
+def _tree_channels() -> list[tuple[str, str, str]]:
+    """List every registered scope's channels: (scope, key, access)."""
+    from kingdoms.discord.ui.panels import registered_scopes
+
+    out: list[tuple[str, str, str]] = []
+    for spec in registered_scopes():
+        for decl in spec.channels:
+            out.append((spec.scope, decl.key, decl.access))
+    return out
+
+
+def _channel_label(scope: str, key: str) -> str:
+    """One channel's picker label: scope path and key."""
+    return f"{scope}/{key}"[:100]
+
 
 LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
 
@@ -92,7 +112,7 @@ async def build_admin_menu(guild_id: str, locale: str) -> discord.ui.LayoutView:
     rows.append(discord.ui.TextDisplay("## 🌐 Langue"))
     rows.append(_select_row(TreeLocaleSelect(locale)))
     rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## 📋 Salons du bot (autopin · autoheal)"))
+    rows.append(discord.ui.TextDisplay("## 📋 Salons du bot"))
     rows.append(_select_row(await TreeChannelSelect.create(guild_id)))
     rows.append(discord.ui.Separator())
     rows.append(discord.ui.TextDisplay("## 🧩 Rôles"))
@@ -177,13 +197,14 @@ class TreeChannelSelect(
     @classmethod
     async def create(cls, guild_id: str) -> TreeChannelSelect:
         options = []
-        for scope, key, label in _TREE_CHANNELS:
+        for scope, key, access in _tree_channels():
             status = await _channel_status(guild_id, scope, key)
+            description = f"{_audience(access)} \u00b7 {status}"[:100]
             options.append(
                 discord.SelectOption(
-                    label=label[:100],
+                    label=_channel_label(scope, key),
                     value=_channel_value(scope, key),
-                    description=status[:100],
+                    description=description,
                 )
             )
         return cls(options[:25])
@@ -273,7 +294,7 @@ class TreeChannelRouteSelect(
             await interaction.followup.send("Reroutage impossible (voir les logs).", ephemeral=True)
             return
         await interaction.followup.send(
-            f"Salon rerouté sur <#{channel_id}> — les messages épinglés suivent au prochain passage de l'autoheal.",
+            f"Salon rerouté sur <#{channel_id}> — les menus épinglés suivront à la prochaine vérification.",
             ephemeral=True,
         )
 
@@ -306,14 +327,27 @@ class TreeRolesButton(
         await _handle_roles(interaction)
 
 
+def _channel_access(scope: str, key: str) -> str:
+    """Resolve one tree channel's access band (public/readonly/admin)."""
+    for tree_scope, tree_key, access in _tree_channels():
+        if tree_scope == scope and tree_key == key:
+            return access
+    return "public"
+
+
 async def build_channel_menu(guild_id: str, scope: str, key: str) -> discord.ui.LayoutView:
-    """One tree channel's sub-menu: status, reroute, back."""
+    """One tree channel's sub-menu: status, audience, pinned view, reroute."""
     status = await _channel_status(guild_id, scope, key)
+    access = _channel_access(scope, key)
+    pin_role = _pin_role(key)
+    lines = [f"Salon actuel : {status}", f"Accès : {_audience(access)}"]
+    if pin_role:
+        lines.append(f"Rôle : {pin_role}")
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [
         discord.ui.TextDisplay(f"# 📋 Salon géré — {scope}/{key}"),
         discord.ui.Separator(),
-        discord.ui.TextDisplay(f"Salon actuel : {status}\nCe point de gestion est autopin + autoheal."),
+        discord.ui.TextDisplay(chr(10).join(lines)),
         discord.ui.Separator(),
     ]
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))

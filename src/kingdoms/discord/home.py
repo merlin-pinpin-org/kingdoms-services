@@ -308,11 +308,19 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await registration.bind_profile(
                 str(interaction.user.id), str(chosen), str(self.profile_id.value).strip()
             )
-        except Exception:
-            logger.warning("PROFILE ADD failed", exc_info=True)
-            await interaction.followup.send(
-                "Ajout échoué (profil inconnu du provider, ou déjà lié).", ephemeral=True
-            )
+        except Exception as exc:
+            logger.warning("PROFILE ADD failed: %s", exc, exc_info=True)
+            reason = str(exc).lower()
+            if "déjà" in reason or "already" in reason:
+                note = "Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil."
+            elif "no profile seam" in reason or "unknown game" in reason:
+                note = f"Le jeu {chosen} n'est pas configuré pour l'inscription."
+            else:
+                note = (
+                    "Ajout échoué : le provider n'a pas reconnu ce profil "
+                    "(vérifie le profile id, ou le provider est injoignable — vois les logs du bot)."
+                )
+            await interaction.followup.send(note, ephemeral=True)
             return
         await interaction.followup.send(await reply(interaction, "profile_linked"), ephemeral=True)
         await _profile_followup(interaction)
