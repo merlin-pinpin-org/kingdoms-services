@@ -315,3 +315,40 @@ async def test_profile_view_shows_alias_names() -> None:
     assert any("Merlin Pinpin" in t for t in texts), (
         "the alias must be displayed instead of '?'"
     )
+
+
+@pytest.mark.asyncio
+async def test_validation_seam_says_not_configured_without_stats() -> None:
+    """Without the player-stats capability the seam names the config gap."""
+    from kingdoms.core.models.game import ProviderCapabilities
+    from kingdoms.discord.registration_platform import (
+        Aoe2ProfileValidationSeam,
+        ProviderStatsUnavailableError,
+    )
+
+    class _Client:
+        def __init__(self, uri: str, provider: str, game: str) -> None:
+            del uri, provider, game
+
+        async def get_capabilities(self) -> ProviderCapabilities:
+            return ProviderCapabilities.none("ext-librematch", "aoe2")
+
+        async def get_player_stats(self, profile_id: str) -> None:
+            return None
+
+    import kingdoms.discord.registration_platform as platform
+
+    original = platform.__dict__.get("GameProviderClient")
+    platform.GameProviderClient = _Client  # type: ignore[assignment]
+    try:
+        seam = Aoe2ProfileValidationSeam("kingdoms-ext-librematch:50061")
+        try:
+            await seam.validate_profile("123456")
+            raised = False
+        except ProviderStatsUnavailableError as exc:
+            raised = True
+            assert "LIBREMATCH_API_KEY" in str(exc), "the error must name the missing secret"
+        assert raised, "a stats-less provider must raise the explicit config error"
+    finally:
+        if original is not None:
+            platform.GameProviderClient = original  # type: ignore[assignment]

@@ -126,6 +126,13 @@ d'un pool **publié** d'une autre guilde → copie verrouillée).
 
 Aucune stat par civ/map/pool — les stats sont joueur seulement.
 
+**`ext_librematch` et l'inscription** : la validation d'un profile id passe
+par `GetPlayerStats`, qui exige `LIBREMATCH_API_KEY` sur le provider.
+Sans la clé, le provider déclare `player_stats=False` (GetCapabilities)
+et la validation échoue avec l'erreur explicite
+`ProviderStatsUnavailableError` — jamais un refus silencieux. Le secret
+vit dans l'environnement GitHub de l'env (kingdoms-infra ENVIRONMENTS.md).
+
 ### i18n
 
 - Catalogue `config/locales/{en,fr}.yaml`, racine par langue (`fr:` /

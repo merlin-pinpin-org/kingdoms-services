@@ -22,6 +22,19 @@ def main() -> None:
     from kingdoms.ext_librematch import DECLARED_CAPABILITIES, PROVIDER_ID
     from kingdoms.ext_librematch.adapter import LibrematchAdapter
 
+    api_key = os.environ.get("LIBREMATCH_API_KEY", "")
+    capabilities = DECLARED_CAPABILITIES
+    if not api_key:
+        # No API key: the leaderboard stats cannot be served — declare it
+        # so the core's profile validation says "not configured" instead of
+        # silently rejecting every profile id.
+        import dataclasses
+
+        capabilities = dataclasses.replace(DECLARED_CAPABILITIES, player_stats=False)
+        logging.getLogger("kingdoms.ext_librematch").warning(
+            "LIBREMATCH_API_KEY absente — player_stats déclarée indisponible"
+        )
+
     redis_uri = os.environ.get("REDIS_URI", "")
     rate_limiter = None
     if redis_uri:
@@ -34,7 +47,7 @@ def main() -> None:
 
     adapter = LibrematchAdapter(
         base_url=os.environ.get("LIBREMATCH_API_URL", "https://aoe-api.worldsedgelink.com"),
-        api_key=os.environ.get("LIBREMATCH_API_KEY", ""),
+        api_key=api_key,
         rate_limiter=rate_limiter,
     )
 
@@ -52,7 +65,7 @@ def main() -> None:
 
     asyncio.run(
         serve_game_provider(
-            DECLARED_CAPABILITIES,
+            capabilities,
             PROVIDER_ID,
             match_details=match_details,
             list_maps=list_maps,

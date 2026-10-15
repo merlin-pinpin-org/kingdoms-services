@@ -57,6 +57,10 @@ class MongoRegistrationDatabase:
         return [dict(doc) async for doc in cursor]
 
 
+class ProviderStatsUnavailableError(RuntimeError):
+    """The provider declares no player-stats capability (configuration gap)."""
+
+
 class Aoe2ProfileValidationSeam:
     """AoE2 profile validation through the provider (kingdoms.v1.Game).
 
@@ -76,6 +80,12 @@ class Aoe2ProfileValidationSeam:
         from kingdoms.core.rpc.game_client import GameProviderClient
 
         client = GameProviderClient(self._provider_uri, "ext-librematch", "aoe2")
+        capabilities = await client.get_capabilities()
+        if not capabilities.player_stats:
+            raise ProviderStatsUnavailableError(
+                "ext-librematch ne sert pas les stats de profil "
+                "(LIBREMATCH_API_KEY absente sur le provider \u2014 configuration requise)"
+            )
         stats = await client.get_player_stats(profile_id)
         if stats is None:
             return None
