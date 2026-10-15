@@ -18,6 +18,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import KingdomModel, TerritoryModel
 from kingdoms.mods.kingdoms.service import KING_ROLE, KingdomsModError, NoSeasonError
 from kingdoms.mods.kingdoms.storage import KingdomsStore
@@ -121,7 +122,7 @@ class CathedralService:
         bank; the territory carries the 72h chantier and resists
         every adverse technology until the verdict.
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
         season = await self._kingdoms.current_season()
@@ -173,7 +174,7 @@ class CathedralService:
         consecratable; when the kingdom already runs a chantier
         elsewhere, NOTHING is (single Lieu Sacrée per kingdom).
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         owned = [
             item
             for item in await self._territories.territories()
@@ -196,7 +197,7 @@ class CathedralService:
         The tick is idempotent: replaying it after the verdict
         changes nothing (the chantier is already consumed).
         """
-        timestamp = now or datetime.now(tz=UTC)
+        timestamp = now or game_now()
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
         season = await self._kingdoms.current_season()

@@ -16,11 +16,12 @@ import logging
 import random
 import re
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, ClassVar
 
 from kingdoms.core.exceptions import ErrorContext, KingdomsError
 from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import (
     GAIA_KINGDOM_KEY,
     KingdomModel,
@@ -167,7 +168,7 @@ class KingdomsService:
             raise KingdomLimitError("more imposed kingdoms than the configured maximum")
         await self._archive_current_data()
         await self._store.wipe_season_data()
-        now = datetime.now(tz=UTC)
+        now = game_now()
         season = SeasonState(
             _id=_season_id(now),
             started_at=now,
@@ -279,7 +280,7 @@ class KingdomsService:
         if previous is None and not await self._find_all("find_kingdoms"):
             return  # nothing to archive: the data set is already empty
         seasons = await self._find_all("find_seasons")
-        timestamp = datetime.now(tz=UTC)
+        timestamp = game_now()
         label = previous.id if previous is not None else "orphaned"
         archive: dict[str, Any] = {
             "_id": f"archive-{label}-{timestamp:%Y%m%d-%H%M%S}",

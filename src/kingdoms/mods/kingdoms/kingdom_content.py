@@ -19,11 +19,12 @@ not the bot UI.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, cast
 
 import discord
 
+from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
 logger = logging.getLogger("kingdoms.kingdom_content")
@@ -271,7 +272,7 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
             season.current_cycle if season is not None else 0,
             season.weeks if season is not None else 0,
             ages,
-            _next_age_switch(datetime.now(tz=UTC)),
+            _next_age_switch(game_now()),
         )
         if _slug(channel.name) != _slug(AGE_CHANNEL):
             await channel.edit(name=AGE_CHANNEL, reason="kingdoms: fixed Âge salon name")
