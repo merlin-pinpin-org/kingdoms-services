@@ -32,6 +32,7 @@ from datetime import datetime
 from typing import Any
 
 from kingdoms.mods.kingdoms import chronicle
+from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
 from kingdoms.mods.kingdoms.models import KingdomModel
 from kingdoms.mods.kingdoms.service import KingdomsModError, KingdomsService
@@ -147,7 +148,10 @@ class VoliereService:
 
     def _check_cooldown(self, kingdom: KingdomModel, action: str, now: datetime) -> None:
         ready_at = self._ready_at(kingdom, bird_of(action))
-        if ready_at > int(now.timestamp()):
+        if ready_at > int(now.timestamp()) and not bypass_guard(
+            f"voliere cooldown {bird_of(action)} of {kingdom.name} (ready in "
+            f"{ready_at - int(now.timestamp())}s)"
+        ):
             raise VoliereCooldownError(
                 "the bird is still flying — no other action until it lands",
                 action=action,
@@ -164,7 +168,9 @@ class VoliereService:
     def _require_bird(self, kingdom: KingdomModel, action: str) -> None:
         """Refuse the action when its bird is not in the volière (v2 slots)."""
         bird = bird_of(action)
-        if bird not in (kingdom.voliere_slots or []):
+        if bird not in (kingdom.voliere_slots or []) and not bypass_guard(
+            f"voliere slot {bird} of {kingdom.name}"
+        ):
             raise VoliereLockedError(
                 f"the {bird} is not in the kingdom's volière (slot to choose)"
             )
@@ -173,12 +179,19 @@ class VoliereService:
         """Refuse every volière action before the Âge Féodal."""
         season = await self._kingdoms.current_season()
         if season is None:
-            raise VoliereLockedError("no season is running")
+            if not bypass_guard("voliere feudal gate (no season)"):
+                raise VoliereLockedError("no season is running")
+            return
         age_keys = [age.key for age in self._config.ages]
         if FEUDAL_AGE_KEY not in age_keys:
-            raise VoliereLockedError("the season declares no Âge Féodal")
+            if not bypass_guard("voliere feudal gate (no Âge Féodal declared)"):
+                raise VoliereLockedError("the season declares no Âge Féodal")
+            return
         if age_keys.index(season.current_age_key) < age_keys.index(FEUDAL_AGE_KEY):
-            raise VoliereLockedError("the season is not yet at the Âge Féodal")
+            if not bypass_guard(
+                f"voliere feudal gate (age {season.current_age_key})"
+            ):
+                raise VoliereLockedError("the season is not yet at the Âge Féodal")
 
     # ------------------------------------------------------------------
     # Slots by age (voliere-v2, Drasah's live-test rulings)

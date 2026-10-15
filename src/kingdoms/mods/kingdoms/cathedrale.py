@@ -18,6 +18,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import KingdomModel, TerritoryModel
 from kingdoms.mods.kingdoms.service import KING_ROLE, KingdomsModError, NoSeasonError
@@ -138,7 +139,9 @@ class CathedralService:
         territory = await self._owned_territory(lord.kingdom_id, map_key)
         if territory is None:
             raise CathedralNotFoundError("the territory belongs to no land of this kingdom")
-        if not self._tier_ok(kingdom):
+        if not self._tier_ok(kingdom) and not bypass_guard(
+            f"cathedral tier of {kingdom.name} (parish tier {kingdom.parish_tier})"
+        ):
             raise CathedralTierError("the kingdom did not reach the Cathédrale palier")
         if territory.sacred or territory.is_chantier_at(timestamp):
             raise CathedralActiveError("the territory already carries a Lieu Sacrée")
@@ -146,9 +149,14 @@ class CathedralService:
         if map_key not in {item.map_key for item in others}:
             raise CathedralActiveError("the kingdom already runs a cathedral chantier")
         cost = self._config.parish.cathedral_cost
-        if int(kingdom.tech_points_bank) < cost:
+        if int(kingdom.tech_points_bank) < cost and not bypass_guard(
+            f"cathedral consecration cost {cost} of {kingdom.name} "
+            f"(bank {kingdom.tech_points_bank})"
+        ):
             raise CathedralInsufficientTechError("the treasury cannot pay the consecration")
-        kingdom.tech_points_bank = int(kingdom.tech_points_bank) - cost
+        # The bypassed path pays what the treasury holds (never negative).
+        paid = min(int(kingdom.tech_points_bank), cost)
+        kingdom.tech_points_bank = int(kingdom.tech_points_bank) - paid
         await self._store.upsert_kingdom(kingdom.to_mongo())
         territory.cathedral_until = timestamp + timedelta(
             hours=self._config.parish.cathedral_chantier_hours

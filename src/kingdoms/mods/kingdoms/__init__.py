@@ -36,6 +36,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         return None
     try:
         from kingdoms.core.models.db import get_async_database
+        from kingdoms.mods.kingdoms.admin_debug import DebugService
         from kingdoms.mods.kingdoms.attacks import AttackService
         from kingdoms.mods.kingdoms.cathedrale import CathedralService
         from kingdoms.mods.kingdoms.config import load_season_config
@@ -63,6 +64,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
         voliere = VoliereService(store, season_config, kingdoms, territories, attacks)
         ffa = FFAExplorationService(store, season_config, kingdoms, events)
         cathedrals = CathedralService(store, season_config, kingdoms, territories)
+        debug = DebugService(store, season_config, kingdoms, territories, attacks, voliere)
         return (
             kingdoms,
             territories,
@@ -75,6 +77,7 @@ def _build_services(config: Any) -> tuple[Any, ...] | None:
             voliere,
             ffa,
             cathedrals,
+            debug,
         )
     except Exception:
         logger.exception("kingdoms mod: service build failed \u2014 mod degrades to read-only")
@@ -103,6 +106,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_voliere_service = None
         bot.kingdoms_ffa_service = None
         bot.kingdoms_cathedral_service = None
+        bot.kingdoms_debug_service = None
     else:
         (
             kingdoms,
@@ -116,6 +120,7 @@ def register(bot: Any, config: Any) -> None:
             voliere,
             ffa,
             cathedrals,
+            debug,
         ) = services
         bot.kingdoms_service = kingdoms
         bot.kingdoms_territories_service = territories
@@ -128,6 +133,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_voliere_service = voliere
         bot.kingdoms_ffa_service = ffa
         bot.kingdoms_cathedral_service = cathedrals
+        bot.kingdoms_debug_service = debug
     status = getattr(bot, "status_service", None)
     bot_admins = tuple(getattr(status, "bot_admins", ()))
     register_kingdoms_panel_bot(bot)
@@ -138,6 +144,7 @@ def register(bot: Any, config: Any) -> None:
         bot.kingdoms_service,
         bot_admins,
         roles_service=getattr(bot, "roles_service", None),
+        debug_service=getattr(bot, "kingdoms_debug_service", None),
     )
     logger.info("kingdoms mod registered (service=%s)", "wired" if services else "unwired")
 

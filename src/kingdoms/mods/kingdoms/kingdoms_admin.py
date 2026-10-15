@@ -195,6 +195,7 @@ def register_kingdoms_admin_command(
     service: KingdomsService | None,
     bot_admins: tuple[str, ...],
     roles_service: object | None = None,
+    debug_service: object | None = None,
 ) -> None:
     """Register the /kingdoms-admin command group on the command tree."""
     group = app_commands.Group(
@@ -214,6 +215,10 @@ def register_kingdoms_admin_command(
     _register_decide_name(group, service, guard)
     _register_assign(group, service, guard)
     _register_replace(group, service, guard)
+    if debug_service is not None:
+        from kingdoms.mods.kingdoms.admin_debug import register_debug_subgroup
+
+        register_debug_subgroup(group, debug_service, guard)
 
 
 def _make_guard(

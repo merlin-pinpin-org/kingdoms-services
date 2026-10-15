@@ -474,9 +474,15 @@ class KingdomsService:
         if tier >= len(tiers):
             raise ParishMaxTierError("the Paroisse already sits at the top palier")
         next_tier = tiers[tier]
-        if kingdom.tech_points_bank < next_tier.cost:
+        from kingdoms.mods.kingdoms.admin_debug import bypass_guard
+
+        if (
+            kingdom.tech_points_bank < next_tier.cost
+            and not bypass_guard("parish-upgrade-budget")
+        ):
             raise ParishInsufficientTechError("the treasury cannot cover the upgrade")
-        kingdom.tech_points_bank -= next_tier.cost
+        # The bypassed path pays what the treasury holds (never negative).
+        kingdom.tech_points_bank -= min(kingdom.tech_points_bank, next_tier.cost)
         kingdom.parish_tier = tier + 1
         await self._store.upsert_kingdom(kingdom.to_mongo())
         logger.info(

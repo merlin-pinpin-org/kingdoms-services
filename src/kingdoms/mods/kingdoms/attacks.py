@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from kingdoms.mods.kingdoms import chronicle
+from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.models import (
@@ -296,7 +297,9 @@ def _refuse_lords_day_execution(
     if window is None:
         return
     expires = timestamp + timedelta(hours=delay_hours)
-    if expires <= window[1]:
+    if expires <= window[1] and not bypass_guard(
+        "lords-day declare window"
+    ):
         raise LordsDayAttackError(
             "the attack would be played inside the Lord's Day window "
             "(declare only if the execution lands after it closes)"
@@ -391,7 +394,9 @@ class AttackService:
         timestamp = now or _now()
         territory = await self._validate_attack_target(lord, map_key, timestamp)
         cover = await self._engage_cover(lord, cover_lord_id) if cover_lord_id else None
-        if lord.attack_used >= self._config.attacks.attacks_per_week:
+        if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
+            f"attack budget of {lord.display_name} ({lord.attack_used})"
+        ):
             raise NoBudgetError("the weekly attack budget is spent")
         if not lobby_url.strip():
             raise AttackError("the attacker must provide the game lobby link")
@@ -574,13 +579,13 @@ class AttackService:
         # D59/D60: a fresh marriage locks the lord out of combat.
         if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
             timestamp.timestamp()
-        ):
+        ) and not bypass_guard(f"marriage lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         # marche-v2 art. 6: a lord sent exploring is locked out of
         # combat for the whole 48h exploration (fixed lock).
         if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
             timestamp.timestamp()
-        ):
+        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         if await self._territory_busy(territory.id):
@@ -591,7 +596,7 @@ class AttackService:
         """ffa-exploration-v1: a missed FFA locks the lord out of combat."""
         if lord.ffa_locked_until is not None and lord.ffa_locked_until > int(
             timestamp.timestamp()
-        ):
+        ) and not bypass_guard(f"ffa no-show lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by a missed FFA (ffa-exploration-v1)")
 
     async def _engage_cover(self, lord: LordModel, cover_lord_id: str) -> str:
@@ -625,7 +630,7 @@ class AttackService:
             raise AttackStateError("the attack no longer waits for a defender")
         timestamp = _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
-        if timestamp >= cutoff:
+        if timestamp >= cutoff and not bypass_guard("defense T-15 cutoff"):
             raise DefenseCutoffError(
                 "the defense is closed (T-15) — the meeting is set and the bot AI takes over"
             )
@@ -635,15 +640,17 @@ class AttackService:
         # D59/D60: a fresh marriage locks the lord out of combat.
         if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
             _now().timestamp()
-        ):
+        ) and not bypass_guard(f"marriage lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         # marche-v2 art. 6: the exploring lord cannot defend either.
         if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
             _now().timestamp()
-        ):
+        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, _now())
-        if lord.defense_used >= self._config.attacks.defenses_per_week:
+        if lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
+            f"defense budget of {lord.display_name} ({lord.defense_used})"
+        ):
             raise NoBudgetError("the weekly defense budget is spent")
         lord.defense_used += 1
         await self._store.upsert_lord(lord.to_mongo())
@@ -965,7 +972,9 @@ class AttackService:
         free-for-all nobody won.
         """
         await self._require_running_season()
-        if await self._active_lords_day_window(_now()) is not None:
+        if await self._active_lords_day_window(_now()) is not None and not bypass_guard(
+            "lords-day resolve window"
+        ):
             raise LordsDayAttackError(
                 "the attack cannot be played inside the Lord's Day window "
                 "(resolve it after the window closes)"
@@ -1163,13 +1172,15 @@ class AttackService:
         lord = await self._require_lord(player_id)
         if lord.kingdom_id is None or lord.left:
             raise NotEnrolledError("the player belongs to no kingdom of the current season")
-        if lord.attack_used >= self._config.attacks.attacks_per_week:
+        if lord.attack_used >= self._config.attacks.attacks_per_week and not bypass_guard(
+            f"attack budget of {lord.display_name} ({lord.attack_used})"
+        ):
             raise NoBudgetError("the weekly attack budget is spent")
         timestamp = now or _now()
         # marche-v2 art. 6: an exploring lord can neither attack nor defend.
         if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
             timestamp.timestamp()
-        ):
+        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         territory = await self._territory_by_map(map_key)
@@ -1283,12 +1294,19 @@ class AttackService:
         cost = self._cost(technology)
         limit = self._config.technologies.limits.get(technology, 0)
         state = await self.technology_state(kingdom_id)
-        if not state.can_afford(cost):
+        bypass = bypass_guard(
+            f"technology purchase {technology} of {kingdom_id} "
+            f"(bank {state.tech_points}, {state.purchases.get(technology, 0)}/{limit})"
+        )
+        if not state.can_afford(cost) and not bypass:
             raise InsufficientTechPointsError("the kingdom lacks tech points")
         bought = state.purchases.get(technology, 0)
-        if limit > 0 and bought >= limit:
+        if limit > 0 and bought >= limit and not bypass:
             raise TechnologyLimitReachedError("the per-season purchase limit is reached")
-        if not state.spend(technology, cost, limit):
+        if bypass:
+            state.tech_points = max(0, state.tech_points - cost)
+            state.purchases[technology] = bought + 1
+        elif not state.spend(technology, cost, limit):
             raise TechnologyLimitReachedError("the purchase was refused")
         await self._store.upsert_technology(state.to_mongo())
         logger.info("kingdoms: %s bought %s for %s tech points", kingdom_id, technology, cost)

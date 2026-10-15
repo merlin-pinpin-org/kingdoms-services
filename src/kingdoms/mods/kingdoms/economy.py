@@ -19,12 +19,19 @@ import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from kingdoms.mods.kingdoms.admin_debug import bypass_guard
 from kingdoms.mods.kingdoms.attacks import (
     PATROUILLE_SLOT_KEYS,
     patrouille_active_at,
 )
 from kingdoms.mods.kingdoms.events import active_lords_day_window
 from kingdoms.mods.kingdoms.game_clock import game_now
+from kingdoms.mods.kingdoms.models import (
+    KingdomModel,
+    LordModel,
+    SeasonState,
+    TerritoryModel,
+)
 from kingdoms.mods.kingdoms.service import (
     KingdomNotFoundError,
     KingdomsModError,
@@ -34,15 +41,9 @@ from kingdoms.mods.kingdoms.territories import (
     TerritoryNotFoundError,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover — import cycles never at runtime
     from kingdoms.mods.kingdoms.attacks import AttackService
     from kingdoms.mods.kingdoms.config import KingdomsSeasonConfig
-    from kingdoms.mods.kingdoms.models import (
-        KingdomModel,
-        LordModel,
-        SeasonState,
-        TerritoryModel,
-    )
     from kingdoms.mods.kingdoms.service import KingdomsService
     from kingdoms.mods.kingdoms.storage import KingdomsStore
     from kingdoms.mods.kingdoms.territories import TerritoryService
@@ -137,9 +138,13 @@ class EconomyService:
         its own invariants on top (limits, state transitions).
         """
         kingdom = await self._kingdom_by_id(kingdom_id)
-        if kingdom.tech_points_bank < cost:
+        if kingdom.tech_points_bank < cost and not bypass_guard(
+            f"economy cost {cost} of {kingdom.name} (bank {kingdom.tech_points_bank})"
+        ):
             raise InsufficientPointsError("the kingdom lacks tech points")
-        kingdom.tech_points_bank -= cost
+        # The bypassed path pays what the treasury holds (never negative).
+        paid = cost if kingdom.tech_points_bank >= cost else kingdom.tech_points_bank
+        kingdom.tech_points_bank -= paid
         await self._store.upsert_kingdom(kingdom.to_mongo())
 
     async def wallet(self, kingdom_id: str) -> int:
@@ -544,7 +549,9 @@ class EconomyService:
         """Refuse a consumable purchase beyond its per-season limit (D36/D48)."""
         bought = (await self._attacks.technology_state(kingdom_id)).purchases.get(action, 0)
         limit = self._limit(action)
-        if limit > 0 and bought >= limit:
+        if limit > 0 and bought >= limit and not bypass_guard(
+            f"economy limit {action} of {kingdom_id} ({bought}/{limit})"
+        ):
             raise EconomyLimitReachedError("the per-season purchase limit is reached")
 
     async def _count_purchase(self, kingdom_id: str, action: str) -> None:
