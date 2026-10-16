@@ -8,6 +8,7 @@ kingdoms.v1.Game contract) can resolve its stats.
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -69,9 +70,20 @@ class Aoe2ProfileValidationSeam:
     validation is the whole point of the binding (reference §0/§6).
     """
 
+    DEFAULT_PROVIDER_URI = "kingdoms-ext-librematch:50061"
+
     def __init__(self, provider_uri: str | None = None) -> None:
-        """Read the provider address from the environment by default."""
-        self._provider_uri = provider_uri or os.environ.get("EXT_LIBREMATCH_URI", "")
+        """Read the provider address from the environment by default.
+
+        The docker-network default (kingdoms-ext-librematch:50061) stands
+        in when the environment declares no URI: the compose network
+        always carries the provider, and an empty URI made the seam
+        reject every profile silently (the 2026-10-16 test findings).
+        """
+        self._provider_uri = provider_uri or os.environ.get("EXT_LIBREMATCH_URI", "") or self.DEFAULT_PROVIDER_URI
+        logging.getLogger("kingdoms.registration.seam").info(
+            "AOE2 PROFILE SEAM provider_uri=%s", self._provider_uri
+        )
 
     async def validate_profile(self, profile_id: str) -> dict[str, Any] | None:
         """Return the profile's public data when the provider knows it."""
