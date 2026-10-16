@@ -185,8 +185,13 @@ async def _view_profile(interaction: discord.Interaction) -> None:
     await _profile_followup(interaction)
 
 
-async def _profile_followup(interaction: discord.Interaction) -> None:
-    """Send the profile view as a followup (the response is already acked)."""
+async def _profile_followup(interaction: discord.Interaction, banner: str = "") -> None:
+    """Render the profile view in place when possible, followup otherwise.
+
+    Navigation contract: a component of the profile view edits it in
+    place (one ephemeral message); a modal submit (add/rename/remove)
+    lands as a followup carrying the action's banner.
+    """
     registration = getattr(interaction.client, "registration_service", None)
     if registration is None:
         await interaction.followup.send(await reply(interaction, "not_configured"), ephemeral=True)
@@ -207,7 +212,7 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
         except Exception:
             logger.warning("HOME: profile enricher failed", exc_info=True)
     for game, entries in sorted(by_game.items()):
-        lines = [f"## {game}"]
+        lines = [f"## {_game_label(game)}"]
         for entry in entries:
             profile = entry.get("profile") or {}
             aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
@@ -219,7 +224,9 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
             pid = entry.get("profile_id", "?")
             player = players_by_id.get(user_id)
             elo = f" — {player.get('rating')} elo" if player else ""
-            lines.append(f"• {name} (`{pid}`){elo}")
+            url = _game_account_url(game, str(pid))
+            account = f"[{name}]({url}) (`{pid}`)" if url else f"{name} (`{pid}`)"
+            lines.append(f"• {account}{elo}")
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view = discord.ui.LayoutView(timeout=None)
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -227,7 +234,10 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
     row.add_item(ProfileRenameButton())
     if bindings:
         row.add_item(ProfileRemoveAccountButton())
-    view.add_item(discord.ui.Container(discord.ui.TextDisplay(await _profile_header(interaction, user_id)), *blocks))
+    header = await _profile_header(interaction, user_id)
+    if banner:
+        header = f"{header}\n\n{banner}"
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(header), *blocks))
     view.add_item(row)
     await interaction.followup.send(view=view, ephemeral=True)
 
@@ -235,6 +245,21 @@ async def _profile_followup(interaction: discord.Interaction) -> None:
 
 
 PROFILE_PROVIDER = "ext-librematch (aoe2)"
+
+GAME_LABELS = {"aoe2": "Age of Empires II"}
+GAME_INSIGHTS_URL = "https://www.aoe2insights.com/user/"
+
+
+def _game_label(game_key: str) -> str:
+    """Render one game key as its display name."""
+    return GAME_LABELS.get(game_key, game_key)
+
+
+def _game_account_url(game_key: str, relic_id: str) -> str:
+    """Build the profile's public page URL (insights for aoe2; empty when unknown)."""
+    if game_key == "aoe2" and relic_id.isdigit():
+        return f"{GAME_INSIGHTS_URL}{relic_id}/"
+    return ""
 
 
 async def _report_profile_error(
@@ -375,23 +400,22 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
-        await interaction.followup.send(await reply(interaction, "profile_linked"), ephemeral=True)
-        await _profile_followup(interaction)
+        await _profile_followup(interaction, banner="✅ Compte lié — voilà ton profil à jour.")
 
 
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
     """Build the profile header: the user's chosen name when known."""
     identity = getattr(interaction.client, "identity_service", None)
     if identity is None:
-        return "# 👤 Ton profil — pseudo : (non défini)"
+        return "# 👤 Ton profil\nPseudo : *(non défini)*"
     try:
         user = await identity.get_user(f"discord:{user_id}")
     except Exception:
         logger.warning("HOME: identity lookup failed", exc_info=True)
-        return "# 👤 Ton profil — pseudo : (non défini)"
+        return "# 👤 Ton profil\nPseudo : *(non défini)*"
     if user is None or not user.display_name:
-        return "# 👤 Ton profil — pseudo : (non défini)"
-    return f"# 👤 Ton profil — pseudo : {user.display_name}"
+        return "# 👤 Ton profil\nPseudo : *(non défini)*"
+    return f"# 👤 Ton profil\nPseudo : **{user.display_name}**"
 
 
 class ProfileRenameButton(
@@ -472,8 +496,9 @@ class ProfileRenameModal(discord.ui.Modal):
             logger.warning("PROFILE RENAME failed", exc_info=True)
             await interaction.followup.send("Renommage impossible pour le moment.", ephemeral=True)
             return
-        await interaction.followup.send(f"Pseudo mis à jour ✅ — {self.name.value}", ephemeral=True)
-        await _profile_followup(interaction)
+        await _profile_followup(
+            interaction, banner=f"✅ Pseudo mis à jour : **{self.name.value}**"
+        )
 
 
 def _remove_options(bindings: list[dict[str, Any]]) -> list[discord.SelectOption]:

@@ -19,6 +19,23 @@ import pytest
 from kingdoms.discord import home as home_module
 
 
+def _view_texts(message: Any) -> list[str]:
+    """Collect the text displays of a Components V2 view message."""
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    view = getattr(message, "kwargs", {}).get("view")
+    for item in getattr(view, "children", None) or ():
+        walk(item)
+    return texts
+
+
 class _FakeRegistration:
     """Registration stand-in: bindings in memory, provider always valid."""
 
@@ -152,10 +169,9 @@ async def test_add_account_submits_binds_and_refreshes(monkeypatch: Any) -> None
     object.__setattr__(modal.profile_id, "_value", "123456")
     await modal.on_submit(interaction)
     assert registration.bindings and registration.bindings[0]["profile_id"] == "123456"
-    contents = [str(m.content).lower() for m in interaction.followup.messages]
-    assert any("profil" in c or "compte" in c for c in contents), (
-        "the profile view must be re-rendered after the add"
-    )
+    texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
+    assert any("profil" in t for t in texts), "the profile view must be re-rendered after the add"
+    assert any("compte li" in t for t in texts), "the success banner must ride the refreshed view"
 
 
 @pytest.mark.asyncio
@@ -202,14 +218,14 @@ async def test_rename_submits_persists_and_refreshes(monkeypatch: Any) -> None:
     identity.users["discord:42"] = "Old"
     interaction = _Interaction()
     interaction.client.identity_service = identity
+    interaction.client.registration_service = _FakeRegistration()
     modal = home_module.ProfileRenameModal("Old")
     object.__setattr__(modal.name, "_value", "NewPseudo")
     await modal.on_submit(interaction)
     assert identity.users["discord:42"] == "NewPseudo"
-    contents = [str(m.content).lower() for m in interaction.followup.messages]
-    assert any("profil" in c or "pseudo" in c for c in contents), (
-        "the profile view must be re-rendered after the rename"
-    )
+    texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
+    assert any("profil" in t for t in texts), "the profile view must be re-rendered after the rename"
+    assert any("pseudo mis" in t for t in texts), "the rename banner must ride the refreshed view"
 
 
 @pytest.mark.asyncio
