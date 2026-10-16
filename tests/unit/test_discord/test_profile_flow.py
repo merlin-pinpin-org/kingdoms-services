@@ -347,7 +347,7 @@ async def test_validation_seam_says_not_configured_without_stats() -> None:
             raised = False
         except ProviderStatsUnavailableError as exc:
             raised = True
-            assert "LIBREMATCH_API_KEY" in str(exc), "the error must name the missing secret"
+            assert "ne sert pas les stats" in str(exc), "the error must name the config gap"
         assert raised, "a stats-less provider must raise the explicit config error"
     finally:
         if original is not None:

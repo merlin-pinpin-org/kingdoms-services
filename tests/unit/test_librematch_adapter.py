@@ -55,6 +55,28 @@ def _lobby(match_id: str = "777") -> dict[str, Any]:
     }
 
 
+WORLDEDGE_REPLY = {
+    "result": {"code": 0, "message": "SUCCESS"},
+    "statGroups": [
+        {
+            "id": 1103946,
+            "members": [
+                {
+                    "profile_id": 123456,
+                    "name": "/xboxlive/XYZ",
+                    "alias": "qmaxquique",
+                    "country": "ar",
+                    "clanlist_name": "TATO",
+                }
+            ],
+        }
+    ],
+    "leaderboardStats": [
+        {"profile_id": 123456, "leaderboard_id": 3, "rank": 42, "rating": 1600, "wins": 30, "losses": 25}
+    ],
+}
+
+
 class _FakeTransport(httpx.AsyncBaseTransport):
     """Serve canned JSON responses without any network."""
 
@@ -119,10 +141,18 @@ async def test_list_maps_serves_distinct_lobby_maps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_player_stats_without_api_key_degrades_to_none() -> None:
-    """No configured API key: stats degrade to None (manual path)."""
-    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport({}))
-    assert await adapter.player_stats("12345") is None
+async def test_player_stats_works_without_any_api_key() -> None:
+    """The community leaderboard endpoint is public: no key, still served.
+
+    The 2026-10-16 lesson: the key gate silently rejected every profile
+    while GetPersonalStat answers anyone — the key must never gate
+    player_stats again (regression guard).
+    """
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(WORLDEDGE_REPLY))
+    stats = await adapter.player_stats("123456")
+    assert stats is not None, "player_stats must work with no API key configured"
+    entries = {e.key: e.value for block in stats.blocks for e in block.entries}
+    assert entries["alias"] == "qmaxquique"
 
 
 @pytest.mark.asyncio

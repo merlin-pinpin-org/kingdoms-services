@@ -127,11 +127,13 @@ d'un pool **publié** d'une autre guilde → copie verrouillée).
 Aucune stat par civ/map/pool — les stats sont joueur seulement.
 
 **`ext_librematch` et l'inscription** : la validation d'un profile id passe
-par `GetPlayerStats`, qui exige `LIBREMATCH_API_KEY` sur le provider.
-Sans la clé, le provider déclare `player_stats=False` (GetCapabilities)
-et la validation échoue avec l'erreur explicite
-`ProviderStatsUnavailableError` — jamais un refus silencieux. Le secret
-vit dans l'environnement GitHub de l'env (kingdoms-infra ENVIRONMENTS.md).
+par `GetPlayerStats`, qui appelle l'endpoint **public** de la community
+API (`/community/leaderboard/GetPersonalStat?title=age2&profile_ids=...`)
+— aucune clé API n'est requise (la leçon du 2026-10-16 : un gate par
+clé refusait tous les profils alors que l'endpoint répond à tout le
+monde). Seul le budget de rate Redis throttle les appels. Un provider
+mal configuré ou injoignable échoue avec l'erreur explicite
+`ProviderStatsUnavailableError` — jamais un refus silencieux.
 
 ### i18n
 

@@ -134,8 +134,7 @@ async def test_registration_end_to_end_with_the_real_wire(monkeypatch: Any) -> N
         """The real adapter parses the real reply — no canned stats."""
         adapter = LibrematchAdapter(
             base_url="https://aoe-api.worldsedgelink.com",
-            api_key="secret",
-            transport=transport,
+            transport=transport,  # the community endpoint is public — no key
         )
         return await adapter.player_stats(profile_id)
 
@@ -223,7 +222,7 @@ async def test_registration_rejects_an_unknown_profile(monkeypatch: Any) -> None
         from kingdoms.ext_librematch.adapter import LibrematchAdapter
 
         adapter = LibrematchAdapter(
-            base_url="https://aoe-api.worldsedgelink.com", api_key="secret", transport=transport
+            base_url="https://aoe-api.worldsedgelink.com", transport=transport
         )
         return await adapter.player_stats(profile_id)
 

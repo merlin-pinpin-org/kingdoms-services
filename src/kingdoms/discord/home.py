@@ -356,11 +356,10 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 note = "Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil."
             elif "no profile seam" in reason or "unknown game" in reason:
                 note = f"Le jeu {chosen} n'est pas configuré pour l'inscription."
-            elif "player_stats" in reason or "api_key" in reason or "configuration requise" in reason:
+            elif "player_stats" in reason or "mal configur" in reason:
                 note = (
-                    f"Ajout échoué : {PROFILE_PROVIDER} n'est pas configuré pour les "
-                    "stats de profil (LIBREMATCH_API_KEY absente) — un bot admin doit "
-                    "ajouter le secret sur l'environnement."
+                    f"Ajout échoué : {PROFILE_PROVIDER} ne répond pas correctement "
+                    "— le détail part aux admins (vois les logs du bot)."
                 )
             elif "valid" in reason or "inconnu" in reason:
                 note = (

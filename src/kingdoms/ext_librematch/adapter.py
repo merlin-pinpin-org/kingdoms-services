@@ -130,15 +130,17 @@ class LibrematchAdapter:
     async def player_stats(self, profile_id: str) -> PlayerStats | None:
         """Fetch a profile's identity and leaderboard stats.
 
-        Calls the community leaderboard endpoint
-        (``/community/leaderboard/GetPersonalStat?title=age2&profile_ids=[...]``).
+        Calls the community leaderboard endpoint — it is PUBLIC (no API
+        key; the 2026-10-16 lesson: the key gate rejected every profile
+        while the endpoint answers anyone):
+        ``/community/leaderboard/GetPersonalStat?title=age2&profile_ids=[...]``.
         The reply carries the profile's identity (``statGroups[].members[]``
         — alias, country, clan) plus one stats entry per requested
-        leaderboard (``leaderboardStats[]``). Without an API key the call
-        degrades to None; transport failures degrade the same way — the
-        provider never fails the serving process.
+        leaderboard (``leaderboardStats[]``). Transport failures degrade
+        to None — the provider never fails the serving process; the
+        Redis-backed rate budget is the only throttle.
         """
-        if not self._api_key or not profile_id:
+        if not profile_id:
             return None
         if not await self._allowed():
             logger.warning("librematch call over rate budget; degrading stats to None")
@@ -150,7 +152,6 @@ class LibrematchAdapter:
                     reply = await client.get(
                         urljoin(self._base_url + "/", PERSONAL_STAT_PATH.lstrip("/")),
                         params={"title": "age2", "profile_ids": f'["{profile_id}"]', "leaderboard_id": board_id},
-                        headers={"Ocp-Apim-Subscription-Key": self._api_key},
                     )
                     reply.raise_for_status()
                     payload = reply.json()

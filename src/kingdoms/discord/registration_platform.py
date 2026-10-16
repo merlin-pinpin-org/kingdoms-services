@@ -96,7 +96,7 @@ class Aoe2ProfileValidationSeam:
         if not capabilities.player_stats:
             raise ProviderStatsUnavailableError(
                 "ext-librematch ne sert pas les stats de profil "
-                "(LIBREMATCH_API_KEY absente sur le provider \u2014 configuration requise)"
+                "(provider mal configur\u00e9 ou injoignable \u2014 vois les logs du bot)"
             )
         stats = await client.get_player_stats(profile_id)
         if stats is None:
