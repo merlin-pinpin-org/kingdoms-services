@@ -71,6 +71,43 @@ WORLDEDGE_REPLY = {
 }
 
 
+JEANJACK_WORLDEDGE_REPLY = {
+    "result": {"code": 0, "message": "SUCCESS"},
+    "statGroups": [
+        {
+            "id": 10121030,
+            "name": "",
+            "type": 1,
+            "members": [
+                {
+                    "profile_id": 17190369,
+                    "name": "/steam/76561199557469290",
+                    "alias": "JeanJack",
+                    "personal_statgroup_id": 10121030,
+                    "xp": 705,
+                    "level": 1,
+                    "leaderboardregion_id": 0,
+                    "country": "fr",
+                    "clanlist_name": "",
+                }
+            ],
+        }
+    ],
+    "leaderboardStats": [
+        {
+            "statgroup_id": 10121030,
+            "leaderboard_id": 4,
+            "wins": 408,
+            "losses": 397,
+            "streak": -6,
+            "rank": -1,
+            "ranktotal": 71267,
+            "rating": 1374,
+        }
+    ],
+}
+
+
 class FakeWorldsEdgeTransport(httpx.AsyncBaseTransport):
     """httpx transport stand-in: one reply per recorded request."""
 
@@ -85,6 +122,21 @@ class FakeWorldsEdgeTransport(httpx.AsyncBaseTransport):
             if pattern in url:
                 return httpx.Response(200, json=payload)
         return httpx.Response(404, json={})
+
+
+class FakeInsightsTransport(httpx.AsyncBaseTransport):
+    """httpx stand-in of aoe2insights.com: plain-text relic-id pages."""
+
+    def __init__(self, relic_ids: dict[str, str]) -> None:
+        self.relic_ids = relic_ids
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        import re as _re
+
+        match = _re.search(r"/user/(\d+)/relic-id/", str(request.url))
+        if match and match.group(1) in self.relic_ids:
+            return httpx.Response(200, text=self.relic_ids[match.group(1)])
+        return httpx.Response(404, text="not found")
 
 
 class FakeMongo:
@@ -232,6 +284,13 @@ async def test_registration_rejects_an_unknown_profile(monkeypatch: Any) -> None
     )
     try:
         monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+
+        async def _no_resolve(typed_id: str, transport: Any = None) -> str | None:
+            return None
+
+        import kingdoms.discord.registration_platform as platform
+
+        monkeypatch.setattr(platform, "resolve_relic_id", _no_resolve)
         seam = Aoe2ProfileValidationSeam()
         database = FakeMongo()
         service = RegistrationService(database, profile_seams={"aoe2": seam})
@@ -256,3 +315,60 @@ async def test_the_seam_never_silently_rejects_without_uri(monkeypatch: Any) -> 
     assert seam._provider_uri, "the seam must never hold an empty provider URI"
     assert seam._provider_uri == Aoe2ProfileValidationSeam.DEFAULT_PROVIDER_URI
 
+
+async def test_registration_resolves_the_insights_user_id_to_the_relic_id(monkeypatch: Any) -> None:
+    """The user pastes their aoe2insights id: the binding stores the relic id.
+
+    The UX lesson of 2026-10-16: the insights URL id (12488557) and the
+    relic id (17190369) are different numbers — the seam must resolve
+    the former through /user/<id>/relic-id/ and bind the relic id.
+    """
+    from kingdoms.core.services.registration import RegistrationService
+    from kingdoms.discord.registration_platform import (
+        Aoe2ProfileValidationSeam,
+        resolve_relic_id,
+    )
+
+    insights_transport = FakeInsightsTransport({"12488557": "17190369"})
+
+    # resolve through the fake insights, without the network
+    relic_id = await resolve_relic_id("12488557", transport=insights_transport)
+    assert relic_id == "17190369", "the insights user id must resolve to the relic id"
+
+    # the relic id validates through the real provider chain
+    worldedge = FakeWorldsEdgeTransport(
+        {"/community/leaderboard/GetPersonalStat": JEANJACK_WORLDEDGE_REPLY}
+    )
+
+    async def player_stats(profile_id: str) -> PlayerStats | None:
+        from kingdoms.ext_librematch.adapter import LibrematchAdapter
+
+        adapter = LibrematchAdapter(base_url="https://aoe-api.worldsedgelink.com", transport=worldedge)
+        return await adapter.player_stats(profile_id)
+
+    server, port = await _start_provider_server(
+        player_stats,
+        ProviderCapabilities(provider_id="ext-librematch", game_key="aoe2", player_stats=True),
+    )
+    try:
+        monkeypatch.setenv("EXT_LIBREMATCH_URI", f"127.0.0.1:{port}")
+
+        # patch the resolver's transport at the seam level: the seam uses
+        # resolve_relic_id with the default (real) transport — inject the
+        # fake so the test never leaves localhost
+        import kingdoms.discord.registration_platform as platform
+
+        async def _fake_resolve(typed_id: str, transport: Any = None) -> str | None:
+            return await resolve_relic_id(typed_id, transport=insights_transport)
+
+        monkeypatch.setattr(platform, "resolve_relic_id", _fake_resolve)
+        seam = Aoe2ProfileValidationSeam()
+        database = FakeMongo()
+        service = RegistrationService(database, profile_seams={"aoe2": seam})
+        # The provider knows the relic id, not the insights id: the seam
+        # resolves then retries, and the binding stores the RELIC id.
+        binding = await service.bind_profile("867534391436378123", "aoe2", "12488557")
+        assert binding["profile_id"] == "17190369", "the binding must store the relic id"
+        assert binding["profile"]["aliases"][0] == "JeanJack"
+    finally:
+        await server.stop(None)

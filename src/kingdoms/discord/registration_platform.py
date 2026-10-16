@@ -10,11 +10,63 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Any
+
+import httpx
 
 from kingdoms.core.services.registration import (
     PROFILE_BINDINGS_COLLECTION,
 )
+
+INSIGHTS_BASE_URL = "https://www.aoe2insights.com"
+_INSIGHTS_ID_RE = re.compile(r"^\d+$")
+
+
+async def resolve_relic_id(
+    typed_id: str,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> str | None:
+    """Resolve whatever id the user typed into the relic profile id.
+
+    The user may paste either id (the 2026-10-16 UX lesson: the insights
+    URL id and the relic id are different numbers and only the relic id
+    works with librematch/aoe2lobby):
+
+    - a relic id (what we want) — returned as-is after an insights check;
+    - an aoe2insights user id — resolved through
+      ``/user/<id>/relic-id/``, which answers the relic id in plain text;
+    - a full insights URL — the user id is extracted, then resolved.
+
+    ``transport`` is the test seam (a fake WorldsEdge/insights stand-in);
+    None means the real network. Returns None when nothing resolves
+    (unknown id, insights down).
+    """
+    typed = typed_id.strip()
+    if not typed:
+        return None
+    # A pasted URL: keep the user id segment.
+    if "aoe2insights.com" in typed:
+        match = re.search(r"/user/(\d+)", typed)
+        if match is None:
+            return None
+        typed = match.group(1)
+    if not _INSIGHTS_ID_RE.fullmatch(typed):
+        return None
+    # The relic-id page answers the id in plain text; anything else
+    # (404, HTML) means the id does not exist.
+    try:
+        async with httpx.AsyncClient(timeout=5, follow_redirects=True, transport=transport) as client:
+            reply = await client.get(f"{INSIGHTS_BASE_URL}/user/{typed}/relic-id/")
+            if reply.status_code != 200:
+                return None
+            text = reply.text.strip()
+    except Exception:
+        logging.getLogger("kingdoms.registration.seam").warning(
+            "INSIGHTS relic-id resolve failed (id %s)", typed, exc_info=True
+        )
+        return None
+    return text if _INSIGHTS_ID_RE.fullmatch(text) and text != typed else None
 
 
 class MongoRegistrationDatabase:
@@ -86,9 +138,14 @@ class Aoe2ProfileValidationSeam:
         )
 
     async def validate_profile(self, profile_id: str) -> dict[str, Any] | None:
-        """Return the profile's public data when the provider knows it."""
-        if not self._provider_uri:
-            return None
+        """Return the profile's public data when the provider knows it.
+
+        The typed id may be either the relic id (what the provider wants)
+        or the aoe2insights user id (what the user pastes). The provider
+        is tried first; on a miss, the insights resolver maps the typed
+        id to the relic id and the validation retries \u2014 the binding
+        always stores the relic id.
+        """
         from kingdoms.core.rpc.game_client import GameProviderClient
 
         client = GameProviderClient(self._provider_uri, "ext-librematch", "aoe2")
@@ -98,6 +155,19 @@ class Aoe2ProfileValidationSeam:
                 "ext-librematch ne sert pas les stats de profil "
                 "(provider mal configur\u00e9 ou injoignable \u2014 vois les logs du bot)"
             )
+        validated = await self._validate_with_client(client, profile_id)
+        if validated is not None:
+            return validated
+        # The typed id is not a relic id the leaderboards know: it may be
+        # the insights user id (or a pasted URL) \u2014 resolve and retry.
+        relic_id = await resolve_relic_id(profile_id)
+        if relic_id is None:
+            return None
+        return await self._validate_with_client(client, relic_id)
+
+    @staticmethod
+    async def _validate_with_client(client: Any, profile_id: str) -> dict[str, Any] | None:
+        """Validate one relic id against the running provider."""
         stats = await client.get_player_stats(profile_id)
         if stats is None:
             return None

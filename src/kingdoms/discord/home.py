@@ -329,8 +329,8 @@ class ProfileAddAccountModal(discord.ui.Modal):
             max_values=1,
         )
         self.profile_id: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label="Profile id (insights.aoe2.com)",
-            placeholder="Ex. 4828497",
+            label="Ton id aoe2insights ou ton relic id",
+            placeholder="Ex. 17190369 ou https://www.aoe2insights.com/user/12488557/",
             max_length=64,
             required=True,
         )
@@ -363,9 +363,10 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             elif "valid" in reason or "inconnu" in reason:
                 note = (
-                    f"Ajout échoué : le provider {PROFILE_PROVIDER} ne connaît pas "
-                    f"le profil `{str(self.profile_id.value).strip()}`. Vérifie ton id sur "
-                    "insights.aoe2.com (le nombre dans l'URL de ta page profil)."
+                    f"Ajout échoué : aucun profil trouvé pour "
+                    f"`{str(self.profile_id.value).strip()}`. Colle l'URL de ta page "
+                    "aoe2insights (ou l'id qu'elle contient) \u2014 le bon id sera "
+                    "récupéré automatiquement."
                 )
             else:
                 note = (

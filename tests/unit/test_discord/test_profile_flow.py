@@ -9,9 +9,11 @@ the whole flow against fakes (no Mongo, no provider).
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import discord
+import httpx
 import pytest
 
 from kingdoms.discord import home as home_module
@@ -256,7 +258,7 @@ async def test_add_failure_names_the_provider(monkeypatch: Any) -> None:
     interaction.client.registration_service = registration
 
     async def _boom(user_id: str, game_key: str, profile_id: str) -> dict[str, Any]:
-        raise RuntimeError("profile 848567 is not valid for game aoe2")
+        raise ConnectionError("ext-librematch provider did not answer")
 
     registration.bind_profile = _boom  # type: ignore[method-assign]
     admins_dmed: list[str] = []
@@ -278,7 +280,7 @@ async def test_add_failure_names_the_provider(monkeypatch: Any) -> None:
     await modal.on_submit(interaction)
     contents = [str(m.content) for m in interaction.followup.messages]
     assert any("ext-librematch" in c for c in contents), "the error must name the provider"
-    assert admins_dmed and "RuntimeError" in admins_dmed[0], "the admins must receive the stack"
+    assert admins_dmed and "ConnectionError" in admins_dmed[0], "the admins must receive the stack"
 
 
 @pytest.mark.asyncio
@@ -378,7 +380,7 @@ def test_add_modal_payload_shape_is_the_proven_one() -> None:
         if component.get("type") == 1:
             inner = component["components"][0]
             assert inner["type"] == 4, "the ActionRow wraps the TextInput"
-            assert inner.get("label") == "Profile id (insights.aoe2.com)"
+            assert inner.get("label") == "Ton id aoe2insights ou ton relic id"
 
 
 @pytest.mark.asyncio
@@ -405,3 +407,31 @@ async def test_remove_failure_names_the_entry() -> None:
     assert any("Retrait échoué pour" in c and "aoe2" in c for c in contents), (
         "the failure message must name the entry"
     )
+
+
+class _FakeInsightsTransport(httpx.AsyncBaseTransport):
+    """httpx stand-in serving the aoe2insights relic-id pages."""
+
+    def __init__(self, relic_ids: dict[str, str]) -> None:
+        self.relic_ids = relic_ids
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        match = re.search(r"/user/(\d+)/relic-id/", str(request.url))
+        if match and match.group(1) in self.relic_ids:
+            return httpx.Response(200, text=self.relic_ids[match.group(1)])
+        return httpx.Response(404, text="not found")
+
+
+@pytest.mark.asyncio
+async def test_resolve_relic_id_maps_the_insights_user_id() -> None:
+    """The insights user id (or URL) resolves to the relic id."""
+    from kingdoms.discord.registration_platform import resolve_relic_id
+
+    transport = _FakeInsightsTransport({"12488557": "17190369"})
+
+    assert await resolve_relic_id("12488557", transport=transport) == "17190369"
+    assert await resolve_relic_id("https://www.aoe2insights.com/user/12488557/", transport=transport) == "17190369"
+    relic_url = "https://www.aoe2insights.com/user/12488557/relic-id/"
+    assert await resolve_relic_id(relic_url, transport=transport) == "17190369"
+    assert await resolve_relic_id("999999999", transport=transport) is None
+    assert await resolve_relic_id("abc", transport=transport) is None

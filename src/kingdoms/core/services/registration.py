@@ -103,19 +103,23 @@ class RegistrationService:
         validated = await seam.validate_profile(profile_id)
         if validated is None:
             raise InvalidProfileError(f"profile {profile_id!r} is not valid for game {game_key!r}")
-        owner = await self._db.find_binding_by_profile(game_key, profile_id)
+        # The seam may have resolved the typed id (an aoe2insights user id)
+        # into the canonical relic id — the binding always stores the
+        # relic id the provider validated.
+        canonical_id = str(validated.get("profile_id") or profile_id)
+        owner = await self._db.find_binding_by_profile(game_key, canonical_id)
         if owner is not None and owner.get("user_id") != user_id:
-            raise ProfileBoundError(f"profile {profile_id!r} is already bound to {owner.get('user_id')!r}")
+            raise ProfileBoundError(f"profile {canonical_id!r} is already bound to {owner.get('user_id')!r}")
         binding = {
-            "_id": f"binding:{game_key}:{user_id}:{profile_id}",
+            "_id": f"binding:{game_key}:{user_id}:{canonical_id}",
             "user_id": user_id,
             "game_key": game_key,
-            "profile_id": profile_id,
+            "profile_id": canonical_id,
             "profile": validated,
             "bound_at": _now_ms(),
         }
         await self._db.upsert_entry(PROFILE_BINDINGS_COLLECTION, binding)
-        await self._audit_record("profile.bind", {"user_id": user_id, "game_key": game_key, "profile_id": profile_id})
+        await self._audit_record("profile.bind", {"user_id": user_id, "game_key": game_key, "profile_id": canonical_id})
         return binding
 
     async def get_binding(self, user_id: str, game_key: str) -> dict[str, Any] | None:
