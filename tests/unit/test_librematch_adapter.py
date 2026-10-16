@@ -293,3 +293,17 @@ async def test_rate_limit_fail_open_without_limiter() -> None:
     """Without a configured limiter the adapter calls through (fail-open)."""
     adapter = _adapter([_lobby("777")])
     assert await adapter.fetch_lobbies()
+
+
+@pytest.mark.asyncio
+async def test_empty_base_url_never_builds_a_protocol_less_url() -> None:
+    """An empty LIBREMATCH_API_URL falls back to the public default.
+
+    The 2026-10-16 lesson: an empty base_url made every leaderboard call
+    raise httpx.UnsupportedProtocol (no http(s)://) and every profile
+    registration silently fail on the test env. The default stands in.
+    """
+    adapter = LibrematchAdapter(base_url="", transport=_FakeTransport(WORLDEDGE_REPLY))
+    assert adapter._base_url.startswith("https://"), "the base url must carry its protocol"
+    stats = await adapter.player_stats("123456")
+    assert stats is not None, "the default base url must serve the leaderboard call"

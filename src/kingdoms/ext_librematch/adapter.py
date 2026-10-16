@@ -71,7 +71,7 @@ class LibrematchAdapter:
         api_key: str = "",
         rate_limiter: ProviderRateLimiter | None = None,
     ) -> None:
-        self._base_url = base_url.rstrip("/")
+        self._base_url = (base_url or DEFAULT_BASE_URL).rstrip("/")
         self._timeout_s = timeout_s
         self._transport = transport
         self._api_key = api_key
