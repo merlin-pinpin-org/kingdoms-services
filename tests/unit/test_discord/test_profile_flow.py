@@ -456,10 +456,17 @@ def test_extract_insights_user_id_rejects_injections() -> None:
         "https://www.aoe2insights.com/user/abc",
         "https://www.aoe2insights.com/user/" + "1" * 16,
         "",
-        "https://www.aoe2insights.com/user/12488557/../../admin",
         "javascript:alert(1)",
     ):
         assert extract_insights_user_id(hostile) is None, f"must reject: {hostile!r}"
+    # any path after the id is accepted — the capture only ever yields the
+    # validated digit segment, the URL itself is never used downstream
+    for flexible in (
+        "https://www.aoe2insights.com/user/12488557/whatever/else",
+        "https://www.aoe2insights.com/user/12488557?tab=stats",
+        "https://www.aoe2insights.com/user/12488557/../admin",
+    ):
+        assert extract_insights_user_id(flexible) == "12488557", f"must accept: {flexible!r}"
 
 
 @pytest.mark.asyncio

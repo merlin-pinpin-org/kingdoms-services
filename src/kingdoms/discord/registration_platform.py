@@ -21,7 +21,7 @@ from kingdoms.core.services.registration import (
 
 INSIGHTS_BASE_URL = "https://www.aoe2insights.com"
 INSIGHTS_URL_RE = re.compile(
-    r"^https?://(?:www\.)?aoe2insights\.com/user/(\d{1,15})(?:/relic-id/?|/?$)", re.IGNORECASE
+    r"^https?://(?:www\.)?aoe2insights\.com/user/(\d{1,15})(?:[/?#].*)?$", re.IGNORECASE
 )
 _NUMERIC_ID_RE = re.compile(r"^\d{1,15}$")
 

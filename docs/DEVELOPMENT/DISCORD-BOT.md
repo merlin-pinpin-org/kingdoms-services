@@ -135,6 +135,21 @@ monde). Seul le budget de rate Redis throttle les appels. Un provider
 mal configuré ou injoignable échoue avec l'erreur explicite
 `ProviderStatsUnavailableError` — jamais un refus silencieux.
 
+**L'id à stocker est le relic-id** (`profile_id` WorldsEdge, ex.
+17190369) — pas l'id de l'URL aoe2insights (ex. 12488557) : ce sont
+deux nombres différents. La seam résout l'id tapé (relic-id, id
+insights ou URL aoe2insights) via la page publique
+`aoe2insights.com/user/<id>/relic-id/` (texte nu) ; l'extraction est
+stricte (regex ancrée + host urlparse, id ≤ 15 digits, réponse
+numérique nue exigée) et le binding stocke toujours le relic-id
+canonique renvoyé par la validation.
+
+**Référence libre:match (endpoints publics, sans auth)** :
+https://librematch.github.io/wiki/rlink/community/leaderboard/index.html —
+`getAvailableLeaderboards`, `getLeaderBoard2`, `getPersonalStat`,
+`getAvatarStatForProfile`, `getMatchHistory`, `getRecentMatchHistory`,
+`getReplayFiles` (base : `aoe-api.worldsedgelink.com/community/leaderboard/`).
+
 ### i18n
 
 - Catalogue `config/locales/{en,fr}.yaml`, racine par langue (`fr:` /
