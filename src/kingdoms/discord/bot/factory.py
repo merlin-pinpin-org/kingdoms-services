@@ -527,6 +527,7 @@ class KingdomsBot(discord.Client):
                 self.messages,
                 locale,
                 self.admin_channel_service,
+                client=self,
             )
 
         await self._register_pinned_menus()

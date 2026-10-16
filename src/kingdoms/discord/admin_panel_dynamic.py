@@ -473,6 +473,7 @@ async def build_pin_main_menu(
     catalog: MessageCatalog | None = None,
     locale: str = "en",
     admin_channel_service: Any = None,
+    client: Any = None,
 ) -> discord.ui.LayoutView:
     """Build the pinned admin menu: the new admin menu, frozen (stateless items).
 
@@ -481,8 +482,11 @@ async def build_pin_main_menu(
     """
     from kingdoms.discord.admin_tree import build_admin_menu
 
-    del logs_service, catalog, admin_channel_service
-    return await build_admin_menu(guild_id, locale)
+    del catalog, admin_channel_service
+    # The pinned build carries the client (the ephemeral one passes the
+    # interaction): build_admin_menu resolves labels through the guild's
+    # locale either way.
+    return await build_admin_menu(guild_id, locale, interaction=client)
 
 
 async def build_pin_channel_menu(

@@ -127,9 +127,9 @@ fr:
       roles_btn: "Rôles"
       games_btn: "Jeux (admin)"
       mods_btn: "Mods (admin)"
-      channel_access_everyone: "Lecture : @everyone · Écriture : @everyone"
-      channel_access_readonly: "Lecture : @everyone · Écriture : personne (menus épinglés uniquement)"
-      channel_access_admin: "Lecture : bot-admins · Écriture : bot-admins"
+      channel_access_everyone: "👁️ Lecture : @everyone\n✍️ Écriture : @everyone"
+      channel_access_readonly: "👁️ Lecture : @everyone\n🔒 Écriture : personne — menus épinglés uniquement"
+      channel_access_admin: "👁️ Lecture : bot-admins\n✍️ Écriture : bot-admins"
   admin_replies:
     panel_unavailable: Le panneau admin n'est pas disponible.
     language_changed: Langue mise à jour.

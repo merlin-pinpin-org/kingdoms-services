@@ -126,9 +126,9 @@ en:
       roles_btn: "Roles"
       games_btn: "Games (admin)"
       mods_btn: "Mods (admin)"
-      channel_access_everyone: "Read: @everyone · Write: @everyone"
-      channel_access_readonly: "Read: @everyone · Write: none (pinned menus only)"
-      channel_access_admin: "Read: bot-admins · Write: bot-admins"
+      channel_access_everyone: "👁️ Read: @everyone\n✍️ Write: @everyone"
+      channel_access_readonly: "👁️ Read: @everyone\n🔒 Write: none — pinned menus only"
+      channel_access_admin: "👁️ Read: bot-admins\n✍️ Write: bot-admins"
   admin_replies:
     panel_unavailable: Admin panel unavailable.
     language_changed: Language updated.

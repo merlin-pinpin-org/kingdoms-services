@@ -45,9 +45,12 @@ async def _tree_tr(interaction: Any, key: str, **kwargs: Any) -> str:
 
 
 _ACCESS_FALLBACKS = {
-    "public": "Lecture : @everyone \u00b7 \u00c9criture : @everyone",
-    "readonly": "Lecture : @everyone \u00b7 \u00c9criture : personne (menus \u00e9pingl\u00e9s uniquement)",
-    "admin": "Lecture : bot-admins \u00b7 \u00c9criture : bot-admins",
+    "public": "\U0001f441\ufe0f Lecture : @everyone\n\u270d\ufe0f \u00c9criture : @everyone",
+    "readonly": (
+        "\U0001f441\ufe0f Lecture : @everyone\n\U0001f512 \u00c9criture : personne" 
+        "\u2014 menus \u00e9pingl\u00e9s uniquement"
+    ),
+    "admin": "\U0001f441\ufe0f Lecture : bot-admins\n\u270d\ufe0f \u00c9criture : bot-admins",
 }
 _ACCESS_KEYS = {
     "public": "admin_tree.channel_access_everyone",
@@ -162,12 +165,32 @@ class TreeOpenButton(
         }.get(section, "\u2795")
         return cls(section, label, emoji)
 
+    @classmethod
+    async def create(cls, bot: Any, guild_id: str, section: str) -> TreeOpenButton:
+        """Build an opener for a pinned menu (locale from the guild's logs)."""
+        from kingdoms.discord.commands_i18n import tr_guild
+
+        label = await tr_guild(guild_id, bot, f"admin_tree.{section}_btn")
+        emoji = {
+            "lang": "\U0001f310",
+            "channels": "\U0001f4cb",
+            "roles": "\U0001f9e9",
+            "games": "\U0001f3ae",
+            "mods": "\U0001f9e9",
+        }.get(section, "\u2795")
+        return cls(section, label, emoji)
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the section's view (guarded at click time)."""
         if not await _guard(interaction):
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if self.section == "roles":
+            from kingdoms.discord.admin_persistent import _handle_roles
+
+            await _handle_roles(interaction)
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         if self.section == "lang":
             locale = "en"
             logs = getattr(interaction.client, "logs_service", None)
@@ -176,20 +199,20 @@ class TreeOpenButton(
                     locale = str(await logs.get_locale(guild_id) or "en")
                 except Exception:
                     locale = "en"
-            view = discord.ui.LayoutView(timeout=None)
-            view.add_item(
-                discord.ui.Container(
-                    discord.ui.TextDisplay(
-                        "## " + LOCALE_LABELS.get(locale, locale)
-                        + "\n" + await _tree_tr(interaction, "admin_tree.language")
-                    ),
-                    accent_colour=discord.Colour(0x5865F2),
+            modal = discord.ui.Modal(title=await _tree_tr(interaction, "admin_tree.language"), timeout=None)
+            modal.add_item(
+                discord.ui.Label(
+                    text=LOCALE_LABELS.get(locale, locale),
+                    component=TreeLocaleSelect(locale),
                 )
             )
-            lang_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-            lang_row.add_item(TreeLocaleSelect(locale))
-            view.add_item(lang_row)
-            await interaction.followup.send(view=view, ephemeral=True)
+            try:
+                await interaction.response.send_modal(modal)
+            except Exception:
+                logger.warning("ADMIN TREE: language modal failed", exc_info=True)
+                await interaction.followup.send(
+                    await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
+                )
         elif self.section == "channels":
             channel_select = await TreeChannelSelect.create(guild_id, interaction)
             picker = discord.ui.LayoutView(timeout=None)
@@ -203,10 +226,6 @@ class TreeOpenButton(
             channel_row.add_item(channel_select)
             picker.add_item(channel_row)
             await interaction.followup.send(view=picker, ephemeral=True)
-        elif self.section == "roles":
-            from kingdoms.discord.admin_persistent import _handle_roles
-
-            await _handle_roles(interaction)
         elif self.section in ("games", "mods"):
             from kingdoms.discord.scope_pins import _admin_builder
 
@@ -227,11 +246,15 @@ async def build_admin_menu(
 ) -> discord.ui.LayoutView:
     """Build the light admin menu: five opener buttons (DynamicItems)."""
     from kingdoms.core.ids import footer
+    from kingdoms.discord.commands_i18n import tr_guild
+
+    bot = getattr(interaction, "client", None) if interaction is not None else None
 
     async def _label(key: str, fallback: str) -> str:
-        if interaction is None:
-            return fallback
-        return await _tree_tr(interaction, key)
+        if bot is not None and guild_id:
+            rendered = await tr_guild(guild_id, bot, f"replies.{key}", fallback)
+            return rendered
+        return fallback
 
     buttons = (
         ("lang", await _label("admin_tree.language_btn", "Langue"), "\U0001f310"),

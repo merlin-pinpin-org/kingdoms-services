@@ -239,7 +239,7 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                                 (
                                     f"admin:access:revoke:{guild_id}",
                                     _tr(catalog, "ui.homes.btn_revoke_access", locale, "Retirer l'acc\u00e8s"),
-                                    "\U0001f5f2\ufe0f",
+                                    "\U0001f5d1",
                                 ),
                             ),
                         ),
