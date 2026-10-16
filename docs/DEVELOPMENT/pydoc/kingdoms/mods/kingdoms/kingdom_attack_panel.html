@@ -1697,7 +1697,12 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="singlecolumn"><dl><dt>async <a name="-deploy_attack_panel"><strong>deploy_attack_panel</strong></a>(channel: 'discord.TextChannel | None', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;attack&nbsp;panel&nbsp;in&nbsp;the&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;salon.</span></dd></dl>
  <dl><dt><a name="-panel_text"><strong>panel_text</strong></a>(strings: 'dict[str, str]', rows: 'list[str]') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;panel&nbsp;message&nbsp;(title,&nbsp;help,&nbsp;live&nbsp;rows,&nbsp;marker).</span></dd></dl>
  <dl><dt>async <a name="-refresh_attack_panel_safe"><strong>refresh_attack_panel_safe</strong></a>(guild: 'discord.Guild | None', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Re-pin&nbsp;one&nbsp;guild's&nbsp;attack&nbsp;panel&nbsp;after&nbsp;a&nbsp;mutation&nbsp;(best&nbsp;effort).</span></dd></dl>
- <dl><dt>async <a name="-run_attack_phases_safe"><strong>run_attack_phases_safe</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Drive&nbsp;the&nbsp;D77&nbsp;phases&nbsp;for&nbsp;every&nbsp;guild:&nbsp;reveal,&nbsp;DMs,&nbsp;forfeits.</span></dd></dl>
+ <dl><dt>async <a name="-run_attack_phases_safe"><strong>run_attack_phases_safe</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Drive&nbsp;the&nbsp;D77&nbsp;phases&nbsp;for&nbsp;every&nbsp;guild:&nbsp;reveal,&nbsp;DMs,&nbsp;forfeits.<br>
+&nbsp;<br>
+attaques-panel-spam&nbsp;(Drasah&nbsp;15/10):&nbsp;the&nbsp;panel&nbsp;is&nbsp;redeployed&nbsp;ONLY<br>
+when&nbsp;a&nbsp;phase&nbsp;was&nbsp;actually&nbsp;played&nbsp;this&nbsp;tick&nbsp;—&nbsp;an&nbsp;idle&nbsp;tick&nbsp;touches<br>
+nothing&nbsp;(no&nbsp;delete,&nbsp;no&nbsp;send,&nbsp;no&nbsp;edit).&nbsp;The&nbsp;mutation&nbsp;hooks&nbsp;keep<br>
+their&nbsp;own&nbsp;refresh:&nbsp;they&nbsp;are&nbsp;the&nbsp;other&nbsp;legitimate&nbsp;content&nbsp;change.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

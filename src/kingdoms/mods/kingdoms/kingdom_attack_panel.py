@@ -54,6 +54,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "phase_draft": "Draft",
         "phase_ready": "RDV",
         "phase_score": "Score",
+        "reveal_battle": "⚔️ Bataille en vue (défenseur : {defender})",
+        "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
         "defender_pending": "en attente de défense",
         "defender_ai": "IA 🤖",
         "covered_tag": " 🕶️",
@@ -215,6 +217,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "phase_draft": "Draft",
         "phase_ready": "Meeting",
         "phase_score": "Score",
+        "reveal_battle": "⚔️ Battle ahead (defender: {defender})",
+        "reveal_no_defense": "🏳️ Irresistible assault — no defense",
         "defender_pending": "waiting for a defender",
         "defender_ai": "AI 🤖",
         "covered_tag": " 🕶️",
@@ -511,6 +515,17 @@ async def _ongoing_rows(
             )
         else:
             defender = strings["defender_pending"]
+        phase = _phase_display(phase_label(attack), strings)
+        # attaques-panel-spam (Drasah 15/10): at the T-15 reveal the line
+        # shows the defense window's outcome instead of the bare phase —
+        # « Bataille en vue » when a lord defends, « Assaut irrésistible »
+        # when nobody did (AI fallback). Nothing new to compute: the
+        # reveal (reveal_due) already resolved cover/AI/locked defense.
+        if getattr(attack, "revealed", False) and not attack.is_over:
+            if attack.ai_defender:
+                phase = strings["reveal_no_defense"]
+            elif getattr(attack, "state", None) is AttackState.DEFENDED:
+                phase = strings["reveal_battle"].format(defender=defender)
         rows.append(
             strings["attack_line"].format(
                 map=attack.map_key,
@@ -518,7 +533,7 @@ async def _ongoing_rows(
                 kingdom=kingdom,
                 defender=defender,
                 time=_fmt_paris(attack.expires_at),
-                phase=_phase_display(phase_label(attack), strings),
+                phase=phase,
             )
         )
     return rows, attacks
@@ -552,16 +567,50 @@ async def deploy_attack_panel(
     attacks: list[Any] = []
     if attacks_service is not None:
         rows, attacks = await _ongoing_rows(attacks_service, kingdoms_service, strings)
+    content = panel_text(strings, rows)
+    view = _panel_view(strings, attacks)
+    # attaques-panel-spam (Drasah 15/10): the panel is EDITED in place —
+    # delete+send on every call multiplied messages whenever the old
+    # message delete failed (rate limit, out of the history scan depth).
+    # The scan reads deep (200) so a rate-limited delete of the previous
+    # cycle cannot let two panels coexist.
+    panel_message = await _find_panel_message(channel)
+    if panel_message is not None:
+        if (panel_message.content or "") == content:
+            return  # unchanged — nothing to touch (no API call at all)
+        try:
+            await panel_message.edit(content=content, view=view)
+            return
+        except Exception:
+            logger.warning("KINGDOM ATTACK: panel edit failed", exc_info=True)
     try:
-        for message in [m async for m in channel.history(limit=50)]:
-            if ATTACK_PANEL_MARKER in (message.content or ""):
-                await message.delete()
-    except Exception:
-        logger.warning("KINGDOM ATTACK: old panel removal failed", exc_info=True)
-    try:
-        await channel.send(content=panel_text(strings, rows), view=_panel_view(strings, attacks))
+        await channel.send(content=content, view=view)
     except Exception:
         logger.warning("KINGDOM ATTACK: panel send failed", exc_info=True)
+
+
+async def _find_panel_message(channel: discord.TextChannel) -> Any | None:
+    """Return the live panel message of the salon, pruning the duplicates.
+
+    attaques-panel-spam: the scan reads deep (200) so a rate-limited
+    delete of a previous cycle cannot let two panels coexist — the
+    first marker wins, the others are removed.
+    """
+    panel_message: Any = None
+    try:
+        async for message in channel.history(limit=200):
+            if ATTACK_PANEL_MARKER not in (message.content or ""):
+                continue
+            if panel_message is None:
+                panel_message = message
+                continue
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM ATTACK: duplicate panel removal failed", exc_info=True)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: panel history scan failed", exc_info=True)
+    return panel_message
 
 
 async def refresh_attack_panel_safe(guild: discord.Guild | None, locale: str) -> None:
@@ -1399,7 +1448,13 @@ async def _guild_locale(bot: Any, guild_id: str) -> str:
 
 
 async def run_attack_phases_safe(bot: Any) -> None:
-    """Drive the D77 phases for every guild: reveal, DMs, forfeits."""
+    """Drive the D77 phases for every guild: reveal, DMs, forfeits.
+
+    attaques-panel-spam (Drasah 15/10): the panel is redeployed ONLY
+    when a phase was actually played this tick — an idle tick touches
+    nothing (no delete, no send, no edit). The mutation hooks keep
+    their own refresh: they are the other legitimate content change.
+    """
     attacks_service = getattr(bot, "kingdoms_attacks_service", None)
     kingdoms_service = getattr(bot, "kingdoms_service", None)
     if attacks_service is None:
@@ -1408,29 +1463,51 @@ async def run_attack_phases_safe(bot: Any) -> None:
         announce_channel = _announce_channel(guild)
         locale = await _guild_locale(bot, str(guild.id))
         strings = _strings(locale)
+        dirty = 0
         if announce_channel is not None:
             try:
-                await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
-                for attack in await attacks_service.pick_ban_due():
+                dirty += await _run_reveals_safe(
+                    attacks_service, kingdoms_service, announce_channel, strings
+                )
+                pickbans = await attacks_service.pick_ban_due()
+                for attack in pickbans:
                     await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
-                for attack in await attacks_service.score_due():
+                dirty += len(pickbans)
+                scores = await attacks_service.score_due()
+                for attack in scores:
                     await _send_score_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                dirty += len(scores)
                 # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
-                for attack in await attacks_service.score_reminder_due():
+                reminders = await attacks_service.score_reminder_due()
+                for attack in reminders:
                     await _send_score_reminder_dm(bot, attack, locale)
+                dirty += len(reminders)
                 await _register_score_views_safe(bot, attacks_service, locale)
-                await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
-                await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
+                dirty += await _run_forfeits_safe(
+                    attacks_service, kingdoms_service, announce_channel, strings
+                )
+                dirty += await _run_noshows_safe(
+                    attacks_service, kingdoms_service, announce_channel, strings
+                )
             except Exception:
                 logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
-        await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
+        if dirty:
+            await deploy_attack_panel(
+                _declare_channel(guild), locale, kingdoms_service, attacks_service
+            )
 
 
 async def _run_reveals_safe(
     attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> None:
-    """Announce the T-15 reveals (cover drop, AI fallback, locked defense)."""
+) -> int:
+    """Announce the T-15 reveals (cover drop, AI fallback, locked defense).
+
+    Returns the number of reveals played (attaques-panel-spam: the tick
+    redeploy is gated on a non-zero phase count).
+    """
+    played = 0
     for attack in await attacks_service.reveal_due():
+        played += 1
         if attack.cover_lord_id:
             await _announce_safe(
                 channel,
@@ -1455,13 +1532,20 @@ async def _run_reveals_safe(
                     map=attack.map_key, time=_fmt_paris(attack.expires_at)
                 ),
             )
+    return played
 
 
 async def _run_forfeits_safe(
     attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> None:
-    """Announce the meeting-time forfeits of the expired attacks."""
+) -> int:
+    """Announce the meeting-time forfeits of the expired attacks.
+
+    Returns the number of attacks resolved (attaques-panel-spam: any
+    resolution changes the panel content, announced or not).
+    """
+    played = 0
     for attack in await attacks_service.expire_stale():
+        played += 1
         side = (attack.pickban or {}).get("forfeit_side")
         if not side:
             continue
@@ -1477,6 +1561,7 @@ async def _run_forfeits_safe(
                     map=attack.map_key, side=strings[f"side_{side}"], kingdom=kingdom
                 ),
             )
+    return played
 
 
 # ----------------------------------------------------------------------
@@ -1775,9 +1860,15 @@ async def _dm_admins_dispute_safe(
 
 async def _run_noshows_safe(
     attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> None:
-    """Announce the T+5 no-show resolutions of the meetings."""
+) -> int:
+    """Announce the T+5 no-show resolutions of the meetings.
+
+    Returns the number of meetings resolved (attaques-panel-spam: any
+    resolution changes the panel content, announced or not).
+    """
+    played = 0
     for attack in await attacks_service.ready_due():
+        played += 1
         noshow = (attack.score or {}).get("noshow")
         if not noshow:
             continue
@@ -1791,3 +1882,4 @@ async def _run_noshows_safe(
                 map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom
             ),
         )
+    return played
