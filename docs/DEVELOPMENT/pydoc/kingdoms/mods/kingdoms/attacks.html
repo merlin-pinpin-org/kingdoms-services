@@ -337,6 +337,16 @@ the&nbsp;level&nbsp;an&nbsp;ATTACKER&nbsp;faces&nbsp;when&nbsp;the&nbsp;kingdom'
 defense&nbsp;(the&nbsp;old&nbsp;Gaïa-only&nbsp;reading&nbsp;is&nbsp;gone&nbsp;—&nbsp;the&nbsp;defence&nbsp;bot&nbsp;is<br>
 the&nbsp;kingdom's&nbsp;own,&nbsp;a&nbsp;Traquenard&nbsp;aside).</span></dd></dl>
 
+<dl><dt>async <a name="AttackService-dispute_due"><strong>dispute_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Auto-open&nbsp;a&nbsp;dispute&nbsp;on&nbsp;every&nbsp;result-less&nbsp;meeting&nbsp;past&nbsp;15h.<br>
+&nbsp;<br>
+The&nbsp;Score&nbsp;phase&nbsp;where&nbsp;everyone&nbsp;is&nbsp;Prêt&nbsp;but&nbsp;nobody&nbsp;declares&nbsp;a<br>
+result&nbsp;could&nbsp;hang&nbsp;forever&nbsp;(bug&nbsp;n°2,&nbsp;Check&nbsp;59).&nbsp;Fifteen&nbsp;hours<br>
+after&nbsp;the&nbsp;phase&nbsp;opened&nbsp;(3h&nbsp;reminder&nbsp;+&nbsp;12h,&nbsp;decision&nbsp;Drasah<br>
+16/10),&nbsp;the&nbsp;meeting&nbsp;is&nbsp;flagged&nbsp;``disputed``&nbsp;—&nbsp;the&nbsp;admins<br>
+arbitrate&nbsp;through&nbsp;``resolve_dispute``&nbsp;(the&nbsp;console<br>
+``resultat``&nbsp;command).&nbsp;Idempotent&nbsp;through<br>
+``score["auto_dispute"]``&nbsp;—&nbsp;the&nbsp;tick&nbsp;replays&nbsp;it&nbsp;safely.</span></dd></dl>
+
 <dl><dt>async <a name="AttackService-expire_stale"><strong>expire_stale</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Apply&nbsp;the&nbsp;meeting-time&nbsp;outcome&nbsp;to&nbsp;every&nbsp;expired&nbsp;attack&nbsp;(D8/D77).<br>
 &nbsp;<br>
 At&nbsp;T&nbsp;(``expires_at``):&nbsp;a&nbsp;defense&nbsp;never&nbsp;locked&nbsp;moves&nbsp;to&nbsp;the<br>
@@ -457,6 +467,8 @@ Data descriptors defined here:<br>
 <hr>
 Data and other attributes defined here:<br>
 <dl><dt><strong>READY_GRACE_MINUTES</strong> = 5</dl>
+
+<dl><dt><strong>SCORE_DISPUTE_AFTER_REMINDER_HOURS</strong> = 12</dl>
 
 <dl><dt><strong>SCORE_REMINDER_HOURS</strong> = 3</dl>
 

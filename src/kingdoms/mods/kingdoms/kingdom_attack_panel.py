@@ -11,6 +11,7 @@ through the service-side flags.
 Lesson Check 30: the persistent buttons read ONLY this module's
 strings (FR/EN mirrors below).
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,8 +42,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "gaia_line": "🦅 **{map}** — bataille Gaïa · {count} combattant(s) — RDV **{time}** (Paris)",
         "gaia_join_button": "🦅 Rejoindre la bataille",
         "gaia_join_note": (
-            "🦅 Tu as rejoint la bataille sur **{map}** ({count} combattants) —"
-            " RDV **{time}** (heure de Paris)."
+            "🦅 Tu as rejoint la bataille sur **{map}** ({count} combattants) — RDV **{time}** (heure de Paris)."
         ),
         "gaia_join_announce": "🦅 **{lord}** rejoint la bataille sur **{map}** ({count} combattants) !",
         "gaia_gone": "❌ Cette bataille n'accepte plus de participants.",
@@ -68,8 +68,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "modal_traquenard": "Traquenard ? (oui/non)",
         "declared_note": "⚔️ Attaque déclarée sur **{map}** — RDV à **{time}** (heure de Paris).",
         "declared_announce": (
-            "⚔️ **{attacker}** ({kingdom}) attaque **{map}** 🆚 {defender_kingdom} "
-            "— RDV **{time}** (heure de Paris) !"
+            "⚔️ **{attacker}** ({kingdom}) attaque **{map}** 🆚 {defender_kingdom} — RDV **{time}** (heure de Paris) !"
         ),
         "defense_done": "🛡️ **{map}** — tu portes la défense de ton royaume ! RDV **{time}** (Paris).",
         "defense_announce": "🛡️ **{lord}** défend **{map}** !",
@@ -118,10 +117,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             " défense devient Facile pendant 6h et les mariages scellés prennent +2h"
             " de verrou."
         ),
-        "reveal_cover": (
-            "🕶️ Reveal — l'attaque sur **{map}** était menée par **{lord}** "
-            "(la couverture tombe)."
-        ),
+        "reveal_cover": ("🕶️ Reveal — l'attaque sur **{map}** était menée par **{lord}** (la couverture tombe)."),
         "reveal_ai": (
             "🤖 Personne n'a défendu **{map}** — l'IA du royaume **{kingdom}** prend la défense"
             " (niveau **{level}**/5) !"
@@ -141,8 +137,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_resolved": "⚔️ Civs en jeu — toi : **{mine}** · adversaire : **{theirs}**. Bonne partie !",
         "pickban_announce": "⚔️ **{map}** — la partie part sur **{mine}** 🆚 **{theirs}** !",
         "forfeit_both": (
-            "🏳️ Forfait général sur **{map}** — personne n'a validé : l'attaquant, présent, l'emporte "
-            "(**{kingdom}**)."
+            "🏳️ Forfait général sur **{map}** — personne n'a validé : l'attaquant, présent, l'emporte (**{kingdom}**)."
         ),
         "forfeit_side": "🏳️ Forfait sur **{map}** — **{side}** a manqué la validation : victoire de **{kingdom}**.",
         "side_attacker": "l'attaquant",
@@ -152,10 +147,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "**{civs}**.\nConfirme ta présence avec **Prêt**, puis joue et déclare le"
             " résultat avec l'**ID de la game**. Un manqué au RDV est un forfait !"
         ),
-        "score_not_ready": (
-            "❌ Confirme ta présence au RDV d'abord — clique **Prêt** avant de"
-            " déclarer le résultat."
-        ),
+        "score_not_ready": ("❌ Confirme ta présence au RDV d'abord — clique **Prêt** avant de déclarer le résultat."),
         "score_reminder_dm": (
             "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — pense à déclarer"
             " le résultat de la game (avec l'**ID de la game**) via les boutons du DM !"
@@ -167,23 +159,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "score_modal_title": "Résultat de la game",
         "score_modal_label": "ID de la game (requis)",
         "score_modal_placeholder": "ex. 123456",
-        "score_resolved": (
-            "🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."
-        ),
+        "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
-            "⚖️ Ta déclaration contredit le résultat déjà enregistré — les admins"
-            " arbitrent (game {game})."
+            "⚖️ Ta déclaration contredit le résultat déjà enregistré — les admins arbitrent (game {game})."
         ),
-        "noshow_side": (
-            "🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."
-        ),
-        "noshow_both": (
-            "🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste"
-            " à son propriétaire."
-        ),
-        "dispute_admin_dm": (
-            "⚖️ **Litige — {map}**\n{declarations}\nTranche le résultat (game {game})."
+        "noshow_side": ("🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."),
+        "noshow_both": ("🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste à son propriétaire."),
+        "dispute_admin_dm": ("⚖️ **Litige — {map}**\n{declarations}\nTranche le résultat (game {game})."),
+        "auto_dispute": (
+            "⚖️ **Litige auto-ouvert sur {map}** — aucun résultat déclaré 15 h après"
+            " l'ouverture de la partie : un admin tranche via la console (`resultat`)."
         ),
         "dispute_win_attacker": "⚖️ Tranche : attaquant",
         "dispute_win_defender": "⚖️ Tranche : défenseur",
@@ -204,8 +190,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "gaia_line": "🦅 **{map}** — Gaïa battle · {count} fighter(s) — meets **{time}** (Paris)",
         "gaia_join_button": "🦅 Join the battle",
         "gaia_join_note": (
-            "🦅 You joined the battle on **{map}** ({count} fighters) —"
-            " meeting **{time}** (Paris time)."
+            "🦅 You joined the battle on **{map}** ({count} fighters) — meeting **{time}** (Paris time)."
         ),
         "gaia_join_announce": "🦅 **{lord}** joins the battle on **{map}** ({count} fighters)!",
         "gaia_gone": "❌ This battle no longer accepts participants.",
@@ -231,8 +216,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "modal_traquenard": "Ambush trap? (yes/no)",
         "declared_note": "⚔️ Attack declared on **{map}** — meeting at **{time}** (Paris time).",
         "declared_announce": (
-            "⚔️ **{attacker}** ({kingdom}) attacks **{map}** 🆚 {defender_kingdom} "
-            "— meeting **{time}** (Paris time)!"
+            "⚔️ **{attacker}** ({kingdom}) attacks **{map}** 🆚 {defender_kingdom} — meeting **{time}** (Paris time)!"
         ),
         "defense_done": "🛡️ **{map}** — you carry your kingdom's defense! Meeting **{time}** (Paris).",
         "defense_announce": "🛡️ **{lord}** defends **{map}**!",
@@ -260,9 +244,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
             " {defender}!\n📅 {date}\nGood luck to the fighters! 🍀"
         ),
-        "announce_v1_traquenard": (
-            "\n🪤 A Traquenard is active — the defender kingdom's AI is Easy (6h window)!"
-        ),
+        "announce_v1_traquenard": ("\n🪤 A Traquenard is active — the defender kingdom's AI is Easy (6h window)!"),
         "date_full": "{weekday} {day}/{month}/{year} at {hour}:{minute}",
         "weekdays": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
         "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
@@ -280,13 +262,9 @@ _STRINGS: dict[str, dict[str, str]] = {
             "🪤 A kingdom may activate a Traquenard on its adversary: the defense AI"
             " turns Easy for 6h and sealed marriages gain +2h of lock."
         ),
-        "reveal_cover": (
-            "🕶️ Reveal — the attack on **{map}** was led by **{lord}** "
-            "(the cover drops)."
-        ),
+        "reveal_cover": ("🕶️ Reveal — the attack on **{map}** was led by **{lord}** (the cover drops)."),
         "reveal_ai": (
-            "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense"
-            " (level **{level}**/5)!"
+            "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense (level **{level}**/5)!"
         ),
         "reveal_defense": "🛡️ The defense of **{map}** is locked — meeting **{time}** (Paris).",
         "pickban_dm": (
@@ -303,8 +281,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_resolved": "⚔️ Civs in play — you: **{mine}** · adversary: **{theirs}**. Good game!",
         "pickban_announce": "⚔️ **{map}** — the game starts on **{mine}** 🆚 **{theirs}**!",
         "forfeit_both": (
-            "🏳️ General forfeit on **{map}** — nobody validated: the attacker, present, wins "
-            "(**{kingdom}**)."
+            "🏳️ General forfeit on **{map}** — nobody validated: the attacker, present, wins (**{kingdom}**)."
         ),
         "forfeit_side": "🏳️ Forfeit on **{map}** — **{side}** missed the validation: victory of **{kingdom}**.",
         "side_attacker": "the attacker",
@@ -316,8 +293,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             " a forfeit!"
         ),
         "score_not_ready": (
-            "❌ Confirm your presence at the meeting first — click **Ready** before"
-            " declaring the result."
+            "❌ Confirm your presence at the meeting first — click **Ready** before declaring the result."
         ),
         "score_reminder_dm": (
             "⏰ **Meeting — {map}**: no result declared for 3 hours — remember to"
@@ -330,23 +306,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "score_modal_title": "Game result",
         "score_modal_label": "Game ID (required)",
         "score_modal_placeholder": "e.g. 123456",
-        "score_resolved": (
-            "🏆 Result recorded — **{winner}** wins **{map}** (game {game})."
-        ),
+        "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
-        "score_disputed": (
-            "⚖️ Your declaration contradicts the recorded result — the admins"
-            " arbitrate (game {game})."
-        ),
-        "noshow_side": (
-            "🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."
-        ),
-        "noshow_both": (
-            "🏳️ **{map}** — double forfeit: no player at the meeting, the territory"
-            " stays with its owner."
-        ),
-        "dispute_admin_dm": (
-            "⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."
+        "score_disputed": ("⚖️ Your declaration contradicts the recorded result — the admins arbitrate (game {game})."),
+        "noshow_side": ("🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."),
+        "noshow_both": ("🏳️ **{map}** — double forfeit: no player at the meeting, the territory stays with its owner."),
+        "dispute_admin_dm": ("⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."),
+        "auto_dispute": (
+            "⚖️ **Dispute auto-opened on {map}** — no result declared 15h after the"
+            " game opened: an admin arbitrates through the console (`resultat`)."
         ),
         "dispute_win_attacker": "⚖️ Rule: attacker",
         "dispute_win_defender": "⚖️ Rule: defender",
@@ -393,11 +361,7 @@ def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
     if guild is None:
         return None
     wanted = _slug(DECLARE_CHANNEL_NAME)
-    channels = [
-        c
-        for c in getattr(guild, "text_channels", [])
-        if _slug(getattr(c, "name", "")) in (wanted, "attaquer")
-    ]
+    channels = [c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) in (wanted, "attaquer")]
     return next((c for c in channels if _slug(c.name) == wanted), channels[0] if channels else None)
 
 
@@ -464,14 +428,10 @@ def _panel_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
     return view
 
 
-def panel_text(
-    strings: dict[str, str], rows: list[str]
-) -> str:
+def panel_text(strings: dict[str, str], rows: list[str]) -> str:
     """Build the pinned panel message (title, help, live rows, marker)."""
     body = rows if rows else [strings["panel_empty"]]
-    return "\n".join(
-        (strings["panel_title"], "", strings["panel_help"], "", *body, ATTACK_PANEL_MARKER)
-    )
+    return "\n".join((strings["panel_title"], "", strings["panel_help"], "", *body, ATTACK_PANEL_MARKER))
 
 
 async def _ongoing_rows(
@@ -669,9 +629,7 @@ class KingdomAttackDeclareButton(
         if lord is None:
             await interaction.response.send_message(strings["not_a_lord"], ephemeral=True)
             return
-        content, view = await _kingdom_select_view(
-            wiring, str(getattr(lord, "kingdom_id", "") or ""), strings
-        )
+        content, view = await _kingdom_select_view(wiring, str(getattr(lord, "kingdom_id", "") or ""), strings)
         if view is None:
             await interaction.response.send_message(strings["no_target"], ephemeral=True)
             return
@@ -731,9 +689,7 @@ def _map_description(entry: Any, strings: dict[str, str]) -> str:
     return " · ".join(parts)[:100]
 
 
-def _kingdom_option(
-    kingdom: Any, level: int, count: int, strings: dict[str, str]
-) -> discord.SelectOption:
+def _kingdom_option(kingdom: Any, level: int, count: int, strings: dict[str, str]) -> discord.SelectOption:
     """One step-1 option: the kingdom, its defence AI level and map count."""
     import discord
 
@@ -761,9 +717,7 @@ async def _kingdom_step_options(
     kingdoms_service = wiring.kingdoms_service
     attacks_service = wiring.attacks_service
     territories_service = wiring.territories_service
-    territories = (
-        await territories_service.territories() if territories_service is not None else []
-    )
+    territories = await territories_service.territories() if territories_service is not None else []
     options: list[Any] = []
     protected: list[str] = []
     for kingdom in await kingdoms_service.kingdoms():
@@ -783,9 +737,7 @@ async def _kingdom_step_options(
             slots = patrouille_slots(state)
             span = 3 if patrouille_reinforced(state, base) else 2
             end = (slots[-1] + span) % 24 if slots else 0
-            protected.append(
-                strings["patrol_kingdom"].format(name=str(kingdom.name), end=f"{end:02d}")
-            )
+            protected.append(strings["patrol_kingdom"].format(name=str(kingdom.name), end=f"{end:02d}"))
             continue
         level = await attacks_service.defense_ai_level(str(kingdom.id))
         options.append(_kingdom_option(kingdom, level, len(owned), strings))
@@ -844,30 +796,21 @@ async def _territory_select_view(
     territories_service = wiring.territories_service
     if kingdoms_service is None or territories_service is None:
         return "", None
-    kingdom = next(
-        (k for k in await kingdoms_service.kingdoms() if str(k.id) == kingdom_id), None
-    )
+    kingdom = next((k for k in await kingdoms_service.kingdoms() if str(k.id) == kingdom_id), None)
     if kingdom is None:
         return "", None
     catalog = {
         str(getattr(entry, "key", "")): entry
         for entry in getattr(getattr(kingdoms_service, "config", None), "maps", None) or ()
     }
-    owned = [
-        t for t in await territories_service.territories() if t.owner_kingdom_id == kingdom_id
-    ]
+    owned = [t for t in await territories_service.territories() if t.owner_kingdom_id == kingdom_id]
     if not owned:
         return "", None
     options = [
         discord.SelectOption(
-            label=str(
-                getattr(catalog.get(str(t.map_key), None), "display_name", None)
-                or t.map_key
-            )[:100],
+            label=str(getattr(catalog.get(str(t.map_key), None), "display_name", None) or t.map_key)[:100],
             value=str(t.map_key)[:100],
-            description=_map_description(
-                catalog.get(str(t.map_key), None), strings
-            ),
+            description=_map_description(catalog.get(str(t.map_key), None), strings),
         )
         for t in owned
     ][:25]
@@ -883,7 +826,11 @@ async def _territory_select_view(
         if not chosen:
             return
         await _open_cover_step(
-            wiring, target, strings, chosen[0], own_kingdom_id,
+            wiring,
+            target,
+            strings,
+            chosen[0],
+            own_kingdom_id,
             is_gaia=bool(getattr(kingdom, "is_gaia", False)),
         )
 
@@ -912,27 +859,19 @@ async def _open_cover_step(
 
     attacks_service = wiring.attacks_service
     if is_gaia:
-        await interaction.response.send_modal(
-            KingdomAttackLobbyModal(strings, map_key, None, "", is_gaia=True)
-        )
+        await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, "", is_gaia=True))
         return
     if attacks_service is None:
-        await interaction.response.send_modal(
-            KingdomAttackLobbyModal(strings, map_key, None, "")
-        )
+        await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, ""))
         return
     state = await attacks_service.technology_state(own_kingdom_id)
     if state.purchases.get("contre_espionnage", 0) <= 0:
-        await interaction.response.send_modal(
-            KingdomAttackLobbyModal(strings, map_key, None, "")
-        )
+        await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, ""))
         return
     view = discord.ui.View(timeout=600)
 
     async def open_lobby(cover_lord_id: str | None, target: discord.Interaction[Any]) -> None:
-        await target.response.send_modal(
-            KingdomAttackLobbyModal(strings, map_key, cover_lord_id, "")
-        )
+        await target.response.send_modal(KingdomAttackLobbyModal(strings, map_key, cover_lord_id, ""))
 
     async def on_yes(target: discord.Interaction[Any]) -> None:
         lords = [
@@ -965,9 +904,7 @@ async def _open_cover_step(
         select.callback = on_cover  # type: ignore[method-assign, assignment]
         cover_view = discord.ui.View(timeout=600)
         cover_view.add_item(select)
-        await target.response.edit_message(
-            content=str(strings["choose_cover"]), view=cover_view
-        )
+        await target.response.edit_message(content=str(strings["choose_cover"]), view=cover_view)
 
     async def on_no(target: discord.Interaction[Any]) -> None:
         await open_lobby(None, target)
@@ -986,14 +923,10 @@ async def _open_cover_step(
     no.callback = on_no  # type: ignore[method-assign, assignment]
     view.add_item(yes)
     view.add_item(no)
-    await interaction.response.edit_message(
-        content=str(strings["cover_question"]), view=view
-    )
+    await interaction.response.edit_message(content=str(strings["cover_question"]), view=view)
 
 
-async def _announce_declaration_safe(
-    guild: Any, wiring: Any, strings: dict[str, str], attack: Any
-) -> None:
+async def _announce_declaration_safe(guild: Any, wiring: Any, strings: dict[str, str], attack: Any) -> None:
     """Announce the v1-style declaration and open its rights thread."""
     channel = _announce_channel(guild)
     if channel is None:
@@ -1012,9 +945,7 @@ async def _announce_declaration_safe(
     if getattr(attack, "traquenard", False):
         content += str(strings["announce_v1_traquenard"])
     if getattr(attack, "kind", None) is not None and str(getattr(attack, "kind", "")) == "gaia":
-        gaia_max = int(
-            getattr(wiring.attacks_service, "gaia_max_participants", 7) or 7
-        )
+        gaia_max = int(getattr(wiring.attacks_service, "gaia_max_participants", 7) or 7)
         content += str(strings["announce_v1_gaia"]).format(max=gaia_max)
     try:
         message = await channel.send(content)
@@ -1023,9 +954,9 @@ async def _announce_declaration_safe(
         return
     try:
         thread = await message.create_thread(
-            name=str(strings["thread_title"]).format(
-                kingdom=attacker_name, defender=defender_name, map=attack.map_key
-            )[:100]
+            name=str(strings["thread_title"]).format(kingdom=attacker_name, defender=defender_name, map=attack.map_key)[
+                :100
+            ]
         )
         await thread.send(str(strings["thread_body"]))
     except Exception:
@@ -1079,14 +1010,10 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
                 )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.followup.send(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
             return
         await interaction.followup.send(
-            strings["declared_note"].format(
-                map=attack.map_key, time=_fmt_paris(attack.expires_at)
-            ),
+            strings["declared_note"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             ephemeral=True,
         )
         await _announce_declaration_safe(interaction.guild, wiring, strings, attack)
@@ -1134,9 +1061,7 @@ class KingdomAttackDefendButton(
             return
         await interaction.response.defer(ephemeral=True)
         try:
-            attack = await wiring.attacks_service.respond_defense(
-                self.attack_id, str(interaction.user.id)
-            )
+            attack = await wiring.attacks_service.respond_defense(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
@@ -1148,9 +1073,7 @@ class KingdomAttackDefendButton(
         channel = _announce_channel(interaction.guild)
         await _announce_safe(
             channel,
-            strings["defense_announce"].format(
-                lord=interaction.user.display_name, map=attack.map_key
-            ),
+            strings["defense_announce"].format(lord=interaction.user.display_name, map=attack.map_key),
         )
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
 
@@ -1200,18 +1123,10 @@ class KingdomAttackJoinButton(
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
         battle = next(
-            (
-                a
-                for a in await wiring.attacks_service.attacks()
-                if str(a.id) == self.attack_id and not a.is_over
-            ),
+            (a for a in await wiring.attacks_service.attacks() if str(a.id) == self.attack_id and not a.is_over),
             None,
         )
-        if (
-            battle is None
-            or getattr(battle, "kind", None) is not AttackKind.GAIA
-            or battle.state.value != "declared"
-        ):
+        if battle is None or getattr(battle, "kind", None) is not AttackKind.GAIA or battle.state.value != "declared":
             await interaction.response.send_message(strings["gaia_gone"], ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True)
@@ -1278,10 +1193,7 @@ class KingdomPickBanView(discord.ui.View):
             select: discord.ui.Select[Any] = discord.ui.Select(
                 placeholder=strings["pickban_pick"].format(n=index + 1)[:100],
                 custom_id=f"kingdoms:attack:pickban:pick:{index}",
-                options=[
-                    discord.SelectOption(label=str(civ)[:100], value=str(civ))
-                    for civ in hand
-                ][:25],
+                options=[discord.SelectOption(label=str(civ)[:100], value=str(civ)) for civ in hand][:25],
                 min_values=1 if index == 0 else 0,
                 max_values=1,
             )
@@ -1292,10 +1204,7 @@ class KingdomPickBanView(discord.ui.View):
             sabotage: discord.ui.Select[Any] = discord.ui.Select(
                 placeholder=strings["pickban_sabotage"][:100],
                 custom_id="kingdoms:attack:pickban:sabotage",
-                options=[
-                    discord.SelectOption(label=str(civ)[:100], value=str(civ))
-                    for civ in adversary_hand
-                ][:25],
+                options=[discord.SelectOption(label=str(civ)[:100], value=str(civ)) for civ in adversary_hand][:25],
                 min_values=0,
                 max_values=min(2, len(adversary_hand)),
             )
@@ -1328,15 +1237,11 @@ class KingdomPickBanView(discord.ui.View):
             return
         sabotages = list(self.sabotage_select.values) if self.sabotage_select else []
         try:
-            await wiring.attacks_service.set_picks(
-                self.attack_id, self.player_id, picks, sabotages=sabotages
-            )
+            await wiring.attacks_service.set_picks(self.attack_id, self.player_id, picks, sabotages=sabotages)
             attack = await wiring.attacks_service.validate_pickban(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         pickban: dict[str, Any] = dict(attack.pickban or {})
         mine = pickban.get(f"{self.side}_picks") or picks
@@ -1361,9 +1266,7 @@ class KingdomPickBanView(discord.ui.View):
             logger.warning("KINGDOM ATTACK: pick & ban DM edit failed", exc_info=True)
 
 
-async def _send_pickban_dm(
-    bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str
-) -> None:
+async def _send_pickban_dm(bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Send the T-5 pick & ban DM to each human player of the meeting."""
     strings = _strings(locale)
     hand = await _hand_of(kingdoms_service, attack.attacker_kingdom_id)
@@ -1419,9 +1322,7 @@ async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
     return list(getattr(kingdom, "civilizations", None) or []) if kingdom else []
 
 
-async def _dm_user_safe(
-    bot: Any, user_id: str, content: str, view: discord.ui.View | None = None
-) -> None:
+async def _dm_user_safe(bot: Any, user_id: str, content: str, view: discord.ui.View | None = None) -> None:
     """Best-effort DM to one player."""
     try:
         user = getattr(bot, "get_user", lambda _id: None)(user_id)
@@ -1466,9 +1367,7 @@ async def run_attack_phases_safe(bot: Any) -> None:
         dirty = 0
         if announce_channel is not None:
             try:
-                dirty += await _run_reveals_safe(
-                    attacks_service, kingdoms_service, announce_channel, strings
-                )
+                dirty += await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
                 pickbans = await attacks_service.pick_ban_due()
                 for attack in pickbans:
                     await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
@@ -1482,24 +1381,23 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 for attack in reminders:
                     await _send_score_reminder_dm(bot, attack, locale)
                 dirty += len(reminders)
+                # bug n°2 (Check 59, Drasah 16/10): 15h without a
+                # declared result — the dispute auto-opens, the admins
+                # arbitrate; no meeting hangs forever.
+                disputes = await attacks_service.dispute_due()
+                for attack in disputes:
+                    await _announce_safe(announce_channel, strings["auto_dispute"].format(map=attack.map_key))
+                dirty += len(disputes)
                 await _register_score_views_safe(bot, attacks_service, locale)
-                dirty += await _run_forfeits_safe(
-                    attacks_service, kingdoms_service, announce_channel, strings
-                )
-                dirty += await _run_noshows_safe(
-                    attacks_service, kingdoms_service, announce_channel, strings
-                )
+                dirty += await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
+                dirty += await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
             except Exception:
                 logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
         if dirty:
-            await deploy_attack_panel(
-                _declare_channel(guild), locale, kingdoms_service, attacks_service
-            )
+            await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
 
 
-async def _run_reveals_safe(
-    attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> int:
+async def _run_reveals_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
     """Announce the T-15 reveals (cover drop, AI fallback, locked defense).
 
     Returns the number of reveals played (attaques-panel-spam: the tick
@@ -1528,16 +1426,12 @@ async def _run_reveals_safe(
         else:
             await _announce_safe(
                 channel,
-                strings["reveal_defense"].format(
-                    map=attack.map_key, time=_fmt_paris(attack.expires_at)
-                ),
+                strings["reveal_defense"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             )
     return played
 
 
-async def _run_forfeits_safe(
-    attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> int:
+async def _run_forfeits_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
     """Announce the meeting-time forfeits of the expired attacks.
 
     Returns the number of attacks resolved (attaques-panel-spam: any
@@ -1551,15 +1445,11 @@ async def _run_forfeits_safe(
             continue
         kingdom = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
         if side == "both":
-            await _announce_safe(
-                channel, strings["forfeit_both"].format(map=attack.map_key, kingdom=kingdom)
-            )
+            await _announce_safe(channel, strings["forfeit_both"].format(map=attack.map_key, kingdom=kingdom))
         else:
             await _announce_safe(
                 channel,
-                strings["forfeit_side"].format(
-                    map=attack.map_key, side=strings[f"side_{side}"], kingdom=kingdom
-                ),
+                strings["forfeit_side"].format(map=attack.map_key, side=strings[f"side_{side}"], kingdom=kingdom),
             )
     return played
 
@@ -1622,9 +1512,7 @@ class KingdomScoreView(discord.ui.View):
             await wiring.attacks_service.mark_ready(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         await interaction.response.send_message(strings["score_ready_done"], ephemeral=True)
 
@@ -1637,9 +1525,7 @@ class KingdomScoreView(discord.ui.View):
             if wiring.attacks_service is None:
                 await interaction.response.send_message(self.strings["no_service"], ephemeral=True)
                 return
-            await interaction.response.send_modal(
-                KingdomScoreModal(self, self.winners[side], side)
-            )
+            await interaction.response.send_modal(KingdomScoreModal(self, self.winners[side], side))
 
         return _on_win
 
@@ -1680,19 +1566,13 @@ class KingdomScoreModal(discord.ui.Modal):
 
             if isinstance(exc, ScoreNotReadyError):
                 # attaques-phases-v2: the Prêt gate answers with its own line.
-                await interaction.response.send_message(
-                    strings["score_not_ready"], ephemeral=True
-                )
+                await interaction.response.send_message(strings["score_not_ready"], ephemeral=True)
                 return
             message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(
-                strings["failed"].format(message=message), ephemeral=True
-            )
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         if outcome == "disputed":
-            await interaction.response.send_message(
-                strings["score_disputed"].format(game=game_id), ephemeral=True
-            )
+            await interaction.response.send_message(strings["score_disputed"].format(game=game_id), ephemeral=True)
             await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
             return
         if outcome == "already":
@@ -1737,9 +1617,7 @@ class KingdomDisputeView(discord.ui.View):
             strings = self.strings
             wiring = _wiring()
             if str(getattr(interaction.user, "id", "")) not in (wiring.bot_admins or ()):
-                await interaction.response.send_message(
-                    strings["dispute_not_admin"], ephemeral=True
-                )
+                await interaction.response.send_message(strings["dispute_not_admin"], ephemeral=True)
                 return
             if wiring.attacks_service is None:
                 await interaction.response.send_message(strings["no_service"], ephemeral=True)
@@ -1748,9 +1626,7 @@ class KingdomDisputeView(discord.ui.View):
                 attack = await wiring.attacks_service.resolve_dispute(self.attack_id, choice)
             except Exception as exc:
                 message = getattr(exc, "message", None) or str(exc)
-                await interaction.response.send_message(
-                    strings["failed"].format(message=message), ephemeral=True
-                )
+                await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
                 return
             if choice == "both":
                 await interaction.response.send_message(
@@ -1774,9 +1650,7 @@ def _score_civs(attack: Any) -> str:
     return f"{', '.join(mine) or '—'} 🆚 {', '.join(theirs) or '—'}"
 
 
-async def _send_score_dm(
-    bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str
-) -> None:
+async def _send_score_dm(bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Send the RDV DM (Prêt + result buttons) to each human player."""
     strings = _strings(locale)
     winners = {
@@ -1787,9 +1661,7 @@ async def _send_score_dm(
     # shows the phase, never the clock (Drasah 15/10).
     content = strings["score_dm"].format(map=attack.map_key, civs=_score_civs(attack))
     for player_id in _score_players(attack):
-        view = KingdomScoreView(
-            str(attack.id), str(player_id), winners, locale, announce_channel=channel
-        )
+        view = KingdomScoreView(str(attack.id), str(player_id), winners, locale, announce_channel=channel)
         try:
             bot.add_view(view)  # restart-safe callbacks from the first second
         except Exception:
@@ -1832,21 +1704,16 @@ async def _register_score_views_safe(bot: Any, attacks_service: Any, locale: str
         }
         for player_id in _score_players(attack):
             try:
-                bot.add_view(
-                    KingdomScoreView(str(attack.id), str(player_id), winners, locale)
-                )
+                bot.add_view(KingdomScoreView(str(attack.id), str(player_id), winners, locale))
             except Exception:
                 logger.warning("KINGDOM ATTACK: score view re-registration failed", exc_info=True)
 
 
-async def _dm_admins_dispute_safe(
-    bot: Any, wiring: Any, attack: Any, strings: dict[str, str]
-) -> None:
+async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: dict[str, str]) -> None:
     """DM the bot-admins a disputed meeting with the arbitration buttons."""
     declarations = (attack.score or {}).get("declarations") or {}
     lines = [
-        f"• <@{player}> → {decl.get('winner')} (game {decl.get('game_id')})"
-        for player, decl in declarations.items()
+        f"• <@{player}> → {decl.get('winner')} (game {decl.get('game_id')})" for player, decl in declarations.items()
     ]
     content = strings["dispute_admin_dm"].format(
         map=attack.map_key,
@@ -1858,9 +1725,7 @@ async def _dm_admins_dispute_safe(
         await _dm_user_safe(bot, str(admin_id), content, view)
 
 
-async def _run_noshows_safe(
-    attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]
-) -> int:
+async def _run_noshows_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
     """Announce the T+5 no-show resolutions of the meetings.
 
     Returns the number of meetings resolved (attaques-panel-spam: any
@@ -1878,8 +1743,6 @@ async def _run_noshows_safe(
         kingdom = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
         await _announce_safe(
             channel,
-            strings["noshow_side"].format(
-                map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom
-            ),
+            strings["noshow_side"].format(map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom),
         )
     return played

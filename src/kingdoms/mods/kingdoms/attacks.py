@@ -11,6 +11,7 @@ Results come from the game contract through the admin (D20): the
 service only owns the state machine and applies the idempotent
 territory transfer on capture.
 """
+
 from __future__ import annotations
 
 import logging
@@ -238,11 +239,7 @@ TRAQUENARD_WINDOW_HOURS = 6
 
 def patrouille_slots(state: TechnologyState) -> tuple[int, ...]:
     """Return the kingdom's bought patrol slots (start hours, D68)."""
-    return tuple(
-        state.purchases[key]
-        for key in PATROUILLE_SLOT_KEYS
-        if key in state.purchases
-    )
+    return tuple(state.purchases[key] for key in PATROUILLE_SLOT_KEYS if key in state.purchases)
 
 
 def patrouille_reinforced(state: TechnologyState, base_level: int) -> bool:
@@ -253,15 +250,10 @@ def patrouille_reinforced(state: TechnologyState, base_level: int) -> bool:
     permanent Jeu d'armes purchase), every patrol slot of the kingdom
     widens from 2h to 3h.
     """
-    return (
-        min(AI_LEVEL_CAP, base_level + state.purchases.get("jeu_d_armes", 0))
-        >= AI_LEVEL_CAP
-    )
+    return min(AI_LEVEL_CAP, base_level + state.purchases.get("jeu_d_armes", 0)) >= AI_LEVEL_CAP
 
 
-def patrouille_active_at(
-    state: TechnologyState, now: datetime, *, base_level: int | None = None
-) -> bool:
+def patrouille_active_at(state: TechnologyState, now: datetime, *, base_level: int | None = None) -> bool:
     """Whether a patrol slot covers ``now`` (daily 2h slot, D68).
 
     The slot hours are expressed in the players' timezone (Europe/Paris,
@@ -309,9 +301,7 @@ def _refuse_lords_day_execution(
     if window is None:
         return
     expires = timestamp + timedelta(hours=delay_hours)
-    if expires <= window[1] and not bypass_guard(
-        "lords-day declare window"
-    ):
+    if expires <= window[1] and not bypass_guard("lords-day declare window"):
         raise LordsDayAttackError(
             "the attack would be played inside the Lord's Day window "
             "(declare only if the execution lands after it closes)"
@@ -328,13 +318,10 @@ def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
     result = dict(pickban)
     attacker_sabotages = list(result.get("attacker_sabotages") or [])
     defender_sabotages = list(result.get("defender_sabotages") or [])
-    result["attacker_picks"] = [
-        civ for civ in (result.get("attacker_picks") or []) if civ not in defender_sabotages
-    ]
-    result["defender_picks"] = [
-        civ for civ in (result.get("defender_picks") or []) if civ not in attacker_sabotages
-    ]
+    result["attacker_picks"] = [civ for civ in (result.get("attacker_picks") or []) if civ not in defender_sabotages]
+    result["defender_picks"] = [civ for civ in (result.get("defender_picks") or []) if civ not in attacker_sabotages]
     return result
+
 
 CORBEAU_TRACK_DELAY_HOURS = 24
 """Volière Corbeau (voliere-v1, Drasah 14/10): the delay of every attack
@@ -369,7 +356,6 @@ def phase_label(attack: AttackModel) -> str:
     if attack.is_over or getattr(attack, "revealed", False):
         return "score" if attack.is_over else "draft"
     return "siege"
-
 
 
 class AttackService:
@@ -453,9 +439,7 @@ class AttackService:
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
         target_kingdom = await self._kingdom_by_id(territory.owner_kingdom_id)
-        traquenard = int(getattr(target_kingdom, "traquenard_until", 0) or 0) > int(
-            timestamp.timestamp()
-        )
+        traquenard = int(getattr(target_kingdom, "traquenard_until", 0) or 0) > int(timestamp.timestamp())
         attack = AttackModel(
             # attaques-score-v1: the epoch suffix makes the id unique —
             # a re-attack of the same territory by the same lord used
@@ -497,9 +481,8 @@ class AttackService:
         """Whether any kingdom currently « suit » this lord (voliere-v1)."""
         for kingdom in await self._kingdoms.kingdoms():
             for entry in kingdom.corbeau_tracking or []:
-                if (
-                    str(entry.get("lord_id")) == lord_id
-                    and int(entry.get("until", 0) or 0) > int(timestamp.timestamp())
+                if str(entry.get("lord_id")) == lord_id and int(entry.get("until", 0) or 0) > int(
+                    timestamp.timestamp()
                 ):
                     return True
         return False
@@ -593,9 +576,7 @@ class AttackService:
         )
         return attack
 
-    async def _validate_attack_target(
-        self, lord: LordModel, map_key: str, timestamp: datetime
-    ) -> TerritoryModel:
+    async def _validate_attack_target(self, lord: LordModel, map_key: str, timestamp: datetime) -> TerritoryModel:
         """Run the shared declaration checks on one target territory."""
         territory = await self._territory_by_map(map_key)
         if territory.owner_kingdom_id == lord.kingdom_id:
@@ -617,15 +598,19 @@ class AttackService:
         ):
             raise PatrolProtectedError("the target kingdom's patrol protects its territories (D68)")
         # D59/D60: a fresh marriage locks the lord out of combat.
-        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
-            timestamp.timestamp()
-        ) and not bypass_guard(f"marriage lock of {lord.display_name}"):
+        if (
+            lord.marriage_locked_until is not None
+            and lord.marriage_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"marriage lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         # marche-v2 art. 6: a lord sent exploring is locked out of
         # combat for the whole 48h exploration (fixed lock).
-        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
-            timestamp.timestamp()
-        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
+        if (
+            lord.exploration_locked_until is not None
+            and lord.exploration_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"exploration lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         if await self._territory_busy(territory.id):
@@ -634,9 +619,11 @@ class AttackService:
 
     def _refuse_ffa_no_show(self, lord: LordModel, timestamp: datetime) -> None:
         """ffa-exploration-v1: a missed FFA locks the lord out of combat."""
-        if lord.ffa_locked_until is not None and lord.ffa_locked_until > int(
-            timestamp.timestamp()
-        ) and not bypass_guard(f"ffa no-show lock of {lord.display_name}"):
+        if (
+            lord.ffa_locked_until is not None
+            and lord.ffa_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"ffa no-show lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by a missed FFA (ffa-exploration-v1)")
 
     async def _engage_cover(self, lord: LordModel, cover_lord_id: str) -> str:
@@ -671,21 +658,23 @@ class AttackService:
         timestamp = _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
         if timestamp >= cutoff and not bypass_guard("defense T-15 cutoff"):
-            raise DefenseCutoffError(
-                "the defense is closed (T-15) — the meeting is set and the bot AI takes over"
-            )
+            raise DefenseCutoffError("the defense is closed (T-15) — the meeting is set and the bot AI takes over")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
         # D59/D60: a fresh marriage locks the lord out of combat.
-        if lord.marriage_locked_until is not None and lord.marriage_locked_until > int(
-            _now().timestamp()
-        ) and not bypass_guard(f"marriage lock of {lord.display_name}"):
+        if (
+            lord.marriage_locked_until is not None
+            and lord.marriage_locked_until > int(_now().timestamp())
+            and not bypass_guard(f"marriage lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         # marche-v2 art. 6: the exploring lord cannot defend either.
-        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
-            _now().timestamp()
-        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
+        if (
+            lord.exploration_locked_until is not None
+            and lord.exploration_locked_until > int(_now().timestamp())
+            and not bypass_guard(f"exploration lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, _now())
         if lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
@@ -726,9 +715,7 @@ class AttackService:
         for attack in await self.attacks():
             if attack.kind is not AttackKind.PLAYER or attack.revealed or attack.is_over:
                 continue
-            cutoff = attack.expires_at - timedelta(
-                minutes=self._config.attacks.defense_cutoff_minutes
-            )
+            cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
             if timestamp < cutoff:
                 continue
             attack.revealed = True
@@ -739,9 +726,7 @@ class AttackService:
                 # Traquenard forces Facile (1), otherwise the defence
                 # bot's own level (epoch base + Jeu d'armes, ceiling 5).
                 attack.effects["ai_level"] = (
-                    1
-                    if attack.traquenard
-                    else await self.defense_ai_level(attack.defender_kingdom_id)
+                    1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
                 )
                 logger.info(
                     "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s)",
@@ -769,9 +754,7 @@ class AttackService:
                 continue
             if attack.pickban.get("sent") or attack.is_over:
                 continue
-            lead = attack.expires_at - timedelta(
-                minutes=self._config.attacks.pick_ban_lead_minutes
-            )
+            lead = attack.expires_at - timedelta(minutes=self._config.attacks.pick_ban_lead_minutes)
             if timestamp < lead or timestamp >= attack.expires_at:
                 continue
             pickban = dict(attack.pickban)
@@ -803,9 +786,7 @@ class AttackService:
         """
         attack = await self._require_pickban_attack(attack_id, now or _now())
         side = await self._pick_ban_side(attack, player_id)
-        hand = await self._side_hand(
-            attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id
-        )
+        hand = await self._side_hand(attack.attacker_kingdom_id if side == "attacker" else attack.defender_kingdom_id)
         required = min(3, len(hand))
         if len(picks) != required or len(set(picks)) != required:
             raise PickBanStateError(f"rank exactly {required} distinct civilization(s)")
@@ -833,14 +814,10 @@ class AttackService:
             map=attack.map_key,
             side=side,
         )
-        logger.info(
-            "kingdoms: pick & ban submitted by %s on the attack on %s", player_id, attack.map_key
-        )
+        logger.info("kingdoms: pick & ban submitted by %s on the attack on %s", player_id, attack.map_key)
         return attack
 
-    async def validate_pickban(
-        self, attack_id: str, player_id: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    async def validate_pickban(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Validate one side's pick & ban (D77).
 
         When both sides validated, the sabotages apply (a sabotaged
@@ -853,9 +830,7 @@ class AttackService:
         pickban = dict(attack.pickban)
         pickban[f"{side}_validated"] = True
         if pickban.get("attacker_validated") and pickban.get("defender_validated"):
-            pickban = _apply_sabotages(
-                await self._void_faucon_sabotages(attack, pickban, now or _now())
-            )
+            pickban = _apply_sabotages(await self._void_faucon_sabotages(attack, pickban, now or _now()))
             pickban["resolved_pickban"] = True
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
@@ -882,10 +857,7 @@ class AttackService:
         lord = await self._require_lord(player_id)
         if lord.kingdom_id == attack.attacker_kingdom_id and lord.id == attack.attacker_lord_id:
             return "attacker"
-        if (
-            lord.kingdom_id == attack.defender_kingdom_id
-            and lord.id == attack.defender_lord_id
-        ):
+        if lord.kingdom_id == attack.defender_kingdom_id and lord.id == attack.defender_lord_id:
             return "defender"
         raise PickBanStateError("only the two players of the meeting pick & ban")
 
@@ -955,17 +927,13 @@ class AttackService:
             return None
         return await self._expire_defended(attack, timestamp)
 
-    async def _expire_defended(
-        self, attack: AttackModel, timestamp: datetime
-    ) -> AttackModel | None:
+    async def _expire_defended(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
         """Resolve the un-resolved pick & ban of an expired defense (D77)."""
         pickban = dict(attack.pickban)
         attacker_ok = bool(pickban.get("attacker_validated"))
         defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
         if attacker_ok and defender_ok:
-            pickban = _apply_sabotages(
-                await self._void_faucon_sabotages(attack, pickban, timestamp)
-            )
+            pickban = _apply_sabotages(await self._void_faucon_sabotages(attack, pickban, timestamp))
             pickban["resolved_pickban"] = True
             attack.pickban = pickban
             await self._store.upsert_attack(attack.to_mongo())
@@ -1017,9 +985,7 @@ class AttackService:
             # The game-start moment, epoch seconds — the 3h reminder base.
             score["opened_at"] = int(timestamp.timestamp())
             # The T+5 no-show line, epoch seconds (Mongo-proof).
-            score["ready_deadline"] = int(
-                (attack.expires_at + timedelta(minutes=self.READY_GRACE_MINUTES)).timestamp()
-            )
+            score["ready_deadline"] = int((attack.expires_at + timedelta(minutes=self.READY_GRACE_MINUTES)).timestamp())
             attack.score = score
             attack.state = AttackState.MEETING
             await self._store.upsert_attack(attack.to_mongo())
@@ -1031,9 +997,59 @@ class AttackService:
 
     SCORE_REMINDER_HOURS = 3
 
-    async def mark_ready(
-        self, attack_id: str, player_id: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    SCORE_DISPUTE_AFTER_REMINDER_HOURS = 12
+    """bug n°2 (Check 59, Drasah 16/10): 12h past the 3h reminder with
+    no declared result, the meeting carries an auto-opened dispute —
+    the admins arbitrate (the console ``resultat``); nothing hangs
+    forever anymore."""
+
+    async def dispute_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Auto-open a dispute on every result-less meeting past 15h.
+
+        The Score phase where everyone is Prêt but nobody declares a
+        result could hang forever (bug n°2, Check 59). Fifteen hours
+        after the phase opened (3h reminder + 12h, decision Drasah
+        16/10), the meeting is flagged ``disputed`` — the admins
+        arbitrate through ``resolve_dispute`` (the console
+        ``resultat`` command). Idempotent through
+        ``score["auto_dispute"]`` — the tick replays it safely.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score)
+            # Only the all-Prêt meetings can hang: a missing Prêt at
+            # T+5 is forfeited by ready_due, so those never reach 15h.
+            if not score.get("all_ready") or score.get("declarations"):
+                continue
+            if score.get("auto_dispute"):
+                continue
+            opened_at = int(score.get("opened_at") or 0)
+            if not opened_at:
+                continue
+            deadline = opened_at + (self.SCORE_REMINDER_HOURS + self.SCORE_DISPUTE_AFTER_REMINDER_HOURS) * 3600
+            if timestamp.timestamp() < deadline:
+                continue
+            # The reminder line passed de facto — never re-fire the DM
+            # on a meeting that now carries a dispute.
+            score["reminded"] = True
+            score["disputed"] = True
+            score["auto_dispute"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            due.append(attack)
+            logger.warning(
+                "kingdoms: auto-opened score dispute on %s (no result 15h after opening)",
+                attack.map_key,
+            )
+        return due
+
+    async def mark_ready(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Record one player's « Prêt » click in the score phase.
 
         Idempotent — a double click adds nothing. Only the two players
@@ -1112,9 +1128,7 @@ class AttackService:
             handled.append(attack)
         return handled
 
-    async def _apply_noshow(
-        self, attack: AttackModel, winner: str, noshow_side: str, timestamp: datetime
-    ) -> None:
+    async def _apply_noshow(self, attack: AttackModel, winner: str, noshow_side: str, timestamp: datetime) -> None:
         """Resolve a meeting by the T+5 no-show of one side."""
         score = dict(attack.score)
         score["noshow"] = noshow_side
@@ -1178,12 +1192,9 @@ class AttackService:
         """
         await self._require_running_season()
         timestamp = now or _now()
-        if await self._active_lords_day_window(timestamp) is not None and not bypass_guard(
-            "lords-day score window"
-        ):
+        if await self._active_lords_day_window(timestamp) is not None and not bypass_guard("lords-day score window"):
             raise LordsDayAttackError(
-                "the result cannot be declared inside the Lord's Day window "
-                "(declare it after the window closes)"
+                "the result cannot be declared inside the Lord's Day window (declare it after the window closes)"
             )
         attack = await self._find_attack(attack_id)
         if attack.kind is not AttackKind.PLAYER:
@@ -1226,8 +1237,7 @@ class AttackService:
         # by a fast declaration anymore (Check 57 follow-up).
         if player_id not in (attack.score.get("ready") or []):
             raise ScoreNotReadyError(
-                "confirm your presence at the meeting first (the Prêt button) "
-                "before declaring a result"
+                "confirm your presence at the meeting first (the Prêt button) before declaring a result"
             )
         score = dict(attack.score)
         declarations = dict(score.get("declarations") or {})
@@ -1252,9 +1262,7 @@ class AttackService:
         )
         return attack, "resolved"
 
-    async def _resolve_score(
-        self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime
-    ) -> None:
+    async def _resolve_score(self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime) -> None:
         """Apply the game result of a meeting (D20), idempotently."""
         attack.state = AttackState.RESOLVED
         attack.winner_kingdom_id = winner_kingdom_id
@@ -1279,9 +1287,7 @@ class AttackService:
             return "defender"
         raise AttackStateError("only the two players of the meeting declare a result")
 
-    async def resolve_dispute(
-        self, attack_id: str, admin_choice: str, *, now: datetime | None = None
-    ) -> AttackModel:
+    async def resolve_dispute(self, attack_id: str, admin_choice: str, *, now: datetime | None = None) -> AttackModel:
         """Admin arbitration of a disputed meeting (attaques-score-v1).
 
         ``admin_choice`` is ``"attacker"``, ``"defender"`` (the side
@@ -1301,11 +1307,7 @@ class AttackService:
         score["disputed"] = False
         attack.score = score
         territory = next(
-            (
-                item
-                for item in await self._territories.territories()
-                if item.id == attack.territory_id
-            ),
+            (item for item in await self._territories.territories() if item.id == attack.territory_id),
             None,
         )
         if admin_choice == "both":
@@ -1325,11 +1327,7 @@ class AttackService:
                 attack.map_key,
             )
             return attack
-        winner = (
-            attack.attacker_kingdom_id
-            if admin_choice == "attacker"
-            else attack.defender_kingdom_id
-        )
+        winner = attack.attacker_kingdom_id if admin_choice == "attacker" else attack.defender_kingdom_id
         if attack.winner_kingdom_id == winner:
             await self._store.upsert_attack(attack.to_mongo())  # confirm the resolution
             logger.warning(
@@ -1349,10 +1347,7 @@ class AttackService:
                 )
             await self._apply_attacker_win(attack)
         else:
-            if (
-                territory is not None
-                and territory.owner_kingdom_id == attack.attacker_kingdom_id
-            ):
+            if territory is not None and territory.owner_kingdom_id == attack.attacker_kingdom_id:
                 await self._territories.transfer(attack.territory_id, attack.defender_kingdom_id)
         await self._store.upsert_attack(attack.to_mongo())
         logger.warning(
@@ -1361,7 +1356,6 @@ class AttackService:
             winner,
         )
         return attack
-
 
     async def cancel_ongoing(self) -> list[AttackModel]:
         """Cancel every ongoing attack before the season verdict.
@@ -1393,12 +1387,9 @@ class AttackService:
         free-for-all nobody won.
         """
         await self._require_running_season()
-        if await self._active_lords_day_window(_now()) is not None and not bypass_guard(
-            "lords-day resolve window"
-        ):
+        if await self._active_lords_day_window(_now()) is not None and not bypass_guard("lords-day resolve window"):
             raise LordsDayAttackError(
-                "the attack cannot be played inside the Lord's Day window "
-                "(resolve it after the window closes)"
+                "the attack cannot be played inside the Lord's Day window (resolve it after the window closes)"
             )
         attack = await self._find_attack(attack_id)
         if attack.state is AttackState.RESOLVED:
@@ -1423,10 +1414,12 @@ class AttackService:
             raise KingdomNotFoundError("the winner kingdom does not exist in the season")
         allowed = {attack.attacker_kingdom_id, attack.defender_kingdom_id}
         if attack.kind is AttackKind.GAIA:
-            allowed.add(next(
-                (kingdom.id for kingdom in kingdoms if kingdom.is_gaia),
-                GAIA_KINGDOM_KEY,
-            ))
+            allowed.add(
+                next(
+                    (kingdom.id for kingdom in kingdoms if kingdom.is_gaia),
+                    GAIA_KINGDOM_KEY,
+                )
+            )
         if winner_kingdom_id not in allowed:
             raise AttackStateError("this kingdom took no part in the attack")
         attack.state = AttackState.RESOLVED
@@ -1483,11 +1476,7 @@ class AttackService:
         cannot be attacked at all).
         """
         territory = next(
-            (
-                item
-                for item in await self._territories.territories()
-                if item.id == attack.territory_id
-            ),
+            (item for item in await self._territories.territories() if item.id == attack.territory_id),
             None,
         )
         resolved_at = attack.resolved_at or _now()
@@ -1604,9 +1593,11 @@ class AttackService:
             raise NoBudgetError("the weekly attack budget is spent")
         timestamp = now or _now()
         # marche-v2 art. 6: an exploring lord can neither attack nor defend.
-        if lord.exploration_locked_until is not None and lord.exploration_locked_until > int(
-            timestamp.timestamp()
-        ) and not bypass_guard(f"exploration lock of {lord.display_name}"):
+        if (
+            lord.exploration_locked_until is not None
+            and lord.exploration_locked_until > int(timestamp.timestamp())
+            and not bypass_guard(f"exploration lock of {lord.display_name}")
+        ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
         self._refuse_ffa_no_show(lord, timestamp)
         territory = await self._territory_by_map(map_key)
@@ -1621,9 +1612,7 @@ class AttackService:
             (
                 item
                 for item in await self.attacks()
-                if item.kind is AttackKind.GAIA
-                and item.territory_id == territory.id
-                and not item.is_over
+                if item.kind is AttackKind.GAIA and item.territory_id == territory.id and not item.is_over
             ),
             None,
         )
@@ -1650,8 +1639,6 @@ class AttackService:
             logger.info("kingdoms: %s opens the Gaïa free-for-all on %s", lord.id, territory.map_key)
             return attack
         return await self._join_gaia_attack(attack, lord, territory)
-
-
 
     def _new_gaia_attack(
         self,
@@ -1680,9 +1667,7 @@ class AttackService:
             participants=[lord.id],
         )
 
-    async def _join_gaia_attack(
-        self, attack: AttackModel, lord: LordModel, territory: TerritoryModel
-    ) -> AttackModel:
+    async def _join_gaia_attack(self, attack: AttackModel, lord: LordModel, territory: TerritoryModel) -> AttackModel:
         """Add one lord to an open Gaïa free-for-all (D6/D42)."""
         if attack.state is not AttackState.DECLARED:
             raise AttackStateError("the free-for-all no longer accepts participants")
@@ -1780,16 +1765,10 @@ class AttackService:
         now_ts = int(timestamp.timestamp())
         # (1) one-shot: +2h on the target's already-sealed marriages.
         for victim in await self._kingdoms.lords():
-            if (
-                victim.kingdom_id != target_kingdom_id
-                or victim.left
-                or victim.married_civilization is None
-            ):
+            if victim.kingdom_id != target_kingdom_id or victim.left or victim.married_civilization is None:
                 continue
             current = int(victim.marriage_locked_until or 0)
-            victim.marriage_locked_until = max(current, now_ts) + int(
-                TRAQUENARD_LOCK_HOURS * 3600
-            )
+            victim.marriage_locked_until = max(current, now_ts) + int(TRAQUENARD_LOCK_HOURS * 3600)
             await self._store.upsert_lord(victim.to_mongo())
         # (2) the 6h Facile window on the target kingdom.
         target.traquenard_until = now_ts + int(TRAQUENARD_WINDOW_HOURS * 3600)
@@ -1871,19 +1850,12 @@ class AttackService:
 
     async def _territory_busy(self, territory_id: str) -> bool:
         """Whether an ongoing attack targets the territory (D42)."""
-        return any(
-            attack.territory_id == territory_id and not attack.is_over
-            for attack in await self.attacks()
-        )
+        return any(attack.territory_id == territory_id and not attack.is_over for attack in await self.attacks())
 
     async def _territory_by_map(self, map_key: str) -> TerritoryModel:
         """Resolve a territory by its map key."""
         territory = next(
-            (
-                item
-                for item in await self._territories.territories()
-                if item.map_key == map_key
-            ),
+            (item for item in await self._territories.territories() if item.map_key == map_key),
             None,
         )
         if territory is None:
@@ -1900,9 +1872,7 @@ class AttackService:
             raise KingdomNotFoundError("no kingdom with this id")
         return kingdom
 
-    async def _active_lords_day_window(
-        self, timestamp: datetime
-    ) -> tuple[datetime, datetime] | None:
+    async def _active_lords_day_window(self, timestamp: datetime) -> tuple[datetime, datetime] | None:
         """Return the Lord's Day window at ``timestamp``, calendar or forced.
 
         The real calendar window (Sunday 23:30 → Monday 10:00) applies
