@@ -123,25 +123,135 @@ async def _channel_status(guild_id: str, scope: str, key: str) -> str:
     return f"<#{channel_id}>" if channel_id else "non provisionné"
 
 
+class TreeOpenButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:open:(?P<section>[a-z]+)",
+):
+    """One admin menu button: opens its section's ephemeral view."""
+
+    SECTIONS = ("lang", "channels", "roles", "games", "mods")
+
+    def __init__(self, section: str, label: str, emoji: str) -> None:
+        self.section = section
+        super().__init__(
+            discord.ui.Button(
+                custom_id=f"{_NS}:open:{section}",
+                label=label,
+                emoji=emoji,
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> TreeOpenButton:
+        """Rebuild the opener from the wire (label from the locale)."""
+        section = match.group("section")
+        label = await _tree_tr(interaction, f"admin_tree.{section}_btn")
+        emoji = {
+            "lang": "\U0001f310",
+            "channels": "\U0001f4cb",
+            "roles": "\U0001f9e9",
+            "games": "\U0001f3ae",
+            "mods": "\U0001f9e9",
+        }.get(section, "\u2795")
+        return cls(section, label, emoji)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the section's view (guarded at click time)."""
+        if not await _guard(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if self.section == "lang":
+            locale = "en"
+            logs = getattr(interaction.client, "logs_service", None)
+            if logs is not None and guild_id:
+                try:
+                    locale = str(await logs.get_locale(guild_id) or "en")
+                except Exception:
+                    locale = "en"
+            view = discord.ui.LayoutView(timeout=None)
+            view.add_item(
+                discord.ui.Container(
+                    discord.ui.TextDisplay(
+                        "## " + LOCALE_LABELS.get(locale, locale)
+                        + "\n" + await _tree_tr(interaction, "admin_tree.language")
+                    ),
+                    accent_colour=discord.Colour(0x5865F2),
+                )
+            )
+            lang_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+            lang_row.add_item(TreeLocaleSelect(locale))
+            view.add_item(lang_row)
+            await interaction.followup.send(view=view, ephemeral=True)
+        elif self.section == "channels":
+            channel_select = await TreeChannelSelect.create(guild_id, interaction)
+            picker = discord.ui.LayoutView(timeout=None)
+            picker.add_item(
+                discord.ui.Container(
+                    discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.channels")),
+                    accent_colour=discord.Colour(0x5865F2),
+                )
+            )
+            channel_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+            channel_row.add_item(channel_select)
+            picker.add_item(channel_row)
+            await interaction.followup.send(view=picker, ephemeral=True)
+        elif self.section == "roles":
+            from kingdoms.discord.admin_persistent import _handle_roles
+
+            await _handle_roles(interaction)
+        elif self.section in ("games", "mods"):
+            from kingdoms.discord.scope_pins import _admin_builder
+
+            builder = _admin_builder(interaction.client, self.section)
+            try:
+                scope_view = await builder(guild_id)
+            except Exception:
+                logger.warning("ADMIN TREE: scope admin view failed (%s)", self.section, exc_info=True)
+                await interaction.followup.send(
+                    await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
+                )
+                return
+            await interaction.followup.send(view=scope_view, ephemeral=True)
+
+
 async def build_admin_menu(
     guild_id: str, locale: str, interaction: Any = None
 ) -> discord.ui.LayoutView:
-    """Build the new admin menu (ephemeral answer; stateless items)."""
+    """Build the light admin menu: five opener buttons (DynamicItems)."""
+    from kingdoms.core.ids import footer
+
+    async def _label(key: str, fallback: str) -> str:
+        if interaction is None:
+            return fallback
+        return await _tree_tr(interaction, key)
+
+    buttons = (
+        ("lang", await _label("admin_tree.language_btn", "Langue"), "\U0001f310"),
+        ("channels", await _label("admin_tree.channels_btn", "Salons"), "\U0001f4cb"),
+        ("roles", await _label("admin_tree.roles_btn", "R\u00f4les"), "\U0001f9e9"),
+        ("games", await _label("admin_tree.games_btn", "Jeux (admin)"), "\U0001f3ae"),
+        ("mods", await _label("admin_tree.mods_btn", "Mods (admin)"), "\U0001f9e9"),
+    )
     view = discord.ui.LayoutView(timeout=None)
-    rows: list[Any] = []
-    title_line = "# 🛠️ " + await _tree_tr(interaction, "admin_tree.title")
-    subtitle_line = await _tree_tr(interaction, "admin_tree.subtitle")
-    rows.append(discord.ui.TextDisplay(title_line + "\n" + subtitle_line))
-    rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.language")))
-    rows.append(_select_row(TreeLocaleSelect(locale)))
-    rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.channels")))
-    rows.append(_select_row(await TreeChannelSelect.create(guild_id)))
-    rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.roles")))
-    rows.append(_button_row(TreeRolesButton()))
-    view.add_item(discord.ui.Container(*rows, accent_colour=discord.Colour(0x5865F2)))
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("# \U0001f6e0\ufe0f Admin"),
+            accent_colour=discord.Colour(0x5865F2),
+        )
+    )
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    for section, label, emoji in buttons:
+        row.add_item(TreeOpenButton(section, label, emoji))
+    view.add_item(row)
+    view.add_item(discord.ui.TextDisplay(footer(f"view:bot:admin guild={guild_id}")))
     return view
 
 
@@ -427,6 +537,7 @@ class TreeBackButton(
 
 def register_admin_tree_items(bot: discord.Client) -> None:
     """Register the new admin menu's DynamicItems (every startup)."""
+    bot.add_dynamic_items(TreeOpenButton)
     bot.add_dynamic_items(TreeLocaleSelect)
     bot.add_dynamic_items(TreeChannelSelect)
     bot.add_dynamic_items(TreeChannelRouteSelect)

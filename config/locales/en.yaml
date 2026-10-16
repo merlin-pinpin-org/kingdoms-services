@@ -82,6 +82,26 @@ en:
       remove_empty: Which account to remove?
       remove_open_failed: "Removal failed for: {failed} — the details go to the admins."
       remove_not_found: not found
+      games_title: "# 🎮 Games"
+      games_subtitle: "The games available on this server, their data and their channels."
+      games_available: "Available games:"
+      general_label: "General"
+      civs_label: "Civilisations"
+      maps_label: "Maps"
+      pools_label: "Map pools"
+      mods_title: "# 🧩 Mods"
+      mods_subtitle: "The mods available for this server."
+      mods_available: "Available mods:"
+      games_none: "No active game — ask a <@&{admin_role}> or a bot-admin to enable one."
+      users_title: "# 👥 Registered players ({count})"
+      users_server: "## {server}"
+      mods_none: "No active mod for this server."
+      mods_admin_only: " *(admin-installable only)*"
+      admin_btn_language: "Language"
+      admin_btn_channels: "Channels"
+      admin_btn_roles: "Roles"
+      admin_btn_games: "Games (admin)"
+      admin_btn_mods: "Mods (admin)"
       status_unavailable: Status unavailable.
       roster_unavailable: Roster unavailable (store not configured).
       guild_not_found: Guild not found.
@@ -101,6 +121,11 @@ en:
       back: Back
       back_to_admin: Back to the admin menu
       admin_failed: "The roles panel failed — see the bot logs."
+      language_btn: "Language"
+      channels_btn: "Channels"
+      roles_btn: "Roles"
+      games_btn: "Games (admin)"
+      mods_btn: "Mods (admin)"
       channel_access_everyone: "Read: @everyone · Write: @everyone"
       channel_access_readonly: "Read: @everyone · Write: none (pinned menus only)"
       channel_access_admin: "Read: bot-admins · Write: bot-admins"

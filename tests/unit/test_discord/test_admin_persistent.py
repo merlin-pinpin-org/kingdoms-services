@@ -299,7 +299,7 @@ class TestPostRestartClicks:
         message = interaction.response.message
         assert message is not None and message.layout is not None
         rendered = str(_custom_ids(message.layout))
-        assert "admin:tree" in rendered, "back lands on the new main menu"
+        assert "admin:tree:open:" in rendered, "back lands on the new main menu"
 
 
 class TestClickTimeGuards:

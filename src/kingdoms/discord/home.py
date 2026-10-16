@@ -679,10 +679,18 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     games = bot.status_service.games() if isinstance(bot, KingdomsBot) else ()
     games, counts = await _granted_games_with_counts(guild_id, games)
 
-    header = "# \U0001f3ae Jeux\nLes jeux du serveur, leurs donn\u00e9es et leurs salons."
-    blocks: list[Any] = [discord.ui.TextDisplay(header)]
+    header = await reply(interaction, "profile.games_title")
+    blocks: list[Any] = [
+        discord.ui.TextDisplay(header + "\n" + await reply(interaction, "profile.games_subtitle")),
+        discord.ui.Separator(),
+    ]
     if not games:
-        blocks.append(discord.ui.TextDisplay("_Aucun jeu configur\u00e9._"))
+        blocks.append(discord.ui.TextDisplay(await reply(interaction, "profile.games_none", admin_role="bot-admins")))
+    if games:
+        game_names = "\n".join(f"\u2022 **{_game_label(game)}**" for game in games[:25])
+        blocks.append(
+            discord.ui.TextDisplay(await reply(interaction, "profile.games_available") + "\n" + game_names)
+        )
     for game in games[:25]:
         civs, maps, pools = counts.get(game, (0, 0, 0))
         general = await _tree_channel_link(guild_id, f"games/{game}", "general")
@@ -693,13 +701,13 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
         stats = f"{civs} civs \u00b7 {maps} maps \u00b7 {pools} map pools"
         lines.append(stats)
         if general:
-            lines.append(f"\u2022 G\u00e9n\u00e9ral : {general}")
+            lines.append(f"\u2022 {await reply(interaction, 'profile.general_label')} : {general}")
         if civs_link:
-            lines.append(f"\u2022 Civilisations : {civs_link}")
+            lines.append(f"\u2022 {await reply(interaction, 'profile.civs_label')} : {civs_link}")
         if maps_link:
-            lines.append(f"\u2022 Maps : {maps_link}")
+            lines.append(f"\u2022 {await reply(interaction, 'profile.maps_label')} : {maps_link}")
         if pools_link:
-            lines.append(f"\u2022 Map pools : {pools_link}")
+            lines.append(f"\u2022 {await reply(interaction, 'profile.pools_label')} : {pools_link}")
         blocks.append(discord.ui.Separator())
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view = discord.ui.LayoutView(timeout=None)
@@ -794,11 +802,13 @@ async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) 
     """Render the guild's mods (DM re-dispatch friendly: ack first, then read)."""
     if not interaction.response.is_done():
         await interaction.response.defer(ephemeral=True)
-    await interaction.followup.send(view=await _mods_layout(interaction.client, guild_id), ephemeral=True)
+    await interaction.followup.send(view=await _mods_layout(interaction.client, guild_id, interaction), ephemeral=True)
 
 
-async def _mods_layout(bot: Any, guild_id: str) -> discord.ui.LayoutView:
-    """Build the guild's mods view: granted mods with their channels."""
+async def _mods_layout(
+    bot: Any, guild_id: str, interaction: Any = None
+) -> discord.ui.LayoutView:
+    """Build the server's mods view: available mods, bullets, no doc line."""
     from kingdoms.discord.wiring import build_guild_access_service, guild_access_platform
 
     _, all_mods = guild_access_platform()
@@ -820,18 +830,27 @@ async def _mods_layout(bot: Any, guild_id: str) -> discord.ui.LayoutView:
         admin = await _tree_channel_link(guild_id, f"mods/{mod}", "admin")
         if admin:
             channels.append(f"admin : {admin}")
-        detail = f" \u2014 {', '.join(channels)}" if channels else " \u2014 salons d\u00e9di\u00e9s \u00e0 venir"
-        lines.append(f"\u2022 **{mod}**{detail}")
-    if not lines:
-        lines.append("_Aucun mod actif pour cette guilde._")
+        suffix = f" \u2014 {', '.join(channels)}" if channels else ""
+        lines.append(f"\u2022 **{mod}**{suffix}")
+    header = await reply(interaction, "profile.mods_title") if interaction is not None else "# \U0001f9e9 Mods"
+    subtitle = (
+        await reply(interaction, "profile.mods_subtitle") if interaction is not None else ""
+    )
+    body = header + ("\n" + subtitle if subtitle else "")
+    if lines:
+        available = (
+            await reply(interaction, "profile.mods_available") if interaction is not None else "Mods disponibles :"
+        )
+        body += "\n\n" + available + "\n" + "\n".join(lines)
+    else:
+        none_note = (
+            await reply(interaction, "profile.mods_none") if interaction is not None else "Aucun mod actif."
+        )
+        body += "\n\n" + none_note
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(
-                "# \U0001f9e9 Mods\n\n"
-                + "\n".join(lines)
-                + "\n\n\U0001f4d6 Documentation : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS"
-            ),
+            discord.ui.TextDisplay(body),
             accent_colour=discord.Colour(0x5865F2),
         )
     )
@@ -865,8 +884,6 @@ async def _collect_roster_bindings(bot: Any, guild_id: str) -> list[dict[str, An
             seen.add(bid)
             unique.append(b)
     return unique
-
-
 
 
 async def _is_guild_member(guild: Any, user_id: int) -> bool:
@@ -907,30 +924,43 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
         await interaction.followup.send(await reply(interaction, "profile.guild_not_found"), ephemeral=True)
         return
     unique = await _collect_roster_bindings(bot, guild_id)
-    lines: list[str] = []
+    from collections import defaultdict
+
+
+    by_member: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for binding in unique:
         user_id = str(binding.get("user_id", ""))
         if not user_id.isdigit() or not await _is_guild_member(guild, int(user_id)):
             continue
-        profile = binding.get("profile") or {}
-        name = (
-            profile.get("display_name")
-            or next(iter(profile.get("aliases") or []), None)
-            or "?"
-        )
-        game = binding.get("game_key", "?")
-        lines.append(f"\u2022 <@{user_id}> \u2014 **{name}** \u00b7 `{game}` (`{binding.get('profile_id', '?')}`)")
-        if len(lines) >= 25:
-            break
-    if not lines:
+        by_member[user_id].append(binding)
+    member_lines: list[str] = []
+    for user_id, bindings in list(by_member.items())[:25]:
+        member = guild.get_member(int(user_id))
+        display = getattr(member, "display_name", None) if member is not None else None
+        header_name = display or f"<@{user_id}>"
+        member_lines.append(f"## {header_name} \u2014 @{display or user_id}")
+        for binding in bindings:
+            profile = binding.get("profile") or {}
+            aliases = [str(a) for a in (profile.get("aliases") or []) if str(a)]
+            name = (
+                str(profile.get("display_name") or profile.get("name") or "")
+                or (aliases[0] if aliases else "")
+                or "?"
+            )
+            pid = str(binding.get("profile_id", "?"))
+            game = str(binding.get("game_key", "?"))
+            url = _game_account_url(game, pid)
+            account = f"[{name}]({url})" if url else name
+            member_lines.append(f"\u2022 {account} (`{pid}`)")
+    if not member_lines:
         await interaction.followup.send(await reply(interaction, "profile.no_members_bound"), ephemeral=True)
         return
+    title = await reply(interaction, "profile.users_title", count=len(by_member))
+    server_line = await reply(interaction, "profile.users_server", server=guild.name)
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay(
-                f"# \U0001f465 Joueurs enregistrés ({len(lines)})\n\n" + "\n".join(lines)
-            ),
+            discord.ui.TextDisplay(f"{title}\n\n{server_line}\n\n" + "\n".join(member_lines)),
             accent_colour=discord.Colour(0x5865F2),
         )
     )

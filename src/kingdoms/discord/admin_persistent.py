@@ -444,8 +444,17 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
     try:
         view = await build_roles_view(interaction, wiring)
         await interaction.followup.send(view=view, ephemeral=True)
-    except Exception:
+    except Exception as exc:
         logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if wiring.logs_service is not None and guild_id:
+            try:
+                from kingdoms.core.services.logs import LifecycleEvent
+
+                event = LifecycleEvent(kind="crash", message=f"Le panneau des r\u00f4les a \u00e9chou\u00e9 : {exc}")
+                await wiring.logs_service.log_event(guild_id, event)
+            except Exception:
+                logger.warning("ADMIN PANEL: roles failure log failed", exc_info=True)
         await _fail(interaction, "Le panneau des r\u00f4les a \u00e9chou\u00e9 \u2014 voir les logs du bot.")
 
 

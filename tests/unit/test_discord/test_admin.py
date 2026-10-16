@@ -68,8 +68,11 @@ async def test_admin_command_guild_main_menu_for_operator() -> None:
     layout = interaction.followup.messages[-1].layout
     assert isinstance(layout, discord.ui.LayoutView)
     customs = _custom_ids(layout)
-    assert f"{TREE_NS}:lang" in customs, "the guild language select is on the main menu"
-    assert f"{TREE_NS}:channels" in customs, "the tree-channel picker is on the main menu"
+    assert f"{TREE_NS}:open:lang" in customs, "the language button is on the main menu"
+    assert f"{TREE_NS}:open:channels" in customs, "the channels button is on the main menu"
+    assert f"{TREE_NS}:open:roles" in customs, "the roles button is on the main menu"
+    assert f"{TREE_NS}:open:games" in customs, "the games admin button is on the main menu"
+    assert f"{TREE_NS}:open:mods" in customs, "the mods admin button is on the main menu"
     # the tree owns the channels: the admin panel resolves by stored id
     # (never through the managed services), so no service resolution here.
     await client.close()

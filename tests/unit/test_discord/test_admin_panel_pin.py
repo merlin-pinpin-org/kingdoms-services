@@ -126,7 +126,7 @@ async def test_ensure_creates_and_pins_when_absent() -> None:
     assert channel.sent, "the menu was delivered"
     assert channel.pins_list, "the menu was pinned"
     ids = _component_ids(channel.pins_list[0])
-    assert any(cid.startswith("admin:tree:") for cid in ids), "the pinned menu is the new admin surface"
+    assert any("admin:tree:" in cid for cid in ids), "the pinned menu is the new admin surface"
 
 
 @pytest.mark.asyncio
@@ -172,7 +172,7 @@ async def test_ensure_replaces_a_legacy_pinned_menu() -> None:
     assert channel.sent, "the current pin surface was delivered"
     assert legacy.unpinned is True, "the legacy pin is unpinned"
     ids = _component_ids(channel.pins_list[-1])
-    assert any(cid.startswith("admin:tree:") for cid in ids), "the new pin is the new admin surface"
+    assert any("admin:tree:" in cid for cid in ids), "the new pin is the new admin surface"
 
 
 @pytest.mark.asyncio
@@ -209,7 +209,7 @@ async def test_pinned_menu_denies_non_admin_at_click_time() -> None:
     select = None
     for child in view.walk_children():
         custom_id = getattr(child, "custom_id", None)
-        if custom_id and str(custom_id).startswith("admin:tree:"):
+        if (custom_id and str(custom_id).startswith("admin:tree:")) or "admin:tree:open:" in str(custom_id):
             select = child
             break
     assert select is not None, "the pinned menu carries interactive components"
