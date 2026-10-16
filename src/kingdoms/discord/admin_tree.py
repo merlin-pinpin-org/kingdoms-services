@@ -33,21 +33,41 @@ _PIN_ROLES: dict[str, str] = {
     "admin": "menu d'administration \u00e9pingl\u00e9 (ce salon n'accueille que ce menu)",
 }
 
-_AUDIENCES = {
-    "public": "lecture \u00b7 \u00e9criture : tous",
-    "readonly": "lecture : tous \u00b7 \u00e9criture : personne",
-    "admin": "acc\u00e8s : bot-admins uniquement",
+# The three channel kinds of the tree (2026-10-16):
+# - public discussions (read+write: everyone),
+# - admin decisions/discussions (read+write: bot-admins or a mod's own role),
+# - read-only menus (read: everyone, write: none — the pinned views live there).
+async def _tree_tr(interaction: Any, key: str, **kwargs: Any) -> str:
+    """Render one admin_tree key in the interaction's locale."""
+    from kingdoms.discord.commands_i18n import reply
+
+    return await reply(interaction, key, **kwargs)
+
+
+_ACCESS_FALLBACKS = {
+    "public": "Lecture : @everyone \u00b7 \u00c9criture : @everyone",
+    "readonly": "Lecture : @everyone \u00b7 \u00c9criture : personne (menus \u00e9pingl\u00e9s uniquement)",
+    "admin": "Lecture : bot-admins \u00b7 \u00c9criture : bot-admins",
+}
+_ACCESS_KEYS = {
+    "public": "admin_tree.channel_access_everyone",
+    "readonly": "admin_tree.channel_access_readonly",
+    "admin": "admin_tree.channel_access_admin",
 }
 
 
+async def _audience(interaction: Any, access: str) -> str:
+    """Render one channel's read/write access as a locale-aware line."""
+    if interaction is None:
+        return _ACCESS_FALLBACKS.get(access, _ACCESS_FALLBACKS["admin"])
+    from kingdoms.discord.commands_i18n import tr
+
+    return await tr(interaction, _ACCESS_KEYS.get(access, "admin_tree.channel_access_admin"))
 def _pin_role(channel_key: str) -> str:
     """Describe the pinned view a channel hosts (empty when it hosts none)."""
     return _PIN_ROLES.get(channel_key, "")
 
 
-def _audience(access: str) -> str:
-    """Render one channel's access band as a human sentence."""
-    return _AUDIENCES.get(access, access)
 
 
 def _tree_channels() -> list[tuple[str, str, str]]:
@@ -103,19 +123,23 @@ async def _channel_status(guild_id: str, scope: str, key: str) -> str:
     return f"<#{channel_id}>" if channel_id else "non provisionné"
 
 
-async def build_admin_menu(guild_id: str, locale: str) -> discord.ui.LayoutView:
+async def build_admin_menu(
+    guild_id: str, locale: str, interaction: Any = None
+) -> discord.ui.LayoutView:
     """Build the new admin menu (ephemeral answer; stateless items)."""
     view = discord.ui.LayoutView(timeout=None)
     rows: list[Any] = []
-    rows.append(discord.ui.TextDisplay("# 🛠️ Admin\nLangue, salons et rôles de la guilde."))
+    title_line = "# 🛠️ " + await _tree_tr(interaction, "admin_tree.title")
+    subtitle_line = await _tree_tr(interaction, "admin_tree.subtitle")
+    rows.append(discord.ui.TextDisplay(title_line + "\n" + subtitle_line))
     rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## 🌐 Langue"))
+    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.language")))
     rows.append(_select_row(TreeLocaleSelect(locale)))
     rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## 📋 Salons du bot"))
+    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.channels")))
     rows.append(_select_row(await TreeChannelSelect.create(guild_id)))
     rows.append(discord.ui.Separator())
-    rows.append(discord.ui.TextDisplay("## 🧩 Rôles"))
+    rows.append(discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.roles")))
     rows.append(_button_row(TreeRolesButton()))
     view.add_item(discord.ui.Container(*rows, accent_colour=discord.Colour(0x5865F2)))
     return view
@@ -185,21 +209,28 @@ class TreeChannelSelect(
 ):
     """The tree-channel picker: one option per bot-managed channel."""
 
-    def __init__(self, options: list[discord.SelectOption]) -> None:
+    def __init__(
+        self,
+        options: list[discord.SelectOption],
+        placeholder: str = "Salon \u00e0 g\u00e9rer...",
+        empty_label: str = "Aucun salon",
+    ) -> None:
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:channels",
-                options=options or [discord.SelectOption(label="Aucun salon", value="none")],
-                placeholder="Salon à gérer...",
+                options=options or [discord.SelectOption(label=empty_label, value="none")],
+                placeholder=placeholder,
             )
         )
 
     @classmethod
-    async def create(cls, guild_id: str) -> TreeChannelSelect:
+    async def create(cls, guild_id: str, interaction: Any = None) -> TreeChannelSelect:
+        placeholder = await _tree_tr(interaction, "admin_tree.channel_to_manage")
+        empty_label = await _tree_tr(interaction, "admin_tree.no_channel")
         options = []
         for scope, key, access in _tree_channels():
             status = await _channel_status(guild_id, scope, key)
-            description = f"{_audience(access)} \u00b7 {status}"[:100]
+            description = f"{await _audience(interaction, access)} · {status}"[:100]
             options.append(
                 discord.SelectOption(
                     label=_channel_label(scope, key),
@@ -207,7 +238,7 @@ class TreeChannelSelect(
                     description=description,
                 )
             )
-        return cls(options[:25])
+        return cls(options[:25], placeholder=placeholder, empty_label=empty_label)
 
     @classmethod
     async def from_custom_id(
@@ -243,14 +274,14 @@ class TreeChannelRouteSelect(
 ):
     """Reroute one tree channel to an existing guild channel (admin-guarded)."""
 
-    def __init__(self, scope: str, key: str) -> None:
+    def __init__(self, scope: str, key: str, placeholder: str = "Nouveau salon pour ce point de gestion...") -> None:
         self.scope = scope
         self.key = key
         super().__init__(
             discord.ui.ChannelSelect(
                 custom_id=f"{_NS}:route:{scope}:{key}"[:100],
                 channel_types=[discord.ChannelType.text, discord.ChannelType.forum],
-                placeholder="Nouveau salon pour ce point de gestion...",
+                placeholder=placeholder,
             )
         )
 
@@ -291,7 +322,7 @@ class TreeChannelRouteSelect(
             )
         except Exception:
             logger.warning("ADMIN TREE: reroute persist failed", exc_info=True)
-            await interaction.followup.send("Reroutage impossible (voir les logs).", ephemeral=True)
+            await interaction.followup.send(await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True)
             return
         await interaction.followup.send(
             f"Salon rerouté sur <#{channel_id}> — les menus épinglés suivront à la prochaine vérification.",
@@ -335,12 +366,12 @@ def _channel_access(scope: str, key: str) -> str:
     return "public"
 
 
-async def build_channel_menu(guild_id: str, scope: str, key: str) -> discord.ui.LayoutView:
+async def build_channel_menu(guild_id: str, scope: str, key: str, interaction: Any = None) -> discord.ui.LayoutView:
     """One tree channel's sub-menu: status, audience, pinned view, reroute."""
     status = await _channel_status(guild_id, scope, key)
     access = _channel_access(scope, key)
     pin_role = _pin_role(key)
-    lines = [f"Salon actuel : {status}", f"Accès : {_audience(access)}"]
+    lines = [f"Salon actuel : {status}", await _audience(interaction, access)]
     if pin_role:
         lines.append(f"Rôle : {pin_role}")
     view = discord.ui.LayoutView(timeout=None)
@@ -351,7 +382,8 @@ async def build_channel_menu(guild_id: str, scope: str, key: str) -> discord.ui.
         discord.ui.Separator(),
     ]
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    view.add_item(_select_row(TreeChannelRouteSelect(scope, key)))
+    route_placeholder = await _tree_tr(interaction, "admin_tree.route_placeholder")
+    view.add_item(_select_row(TreeChannelRouteSelect(scope, key, placeholder=route_placeholder)))
     view.add_item(_button_row(TreeBackButton()))
     return view
 

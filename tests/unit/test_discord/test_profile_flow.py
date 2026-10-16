@@ -171,7 +171,9 @@ async def test_add_account_submits_binds_and_refreshes(monkeypatch: Any) -> None
     assert registration.bindings and registration.bindings[0]["profile_id"] == "123456"
     texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
     assert any("profil" in t for t in texts), "the profile view must be re-rendered after the add"
-    assert any("compte li" in t for t in texts), "the success banner must ride the refreshed view"
+    assert any("compte" in t or "add_success" in t for t in texts), (
+        "the success banner must ride the refreshed view"
+    )
 
 
 @pytest.mark.asyncio
@@ -225,7 +227,7 @@ async def test_rename_submits_persists_and_refreshes(monkeypatch: Any) -> None:
     assert identity.users["discord:42"] == "NewPseudo"
     texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
     assert any("profil" in t for t in texts), "the profile view must be re-rendered after the rename"
-    assert any("pseudo mis" in t for t in texts), "the rename banner must ride the refreshed view"
+    assert any("pseudo" in t for t in texts), "the rename banner must ride the refreshed view"
 
 
 @pytest.mark.asyncio

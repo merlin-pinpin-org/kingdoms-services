@@ -39,7 +39,7 @@ from discord import app_commands
 
 from kingdoms.core.services.home import HomeService
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.discord.commands_i18n import localized, reply
+from kingdoms.discord.commands_i18n import localized, reply, tr
 
 logger = logging.getLogger("kingdoms.home")
 
@@ -136,6 +136,7 @@ async def open_home_view(interaction: discord.Interaction, view_key: str) -> Non
         "profile": _view_profile,
         "games": _view_games,
         "mods": _view_mods,
+        "live": _view_live,
         "users": _view_users,
         "admin": _view_admin,
     }
@@ -162,7 +163,7 @@ async def _view_status(interaction: discord.Interaction) -> None:
 
     bot = interaction.client
     if not isinstance(bot, KingdomsBot):
-        await interaction.followup.send("Status indisponible.", ephemeral=True)
+        await interaction.followup.send(await reply(interaction, "profile.status_unavailable"), ephemeral=True)
         return
     status = bot.status_service
     latency_raw: float | None = bot.latency if bot.latency == bot.latency and bot.latency != float("inf") else None
@@ -200,7 +201,7 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
     bindings = await registration.list_bindings(user_id)
     blocks: list[Any] = []
     if not bindings:
-        blocks.append(discord.ui.TextDisplay("Aucun compte de jeu lié — ajoute-en un ci-dessous."))
+        blocks.append(discord.ui.TextDisplay(await reply(interaction, "profile.no_account")))
     by_game: dict[str, list[dict[str, Any]]] = {}
     for binding in bindings:
         by_game.setdefault(str(binding.get("game_key", "?")), []).append(binding)
@@ -230,10 +231,16 @@ async def _profile_followup(interaction: discord.Interaction, banner: str = "") 
         blocks.append(discord.ui.TextDisplay("\n".join(lines)))
     view = discord.ui.LayoutView(timeout=None)
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(ProfileAddAccountButton())
-    row.add_item(ProfileRenameButton())
+    row.add_item(
+        ProfileAddAccountButton(await tr(interaction, "profile.add_button", "Ajouter un compte"))
+    )
+    row.add_item(
+        ProfileRenameButton(await tr(interaction, "profile.rename_button", "Changer de pseudo"))
+    )
     if bindings:
-        row.add_item(ProfileRemoveAccountButton())
+        row.add_item(
+            ProfileRemoveAccountButton(await tr(interaction, "profile.remove_button", "Retirer un compte"))
+        )
     header = await _profile_header(interaction, user_id)
     if banner:
         header = f"{header}\n\n{banner}"
@@ -300,10 +307,10 @@ class ProfileAddAccountButton(
 ):
     """Open the add-account modal (profile id)."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "Ajouter un compte") -> None:
         super().__init__(
             discord.ui.Button(
-                label="Ajouter un compte", style=discord.ButtonStyle.success, custom_id="home:profile:add"
+                label=label, style=discord.ButtonStyle.success, custom_id="home:profile:add"
             )
         )
 
@@ -383,14 +390,11 @@ class ProfileAddAccountModal(discord.ui.Modal):
             await _report_profile_error(interaction, "profile.add", chosen, exc)
             reason = str(exc).lower()
             if "déjà" in reason or "already" in reason:
-                note = "Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil."
+                note = await reply(interaction, "profile.add_taken")
             elif "no profile seam" in reason or "unknown game" in reason:
-                note = f"Le jeu {chosen} n'est pas configuré pour l'inscription."
+                note = await reply(interaction, "profile.add_game_unconfigured", game=chosen)
             elif "player_stats" in reason or "mal configur" in reason:
-                note = (
-                    f"Ajout échoué : {PROFILE_PROVIDER} ne répond pas correctement "
-                    "— le détail part aux admins (vois les logs du bot)."
-                )
+                note = await reply(interaction, "profile.add_provider_error", provider=PROFILE_PROVIDER)
             elif "valid" in reason or "inconnu" in reason:
                 note = (
                     f"Ajout échoué : aucun profil trouvé pour "
@@ -405,7 +409,7 @@ class ProfileAddAccountModal(discord.ui.Modal):
                 )
             await interaction.followup.send(note, ephemeral=True)
             return
-        await _profile_followup(interaction, banner="✅ Compte lié — voilà ton profil à jour.")
+        await _profile_followup(interaction, banner=await reply(interaction, "profile.add_success"))
 
 
 async def _profile_header(interaction: discord.Interaction, user_id: str) -> str:
@@ -429,10 +433,10 @@ class ProfileRenameButton(
 ):
     """Open the rename modal (the user's chosen gamer name)."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "Changer de pseudo") -> None:
         super().__init__(
             discord.ui.Button(
-                label="Changer de pseudo", style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
+                label=label, style=discord.ButtonStyle.secondary, custom_id="home:profile:rename"
             )
         )
 
@@ -495,14 +499,14 @@ class ProfileRenameModal(discord.ui.Modal):
                 )
             await identity.set_display_name(user.id, str(self.name.value))
         except ValueError:
-            await interaction.followup.send("Le pseudo doit faire entre 1 et 16 caractères.", ephemeral=True)
+            await interaction.followup.send(await reply(interaction, "profile.rename_bad_length"), ephemeral=True)
             return
         except Exception:
             logger.warning("PROFILE RENAME failed", exc_info=True)
-            await interaction.followup.send("Renommage impossible pour le moment.", ephemeral=True)
+            await interaction.followup.send(await reply(interaction, "profile.rename_failed"), ephemeral=True)
             return
         await _profile_followup(
-            interaction, banner=f"✅ Pseudo mis à jour : **{self.name.value}**"
+            interaction, banner=await reply(interaction, "profile.rename_success", name=self.name.value)
         )
 
 
@@ -532,10 +536,10 @@ class ProfileRemoveAccountButton(
 ):
     """Open the remove-account modal (multi-select of the linked accounts)."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "Retirer un compte") -> None:
         super().__init__(
             discord.ui.Button(
-                label="Retirer un compte", style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
+                label=label, style=discord.ButtonStyle.danger, custom_id="home:profile:remove"
             )
         )
 
@@ -599,7 +603,7 @@ class ProfileRemoveAccountModal(discord.ui.Modal):
                 if await registration.unlink_profile(str(interaction.user.id), game_key, profile_id):
                     removed.append(f"{game_key} (`{profile_id}`)")
                 else:
-                    failures.append(f"{game_key} `{profile_id}` (introuvable)")
+                    failures.append(f"{game_key} `{profile_id}`")
                     await _report_profile_error(
                         interaction, "profile.remove", game_key, RuntimeError(f"binding not found: {entry}")
                     )
@@ -701,6 +705,25 @@ async def _view_games_for_guild(interaction: discord.Interaction, guild_id: str)
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _view_live(interaction: discord.Interaction) -> None:
+    """Render the aoe2 live dashboard ephemerally (from the home/aoe2 menu)."""
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    from kingdoms.discord.live import collect_profile_stats, render_dashboard
+
+    snapshot: dict[str, Any] = {"players": [], "generated_at": 0, "degraded": True}
+    client = getattr(interaction.client, "live_client", None)
+    if client is not None:
+        try:
+            snapshot = await client.watch("aoe2")
+        except Exception:
+            logger.warning("HOME: live snapshot failed", exc_info=True)
+    stats = await collect_profile_stats(
+        [str(p.get("profile_id", "")) for p in snapshot.get("players", [])]
+    )
+    body = render_dashboard(snapshot, locale=str(interaction.locale or "en"), stats=stats)
+    await interaction.followup.send(body, ephemeral=True)
 
 
 async def _view_game_for_guild(interaction: discord.Interaction, game_key: str) -> None:
@@ -877,11 +900,11 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
     bot = interaction.client
     roster = getattr(bot, "_registration_database", None)
     if roster is None:
-        await interaction.followup.send("Roster indisponible (store non configuré).", ephemeral=True)
+        await interaction.followup.send(await reply(interaction, "profile.roster_unavailable"), ephemeral=True)
         return
     guild = bot.get_guild(int(guild_id)) if guild_id.isdigit() else None
     if guild is None:
-        await interaction.followup.send("Guilde introuvable.", ephemeral=True)
+        await interaction.followup.send(await reply(interaction, "profile.guild_not_found"), ephemeral=True)
         return
     unique = await _collect_roster_bindings(bot, guild_id)
     lines: list[str] = []
@@ -900,7 +923,7 @@ async def _view_users_for_guild(interaction: discord.Interaction, guild_id: str)
         if len(lines) >= 25:
             break
     if not lines:
-        await interaction.followup.send("Aucun membre de cette guilde n'a de compte lié.", ephemeral=True)
+        await interaction.followup.send(await reply(interaction, "profile.no_members_bound"), ephemeral=True)
         return
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(

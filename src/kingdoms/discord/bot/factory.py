@@ -175,6 +175,7 @@ class KingdomsBot(discord.Client):
         self.season_service: Any | None = None
         self._registration_database: Any | None = None
         self._home_providers: dict[str, Any] = {}
+        self.live_client: Any = None
         self._home_pin_task: asyncio.Task[None] | None = None
         self.state_service: StateService | None = None
 
@@ -971,6 +972,15 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     hold_home_bot(bot)
     bot._registration_database = _build_registration_database(resolved)
     bot._home_providers = {"aoe2": _build_home_provider(resolved)} if _build_home_provider(resolved) else {}
+    import os as _os
+
+    _core_uri = _os.environ.get("CORE_URI", "")
+    if _core_uri:
+        from kingdoms.core.rpc.live import LiveClient
+
+        bot.live_client = LiveClient(_core_uri)
+    else:
+        bot.live_client = None
     register_home_command(bot.tree, bot.home_service, catalog=bot.messages)
     bot.staff_service = _build_staff_service(resolved, bot, admin_channel_service)
     if bot.staff_service is not None:

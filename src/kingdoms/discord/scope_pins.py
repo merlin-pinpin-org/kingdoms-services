@@ -109,6 +109,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
                     heading_key=_tr(catalog, "ui.homes.heading_data", locale, "Données"),
                     buttons=(
                         ("home:open:guild-games:aoe2", _tr(catalog, "ui.homes.btn_aoe2", locale), "⚔️"),
+                        ("home:open:live", _tr(catalog, "ui.homes.btn_live", locale), "📡"),
                     ),
                 ),
             )

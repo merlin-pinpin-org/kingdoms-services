@@ -51,6 +51,60 @@ fr:
     menu_unavailable: Menu indisponible.
     unknown_view: Vue inconnue.
     no_home_view: Ce mod n'a pas de vue d'accueil.
+    profile:
+      no_account: Aucun compte de jeu lié — ajoute-en un ci-dessous.
+      account_removed: Compte retiré — la vue profil se rouvre.
+      accounts_removed: "Comptes retirés : {listed}."
+      removal_failed_for: "Retrait échoué pour : {failed}"
+      add_title: Ajouter un compte
+      add_success: "✅ Compte lié — voilà ton profil à jour."
+      add_taken: Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil.
+      add_game_unconfigured: "Ajout échoué : le jeu {game} n'est pas configuré pour l'inscription."
+      add_unknown: "Ajout échoué : aucun profil trouvé pour {profile}. Colle l'URL de ta page aoe2insights (ou l'id qu'elle contient) — le bon id sera récupéré automatiquement."
+      add_provider_error: "Ajout échoué : le provider {provider} ne répond pas correctement — le détail part aux admins (vois les logs du bot)."
+      add_not_configured: "Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois les logs du bot."
+      remove_title: Retirer des comptes
+      remove_placeholder: Comptes à retirer...
+      remove_label: Comptes à retirer
+      add_label: "Ton id aoe2insights ou ton relic id"
+      add_placeholder: "Ex. 17190369 ou https://www.aoe2insights.com/user/12488557/"
+      game_label: Jeu du compte
+      game_placeholder: Jeu du compte...
+      rename_title: Ton pseudo
+      rename_label: "Pseudo (16 caractères max)"
+      rename_bad_length: Le pseudo doit faire entre 1 et 16 caractères.
+      rename_failed: Renommage impossible pour le moment.
+      rename_success: "✅ Pseudo mis à jour : {name}"
+      remove_button: Retirer un compte
+      add_button: Ajouter un compte
+      rename_button: Changer de pseudo
+      header_no_name: "# 👤 Ton profil\nPseudo : *(non défini)*"
+      header_with_name: "# 👤 Ton profil\nPseudo : **{name}**"
+      remove_empty: Quel compte retirer ?
+      remove_open_failed: "Retrait échoué pour : {failed} — le détail part aux admins."
+      remove_not_found: introuvable
+      status_unavailable: Status indisponible.
+      roster_unavailable: Roster indisponible (store non configuré).
+      guild_not_found: Guilde introuvable.
+      no_members_bound: Aucun membre de cette guilde n'a de compte lié.
+      game_section_stats: "{civs} civs · {maps} maps · {pools} map pools"
+    admin_tree:
+      title: "🛠️ Admin"
+      subtitle: Langue, salons et rôles de la guilde.
+      language: "🌐 Langue"
+      channels: "📋 Salons du bot"
+      roles: "🧩 Rôles"
+      no_channel: Aucun salon
+      channel_to_manage: Salon à gérer...
+      route_placeholder: Nouveau salon pour ce point de gestion...
+      route_failed: Reroutage impossible (voir les logs).
+      rerouted: "Salon rerouté sur <#{channel}> — les menus épinglés suivront à la prochaine vérification."
+      back: Retour
+      back_to_admin: Retour au menu admin
+      admin_failed: "Le panneau des rôles a échoué — voir les logs du bot."
+      channel_access_everyone: "Lecture : @everyone · Écriture : @everyone"
+      channel_access_readonly: "Lecture : @everyone · Écriture : personne (menus épinglés uniquement)"
+      channel_access_admin: "Lecture : bot-admins · Écriture : bot-admins"
   admin_replies:
     panel_unavailable: Le panneau admin n'est pas disponible.
     language_changed: Langue mise à jour.
@@ -309,6 +363,7 @@ fr:
       btn_admin: "Admin"
       btn_aoe2: "AoE2"
       btn_aoe2_admin: "Gérer AoE2"
+      btn_live: "Live"
       heading_navigate: "🧭 Navigation"
       heading_data: "📚 Données"
       btn_civs: "Civs"

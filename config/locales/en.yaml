@@ -50,6 +50,60 @@ en:
     menu_unavailable: Menu unavailable.
     unknown_view: Unknown view.
     no_home_view: This mod has no home view.
+    profile:
+      no_account: No linked game account — add one below.
+      account_removed: Account removed — your profile view reopens.
+      accounts_removed: "Accounts removed: {listed}."
+      removal_failed_for: "Removal failed for: {failed}"
+      add_title: Add an account
+      add_success: "✅ Account linked — here is your updated profile."
+      add_taken: This profile is already linked — remove it first or pick another one.
+      add_game_unconfigured: "Add failed: the game {game} is not configured for registration."
+      add_unknown: "Add failed: no profile found for {profile}. Paste your aoe2insights page URL (or the id it holds) — the right id will be resolved automatically."
+      add_provider_error: "Add failed: the provider {provider} did not answer properly — the details go to the admins (see the bot logs)."
+      add_not_configured: "Add failed: the provider {provider} does not serve profile stats — see the bot logs."
+      remove_title: Remove accounts
+      remove_placeholder: Accounts to remove...
+      remove_label: Accounts to remove
+      add_label: Your aoe2insights id or your relic id
+      add_placeholder: "Ex. 17190369 or https://www.aoe2insights.com/user/12488557/"
+      game_label: Account game
+      game_placeholder: Account game...
+      rename_title: Your nickname
+      rename_label: "Nickname (16 chars max)"
+      rename_bad_length: The nickname must be 1 to 16 characters long.
+      rename_failed: Renaming is not possible right now.
+      rename_success: "✅ Nickname updated: {name}"
+      remove_button: Remove an account
+      add_button: Add an account
+      rename_button: Change nickname
+      header_no_name: "# 👤 Your profile\nNickname: *(unset)*"
+      header_with_name: "# 👤 Your profile\nNickname: **{name}**"
+      remove_empty: Which account to remove?
+      remove_open_failed: "Removal failed for: {failed} — the details go to the admins."
+      remove_not_found: not found
+      status_unavailable: Status unavailable.
+      roster_unavailable: Roster unavailable (store not configured).
+      guild_not_found: Guild not found.
+      no_members_bound: No member of this guild has a linked account.
+      game_section_stats: "{civs} civs · {maps} maps · {pools} map pools"
+    admin_tree:
+      title: "🛠️ Admin"
+      subtitle: Language, channels and roles of the guild.
+      language: "🌐 Language"
+      channels: "📋 Bot channels"
+      roles: "🧩 Roles"
+      no_channel: No channel
+      channel_to_manage: Channel to manage...
+      route_placeholder: New channel for this control point...
+      route_failed: Routing failed (see the logs).
+      rerouted: "Channel rerouted to <#{channel}> — the pinned menus will follow on the next check."
+      back: Back
+      back_to_admin: Back to the admin menu
+      admin_failed: "The roles panel failed — see the bot logs."
+      channel_access_everyone: "Read: @everyone · Write: @everyone"
+      channel_access_readonly: "Read: @everyone · Write: none (pinned menus only)"
+      channel_access_admin: "Read: bot-admins · Write: bot-admins"
   admin_replies:
     panel_unavailable: Admin panel unavailable.
     language_changed: Language updated.
@@ -297,6 +351,7 @@ en:
       btn_admin: "Admin"
       btn_aoe2: "AoE2"
       btn_aoe2_admin: "Manage AoE2"
+      btn_live: "Live"
       heading_navigate: "🧭 Navigation"
       heading_data: "📚 Data"
       btn_civs: "Civs"
