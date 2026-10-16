@@ -20,7 +20,34 @@ from kingdoms.core.services.registration import (
 )
 
 INSIGHTS_BASE_URL = "https://www.aoe2insights.com"
-_INSIGHTS_ID_RE = re.compile(r"^\d+$")
+INSIGHTS_URL_RE = re.compile(
+    r"^https?://(?:www\.)?aoe2insights\.com/user/(\d{1,15})(?:/relic-id/?|/?$)", re.IGNORECASE
+)
+_NUMERIC_ID_RE = re.compile(r"^\d{1,15}$")
+
+
+def extract_insights_user_id(typed: str) -> str | None:
+    """Extract the aoe2insights user id from a pasted URL, strictly.
+
+    Only an aoe2insights.com URL of the exact shape
+    ``https://www.aoe2insights.com/user/<digits>...`` matches — anything
+    else (another host, a path-injection attempt, a query trick) is
+    rejected. Double gate: the anchored regex AND a parsed-URL host check
+    (the id never leaves the regex's capture group, so the downstream
+    request URL cannot be tampered with).
+    """
+    match = INSIGHTS_URL_RE.match(typed)
+    if match is None:
+        return None
+    from urllib.parse import urlparse
+
+    parsed = urlparse(typed)
+    if parsed.scheme not in ("http", "https") or parsed.netloc.lower() not in (
+        "www.aoe2insights.com",
+        "aoe2insights.com",
+    ):
+        return None
+    return match.group(1)
 
 
 async def resolve_relic_id(
@@ -33,28 +60,29 @@ async def resolve_relic_id(
     URL id and the relic id are different numbers and only the relic id
     works with librematch/aoe2lobby):
 
-    - a relic id (what we want) — returned as-is after an insights check;
+    - a relic id (what we want) — validates as-is;
     - an aoe2insights user id — resolved through
       ``/user/<id>/relic-id/``, which answers the relic id in plain text;
-    - a full insights URL — the user id is extracted, then resolved.
+    - a full insights URL — **always resolved**: the user id is extracted
+      by the strict URL pattern, then mapped to the relic id.
 
-    ``transport`` is the test seam (a fake WorldsEdge/insights stand-in);
-    None means the real network. Returns None when nothing resolves
-    (unknown id, insights down).
+    Injection safety: the request URL is built ONLY from a
+    regex-validated digit string (<= 15 chars); the reply must be a
+    bare numeric id — any HTML, extra text or mismatch is rejected.
+
+    ``transport`` is the test seam; None means the real network.
+    Returns None when nothing resolves (unknown id, insights down).
     """
     typed = typed_id.strip()
-    if not typed:
+    if not typed or len(typed) > 100:
         return None
-    # A pasted URL: keep the user id segment.
-    if "aoe2insights.com" in typed:
-        match = re.search(r"/user/(\d+)", typed)
-        if match is None:
-            return None
-        typed = match.group(1)
-    if not _INSIGHTS_ID_RE.fullmatch(typed):
+    # A pasted insights URL ALWAYS resolves: the id in the URL is the
+    # insights user id, never the relic id.
+    url_id = extract_insights_user_id(typed)
+    if url_id is not None:
+        typed = url_id
+    elif not _NUMERIC_ID_RE.fullmatch(typed):
         return None
-    # The relic-id page answers the id in plain text; anything else
-    # (404, HTML) means the id does not exist.
     try:
         async with httpx.AsyncClient(timeout=5, follow_redirects=True, transport=transport) as client:
             reply = await client.get(f"{INSIGHTS_BASE_URL}/user/{typed}/relic-id/")
@@ -66,7 +94,13 @@ async def resolve_relic_id(
             "INSIGHTS relic-id resolve failed (id %s)", typed, exc_info=True
         )
         return None
-    return text if _INSIGHTS_ID_RE.fullmatch(text) and text != typed else None
+    # The reply must be a bare numeric id (the relic-id page answers
+    # plain text); anything else — HTML, an error page, an injection —
+    # is rejected. A reply equal to the typed id means the typed id was
+    # already the relic id: not a resolution.
+    if not _NUMERIC_ID_RE.fullmatch(text) or text == typed:
+        return None
+    return text
 
 
 class MongoRegistrationDatabase:
@@ -155,12 +189,20 @@ class Aoe2ProfileValidationSeam:
                 "ext-librematch ne sert pas les stats de profil "
                 "(provider mal configur\u00e9 ou injoignable \u2014 vois les logs du bot)"
             )
-        validated = await self._validate_with_client(client, profile_id)
+        # A pasted insights URL always resolves first: the id it carries is
+        # the insights user id, never the relic id the provider wants.
+        typed = profile_id.strip()
+        if extract_insights_user_id(typed) is not None:
+            relic_id = await resolve_relic_id(typed)
+            if relic_id is None:
+                return None
+            return await self._validate_with_client(client, relic_id)
+        # A plain id: try the provider first (a relic id validates directly),
+        # then resolve through insights (the user typed the insights id).
+        validated = await self._validate_with_client(client, typed)
         if validated is not None:
             return validated
-        # The typed id is not a relic id the leaderboards know: it may be
-        # the insights user id (or a pasted URL) \u2014 resolve and retry.
-        relic_id = await resolve_relic_id(profile_id)
+        relic_id = await resolve_relic_id(typed)
         if relic_id is None:
             return None
         return await self._validate_with_client(client, relic_id)
