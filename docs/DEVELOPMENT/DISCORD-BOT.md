@@ -14,6 +14,16 @@ Les règles sont séparées en trois catégories — ne jamais les mélanger :
 
 Des choix que **le projet a faits** et qu'il peut faire évoluer seul.
 
+### Ssocle de commandes (2026-10-16)
+
+**Trois commandes, et c'est tout** : `/home`, `/admin`, `/status`. Tout le
+reste est une surface épinglée (autopin/autoheal) ou un menu éphémére
+ouvert depuis le home : l'inscription aux profils vit dans
+/home > Profil (les commandes /register, /game-link, /game-unlink et
+/live ont été retirées — le dashboard live est épinglé dans son
+salon). Le context menu « Nommer staff » reste (clic droit sur un
+membre, pas une commande).
+
 ### Surfaces (canaux et panels)
 
 Chaque guilde provisionne ses canaux au démarrage (idempotent) :

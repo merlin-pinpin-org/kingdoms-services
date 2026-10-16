@@ -256,9 +256,14 @@ def _game_label(game_key: str) -> str:
 
 
 def _game_account_url(game_key: str, relic_id: str) -> str:
-    """Build the profile's public page URL (insights for aoe2; empty when unknown)."""
+    """Build the profile's public page URL (insights for aoe2; empty when unknown).
+
+    The insights site keys profiles by its own user id on the plain
+    /user/<id>/ path; the relic id needs the relic path
+    (``/user/relic/<relic_id>/``) — the plain path with a relic id 404s.
+    """
     if game_key == "aoe2" and relic_id.isdigit():
-        return f"{GAME_INSIGHTS_URL}{relic_id}/"
+        return f"{GAME_INSIGHTS_URL}relic/{relic_id}/"
     return ""
 
 

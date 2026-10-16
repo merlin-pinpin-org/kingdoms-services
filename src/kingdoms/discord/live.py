@@ -21,7 +21,6 @@ import discord
 from discord import app_commands
 
 from kingdoms.core.services.i18n import MessageCatalog
-from kingdoms.discord.commands_i18n import localized, reply
 from kingdoms.discord.message_limits import MAX_EMBED_DESCRIPTION, truncate_body
 
 logger = logging.getLogger("kingdoms.live")
@@ -138,94 +137,14 @@ def register_live_commands(
     tree: app_commands.CommandTree[discord.Client],
     catalog: MessageCatalog | None = None,
 ) -> None:
-    """Register the /live, /game-link and /game-unlink commands.
+    """Register nothing: every live surface is a pinned dashboard.
 
-    The commands read svc-core's Live service through ``LiveClient``
-    when ``CORE_URI`` is set; without it (local runs, providers down),
-    the dashboard degrades to a note — the command still answers.
+    The live dashboard lives in its autopin channel (games/aoe2/live) and
+    the profile link/unlink lives in the home profile menu — /live,
+    /game-link and /game-unlink were removed 2026-10-16 (/home, /admin
+    and /status are the platform's only commands).
     """
-    from kingdoms.core.rpc.live import LiveClient
-
-    core_uri = os.environ.get("CORE_URI", "")
-    client = LiveClient(core_uri) if core_uri else None
-
-    def _render_locale(catalog: MessageCatalog | None, locale: str, key: str, fallback: str) -> str:
-        if catalog is None:
-            return fallback
-        return catalog.render(key, locale)
-
-    @tree.command(
-        name=localized("commands.live_name", "live"),
-        description=localized("commands.live_description", "Live test dashboard: linked players, lobbies and games"),
-    )
-    async def live_command(interaction: discord.Interaction) -> None:
-        """Answer /live with the current dashboard snapshot."""
-        await interaction.response.defer(ephemeral=True)
-        if client is None:
-            await interaction.followup.send(await reply(interaction, "live.unavailable"), ephemeral=True)
-            return
-        try:
-            snapshot = await client.watch("aoe2")
-        except Exception:
-            logger.warning("live snapshot fetch failed", exc_info=True)
-            snapshot = {"players": [], "generated_at": 0, "degraded": True}
-        stats = await collect_profile_stats([str(p.get("profile_id", "")) for p in snapshot.get("players", [])])
-        body = render_dashboard(snapshot, _locale(interaction), stats=stats)
-        await interaction.followup.send(body, ephemeral=True)
-
-    @tree.command(
-        name=localized("commands.game_link_name", "game-link"),
-        description=localized(
-            "commands.game_link_description", "Link your AoE2 profile id to your account (test scope)"
-        ),
-    )
-    @app_commands.describe(profile_id="Your AoE2 profile id")
-    async def game_link_command(interaction: discord.Interaction, profile_id: str) -> None:
-        """Link the invoker's AoE2 profile (minimal test-scoped link)."""
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
-
-        if interaction.user.id is None or profile_id.strip() == "":
-            await interaction.response.send_message(await reply(interaction, "profile_required"), ephemeral=True)
-            return
-        profile = profile_id.strip()
-        binding = {
-            "_id": f"binding:aoe2:{interaction.user.id}:{profile}",
-            "user_id": str(interaction.user.id),
-            "game_key": "aoe2",
-            "profile_id": profile,
-            "bound_at": int(_now_ms()),
-        }
-        db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
-        await db.replace_one({"_id": binding["_id"]}, binding, upsert=True)
-        await interaction.response.send_message(
-            await reply(interaction, "live.linked", profile=profile, user=interaction.user.id),
-            ephemeral=True,
-        )
-
-    @tree.command(
-        name=localized("commands.game_unlink_name", "game-unlink"),
-        description=localized("commands.game_unlink_description", "Unlink one of your AoE2 profiles"),
-    )
-    @app_commands.describe(profile_id="The AoE2 profile id to unlink")
-    async def game_unlink_command(interaction: discord.Interaction, profile_id: str) -> None:
-        """Remove one of the invoker's AoE2 profile links."""
-        from kingdoms.core.models.db import get_async_database
-        from kingdoms.core.services.registration import PROFILE_BINDINGS_COLLECTION
-
-        profile = profile_id.strip()
-        db = get_async_database()[PROFILE_BINDINGS_COLLECTION]
-        removed = await db.delete_one({"_id": f"binding:aoe2:{interaction.user.id}:{profile}"})
-        if removed and removed.deleted_count > 0:
-            await interaction.response.send_message(
-                await reply(interaction, "live.unlinked", profile=profile), ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                await reply(interaction, "live.no_link", profile=profile), ephemeral=True
-            )
-
-
+    del tree, catalog
 def _locale(interaction: discord.Interaction) -> str:
     """Best-effort locale: the user's Discord locale, defaulting to en."""
     return str(interaction.locale) if interaction.locale else "en"
@@ -287,8 +206,6 @@ async def collect_profile_stats(profile_ids: list[str], game_key: str = GAME_KEY
     the last-match time is the latest completed match the profile played.
     All layers degrade — a missing value renders as absent, never errors.
     """
-    import os
-
     from kingdoms.core.models.db import get_async_database
     from kingdoms.core.services.profile_stats import ProfileStatsService, stats_entry
 
@@ -684,8 +601,6 @@ async def _remember_sent_fingerprint(guild_id: str, fingerprint: str) -> None:
     last snapshot each guild's dashboard shows; after a restart the
     comparison continues without fetching the message content.
     """
-    import os
-
     redis_uri = os.environ.get("REDIS_URI", "")
     if not redis_uri:
         return
@@ -701,8 +616,6 @@ async def _remember_sent_fingerprint(guild_id: str, fingerprint: str) -> None:
 
 async def _last_sent_fingerprint(guild_id: str) -> str | None:
     """Read the persisted last-sent fingerprint; None when never sent."""
-    import os
-
     redis_uri = os.environ.get("REDIS_URI", "")
     if not redis_uri:
         return None
