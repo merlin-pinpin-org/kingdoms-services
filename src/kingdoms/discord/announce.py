@@ -230,7 +230,7 @@ def _services_artifact_row(status: StatusService, catalog: dict[str, str]) -> li
     if sha:
         buttons.append(Button(f"🔧 {catalog['commit_label']}", f"{SERVICES_REPO_URL}/commit/{sha}"))
         if status.deploy_tree_url:
-            buttons.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_tree_url))
+            buttons.append(Button(f"📁 {catalog['files_label']}", status.deploy_tree_url))
     if is_release_kind(status.deploy_kind) and status.deploy_ref:
         buttons.append(Button(f"🏷️ {catalog['tag_label']}", f"{SERVICES_REPO_URL}/releases/tag/{status.deploy_ref}"))
     if status.deploy_url and not _release_section(status, catalog):
@@ -325,7 +325,7 @@ def _infra_blocks(status: StatusService, catalog: dict[str, str]) -> list[object
     if sha:
         row.append(Button(f"🔧 {catalog['commit_label']}", f"{INFRA_REPO_URL}/commit/{sha}"))
     if status.deploy_infra_url:
-        row.append(Button(f"🗂️ {catalog['files_label']}", status.deploy_infra_url))
+        row.append(Button(f"📁 {catalog['files_label']}", status.deploy_infra_url))
     if row:
         blocks.append(Row(*row))
     run_ts = relative_time(status.deploy_run_ts)
