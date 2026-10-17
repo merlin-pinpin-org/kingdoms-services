@@ -13,6 +13,29 @@ from typing import Any
 import pytest
 
 from kingdoms.discord.home import ensure_pinned_home_menu
+from kingdoms.discord.static_pins import reset_static_pins
+
+_TREE_STORE: dict[str, str] = {}
+
+
+async def _fake_stored(guild_id: str, scope: str, key: str) -> str | None:
+    """Awaitable stand-in for the tree's stored channel ids."""
+    return _TREE_STORE.get(f"{scope}:{key}")
+
+
+@pytest.fixture(autouse=True)
+def _clean_static_pins(monkeypatch: Any) -> None:
+    """Isolate the static-pin registry per test; wire the tree's stored id.
+
+    The home pin resolves ``root/general`` through the stored tree id
+    (never by name): the fixture wires the resolver so the cycle runs
+    against the fake channel.
+    """
+    reset_static_pins()
+    _TREE_STORE.clear()
+    monkeypatch.setattr(
+        "kingdoms.discord.ui.panels_provisioning.stored_channel_id", _fake_stored
+    )
 
 
 class _FakeMessage:
@@ -26,6 +49,11 @@ class _FakeMessage:
 
     async def pin(self, reason: str = "") -> None:
         self.pin_calls += 1
+
+    async def edit(self, view: Any = None, **kwargs: Any) -> None:
+        """In-place edit (the refresh path of the static-pin cycle)."""
+        if view is not None:
+            self.view = view
 
 
 class _FakeChannel:
@@ -105,6 +133,7 @@ class _FakeBot:
     """discord.Client stand-in: guild lookup + service wiring."""
 
     def __init__(self, channel: _FakeChannel, registry: Any | None = None) -> None:
+        _TREE_STORE["root:general"] = channel.id
         self.home_channel_service = _FakeHomeChannelService(channel.id)
         self.home_service = _FakeHomeService()
         self.message_registry = registry

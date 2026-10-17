@@ -1,7 +1,7 @@
 """The factions forum: one post per faction, per game (core).
 
 Every game known to the catalog gets, in the ``games`` category, a
-``<game>-factions`` forum (e.g. ``aoe2-factions``). Every
+``<game>-factions`` forum (e.g. ``aoe2-civs``). Every
 non-archived faction gets exactly one post — the faction's public
 surface and the future link target for mod-specific faction entities
 (the kingdoms mod overlays its own concepts on AoE2 civilizations and
@@ -22,12 +22,116 @@ import discord
 
 from kingdoms.core.services.entity_forum import EntityForumSpec
 
-FACTIONS_FORUM_SUFFIX = "-factions"
+
+def _civ_post_layout(
+    name: str,
+    civ_type: str,
+    sections: list[tuple[str, list[str]]],
+    image: str,
+    source: str,
+    entry_id: str,
+) -> discord.ui.LayoutView:
+    """Build the civ post's Components V2 layout.
+
+    Title with the civilization type as its subtitle, one section per
+    parsed block separated by dividers, the civ image on the side
+    (section accessory), and a disabled TODO action row — the civ's
+    future actions (build orders, counters...) land there.
+    """
+    from kingdoms.core.ids import footer
+
+    view = discord.ui.LayoutView(timeout=None)
+    header = f"## {name}\n" + (f"_{civ_type}_" if civ_type else "")
+    if source:
+        header += f"\n{source}"
+    blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(header), discord.ui.Separator()]
+    for index, (label, items) in enumerate(sections):
+        if index:
+            blocks.append(discord.ui.Separator())
+        body = f"**{label}**\n" + "\n".join("\u2022 " + item for item in items)
+        if image and index == 0:
+            blocks.append(
+                discord.ui.Section(
+                    discord.ui.TextDisplay(body),
+                    accessory=discord.ui.Thumbnail(image),
+                )
+            )
+        else:
+            blocks.append(discord.ui.TextDisplay(body))
+    blocks.append(discord.ui.Separator())
+    blocks.append(discord.ui.TextDisplay(footer(entry_id)))
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    return view
 
 
-def factions_forum_name(game_key: str) -> str:
-    """Build the per-game factions forum name (``aoe2`` -> ``aoe2-factions``)."""
-    return f"{game_key}{FACTIONS_FORUM_SUFFIX}"
+async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any) -> list[Any]:
+    """Sort the factions by their localized name, newest-first.
+
+    The guild's locale drives the name resolution (content store first,
+    catalog name fallback); the posts then read in reverse alphabetical
+    order of the names the players actually see.
+    """
+    from kingdoms.discord.content_posts import guild_locale
+
+    locale = await guild_locale(guild_id, bot)
+    service = None
+    try:
+        from kingdoms.discord.content_posts import content_service
+
+        service = content_service()
+    except Exception:
+        service = None
+
+    async def display_name(faction: Any) -> str:
+        """Resolve the faction's name in the guild's locale (catalog fallback)."""
+        entry_id = str(getattr(faction, "id", ""))
+        fallback = str(getattr(faction, "name", faction))
+        if service is not None and entry_id:
+            try:
+                doc = await service.get(entry_id, locale)
+                if doc and doc.get("name"):
+                    return str(doc["name"])
+            except Exception:
+                return fallback
+        return fallback
+
+    import unicodedata
+
+    def sort_key(name: str) -> str:
+        """Build the accent-stripped, casefolded sort key of a display name."""
+        stripped = unicodedata.normalize("NFKD", name)
+        return "".join(c for c in stripped if not unicodedata.combining(c)).casefold()
+
+    keyed: list[tuple[str, Any]] = []
+    for faction in factions:
+        keyed.append((await display_name(faction), faction))
+    keyed.sort(key=lambda pair: sort_key(pair[0]), reverse=True)
+    return [faction for _, faction in keyed]
+
+
+async def _localized_faction_name(faction: Any, guild_id: str, bot: Any = None) -> str:
+    """Resolve the faction's display name in the guild's locale.
+
+    The content store holds the localized names (aoe2techtree FR/EN);
+    the catalog name is the fallback when no content was synced.
+    """
+    from kingdoms.discord.content_posts import content_service, guild_locale
+
+    entry_id = str(getattr(faction, "id", ""))
+    fallback = str(getattr(faction, "name", faction))
+    service = None
+    try:
+        service = content_service()
+    except Exception:
+        service = None
+    if service is not None and entry_id:
+        try:
+            doc = await service.get(entry_id, await guild_locale(guild_id, bot))
+            if doc and doc.get("name"):
+                return str(doc["name"])
+        except Exception:
+            return fallback
+    return fallback
 
 
 def _game_data(bot: Any) -> Any | None:
@@ -43,44 +147,47 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
     """Build the factions forum spec wired onto the games service."""
 
     async def list_factions(guild_id: str) -> list[Any]:
-        from kingdoms.discord.wiring import guild_has_game
+        """List the guild's granted factions, localized-name sorted."""
+        from kingdoms.discord.wiring import granted_game_keys
 
         service = _game_data(bot)
         if service is None:
             return []
         factions: list[Any] = []
-        for game_key in await service.list_game_keys():
-            if not await guild_has_game(guild_id, game_key):
-                continue
+        for game_key in await granted_game_keys(guild_id, tuple(await service.list_game_keys())):
             factions.extend(await service.list_factions(game_key))
-        return factions
+        return await _sorted_by_localized_name(factions, guild_id, bot)
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
-        from kingdoms.core.ids import footer
+        """Build one faction's forum post: content lines and layout view."""
+        from kingdoms.discord.civ_content import civ_section_lines, parse_civ_help
         from kingdoms.discord.content_posts import entity_post_content
 
         entry_id = str(getattr(faction, "id", ""))
         fallback = str(getattr(faction, "name", faction))
         name, summary, source, image = await entity_post_content(entry_id, fallback, guild_id, bot)
-        view = discord.ui.LayoutView(timeout=None)
-        blocks: list[discord.ui.Item[Any]] = [discord.ui.TextDisplay(f"## {name}")]
-        if summary:
-            blocks.append(discord.ui.TextDisplay(summary))
-        if image:
-            blocks.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image)))
-        view.add_item(discord.ui.Separator())
-        tail = f"Source : {source}\n" if source else ""
-        blocks.append(discord.ui.TextDisplay(f"{tail}{footer(entry_id)}"))
-        view.add_item(discord.ui.Container(*blocks))
-        content = f"**{name}**\n{summary}\n\n{tail}{footer(entry_id)}"
+        parsed = parse_civ_help(summary) if summary else None
+        sections = civ_section_lines(parsed) if parsed else []
+        civ_type = str(getattr(parsed, "civ_type", "") or "") if parsed else ""
+        view = _civ_post_layout(name, civ_type, sections, image, source, entry_id)
+        from kingdoms.core.ids import footer as id_footer
+
+        content = f"## {name}\n" + (f"_{civ_type}_\n" if civ_type else "")
+        if source:
+            content += f"{source}\n"
+        for label, items in sections:
+            content += f"\n**{label}**\n" + "\n".join("\u2022 " + item for item in items) + "\n"
+        content += id_footer(entry_id)
         return content, view
 
-    def forum_name_for(faction: Any) -> str:
-        return factions_forum_name(str(getattr(faction, "game_key", "")))
+    def tree_scope_for(faction: Any) -> str:
+        """Scope one faction's forum posts under its game's folder."""
+        return f"games/{getattr(faction, 'game_key', '')!s}"
 
     return EntityForumSpec(
-        forum_name="",
         list_entities=list_factions,
+        display_name_for=lambda faction, guild_id: _localized_faction_name(faction, guild_id, bot),
         build_post=build_post,
-        forum_name_for=forum_name_for,
+        tree_scope_for=tree_scope_for,
+        tree_channel_for=lambda faction: "civs",
     )

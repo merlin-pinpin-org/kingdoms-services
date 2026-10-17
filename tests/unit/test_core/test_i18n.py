@@ -19,7 +19,7 @@ def test_catalog_loads_the_real_locales() -> None:
     catalog = MessageCatalog(CONFIG_DIR)
     assert catalog.render("admin.title", "en") == "Kingdoms — Admin"
     assert catalog.render("admin.title", "fr") == "Kingdoms — Admin"
-    assert catalog.render("admin.language", "fr") == "Langue de la guilde"
+    assert catalog.render("admin.language", "fr") == "Langue du serveur"
 
 
 def test_nested_sections_flatten_to_dotted_keys() -> None:

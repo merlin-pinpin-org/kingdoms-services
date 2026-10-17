@@ -143,6 +143,8 @@ Methods defined here:<br>
 
 <dl><dt>async <a name="AdminChannelPlatform-create_channel"><strong>create_channel</strong></a>(self, guild_id: 'str', name: 'str', reason: 'str') -&gt; 'str'</dt><dd><span class="code">Create&nbsp;the&nbsp;channel;&nbsp;return&nbsp;its&nbsp;id.</span></dd></dl>
 
+<dl><dt>async <a name="AdminChannelPlatform-edit_layout"><strong>edit_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', message_id: 'str', layout: 'Any') -&gt; 'None'</dt><dd><span class="code">Edit&nbsp;a&nbsp;delivered&nbsp;layout&nbsp;message&nbsp;in&nbsp;place&nbsp;(best-effort).</span></dd></dl>
+
 <dl><dt>async <a name="AdminChannelPlatform-find_channel_by_name"><strong>find_channel_by_name</strong></a>(self, guild_id: 'str', name: 'str') -&gt; 'str | None'</dt><dd><span class="code">Find&nbsp;a&nbsp;guild&nbsp;channel&nbsp;id&nbsp;by&nbsp;its&nbsp;exact&nbsp;name;&nbsp;None&nbsp;when&nbsp;absent.</span></dd></dl>
 
 <dl><dt>async <a name="AdminChannelPlatform-send_layout"><strong>send_layout</strong></a>(self, guild_id: 'str', channel_id: 'str', layout: 'Any') -&gt; 'str'</dt><dd><span class="code">Deliver&nbsp;a&nbsp;UI&nbsp;SDK&nbsp;layout&nbsp;to&nbsp;the&nbsp;channel;&nbsp;the&nbsp;message&nbsp;id.</span></dd></dl>
@@ -169,7 +171,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>__parameters__</strong> = ()</dl>
 
-<dl><dt><strong>__protocol_attrs__</strong> = {'apply_channel_policy', 'channel_exists', 'create_channel', 'find_channel_by_name', 'send_layout', 'sync_admin_role_members'}</dl>
+<dl><dt><strong>__protocol_attrs__</strong> = {'apply_channel_policy', 'channel_exists', 'create_channel', 'edit_layout', 'find_channel_by_name', 'send_layout', ...}</dl>
 
 <hr>
 Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
@@ -205,6 +207,10 @@ Resolves&nbsp;the&nbsp;channel&nbsp;first&nbsp;(provisioning&nbsp;included),&nbs
 the&nbsp;layout&nbsp;to&nbsp;the&nbsp;platform&nbsp;seam.&nbsp;Best-effort:&nbsp;a&nbsp;delivery&nbsp;failure<br>
 never&nbsp;propagates&nbsp;—&nbsp;the&nbsp;admin&nbsp;surface&nbsp;degrades&nbsp;to&nbsp;the&nbsp;ephemeral<br>
 answers.</span></dd></dl>
+
+<dl><dt>async <a name="AdminChannelService-edit_layout"><strong>edit_layout</strong></a>(self, guild_id: 'str', message_id: 'str', layout: 'Any') -&gt; 'None'</dt><dd><span class="code">Edit&nbsp;one&nbsp;delivered&nbsp;admin&nbsp;message&nbsp;in&nbsp;place&nbsp;(best-effort).<br>
+&nbsp;<br>
+A&nbsp;failed&nbsp;edit&nbsp;raises&nbsp;—&nbsp;the&nbsp;pin&nbsp;updater&nbsp;falls&nbsp;back&nbsp;to&nbsp;a&nbsp;re-post.</span></dd></dl>
 
 <dl><dt>async <a name="AdminChannelService-resolve_channel"><strong>resolve_channel</strong></a>(self, guild_id: 'str', admin_ids: 'tuple[str, ...]' = ()) -&gt; 'str | None'</dt><dd><span class="code">Cache-aside&nbsp;resolution:&nbsp;Redis&nbsp;→&nbsp;Mongo&nbsp;→&nbsp;adoption&nbsp;→&nbsp;creation.<br>
 &nbsp;<br>

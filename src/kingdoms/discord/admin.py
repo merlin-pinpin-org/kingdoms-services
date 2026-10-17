@@ -92,9 +92,14 @@ LOCALES = ("en", "fr")
 
 # (category, icon, i18n label key) — the label renders through the
 # guild's locale (admin.channel_bot_logs / admin.channel_bot_admins).
+HOME_CHANNEL_CATEGORY = "home"
+LIVE_CHANNEL_CATEGORY = "live"
+
 MANAGED_CHANNELS: tuple[tuple[str, str, str], ...] = (
     (BOT_LOGS_CATEGORY, "🛰", "channel_bot_logs"),
     (ADMIN_CHANNEL_CATEGORY, "🛡", "channel_bot_admins"),
+    (HOME_CHANNEL_CATEGORY, "🏛", "channel_home"),
+    (LIVE_CHANNEL_CATEGORY, "📡", "channel_live"),
 )
 
 _LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
@@ -146,13 +151,31 @@ async def build_dm_setup_view(
             await _report_failure(error_reporter, interaction, exc)
             await interaction.response.send_message(_t(catalog, locale, "dm_change_failed"), ephemeral=True)
             return
-        await interaction.response.edit_message(
-            view=await build_dm_setup_view(logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter)
-        )
+        # Re-render the merged panel (admin panel + embedded locale
+        # select) when the clicker is a bot admin outside a guild — the
+        # dm_setup view alone replaced the whole admin panel before.
+        if not interaction.guild_id and _is_bot_admin(interaction.user.id, bot_admins):
+            from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+
+            dm_view = await build_dm_setup_view(
+                logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
+            )
+            locale_select = next(
+                (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
+            )
+            await interaction.response.edit_message(
+                view=await build_admin_dm_panel(interaction, locale_select=locale_select)
+            )
+        else:
+            await interaction.response.edit_message(
+                view=await build_dm_setup_view(
+                    logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
+                )
+            )
 
     locale_select = SelectMenu(
         custom_id=USER_LOCALE_SELECT_ID,
-        options=tuple(Option(_LOCALE_LABELS[loc], loc) for loc in LOCALES),
+        options=tuple(Option(_LOCALE_LABELS[loc], loc, default=loc == locale) for loc in LOCALES),
         on_choose=on_user_locale,
         placeholder=_t(catalog, locale, "dm_placeholder"),
     )
@@ -498,15 +521,37 @@ async def _resolve_managed_channel(
     category: str,
     admin_channel_service: AdminChannelService | None = None,
 ) -> str | None:
-    """Resolve a managed channel id, degrading to None on failure."""
+    """Resolve a managed channel through its stored tree id; None when absent.
+
+    The tree is the single owner of the channels: the admin panel
+    resolves by the persisted id (``tree:<scope>:<key>``) and never
+    creates or adopts — a channel the tree has not provisioned simply
+    reads "not provisioned yet".
+    """
+    del logs_service, admin_channel_service
+    from kingdoms.discord.ui.panels_provisioning import stored_channel_id
+
+    tree_keys = {
+        BOT_LOGS_CATEGORY: ("bot", "logs"),
+        ADMIN_CHANNEL_CATEGORY: ("bot", "admin"),
+        HOME_CHANNEL_CATEGORY: ("root", "general"),
+        LIVE_CHANNEL_CATEGORY: ("games/aoe2", "live"),
+    }
+    scope, key = tree_keys.get(category, ("", ""))
+    if not scope:
+        return None
     try:
-        if category == BOT_LOGS_CATEGORY:
-            return await logs_service.resolve_channel(guild_id)
-        if category == ADMIN_CHANNEL_CATEGORY and admin_channel_service is not None:
-            return await admin_channel_service.resolve_channel(guild_id)
+        return await stored_channel_id(guild_id, scope, key)
     except Exception:
         logger.warning("ADMIN PANEL: channel resolution failed (guild %s, category %s)", guild_id, category)
-    return None
+        return None
+
+
+def _panel_client() -> discord.Client | None:
+    """Resolve the running bot (the admin module's client reference; None unwired)."""
+    from kingdoms.discord.admin_panel_dynamic import _CLIENT_REF
+
+    return _CLIENT_REF[0] if _CLIENT_REF else None
 
 
 def build_admin_note_view(message: str) -> discord.ui.LayoutView:
@@ -568,9 +613,14 @@ def register_admin_command(
             if is_bot_admin:
                 from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
+                # One panel, one message: the admin panel embeds the DM
+                # locale picker at the end — two separate followups left
+                # the admin juggling two ephemerals.
                 dm_view = await build_dm_setup_view(logs_service, str(user_id), admins, catalog, error_reporter)
-                admin_view = await build_admin_dm_panel(interaction)
-                await interaction.followup.send(view=dm_view, ephemeral=True)
+                locale_select = next(
+                    (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
+                )
+                admin_view = await build_admin_dm_panel(interaction, locale_select=locale_select)
                 await interaction.followup.send(view=admin_view, ephemeral=True)
             else:
                 await interaction.followup.send(

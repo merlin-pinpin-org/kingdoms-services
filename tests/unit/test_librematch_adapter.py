@@ -35,9 +35,7 @@ def _options_blob(pairs: list[tuple[str, str]]) -> str:
     documented by the LibreMatch wiki).
     """
     records = [f"{k}:{v}" for k, v in pairs]
-    stream = bytes([len(records)]) + b"".join(
-        struct.pack("<I", len(r.encode())) + r.encode() for r in records
-    )
+    stream = bytes([len(records)]) + b"".join(struct.pack("<I", len(r.encode())) + r.encode() for r in records)
     inner = base64.b64encode(stream).decode()
     return base64.b64encode(zlib.compress(inner.encode())).decode()
 
@@ -55,6 +53,28 @@ def _lobby(match_id: str = "777") -> dict[str, Any]:
         ),
         "options": _options_blob([("8", "2"), ("10", "9"), ("29", "200"), ("42", "3")]),
     }
+
+
+WORLDEDGE_REPLY = {
+    "result": {"code": 0, "message": "SUCCESS"},
+    "statGroups": [
+        {
+            "id": 1103946,
+            "members": [
+                {
+                    "profile_id": 123456,
+                    "name": "/xboxlive/XYZ",
+                    "alias": "qmaxquique",
+                    "country": "ar",
+                    "clanlist_name": "TATO",
+                }
+            ],
+        }
+    ],
+    "leaderboardStats": [
+        {"profile_id": 123456, "leaderboard_id": 3, "rank": 42, "rating": 1600, "wins": 30, "losses": 25}
+    ],
+}
 
 
 class _FakeTransport(httpx.AsyncBaseTransport):
@@ -121,19 +141,52 @@ async def test_list_maps_serves_distinct_lobby_maps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_player_stats_without_api_key_degrades_to_none() -> None:
-    """No configured API key: stats degrade to None (manual path)."""
-    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport({}))
-    assert await adapter.player_stats("12345") is None
+async def test_player_stats_works_without_any_api_key() -> None:
+    """The community leaderboard endpoint is public: no key, still served.
+
+    The 2026-10-16 lesson: the key gate silently rejected every profile
+    while GetPersonalStat answers anyone — the key must never gate
+    player_stats again (regression guard).
+    """
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(WORLDEDGE_REPLY))
+    stats = await adapter.player_stats("123456")
+    assert stats is not None, "player_stats must work with no API key configured"
+    entries = {e.key: e.value for block in stats.blocks for e in block.entries}
+    assert entries["alias"] == "qmaxquique"
 
 
 @pytest.mark.asyncio
-async def test_player_stats_serves_leaderboard_blocks() -> None:
-    """With a key and a leaderboard reply, stats come back as blocks."""
+async def test_player_stats_serves_identity_and_leaderboard_blocks() -> None:
+    """A GetPersonalStat reply yields the identity entries plus stats blocks.
+
+    The real reply shape (aoe-api.worldsedgelink.com,
+    /community/leaderboard/GetPersonalStat): ``statGroups[].members[]``
+    carries the identity (alias, country, clan), ``leaderboardStats[]``
+    the per-board stats.
+    """
     payload = {
-        "result": [
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [
             {
-                "profileId": "12345",
+                "id": 1103946,
+                "name": "",
+                "type": 1,
+                "members": [
+                    {
+                        "profile_id": 12345,
+                        "name": "/xboxlive/XYZ",
+                        "alias": "qmaxquique",
+                        "leaderboardregion_id": 4,
+                        "country": "ar",
+                        "clanlist_name": "TATO",
+                    }
+                ],
+            }
+        ],
+        "leaderboardStats": [
+            {
+                "profile_id": 12345,
+                "leaderboard_id": 3,
                 "rank": 42,
                 "rating": 1600,
                 "wins": 30,
@@ -141,29 +194,54 @@ async def test_player_stats_serves_leaderboard_blocks() -> None:
                 "streak": 3,
                 "games": 55,
             }
-        ]
+        ],
     }
-    adapter = LibrematchAdapter(
-        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
-    )
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     stats = await adapter.player_stats("12345")
     assert stats is not None
     assert stats.profile_id == "12345"
     assert stats.blocks, "at least one leaderboard block"
     block = stats.blocks[0]
     entries = {e.key: e.value for e in block.entries}
+    assert entries["alias"] == "qmaxquique"
+    assert entries["country"] == "ar"
+    assert entries["clan"] == "TATO"
     assert entries["rank"] == "42"
     assert entries["rating"] == "1600"
     assert entries["wins"] == "30"
 
 
 @pytest.mark.asyncio
+async def test_player_stats_identity_only_profile_still_serves() -> None:
+    """A profile known but unranked serves its identity (registration valid)."""
+    payload = {
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [
+            {
+                "id": 1,
+                "members": [
+                    {"profile_id": 12345, "name": "/steam/XYZ", "alias": "someplayer", "country": "fr"}
+                ],
+            }
+        ],
+        "leaderboardStats": [],
+    }
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
+    stats = await adapter.player_stats("12345")
+    assert stats is not None
+    entries = {e.key: e.value for e in stats.blocks[0].entries}
+    assert entries["alias"] == "someplayer"
+
+
+@pytest.mark.asyncio
 async def test_player_stats_unknown_profile_returns_none() -> None:
-    """A leaderboard reply without the profile degrades to None."""
-    payload = {"result": [{"profileId": "other", "rank": 1}]}
-    adapter = LibrematchAdapter(
-        base_url="https://test", transport=_FakeTransport(payload), api_key="secret"
-    )
+    """A GetPersonalStat reply without the profile degrades to None."""
+    payload = {
+        "result": {"code": 0, "message": "SUCCESS"},
+        "statGroups": [],
+        "leaderboardStats": [],
+    }
+    adapter = LibrematchAdapter(base_url="https://test", transport=_FakeTransport(payload), api_key="secret")
     assert await adapter.player_stats("12345") is None
 
 
@@ -215,3 +293,17 @@ async def test_rate_limit_fail_open_without_limiter() -> None:
     """Without a configured limiter the adapter calls through (fail-open)."""
     adapter = _adapter([_lobby("777")])
     assert await adapter.fetch_lobbies()
+
+
+@pytest.mark.asyncio
+async def test_empty_base_url_never_builds_a_protocol_less_url() -> None:
+    """An empty LIBREMATCH_API_URL falls back to the public default.
+
+    The 2026-10-16 lesson: an empty base_url made every leaderboard call
+    raise httpx.UnsupportedProtocol (no http(s)://) and every profile
+    registration silently fail on the test env. The default stands in.
+    """
+    adapter = LibrematchAdapter(base_url="", transport=_FakeTransport(WORLDEDGE_REPLY))
+    assert adapter._base_url.startswith("https://"), "the base url must carry its protocol"
+    stats = await adapter.player_stats("123456")
+    assert stats is not None, "the default base url must serve the leaderboard call"

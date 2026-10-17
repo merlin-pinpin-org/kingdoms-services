@@ -6,6 +6,7 @@ jitter, and typed error mapping at the seam boundary. Keep the policy
 conservative by default — business code must never configure transport
 ad-hoc.
 """
+
 from __future__ import annotations
 
 import random

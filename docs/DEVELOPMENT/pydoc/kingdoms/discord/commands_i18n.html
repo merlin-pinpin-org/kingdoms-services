@@ -105,6 +105,15 @@ Data descriptors inherited from <a href="discord.app_commands.translator.html#Tr
 catalog&nbsp;keys&nbsp;live&nbsp;under&nbsp;the&nbsp;``commands.``&nbsp;yaml&nbsp;section.</span></dd></dl>
  <dl><dt>async <a name="-reply"><strong>reply</strong></a>(interaction: 'discord.Interaction', key: 'str', **kwargs: 'object') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;``replies.*``&nbsp;message&nbsp;in&nbsp;the&nbsp;guild's&nbsp;locale&nbsp;(English&nbsp;fallback).</span></dd></dl>
  <dl><dt>async <a name="-reply_locale"><strong>reply_locale</strong></a>(interaction: 'discord.Interaction') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;guild's&nbsp;configured&nbsp;locale&nbsp;for&nbsp;one&nbsp;interaction.</span></dd></dl>
+ <dl><dt>async <a name="-tr"><strong>tr</strong></a>(interaction: 'discord.Interaction', key: 'str', fallback: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;UI&nbsp;label&nbsp;(buttons,&nbsp;selects,&nbsp;titles)&nbsp;in&nbsp;the&nbsp;guild's&nbsp;locale.<br>
+&nbsp;<br>
+The&nbsp;``ui.*``&nbsp;keys&nbsp;carry&nbsp;every&nbsp;component&nbsp;label;&nbsp;the&nbsp;fallback&nbsp;is&nbsp;the<br>
+English&nbsp;wording,&nbsp;used&nbsp;when&nbsp;the&nbsp;catalog&nbsp;or&nbsp;the&nbsp;key&nbsp;is&nbsp;missing.</span></dd></dl>
+ <dl><dt>async <a name="-tr_guild"><strong>tr_guild</strong></a>(guild_id: 'str', bot: 'object', key: 'str', fallback: 'str' = '') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;UI&nbsp;label&nbsp;in&nbsp;a&nbsp;guild's&nbsp;locale&nbsp;(background&nbsp;builds).<br>
+&nbsp;<br>
+The&nbsp;forum&nbsp;syncs&nbsp;and&nbsp;pinned&nbsp;panels&nbsp;build&nbsp;components&nbsp;outside&nbsp;any<br>
+interaction:&nbsp;the&nbsp;guild's&nbsp;configured&nbsp;locale&nbsp;drives&nbsp;the&nbsp;render,&nbsp;the<br>
+English&nbsp;wording&nbsp;is&nbsp;the&nbsp;fallback.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

@@ -4,6 +4,7 @@ The staff lifecycle contract: an application is pending until an admin
 decides, an accepted staff re-applying is a no-op, a declined member
 may re-apply, and only the accepted members are staff.
 """
+
 from __future__ import annotations
 
 from typing import Any

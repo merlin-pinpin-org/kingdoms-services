@@ -9,13 +9,7 @@ from kingdoms.discord.pools_forum import (
     _pool_maps,
     _pool_post_content,
     _pool_post_layout,
-    _pools_forum_name,
-    _purge_legacy_forums,
 )
-
-
-def test_pools_forum_name() -> None:
-    assert _pools_forum_name("aoe2") == "aoe2-map-pools"
 
 
 @dataclass
@@ -32,16 +26,6 @@ class _FakeGuild:
     forums: list[_FakeForum]
 
 
-async def test_purge_legacy_forums_deletes_per_pool_forums() -> None:
-    legacy = _FakeForum("map-pools-season-1-rotation-1")
-    keep = _FakeForum("aoe2-map-pools")
-    maps = _FakeForum("aoe2-maps")
-    guild = _FakeGuild([legacy, keep, maps])
-    deleted = await _purge_legacy_forums(guild)  # type: ignore[arg-type]
-    assert deleted == 1
-    assert legacy.deleted and not keep.deleted and not maps.deleted
-
-
 @dataclass
 class _FakeMap:
     id: str
@@ -54,9 +38,9 @@ class _FakeMap:
 class _FakeService:
     async def get_map(self, map_id: str) -> Any:
         known = {
-            "map:aoe2:arabia": _FakeMap("map:aoe2:arabia", "Arabia", "https://x/arabia.png", "111"),
-            "map:aoe2:plain": _FakeMap("map:aoe2:plain", "Plain"),
-            "map:aoe2:gone": _FakeMap("map:aoe2:gone", "Gone", archived_at=1),
+            "map:aoe2:public:arabia": _FakeMap("map:aoe2:public:arabia", "Arabia", "https://x/arabia.png", "111"),
+            "map:aoe2:public:plain": _FakeMap("map:aoe2:public:plain", "Plain"),
+            "map:aoe2:public:gone": _FakeMap("map:aoe2:public:gone", "Gone", archived_at=1),
         }
         return known.get(map_id)
 
@@ -69,7 +53,12 @@ class _FakePool:
     map_ids: tuple[str, ...]
 
 
-_POOL = _FakePool("map_pool:aoe2:p1", "Rotation 1", "Desc", ("map:aoe2:arabia", "map:aoe2:plain", "map:aoe2:gone"))
+_POOL = _FakePool(
+    "map_pool:aoe2:p1",
+    "Rotation 1",
+    "Desc",
+    ("map:aoe2:public:arabia", "map:aoe2:public:plain", "map:aoe2:public:gone"),
+)
 
 
 async def test_pool_maps_resolves_members_keeps_linkless_maps() -> None:
@@ -101,9 +90,48 @@ def test_pool_post_layout_has_section_per_map_and_add_button() -> None:
             },
             {"id": "m2", "name": "Plain", "resource_url": "", "forum_message_id": None, "guild_id": "42"},
         ],
+        editable=True,
     )
     assert isinstance(view, discord.ui.LayoutView)
     sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
-    assert len(sections) == 3  # two map sections + the add-map section
+    assert len(sections) == 1  # the imaged member rides a Section; Plain is a text line
     assert sections[0].accessory is not None
-    assert sections[2].accessory is not None
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
+
+    rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
+    buttons = [b for row in rows for b in row.children]
+    assert any(isinstance(b, EntityAdminButton) for b in buttons)  # the single admin entry point
+
+
+def test_pool_post_layout_locked_pool_has_no_add_button() -> None:
+    import discord
+
+    view = _pool_post_layout(_POOL, [], editable=False)
+    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    assert sections == []  # a locked pool is read-only: no add entry point
+
+
+def test_pool_post_layout_map_sections_have_no_remove_button() -> None:
+    import discord
+
+
+    view = _pool_post_layout(
+        _POOL,
+        [
+            {
+                "id": "m1",
+                "name": "Arabia",
+                "resource_url": "",
+                "forum_message_id": "111",
+                "guild_id": "42",
+            }
+        ],
+        editable=True,
+    )
+    sections = [i for i in view.children if isinstance(i, discord.ui.Section)]
+    assert len(sections) == 0  # imageless member = text line, no section
+    rows = [i for i in view.children if isinstance(i, discord.ui.ActionRow)]
+    buttons = [b for row in rows for b in row.children]
+    from kingdoms.discord.entity_admin_menu import EntityAdminButton
+
+    assert any(isinstance(b, EntityAdminButton) for b in buttons)  # the single admin entry point

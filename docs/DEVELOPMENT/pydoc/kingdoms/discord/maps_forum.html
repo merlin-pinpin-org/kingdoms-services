@@ -40,21 +40,24 @@ admin&nbsp;surface&nbsp;lives&nbsp;in&nbsp;the&nbsp;games&nbsp;admin&nbsp;sectio
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-liquipedia_map_url"><strong>liquipedia_map_url</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;map's&nbsp;Liquipedia&nbsp;page&nbsp;URL&nbsp;(the&nbsp;post's&nbsp;default&nbsp;source&nbsp;link).</span></dd></dl>
+ <dl><dt><a name="-maps_forum_wiring_ready"><strong>maps_forum_wiring_ready</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;maps&nbsp;forum&nbsp;wiring&nbsp;can&nbsp;be&nbsp;built&nbsp;(Mongo&nbsp;configured).</span></dd></dl>
  <dl><dt><a name="-start_maps_forum_sync"><strong>start_maps_forum_sync</strong></a>(bot: 'Any') -&gt; 'asyncio.Task[None]'</dt><dd><span class="code">Sync&nbsp;every&nbsp;game's&nbsp;maps&nbsp;forum&nbsp;periodically,&nbsp;forever,&nbsp;quietly.</span></dd></dl>
  <dl><dt>async <a name="-sync_maps_forum"><strong>sync_maps_forum</strong></a>(guild_id: 'str', game_key: 'str', bot: 'Any', service: 'Any' = None) -&gt; 'int'</dt><dd><span class="code">Ensure&nbsp;the&nbsp;game's&nbsp;forum&nbsp;and&nbsp;one&nbsp;post&nbsp;per&nbsp;active&nbsp;map&nbsp;(idempotent).<br>
 &nbsp;<br>
 Existing&nbsp;posts&nbsp;are&nbsp;kept&nbsp;(matched&nbsp;by&nbsp;the&nbsp;stored&nbsp;``forum_message_id``),<br>
 missing&nbsp;posts&nbsp;are&nbsp;created,&nbsp;dead&nbsp;links&nbsp;are&nbsp;recreated.&nbsp;Returns&nbsp;the<br>
-number&nbsp;of&nbsp;posts&nbsp;created.</span></dd></dl>
+number&nbsp;of&nbsp;posts&nbsp;created.&nbsp;The&nbsp;whole&nbsp;pass&nbsp;holds&nbsp;the&nbsp;guild's&nbsp;sync<br>
+lock:&nbsp;the&nbsp;delete-heal&nbsp;and&nbsp;the&nbsp;hourly&nbsp;tick&nbsp;never&nbsp;create&nbsp;the&nbsp;same<br>
+post&nbsp;twice.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>FORUM_SUFFIX</strong> = '-maps'<br>
-<strong>GAMES_CATEGORY_NAME</strong> = 'games'<br>
+<td class="singlecolumn"><strong>LIQUIPEDIA_MAP_URL</strong> = 'https://liquipedia.net/ageofempires/'<br>
 <strong>SYNC_INTERVAL_S</strong> = 3600<br>
+<strong>__annotations__</strong> = {'_SYNC_LOCKS': 'dict[str, asyncio.Lock]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.games.maps_forum (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -1,0 +1,529 @@
+"""The profile flow's regression tests: add, remove and rename round-trips.
+
+The three modals of the profile surface answer the session's live findings:
+the add modal's select must be Label-wrapped (Discord's modal constraint),
+the remove modal reads its multi-select at submission, and every mutation
+re-renders the profile view with the new nickname/accounts. These tests pin
+the whole flow against fakes (no Mongo, no provider).
+"""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+import discord
+import httpx
+import pytest
+
+from kingdoms.discord import home as home_module
+
+
+def _view_texts(message: Any) -> list[str]:
+    """Collect the text displays of a Components V2 view message."""
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    view = getattr(message, "kwargs", {}).get("view")
+    for item in getattr(view, "children", None) or ():
+        walk(item)
+    return texts
+
+
+class _FakeRegistration:
+    """Registration stand-in: bindings in memory, provider always valid."""
+
+    def __init__(self, bindings: list[dict[str, Any]] | None = None) -> None:
+        self.bindings = bindings or []
+
+    async def list_bindings(self, user_id: str) -> list[dict[str, Any]]:
+        return [b for b in self.bindings if b["user_id"] == user_id]
+
+    async def bind_profile(self, user_id: str, game_key: str, profile_id: str) -> dict[str, Any]:
+        for b in self.bindings:
+            if b["profile_id"] == profile_id:
+                raise ValueError("already bound")
+        binding = {
+            "_id": f"binding:{game_key}:{user_id}:{profile_id}",
+            "user_id": user_id,
+            "game_key": game_key,
+            "profile_id": profile_id,
+            "profile": {"display_name": "Joueur", "aliases": ["Joueur"]},
+        }
+        self.bindings.append(binding)
+        return binding
+
+    async def unlink_profile(self, user_id: str, game_key: str, profile_id: str) -> bool:
+        before = len(self.bindings)
+        self.bindings = [
+            b
+            for b in self.bindings
+            if not (b["user_id"] == user_id and b["game_key"] == game_key and b["profile_id"] == profile_id)
+        ]
+        return len(self.bindings) < before
+
+
+class _FakeIdentity:
+    """Identity stand-in: one display name in memory."""
+
+    def __init__(self) -> None:
+        self.users: dict[str, str] = {}
+
+    async def get_user(self, user_id: str) -> Any:
+        name = self.users.get(user_id)
+        if name is None:
+            return None
+
+        class _U:
+            id = user_id
+            display_name = name
+
+        return _U()
+
+    async def get_or_create_user(self, *, platform: str, platform_user_id: str, display_name: str) -> Any:
+        self.users[f"{platform}:{platform_user_id}"] = display_name
+
+        class _U:
+            id = f"{platform}:{platform_user_id}"
+
+        return _U()
+
+    async def set_display_name(self, user_id: str, display_name: str) -> Any:
+        self.users[user_id] = display_name
+
+        class _U:
+            id = user_id
+
+        _U.display_name = display_name
+        return _U()
+
+
+class _Followups:
+    def __init__(self) -> None:
+        self.messages: list[Any] = []
+
+    async def send(self, content: str | None = None, **kwargs: Any) -> Any:
+        message = type("M", (), {"content": content, "kwargs": kwargs})()
+        self.messages.append(message)
+        return message
+
+
+class _Response:
+    def __init__(self) -> None:
+        self.deferred = False
+        self.modals: list[discord.ui.Modal] = []
+        self.sent: list[str] = []
+
+    async def defer(self, ephemeral: bool = True, thinking: bool = True) -> None:
+        self.deferred = True
+
+    async def send_message(self, message: str, ephemeral: bool = True) -> None:
+        self.sent.append(message)
+
+    async def send_modal(self, modal: discord.ui.Modal) -> None:
+        self.modals.append(modal)
+
+    def is_done(self) -> bool:
+        return self.deferred or bool(self.sent)
+
+
+class _Client:
+    def __init__(self) -> None:
+        self.registration_service: Any = None
+        self.identity_service: Any = None
+        self.mod_profile_enrichers: dict[str, Any] = {}
+        self.messages = None
+        self.logs_service = None
+
+
+class _Interaction:
+    """Interaction stand-in: user 42, one guild, defer+followup."""
+
+    guild_id = 123
+    user = type("U", (), {"id": 42, "display_name": "TestUser"})()
+    guild = type("G", (), {"id": 123, "get_member": lambda self, i: None, "fetch_member": None})()
+
+    def __init__(self) -> None:
+        self.client = _Client()
+        self.followup = _Followups()
+        self.response = _Response()
+        self.data: dict[str, Any] = {}
+
+
+@pytest.mark.asyncio
+async def test_add_account_submits_binds_and_refreshes(monkeypatch: Any) -> None:
+    """The add modal binds the account then re-renders the profile view."""
+    registration = _FakeRegistration()
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    modal = home_module.ProfileAddAccountModal(
+        [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)]
+    )
+    object.__setattr__(modal.game, "_values", ["aoe2"])
+    object.__setattr__(modal.profile_id, "_value", "123456")
+    await modal.on_submit(interaction)
+    assert registration.bindings and registration.bindings[0]["profile_id"] == "123456"
+    texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
+    assert any("profil" in t for t in texts), "the profile view must be re-rendered after the add"
+    assert any("compte" in t or "add_success" in t for t in texts), (
+        "the success banner must ride the refreshed view"
+    )
+
+
+@pytest.mark.asyncio
+async def test_remove_account_multiselect_unlinks_and_refreshes(monkeypatch: Any) -> None:
+    """The remove modal unlinks every selected account, then refreshes."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:111",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "111",
+                "profile": {"display_name": "A"},
+            },
+            {
+                "_id": "binding:aoe2:42:222",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "222",
+                "profile": {"display_name": "B"},
+            },
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    options = [
+        discord.SelectOption(label="A", value="aoe2|111"),
+        discord.SelectOption(label="B", value="aoe2|222"),
+    ]
+    modal = home_module.ProfileRemoveAccountModal(options)
+    object.__setattr__(modal.accounts, "_values", ["aoe2|111", "aoe2|222"])
+    await modal.on_submit(interaction)
+    assert registration.bindings == [], "every selected account must be unlinked"
+    assert any("retir" in str(m.content).lower() for m in interaction.followup.messages), (
+        "the removal confirmation must mention what was removed"
+    )
+    assert len(interaction.followup.messages) >= 2, "the profile view must follow the confirmation"
+
+
+@pytest.mark.asyncio
+async def test_rename_submits_persists_and_refreshes(monkeypatch: Any) -> None:
+    """The rename modal persists the name then re-renders the profile."""
+    identity = _FakeIdentity()
+    identity.users["discord:42"] = "Old"
+    interaction = _Interaction()
+    interaction.client.identity_service = identity
+    interaction.client.registration_service = _FakeRegistration()
+    modal = home_module.ProfileRenameModal("Old")
+    object.__setattr__(modal.name, "_value", "NewPseudo")
+    await modal.on_submit(interaction)
+    assert identity.users["discord:42"] == "NewPseudo"
+    texts = [t.lower() for m in interaction.followup.messages for t in _view_texts(m)]
+    assert any("profil" in t for t in texts), "the profile view must be re-rendered after the rename"
+    assert any("pseudo" in t for t in texts), "the rename banner must ride the refreshed view"
+
+
+@pytest.mark.asyncio
+async def test_remove_button_opens_multiselect_modal(monkeypatch: Any) -> None:
+    """The remove button answers with the multi-select modal (Label-wrapped)."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:111",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "111",
+                "profile": {"display_name": "A"},
+            }
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    button = home_module.ProfileRemoveAccountButton()
+    await button.callback(interaction)
+    assert interaction.response.modals, "the button must open a modal"
+    modal = interaction.response.modals[0]
+    assert isinstance(modal, home_module.ProfileRemoveAccountModal)
+    payload = modal.to_components()
+    assert any(c.get("type") == 18 for c in payload), "the select must be Label-wrapped"
+    assert modal.accounts.max_values == len(modal.accounts.options)
+
+
+@pytest.mark.asyncio
+async def test_add_button_opens_label_wrapped_modal(monkeypatch: Any) -> None:
+    """The add button answers with the game-select modal (Label-wrapped)."""
+    interaction = _Interaction()
+    interaction.client.registration_service = _FakeRegistration()
+    button = home_module.ProfileAddAccountButton()
+    await button.callback(interaction)
+    assert interaction.response.modals, "the button must open a modal"
+    payload = interaction.response.modals[0].to_components()
+    assert any(c.get("type") == 18 for c in payload), "the game select must be Label-wrapped"
+
+
+@pytest.mark.asyncio
+async def test_add_failure_names_the_provider(monkeypatch: Any) -> None:
+    """A provider failure answers with the provider's name and DMs admins."""
+    registration = _FakeRegistration()
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+
+    async def _boom(user_id: str, game_key: str, profile_id: str) -> dict[str, Any]:
+        raise ConnectionError("ext-librematch provider did not answer")
+
+    registration.bind_profile = _boom  # type: ignore[method-assign]
+    admins_dmed: list[str] = []
+
+    async def _dm(bot: Any, admin_ids: tuple[str, ...], content: str) -> None:
+        admins_dmed.append(content)
+
+    monkeypatch.setattr("kingdoms.discord.error_report.dm_admins", _dm)
+
+    class _Status:
+        bot_admins = ("111",)
+
+    interaction.client.status_service = _Status()  # type: ignore[attr-defined]
+    modal = home_module.ProfileAddAccountModal(
+        [discord.SelectOption(label="Age of Empires II", value="aoe2", default=True)]
+    )
+    object.__setattr__(modal.game, "_values", ["aoe2"])
+    object.__setattr__(modal.profile_id, "_value", "848567")
+    await modal.on_submit(interaction)
+    contents = [str(m.content) for m in interaction.followup.messages]
+    assert any("ext-librematch" in c for c in contents), "the error must name the provider"
+    assert admins_dmed and "ConnectionError" in admins_dmed[0], "the admins must receive the stack"
+
+
+@pytest.mark.asyncio
+async def test_profile_view_shows_alias_names() -> None:
+    """The profile line shows the provider alias, never a bare '?'."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:111",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "848567",
+                "profile": {"aliases": ["Merlin Pinpin"]},
+            }
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    # the view is a Components V2 LayoutView: walk its text displays
+    await home_module._profile_followup(interaction)
+    texts: list[str] = []
+
+    def walk(component: Any) -> None:
+        content = getattr(component, "content", None)
+        if isinstance(content, str):
+            texts.append(content)
+        for child in getattr(component, "children", None) or ():
+            walk(child)
+
+    view = getattr(interaction.followup.messages[-1], "kwargs", {}).get("view")
+    assert view is not None, "the profile view must be sent"
+    for item in getattr(view, "children", None) or ():
+        walk(item)
+    assert any("Merlin Pinpin" in t for t in texts), (
+        "the alias must be displayed instead of '?'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_validation_seam_says_not_configured_without_stats() -> None:
+    """Without the player-stats capability the seam names the config gap."""
+    from kingdoms.core.models.game import ProviderCapabilities
+    from kingdoms.discord.registration_platform import (
+        Aoe2ProfileValidationSeam,
+        ProviderStatsUnavailableError,
+    )
+
+    class _Client:
+        def __init__(self, uri: str, provider: str, game: str) -> None:
+            del uri, provider, game
+
+        async def get_capabilities(self) -> ProviderCapabilities:
+            return ProviderCapabilities.none("ext-librematch", "aoe2")
+
+        async def get_player_stats(self, profile_id: str) -> None:
+            return None
+
+    import kingdoms.discord.registration_platform as platform
+
+    original = platform.__dict__.get("GameProviderClient")
+    platform.GameProviderClient = _Client  # type: ignore[assignment]
+    try:
+        seam = Aoe2ProfileValidationSeam("kingdoms-ext-librematch:50061")
+        try:
+            await seam.validate_profile("123456")
+            raised = False
+        except ProviderStatsUnavailableError as exc:
+            raised = True
+            assert "ne sert pas les stats" in str(exc), "the error must name the config gap"
+        assert raised, "a stats-less provider must raise the explicit config error"
+    finally:
+        if original is not None:
+            platform.GameProviderClient = original  # type: ignore[assignment]
+
+
+def test_add_modal_payload_shape_is_the_proven_one() -> None:
+    """The add modal rides the exact shape that opens in production.
+
+    Regression guard (2026-10-15): a TextInput wrapped in a Label never
+    opened (silent 50035). The proven shape: the select in a Label (type
+    18), the TextInput naked in an ActionRow (type 1) carrying its own
+    label.
+    """
+    from discord import SelectOption
+
+    from kingdoms.discord.home import ProfileAddAccountModal
+
+    modal = ProfileAddAccountModal([SelectOption(label="AoE2", value="aoe2", default=True)])
+    payload = modal.to_components()
+    types = [c.get("type") for c in payload]
+    assert 18 in types, "the game select must ride a Label component"
+    assert 1 in types, "the text input must ride the classic ActionRow"
+    for component in payload:
+        if component.get("type") == 18:
+            assert component["component"]["type"] == 3, "the Label wraps the select"
+            assert component.get("label"), "the Label carries its own text"
+        if component.get("type") == 1:
+            inner = component["components"][0]
+            assert inner["type"] == 4, "the ActionRow wraps the TextInput"
+            assert inner.get("label") == "Ton id aoe2insights ou ton relic id"
+
+
+@pytest.mark.asyncio
+async def test_remove_failure_names_the_entry() -> None:
+    """A failed removal names the game/profile and the reason."""
+    registration = _FakeRegistration(
+        [
+            {
+                "_id": "binding:aoe2:42:999",
+                "user_id": "42",
+                "game_key": "aoe2",
+                "profile_id": "999",
+                "profile": {"aliases": ["Ghost"]},
+            }
+        ]
+    )
+    interaction = _Interaction()
+    interaction.client.registration_service = registration
+    options = [discord.SelectOption(label="Ghost", value="aoe2|999")]
+    modal = home_module.ProfileRemoveAccountModal(options)
+    object.__setattr__(modal.accounts, "_values", ["aoe2|ghost"])  # stale value: not bound
+    await modal.on_submit(interaction)
+    contents = [str(m.content) for m in interaction.followup.messages]
+    assert any("Retrait échoué pour" in c and "aoe2" in c for c in contents), (
+        "the failure message must name the entry"
+    )
+
+
+class _FakeInsightsTransport(httpx.AsyncBaseTransport):
+    """httpx stand-in serving the aoe2insights relic-id pages."""
+
+    def __init__(self, relic_ids: dict[str, str]) -> None:
+        self.relic_ids = relic_ids
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        match = re.search(r"/user/(\d+)/relic-id/", str(request.url))
+        if match and match.group(1) in self.relic_ids:
+            return httpx.Response(200, text=self.relic_ids[match.group(1)])
+        return httpx.Response(404, text="not found")
+
+
+@pytest.mark.asyncio
+async def test_resolve_relic_id_maps_the_insights_user_id() -> None:
+    """The insights user id (or URL) resolves to the relic id."""
+    from kingdoms.discord.registration_platform import resolve_relic_id
+
+    transport = _FakeInsightsTransport({"12488557": "17190369"})
+
+    assert await resolve_relic_id("12488557", transport=transport) == "17190369"
+    assert await resolve_relic_id("https://www.aoe2insights.com/user/12488557/", transport=transport) == "17190369"
+    relic_url = "https://www.aoe2insights.com/user/12488557/relic-id/"
+    assert await resolve_relic_id(relic_url, transport=transport) == "17190369"
+    assert await resolve_relic_id("999999999", transport=transport) is None
+    assert await resolve_relic_id("abc", transport=transport) is None
+
+
+def test_extract_insights_user_id_rejects_injections() -> None:
+    """The strict URL gate: only genuine aoe2insights user URLs pass."""
+    from kingdoms.discord.registration_platform import extract_insights_user_id
+
+    ok = extract_insights_user_id("https://www.aoe2insights.com/user/12488557/")
+    assert ok == "12488557"
+    assert extract_insights_user_id("https://aoe2insights.com/user/12488557") == "12488557"
+    assert extract_insights_user_id("https://www.aoe2insights.com/user/12488557/relic-id/") == "12488557"
+    # injections and foreign shapes are all rejected
+    for hostile in (
+        "https://evil.com/user/12488557",
+        "https://aoe2insights.com.evil.com/user/1",
+        "https://evil.com/?u=https://www.aoe2insights.com/user/1",
+        "12488557",
+        "aoe2insights.com/user/1",
+        "https://www.aoe2insights.com/users/12488557",
+        "https://www.aoe2insights.com/user/abc",
+        "https://www.aoe2insights.com/user/" + "1" * 16,
+        "",
+        "javascript:alert(1)",
+    ):
+        assert extract_insights_user_id(hostile) is None, f"must reject: {hostile!r}"
+    # any path after the id is accepted — the capture only ever yields the
+    # validated digit segment, the URL itself is never used downstream
+    for flexible in (
+        "https://www.aoe2insights.com/user/12488557/whatever/else",
+        "https://www.aoe2insights.com/user/12488557?tab=stats",
+        "https://www.aoe2insights.com/user/12488557/../admin",
+    ):
+        assert extract_insights_user_id(flexible) == "12488557", f"must accept: {flexible!r}"
+
+
+@pytest.mark.asyncio
+async def test_resolve_relic_id_rejects_dirty_replies() -> None:
+    """A non-numeric insights reply (HTML, injection) never resolves."""
+    from kingdoms.discord.registration_platform import resolve_relic_id
+
+    class _DirtyTransport(httpx.AsyncBaseTransport):
+        def __init__(self, text: str, status: int = 200) -> None:
+            self.text = text
+            self.status = status
+
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            return httpx.Response(self.status, text=self.text)
+
+    dirty_replies = [
+        "<html><body>17190369</body></html>",
+        "17190369\nGARBAGE",
+        "17190369; DROP TABLE",
+        " ../../etc/passwd",
+        "171903691719036917190369",
+    ]
+    for reply in dirty_replies:
+        result = await resolve_relic_id("12488557", transport=_DirtyTransport(reply))
+        assert result is None, f"must reject the dirty reply: {reply!r}"
+    assert await resolve_relic_id("12488557", transport=_DirtyTransport("17190369")) == "17190369"
+    # an insights error page is a refusal, never a resolution
+    assert await resolve_relic_id("12488557", transport=_DirtyTransport("not found", status=404)) is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_relic_id_caps_the_input() -> None:
+    """An oversized input never reaches the network."""
+    from kingdoms.discord.registration_platform import resolve_relic_id
+
+    class _NoNetworkTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            raise AssertionError("the oversized input must never hit the network")
+
+    assert await resolve_relic_id("", transport=_NoNetworkTransport()) is None
+    assert await resolve_relic_id("9" * 101, transport=_NoNetworkTransport()) is None
+    assert await resolve_relic_id("abc", transport=_NoNetworkTransport()) is None

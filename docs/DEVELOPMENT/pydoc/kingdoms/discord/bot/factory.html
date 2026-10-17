@@ -189,7 +189,22 @@ crash&nbsp;reporter&nbsp;(cause,&nbsp;interaction&nbsp;context,&nbsp;GitHub&nbsp
 
 <dl><dt>async <a name="KingdomsBot-on_error"><strong>on_error</strong></a>(self, event_method: 'str', /, *args: 'object', **kwargs: 'object') -&gt; 'None'</dt><dd><span class="code">Route&nbsp;unhandled&nbsp;gateway-event&nbsp;failures&nbsp;to&nbsp;each&nbsp;guild's&nbsp;bot-logs.</span></dd></dl>
 
+<dl><dt>async <a name="KingdomsBot-on_guild_channel_delete"><strong>on_guild_channel_delete</strong></a>(self, channel: 'discord.abc.GuildChannel') -&gt; 'None'</dt><dd><span class="code">Recreate&nbsp;a&nbsp;deleted&nbsp;managed&nbsp;channel&nbsp;immediately&nbsp;(self-healing).<br>
+&nbsp;<br>
+The&nbsp;managed-channel&nbsp;resolution&nbsp;is&nbsp;existence-checked&nbsp;(Redis&nbsp;-&gt;<br>
+Mongo&nbsp;-&gt;&nbsp;adoption&nbsp;-&gt;&nbsp;creation),&nbsp;so&nbsp;re-resolving&nbsp;after&nbsp;a&nbsp;delete<br>
+recreates&nbsp;the&nbsp;channel&nbsp;now&nbsp;instead&nbsp;of&nbsp;waiting&nbsp;for&nbsp;the&nbsp;hourly<br>
+sweep.&nbsp;The&nbsp;pinned&nbsp;menus&nbsp;follow:&nbsp;their&nbsp;next&nbsp;ensure&nbsp;finds&nbsp;the<br>
+fresh&nbsp;channel.&nbsp;Only&nbsp;the&nbsp;bot's&nbsp;own&nbsp;channels&nbsp;react;&nbsp;anything<br>
+else&nbsp;is&nbsp;ignored.</span></dd></dl>
+
 <dl><dt>async <a name="KingdomsBot-on_ready"><strong>on_ready</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Log&nbsp;the&nbsp;ready&nbsp;marker&nbsp;asserted&nbsp;by&nbsp;smoke&nbsp;CI,&nbsp;then&nbsp;sync&nbsp;commands&nbsp;once.</span></dd></dl>
+
+<dl><dt>async <a name="KingdomsBot-on_thread_delete"><strong>on_thread_delete</strong></a>(self, thread: 'discord.Thread') -&gt; 'None'</dt><dd><span class="code">Let&nbsp;the&nbsp;entity-forum&nbsp;syncs&nbsp;heal&nbsp;a&nbsp;deleted&nbsp;post&nbsp;(no-op&nbsp;here).<br>
+&nbsp;<br>
+Forum&nbsp;posts&nbsp;are&nbsp;matched&nbsp;by&nbsp;name&nbsp;on&nbsp;the&nbsp;hourly&nbsp;syncs;&nbsp;reacting<br>
+per-delete&nbsp;would&nbsp;race&nbsp;the&nbsp;syncs'&nbsp;fingerprint&nbsp;bookkeeping.&nbsp;The<br>
+hourly&nbsp;pass&nbsp;recreates&nbsp;the&nbsp;missing&nbsp;post&nbsp;with&nbsp;its&nbsp;full&nbsp;layout.</span></dd></dl>
 
 <dl><dt>async <a name="KingdomsBot-on_tree_error"><strong>on_tree_error</strong></a>(self, interaction: 'discord.Interaction', error: 'app_commands.AppCommandError') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;Kingdoms&nbsp;errors&nbsp;with&nbsp;i18n&nbsp;+&nbsp;audit;&nbsp;crash-report&nbsp;the&nbsp;rest.</span></dd></dl>
 

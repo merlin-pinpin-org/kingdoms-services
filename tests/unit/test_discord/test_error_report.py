@@ -23,6 +23,14 @@ from kingdoms.discord.error_report import (
 from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
 
 
+@pytest.fixture(autouse=True)
+def _clean_dm_dedupe() -> None:
+    """Reset the admin-DM spam guard between tests (fresh quota each time)."""
+    from kingdoms.discord.error_report import reset_dm_report_dedupe
+
+    reset_dm_report_dedupe()
+
+
 class _FakeLogsService:
     """LogService stand-in recording delivered lifecycle events."""
 
@@ -205,3 +213,20 @@ async def test_guild_error_dms_admins_without_interaction() -> None:
     exc = _raise_in_kingdoms_code()
     await report_guild_error(exc, ["77"], "", logs, bot=bot, admin_ids=("111",))
     assert bot._users[111].sent
+
+
+@pytest.mark.asyncio
+async def test_repeated_failures_do_not_spam_admins() -> None:
+    """The spam guard coalesces identical failures within its window."""
+    from kingdoms.discord.error_report import reset_dm_report_dedupe
+
+    reset_dm_report_dedupe()
+    logs = _FakeLogsService()
+    bot = _FakeDmBot([111])
+    exc = _raise_in_kingdoms_code()
+    await report_guild_error(exc, ["77"], "", logs, bot=bot, admin_ids=("111",))
+    assert bot._users[111].sent, "the first failure DMs the admins"
+    sent_before = len(bot._users[111].sent)
+    await report_guild_error(exc, ["77"], "", logs, bot=bot, admin_ids=("111",))
+    await report_guild_error(exc, ["77"], "", logs, bot=bot, admin_ids=("111",))
+    assert len(bot._users[111].sent) == sent_before, "repeated identical failures are coalesced"

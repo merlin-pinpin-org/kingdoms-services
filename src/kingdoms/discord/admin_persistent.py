@@ -158,7 +158,10 @@ async def _reply(interaction: discord.Interaction, key: str) -> str:
 
 async def _degrade(interaction: discord.Interaction, message: str) -> None:
     try:
-        await interaction.response.send_message(message, ephemeral=True)
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
     except Exception:
         logger.warning("ADMIN PANEL (persistent): degradation answer failed", exc_info=True)
 
@@ -421,7 +424,12 @@ async def _handle_read_only(interaction: discord.Interaction) -> None:
 
 
 async def _handle_roles(interaction: discord.Interaction) -> None:
-    """Show the roles view ephemerally (core roles + mod-declared roles)."""
+    """Show the roles view ephemerally (core roles + mod-declared roles).
+
+    The interaction is acked FIRST \u2014 the guard's role lookups and the
+    view's Mongo reads ride behind the defer, never inside the 3s window.
+    """
+    await interaction.response.defer(ephemeral=True, thinking=True)
     wiring = await _require_wiring(interaction)
     if wiring is None:
         return
@@ -433,13 +441,21 @@ async def _handle_roles(interaction: discord.Interaction) -> None:
         return
     from kingdoms.discord.admin_roles import build_roles_view
 
-    view = await build_roles_view(interaction, wiring)
     try:
-        await interaction.response.send_message(view=view, ephemeral=True)
-    except Exception:
+        view = await build_roles_view(interaction, wiring)
+        await interaction.followup.send(view=view, ephemeral=True)
+    except Exception as exc:
         logger.warning("ADMIN PANEL: roles view answer failed", exc_info=True)
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        if wiring.logs_service is not None and guild_id:
+            try:
+                from kingdoms.core.services.logs import LifecycleEvent
 
-
+                event = LifecycleEvent(kind="crash", message=f"Le panneau des r\u00f4les a \u00e9chou\u00e9 : {exc}")
+                await wiring.logs_service.log_event(guild_id, event)
+            except Exception:
+                logger.warning("ADMIN PANEL: roles failure log failed", exc_info=True)
+        await _fail(interaction, "Le panneau des r\u00f4les a \u00e9chou\u00e9 \u2014 voir les logs du bot.")
 
 
 def register_admin_persistent_items(bot: discord.Client) -> None:

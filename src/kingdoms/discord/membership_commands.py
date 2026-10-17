@@ -6,6 +6,7 @@ seasonal or non-seasonal mod): the mod provides its wired
 ``register``/``unregister`` subcommands with the same answers
 everywhere — no per-mod copy of the wiring.
 """
+
 from __future__ import annotations
 
 import logging
@@ -17,9 +18,7 @@ from discord import app_commands
 logger = logging.getLogger("kingdoms.membership")
 
 
-def register_membership_commands(
-    group: app_commands.Group, membership: Any
-) -> None:
+def register_membership_commands(group: app_commands.Group, membership: Any) -> None:
     """Add the register/unregister subcommands to one mod's group.
 
     ``membership`` is the mod's wired core MembershipService; the

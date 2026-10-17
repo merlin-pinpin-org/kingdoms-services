@@ -3,6 +3,7 @@
 The bootstrap seam of the process split: lets any process assert
 svc-core wiring (version, reachability) without domain dependencies.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -48,7 +49,5 @@ async def fetch_core_status(core_uri: str) -> CoreStatus:
     """Fetch svc-core status over the wire (used by tests and preflight)."""
     async with grpc.aio.insecure_channel(core_uri) as channel:
         stub = status_pb2_grpc.StatusStub(channel)
-        reply = await stub.GetCoreStatus(
-            status_pb2.CoreStatusRequest(), timeout=5.0
-        )
+        reply = await stub.GetCoreStatus(status_pb2.CoreStatusRequest(), timeout=5.0)
         return CoreStatus(version=reply.version, process=reply.process)

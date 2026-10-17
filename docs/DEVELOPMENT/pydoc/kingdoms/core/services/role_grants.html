@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.core.services.role_grants</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.core.html" class="white">core</a>.<a href="kingdoms.core.services.html" class="white">services</a>.role_grants</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/core/services/role_grants.py">SOURCE_ROOT/core/services/role_grants.py</a></td></tr></table>
+    <p><span class="code">Role-grant&nbsp;mappings:&nbsp;which&nbsp;guild&nbsp;roles&nbsp;carry&nbsp;which&nbsp;bot&nbsp;function.<br>
+&nbsp;<br>
+A&nbsp;bot&nbsp;function&nbsp;(``bot-admins``,&nbsp;``staff``...)&nbsp;can&nbsp;be&nbsp;carried&nbsp;by&nbsp;any<br>
+guild&nbsp;role,&nbsp;not&nbsp;just&nbsp;the&nbsp;provisioned&nbsp;defaults:&nbsp;a&nbsp;guild&nbsp;may&nbsp;map&nbsp;its<br>
+native&nbsp;admin&nbsp;role,&nbsp;or&nbsp;its&nbsp;VIP&nbsp;role,&nbsp;onto&nbsp;a&nbsp;function.&nbsp;Storage&nbsp;is&nbsp;one<br>
+document&nbsp;per&nbsp;guild&nbsp;in&nbsp;the&nbsp;``role_grants``&nbsp;collection:<br>
+&nbsp;<br>
+``{"_id":&nbsp;"&lt;guild&gt;",&nbsp;"functions":&nbsp;{"bot-admins":&nbsp;["&lt;role&nbsp;id&gt;"],&nbsp;...}}``<br>
+&nbsp;<br>
+An&nbsp;empty&nbsp;list&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;function's&nbsp;default&nbsp;(the&nbsp;provisioned<br>
+role).&nbsp;Checks&nbsp;are&nbsp;additive:&nbsp;BOT_ADMINS&nbsp;and&nbsp;guild&nbsp;administrators&nbsp;always<br>
+pass,&nbsp;the&nbsp;mapped&nbsp;roles&nbsp;add&nbsp;on&nbsp;top.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.role_grants.html#MongoRoleGrantsDatabase">MongoRoleGrantsDatabase</a>
+</dt><dt class="heading-text"><a href="kingdoms.core.services.role_grants.html#RoleGrantsService">RoleGrantsService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.core.services.role_grants.html#RoleGrantsDatabase">RoleGrantsDatabase</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MongoRoleGrantsDatabase">class <strong>MongoRoleGrantsDatabase</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MongoRoleGrantsDatabase">MongoRoleGrantsDatabase</a>(database:&nbsp;'Any')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Async&nbsp;MongoDB&nbsp;persistence&nbsp;for&nbsp;the&nbsp;role-grant&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="MongoRoleGrantsDatabase-__init__"><strong>__init__</strong></a>(self, database: 'Any') -&gt; 'None'</dt><dd><span class="code">Wrap&nbsp;an&nbsp;async&nbsp;MongoDB&nbsp;database&nbsp;(get_async_database).</span></dd></dl>
+
+<dl><dt>async <a name="MongoRoleGrantsDatabase-find_grants"><strong>find_grants</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;grants&nbsp;document;&nbsp;None&nbsp;when&nbsp;unset.</span></dd></dl>
+
+<dl><dt>async <a name="MongoRoleGrantsDatabase-upsert_grants"><strong>upsert_grants</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;guild's&nbsp;grants&nbsp;document.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoleGrantsDatabase">class <strong>RoleGrantsDatabase</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoleGrantsDatabase">RoleGrantsDatabase</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+Narrow&nbsp;async&nbsp;MongoDB&nbsp;seam&nbsp;for&nbsp;the&nbsp;role-grant&nbsp;documents.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.core.services.role_grants.html#RoleGrantsDatabase">RoleGrantsDatabase</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RoleGrantsDatabase-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt>async <a name="RoleGrantsDatabase-find_grants"><strong>find_grants</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;guild's&nbsp;grants&nbsp;document;&nbsp;None&nbsp;when&nbsp;unset.</span></dd></dl>
+
+<dl><dt>async <a name="RoleGrantsDatabase-upsert_grants"><strong>upsert_grants</strong></a>(self, document: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;one&nbsp;guild's&nbsp;grants&nbsp;document.</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="RoleGrantsDatabase-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'find_grants', 'upsert_grants'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="RoleGrantsDatabase-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="RoleGrantsDatabase-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RoleGrantsService">class <strong>RoleGrantsService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RoleGrantsService">RoleGrantsService</a>(database:&nbsp;'<a href="#RoleGrantsDatabase">RoleGrantsDatabase</a>')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Per-guild&nbsp;role&nbsp;mappings&nbsp;for&nbsp;the&nbsp;bot&nbsp;functions.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RoleGrantsService-__init__"><strong>__init__</strong></a>(self, database: 'RoleGrantsDatabase') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;persistence&nbsp;seam.</span></dd></dl>
+
+<dl><dt>async <a name="RoleGrantsService-function_roles"><strong>function_roles</strong></a>(self, guild_id: 'str', function: 'str') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">List&nbsp;the&nbsp;guild&nbsp;roles&nbsp;carrying&nbsp;one&nbsp;function&nbsp;(empty:&nbsp;default).</span></dd></dl>
+
+<dl><dt>async <a name="RoleGrantsService-set_function_roles"><strong>set_function_roles</strong></a>(self, guild_id: 'str', function: 'str', role_ids: 'tuple[str, ...]') -&gt; 'None'</dt><dd><span class="code">Replace&nbsp;one&nbsp;function's&nbsp;role&nbsp;list&nbsp;(empty&nbsp;resets&nbsp;to&nbsp;the&nbsp;default).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FUNCTIONS</strong> = ('bot-admins', 'staff')<br>
+<strong>FUNCTION_BOT_ADMINS</strong> = 'bot-admins'<br>
+<strong>FUNCTION_STAFF</strong> = 'staff'<br>
+<strong>ROLE_GRANTS_COLLECTION</strong> = 'role_grants'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.role_grants (WARNING)&gt;</td></tr></table>
+</body></html>

@@ -5,6 +5,7 @@ channel the same way — cache-aside: Redis → Mongo → adoption → creation
 — with the surface's visibility policy re-applied at every resolution
 and a stale persisted channel cleaned up.
 """
+
 from __future__ import annotations
 
 from typing import Any

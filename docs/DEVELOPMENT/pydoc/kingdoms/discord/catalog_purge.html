@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.discord.catalog_purge</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.catalog_purge</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/catalog_purge.py">SOURCE_ROOT/discord/catalog_purge.py</a></td></tr></table>
+    <p><span class="code">One-shot&nbsp;catalog&nbsp;purge:&nbsp;drop&nbsp;the&nbsp;polluted&nbsp;pre-convention&nbsp;data.<br>
+&nbsp;<br>
+The&nbsp;id&nbsp;convention&nbsp;moved&nbsp;twice&nbsp;on&nbsp;the&nbsp;virgin&nbsp;base&nbsp;(game-scoped&nbsp;ids<br>
+``map:aoe2:public:&lt;slug&gt;``,&nbsp;then&nbsp;the&nbsp;stored-id&nbsp;channel&nbsp;resolution):<br>
+the&nbsp;catalog&nbsp;collections&nbsp;carry&nbsp;documents&nbsp;under&nbsp;both&nbsp;old&nbsp;shapes.&nbsp;This<br>
+boot&nbsp;pass&nbsp;drops&nbsp;the&nbsp;catalog&nbsp;collections&nbsp;**once**&nbsp;—&nbsp;guarded&nbsp;by&nbsp;a<br>
+marker&nbsp;document&nbsp;in&nbsp;the&nbsp;``channels``&nbsp;registry&nbsp;—&nbsp;so&nbsp;the&nbsp;next&nbsp;seed/reimport<br>
+rebuilds&nbsp;them&nbsp;under&nbsp;the&nbsp;current&nbsp;convention.&nbsp;Best-effort:&nbsp;a&nbsp;failure<br>
+logs&nbsp;and&nbsp;the&nbsp;boot&nbsp;continues&nbsp;(the&nbsp;next&nbsp;boot&nbsp;retries).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>async <a name="-purge_polluted_catalog"><strong>purge_polluted_catalog</strong></a>() -&gt; 'bool'</dt><dd><span class="code">Drop&nbsp;the&nbsp;catalog&nbsp;collections&nbsp;once;&nbsp;True&nbsp;when&nbsp;the&nbsp;purge&nbsp;ran.<br>
+&nbsp;<br>
+The&nbsp;guard&nbsp;marker&nbsp;lives&nbsp;in&nbsp;the&nbsp;``channels``&nbsp;registry&nbsp;(the&nbsp;same<br>
+collection&nbsp;the&nbsp;tree&nbsp;stores&nbsp;its&nbsp;channel&nbsp;ids&nbsp;under)&nbsp;—&nbsp;idempotent<br>
+across&nbsp;reboots&nbsp;and&nbsp;redeploys.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['purge_polluted_catalog']</td></tr></table>
+</body></html>

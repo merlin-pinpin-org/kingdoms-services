@@ -63,6 +63,7 @@ def test_localized_content_round_trip() -> None:
 
 def test_servicer_serves_faction_content() -> None:
     """The servicer translates the source descriptor onto the wire."""
+
     async def list_factions() -> list[str]:
         return ["Franks"]
 
@@ -99,6 +100,7 @@ def test_servicer_serves_faction_content() -> None:
 
 def test_servicer_not_found_on_unknown_faction() -> None:
     """An unknown faction aborts NOT_FOUND (core degrades to None)."""
+
     async def list_factions() -> list[str]:
         return []
 
@@ -201,7 +203,5 @@ def test_content_server_list_factions_regression() -> None:
         faction_content=faction_content,
         map_content=map_content,
     )
-    wire = asyncio.run(
-        servicer.ListFactions(content_pb2.ListFactionsRequest(), _ServicerContext())
-    )
+    wire = asyncio.run(servicer.ListFactions(content_pb2.ListFactionsRequest(), _ServicerContext()))
     assert list(wire.faction_keys) == ["Franks", "Britons"]

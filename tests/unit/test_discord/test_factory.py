@@ -109,8 +109,11 @@ async def test_provision_default_channels_resolves_both_services(config_dir: str
     bot.admin_channel_service = admin  # type: ignore[assignment]
     bot._connection._guilds[42] = SimpleNamespace(id=42)
     await bot._provision_default_channels()
-    assert logs.resolved == ["42"]
-    assert admin.resolved == [("42", bot.status_service.bot_admins)]
+    # the tree owns the channels: the managed services are routed onto
+    # the tree's stored ids (nothing stored here — Mongo unwired in tests),
+    # never resolved by name at boot.
+    assert logs.resolved == []
+    assert admin.resolved == []
 
 
 @pytest.mark.asyncio
@@ -132,7 +135,8 @@ async def test_provision_default_channels_runs_once_across_reconnects(config_dir
     bot._connection._guilds[42] = SimpleNamespace(id=42)
     await bot._provision_default_channels()
     await bot._provision_default_channels()
-    assert logs.resolved == ["42"]
+    # idempotent boot: the managed services are routed (not name-resolved)
+    assert logs.resolved == []
 
 
 @pytest.mark.asyncio
@@ -144,12 +148,13 @@ async def test_provision_default_channels_survives_one_guild_failure(config_dir:
     bot.admin_channel_service = admin  # type: ignore[assignment]
     bot._connection._guilds[42] = SimpleNamespace(id=42)
 
-    async def _boom(guild_id: str) -> str:
-        raise RuntimeError("logs channel resolution exploded")
+    async def _boom(guild_id: str, *args: object, **kwargs: object) -> None:
+        raise RuntimeError("routing exploded")
 
-    bot.logs_service.resolve_channel = _boom  # type: ignore[method-assign]
+    bot.logs_service.set_channel = _boom  # type: ignore[method-assign]
     await bot._provision_default_channels()
-    assert admin.resolved == [("42", bot.status_service.bot_admins)]
+    # best-effort boot: one service's routing failure never blocks the rest
+    assert admin.resolved == []
 
 
 def test_create_bot_without_redis_has_no_shared_state(config_dir: str) -> None:
@@ -212,6 +217,7 @@ async def test_setup_hook_starts_shared_state_and_registration_engine(config_dir
 
     class _NullWorkflowStore:
         """Store-less engine stand-in: resume finds nothing, start is a no-op."""
+
         started = False
         stopped = False
 

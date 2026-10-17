@@ -203,9 +203,14 @@ class DiscordLogsPlatform:
 
     async def send_and_pin_log_message(self, guild_id: str, channel_id: str, content: str, layout: Any = None) -> str:
         """Deliver one lifecycle event, pin it, return the message id (#109)."""
+        from kingdoms.discord.pinned_marks import pinned_mark
+
         channel = await self._text_channel(guild_id, channel_id)
+        marked = f"{content}\n{pinned_mark('boot-status')}" if content else None
         if layout is not None:
             message = await channel.send(view=layout)
+        elif marked is not None:
+            message = await channel.send(content=marked)
         else:
             message = await channel.send(content=content)
         await message.pin(reason="kingdoms: boot status (pinned per restart)")

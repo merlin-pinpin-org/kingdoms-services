@@ -43,9 +43,10 @@ class FakeRegistrationDatabase:
         return None
 
     async def delete_binding(self, game_key: str, user_id: str, profile_id: str) -> bool:
-        return self._collection(PROFILE_BINDINGS_COLLECTION).pop(
-            f"binding:{game_key}:{user_id}:{profile_id}", None
-        ) is not None
+        return (
+            self._collection(PROFILE_BINDINGS_COLLECTION).pop(f"binding:{game_key}:{user_id}:{profile_id}", None)
+            is not None
+        )
 
 
 class FakeProfileSeam:

@@ -48,12 +48,6 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;channels&nbsp;platform&nbsp
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="DiscordChannelsPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Keep&nbsp;a&nbsp;client&nbsp;reference&nbsp;for&nbsp;guild&nbsp;and&nbsp;channel&nbsp;lookups.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordChannelsPlatform-adopt_legacy_forum"><strong>adopt_legacy_forum</strong></a>(self, guild_id: 'str', legacy_name: 'str', name: 'str', category_id: 'str | None' = None) -&gt; 'str | None'</dt><dd><span class="code">Rename&nbsp;a&nbsp;legacy&nbsp;forum&nbsp;to&nbsp;``name``&nbsp;when&nbsp;the&nbsp;target&nbsp;is&nbsp;absent.<br>
-&nbsp;<br>
-Migration&nbsp;helper:&nbsp;the&nbsp;first&nbsp;maps-forum&nbsp;iteration&nbsp;provisioned&nbsp;a<br>
-forum&nbsp;named&nbsp;``maps``;&nbsp;the&nbsp;generic&nbsp;one&nbsp;expects&nbsp;``&lt;game&gt;-maps``.<br>
-Returns&nbsp;the&nbsp;renamed&nbsp;forum&nbsp;id,&nbsp;or&nbsp;None&nbsp;when&nbsp;nothing&nbsp;to&nbsp;migrate.</span></dd></dl>
-
 <dl><dt>async <a name="DiscordChannelsPlatform-apply_access_policy"><strong>apply_access_policy</strong></a>(self, guild_id: 'str', channel_id: 'str', policy: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;a&nbsp;category's&nbsp;declared&nbsp;access&nbsp;policy&nbsp;as&nbsp;overwrites&nbsp;(#57).<br>
 &nbsp;<br>
 The&nbsp;bot&nbsp;overwrite&nbsp;is&nbsp;set&nbsp;first&nbsp;so&nbsp;the&nbsp;bot&nbsp;can&nbsp;never&nbsp;lock&nbsp;itself<br>
@@ -104,5 +98,6 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.channels.discord (WARNING)&gt;</td></tr></table>
+<td class="singlecolumn"><strong>POST_PACING_S</strong> = 1.5<br>
+<strong>logger</strong> = &lt;Logger kingdoms.channels.discord (WARNING)&gt;</td></tr></table>
 </body></html>

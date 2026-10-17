@@ -87,6 +87,7 @@ class ModDefinition:
     workflows: tuple[str, ...] = field(default_factory=tuple)
     commands: tuple[str, ...] = field(default_factory=tuple)
     dependencies: tuple[str, ...] = field(default_factory=tuple)
+    required_games: tuple[str, ...] = field(default_factory=tuple)
 
     def require_seasonal(self) -> bool:
         """Return the declared mod type; fail loudly when undeclared.

@@ -206,6 +206,12 @@ keys&nbsp;the&nbsp;platform&nbsp;actually&nbsp;ships&nbsp;(config)&nbsp;can&nbsp
 
 <dl><dt>async <a name="GuildAccessService-get"><strong>get</strong></a>(self, guild_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;one&nbsp;guild's&nbsp;access&nbsp;state&nbsp;(default:&nbsp;nothing&nbsp;active).</span></dd></dl>
 
+<dl><dt>async <a name="GuildAccessService-grant"><strong>grant</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Grant&nbsp;games/mods&nbsp;to&nbsp;a&nbsp;guild&nbsp;directly&nbsp;(bot&nbsp;admin,&nbsp;no&nbsp;request).<br>
+&nbsp;<br>
+Keys&nbsp;carry&nbsp;their&nbsp;kind&nbsp;(``game:&lt;key&gt;``&nbsp;/&nbsp;``mod:&lt;key&gt;``);&nbsp;a<br>
+mod's&nbsp;declared&nbsp;``required_games``&nbsp;ride&nbsp;along&nbsp;(same&nbsp;expansion<br>
+as&nbsp;the&nbsp;request&nbsp;path&nbsp;—&nbsp;a&nbsp;mod&nbsp;is&nbsp;never&nbsp;granted&nbsp;unusable).</span></dd></dl>
+
 <dl><dt>async <a name="GuildAccessService-list_all"><strong>list_all</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;access&nbsp;document&nbsp;(the&nbsp;admin&nbsp;DM&nbsp;panel's&nbsp;data).</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-pending_requests"><strong>pending_requests</strong></a>(self) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">List&nbsp;every&nbsp;guild's&nbsp;pending&nbsp;requests,&nbsp;flattened&nbsp;for&nbsp;the&nbsp;panel.</span></dd></dl>
@@ -216,6 +222,8 @@ Keys&nbsp;carry&nbsp;their&nbsp;kind:&nbsp;``game:&lt;key&gt;``&nbsp;or&nbsp;``m
 or&nbsp;already-granted&nbsp;keys&nbsp;are&nbsp;refused&nbsp;loudly.</span></dd></dl>
 
 <dl><dt>async <a name="GuildAccessService-revoke"><strong>revoke</strong></a>(self, guild_id: 'str', key: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;one&nbsp;granted&nbsp;game&nbsp;or&nbsp;mod&nbsp;from&nbsp;a&nbsp;guild.</span></dd></dl>
+
+<dl><dt>async <a name="GuildAccessService-revoke_keys"><strong>revoke_keys</strong></a>(self, guild_id: 'str', keys: 'list[str]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Revoke&nbsp;games/mods&nbsp;from&nbsp;a&nbsp;guild&nbsp;directly&nbsp;(bot&nbsp;admin).</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>

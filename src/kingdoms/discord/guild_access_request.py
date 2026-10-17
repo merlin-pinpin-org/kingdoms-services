@@ -37,12 +37,12 @@ class GuildAccessRequestSelect(
         self, guild_id: str, options: list[discord.SelectOption] | None = None, disabled: bool = False
     ) -> None:
         self.guild_id = guild_id
-        resolved = options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
+        resolved = options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_NS}:select:{guild_id}"[:100],
                 options=resolved,
-                placeholder="Games/mods a demander...",
+                placeholder="Jeux/mods à demander...",
                 min_values=1,
                 max_values=min(25, len(resolved)),
                 disabled=disabled or all(o.value == "none" for o in resolved),
@@ -70,22 +70,26 @@ class GuildAccessRequestSelect(
         """
         data: Any = interaction.data or {}
         data_values: Any = data.get("values") or []
-        chosen = [str(v) for v in data_values if v and v != "none"]
+        raw = [str(v) for v in data_values if v and v != "none"]
+        chosen = _with_required_games(raw)
         await interaction.response.defer(ephemeral=True, thinking=True)
         if not chosen:
-            await interaction.followup.send("Rien a demander — aucun game/mod sélectionné.", ephemeral=True)
+            await interaction.followup.send("Rien à demander — aucun jeu/mod sélectionné.", ephemeral=True)
             return
         service = await _access_service()
         if service is None:
             await interaction.followup.send("Wiring indisponible.", ephemeral=True)
             return
+        from kingdoms.core.services.guild_access import GuildAccessError
+
         try:
             doc = await service.request_access(self.guild_id, chosen)
+        except GuildAccessError as error:
+            await interaction.followup.send(f"Demande refusée : {error}", ephemeral=True)
+            return
         except Exception:
             logger.exception("ACCESS REQUEST failed (guild %s)", self.guild_id)
-            await interaction.followup.send(
-                "Demande échouée (déjà demandé/accordé ? voir les logs).", ephemeral=True
-            )
+            await interaction.followup.send("Demande échouée (voir les logs).", ephemeral=True)
             return
         pending = dict(doc.get("pending") or {})
         requested_at = max(pending, key=int) if pending else ""
@@ -105,7 +109,7 @@ class GuildAccessRequestButton(
         self.guild_id = guild_id
         super().__init__(
             discord.ui.Button(
-                label="Demander l'accès aux games/mods",
+                label="Demander l'accès aux jeux/mods",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:open:{guild_id}"[:100],
             )
@@ -135,8 +139,7 @@ class GuildAccessRequestButton(
         options = _request_options()
         if all(option.value == "none" for option in options):
             await interaction.followup.send(
-                "Aucun game/mod actif sur la plateforme pour le moment — "
-                "demande a un bot admin d'en activer un.",
+                "Aucun jeu/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
                 ephemeral=True,
             )
             return
@@ -144,7 +147,7 @@ class GuildAccessRequestButton(
         picker = discord.ui.View(timeout=None)
         picker.add_item(select)
         await interaction.followup.send(
-            "Choisis les games/mods que la guilde demande :",
+            "Choisis les jeux/mods que la guilde demande :",
             view=picker,
             ephemeral=True,
         )
@@ -168,9 +171,31 @@ def _request_options() -> list[discord.SelectOption]:
     from kingdoms.discord.wiring import guild_access_platform
 
     games, mods = guild_access_platform()
-    options = [discord.SelectOption(label=f"game : {g}", value=f"game:{g}") for g in games]
+    options = [discord.SelectOption(label=f"jeu : {g}", value=f"game:{g}") for g in games]
     options += [discord.SelectOption(label=f"mod : {m}", value=f"mod:{m}") for m in mods]
-    return options or [discord.SelectOption(label="Aucun game/mod actif", value="none")]
+    return options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
+
+
+def _with_required_games(chosen: list[str]) -> list[str]:
+    """Expand a selection with every chosen mod's required games.
+
+    A mod declares the games it needs (``required_games`` in its
+    config/mods/<mod>.yaml — kingdoms requires aoe2); requesting the
+    mod without its game would leave it unusable, so the game rides
+    along automatically (deduplicated, order-stable).
+    """
+    from kingdoms.discord.wiring import mod_required_games
+
+    expanded: list[str] = []
+    for item in chosen:
+        if item not in expanded:
+            expanded.append(item)
+        if item.startswith("mod:"):
+            for game_key in mod_required_games(item.removeprefix("mod:")):
+                entry = f"game:{game_key}"
+                if entry not in expanded:
+                    expanded.append(entry)
+    return expanded
 
 
 _PENDING_DMS: dict[str, list[tuple[str, str]]] = {}
@@ -247,18 +272,35 @@ async def _answer_pending_request(
             doc = await service.deny(guild_id, requested_at)
     except Exception:
         logger.warning("ACCESS REQUEST answer failed (guild %s, approve=%s)", guild_id, approve)
-        await interaction.followup.send(
-            "Demande introuvable (déjà traitée ?).", ephemeral=True
-        )
+        await interaction.followup.send("Demande introuvable (déjà traitée ?).", ephemeral=True)
         return
     await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
     granted = ", ".join((doc.get("games") or []) + [f"mod:{m}" for m in doc.get("mods") or []])
     if approve:
+        await _refresh_guild_pins(interaction.client, guild_id)
         await interaction.followup.send(
             f"Accès accordé à la guilde `{guild_id}` — actifs : {granted or 'aucun'}.", ephemeral=True
         )
     else:
         await interaction.followup.send(f"Demande de `{guild_id}` refusée.", ephemeral=True)
+
+
+async def _refresh_guild_pins(client: discord.Client, guild_id: str) -> None:
+    """Re-render the guild's static pins after an access change (best-effort).
+
+    A grant changes what the pinned admin panel must show (the games
+    section appears); the static-pin cycle edits the live pin in place
+    — id stable, content current.
+    """
+    from kingdoms.discord.static_pins import ensure_static_pin, registered_static_pins
+
+    for spec in registered_static_pins():
+        if spec.key != "view:bot:admin":
+            continue
+        try:
+            await ensure_static_pin(client, spec, guild_id)
+        except Exception:
+            logger.warning("ACCESS REQUEST: admin pin refresh failed — best-effort", exc_info=True)
 
 
 class GuildAccessApproveButton(
@@ -346,9 +388,149 @@ async def _delete_pending_admin_dms(bot: Any, guild_id: str, requested_at: str) 
             )
 
 
+
+
+class GuildAccessRevokeButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:revoke:(?P<guild_id>\d+)",
+):
+    """Open the granted-keys picker to revoke one access (guild admins)."""
+
+    def __init__(self, guild_id: str) -> None:
+        self.guild_id = guild_id
+        super().__init__(
+            discord.ui.Button(
+                label="Retirer un acc\u00e8s",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:revoke:{guild_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessRevokeButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("guild_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard (guild admins), then open the granted-keys picker."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if not await _guard_admin_deferred(interaction):
+            return
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        granted: list[str] = []
+        try:
+            doc = await service.get(self.guild_id)
+            if doc:
+                granted = [f"game:{k}" for k in doc.get("games") or []]
+                granted += [f"mod:{k}" for k in doc.get("mods") or []]
+        except Exception:
+            logger.exception("ACCESS REVOKE list failed (guild %s)", self.guild_id)
+            await interaction.followup.send("Listing impossible (voir les logs).", ephemeral=True)
+            return
+        if not granted:
+            await interaction.followup.send("Aucun acc\u00e8s accord\u00e9 \u00e0 retirer.", ephemeral=True)
+            return
+        options = [discord.SelectOption(label=key, value=key) for key in granted[:25]]
+        picker = discord.ui.View(timeout=None)
+        picker.add_item(GuildAccessRevokeSelect(self.guild_id, options))
+        await interaction.followup.send(
+            "Choisis l'acc\u00e8s \u00e0 retirer \u00e0 la guilde :",
+            view=picker,
+            ephemeral=True,
+        )
+
+
+class GuildAccessRevokeSelect(
+    discord.ui.DynamicItem[discord.ui.Select[Any]],
+    template=rf"{_NS}:revokesel:(?P<guild_id>\d+)",
+):
+    """Revoke one granted game/mod (the chosen value is the key)."""
+
+    def __init__(self, guild_id: str, options: list[discord.SelectOption]) -> None:
+        self.guild_id = guild_id
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f"{_NS}:revokesel:{guild_id}"[:100],
+                options=options,
+                placeholder="Acc\u00e8s \u00e0 retirer...",
+                max_values=min(25, len(options)),
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> GuildAccessRevokeSelect:
+        """Rebuild the options at click time (the guild's granted keys)."""
+        del interaction, item
+        guild_id = match.group("guild_id")
+        service = await _access_service()
+        granted: list[str] = []
+        if service is not None:
+            try:
+                doc = await service.get(guild_id)
+                if doc:
+                    granted = [f"game:{k}" for k in doc.get("games") or []]
+                    granted += [f"mod:{k}" for k in doc.get("mods") or []]
+            except Exception:
+                granted = []
+        options = [discord.SelectOption(label=key, value=key) for key in granted[:25]] or [
+            discord.SelectOption(label="Aucun acc\u00e8s accord\u00e9", value="none")
+        ]
+        return cls(guild_id, options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Revoke the chosen keys, then confirm."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if not await _guard_admin_deferred(interaction):
+            return
+        data: Any = interaction.data or {}
+        chosen = [str(v) for v in (data.get("values") or []) if v and v != "none"]
+        if not chosen:
+            await interaction.followup.send("Rien \u00e0 retirer \u2014 aucune s\u00e9lection.", ephemeral=True)
+            return
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            return
+        from kingdoms.core.services.guild_access import GuildAccessError
+
+        try:
+            for key in chosen:
+                await service.revoke(self.guild_id, key)
+        except GuildAccessError as error:
+            await interaction.followup.send(f"Retrait refus\u00e9 : {error}", ephemeral=True)
+            return
+        except Exception:
+            logger.exception("ACCESS REVOKE failed (guild %s)", self.guild_id)
+            await interaction.followup.send("Retrait \u00e9chou\u00e9 (voir les logs).", ephemeral=True)
+            return
+        await interaction.followup.send(
+            f"Acc\u00e8s retir\u00e9 : {', '.join(chosen)} \u2014 le menu se met \u00e0 jour \u00e0 la prochaine sync.",
+            ephemeral=True,
+        )
+
+
+
 def register_guild_access_request_items(bot: discord.Client) -> None:
     """Register the request surface's persistent dynamic items."""
     bot.add_dynamic_items(GuildAccessRequestSelect)
     bot.add_dynamic_items(GuildAccessRequestButton)
     bot.add_dynamic_items(GuildAccessApproveButton)
     bot.add_dynamic_items(GuildAccessDenyButton)
+    bot.add_dynamic_items(GuildAccessRevokeButton)
+    bot.add_dynamic_items(GuildAccessRevokeSelect)

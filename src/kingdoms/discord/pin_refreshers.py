@@ -60,7 +60,7 @@ async def _refresh_home_pin(bot: Any, guild_id: str) -> None:
             return
         channel = guild.get_channel(int(registered.channel_id))
         message = await channel.fetch_message(int(registered.message_id))
-        await message.edit(view=build_home_menu_view(bot, guild_id))
+        await message.edit(view=await build_home_menu_view(bot, guild_id))
     except Exception:
         logger.warning("home pin refresh failed — best-effort", exc_info=True)
 
