@@ -230,14 +230,15 @@ async def test_rubric_pages_lead_with_the_practical_intro() -> None:
     assert pages_en[0].startswith("🗺️ **What it's for**")
 
 
-async def test_scriptorium_artwork_is_none_until_shipped() -> None:
-    """Without the bundled png the helper degrades to None (no crash)."""
+async def test_scriptorium_artwork_falls_back_to_the_bundled_b64() -> None:
+    """Without assets/scriptorium.png the bundled base64 artwork decodes."""
+    import base64
+
     from kingdoms.mods.kingdoms.kingdom_scriptorium import _scriptorium_artwork
 
     artwork = _scriptorium_artwork()
-    # No png is committed yet — Drasah drops it by hand; either way it's a Path
-    # or None and the sommaire deployment tolerates both.
-    assert artwork is None or artwork.name == "scriptorium.png"
+    assert artwork is not None
+    assert artwork.read_bytes()[:8] == base64.b64decode("iVBORw0KGgo=")  # PNG magic
 
 
 async def test_deploy_scriptorium_panel_illustrates_the_sommaire(

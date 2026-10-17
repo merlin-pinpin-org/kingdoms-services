@@ -676,15 +676,31 @@ async def deploy_scriptorium_panel(
 
 
 def _scriptorium_artwork() -> Path | None:
-    """Return the bundled Scriptorium illustration (None when not shipped).
+    """Return the Scriptorium illustration as a readable PNG path.
 
     scriptorium-v2 (Drasah 17/10): the sommaire opens on the
-    « Scriptorium » artwork. Drasah drops the file at
-    ``src/kingdoms/mods/kingdoms/assets/scriptorium.png`` — until
-    then the sommaire stays plain text and nothing breaks.
+    « Scriptorium » artwork. A real file at
+    ``src/kingdoms/mods/kingdoms/assets/scriptorium.png`` (dropped
+    by drag-drop on GitHub) always takes precedence; otherwise the
+    bundled base64 artwork (``scriptorium_art.ART_PNG_B64``) is
+    decoded to a temporary file. Returns None only if both are
+    unavailable — the sommaire then stays plain text.
     """
     path = Path(__file__).parent / "assets" / "scriptorium.png"
-    return path if path.is_file() else None
+    if path.is_file():
+        return path
+    from kingdoms.mods.kingdoms import scriptorium_art
+
+    encoded = scriptorium_art.ART_PNG_B64.strip()
+    if not encoded:
+        return None
+    import base64
+    import tempfile
+
+    handle = tempfile.NamedTemporaryFile(prefix="kingdoms-scriptorium-", suffix=".png", delete=False)
+    handle.write(base64.b64decode(encoded))
+    handle.close()
+    return Path(handle.name)
 
 
 def find_scriptorium_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
