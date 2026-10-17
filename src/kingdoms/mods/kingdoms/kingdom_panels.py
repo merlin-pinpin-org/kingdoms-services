@@ -1802,6 +1802,11 @@ async def _deploy_channel_panel(
 
         await deploy_attack_panel(channel, locale, kingdoms_service)
         return "déclarer une attaque"
+    if slug == "attaques":
+        from kingdoms.mods.kingdoms.kingdom_attack_panel import deploy_attacks_board
+
+        await deploy_attacks_board(channel, locale, kingdoms_service)
+        return "attaques"
     if slug in ("scriptorium", "📜-scriptorium"):
         from kingdoms.mods.kingdoms.kingdom_scriptorium import deploy_scriptorium_panel
 

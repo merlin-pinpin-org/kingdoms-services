@@ -34,8 +34,8 @@ _T3H = _T + timedelta(hours=3)  # the 3h reminder line
 _BEFORE3H = _T + timedelta(hours=3) - timedelta(minutes=1)
 _T15H = _T + timedelta(hours=15)  # the auto-dispute line (3h reminder + 12h)
 _BEFORE15H = _T15H - timedelta(minutes=1)
-_FROZEN_NOW = datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
-"""Frozen between the T declaration (12:00) and the T-15 cutoff."""
+_FROZEN_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
+"""Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
 
 
 @pytest.fixture(autouse=True)

@@ -55,8 +55,10 @@ BETA_PLAN_OFFSETS: dict[str, Any] = {
 BETA_PRESETS: dict[str, dict[str, Any]] = {
     "now": {
         "attacks": {
-            "attacks_per_week": 2,
-            "defenses_per_week": 2,
+            # Drasah 17/10 (soir): 10/10 — 2/2 was too thin to test the
+            # whole attack cycle in one beta session.
+            "attacks_per_week": 10,
+            "defenses_per_week": 10,
             "player_attack_delay_minutes": 10,
             "gaia_attack_delay_minutes": 10,
             "embuscade_delay_minutes": 10,

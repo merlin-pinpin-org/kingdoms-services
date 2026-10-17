@@ -27,6 +27,7 @@ from kingdoms.mods.kingdoms.game_clock import game_now
 logger = logging.getLogger(__name__)
 
 ATTACK_PANEL_MARKER = "<!-- kingdoms-attack -->"
+ATTACK_BOARD_MARKER = "<!-- kingdoms-attacks-board -->"
 _PARIS = ZoneInfo("Europe/Paris")
 
 _STRINGS: dict[str, dict[str, str]] = {
@@ -34,9 +35,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "panel_title": "⚔️ **Champ de bataille — Attaquer**",
         "panel_help": (
             "Déclarez une attaque sur un territoire adverse — le RDV est fixé à l'heure affichée.\n"
-            "Déroulé : **Siège** (la défense reste ouverte) → **Draft** (reveal puis pick & ban "
-            "en MP) → **RDV** (confirmez votre présence) → **Score** (la game, déclarez le résultat)."
+            "Déroulé : **Siège** (la défense s'ouvre à T-15, dans le salon Attaques) → **Draft** "
+            "(pick & ban en MP) → **RDV** (confirmez votre présence) → **Score** (la game, "
+            "déclarez le résultat)."
         ),
+        "panel_pointer": "↳ Attaques en cours et défenses : rendez-vous dans le salon **Attaques**.",
+        "board_title": "🗡️ **Attaques en cours**",
+        "board_empty": "🕊️ Aucune attaque en cours.",
         "panel_empty": "🕊️ Aucune attaque en cours.",
         "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — RDV **{time}** (Paris) · {phase}",
         "gaia_line": "🦅 **{map}** — bataille Gaïa · {count} combattant(s) — RDV **{time}** (Paris)",
@@ -182,9 +187,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "panel_title": "⚔️ **Battlefield — Attack**",
         "panel_help": (
             "Declare an attack on an adversary territory — the meeting is set at the displayed time.\n"
-            "Flow: **Siege** (the defense stays open) → **Draft** (reveal then DM pick & ban) "
-            "→ **Meeting** (confirm your presence) → **Score** (the game, declare the result)."
+            "Flow: **Siege** (the defense opens at T-15, in the Attaques salon) → **Draft** "
+            "(DM pick & ban) → **Meeting** (confirm your presence) → **Score** (the game, "
+            "declare the result)."
         ),
+        "panel_pointer": "↳ Ongoing attacks and defenses: see the **Attaques** salon.",
+        "board_title": "🗡️ **Ongoing attacks**",
+        "board_empty": "🕊️ No ongoing attack.",
         "panel_empty": "🕊️ No ongoing attack.",
         "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — meets **{time}** (Paris) · {phase}",
         "gaia_line": "🦅 **{map}** — Gaïa battle · {count} fighter(s) — meets **{time}** (Paris)",
@@ -410,12 +419,22 @@ async def _kingdom_name(kingdoms_service: Any, kingdom_id: str | None) -> str:
     return str(getattr(kingdom, "name", None) or kingdom_id)
 
 
-def _panel_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
-    """Build the pinned panel view (declare + defend/join per open attack)."""
+def _declare_view(strings: dict[str, str]) -> discord.ui.View:
+    """The CLEAN declare panel view: one declare button, nothing else.
+
+    Drasah 17/10: « Déclarer une attaque » stays clean — the ongoing
+    attacks (and their defend/join buttons) live in the Attaques salon.
+    """
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
+    return view
+
+
+def _board_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
+    """The Attaques salon board view: defend/join per open attack."""
     from kingdoms.mods.kingdoms.models import AttackKind
 
     view = discord.ui.View(timeout=None)
-    view.add_item(KingdomAttackDeclareButton(strings["declare_button"]))
     for attack in attacks:
         state = str(getattr(getattr(attack, "state", None), "value", getattr(attack, "state", "")))
         if state != "declared":
@@ -428,10 +447,24 @@ def _panel_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
     return view
 
 
-def panel_text(strings: dict[str, str], rows: list[str]) -> str:
-    """Build the pinned panel message (title, help, live rows, marker)."""
-    body = rows if rows else [strings["panel_empty"]]
-    return "\n".join((strings["panel_title"], "", strings["panel_help"], "", *body, ATTACK_PANEL_MARKER))
+def declare_panel_text(strings: dict[str, str]) -> str:
+    """The clean declare panel message (title, help, pointer, marker)."""
+    return "\n".join(
+        (
+            strings["panel_title"],
+            "",
+            strings["panel_help"],
+            "",
+            strings["panel_pointer"],
+            ATTACK_PANEL_MARKER,
+        )
+    )
+
+
+def board_text(strings: dict[str, str], rows: list[str]) -> str:
+    """The Attaques board message (title, live rows, marker)."""
+    body = rows if rows else [strings["board_empty"]]
+    return "\n".join((strings["board_title"], "", *body, ATTACK_BOARD_MARKER))
 
 
 async def _ongoing_rows(
@@ -505,8 +538,13 @@ async def deploy_attack_panel(
     kingdoms_service: Any = None,
     attacks_service: Any = None,
 ) -> None:
-    """Pin (or refresh) the attack panel in the Déclarer une attaque salon."""
-    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+    """Pin (or refresh) the CLEAN declare panel in the Déclarer une attaque salon.
+
+    Drasah 17/10: this salon keeps ONLY the declare flow — the ongoing
+    attacks (rows, defend/join buttons) moved to the Attaques salon
+    (``deploy_attacks_board``). The service params stay for API
+    compatibility with the existing call sites.
+    """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if channel is None:
@@ -519,16 +557,9 @@ async def deploy_attack_panel(
             )
     except Exception:
         logger.warning("KINGDOM ATTACK: legacy salon rename failed", exc_info=True)
-    wiring = _wiring()
-    kingdoms_service = kingdoms_service or wiring.kingdoms_service
-    attacks_service = attacks_service or wiring.attacks_service
     strings = _strings(locale)
-    rows: list[str] = []
-    attacks: list[Any] = []
-    if attacks_service is not None:
-        rows, attacks = await _ongoing_rows(attacks_service, kingdoms_service, strings)
-    content = panel_text(strings, rows)
-    view = _panel_view(strings, attacks)
+    content = declare_panel_text(strings)
+    view = _declare_view(strings)
     # attaques-panel-spam (Drasah 15/10): the panel is EDITED in place —
     # delete+send on every call multiplied messages whenever the old
     # message delete failed (rate limit, out of the history scan depth).
@@ -549,7 +580,49 @@ async def deploy_attack_panel(
         logger.warning("KINGDOM ATTACK: panel send failed", exc_info=True)
 
 
-async def _find_panel_message(channel: discord.TextChannel) -> Any | None:
+async def deploy_attacks_board(
+    channel: discord.TextChannel | None,
+    locale: str,
+    kingdoms_service: Any = None,
+    attacks_service: Any = None,
+) -> None:
+    """Pin (or refresh) the ongoing-attacks board in the Attaques salon.
+
+    Drasah 17/10: the ongoing attacks and their defend/join buttons
+    moved here — « Déclarer une attaque » keeps only the declare flow.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    if channel is None:
+        return
+    wiring = _wiring()
+    kingdoms_service = kingdoms_service or wiring.kingdoms_service
+    attacks_service = attacks_service or wiring.attacks_service
+    strings = _strings(locale)
+    rows: list[str] = []
+    attacks: list[Any] = []
+    if attacks_service is not None:
+        rows, attacks = await _ongoing_rows(attacks_service, kingdoms_service, strings)
+    content = board_text(strings, rows)
+    view = _board_view(strings, attacks)
+    board_message = await _find_panel_message(channel, ATTACK_BOARD_MARKER)
+    if board_message is not None:
+        if (board_message.content or "") == content:
+            return  # unchanged — nothing to touch (no API call at all)
+        try:
+            await board_message.edit(content=content, view=view)
+            return
+        except Exception:
+            logger.warning("KINGDOM ATTACK: board edit failed", exc_info=True)
+    try:
+        await channel.send(content=content, view=view)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: board send failed", exc_info=True)
+
+
+async def _find_panel_message(
+    channel: discord.TextChannel, marker: str = ATTACK_PANEL_MARKER
+) -> Any | None:
     """Return the live panel message of the salon, pruning the duplicates.
 
     attaques-panel-spam: the scan reads deep (200) so a rate-limited
@@ -559,7 +632,7 @@ async def _find_panel_message(channel: discord.TextChannel) -> Any | None:
     panel_message: Any = None
     try:
         async for message in channel.history(limit=200):
-            if ATTACK_PANEL_MARKER not in (message.content or ""):
+            if marker not in (message.content or ""):
                 continue
             if panel_message is None:
                 panel_message = message
@@ -574,11 +647,9 @@ async def _find_panel_message(channel: discord.TextChannel) -> Any | None:
 
 
 async def refresh_attack_panel_safe(guild: discord.Guild | None, locale: str) -> None:
-    """Re-pin one guild's attack panel after a mutation (best effort)."""
-    channel = _declare_channel(guild)
-    if channel is None:
-        return
-    await deploy_attack_panel(channel, locale)
+    """Re-pin the guild's declare panel and attacks board after a mutation."""
+    await deploy_attack_panel(_declare_channel(guild), locale)
+    await deploy_attacks_board(_announce_channel(guild), locale)
 
 
 # ----------------------------------------------------------------------
@@ -1395,13 +1466,17 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
         if dirty:
             await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
+            await deploy_attacks_board(announce_channel, locale, kingdoms_service, attacks_service)
 
 
 async def _run_reveals_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
-    """Announce the T-15 reveals (cover drop, AI fallback, locked defense).
+    """Announce the T-15 reveals (cover drop only).
 
-    Returns the number of reveals played (attaques-panel-spam: the tick
-    redeploy is gated on a non-zero phase count).
+    Drasah 17/10: the defense window is [T-15, T] — at the cutoff the
+    cover drops but the defense stays open; the AI fallback announces
+    at the meeting time (``_run_forfeits_safe``). Returns the number
+    of reveals played (attaques-panel-spam: the tick redeploy is
+    gated on a non-zero phase count).
     """
     played = 0
     for attack in await attacks_service.reveal_due():
@@ -1413,20 +1488,6 @@ async def _run_reveals_safe(attacks_service: Any, kingdoms_service: Any, channel
                     map=attack.map_key,
                     lord=await _lord_name(kingdoms_service, attack.attacker_lord_id),
                 ),
-            )
-        elif attack.ai_defender:
-            await _announce_safe(
-                channel,
-                strings["reveal_ai"].format(
-                    map=attack.map_key,
-                    kingdom=await _kingdom_name(kingdoms_service, attack.defender_kingdom_id),
-                    level=attack.effects.get("ai_level", 1) if attack.effects else 1,
-                ),
-            )
-        else:
-            await _announce_safe(
-                channel,
-                strings["reveal_defense"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             )
     return played
 
@@ -1440,6 +1501,17 @@ async def _run_forfeits_safe(attacks_service: Any, kingdoms_service: Any, channe
     played = 0
     for attack in await attacks_service.expire_stale():
         played += 1
+        if attack.ai_defender:
+            # The [T-15, T] window closed with no defender — the bot
+            # AI takes the defense at the meeting time (Drasah 17/10).
+            await _announce_safe(
+                channel,
+                strings["reveal_ai"].format(
+                    map=attack.map_key,
+                    kingdom=await _kingdom_name(kingdoms_service, attack.defender_kingdom_id),
+                    level=attack.effects.get("ai_level", 1) if attack.effects else 1,
+                ),
+            )
         side = (attack.pickban or {}).get("forfeit_side")
         if not side:
             continue

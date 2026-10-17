@@ -222,10 +222,10 @@ async def test_no_show_locks_combat_from_the_next_cycle() -> None:
         await bundle.attacks.declare_attack("lord-b", aquitaine_map, "aoe2de://x", now=after)
     bourgogne_map = (await bundle.owner_maps(bourgogne))[0]
     attack = await bundle.attacks.declare_attack("king-a", bourgogne_map, "aoe2de://x", now=after)
-    # respond_defense reads the REAL clock: extend the deadline past the
-    # cutoff and pin a still-live lock so only the no-show rule refuses.
+    # respond_defense reads the REAL clock: pin the deadline INSIDE the
+    # [T-15, T] window and a still-live lock so only the no-show rule refuses.
     attack_doc = attack.to_mongo()
-    attack_doc["expires_at"] = datetime.now(tz=UTC) + timedelta(days=1)
+    attack_doc["expires_at"] = datetime.now(tz=UTC) + timedelta(minutes=10)
     await bundle.store.upsert_attack(attack_doc)
     lord_b.ffa_locked_until = int((datetime.now(tz=UTC) + timedelta(hours=1)).timestamp())
     await bundle.store.upsert_lord(lord_b.to_mongo())

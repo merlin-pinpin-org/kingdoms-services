@@ -35,8 +35,8 @@ def test_preset_now_mutates_the_shared_config() -> None:
     config = default_season_config()
     apply_beta_preset(config, "now")
     attacks = config.attacks
-    assert attacks.attacks_per_week == 2
-    assert attacks.defenses_per_week == 2
+    assert attacks.attacks_per_week == 10
+    assert attacks.defenses_per_week == 10
     assert attacks.player_attack_delay_minutes == 10
     assert attacks.gaia_attack_delay_minutes == 10
     assert attacks.embuscade_delay_minutes == 10
@@ -70,7 +70,7 @@ def test_legacy_preset_1_0_stays_loadable() -> None:
     config = default_season_config()
     apply_beta_preset(config, "1.0")
     assert config.attacks.player_attack_delay_minutes == 60
-    assert config.attacks.attacks_per_week == 2
+    assert config.attacks.attacks_per_week == 10
 
 
 def test_unknown_preset_fails_loudly() -> None:
@@ -133,7 +133,7 @@ async def test_armed_beta_waits_for_t0() -> None:
     assert bundle.config.attacks.attacks_per_week == 1
     # The first tick past T0 applies the preset.
     await bundle.events.run_due(datetime(2026, 10, 23, 20, 5, tzinfo=PARIS).astimezone(UTC))
-    assert bundle.config.attacks.attacks_per_week == 2
+    assert bundle.config.attacks.attacks_per_week == 10
     assert bundle.config.attacks.player_attack_delay_minutes == 10
 
 
@@ -144,7 +144,7 @@ async def test_immediate_start_applies_the_preset_right_away() -> None:
     now = datetime(2026, 10, 23, 20, 0, tzinfo=PARIS)
     report = await bundle.events.activate_beta("now", start_at=now, now=now)
     assert report["armed"] is False
-    assert bundle.config.attacks.attacks_per_week == 2
+    assert bundle.config.attacks.attacks_per_week == 10
     assert bundle.config.attacks.player_attack_delay_minutes == 10
 
 
@@ -207,12 +207,12 @@ async def test_beta_preset_reapplies_after_a_restart() -> None:
     await bundle.launch_season()
     start = datetime(2026, 10, 23, 20, 0, tzinfo=PARIS)
     await bundle.events.activate_beta("now", start_at=start, now=start)
-    assert bundle.config.attacks.attacks_per_week == 2
+    assert bundle.config.attacks.attacks_per_week == 10
     fresh_config = _config()
     events = EventService(bundle.store, fresh_config, bundle.kingdoms, bundle.territories, bundle.attacks)
     assert fresh_config.attacks.attacks_per_week == 1
     await events.run_due(datetime(2026, 10, 24, 0, 30, tzinfo=PARIS).astimezone(UTC))
-    assert fresh_config.attacks.attacks_per_week == 2
+    assert fresh_config.attacks.attacks_per_week == 10
     assert fresh_config.attacks.player_attack_delay_minutes == 10
     assert [age.key for age in fresh_config.ages] == ["dark_age", "feudal_age"]
 

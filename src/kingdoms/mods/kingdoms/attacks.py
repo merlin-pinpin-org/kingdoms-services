@@ -347,14 +347,19 @@ def phase_label(attack: AttackModel) -> str:
 
     The internal T-15/T-5/T/T+5 clock is never shown to a player —
     one label per window instead (Drasah 15/10): ``siege``
-    (declaration + defense, before the reveal), ``draft`` (reveal +
-    pick & ban), ``ready`` (the RDV presence) and ``score`` (the game
-    and its declaration — or a finished attack).
+    (declaration + defense), ``draft`` (the defense locked, pick &
+    ban), ``ready`` (the RDV presence) and ``score`` (the game and
+    its declaration — or a finished attack).
+
+    Drasah 17/10: a revealed attack still DECLARED keeps ``siege``
+    — the [T-15, T] defense window is open, the defend button live.
     """
     if attack.state is AttackState.MEETING:
         return "score" if attack.score.get("all_ready") else "ready"
-    if attack.is_over or getattr(attack, "revealed", False):
-        return "score" if attack.is_over else "draft"
+    if attack.is_over:
+        return "score"
+    if getattr(attack, "revealed", False) and attack.state is not AttackState.DECLARED:
+        return "draft"
     return "siege"
 
 
@@ -641,13 +646,16 @@ class AttackService:
         await self._store.upsert_technology(state.to_mongo())
         return cover.id
 
-    async def respond_defense(self, attack_id: str, player_id: str) -> AttackModel:
+    async def respond_defense(
+        self, attack_id: str, player_id: str, *, now: datetime | None = None
+    ) -> AttackModel:
         """Answer an attack: any lord of the defending kingdom (D7).
 
-        The defense closes at T-15 (D77): the cutoff moment is
-        ``expires_at - defense_cutoff_minutes`` — after that the
-        defender can no longer react and the kingdom's bot AI takes
-        the defense instead.
+        The defense window is [T-15, T] (Drasah 17/10 — « l'accès au
+        bouclier doit être entre T10 et T5 »): the cutoff moment
+        ``expires_at - defense_cutoff_minutes`` OPENS the defense and
+        the meeting time ``expires_at`` closes it — nobody answered
+        by then and the kingdom's bot AI takes the defense instead.
         """
         await self._require_running_season()
         attack = await self._find_attack(attack_id)
@@ -655,28 +663,32 @@ class AttackService:
             raise AttackStateError("a Gaïa free-for-all has no defending side")
         if attack.state is not AttackState.DECLARED:
             raise AttackStateError("the attack no longer waits for a defender")
-        timestamp = _now()
+        timestamp = now or _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
-        if timestamp >= cutoff and not bypass_guard("defense T-15 cutoff"):
-            raise DefenseCutoffError("the defense is closed (T-15) — the meeting is set and the bot AI takes over")
+        if timestamp < cutoff and not bypass_guard("defense window opening (T-15)"):
+            raise DefenseCutoffError(
+                "the defense is not open yet — it opens T-15 before the meeting (watch the Attaques salon)"
+            )
+        if timestamp >= attack.expires_at and not bypass_guard("defense meeting-time cutoff"):
+            raise DefenseCutoffError("the meeting time is reached — the bot AI takes the defense")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
         # D59/D60: a fresh marriage locks the lord out of combat.
         if (
             lord.marriage_locked_until is not None
-            and lord.marriage_locked_until > int(_now().timestamp())
+            and lord.marriage_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"marriage lock of {lord.display_name}")
         ):
             raise LordLockedError("the lord is locked by a fresh marriage (D59/D60)")
         # marche-v2 art. 6: the exploring lord cannot defend either.
         if (
             lord.exploration_locked_until is not None
-            and lord.exploration_locked_until > int(_now().timestamp())
+            and lord.exploration_locked_until > int(timestamp.timestamp())
             and not bypass_guard(f"exploration lock of {lord.display_name}")
         ):
             raise LordLockedError("the lord is locked by the exploration (marche-v2 art. 6)")
-        self._refuse_ffa_no_show(lord, _now())
+        self._refuse_ffa_no_show(lord, timestamp)
         if lord.defense_used >= self._config.attacks.defenses_per_week and not bypass_guard(
             f"defense budget of {lord.display_name} ({lord.defense_used})"
         ):
@@ -697,13 +709,14 @@ class AttackService:
         return attack
 
     async def reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
-        """Run the T-15 reveal (D77): close the defense, unmask the cover.
+        """Run the T-15 reveal (D77): unmask the cover — the defense stays open.
 
-        Idempotent through ``revealed`` — the scheduler tick can replay
-        it after every restart. When nobody answered, the defending
-        kingdom's bot AI takes the defense (the D77 vs_ai rule; the
-        legacy auto_victory capture only applies at expiry for attacks
-        the reveal never reached).
+        Drasah 17/10: the defense window moved to [T-15, T], so the
+        reveal no longer closes the defense nor engages the bot AI —
+        it only drops the Contre-espionnage cover. The AI fallback
+        happens at the meeting time (``expire_stale``). Idempotent
+        through ``revealed`` — the scheduler tick replays it after
+        every restart.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -719,21 +732,6 @@ class AttackService:
             if timestamp < cutoff:
                 continue
             attack.revealed = True
-            if attack.state is AttackState.DECLARED and attack.defender_lord_id is None:
-                attack.ai_defender = True
-                attack.state = AttackState.DEFENDED
-                # marche-v2 art. 2/5: the level the attacker faces — a
-                # Traquenard forces Facile (1), otherwise the defence
-                # bot's own level (epoch base + Jeu d'armes, ceiling 5).
-                attack.effects["ai_level"] = (
-                    1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
-                )
-                logger.info(
-                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s)",
-                    attack.map_key,
-                    attack.defender_kingdom_id,
-                    attack.effects["ai_level"],
-                )
             await self._store.upsert_attack(attack.to_mongo())
             revealed.append(attack)
         return revealed
@@ -911,16 +909,32 @@ class AttackService:
                 attack.resolved_at = timestamp
                 await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
             else:
-                # Catch-up of a reveal the tick never ran (restart):
-                # the bot AI takes the defense at the meeting time.
+                # The defense window [T-15, T] closed with no defender:
+                # the bot AI takes the defense AT the meeting time and
+                # the RDV opens directly — no pick & ban ever left (the
+                # defense side had no human to pick, and the attacker's
+                # DM window is gone; the game decides, D20).
                 attack.revealed = True
                 attack.ai_defender = True
                 attack.state = AttackState.DEFENDED
+                # marche-v2 art. 2/5: the level the attacker faces — a
+                # Traquenard forces Facile (1), otherwise the defence
+                # bot's own level (epoch base + Jeu d'armes, ceiling 5).
+                attack.effects["ai_level"] = (
+                    1 if attack.traquenard else await self.defense_ai_level(attack.defender_kingdom_id)
+                )
                 attack.pickban = {
                     **attack.pickban,
                     "sent": True,
                     "defender_validated": True,
+                    "resolved_pickban": True,
                 }
+                logger.info(
+                    "kingdoms: no defender on %s — the bot AI of %s takes the defense (level %s)",
+                    attack.map_key,
+                    attack.defender_kingdom_id,
+                    attack.effects["ai_level"],
+                )
             await self._store.upsert_attack(attack.to_mongo())
             return attack
         if attack.state is not AttackState.DEFENDED or attack.pickban.get("resolved_pickban"):
@@ -930,6 +944,15 @@ class AttackService:
     async def _expire_defended(self, attack: AttackModel, timestamp: datetime) -> AttackModel | None:
         """Resolve the un-resolved pick & ban of an expired defense (D77)."""
         pickban = dict(attack.pickban)
+        if not pickban.get("sent"):
+            # A defense locked after the last pick & ban tick (the
+            # [T-15, T] window, Drasah 17/10): no DM ever left — the
+            # pick & ban is skipped and the RDV (score phase) decides,
+            # no forfait.
+            pickban["resolved_pickban"] = True
+            attack.pickban = pickban
+            await self._store.upsert_attack(attack.to_mongo())
+            return None
         attacker_ok = bool(pickban.get("attacker_validated"))
         defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
         if attacker_ok and defender_ok:

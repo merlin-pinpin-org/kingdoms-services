@@ -20,7 +20,8 @@ from tests.mocks.discord_mock import MockInteraction, MockUser
 
 from .test_kingdoms_attack_phases import PhasesBundle
 
-_SAFE_NOW = datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+_SAFE_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
+"""Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
 
 
 @pytest.fixture(autouse=True)
@@ -146,7 +147,7 @@ async def test_defend_button_rebuilds_with_the_attack_id() -> None:
 
 
 async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
-    """The salon deployment pins the marker with a defend button per attack."""
+    """The declare salon stays CLEAN: marker + the declare button only."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         ATTACK_PANEL_MARKER,
         deploy_attack_panel,
@@ -162,51 +163,75 @@ async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
     assert len(channel.sent) == 1
     assert ATTACK_PANEL_MARKER in (channel.sent[0].content or "")
     ids = [item.custom_id for item in channel.sent[0].view.children]
-    assert "kingdoms:attack:declare" in ids
-    assert f"kingdoms:attack:defend:{attack.id}" in ids
+    assert ids == ["kingdoms:attack:declare"]  # clean — no rows, no defend button
+    assert attack.map_key not in (channel.sent[0].content or "")
+    # The pointer tells the players where the defenses live.
+    assert "Attaques" in (channel.sent[0].content or "")
 
 
-async def test_deploy_attack_panel_edits_the_marked_message() -> None:
-    """attaques-panel-spam: a found marker message is edited, never re-sent."""
+async def test_deploy_attacks_board_pins_the_defend_buttons() -> None:
+    """The Attaques salon board carries the ongoing attacks + defend buttons."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
-        ATTACK_PANEL_MARKER,
-        deploy_attack_panel,
+        ATTACK_BOARD_MARKER,
+        deploy_attacks_board,
     )
 
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(21)
     attack = await bundle.fresh_attack()
-    channel = _FakeChannel()
-    old = _FakeMessage(f"old stale panel\n{ATTACK_PANEL_MARKER}")
+    channel = _FakeChannel("attaques")
+    await deploy_attacks_board(channel, "fr", bundle.kingdoms, bundle.attacks)
+    assert len(channel.sent) == 1
+    content = channel.sent[0].content or ""
+    assert ATTACK_BOARD_MARKER in content
+    assert attack.map_key in content
+    ids = [item.custom_id for item in channel.sent[0].view.children]
+    assert f"kingdoms:attack:defend:{attack.id}" in ids
+    assert "kingdoms:attack:declare" not in ids  # the declare button stays home
+
+
+async def test_deploy_attack_panel_edits_the_marked_message() -> None:
+    """attaques-panel-spam: a found marker message is edited, never re-sent."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        ATTACK_BOARD_MARKER,
+        deploy_attacks_board,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(21)
+    attack = await bundle.fresh_attack()
+    channel = _FakeChannel("attaques")
+    old = _FakeMessage(f"old stale board\n{ATTACK_BOARD_MARKER}")
     channel.history_list = [old]
-    await deploy_attack_panel(channel, "fr", bundle.kingdoms, bundle.attacks)
+    await deploy_attacks_board(channel, "fr", bundle.kingdoms, bundle.attacks)
     assert channel.sent == []  # no new message: the old one is edited in place
     assert len(old.edits) == 1
-    assert ATTACK_PANEL_MARKER in (old.edits[0]["content"] or "")
+    assert ATTACK_BOARD_MARKER in (old.edits[0]["content"] or "")
     assert attack.map_key in (old.edits[0]["content"] or "")
     assert old.deleted is False
 
 
-async def test_deploy_attack_panel_skips_unchanged_content() -> None:
-    """attaques-panel-spam: identical content touches nothing at all."""
+async def test_deploy_attacks_board_skips_unchanged_content() -> None:
+    """attaques-panel-spam: identical board content touches nothing at all."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         _ongoing_rows,
         _strings,
-        deploy_attack_panel,
-        panel_text,
+        board_text,
+        deploy_attacks_board,
     )
 
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(22)
     await bundle.fresh_attack()
-    channel = _FakeChannel()
+    channel = _FakeChannel("attaques")
     strings = _strings("fr")
     rows, _attacks = await _ongoing_rows(bundle.attacks, bundle.kingdoms, strings)
-    old = _FakeMessage(panel_text(strings, rows))
+    old = _FakeMessage(board_text(strings, rows))
     channel.history_list = [old]
-    await deploy_attack_panel(channel, "fr", bundle.kingdoms, bundle.attacks)
+    await deploy_attacks_board(channel, "fr", bundle.kingdoms, bundle.attacks)
     assert channel.sent == []
     assert old.edits == []
     assert old.deleted is False
@@ -446,8 +471,8 @@ async def test_defend_button_takes_the_defense() -> None:
     assert fresh.defender_lord_id == "lord-b"
 
 
-async def test_scheduler_run_announces_reveal_dm_and_forfeit() -> None:
-    """The tick drives the phases: T-15 reveal, T-5 dispatch, T forfeit."""
+async def test_scheduler_reveals_then_the_ai_takes_over_at_the_meeting_time() -> None:
+    """The tick drives the phases: T-15 cover drop, T the AI takeover + RDV."""
     from kingdoms.mods.kingdoms import attacks as attacks_module
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         ATTACK_PANEL_MARKER,
@@ -464,22 +489,28 @@ async def test_scheduler_run_announces_reveal_dm_and_forfeit() -> None:
     # T-16: nothing is due yet.
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 44, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    assert not [m for m in announce_channel.sent if "défendu" in (m.content or "")]
-    # T-2: the reveal runs — nobody defended, the AI takes over.
+    assert not [m for m in announce_channel.sent if "IA" in (m.content or "")]
+    # T-2: the reveal runs — the cover drops, the defense stays OPEN (no AI).
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot)
     channel = announce_channel
-    assert any("IA" in (m.content or "") for m in channel.sent)
+    assert not [m for m in channel.sent if "IA" in (m.content or "")]  # no AI at the cutoff
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
-    assert fresh.ai_defender is True
-    assert fresh.pickban["sent"] is True  # the DM dispatch left (fail-safe here)
+    assert fresh.revealed is True
+    assert fresh.ai_defender is False
     assert any(
         ATTACK_PANEL_MARKER in (m.content or "") for m in declare_channel.sent
     )  # the panel re-pinned in the declare salon
-    # T+1: the forfeit lands — the attacker missed his validation.
+    # T+1: the meeting time — nobody defended, the bot AI takes the defense
+    # and the RDV opens directly (no pick & ban, no forfait).
     attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    assert any("Forfait" in (m.content or "") for m in channel.sent)
+    assert any("IA" in (m.content or "") for m in channel.sent)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.ai_defender is True
+    assert fresh.pickban["sent"] is True  # the AI never stalls
+    assert fresh.pickban["resolved_pickban"] is True  # no pick & ban vs the AI
+    assert not [m for m in channel.sent if "Forfait" in (m.content or "")]
 
 
 async def test_scheduler_idle_tick_deploys_nothing() -> None:
@@ -502,10 +533,16 @@ async def test_scheduler_idle_tick_deploys_nothing() -> None:
 
 
 async def test_scheduler_reveal_deploys_the_outcome_line() -> None:
-    """attaques-panel-spam: at the T-15 reveal the panel shows the outcome."""
+    """attaques-panel-spam: the BOARD (Attaques salon) shows the window outcome.
+
+    At the T-15 reveal the cover drops only — nobody defended yet so
+    the line stays pending. At the meeting time T the AI takes over:
+    the announce fires and the board shows « Assaut irrésistible ».
+    A lord defending inside the window shows « Bataille en vue ».
+    """
     from kingdoms.mods.kingdoms import attacks as attacks_module
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
-        ATTACK_PANEL_MARKER,
+        ATTACK_BOARD_MARKER,
         run_attack_phases_safe,
     )
 
@@ -516,30 +553,41 @@ async def test_scheduler_reveal_deploys_the_outcome_line() -> None:
     declare_channel = _FakeChannel("Déclarer une attaque")
     announce_channel = _FakeChannel("Attaques")
     bot = _FakeBot(bundle, declare_channel, announce_channel)
-    # Nobody defends: at T-2 the reveal runs, the AI takes over — the
-    # panel line shows the « Assaut irrésistible — aucune défense » outcome.
+    # T-2: the reveal runs (cover drop only) — the defense stays OPEN,
+    # the board line is still pending, no « Assaut irrésistible » yet.
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot)
-    panels = [m for m in declare_channel.sent if ATTACK_PANEL_MARKER in (m.content or "")]
-    assert panels
+    boards = [m for m in announce_channel.sent if ATTACK_BOARD_MARKER in (m.content or "")]
+    assert boards
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.revealed is True
+    assert fresh.ai_defender is False
+    assert "Assaut irrésistible" not in (boards[-1].content or "")
+    # T+1: the meeting time — nobody defended, the bot AI takes the
+    # defense; the announce fires and the board shows the outcome.
+    attacks_module._now = lambda: datetime(2026, 10, 11, 18, 1, tzinfo=UTC)
+    await run_attack_phases_safe(bot)
+    assert any("IA" in (m.content or "") for m in announce_channel.sent)
+    boards = [m for m in announce_channel.sent if ATTACK_BOARD_MARKER in (m.content or "")]
+    assert boards
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.ai_defender is True
-    assert "Assaut irrésistible — aucune défense" in (panels[-1].content or "")
+    assert "Assaut irrésistible — aucune défense" in (boards[-1].content or "")
 
-    # The defended case: another attack, a lord defends before the cutoff.
+    # The defended case: another attack, a lord defends INSIDE the
+    # [T-15, T] window (17:50), then the reveal tick shows the battle.
     bundle2 = PhasesBundle()
     await bundle2.launch_season()
     await bundle2.draw(25)
     attack2 = await bundle2.fresh_attack()
-    # Back to the frozen clock (12:30 UTC, well before the 17:45 cutoff)
-    # for the defense, then jump to T-2 for the reveal tick.
-    attacks_module._now = lambda: datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
     await bundle2.attacks.respond_defense(attack2.id, "lord-b")
     declare_channel2 = _FakeChannel("Déclarer une attaque")
     announce_channel2 = _FakeChannel("Attaques")
     bot2 = _FakeBot(bundle2, declare_channel2, announce_channel2)
     attacks_module._now = lambda: datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
     await run_attack_phases_safe(bot2)
-    panels2 = [m for m in declare_channel2.sent if ATTACK_PANEL_MARKER in (m.content or "")]
-    assert panels2
-    assert "Bataille en vue (défenseur" in (panels2[-1].content or "")
+    boards2 = [m for m in announce_channel2.sent if ATTACK_BOARD_MARKER in (m.content or "")]
+    assert boards2
+    assert "Bataille en vue (défenseur" in (boards2[-1].content or "")
+

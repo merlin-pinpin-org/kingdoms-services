@@ -23,8 +23,8 @@ _T5 = _T + timedelta(minutes=5)  # the no-show line
 _PICK_NOW = datetime(2026, 10, 11, 17, 56, tzinfo=UTC)
 _LEAD = datetime(2026, 10, 11, 17, 55, tzinfo=UTC)  # the T-5 pick & ban
 _CUTOFF = datetime(2026, 10, 11, 17, 45, tzinfo=UTC)  # the T-15 reveal
-_FROZEN_NOW = datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
-"""Frozen between the T declaration (12:00) and the T-15 cutoff."""
+_FROZEN_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
+"""Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
 
 
 @pytest.fixture(autouse=True)
