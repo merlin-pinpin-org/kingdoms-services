@@ -400,7 +400,7 @@ class AccessGrantButton(
 
 class AccessGuildSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:access:guild:(?P<guild_id>\d+)",
+    template=rf"{_NS}:access:guild:(?P<guild_id>[a-z0-9]+)",
 ):
     """Pick the guild whose access is managed directly."""
 

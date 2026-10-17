@@ -81,10 +81,11 @@ async def _roles_view_footer(
     view.add_item(discord.ui.Container(discord.ui.TextDisplay("\n".join(lines))))
     from kingdoms.core.services.role_grants import FUNCTIONS
 
-    mapping_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     for function in FUNCTIONS:
+        # a Select occupies a whole action row — one row per function mapping
+        mapping_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         mapping_row.add_item(FunctionRolesSelect(function))
-    view.add_item(mapping_row)
+        view.add_item(mapping_row)
     from kingdoms.discord.wiring import guard_admin
 
     if await guard_admin(interaction):

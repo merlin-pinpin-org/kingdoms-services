@@ -190,8 +190,9 @@ class TreeOpenButton(
 
             await _handle_roles(interaction)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
         if self.section == "lang":
+            # the modal IS the ack — deferring first raises InteractionResponded
+
             locale = "en"
             logs = getattr(interaction.client, "logs_service", None)
             if logs is not None and guild_id:
@@ -208,12 +209,11 @@ class TreeOpenButton(
             )
             try:
                 await interaction.response.send_modal(modal)
+                return
             except Exception:
                 logger.warning("ADMIN TREE: language modal failed", exc_info=True)
-                await interaction.followup.send(
-                    await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
-                )
-        elif self.section == "channels":
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        if self.section == "channels":
             channel_select = await TreeChannelSelect.create(guild_id, interaction)
             picker = discord.ui.LayoutView(timeout=None)
             picker.add_item(
