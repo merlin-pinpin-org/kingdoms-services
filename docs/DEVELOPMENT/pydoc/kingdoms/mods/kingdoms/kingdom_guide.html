@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.kingdom_guide</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.kingdom_guide</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/kingdom_guide.py">SOURCE_ROOT/mods/kingdoms/kingdom_guide.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;designer's&nbsp;guide&nbsp;of&nbsp;the&nbsp;Règles&nbsp;forum&nbsp;(guide-regles-v1).<br>
+&nbsp;<br>
+Drasah&nbsp;(17/10/2026)&nbsp;opens&nbsp;the&nbsp;beta&nbsp;and&nbsp;wants&nbsp;the&nbsp;existing&nbsp;Règles&nbsp;forum<br>
+to&nbsp;carry&nbsp;a&nbsp;complete&nbsp;player&nbsp;guide,&nbsp;A→Z:&nbsp;one&nbsp;thread&nbsp;per&nbsp;topic,&nbsp;authored<br>
+in&nbsp;the&nbsp;designer's&nbsp;voice&nbsp;(French-only,&nbsp;like&nbsp;``kingdom_content``&nbsp;—&nbsp;it&nbsp;is<br>
+the&nbsp;designer&nbsp;speaking,&nbsp;not&nbsp;the&nbsp;bot&nbsp;UI).<br>
+&nbsp;<br>
+Every&nbsp;value&nbsp;shown&nbsp;to&nbsp;the&nbsp;players&nbsp;rides&nbsp;the&nbsp;LIVE&nbsp;season&nbsp;config&nbsp;and&nbsp;the<br>
+beta&nbsp;preset:&nbsp;when&nbsp;the&nbsp;admin&nbsp;retunes&nbsp;a&nbsp;delay,&nbsp;a&nbsp;budget&nbsp;or&nbsp;a&nbsp;cooldown,<br>
+the&nbsp;guide&nbsp;threads&nbsp;refresh&nbsp;themselves&nbsp;—&nbsp;the&nbsp;guide&nbsp;never&nbsp;lies.&nbsp;The<br>
+refresh&nbsp;is&nbsp;marker-based&nbsp;(each&nbsp;thread's&nbsp;starter&nbsp;message&nbsp;carries<br>
+``kingdoms:guide:&lt;key&gt;``),&nbsp;idempotent&nbsp;(an&nbsp;existing&nbsp;thread&nbsp;is&nbsp;edited&nbsp;in<br>
+place,&nbsp;renamed&nbsp;if&nbsp;its&nbsp;title&nbsp;evolved,&nbsp;never&nbsp;duplicated)&nbsp;and&nbsp;never<br>
+raises:&nbsp;a&nbsp;missing&nbsp;forum&nbsp;channel&nbsp;simply&nbsp;skips&nbsp;the&nbsp;refresh,&nbsp;exactly&nbsp;like<br>
+the&nbsp;other&nbsp;``refresh_salons_content``&nbsp;members.<br>
+&nbsp;<br>
+The&nbsp;console&nbsp;command&nbsp;``regles``&nbsp;(admin_console)&nbsp;re-triggers&nbsp;the&nbsp;refresh<br>
+on&nbsp;demand&nbsp;—&nbsp;after&nbsp;a&nbsp;salon&nbsp;reset,&nbsp;one&nbsp;command&nbsp;rebuilds&nbsp;the&nbsp;whole&nbsp;guide.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-guide_posts"><strong>guide_posts</strong></a>(config: 'Any') -&gt; 'list[tuple[str, str, str]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;guide&nbsp;threads&nbsp;as&nbsp;(key,&nbsp;title,&nbsp;content)&nbsp;with&nbsp;live&nbsp;values.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_guide_forum"><strong>refresh_guide_forum</strong></a>(guild: 'Any', kingdoms_service: 'Any') -&gt; 'dict[str, str]'</dt><dd><span class="code">Deploy&nbsp;or&nbsp;refresh&nbsp;the&nbsp;guide&nbsp;threads&nbsp;of&nbsp;the&nbsp;Règles&nbsp;forum&nbsp;(best&nbsp;effort).<br>
+&nbsp;<br>
+Returns&nbsp;a&nbsp;deploy-style&nbsp;report&nbsp;keyed&nbsp;by&nbsp;post&nbsp;key&nbsp;(«&nbsp;created&nbsp;»&nbsp;/<br>
+«&nbsp;updated&nbsp;»)&nbsp;—&nbsp;empty&nbsp;when&nbsp;the&nbsp;forum&nbsp;channel&nbsp;is&nbsp;missing.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>GUIDE_MARKER_PREFIX</strong> = 'kingdoms:guide:'<br>
+<strong>REGLES_FORUM</strong> = 'Règles'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.kingdom_guide (WARNING)&gt;</td></tr></table>
+</body></html>
