@@ -985,7 +985,9 @@ class AttackService:
             # The game-start moment, epoch seconds — the 3h reminder base.
             score["opened_at"] = int(timestamp.timestamp())
             # The T+5 no-show line, epoch seconds (Mongo-proof).
-            score["ready_deadline"] = int((attack.expires_at + timedelta(minutes=self.READY_GRACE_MINUTES)).timestamp())
+            score["ready_deadline"] = int(
+                (attack.expires_at + timedelta(minutes=self._config.attacks.ready_grace_minutes)).timestamp()
+            )
             attack.score = score
             attack.state = AttackState.MEETING
             await self._store.upsert_attack(attack.to_mongo())
@@ -993,15 +995,12 @@ class AttackService:
             logger.info("kingdoms: score phase opened on %s (meeting)", attack.map_key)
         return due
 
-    READY_GRACE_MINUTES = 5
-
-    SCORE_REMINDER_HOURS = 3
-
-    SCORE_DISPUTE_AFTER_REMINDER_HOURS = 12
-    """bug n°2 (Check 59, Drasah 16/10): 12h past the 3h reminder with
-    no declared result, the meeting carries an auto-opened dispute —
-    the admins arbitrate (the console ``resultat``); nothing hangs
-    forever anymore."""
+    # Score-phase timings moved to config (beta-weekend-v1, Drasah
+    # 17/10): ``attacks.ready_grace_minutes`` (5), ``attacks.
+    # score_reminder_hours`` (3) and ``attacks.
+    # score_dispute_after_reminder_hours`` (12) keep the exact Season
+    # II defaults — a beta preset compresses them without touching
+    # the code.
 
     async def dispute_due(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Auto-open a dispute on every result-less meeting past 15h.
@@ -1032,7 +1031,11 @@ class AttackService:
             opened_at = int(score.get("opened_at") or 0)
             if not opened_at:
                 continue
-            deadline = opened_at + (self.SCORE_REMINDER_HOURS + self.SCORE_DISPUTE_AFTER_REMINDER_HOURS) * 3600
+            deadline = opened_at + int(
+                (self._config.attacks.score_reminder_hours
+                 + self._config.attacks.score_dispute_after_reminder_hours)
+                * 3600
+            )
             if timestamp.timestamp() < deadline:
                 continue
             # The reminder line passed de facto — never re-fire the DM
@@ -1162,7 +1165,7 @@ class AttackService:
             opened_at = int(score.get("opened_at") or 0)
             if not opened_at or score.get("reminded") or score.get("declarations"):
                 continue
-            if timestamp.timestamp() < opened_at + self.SCORE_REMINDER_HOURS * 3600:
+            if timestamp.timestamp() < opened_at + int(self._config.attacks.score_reminder_hours * 3600):
                 continue
             score["reminded"] = True
             attack.score = score

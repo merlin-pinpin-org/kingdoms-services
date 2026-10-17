@@ -20,6 +20,7 @@ from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from kingdoms.mods.kingdoms.beta_weekend import apply_beta_preset, beta_lords_day_window
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.territories import (
     MapPoolExhaustedError,
@@ -161,7 +162,15 @@ def active_lords_day_window(
     Sunday carries NO Lord's Day window — the verdict applies at 23:59
     instead. A finished season never reopens a calendar window either.
     The forced test window is handled separately by the attack service.
+
+    beta-weekend-v1: on a beta season the explicit plan REPLACES the
+    calendar — each consumed cycle slot opens its short window (2h),
+    the crons are ignored.
     """
+    if season.beta_name:
+        if season.finished:
+            return None
+        return beta_lords_day_window(season, now)
     if season.finished:
         return None
     window = lords_day_window(config, now)
@@ -214,6 +223,11 @@ class EventService:
         self._territories = territory_service
         self._attacks = attacks_service
         self._diplomacy = diplomacy_service
+        # beta-weekend-v1 (Drasah 17/10): process-local flag — the
+        # preset of an ALREADY running beta weekend is re-applied on
+        # the first tick after a restart (the season document carries
+        # the name, the config object does not survive a restart).
+        self._beta_applied: str | None = None
 
     # ------------------------------------------------------------------
     # Cycle switch + Lord's Day (§16, D1/D31)
@@ -488,6 +502,11 @@ class EventService:
             now = now.replace(tzinfo=UTC)
         if season.finished:
             return []
+        # beta-weekend-v1: a restarted process re-applies the preset
+        # of a running beta weekend before replaying its slots.
+        if season.beta_name and self._beta_applied != season.beta_name:
+            apply_beta_preset(self._config, season.beta_name)
+            self._beta_applied = season.beta_name
         due = self._due_slots(season, now, tz)
         reports: list[dict[str, object]] = []
         for _slot, kind in due:
@@ -514,7 +533,15 @@ class EventService:
         the LAST one is the END slot whose verdict applies at 23:59
         (the slot plus 29 minutes). The age slots after the last age
         are consumed silently — the last age switch is a no-op.
+
+        beta-weekend-v1 (Drasah 17/10): when the season carries a
+        beta slot plan, the crons are REPLACED by the explicit plan —
+        one age slot, N cycle slots, one end slot at the official
+        end moment (the LAST cycle is a NORMAL switch, the end is
+        its own slot).
         """
+        if season.beta_name:
+            return self._beta_due_slots(season, now)
         cycle_slots = cron_slots_between(
             self._config.events.cycle_cron, season.started_at, now, tz
         )
@@ -544,6 +571,77 @@ class EventService:
             due.extend((slot, "age") for slot in age_slots[age_index:])
         due.sort(key=lambda item: item[0])
         return due
+
+    def _beta_due_slots(
+        self, season: SeasonState, now: datetime
+    ) -> list[tuple[datetime, str]]:
+        """Return the beta weekend's explicit plan: age, cycles, official end.
+
+        Replay-safe like the cron path: an age slot is due once (the
+        age index guard), a cycle slot ``index`` is due when
+        ``current_cycle`` has not consumed it yet, and the end slot is
+        due at the official end moment — ``run_due`` breaks right
+        after it, so nothing replays past the verdict.
+        """
+        due: list[tuple[datetime, str]] = []
+        keys = [age.key for age in self._config.ages]
+        last_age = len(keys) - 1
+        age_index = keys.index(season.current_age_key) if season.current_age_key in keys else None
+        if (
+            age_index is not None
+            and age_index < last_age
+            and season.beta_age_at is not None
+            and now >= season.beta_age_at
+        ):
+            due.append((season.beta_age_at, "age"))
+        for index, slot in enumerate(season.beta_cycle_slots):
+            if index < season.current_cycle - 1:
+                continue  # the switch already ran
+            if now >= slot:
+                due.append((slot, "cycle"))
+        if season.beta_end_at is not None and now >= season.beta_end_at:
+            due.append((season.beta_end_at, "end"))
+        due.sort(key=lambda item: item[0])
+        return due
+
+    async def activate_beta(self, name: str, *, now: datetime | None = None) -> dict[str, object]:
+        """Activate a beta weekend preset on the running season.
+
+        The console ``lancer_beta <nom>`` lands here (beta-weekend-v1,
+        Drasah 17/10): the shared config is mutated onto the preset,
+        the weekend slot plan is computed from the activation moment
+        (age at the coming Saturday midnight, cycles Saturday and
+        Sunday 06:00, end Monday 00:00 Europe/Paris) and persisted on
+        the season document — the restarted process re-applies the
+        preset on its first tick. Idempotent: re-running the same
+        preset recomputes the same plan.
+        """
+        from kingdoms.mods.kingdoms.beta_weekend import (
+            apply_beta_preset,
+            plan_beta_slots,
+        )
+
+        season = await self._require_season()
+        if season.finished:
+            raise ValueError("la saison est terminée — la beta se lance sur une saison en cours")
+        timestamp = now or game_now()
+        apply_beta_preset(self._config, name)
+        self._beta_applied = name
+        plan = plan_beta_slots(name, timestamp)
+        season.beta_name = name
+        season.beta_age_at = plan["age_at"]
+        season.beta_cycle_slots = list(plan["cycle_slots"])
+        season.beta_end_at = plan["end_at"]
+        await self._store.upsert_season(season.to_mongo())
+        return {
+            "name": name,
+            "age_at": plan["age_at"],
+            "cycle_slots": list(plan["cycle_slots"]),
+            "end_at": plan["end_at"],
+            "attacks_per_week": self._config.attacks.attacks_per_week,
+            "defenses_per_week": self._config.attacks.defenses_per_week,
+            "ages": [age.key for age in self._config.ages],
+        }
 
     async def _apply_season_end(self) -> dict[str, object]:
         """Apply the endcycle verdict at 23:59 (Drasah's end rule).

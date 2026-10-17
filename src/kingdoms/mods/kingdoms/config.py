@@ -160,6 +160,18 @@ class AttackSettings(BaseModel):
     defense at T-15 and the game result still comes through the game
     contract (D20) — auto_victory is legacy (the attacker captured the
     territory without a game) and no longer the default."""
+    ready_grace_minutes: int = Field(default=5, ge=0)
+    """Score phase (beta-weekend-v1, Drasah 17/10/2026): the no-show
+    grace past the meeting time (T+5 by default) — the phase where
+    both sides click Prêt, a missing Prêt at the deadline being a
+    forfeit. Configurable so a beta weekend can compress it."""
+    score_reminder_hours: float = Field(default=3.0, ge=0)
+    """Score phase (beta-weekend-v1): hours after the game start
+    before the result reminder DM leaves (3h by default)."""
+    score_dispute_after_reminder_hours: float = Field(default=12.0, ge=0)
+    """Score phase (beta-weekend-v1, bug n°2 / Check 61): hours after
+    the reminder before a result-less meeting auto-opens its dispute
+    (12h by default — the admins arbitrate via the console)."""
 
 
 class VoliereSettings(BaseModel):

@@ -740,6 +740,56 @@ async def _cmd_chronique(console: AdminConsole, args: list[str]) -> str:
     return CONSOLE_STRINGS["fr"]["done"].format(report=_fmt_report(report))
 
 
+async def _cmd_lancer_beta(console: AdminConsole, args: list[str]) -> str:
+    """`lancer_beta [nom]` — activate a beta weekend preset (1.0)."""
+    events = getattr(console.bot, "kingdoms_events_service", None)
+    if events is None:
+        return CONSOLE_STRINGS["fr"]["not_wired"]
+    name = args[0] if args else "1.0"
+    report = await events.activate_beta(name)
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("Europe/Paris")
+    fmt = "%d/%m %H:%M"
+    lines = [
+        f"🚀 Beta « {report['name']} » lancée — saison en rythme week-end :",
+        f"• budgets : {report['attacks_per_week']} attaque(s) / {report['defenses_per_week']} défense(s)",
+        f"• âges : {' → '.join(str(age) for age in report['ages'])}",
+        f"• passage d'âge : {report['age_at'].astimezone(tz).strftime(fmt)}",
+        "• cycles Jour du Seigneur : "
+        + ", ".join(slot.astimezone(tz).strftime(fmt) for slot in report["cycle_slots"]),
+        f"• fin de saison officielle : {report['end_at'].astimezone(tz).strftime(fmt)} (résultats + récompenses)",
+        "• actions spéciales : gratuites et illimitées pour la beta",
+    ]
+    return "\n".join(lines)
+
+
+async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
+    """`beta` — the beta weekend status (preset, plan, next slot)."""
+    kingdoms = getattr(console.bot, "kingdoms_service", None)
+    if kingdoms is None:
+        return CONSOLE_STRINGS["fr"]["not_wired"]
+    season = await kingdoms.current_season()
+    if season is None:
+        return CONSOLE_STRINGS["fr"]["no_season"]
+    if not season.beta_name:
+        from kingdoms.mods.kingdoms.beta_weekend import beta_preset_names
+
+        return "aucune beta active — presets disponibles : " + ", ".join(beta_preset_names())
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("Europe/Paris")
+    fmt = "%d/%m %H:%M"
+    lines = [f"beta « {season.beta_name} » active :"]
+    if season.beta_age_at is not None:
+        lines.append(f"• passage d'âge : {season.beta_age_at.astimezone(tz).strftime(fmt)}")
+    for index, slot in enumerate(season.beta_cycle_slots, start=1):
+        lines.append(f"• cycle {index + 1} (Jour du Seigneur) : {slot.astimezone(tz).strftime(fmt)}")
+    if season.beta_end_at is not None:
+        lines.append(f"• fin de saison : {season.beta_end_at.astimezone(tz).strftime(fmt)}")
+    return "\n".join(lines)
+
+
 COMMANDES: dict[str, CommandSpec] = {
     "aide": CommandSpec(
         "aide [section]",
@@ -908,6 +958,20 @@ COMMANDES: dict[str, CommandSpec] = {
         "Inject a fake chronicle entry",
         "chronique",
         _cmd_chronique,
+    ),
+    "lancer_beta": CommandSpec(
+        "lancer_beta [1.0]",
+        "Lancer un preset beta week-end (saison compressée + fin officielle)",
+        "Start a beta weekend preset (compressed season + official end)",
+        "saison",
+        _cmd_lancer_beta,
+    ),
+    "beta": CommandSpec(
+        "beta",
+        "État de la beta (preset, plan, prochaine étape)",
+        "Beta status (preset, plan, next step)",
+        "saison",
+        _cmd_beta,
     ),
 }
 

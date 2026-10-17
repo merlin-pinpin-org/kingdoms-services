@@ -488,6 +488,21 @@ class SeasonState(BaseModel):
     pending_marriage_losses: list[str] = Field(default_factory=list)
     """Kingdom ids that lost a combat since the last cycle switch: their
     lords' marriages drop at the next recalculation (D34/D53)."""
+    beta_name: str | None = None
+    """Beta weekend preset (beta-weekend-v1, Drasah 17/10/2026): the
+    name of the compressed-weekend preset the console ``lancer_beta``
+    activated (``1.0``) — None on a normal season. The slot plan below
+    REPLACES the weekly crons: the scheduler plays these explicit
+    moments instead of the Sunday/Wednesday calendar."""
+    beta_age_at: datetime | None = None
+    """The single beta age switch (ex. Saturday 00:00 — Sombre → Féodal)."""
+    beta_cycle_slots: list[datetime] = Field(default_factory=list)
+    """The beta cycle slots (ex. Saturday 06:00 + Sunday 06:00) — the
+    last one is a NORMAL switch, the season ends at ``beta_end_at``."""
+    beta_end_at: datetime | None = None
+    """The official beta season end (ex. Monday 00:00 Europe/Paris) —
+    the end slot applies the full season-end verdict (results +
+    rewards) at that exact moment."""
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

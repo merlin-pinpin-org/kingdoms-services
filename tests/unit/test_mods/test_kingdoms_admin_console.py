@@ -145,6 +145,8 @@ def test_the_command_table_covers_the_spec_listing() -> None:
         "ajouter_temps",
         "skippe",
         "chronique",
+        "lancer_beta",
+        "beta",
     }
     assert set(COMMANDES) == expected
 
