@@ -68,13 +68,13 @@ PHASES_FR: dict[str, str] = {
 }
 """The console's French phase names (attaques-phases-v2)."""
 
-_CONSOLE: "AdminConsole | None" = None
+_CONSOLE: AdminConsole | None = None
 """The process-wide console singleton (set at register time — the
 admin-console-v2 panel buttons resolve it at click time, §3b
 restart-proof style, so the pinned message survives every restart)."""
 
 
-def _current_console() -> "AdminConsole | None":
+def _current_console() -> AdminConsole | None:
     """Return the registered console (None outside a wired process)."""
     return _CONSOLE
 
@@ -120,7 +120,7 @@ CONSOLE_STRINGS: dict[str, dict[str, str]] = {
         "modal_label": "Commande",
         "modal_placeholder": "ex. fin_oiseau Aquitaine tous",
         "cmd_empty": "⚠️ Commande vide — tape par ex. `etat`.",
-        "btn_aide": "ℹ️ Aide",
+        "btn_aide": "🔎 Aide",
         "btn_etat": "📊 État",
         "btn_saison": "📅 Saison",
         "btn_cooldowns": "⏱️ Cooldowns",
@@ -166,7 +166,7 @@ CONSOLE_STRINGS: dict[str, dict[str, str]] = {
         "modal_label": "Command",
         "modal_placeholder": "e.g. bypass 1",
         "cmd_empty": "⚠️ Empty command — type e.g. `state`.",
-        "btn_aide": "ℹ️ Help",
+        "btn_aide": "🔎 Help",
         "btn_etat": "📊 State",
         "btn_saison": "📅 Season",
         "btn_cooldowns": "⏱️ Cooldowns",
@@ -1129,7 +1129,89 @@ async def _console_reply(interaction: Any, text: str) -> None:
         logger.warning("CONSOLE: interaction answer failed", exc_info=True)
 
 
-def _console_view(locale: Any = None, console: "AdminConsole | None" = None) -> Any:
+async def _console_click(
+    console: AdminConsole | None,
+    interaction: Any,
+    strings: dict[str, str],
+    command: str,
+) -> None:
+    """Guard one panel interaction then run one console line in the salon.
+
+    admin-console-v2: ``console`` resolves from the module singleton
+    when the tests did not force one; the guard checks the CLICKING
+    member through the very same rules as the message listener.
+    """
+    live = console if console is not None else _current_console()
+    if live is None:
+        await interaction.response.send_message(strings["not_wired"], ephemeral=True)
+        return
+    if not await live.is_console_admin_member(interaction.guild, interaction.user):
+        await interaction.response.send_message(strings["denied"], ephemeral=True)
+        return
+    actor = str(getattr(interaction.user, "id", "console"))
+    reply = await live.dispatch(command, getattr(interaction, "message", None), actor=actor)
+    await _console_reply(interaction, reply)
+
+
+async def _console_modal_submit(
+    console: AdminConsole | None,
+    interaction: Any,
+    strings: dict[str, str],
+    text_input: Any,
+) -> None:
+    """Run the modal's typed line through the very same click path."""
+    text = str(getattr(text_input, "value", "") or "").strip()
+    if not text:
+        await interaction.response.send_message(strings["cmd_empty"], ephemeral=True)
+        return
+    await _console_click(console, interaction, strings, text)
+
+
+def _console_bypass_line() -> str:
+    """Return the console line flipping the ADMIN BYPASS to its other side."""
+    return "bypass 0" if admin_bypass_enabled() else "bypass 1"
+
+
+def _console_button_specs(strings: dict[str, str]) -> list[tuple[int, str, str, Any, str]]:
+    """Return (row, label, custom id, style, command) of the panel buttons."""
+    grey = discord.ButtonStyle.secondary
+    return [
+        (0, strings["btn_aide"], "kingdoms:console:aide", grey, "aide"),
+        (0, strings["btn_etat"], "kingdoms:console:etat", grey, "etat"),
+        (0, strings["btn_saison"], "kingdoms:console:saison", grey, "saison"),
+        (0, strings["btn_cooldowns"], "kingdoms:console:cooldowns", grey, "cooldowns"),
+        (0, strings["btn_attaques"], "kingdoms:console:attaques", grey, "voir_attaques"),
+        (1, strings["btn_journal"], "kingdoms:console:journal", grey, "journal"),
+        (1, strings["btn_beta"], "kingdoms:console:beta", grey, "lancer_beta now"),
+        (1, strings["btn_bypass"], "kingdoms:console:bypass", discord.ButtonStyle.danger, ""),
+        (1, strings["btn_command"], "kingdoms:console:command", discord.ButtonStyle.primary, ""),
+    ]
+
+
+def _attach_console_buttons(view: Any, strings: dict[str, str], modal_cls: Any) -> None:
+    """Build and attach every panel button onto one console view."""
+    for row, label, custom_id, style, command in _console_button_specs(strings):
+        button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+            label=label[:80], custom_id=custom_id, style=style, row=row
+        )
+        if custom_id == "kingdoms:console:bypass":
+            button.callback = view._on_bypass  # type: ignore[method-assign]
+        elif custom_id == "kingdoms:console:command":
+
+            async def _on_command(interaction: discord.Interaction, modal: Any = modal_cls) -> None:
+                await interaction.response.send_modal(modal())
+
+            button.callback = _on_command  # type: ignore[method-assign]
+        else:
+
+            async def _on_read(interaction: discord.Interaction, line: str = command, panel: Any = view) -> None:
+                await panel._run(interaction, line)
+
+            button.callback = _on_read  # type: ignore[method-assign]
+        view.add_item(button)
+
+
+def _console_view(locale: Any = None, console: AdminConsole | None = None) -> Any:
     """Build the pinned interactive console panel (read buttons + modal).
 
     admin-console-v2: the buttons answer in the salon through the very
@@ -1157,20 +1239,7 @@ def _console_view(locale: Any = None, console: "AdminConsole | None" = None) -> 
 
         async def on_submit(self, interaction: discord.Interaction) -> None:
             """Run the typed line and answer in the salon (the history)."""
-            live = console or _current_console()
-            if live is None:
-                await interaction.response.send_message(strings["not_wired"], ephemeral=True)
-                return
-            if not await live.is_console_admin_member(interaction.guild, interaction.user):
-                await interaction.response.send_message(strings["denied"], ephemeral=True)
-                return
-            text = str(getattr(self.command_input, "value", "") or "").strip()
-            if not text:
-                await interaction.response.send_message(strings["cmd_empty"], ephemeral=True)
-                return
-            actor = str(getattr(interaction.user, "id", "console"))
-            reply = await live.dispatch(text, getattr(interaction, "message", None), actor=actor)
-            await _console_reply(interaction, reply)
+            await _console_modal_submit(console, interaction, strings, self.command_input)
 
     class _View(discord.ui.View):
         """The pinned console panel rows (timeout=None, custom ids)."""
@@ -1180,60 +1249,14 @@ def _console_view(locale: Any = None, console: "AdminConsole | None" = None) -> 
 
         async def _run(self, interaction: discord.Interaction, command: str) -> None:
             """Guard then run one command line, answering in the salon."""
-            live = console or _current_console()
-            if live is None:
-                await interaction.response.send_message(strings["not_wired"], ephemeral=True)
-                return
-            if not await live.is_console_admin_member(interaction.guild, interaction.user):
-                await interaction.response.send_message(strings["denied"], ephemeral=True)
-                return
-            actor = str(getattr(interaction.user, "id", "console"))
-            reply = await live.dispatch(command, getattr(interaction, "message", None), actor=actor)
-            await _console_reply(interaction, reply)
-
-        def _make_on_read(self, command: str) -> Any:
-            """Bind one read-only command to its button."""
-
-            async def _on_read(interaction: discord.Interaction) -> None:
-                await self._run(interaction, command)
-
-            return _on_read
+            await _console_click(console, interaction, strings, command)
 
         async def _on_bypass(self, interaction: discord.Interaction) -> None:
             """Flip the ADMIN BYPASS the comfortable way (toggle)."""
-            target = "0" if admin_bypass_enabled() else "1"
-            await self._run(interaction, f"bypass {target}")
+            await self._run(interaction, _console_bypass_line())
 
-    grey = discord.ButtonStyle.secondary
     view = _View()
-    read_rows: list[tuple[int, str, str, Any]] = [
-        (0, strings["btn_aide"], "kingdoms:console:aide", "aide"),
-        (0, strings["btn_etat"], "kingdoms:console:etat", "etat"),
-        (0, strings["btn_saison"], "kingdoms:console:saison", "saison"),
-        (0, strings["btn_cooldowns"], "kingdoms:console:cooldowns", "cooldowns"),
-        (0, strings["btn_attaques"], "kingdoms:console:attaques", "voir_attaques"),
-        (1, strings["btn_journal"], "kingdoms:console:journal", "journal"),
-        (1, strings["btn_beta"], "kingdoms:console:beta", "lancer_beta now"),
-    ]
-    buttons: list[tuple[int, str, str, Any, Any]] = [
-        (row, label, custom_id, grey, view._make_on_read(command))
-        for row, label, custom_id, command in read_rows
-    ]
-    buttons.append((1, strings["btn_bypass"], "kingdoms:console:bypass", discord.ButtonStyle.danger, view._on_bypass))
-    buttons.append((1, strings["btn_command"], "kingdoms:console:command", discord.ButtonStyle.primary, None))
-    for row, label, custom_id, style, handler in buttons:
-        button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label=label[:80], custom_id=custom_id, style=style, row=row
-        )
-        if handler is not None:
-            button.callback = handler  # type: ignore[method-assign]
-        else:
-            # The ⌨️ Commande… button opens the modal instead of running.
-            async def _on_command(interaction: discord.Interaction) -> None:
-                await interaction.response.send_modal(_CommandModal())
-
-            button.callback = _on_command  # type: ignore[method-assign]
-        view.add_item(button)
+    _attach_console_buttons(view, strings, _CommandModal)
     return view
 
 

@@ -582,7 +582,7 @@ class _PinMessage:
 def _buttons(view: object) -> dict[str, tuple[object, object]]:
     """Return {custom_id: (button, callback)} of one console view."""
     out: dict[str, tuple[object, object]] = {}
-    for child in getattr(view, "children", ()):  # type: ignore[attr-defined]
+    for child in view.children:
         out[str(getattr(child, "custom_id", ""))] = (child, getattr(child, "callback"))
     return out
 
@@ -602,7 +602,7 @@ def test_the_panel_view_builds_every_button_with_custom_ids() -> None:
         "kingdoms:console:bypass",
         "kingdoms:console:command",
     }
-    assert getattr(view, "timeout") is None
+    assert view.timeout is None
 
 
 async def test_a_read_button_answers_in_the_salon() -> None:
@@ -653,8 +653,8 @@ async def test_the_modal_runs_a_free_text_line() -> None:
     _, open_callback = _buttons(view)["kingdoms:console:command"]
     await open_callback(interaction)
     modal = interaction.response.modals[0]
-    text_input = getattr(modal, "command_input")
-    text_input.value = "etat"
+    text_input = modal.command_input
+    text_input._value = "etat"
     await modal.on_submit(_Interaction(_Member("admin")))
     # The submission answers in the salon through the modal's own response.
     # (A fresh interaction is used, as Discord does.)
@@ -669,7 +669,7 @@ async def test_the_modal_replies_to_an_unknown_command() -> None:
     _, open_callback = _buttons(view)["kingdoms:console:command"]
     await open_callback(interaction)
     modal = interaction.response.modals[0]
-    getattr(modal, "command_input").value = "aucune_commande_ici"
+    modal.command_input._value = "aucune_commande_ici"
     submit = _Interaction(_Member("admin"))
     await modal.on_submit(submit)
     assert "Commande inconnue" in submit.response.messages[0][0]
