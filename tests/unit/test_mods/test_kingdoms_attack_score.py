@@ -188,7 +188,7 @@ async def test_vs_ai_attacker_noshow_loses() -> None:
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
-    attack = await bundle.fresh_attack()
+    await bundle.fresh_attack()
     await bundle.attacks.reveal_due(now=_CUTOFF)  # the cover drops only
     await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
     await bundle.attacks.score_due(now=_T)
