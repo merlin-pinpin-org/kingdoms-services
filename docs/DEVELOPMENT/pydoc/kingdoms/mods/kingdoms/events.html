@@ -67,16 +67,17 @@ recomputation&nbsp;(D51):&nbsp;every&nbsp;cycle&nbsp;switch&nbsp;recomputes&nbsp
 civilizations&nbsp;from&nbsp;the&nbsp;territories&nbsp;and&nbsp;marriages.&nbsp;It&nbsp;stays<br>
 optional&nbsp;so&nbsp;older&nbsp;wirings&nbsp;(and&nbsp;the&nbsp;tests)&nbsp;keep&nbsp;working.</span></dd></dl>
 
-<dl><dt>async <a name="EventService-activate_beta"><strong>activate_beta</strong></a>(self, name: 'str', *, now: 'datetime | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Activate&nbsp;a&nbsp;beta&nbsp;weekend&nbsp;preset&nbsp;on&nbsp;the&nbsp;running&nbsp;season.<br>
+<dl><dt>async <a name="EventService-activate_beta"><strong>activate_beta</strong></a>(self, name: 'str', *, start_at: 'datetime', now: 'datetime | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Arm&nbsp;a&nbsp;beta&nbsp;weekend&nbsp;preset&nbsp;starting&nbsp;at&nbsp;the&nbsp;EXACT&nbsp;``start_at``.<br>
 &nbsp;<br>
-The&nbsp;console&nbsp;``lancer_beta&nbsp;&lt;nom&gt;``&nbsp;lands&nbsp;here&nbsp;(beta-weekend-v1,<br>
-Drasah&nbsp;17/10):&nbsp;the&nbsp;shared&nbsp;config&nbsp;is&nbsp;mutated&nbsp;onto&nbsp;the&nbsp;preset,<br>
-the&nbsp;weekend&nbsp;slot&nbsp;plan&nbsp;is&nbsp;computed&nbsp;from&nbsp;the&nbsp;activation&nbsp;moment<br>
-(age&nbsp;at&nbsp;the&nbsp;coming&nbsp;Saturday&nbsp;midnight,&nbsp;cycles&nbsp;Saturday&nbsp;and<br>
-Sunday&nbsp;06:00,&nbsp;end&nbsp;Monday&nbsp;00:00&nbsp;Europe/Paris)&nbsp;and&nbsp;persisted&nbsp;on<br>
-the&nbsp;season&nbsp;document&nbsp;—&nbsp;the&nbsp;restarted&nbsp;process&nbsp;re-applies&nbsp;the<br>
-preset&nbsp;on&nbsp;its&nbsp;first&nbsp;tick.&nbsp;Idempotent:&nbsp;re-running&nbsp;the&nbsp;same<br>
-preset&nbsp;recomputes&nbsp;the&nbsp;same&nbsp;plan.</span></dd></dl>
+The&nbsp;console&nbsp;interface&nbsp;(``lancer_beta&nbsp;now``,&nbsp;beta-weekend-v2,<br>
+Drasah&nbsp;17/10)&nbsp;captures&nbsp;the&nbsp;precise&nbsp;start&nbsp;—&nbsp;T0&nbsp;—&nbsp;and&nbsp;lands<br>
+here:&nbsp;the&nbsp;52h&nbsp;plan&nbsp;(age&nbsp;T0+4h,&nbsp;cycles&nbsp;T0+10h/T0+34h,&nbsp;official<br>
+end&nbsp;T0+52h)&nbsp;is&nbsp;computed&nbsp;FROM&nbsp;that&nbsp;moment&nbsp;and&nbsp;persisted&nbsp;on&nbsp;the<br>
+season&nbsp;document.&nbsp;The&nbsp;compressed&nbsp;config&nbsp;applies&nbsp;AT&nbsp;T0,&nbsp;not&nbsp;at<br>
+the&nbsp;arming:&nbsp;a&nbsp;beta&nbsp;armed&nbsp;for&nbsp;later&nbsp;leaves&nbsp;the&nbsp;season&nbsp;at&nbsp;its<br>
+normal&nbsp;pace&nbsp;until&nbsp;the&nbsp;scheduler's&nbsp;first&nbsp;tick&nbsp;past&nbsp;T0.&nbsp;A&nbsp;start<br>
+in&nbsp;the&nbsp;past&nbsp;is&nbsp;accepted&nbsp;as&nbsp;"starts&nbsp;now".&nbsp;Idempotent:<br>
+re-arming&nbsp;recomputes&nbsp;the&nbsp;plan&nbsp;from&nbsp;the&nbsp;new&nbsp;start.</span></dd></dl>
 
 <dl><dt>async <a name="EventService-enter_lords_day_phase"><strong>enter_lords_day_phase</strong></a>(self, *, now: 'datetime | None' = None, seed: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">Force&nbsp;the&nbsp;Lord's&nbsp;Day&nbsp;phase&nbsp;open&nbsp;and&nbsp;run&nbsp;its&nbsp;cycle&nbsp;switch.<br>
 &nbsp;<br>
