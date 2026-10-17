@@ -238,8 +238,8 @@ async def test_beta_plan_survives_the_naive_mongo_round_trip() -> None:
     document = season.to_mongo()
     for key in ("started_at", "beta_start_at", "beta_age_at", "beta_end_at"):
         if document.get(key) is not None:
-            document[key] = document[key].replace(tzinfo=None)
-    document["beta_cycle_slots"] = [slot.replace(tzinfo=None) for slot in document["beta_cycle_slots"]]
+            document[key] = document[key].astimezone(UTC).replace(tzinfo=None)
+    document["beta_cycle_slots"] = [slot.astimezone(UTC).replace(tzinfo=None) for slot in document["beta_cycle_slots"]]
     await bundle.store.upsert_season(document)
     reloaded = await bundle.kingdoms.current_season()
     assert reloaded is not None
