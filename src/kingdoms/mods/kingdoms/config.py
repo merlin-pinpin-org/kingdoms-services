@@ -138,8 +138,12 @@ class AttackSettings(BaseModel):
 
     attacks_per_week: int = Field(default=1, ge=0)
     defenses_per_week: int = Field(default=1, ge=0)
-    player_attack_delay_hours: int = Field(default=6, ge=0)
-    gaia_attack_delay_hours: int = Field(default=3, ge=0)
+    player_attack_delay_minutes: int = Field(default=360, ge=0)
+    """Declaration → game delay in MINUTES (beta-weekend-v2, Drasah
+    17/10/2026): the Season II default stays 6h (360) — the beta
+    preset compresses it to 10 minutes without touching the code."""
+    gaia_attack_delay_minutes: int = Field(default=180, ge=0)
+    """Gaïa free-for-all delay in MINUTES (Season II default 3h)."""
     gaia_attack_max_per_kingdom: int = Field(default=1, ge=1)
     gaia_attack_max_total: int = Field(default=7, ge=1)
     gaia_max_participants: int = Field(default=7, ge=1)
@@ -150,9 +154,10 @@ class AttackSettings(BaseModel):
     pick_ban_lead_minutes: int = Field(default=5, ge=0)
     """Phases d'attaque (D77): the pick & ban DMs leave at T-5; each
     side ranks 3 civilizations and can engage up to 2 sabotages."""
-    embuscade_delay_hours: int = Field(default=1, ge=1)
+    embuscade_delay_minutes: int = Field(default=60, ge=1)
     """Phases d'attaque (D77): the Embuscade declares at T-1h sharp
-    (defense window = 45 minutes through the T-15 cutoff)."""
+    (defense window = 45 minutes through the T-15 cutoff). In MINUTES
+    since beta-weekend-v2 (the default keeps the exact 1h)."""
     no_defense_outcome: str = Field(default="vs_ai")
     """D8: what happens when no defender answers in the delay.
 

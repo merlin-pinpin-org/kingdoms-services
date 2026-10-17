@@ -1,18 +1,24 @@
-"""Beta weekend presets (beta-weekend-v1, Drasah 17/10/2026).
+"""Beta weekend presets (beta-weekend-v2, Drasah 17/10/2026).
 
-Drasah opens a multi-user beta test on a weekend (Friday 20:00 →
-Monday 00:00, Europe/Paris): the whole season — 2 cycles, one age
-switch, the official end with results and rewards — is compressed
-into 52 hours. The console command ``lancer_beta <nom>`` activates a
-NAMED preset: the shared season config is mutated in place (every
-service reads it live) and the explicit slot plan is persisted on the
-season document, so a restarted process re-applies the preset on its
-first scheduler tick. A normal season is untouched — nothing changes
-unless the console says so.
+Drasah opens a multi-user beta test compressed into a 52-hour window
+that starts at an EXACT moment he picks: the console command
+``lancer_beta now`` opens a Discord interface (buttons + modal) to
+define that precise start — T0. From T0 the whole season follows the
+relative plan: age switch at T0+4h, two Lord's Day cycles at T0+10h
+and T0+34h (2h protected windows), and the official season end at
+T0+52h (results + rewards). The compressed config applies AT T0, not
+at the arming: a beta armed for Friday 20:00 leaves the season at its
+normal pace until Friday 20:00 sharp.
+
+``now`` replaces the v1 preset ``1.0`` (anchored on calendar slots);
+``1.0`` stays loadable so a season armed before the v2 deploy never
+breaks. A normal season is untouched — nothing changes unless the
+console says so.
 """
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta
+import re
+from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -29,17 +35,31 @@ from kingdoms.mods.kingdoms.config import (
 
 BETA_TIMEZONE = "Europe/Paris"
 
-# Preset « 1.0 » (Drasah 17/10/2026) — decisions verbatim:
-# 2 attaques / 2 défenses, Sombre → Féodal at the Friday/Saturday
-# midnight, two Lord's Day cycles between 04:00 and 08:00 (6:00),
-# special actions free and unlimited, season end Monday 00:00.
+# The relative 52h plan (beta-weekend-v2, Drasah 17/10/2026) — every
+# offset rides T0, the exact start the console interface captured:
+#   age   : T0 + 4h   (Sombre → Féodal, nothing beyond)
+#   cycle : T0 + 10h  (Jour du Seigneur, 2h protected window)
+#   cycle : T0 + 34h  (second Jour du Seigneur)
+#   end   : T0 + 52h  (official end: results + rewards)
+BETA_PLAN_OFFSETS: dict[str, Any] = {
+    "age_hours": 4,
+    "cycle_hours": (10, 34),
+    "end_hours": 52,
+    "lords_day_window_hours": 2,
+}
+
+# Preset « now » (Drasah 17/10/2026) — decisions verbatim: 2 attaques
+# / 2 défenses, Sombre → Féodal only, Jour du Seigneur inside the
+# 52h plan, special actions free and unlimited, every delay
+# compressed to minutes (10-minute attack/Gaïa/Embuscade delays).
 BETA_PRESETS: dict[str, dict[str, Any]] = {
-    "1.0": {
+    "now": {
         "attacks": {
             "attacks_per_week": 2,
             "defenses_per_week": 2,
-            "player_attack_delay_hours": 1,
-            "gaia_attack_delay_hours": 1,
+            "player_attack_delay_minutes": 10,
+            "gaia_attack_delay_minutes": 10,
+            "embuscade_delay_minutes": 10,
             "gaia_attack_max_per_kingdom": 2,
             "defense_cutoff_minutes": 5,
             "pick_ban_lead_minutes": 3,
@@ -92,28 +112,29 @@ BETA_PRESETS: dict[str, dict[str, Any]] = {
             Epoch(key="dark_age", display_name="Âge sombre", gaia_ai_level=2, tech_points=0, extra_marriages=1),
             Epoch(key="feudal_age", display_name="Âge féodal", gaia_ai_level=3, tech_points=1, extra_marriages=1),
         ),
-        # The weekend slot plan (weekday: 0=Monday … 5=Saturday,
-        # 6=Sunday), everything in Europe/Paris.
-        "plan": {
-            "age": (5, 0),  # Saturday 00:00 — Sombre → Féodal
-            "cycles": [(5, 6), (6, 6)],  # Sat 06:00 + Sun 06:00 — Jour du Seigneur
-            "end": (0, 0),  # Monday 00:00 — official season end
-            "lords_day_window_hours": 2,  # attacks blocked 6h00 → 8h00
-        },
     },
 }
 
+# The legacy v1 preset (calendar-anchored) — kept LOADABLE so a
+# season armed with ``1.0`` before the v2 deploy re-applies the exact
+# values it was armed with. The console only advertises ``now``.
+_legacy_1_0 = dict(BETA_PRESETS["now"])  # type: ignore[arg-type]
+_legacy_delays = {"player_attack_delay_minutes": 60, "gaia_attack_delay_minutes": 60, "embuscade_delay_minutes": 60}
+_legacy_1_0["attacks"] = {**_legacy_1_0["attacks"], **_legacy_delays}  # type: ignore[typeddict-item]
+BETA_PRESETS["1.0"] = _legacy_1_0
+
 
 def beta_preset_names() -> tuple[str, ...]:
-    """Return the available preset names (console help / error messages)."""
-    return tuple(sorted(BETA_PRESETS))
+    """Return the preset names the console advertises (``now`` first)."""
+    names = tuple(sorted(BETA_PRESETS, reverse=True))
+    return names
 
 
 def apply_beta_preset(config: KingdomsSeasonConfig, name: str) -> None:
     """Mutate the shared season config in place onto the preset.
 
     Raises ``ValueError`` on an unknown preset — a typo in the console
-    must never silently run a normal-paced weekend. Every service holds
+    must never silently run a normal-paced beta. Every service holds
     the SAME config object, so the new values apply instantly; the
     scheduler re-applies the preset after a restart from the season
     document.
@@ -129,44 +150,70 @@ def apply_beta_preset(config: KingdomsSeasonConfig, name: str) -> None:
     config.ages = tuple(preset["ages"])
 
 
-def _next_slot(now: datetime, weekday: int, hour: int, tz: ZoneInfo) -> datetime:
-    """Return the first (weekday, hour) slot in Paris STRICTLY after ``now``."""
-    local = now.astimezone(tz)
-    day = local.date()
-    for _ in range(8):
-        slot = datetime.combine(day, time(hour, 0), tzinfo=tz)
-        if slot > local and day.weekday() == weekday:
-            return slot.astimezone(tz)
-        day += timedelta(days=1)
-    raise RuntimeError("beta slot search failed")  # pragma: no cover
+def beta_timezone() -> ZoneInfo:
+    """Return the beta scheduling timezone (Europe/Paris)."""
+    try:
+        return ZoneInfo(BETA_TIMEZONE)
+    except Exception:  # pragma: no cover - the stock tz database has it
+        return ZoneInfo("UTC")
 
 
-def plan_beta_slots(name: str, now: datetime) -> dict[str, Any]:
-    """Compute the weekend slot plan anchored on the activation moment.
+# « 23/10 20:00 », « 23/10/2026 20:00 », « maintenant », « now ».
+_START_RE = re.compile(r"^(\d{1,2})/(\d{1,2})(?:/(\d{4}))?\s+(\d{1,2}):(\d{2})$")
+_NOW_WORDS = {"maintenant", "now"}
 
-    ``now`` is the activation timestamp (Friday 20:00 in Drasah's
-    flow): the age switch lands on the coming Saturday midnight, the
-    two Lord's Day cycles on the coming Saturday and Sunday mornings,
-    and the season end on the coming Monday at 00:00 Europe/Paris.
+
+def parse_beta_start(text: str, now: datetime) -> datetime:
+    """Parse the console/modal start input into a Paris datetime.
+
+    Accepted: ``JJ/MM HH:MM``, ``JJ/MM/AAAA HH:MM``, ``maintenant``.
+    A start in the past is REFUSED — the interface defines when the
+    beta begins, never rewinds it (idempotent re-arming is done by
+    re-running the command with a new date).
+    """
+    tz = beta_timezone()
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=ZoneInfo("UTC"))
+    cleaned = text.strip().casefold()
+    if cleaned in _NOW_WORDS:
+        return now.astimezone(tz)
+    match = _START_RE.match(cleaned)
+    if match is None:
+        raise ValueError("format attendu : JJ/MM HH:MM (ex. 23/10 20:00) ou « maintenant »")
+    day, month, year, hour, minute = (int(part) for part in match.groups(default="0") if part is not None)
+    year = year or now.astimezone(tz).year
+    try:
+        start = datetime(year, month, day, hour, minute, tzinfo=tz)
+    except ValueError as error:
+        raise ValueError(f"date invalide : {error}") from error
+    if start <= now.astimezone(tz):
+        raise ValueError("le départ doit être dans le futur (ex. 23/10 20:00)")
+    return start
+
+
+def plan_beta_slots(name: str, start: datetime) -> dict[str, Any]:
+    """Compute the 52h slot plan from the EXACT start ``start`` (T0).
+
+    beta-weekend-v2: the plan rides T0 — age at T0+4h, cycles at
+    T0+10h/T0+34h, official end at T0+52h — whatever the wall clock.
     """
     preset = BETA_PRESETS.get(name)
     if preset is None:
         raise ValueError(f"preset beta inconnu : {name!r} (disponibles : {', '.join(beta_preset_names())})")
-    plan = preset["plan"]
-    try:
-        tz = ZoneInfo(BETA_TIMEZONE)
-    except Exception:  # pragma: no cover - the stock tz database has it
-        tz = ZoneInfo("UTC")
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=ZoneInfo("UTC"))
-    age_at = _next_slot(now, plan["age"][0], plan["age"][1], tz)
-    cycles = [_next_slot(now, weekday, hour, tz) for weekday, hour in plan["cycles"]]
-    end_at = _next_slot(cycles[-1], plan["end"][0], plan["end"][1], tz)
+    del preset  # the plan is preset-independent in v2 (the 52h frame)
+    tz = beta_timezone()
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=ZoneInfo("UTC"))
+    start = start.astimezone(tz)
+    offsets = BETA_PLAN_OFFSETS
     return {
-        "age_at": age_at,
-        "cycle_slots": cycles,
-        "end_at": end_at,
-        "lords_day_window_hours": plan["lords_day_window_hours"],
+        "start_at": start,
+        "age_at": start + timedelta(hours=offsets["age_hours"]),
+        "cycle_slots": [
+            start + timedelta(hours=hours) for hours in offsets["cycle_hours"]
+        ],
+        "end_at": start + timedelta(hours=offsets["end_hours"]),
+        "lords_day_window_hours": offsets["lords_day_window_hours"],
     }
 
 
@@ -174,21 +221,38 @@ def beta_lords_day_window(
     season: Any,
     now: datetime,
 ) -> tuple[datetime, datetime] | None:
-    """Return the beta Lord's Day window around the last consumed cycle slot.
+    """Return the beta Lord's Day window around the last cycle slot.
 
-    Each beta cycle slot opens a short protected window (2h by default)
-    where no attack is PLAYED — the compressed equivalent of the
-    Sunday 23:30 → Monday 10:00 season window. Returns None outside
-    the windows (and on an unknown preset name — never block a season
-    on a missing preset).
+    Each beta cycle slot opens a short protected window (2h) where no
+    attack is PLAYED — the compressed equivalent of the Sunday 23:30
+    → Monday 10:00 season window. Returns None outside the windows
+    (and on an unknown preset name — never block a season on a
+    missing preset).
     """
-    preset = BETA_PRESETS.get(str(getattr(season, "beta_name", None) or ""))
-    if preset is None:
+    if not BETA_PRESETS.get(str(getattr(season, "beta_name", None) or "")):
         return None
     if now.tzinfo is None:
         now = now.replace(tzinfo=ZoneInfo("UTC"))
     for slot in list(getattr(season, "beta_cycle_slots", None) or []):
-        end = slot + timedelta(hours=int(preset["plan"]["lords_day_window_hours"]))
+        end = slot + timedelta(hours=int(BETA_PLAN_OFFSETS["lords_day_window_hours"]))
         if slot <= now < end:
             return (slot, end)
     return None
+
+
+def beta_started(season: Any, now: datetime) -> bool:
+    """Whether the armed beta has actually started (T0 reached).
+
+    beta-weekend-v2: the compressed config applies at T0, not at the
+    arming — this gate drives both the scheduler's preset
+    (re)application and the console status lines. A season armed
+    without ``beta_start_at`` (legacy v1) counts as started.
+    """
+    if not getattr(season, "beta_name", None):
+        return False
+    start = getattr(season, "beta_start_at", None)
+    if start is None:
+        return True
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=ZoneInfo("UTC"))
+    return now >= start

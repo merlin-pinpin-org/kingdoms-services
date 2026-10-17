@@ -288,19 +288,19 @@ def _now() -> datetime:
 
 
 def _refuse_lords_day_execution(
-    window: tuple[datetime, datetime] | None, timestamp: datetime, delay_hours: int
+    window: tuple[datetime, datetime] | None, timestamp: datetime, delay_minutes: int
 ) -> None:
     """Raise when an attack declared at ``timestamp`` would play inside the window.
 
     Drasah's declare-vs-play rule: declaring during the Lord's Day
     window stays possible, but only when the execution (the expiry
-    deadline, ``delay_hours`` after the declaration) lands after the
+    deadline, ``delay_minutes`` after the declaration) lands after the
     window closes (Monday 10:00) — a game that would be played inside
     the window is refused.
     """
     if window is None:
         return
-    expires = timestamp + timedelta(hours=delay_hours)
+    expires = timestamp + timedelta(minutes=delay_minutes)
     if expires <= window[1] and not bypass_guard("lords-day declare window"):
         raise LordsDayAttackError(
             "the attack would be played inside the Lord's Day window "
@@ -323,7 +323,7 @@ def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-CORBEAU_TRACK_DELAY_HOURS = 24
+CORBEAU_TRACK_DELAY_MINUTES = 24 * 60
 """Volière Corbeau (voliere-v1, Drasah 14/10): the delay of every attack
 a « suivi » lord declares — 24h instead of the configured delay, for
 the whole 24h tracking window."""
@@ -424,9 +424,9 @@ class AttackService:
             raise AttackError("the attacker must provide the game lobby link")
         # Volière Corbeau (voliere-v1): a « suivi » lord declares with
         # the 24h delay for the whole 24h tracking window.
-        delay_hours = self._config.attacks.player_attack_delay_hours
+        delay_minutes = self._config.attacks.player_attack_delay_minutes
         if await self._lord_tracked_by_corbeau(lord.id, timestamp):
-            delay_hours = CORBEAU_TRACK_DELAY_HOURS
+            delay_minutes = CORBEAU_TRACK_DELAY_MINUTES
         # Drasah's Lord's Day window: declaring inside the window is
         # fine ONLY when the execution (the attack's expiry deadline)
         # lands after the window closes (Monday 10:00) — a game that
@@ -434,7 +434,7 @@ class AttackService:
         _refuse_lords_day_execution(
             await self._active_lords_day_window(timestamp),
             timestamp,
-            delay_hours,
+            delay_minutes,
         )
         lord.attack_used += 1
         await self._store.upsert_lord(lord.to_mongo())
@@ -454,7 +454,7 @@ class AttackService:
             attacker_kingdom_id=lord.kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
-            expires_at=timestamp + timedelta(hours=delay_hours),
+            expires_at=timestamp + timedelta(minutes=delay_minutes),
             cover_lord_id=cover,
             traquenard=traquenard,
         )
@@ -536,7 +536,7 @@ class AttackService:
         _refuse_lords_day_execution(
             await self._active_lords_day_window(timestamp),
             timestamp,
-            self._config.attacks.embuscade_delay_hours,
+            self._config.attacks.embuscade_delay_minutes,
         )
         state = await self.technology_state(lord.kingdom_id)
         bought = state.purchases.get("embuscade", 0)
@@ -556,7 +556,7 @@ class AttackService:
             attacker_kingdom_id=lord.kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
-            expires_at=timestamp + timedelta(hours=self._config.attacks.embuscade_delay_hours),
+            expires_at=timestamp + timedelta(minutes=self._config.attacks.embuscade_delay_minutes),
             embuscade=True,
         )
         await self._store.upsert_attack(attack.to_mongo())
@@ -1623,9 +1623,9 @@ class AttackService:
             # Volière Corbeau (voliere-v1): a « suivi » lord declares
             # with the 24h delay — the Gaïa free-for-all follows the
             # same rule as the player attacks.
-            delay_hours = self._config.attacks.gaia_attack_delay_hours
+            delay_minutes = self._config.attacks.gaia_attack_delay_minutes
             if await self._lord_tracked_by_corbeau(lord.id, timestamp):
-                delay_hours = CORBEAU_TRACK_DELAY_HOURS
+                delay_minutes = CORBEAU_TRACK_DELAY_MINUTES
             # Lord's Day window: the Gaïa free-for-all follows the same
             # declare-vs-play rule as the player attacks (D44's "no
             # time limit" stays — the window only refuses an execution
@@ -1633,11 +1633,11 @@ class AttackService:
             _refuse_lords_day_execution(
                 await self._active_lords_day_window(timestamp),
                 timestamp,
-                delay_hours,
+                delay_minutes,
             )
             lord.attack_used += 1
             await self._store.upsert_lord(lord.to_mongo())
-            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp, delay_hours)
+            attack = self._new_gaia_attack(season, territory, lord, lobby_url, timestamp, delay_minutes)
             await self._store.upsert_attack(attack.to_mongo())
             logger.info("kingdoms: %s opens the Gaïa free-for-all on %s", lord.id, territory.map_key)
             return attack
@@ -1650,7 +1650,7 @@ class AttackService:
         lord: LordModel,
         lobby_url: str,
         timestamp: datetime,
-        delay_hours: int,
+        delay_minutes: int,
     ) -> AttackModel:
         """Build the first declaration of a Gaïa free-for-all."""
         if lord.kingdom_id is None:
@@ -1666,7 +1666,7 @@ class AttackService:
             attacker_kingdom_id=lord.kingdom_id,
             lobby_url=lobby_url.strip(),
             declared_at=timestamp,
-            expires_at=timestamp + timedelta(hours=delay_hours),
+            expires_at=timestamp + timedelta(minutes=delay_minutes),
             participants=[lord.id],
         )
 

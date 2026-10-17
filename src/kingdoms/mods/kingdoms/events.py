@@ -20,7 +20,11 @@ from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from kingdoms.mods.kingdoms.beta_weekend import apply_beta_preset, beta_lords_day_window
+from kingdoms.mods.kingdoms.beta_weekend import (
+    apply_beta_preset,
+    beta_lords_day_window,
+    beta_started,
+)
 from kingdoms.mods.kingdoms.game_clock import game_now
 from kingdoms.mods.kingdoms.territories import (
     MapPoolExhaustedError,
@@ -502,9 +506,10 @@ class EventService:
             now = now.replace(tzinfo=UTC)
         if season.finished:
             return []
-        # beta-weekend-v1: a restarted process re-applies the preset
-        # of a running beta weekend before replaying its slots.
-        if season.beta_name and self._beta_applied != season.beta_name:
+        # beta-weekend-v2: a restarted process re-applies the preset
+        # of a STARTED beta (T0 reached) before replaying its slots —
+        # an armed-not-started beta keeps the normal pace until T0.
+        if season.beta_name and beta_started(season, now) and self._beta_applied != season.beta_name:
             apply_beta_preset(self._config, season.beta_name)
             self._beta_applied = season.beta_name
         due = self._due_slots(season, now, tz)
@@ -604,17 +609,24 @@ class EventService:
         due.sort(key=lambda item: item[0])
         return due
 
-    async def activate_beta(self, name: str, *, now: datetime | None = None) -> dict[str, object]:
-        """Activate a beta weekend preset on the running season.
+    async def activate_beta(
+        self,
+        name: str,
+        *,
+        start_at: datetime,
+        now: datetime | None = None,
+    ) -> dict[str, object]:
+        """Arm a beta weekend preset starting at the EXACT ``start_at``.
 
-        The console ``lancer_beta <nom>`` lands here (beta-weekend-v1,
-        Drasah 17/10): the shared config is mutated onto the preset,
-        the weekend slot plan is computed from the activation moment
-        (age at the coming Saturday midnight, cycles Saturday and
-        Sunday 06:00, end Monday 00:00 Europe/Paris) and persisted on
-        the season document — the restarted process re-applies the
-        preset on its first tick. Idempotent: re-running the same
-        preset recomputes the same plan.
+        The console interface (``lancer_beta now``, beta-weekend-v2,
+        Drasah 17/10) captures the precise start — T0 — and lands
+        here: the 52h plan (age T0+4h, cycles T0+10h/T0+34h, official
+        end T0+52h) is computed FROM that moment and persisted on the
+        season document. The compressed config applies AT T0, not at
+        the arming: a beta armed for later leaves the season at its
+        normal pace until the scheduler's first tick past T0. A start
+        in the past is accepted as "starts now". Idempotent:
+        re-arming recomputes the plan from the new start.
         """
         from kingdoms.mods.kingdoms.beta_weekend import (
             apply_beta_preset,
@@ -625,22 +637,29 @@ class EventService:
         if season.finished:
             raise ValueError("la saison est terminée — la beta se lance sur une saison en cours")
         timestamp = now or game_now()
-        apply_beta_preset(self._config, name)
-        self._beta_applied = name
-        plan = plan_beta_slots(name, timestamp)
+        if start_at.tzinfo is None:
+            start_at = start_at.replace(tzinfo=UTC)
+        plan = plan_beta_slots(name, start_at)
         season.beta_name = name
+        season.beta_start_at = plan["start_at"]
         season.beta_age_at = plan["age_at"]
         season.beta_cycle_slots = list(plan["cycle_slots"])
         season.beta_end_at = plan["end_at"]
         await self._store.upsert_season(season.to_mongo())
+        # An immediate start applies the compressed config right away;
+        # a future start waits for the first tick past T0.
+        if plan["start_at"] <= timestamp:
+            apply_beta_preset(self._config, name)
+            self._beta_applied = name
+        else:
+            self._beta_applied = None
         return {
             "name": name,
+            "start_at": plan["start_at"],
             "age_at": plan["age_at"],
             "cycle_slots": list(plan["cycle_slots"]),
             "end_at": plan["end_at"],
-            "attacks_per_week": self._config.attacks.attacks_per_week,
-            "defenses_per_week": self._config.attacks.defenses_per_week,
-            "ages": [age.key for age in self._config.ages],
+            "armed": plan["start_at"] > timestamp,
         }
 
     async def _apply_season_end(self) -> dict[str, object]:

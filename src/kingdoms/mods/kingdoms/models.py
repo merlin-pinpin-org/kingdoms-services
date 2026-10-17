@@ -489,11 +489,16 @@ class SeasonState(BaseModel):
     """Kingdom ids that lost a combat since the last cycle switch: their
     lords' marriages drop at the next recalculation (D34/D53)."""
     beta_name: str | None = None
-    """Beta weekend preset (beta-weekend-v1, Drasah 17/10/2026): the
+    """Beta weekend preset (beta-weekend-v2, Drasah 17/10/2026): the
     name of the compressed-weekend preset the console ``lancer_beta``
-    activated (``1.0``) — None on a normal season. The slot plan below
-    REPLACES the weekly crons: the scheduler plays these explicit
-    moments instead of the Sunday/Wednesday calendar."""
+    armed (``now`` — ``1.0`` is the legacy v1 name kept so an already
+    armed season never breaks) — None on a normal season. The slot
+    plan below REPLACES the weekly crons while the beta runs."""
+    beta_start_at: datetime | None = None
+    """The beta's T0 — the EXACT start moment the console interface
+    captured (beta-weekend-v2). The preset's compressed config applies
+    at T0 (not at the arming): an armed-not-started beta leaves the
+    season running at its normal pace until T0."""
     beta_age_at: datetime | None = None
     """The single beta age switch (ex. Saturday 00:00 — Sombre → Féodal)."""
     beta_cycle_slots: list[datetime] = Field(default_factory=list)

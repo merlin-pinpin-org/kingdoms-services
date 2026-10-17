@@ -203,6 +203,10 @@ class AdminConsole:
         self._roles_service = roles_service
         self._journal: deque[dict[str, Any]] = deque(maxlen=_JOURNAL_MAX)
         self._console_ids: dict[str, str] = {}
+        self._current_message: Any = None
+        """The message being dispatched (beta-weekend-v2): the beta
+        start panel needs the triggering message's channel to send
+        its interactive view."""
 
     # -- wiring ------------------------------------------------------------
 
@@ -301,6 +305,7 @@ class AdminConsole:
 
     async def dispatch(self, text: str, message: Any | None = None) -> str:
         """Parse one console line and run its command (pure, testable)."""
+        self._current_message = message
         parts = text.split()
         command = parts[0].casefold()
         args = parts[1:]
@@ -334,6 +339,11 @@ class AdminConsole:
         entries = list(self._journal)[-max(1, count) :]
         entries.reverse()
         return entries
+
+    @property
+    def current_message(self) -> Any:
+        """Return the message of the dispatch in flight (None outside)."""
+        return self._current_message
 
 
 def _chunk(text: str, limit: int) -> list[str]:
@@ -741,27 +751,39 @@ async def _cmd_chronique(console: AdminConsole, args: list[str]) -> str:
 
 
 async def _cmd_lancer_beta(console: AdminConsole, args: list[str]) -> str:
-    """`lancer_beta [nom]` — activate a beta weekend preset (1.0)."""
+    """`lancer_beta now [JJ/MM HH:MM]` — the beta start interface.
+
+    beta-weekend-v2 (Drasah 17/10): the bare command answers with the
+    interactive panel (🚀 Maintenant / 🕒 Programmer… — the modal
+    captures the EXACT start). A direct date argument stays accepted
+    (`lancer_beta now 23/10 20:00`) for the tests and the textual
+    workflow: the plan rides that precise T0.
+    """
+    from kingdoms.mods.kingdoms.beta_panel import beta_start_panel, beta_start_report
+    from kingdoms.mods.kingdoms.beta_weekend import parse_beta_start
+    from kingdoms.mods.kingdoms.game_clock import game_now
+
     events = getattr(console.bot, "kingdoms_events_service", None)
     if events is None:
         return CONSOLE_STRINGS["fr"]["not_wired"]
-    name = args[0] if args else "1.0"
-    report = await events.activate_beta(name)
-    from zoneinfo import ZoneInfo
-
-    tz = ZoneInfo("Europe/Paris")
-    fmt = "%d/%m %H:%M"
-    lines = [
-        f"🚀 Beta « {report['name']} » lancée — saison en rythme week-end :",
-        f"• budgets : {report['attacks_per_week']} attaque(s) / {report['defenses_per_week']} défense(s)",
-        f"• âges : {' → '.join(str(age) for age in report['ages'])}",
-        f"• passage d'âge : {report['age_at'].astimezone(tz).strftime(fmt)}",
-        "• cycles Jour du Seigneur : "
-        + ", ".join(slot.astimezone(tz).strftime(fmt) for slot in report["cycle_slots"]),
-        f"• fin de saison officielle : {report['end_at'].astimezone(tz).strftime(fmt)} (résultats + récompenses)",
-        "• actions spéciales : gratuites et illimitées pour la beta",
-    ]
-    return "\n".join(lines)
+    if args and args[0].casefold() not in ("now", "maintenant"):
+        return "usage : `lancer_beta now [JJ/MM HH:MM]` — ex. `lancer_beta now 23/10 20:00`"
+    date_text = " ".join(args[1:]) if len(args) > 1 else ""
+    if date_text:
+        start = parse_beta_start(date_text, game_now())
+        report = await events.activate_beta("now", start_at=start)
+        return beta_start_report(report)
+    # The interactive panel rides the triggering message's channel.
+    message = console.current_message
+    if message is None:
+        return "usage : `lancer_beta now JJ/MM HH:MM` (ex. `23/10 20:00`) — l'interface nécessite le salon"
+    content, view = beta_start_panel(console, None)
+    try:
+        await message.channel.send(content, view=view)
+    except Exception:
+        logger.warning("CONSOLE: beta panel send failed", exc_info=True)
+        return "usage : `lancer_beta now JJ/MM HH:MM` (ex. `23/10 20:00`)"
+    return "🚀 Panneau de départ beta envoyé — utilise les boutons ci-dessus."
 
 
 async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
@@ -780,7 +802,12 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
 
     tz = ZoneInfo("Europe/Paris")
     fmt = "%d/%m %H:%M"
-    lines = [f"beta « {season.beta_name} » active :"]
+    from kingdoms.mods.kingdoms.game_clock import game_now as _game_now
+
+    armed = season.beta_start_at is not None and season.beta_start_at > _game_now()
+    lines = [f"beta « {season.beta_name} » " + ("ARMÉE :" if armed else "active :")]
+    if season.beta_start_at is not None:
+        lines.append(f"• départ : {season.beta_start_at.astimezone(tz).strftime(fmt)}")
     if season.beta_age_at is not None:
         lines.append(f"• passage d'âge : {season.beta_age_at.astimezone(tz).strftime(fmt)}")
     for index, slot in enumerate(season.beta_cycle_slots, start=1):
@@ -960,9 +987,9 @@ COMMANDES: dict[str, CommandSpec] = {
         _cmd_chronique,
     ),
     "lancer_beta": CommandSpec(
-        "lancer_beta [1.0]",
-        "Lancer un preset beta week-end (saison compressée + fin officielle)",
-        "Start a beta weekend preset (compressed season + official end)",
+        "lancer_beta now [JJ/MM HH:MM]",
+        "Interface de départ beta (boutons) ou départ direct — plan 52 h",
+        "Beta start interface (buttons) or direct start — 52 h plan",
         "saison",
         _cmd_lancer_beta,
     ),
