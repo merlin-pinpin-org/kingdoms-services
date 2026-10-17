@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from kingdoms.mods.kingdoms.beta_weekend import (
+    _utc,
     apply_beta_preset,
     beta_lords_day_window,
     beta_started,
@@ -592,20 +593,18 @@ class EventService:
         keys = [age.key for age in self._config.ages]
         last_age = len(keys) - 1
         age_index = keys.index(season.current_age_key) if season.current_age_key in keys else None
-        if (
-            age_index is not None
-            and age_index < last_age
-            and season.beta_age_at is not None
-            and now >= season.beta_age_at
-        ):
-            due.append((season.beta_age_at, "age"))
-        for index, slot in enumerate(season.beta_cycle_slots):
+        age_at = _utc(season.beta_age_at) if season.beta_age_at is not None else None
+        if age_index is not None and age_index < last_age and age_at is not None and now >= age_at:
+            due.append((age_at, "age"))
+        for index, raw_slot in enumerate(season.beta_cycle_slots):
             if index < season.current_cycle - 1:
                 continue  # the switch already ran
+            slot = _utc(raw_slot)
             if now >= slot:
                 due.append((slot, "cycle"))
-        if season.beta_end_at is not None and now >= season.beta_end_at:
-            due.append((season.beta_end_at, "end"))
+        end_at = _utc(season.beta_end_at) if season.beta_end_at is not None else None
+        if end_at is not None and now >= end_at:
+            due.append((end_at, "end"))
         due.sort(key=lambda item: item[0])
         return due
 

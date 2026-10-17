@@ -221,3 +221,41 @@ def test_preset_names_advertise_now_first() -> None:
     """The console help lists « now » (the legacy 1.0 stays loadable)."""
     assert beta_preset_names()[0] == "now"
     assert "1.0" in beta_preset_names()
+
+
+async def test_beta_plan_survives_the_naive_mongo_round_trip() -> None:
+    """The MongoDB round-trip strips the tzinfo (a BSON datetime reloads
+    as naive UTC) — the window and T0 comparisons with the aware game
+    clock must never crash (live 17/10: « can't compare offset-naive
+    and offset-aware datetimes » on the attack path)."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    start = datetime(2026, 10, 23, 20, 0, tzinfo=PARIS)
+    await bundle.events.activate_beta("now", start_at=start, now=start)
+    season = await bundle.kingdoms.current_season()
+    assert season is not None
+    # The BSON wire shape: every stored datetime comes back naive (UTC).
+    document = season.to_mongo()
+    for key in ("started_at", "beta_start_at", "beta_age_at", "beta_end_at"):
+        if document.get(key) is not None:
+            document[key] = document[key].replace(tzinfo=None)
+    document["beta_cycle_slots"] = [slot.replace(tzinfo=None) for slot in document["beta_cycle_slots"]]
+    await bundle.store.upsert_season(document)
+    reloaded = await bundle.kingdoms.current_season()
+    assert reloaded is not None
+    assert reloaded.beta_start_at is not None and reloaded.beta_start_at.tzinfo is None
+
+    config: KingdomsSeasonConfig = bundle.config
+    aware_now = datetime(2026, 10, 24, 7, 0, tzinfo=PARIS).astimezone(UTC)
+    # The attack path: the window comparison must answer, not raise.
+    assert active_lords_day_window(config, reloaded, aware_now) is not None
+    assert beta_lords_day_window(reloaded, aware_now) is not None
+    assert beta_started(reloaded, aware_now) is True
+    # The scheduler path: run_due replays the due slots without raising,
+    # whatever naive datetimes the plan carries.
+    reports = await bundle.events.run_due(aware_now)
+    assert [report["kind"] for report in reports] == ["age", "cycle"]
+    after = await bundle.kingdoms.current_season()
+    assert after is not None
+    assert after.current_age_key == "feudal_age"
+    assert after.current_cycle == 2

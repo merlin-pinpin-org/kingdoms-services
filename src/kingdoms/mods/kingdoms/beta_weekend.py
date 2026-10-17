@@ -217,6 +217,21 @@ def plan_beta_slots(name: str, start: datetime) -> dict[str, Any]:
     }
 
 
+def _utc(value: datetime) -> datetime:
+    """Return ``value`` as an offset-aware UTC datetime.
+
+    The MongoDB round-trip strips the tzinfo (a BSON datetime reloads
+    as plain naive UTC — ``MongoClient`` is not ``tz_aware``), while
+    the game clock is always aware: comparing the two raises
+    « can't compare offset-naive and offset-aware datetimes ». A naive
+    value is read as UTC (the wire epoch IS UTC), an aware one is
+    converted.
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=ZoneInfo("UTC"))
+    return value.astimezone(ZoneInfo("UTC"))
+
+
 def beta_lords_day_window(
     season: Any,
     now: datetime,
@@ -231,9 +246,9 @@ def beta_lords_day_window(
     """
     if not BETA_PRESETS.get(str(getattr(season, "beta_name", None) or "")):
         return None
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=ZoneInfo("UTC"))
-    for slot in list(getattr(season, "beta_cycle_slots", None) or []):
+    now = _utc(now)
+    for raw in list(getattr(season, "beta_cycle_slots", None) or []):
+        slot = _utc(raw)
         end = slot + timedelta(hours=int(BETA_PLAN_OFFSETS["lords_day_window_hours"]))
         if slot <= now < end:
             return (slot, end)
@@ -253,6 +268,4 @@ def beta_started(season: Any, now: datetime) -> bool:
     start = getattr(season, "beta_start_at", None)
     if start is None:
         return True
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=ZoneInfo("UTC"))
-    return bool(now >= start)
+    return bool(_utc(now) >= _utc(start))
