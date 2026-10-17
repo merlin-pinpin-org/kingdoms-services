@@ -1,4 +1,4 @@
-"""The 🛠 console-admin text console (admin-console-v1, Drasah 15/10/2026).
+"""The 🛠 console-admin console (admin-console-v1 + v2, Drasah 15→17/10/2026).
 
 A Counter-Strike-Source-style console in a private Discord salon: the
 admin types FRENCH cvar-style commands (``bypass 1``, ``fin_oiseau
@@ -14,7 +14,12 @@ per command — handler, usage, help, section) and a process-local
 journal of the executed mutations (``journal [N]``).
 
 ⚠️ Requires the MESSAGE CONTENT intent (dev portal + the bot factory
-enables it) — without it the listener sees empty messages.
+enables it) — without it the listener sees empty messages. That is why
+admin-console-v2 (Drasah 17/10) adds the INTERACTIVE PINNED PANEL: read
+buttons + a ⌨️ Commande… modal ride component interactions, which work
+WITHOUT the intent — the console answers even when the listener is
+deaf. The classes of the panel live inside ``_console_view`` (they
+resolve the console at click time, §3b restart-proof style).
 """
 
 from __future__ import annotations
@@ -25,6 +30,8 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
+
+import discord
 
 from kingdoms.mods.kingdoms.admin_debug import (
     BIRDS,
@@ -46,6 +53,9 @@ CONSOLE_CHANNEL_SLUG = "console-admin"
 CONSOLE_WELCOME_MARKER = "🛠 CONSOLE ADMIN"
 """The marker of the pinned welcome message (pin kept alive, best effort)."""
 
+CONSOLE_PANEL_MARKER = "🛠 CONSOLE — PANNEAU"
+"""The marker of the pinned interactive panel (admin-console-v2)."""
+
 _JOURNAL_MAX = 100
 _TIME_RE = re.compile(r"^(\d+)-(\d+)$")
 _PARAMS_RE = re.compile(r"([^=,]+)=([^,]*)")
@@ -57,6 +67,16 @@ PHASES_FR: dict[str, str] = {
     "score": "Score",
 }
 """The console's French phase names (attaques-phases-v2)."""
+
+_CONSOLE: "AdminConsole | None" = None
+"""The process-wide console singleton (set at register time — the
+admin-console-v2 panel buttons resolve it at click time, §3b
+restart-proof style, so the pinned message survives every restart)."""
+
+
+def _current_console() -> "AdminConsole | None":
+    """Return the registered console (None outside a wired process)."""
+    return _CONSOLE
 
 
 # ----------------------------------------------------------------------
@@ -88,6 +108,27 @@ CONSOLE_STRINGS: dict[str, dict[str, str]] = {
         "help_header": "🛠 CONSOLE — {section}",
         "help_line": "• `{usage}` — {help}",
         "aide_sections": "Sections : {sections} — tape `aide <section>`.",
+        "panel_body": (
+            "# 🛠 CONSOLE — PANNEAU\n"
+            "Boutons de lecture : la réponse arrive ici même. ⌨️ Commande… ouvre "
+            "une fenêtre pour taper n'importe quelle commande (`fin_oiseau royaume tous`…).\n"
+            "Écrire directement dans le salon marche toujours (si l'intent "
+            "message-content est actif).\n"
+            "⚠️ Réservé aux bot admins — chaque mutation est loggée."
+        ),
+        "modal_title": "Commande console",
+        "modal_label": "Commande",
+        "modal_placeholder": "ex. fin_oiseau Aquitaine tous",
+        "cmd_empty": "⚠️ Commande vide — tape par ex. `etat`.",
+        "btn_aide": "ℹ️ Aide",
+        "btn_etat": "📊 État",
+        "btn_saison": "📅 Saison",
+        "btn_cooldowns": "⏱️ Cooldowns",
+        "btn_attaques": "⚔️ Attaques",
+        "btn_journal": "📖 Journal",
+        "btn_command": "⌨️ Commande…",
+        "btn_beta": "🚀 Beta",
+        "btn_bypass": "🧪 Bypass",
     },
     "en": {
         "welcome": (
@@ -113,6 +154,27 @@ CONSOLE_STRINGS: dict[str, dict[str, str]] = {
         "help_header": "🛠 CONSOLE — {section}",
         "help_line": "• `{usage}` — {help}",
         "aide_sections": "Sections: {sections} — type `help <section>`.",
+        "panel_body": (
+            "# 🛠 CONSOLE — PANEL\n"
+            "Read buttons: the answer lands right here. ⌨️ Command… opens a window "
+            "to type any command (`bypass 1`…).\n"
+            "Typing directly in the salon keeps working (when the "
+            "message-content intent is on).\n"
+            "⚠️ Bot admins only — every mutation is logged."
+        ),
+        "modal_title": "Console command",
+        "modal_label": "Command",
+        "modal_placeholder": "e.g. bypass 1",
+        "cmd_empty": "⚠️ Empty command — type e.g. `state`.",
+        "btn_aide": "ℹ️ Help",
+        "btn_etat": "📊 State",
+        "btn_saison": "📅 Season",
+        "btn_cooldowns": "⏱️ Cooldowns",
+        "btn_attaques": "⚔️ Attacks",
+        "btn_journal": "📖 Journal",
+        "btn_command": "⌨️ Command…",
+        "btn_beta": "🚀 Beta",
+        "btn_bypass": "🧪 Bypass",
     },
 }
 
@@ -249,9 +311,13 @@ class AdminConsole:
 
     # -- guard -------------------------------------------------------------
 
-    async def is_console_admin(self, message: Any) -> bool:
-        """Whether the message's author may use the console (every message)."""
-        member = message.author
+    async def is_console_admin_member(self, guild: Any, member: Any) -> bool:
+        """Whether one member may use the console (every surface, v2).
+
+        admin-console-v2: the guard was extracted from the message
+        listener so the panel buttons and the command modal check the
+        CLICKING member through the very same rules.
+        """
         if getattr(member, "bot", False):
             return False
         if str(getattr(member, "id", "")) in self._bot_admins:
@@ -260,10 +326,10 @@ class AdminConsole:
         if permissions is not None and getattr(permissions, "administrator", False):
             return True
         roles_service = self._roles_service
-        if roles_service is None:
+        if roles_service is None or guild is None:
             return False
         try:
-            role_id = await roles_service.resolve_admin_role(str(message.guild.id))
+            role_id = await roles_service.resolve_admin_role(str(guild.id))
         except Exception:
             logger.warning("CONSOLE: admin role lookup failed — denying", exc_info=True)
             return False
@@ -271,6 +337,10 @@ class AdminConsole:
             return False
         member_role_ids = {str(getattr(role, "id", "")) for role in getattr(member, "roles", [])}
         return str(role_id) in member_role_ids
+
+    async def is_console_admin(self, message: Any) -> bool:
+        """Whether the message's author may use the console (every message)."""
+        return await self.is_console_admin_member(getattr(message, "guild", None), message.author)
 
     # -- entry point --------------------------------------------------------
 
@@ -303,8 +373,13 @@ class AdminConsole:
 
     # -- dispatch ------------------------------------------------------------
 
-    async def dispatch(self, text: str, message: Any | None = None) -> str:
-        """Parse one console line and run its command (pure, testable)."""
+    async def dispatch(self, text: str, message: Any | None = None, actor: str | None = None) -> str:
+        """Parse one console line and run its command (pure, testable).
+
+        admin-console-v2: ``actor`` overrides the journal's author (the
+        panel buttons pass the clicking member's id); ``message`` stays
+        the salon message (the beta panel and `regles` ride its channel).
+        """
         self._current_message = message
         parts = text.split()
         command = parts[0].casefold()
@@ -320,7 +395,7 @@ class AdminConsole:
             reply = f"⚠️ {error}"
         except ValueError as error:
             reply = f"⚠️ {error} — usage : `{spec.usage}`"
-        actor = str(getattr(getattr(message, "author", None), "id", "console"))
+        actor = actor or str(getattr(getattr(message, "author", None), "id", "console"))
         self._journal.append(
             {
                 "command": text,
@@ -1039,6 +1114,156 @@ COMMANDES: dict[str, CommandSpec] = {
 
 
 # ----------------------------------------------------------------------
+# The interactive pinned panel (admin-console-v2, Drasah 17/10/2026)
+# ----------------------------------------------------------------------
+
+
+async def _console_reply(interaction: Any, text: str) -> None:
+    """Answer a button/modal click IN THE SALON (never ephemeral, chunked)."""
+    chunks = _chunk(text, 1900)
+    try:
+        await interaction.response.send_message(chunks[0])
+        for extra in chunks[1:]:
+            await interaction.followup.send(extra)
+    except Exception:
+        logger.warning("CONSOLE: interaction answer failed", exc_info=True)
+
+
+def _console_view(locale: Any = None, console: "AdminConsole | None" = None) -> Any:
+    """Build the pinned interactive console panel (read buttons + modal).
+
+    admin-console-v2: the buttons answer in the salon through the very
+    same ``dispatch``/``COMMANDES`` table — zero new command logic. The
+    ⌨️ Commande… modal captures any free-text line. The console resolves
+    from the module singleton at click time (restart-proof, §3b style);
+    ``console`` forces an instance for the tests. The classes live
+    INSIDE this factory on purpose: they are not module attributes, so
+    the module's pydoc page stays free of discord-inherited sections.
+    """
+    strings = _console_strings(locale)
+
+    class _CommandModal(discord.ui.Modal):
+        """The free-text command window — the parser stays the table."""
+
+        def __init__(self) -> None:
+            super().__init__(title=strings["modal_title"][:45], timeout=300)
+            self.command_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
+                label=strings["modal_label"][:45],
+                placeholder=strings["modal_placeholder"][:100],
+                required=True,
+                max_length=200,
+            )
+            self.add_item(self.command_input)
+
+        async def on_submit(self, interaction: discord.Interaction) -> None:
+            """Run the typed line and answer in the salon (the history)."""
+            live = console or _current_console()
+            if live is None:
+                await interaction.response.send_message(strings["not_wired"], ephemeral=True)
+                return
+            if not await live.is_console_admin_member(interaction.guild, interaction.user):
+                await interaction.response.send_message(strings["denied"], ephemeral=True)
+                return
+            text = str(getattr(self.command_input, "value", "") or "").strip()
+            if not text:
+                await interaction.response.send_message(strings["cmd_empty"], ephemeral=True)
+                return
+            actor = str(getattr(interaction.user, "id", "console"))
+            reply = await live.dispatch(text, getattr(interaction, "message", None), actor=actor)
+            await _console_reply(interaction, reply)
+
+    class _View(discord.ui.View):
+        """The pinned console panel rows (timeout=None, custom ids)."""
+
+        def __init__(self) -> None:
+            super().__init__(timeout=None)
+
+        async def _run(self, interaction: discord.Interaction, command: str) -> None:
+            """Guard then run one command line, answering in the salon."""
+            live = console or _current_console()
+            if live is None:
+                await interaction.response.send_message(strings["not_wired"], ephemeral=True)
+                return
+            if not await live.is_console_admin_member(interaction.guild, interaction.user):
+                await interaction.response.send_message(strings["denied"], ephemeral=True)
+                return
+            actor = str(getattr(interaction.user, "id", "console"))
+            reply = await live.dispatch(command, getattr(interaction, "message", None), actor=actor)
+            await _console_reply(interaction, reply)
+
+        def _make_on_read(self, command: str) -> Any:
+            """Bind one read-only command to its button."""
+
+            async def _on_read(interaction: discord.Interaction) -> None:
+                await self._run(interaction, command)
+
+            return _on_read
+
+        async def _on_bypass(self, interaction: discord.Interaction) -> None:
+            """Flip the ADMIN BYPASS the comfortable way (toggle)."""
+            target = "0" if admin_bypass_enabled() else "1"
+            await self._run(interaction, f"bypass {target}")
+
+    grey = discord.ButtonStyle.secondary
+    view = _View()
+    read_rows: list[tuple[int, str, str, Any]] = [
+        (0, strings["btn_aide"], "kingdoms:console:aide", "aide"),
+        (0, strings["btn_etat"], "kingdoms:console:etat", "etat"),
+        (0, strings["btn_saison"], "kingdoms:console:saison", "saison"),
+        (0, strings["btn_cooldowns"], "kingdoms:console:cooldowns", "cooldowns"),
+        (0, strings["btn_attaques"], "kingdoms:console:attaques", "voir_attaques"),
+        (1, strings["btn_journal"], "kingdoms:console:journal", "journal"),
+        (1, strings["btn_beta"], "kingdoms:console:beta", "lancer_beta now"),
+    ]
+    buttons: list[tuple[int, str, str, Any, Any]] = [
+        (row, label, custom_id, grey, view._make_on_read(command))
+        for row, label, custom_id, command in read_rows
+    ]
+    buttons.append((1, strings["btn_bypass"], "kingdoms:console:bypass", discord.ButtonStyle.danger, view._on_bypass))
+    buttons.append((1, strings["btn_command"], "kingdoms:console:command", discord.ButtonStyle.primary, None))
+    for row, label, custom_id, style, handler in buttons:
+        button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+            label=label[:80], custom_id=custom_id, style=style, row=row
+        )
+        if handler is not None:
+            button.callback = handler  # type: ignore[method-assign]
+        else:
+            # The ⌨️ Commande… button opens the modal instead of running.
+            async def _on_command(interaction: discord.Interaction) -> None:
+                await interaction.response.send_modal(_CommandModal())
+
+            button.callback = _on_command  # type: ignore[method-assign]
+        view.add_item(button)
+    return view
+
+
+async def ensure_console_panel(channel: Any) -> bool:
+    """Pin the interactive console panel when absent (idempotent, best effort).
+
+    The panel message is EDITED IN PLACE at every deploy with a fresh
+    view — the buttons stay alive after every restart (the register also
+    pre-attaches the view for the custom ids, §3b style).
+    """
+    strings = _console_strings(getattr(getattr(channel, "guild", None), "preferred_locale", None))
+    content = strings["panel_body"]
+    view = _console_view()
+    try:
+        for pinned in await channel.pins():
+            if CONSOLE_PANEL_MARKER in str(getattr(pinned, "content", "")):
+                try:
+                    await pinned.edit(content=content, view=view)
+                except Exception:
+                    logger.warning("CONSOLE: panel refresh failed", exc_info=True)
+                return False
+        message = await channel.send(content, view=view)
+        await message.pin()
+        return True
+    except Exception:
+        logger.warning("CONSOLE: panel pin failed", exc_info=True)
+        return False
+
+
+# ----------------------------------------------------------------------
 # The pinned welcome message (best effort)
 # ----------------------------------------------------------------------
 
@@ -1075,6 +1300,18 @@ def register_kingdoms_admin_console(bot: Any) -> None:
         roles_service=getattr(bot, "roles_service", None),
     )
     bot.kingdoms_admin_console = console
+    global _CONSOLE
+    _CONSOLE = console
+    # admin-console-v2: pre-attach the persistent panel view so the pinned
+    # message's custom ids answer from the first second after every restart
+    # (the deploy edits the message with a fresh view on top of this).
+    add_view = getattr(bot, "add_view", None)
+    if callable(add_view):
+        try:
+            add_view(_console_view())
+            logger.info("kingdoms admin console panel view registered (custom ids)")
+        except Exception:
+            logger.warning("kingdoms admin console: panel view registration failed", exc_info=True)
 
     async def on_kingdoms_console_message(message: Any) -> None:
         """Route one message through the console (guard inside)."""

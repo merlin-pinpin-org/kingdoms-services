@@ -108,12 +108,16 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     if isinstance(epoch_channel, discord.TextChannel):
         await _enforce_epoch_overwrites(guild, epoch_channel)
     # admin-console-v1: the console salon gets its pinned welcome message.
+    # admin-console-v2 (Drasah 17/10): plus the interactive panel — the
+    # buttons and the ⌨️ Commande… modal answer WITHOUT the message
+    # content intent (the deaf-listener workaround of the v2 spec).
     console_id = report.channel_ids.get("console")
     console_channel = guild.get_channel(int(console_id)) if console_id and console_id.isdigit() else None
     if isinstance(console_channel, discord.TextChannel):
-        from kingdoms.mods.kingdoms.admin_console import ensure_console_welcome
+        from kingdoms.mods.kingdoms.admin_console import ensure_console_panel, ensure_console_welcome
 
         await ensure_console_welcome(console_channel)
+        await ensure_console_panel(console_channel)
     await cleanup_legacy_structure(guild, str(epoch_id or ""))
     return list(report.created), list(report.adopted)
 

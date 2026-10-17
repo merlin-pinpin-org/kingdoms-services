@@ -9,7 +9,7 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.admin_console</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/admin_console.py">SOURCE_ROOT/mods/kingdoms/admin_console.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;🛠&nbsp;console-admin&nbsp;text&nbsp;console&nbsp;(admin-console-v1,&nbsp;Drasah&nbsp;15/10/2026).<br>
+    <p><span class="code">The&nbsp;🛠&nbsp;console-admin&nbsp;console&nbsp;(admin-console-v1&nbsp;+&nbsp;v2,&nbsp;Drasah&nbsp;15→17/10/2026).<br>
 &nbsp;<br>
 A&nbsp;Counter-Strike-Source-style&nbsp;console&nbsp;in&nbsp;a&nbsp;private&nbsp;Discord&nbsp;salon:&nbsp;the<br>
 admin&nbsp;types&nbsp;FRENCH&nbsp;cvar-style&nbsp;commands&nbsp;(``bypass&nbsp;1``,&nbsp;``fin_oiseau<br>
@@ -25,16 +25,22 @@ per&nbsp;command&nbsp;—&nbsp;handler,&nbsp;usage,&nbsp;help,&nbsp;section)&nbs
 journal&nbsp;of&nbsp;the&nbsp;executed&nbsp;mutations&nbsp;(``journal&nbsp;[N]``).<br>
 &nbsp;<br>
 ⚠️&nbsp;Requires&nbsp;the&nbsp;MESSAGE&nbsp;CONTENT&nbsp;intent&nbsp;(dev&nbsp;portal&nbsp;+&nbsp;the&nbsp;bot&nbsp;factory<br>
-enables&nbsp;it)&nbsp;—&nbsp;without&nbsp;it&nbsp;the&nbsp;listener&nbsp;sees&nbsp;empty&nbsp;messages.</span></p>
+enables&nbsp;it)&nbsp;—&nbsp;without&nbsp;it&nbsp;the&nbsp;listener&nbsp;sees&nbsp;empty&nbsp;messages.&nbsp;That&nbsp;is&nbsp;why<br>
+admin-console-v2&nbsp;(Drasah&nbsp;17/10)&nbsp;adds&nbsp;the&nbsp;INTERACTIVE&nbsp;PINNED&nbsp;PANEL:&nbsp;read<br>
+buttons&nbsp;+&nbsp;a&nbsp;⌨️&nbsp;Commande…&nbsp;modal&nbsp;ride&nbsp;component&nbsp;interactions,&nbsp;which&nbsp;work<br>
+WITHOUT&nbsp;the&nbsp;intent&nbsp;—&nbsp;the&nbsp;console&nbsp;answers&nbsp;even&nbsp;when&nbsp;the&nbsp;listener&nbsp;is<br>
+deaf.&nbsp;The&nbsp;classes&nbsp;of&nbsp;the&nbsp;panel&nbsp;live&nbsp;inside&nbsp;``_console_view``&nbsp;(they<br>
+resolve&nbsp;the&nbsp;console&nbsp;at&nbsp;click&nbsp;time,&nbsp;§3b&nbsp;restart-proof&nbsp;style).</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
     
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
 </td><td class="multicolumn"><a href="re.html">re</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -64,11 +70,21 @@ The&nbsp;console&nbsp;runtime:&nbsp;guard,&nbsp;parse,&nbsp;dispatch,&nbsp;answe
 
 <dl><dt>async <a name="AdminConsole-console_channel_id"><strong>console_channel_id</strong></a>(self, message: 'Any') -&gt; 'str | None'</dt><dd><span class="code">Resolve&nbsp;the&nbsp;console&nbsp;salon&nbsp;id&nbsp;for&nbsp;a&nbsp;message's&nbsp;guild&nbsp;(id-based).</span></dd></dl>
 
-<dl><dt>async <a name="AdminConsole-dispatch"><strong>dispatch</strong></a>(self, text: 'str', message: 'Any | None' = None) -&gt; 'str'</dt><dd><span class="code">Parse&nbsp;one&nbsp;console&nbsp;line&nbsp;and&nbsp;run&nbsp;its&nbsp;command&nbsp;(pure,&nbsp;testable).</span></dd></dl>
+<dl><dt>async <a name="AdminConsole-dispatch"><strong>dispatch</strong></a>(self, text: 'str', message: 'Any | None' = None, actor: 'str | None' = None) -&gt; 'str'</dt><dd><span class="code">Parse&nbsp;one&nbsp;console&nbsp;line&nbsp;and&nbsp;run&nbsp;its&nbsp;command&nbsp;(pure,&nbsp;testable).<br>
+&nbsp;<br>
+admin-console-v2:&nbsp;``actor``&nbsp;overrides&nbsp;the&nbsp;journal's&nbsp;author&nbsp;(the<br>
+panel&nbsp;buttons&nbsp;pass&nbsp;the&nbsp;clicking&nbsp;member's&nbsp;id);&nbsp;``message``&nbsp;stays<br>
+the&nbsp;salon&nbsp;message&nbsp;(the&nbsp;beta&nbsp;panel&nbsp;and&nbsp;`regles`&nbsp;ride&nbsp;its&nbsp;channel).</span></dd></dl>
 
 <dl><dt>async <a name="AdminConsole-handle_message"><strong>handle_message</strong></a>(self, message: 'Any') -&gt; 'None'</dt><dd><span class="code">Guard,&nbsp;parse,&nbsp;run,&nbsp;answer&nbsp;one&nbsp;message&nbsp;in&nbsp;the&nbsp;salon&nbsp;(on_message).</span></dd></dl>
 
 <dl><dt>async <a name="AdminConsole-is_console_admin"><strong>is_console_admin</strong></a>(self, message: 'Any') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;message's&nbsp;author&nbsp;may&nbsp;use&nbsp;the&nbsp;console&nbsp;(every&nbsp;message).</span></dd></dl>
+
+<dl><dt>async <a name="AdminConsole-is_console_admin_member"><strong>is_console_admin_member</strong></a>(self, guild: 'Any', member: 'Any') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;one&nbsp;member&nbsp;may&nbsp;use&nbsp;the&nbsp;console&nbsp;(every&nbsp;surface,&nbsp;v2).<br>
+&nbsp;<br>
+admin-console-v2:&nbsp;the&nbsp;guard&nbsp;was&nbsp;extracted&nbsp;from&nbsp;the&nbsp;message<br>
+listener&nbsp;so&nbsp;the&nbsp;panel&nbsp;buttons&nbsp;and&nbsp;the&nbsp;command&nbsp;modal&nbsp;check&nbsp;the<br>
+CLICKING&nbsp;member&nbsp;through&nbsp;the&nbsp;very&nbsp;same&nbsp;rules.</span></dd></dl>
 
 <dl><dt><a name="AdminConsole-journal"><strong>journal</strong></a>(self, count: 'int' = 10) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;last&nbsp;``count``&nbsp;executed&nbsp;mutations&nbsp;(process-local).</span></dd></dl>
 
@@ -132,7 +148,12 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-ensure_console_welcome"><strong>ensure_console_welcome</strong></a>(channel: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;welcome&nbsp;message&nbsp;when&nbsp;absent&nbsp;(idempotent,&nbsp;best&nbsp;effort).</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-ensure_console_panel"><strong>ensure_console_panel</strong></a>(channel: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;interactive&nbsp;console&nbsp;panel&nbsp;when&nbsp;absent&nbsp;(idempotent,&nbsp;best&nbsp;effort).<br>
+&nbsp;<br>
+The&nbsp;panel&nbsp;message&nbsp;is&nbsp;EDITED&nbsp;IN&nbsp;PLACE&nbsp;at&nbsp;every&nbsp;deploy&nbsp;with&nbsp;a&nbsp;fresh<br>
+view&nbsp;—&nbsp;the&nbsp;buttons&nbsp;stay&nbsp;alive&nbsp;after&nbsp;every&nbsp;restart&nbsp;(the&nbsp;register&nbsp;also<br>
+pre-attaches&nbsp;the&nbsp;view&nbsp;for&nbsp;the&nbsp;custom&nbsp;ids,&nbsp;§3b&nbsp;style).</span></dd></dl>
+ <dl><dt>async <a name="-ensure_console_welcome"><strong>ensure_console_welcome</strong></a>(channel: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;welcome&nbsp;message&nbsp;when&nbsp;absent&nbsp;(idempotent,&nbsp;best&nbsp;effort).</span></dd></dl>
  <dl><dt><a name="-register_kingdoms_admin_console"><strong>register_kingdoms_admin_console</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Attach&nbsp;the&nbsp;console&nbsp;listener&nbsp;onto&nbsp;the&nbsp;bot&nbsp;(register&nbsp;phase).<br>
 &nbsp;<br>
 The&nbsp;listener&nbsp;guards&nbsp;EVERY&nbsp;message:&nbsp;only&nbsp;the&nbsp;console&nbsp;salon,&nbsp;only<br>
@@ -147,10 +168,11 @@ bot&nbsp;admins;&nbsp;the&nbsp;answers&nbsp;go&nbsp;to&nbsp;the&nbsp;salon,&nbsp
 <strong>COMMANDES</strong> = {'aide': CommandSpec(usage='aide [section]', help_fr='La ..., handler=&lt;function _cmd_help at 0xMEMORY_ADDRESS&gt;), 'ajouter_banque': CommandSpec(usage='ajouter_banque &lt;royaume&gt; &lt;qté...&lt;function _cmd_ajouter_banque at 0xMEMORY_ADDRESS&gt;), 'ajouter_mariage': CommandSpec(usage='ajouter_mariage &lt;royaume&gt; &lt;qt...function _cmd_ajouter_mariage at 0xMEMORY_ADDRESS&gt;), 'ajouter_market': CommandSpec(usage='ajouter_market &lt;royaume&gt; &lt;ent...&lt;function _cmd_ajouter_market at 0xMEMORY_ADDRESS&gt;), 'ajouter_oiseau': CommandSpec(usage='ajouter_oiseau &lt;royaume&gt; &lt;cor...&lt;function _cmd_ajouter_oiseau at 0xMEMORY_ADDRESS&gt;), 'ajouter_temps': CommandSpec(usage='ajouter_temps &lt;heures&gt;-&lt;minut...=&lt;function _cmd_ajouter_temps at 0xMEMORY_ADDRESS&gt;), 'avancer_vol': CommandSpec(usage='avancer_vol &lt;royaume&gt; &lt;execut...er=&lt;function _cmd_avancer_vol at 0xMEMORY_ADDRESS&gt;), 'beta': CommandSpec(usage='beta', help_fr='État de la be..., handler=&lt;function _cmd_beta at 0xMEMORY_ADDRESS&gt;), 'bypass': CommandSpec(usage='bypass [0|1]', help_fr='Lire ...handler=&lt;function _cmd_bypass at 0xMEMORY_ADDRESS&gt;), 'chronique': CommandSpec(usage='chronique &lt;seigneur&gt; &lt;type&gt; [...dler=&lt;function _cmd_chronique at 0xMEMORY_ADDRESS&gt;), ...}<br>
 <strong>CONSOLE_CHANNEL_KEY</strong> = 'kingdoms:console'<br>
 <strong>CONSOLE_CHANNEL_SLUG</strong> = 'console-admin'<br>
-<strong>CONSOLE_STRINGS</strong> = {'en': {'aide_sections': 'Sections: {sections} — type `help &lt;section&gt;`.', 'bypass_off': '🧪 ADMIN BYPASS **OFF** — every gate check applies again.', 'bypass_on': '🧪 ADMIN BYPASS **ON** — the player-button gate checks are bypassed.', 'bypass_read': 'bypass: **{state}** (0 = gates on, 1 = skipped)', 'denied': '⚠️ Bot admins only — the console ignores you.', 'done': '✅ {report}', 'empty': 'Nothing to display.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}', 'journal_header': '📖 Journal of the last {count} mutations (process-local, lost on restart):', ...}, 'fr': {'aide_sections': 'Sections : {sections} — tape `aide &lt;section&gt;`.', 'bypass_off': "🧪 BYPASS ADMIN **DÉSACTIVÉ** — chaque gate s'applique à nouveau.", 'bypass_on': '🧪 BYPASS ADMIN **ACTIVÉ** — les gates des boutons joueurs sont contournées.', 'bypass_read': 'bypass : **{state}** (0 = gates actives, 1 = contournées)', 'denied': "⚠️ Réservé aux bot admins — la console t'ignore.", 'done': '✅ {report}', 'empty': 'Rien à afficher.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}', 'journal_header': '📖 Journal des {count} dernières mutations (processus, perdu au redémarrage) :', ...}}<br>
+<strong>CONSOLE_PANEL_MARKER</strong> = '🛠 CONSOLE — PANNEAU'<br>
+<strong>CONSOLE_STRINGS</strong> = {'en': {'aide_sections': 'Sections: {sections} — type `help &lt;section&gt;`.', 'btn_aide': 'ℹ️ Help', 'btn_attaques': '⚔️ Attacks', 'btn_beta': '🚀 Beta', 'btn_bypass': '🧪 Bypass', 'btn_command': '⌨️ Command…', 'btn_cooldowns': '⏱️ Cooldowns', 'btn_etat': '📊 State', 'btn_journal': '📖 Journal', 'btn_saison': '📅 Season', ...}, 'fr': {'aide_sections': 'Sections : {sections} — tape `aide &lt;section&gt;`.', 'btn_aide': 'ℹ️ Aide', 'btn_attaques': '⚔️ Attaques', 'btn_beta': '🚀 Beta', 'btn_bypass': '🧪 Bypass', 'btn_command': '⌨️ Commande…', 'btn_cooldowns': '⏱️ Cooldowns', 'btn_etat': '📊 État', 'btn_journal': '📖 Journal', 'btn_saison': '📅 Saison', ...}}<br>
 <strong>CONSOLE_WELCOME_MARKER</strong> = '🛠 CONSOLE ADMIN'<br>
 <strong>LOCK_KINDS</strong> = ('marriage', 'exploration', 'ffa')<br>
 <strong>PHASES_FR</strong> = {'draft': 'Draft', 'ready': 'RDV', 'score': 'Score', 'siege': 'Siège'}<br>
-<strong>__annotations__</strong> = {'COMMANDES': 'dict[str, CommandSpec]', 'CONSOLE_STRINGS': 'dict[str, dict[str, str]]', 'PHASES_FR': 'dict[str, str]'}<br>
+<strong>__annotations__</strong> = {'COMMANDES': 'dict[str, CommandSpec]', 'CONSOLE_STRINGS': 'dict[str, dict[str, str]]', 'PHASES_FR': 'dict[str, str]', '_CONSOLE': "'AdminConsole | None'"}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.admin_console (WARNING)&gt;</td></tr></table>
 </body></html>

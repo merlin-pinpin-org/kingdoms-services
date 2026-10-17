@@ -5,6 +5,11 @@ errors), the bot-admin guard on EVERY message, the channel resolution,
 and each French command mapped to its DebugService mutation — plus the
 fin_attaque cranking (reveal → pick&ban → meeting → the no-show line),
 the resultat face-check, the skippe jump and the process-local journal.
+
+admin-console-v2 (Drasah 17/10/2026): the interactive pinned panel —
+the read buttons ride the very same dispatch, the ⌨️ Commande… modal
+runs any free-text line, the guard checks the CLICKING member, and the
+panel pins/edits idempotently (the deaf-listener workaround).
 """
 
 from __future__ import annotations
@@ -16,8 +21,11 @@ import pytest
 
 from kingdoms.mods.kingdoms.admin_console import (
     COMMANDES,
+    CONSOLE_PANEL_MARKER,
     CONSOLE_WELCOME_MARKER,
     AdminConsole,
+    _console_view,
+    ensure_console_panel,
 )
 from kingdoms.mods.kingdoms.admin_debug import (
     DebugService,
@@ -487,3 +495,216 @@ async def test_journal_lists_the_executed_mutations() -> None:
 def test_the_welcome_marker_pins_once() -> None:
     """The welcome message carries its search marker."""
     assert CONSOLE_WELCOME_MARKER == "🛠 CONSOLE ADMIN"
+
+
+# ----------------------------------------------------------------------
+# admin-console-v2 — the interactive pinned panel (buttons + modal)
+# ----------------------------------------------------------------------
+
+
+class _Response:
+    """A minimal interaction response recorder (send_message + modal)."""
+
+    def __init__(self) -> None:
+        self.messages: list[tuple[str, dict]] = []
+        self.modals: list[object] = []
+
+    async def send_message(self, text: str, **kwargs: object) -> None:
+        self.messages.append((text, dict(kwargs)))
+
+    async def send_modal(self, modal: object, **kwargs: object) -> None:
+        del kwargs
+        self.modals.append(modal)
+
+
+class _Followup:
+    """A minimal followup recorder (the long answers' extra chunks)."""
+
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+
+    async def send(self, text: str, **kwargs: object) -> None:
+        del kwargs
+        self.sent.append(text)
+
+
+class _Interaction:
+    """A minimal component interaction (user, guild, response, followup)."""
+
+    def __init__(self, member: _Member, message: _Message | None = None) -> None:
+        self.user = member
+        self.guild = _Guild()
+        self.message = message
+        self.response = _Response()
+        self.followup = _Followup()
+
+
+class _PinChannel:
+    """A console salon fake that records sends, edits and pins."""
+
+    def __init__(self, pins_: list[object] | None = None) -> None:
+        self.name = "🛠 console-admin"
+        self.id = 42
+        self.guild = _Guild()
+        self.sent: list[str] = []
+        self.edited: list[str] = []
+        self.pinned = 0
+        self._pins = list(pins_ or [])
+
+    async def pins(self) -> list[object]:
+        return list(self._pins)
+
+    async def send(self, text: str, view: object | None = None) -> _PinMessage:
+        del view
+        self.sent.append(text)
+        return _PinMessage(self, text)
+
+    async def pin(self) -> None:
+        return None
+
+
+class _PinMessage:
+    """A pinned message fake (content, edit, pin)."""
+
+    def __init__(self, channel: _PinChannel, content: str) -> None:
+        self.channel = channel
+        self.content = content
+
+    async def edit(self, content: str = "", view: object | None = None) -> None:
+        del view
+        self.content = content
+        self.channel.edited.append(content)
+
+    async def pin(self) -> None:
+        self.channel.pinned += 1
+
+
+def _buttons(view: object) -> dict[str, tuple[object, object]]:
+    """Return {custom_id: (button, callback)} of one console view."""
+    out: dict[str, tuple[object, object]] = {}
+    for child in getattr(view, "children", ()):  # type: ignore[attr-defined]
+        out[str(getattr(child, "custom_id", ""))] = (child, getattr(child, "callback"))
+    return out
+
+
+def test_the_panel_view_builds_every_button_with_custom_ids() -> None:
+    """The panel rides persistent custom ids (restart-proof, §3b style)."""
+    view = _console_view("fr")
+    found = _buttons(view)
+    assert set(found) == {
+        "kingdoms:console:aide",
+        "kingdoms:console:etat",
+        "kingdoms:console:saison",
+        "kingdoms:console:cooldowns",
+        "kingdoms:console:attaques",
+        "kingdoms:console:journal",
+        "kingdoms:console:beta",
+        "kingdoms:console:bypass",
+        "kingdoms:console:command",
+    }
+    assert getattr(view, "timeout") is None
+
+
+async def test_a_read_button_answers_in_the_salon() -> None:
+    """etat via the button rides the very same dispatch and guard."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    interaction = _Interaction(_Member("admin"))
+    _, callback = _buttons(view)["kingdoms:console:etat"]
+    await callback(interaction)
+    assert len(interaction.response.messages) == 1
+    text, kwargs = interaction.response.messages[0]
+    assert "bypass" in text
+    assert kwargs.get("ephemeral") is not True  # the salon is the history
+    assert console.journal()[0]["actor"] == "admin"  # the clicker is the actor
+
+
+async def test_a_button_denies_a_non_admin_ephemeral() -> None:
+    """The guard checks the CLICKING member — denial stays ephemeral."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    interaction = _Interaction(_Member("intrus"))
+    _, callback = _buttons(view)["kingdoms:console:etat"]
+    await callback(interaction)
+    assert interaction.response.messages[0][1].get("ephemeral") is True
+    assert console.journal() == []  # nothing ran, nothing logged
+
+
+async def test_the_command_button_opens_the_modal() -> None:
+    """⌨️ Commande… opens the one-field modal (nothing runs yet)."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    interaction = _Interaction(_Member("admin"))
+    _, callback = _buttons(view)["kingdoms:console:command"]
+    await callback(interaction)
+    assert len(interaction.response.modals) == 1
+    assert interaction.response.messages == []
+
+
+async def test_the_modal_runs_a_free_text_line() -> None:
+    """The modal types any command — the parser stays the table."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    interaction = _Interaction(_Member("admin"))
+    _, open_callback = _buttons(view)["kingdoms:console:command"]
+    await open_callback(interaction)
+    modal = interaction.response.modals[0]
+    text_input = getattr(modal, "command_input")
+    text_input.value = "etat"
+    await modal.on_submit(_Interaction(_Member("admin")))
+    # The submission answers in the salon through the modal's own response.
+    # (A fresh interaction is used, as Discord does.)
+
+
+async def test_the_modal_replies_to_an_unknown_command() -> None:
+    """An unknown modal line answers the help line — never an exception."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    interaction = _Interaction(_Member("admin"))
+    _, open_callback = _buttons(view)["kingdoms:console:command"]
+    await open_callback(interaction)
+    modal = interaction.response.modals[0]
+    getattr(modal, "command_input").value = "aucune_commande_ici"
+    submit = _Interaction(_Member("admin"))
+    await modal.on_submit(submit)
+    assert "Commande inconnue" in submit.response.messages[0][0]
+
+
+async def test_the_bypass_button_toggles_the_flag() -> None:
+    """🧪 Bypass flips the cvar — one click each way."""
+    bundle = ConsoleBundle()
+    console = _console(bundle)
+    view = _console_view("fr", console)
+    button = _buttons(view)["kingdoms:console:bypass"][1]
+    first = _Interaction(_Member("admin"))
+    await button(first)
+    assert admin_bypass_enabled() is True
+    assert "ACTIVÉ" in first.response.messages[0][0]
+    second = _Interaction(_Member("admin"))
+    await button(second)
+    assert admin_bypass_enabled() is False
+    assert "DÉSACTIVÉ" in second.response.messages[0][0]
+
+
+async def test_ensure_console_panel_pins_then_edits() -> None:
+    """The panel pins when absent, edits in place when already pinned."""
+    channel = _PinChannel()
+    created = await ensure_console_panel(channel)
+    assert created is True
+    assert channel.pinned == 1
+    assert CONSOLE_PANEL_MARKER in channel.sent[0]
+    pinned = _PinMessage(channel, channel.sent[0])
+    channel._pins = [pinned]
+    again = await ensure_console_panel(channel)
+    assert again is False  # edit in place, never a duplicate
+    assert channel.edited and channel.pinned == 1
+
+
+def test_the_panel_marker_is_stable() -> None:
+    """The panel message carries its search marker."""
+    assert CONSOLE_PANEL_MARKER == "🛠 CONSOLE — PANNEAU"
