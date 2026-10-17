@@ -1,0 +1,19 @@
+name: Debug CI outputs (temporary, kingdoms patch diagnosis)
+
+on:
+  push:
+    branches: [vibe/drasah/main]
+
+jobs:
+  debug:
+    name: Debug ruff output (temporary)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: ruff with github annotations
+        run: |
+          uv sync
+          uv run ruff check --output-format=github src/ tests/ || true
