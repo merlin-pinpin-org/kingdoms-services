@@ -273,7 +273,7 @@ async def build_admin_menu(
     for section, label, emoji in buttons:
         row.add_item(TreeOpenButton(section, label, emoji))
     view.add_item(row)
-    view.add_item(discord.ui.TextDisplay(footer("view:bot:admin", f"guild:{guild_id}")))
+    view.add_item(discord.ui.TextDisplay(footer("view:bot:admin")))
     return view
 
 
