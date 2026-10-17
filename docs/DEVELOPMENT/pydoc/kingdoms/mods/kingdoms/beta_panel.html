@@ -305,9 +305,9 @@ The&nbsp;two-button&nbsp;beta&nbsp;start&nbsp;panel&nbsp;(«&nbsp;Maintenant&nbs
 Methods defined here:<br>
 <dl><dt><a name="BetaStartView-__init__"><strong>__init__</strong></a>(self, console: 'Any', locale: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;the&nbsp;console&nbsp;seam;&nbsp;the&nbsp;view&nbsp;lives&nbsp;15&nbsp;minutes.</span></dd></dl>
 
-<dl><dt>async <a name="BetaStartView-start_now"><strong>start_now</strong></a>(self, interaction: 'discord.Interaction', button: 'discord.ui.Button') -&gt; 'None'</dt><dd><span class="code">Arm&nbsp;the&nbsp;beta&nbsp;to&nbsp;start&nbsp;at&nbsp;the&nbsp;current&nbsp;moment.</span></dd></dl>
+<dl><dt>async <a name="BetaStartView-start_now"><strong>start_now</strong></a>(self, interaction: 'discord.Interaction', button: 'discord.ui.Button[Any]') -&gt; 'None'</dt><dd><span class="code">Arm&nbsp;the&nbsp;beta&nbsp;to&nbsp;start&nbsp;at&nbsp;the&nbsp;current&nbsp;moment.</span></dd></dl>
 
-<dl><dt>async <a name="BetaStartView-start_scheduled"><strong>start_scheduled</strong></a>(self, interaction: 'discord.Interaction', button: 'discord.ui.Button') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;modal&nbsp;for&nbsp;the&nbsp;exact&nbsp;start.</span></dd></dl>
+<dl><dt>async <a name="BetaStartView-start_scheduled"><strong>start_scheduled</strong></a>(self, interaction: 'discord.Interaction', button: 'discord.ui.Button[Any]') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;modal&nbsp;for&nbsp;the&nbsp;exact&nbsp;start.</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
@@ -532,7 +532,7 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-beta_start_panel"><strong>beta_start_panel</strong></a>(console: 'Any', locale: 'Any' = None) -&gt; 'tuple[str, BetaStartView]'</dt><dd><span class="code">Return&nbsp;(content,&nbsp;view)&nbsp;for&nbsp;the&nbsp;console's&nbsp;``lancer_beta&nbsp;now``&nbsp;answer.</span></dd></dl>
- <dl><dt><a name="-beta_start_report"><strong>beta_start_report</strong></a>(report: 'dict[str, object]') -&gt; 'str'</dt><dd><span class="code">Format&nbsp;the&nbsp;armed&nbsp;plan&nbsp;as&nbsp;a&nbsp;console&nbsp;answer&nbsp;(Paris&nbsp;hours).</span></dd></dl>
+ <dl><dt><a name="-beta_start_report"><strong>beta_start_report</strong></a>(report: 'dict[str, Any]') -&gt; 'str'</dt><dd><span class="code">Format&nbsp;the&nbsp;armed&nbsp;plan&nbsp;as&nbsp;a&nbsp;console&nbsp;answer&nbsp;(Paris&nbsp;hours).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

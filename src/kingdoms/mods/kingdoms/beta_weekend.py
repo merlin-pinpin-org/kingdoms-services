@@ -118,9 +118,9 @@ BETA_PRESETS: dict[str, dict[str, Any]] = {
 # The legacy v1 preset (calendar-anchored) — kept LOADABLE so a
 # season armed with ``1.0`` before the v2 deploy re-applies the exact
 # values it was armed with. The console only advertises ``now``.
-_legacy_1_0 = dict(BETA_PRESETS["now"])  # type: ignore[arg-type]
+_legacy_1_0 = dict(BETA_PRESETS["now"])
 _legacy_delays = {"player_attack_delay_minutes": 60, "gaia_attack_delay_minutes": 60, "embuscade_delay_minutes": 60}
-_legacy_1_0["attacks"] = {**_legacy_1_0["attacks"], **_legacy_delays}  # type: ignore[typeddict-item]
+_legacy_1_0["attacks"] = {**_legacy_1_0["attacks"], **_legacy_delays}
 BETA_PRESETS["1.0"] = _legacy_1_0
 
 
@@ -255,4 +255,4 @@ def beta_started(season: Any, now: datetime) -> bool:
         return True
     if now.tzinfo is None:
         now = now.replace(tzinfo=ZoneInfo("UTC"))
-    return now >= start
+    return bool(now >= start)

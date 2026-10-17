@@ -60,7 +60,7 @@ def _strings(locale: Any) -> dict[str, str]:
     return _STRINGS[lang]
 
 
-def beta_start_report(report: dict[str, object]) -> str:
+def beta_start_report(report: dict[str, Any]) -> str:
     """Format the armed plan as a console answer (Paris hours)."""
     from zoneinfo import ZoneInfo
 
@@ -91,7 +91,7 @@ class BetaStartModal(discord.ui.Modal):
         super().__init__(title=strings["modal_title"], timeout=300)
         self._console = console
         self._strings = strings
-        self.start_input = discord.ui.TextInput(
+        self.start_input: discord.ui.TextInput[BetaStartModal] = discord.ui.TextInput(
             label=strings["modal_label"],
             placeholder=strings["modal_placeholder"],
             min_length=4,
@@ -125,7 +125,7 @@ class BetaStartView(discord.ui.View):
         self._strings = _strings(locale)
 
     @discord.ui.button(label="🚀", style=discord.ButtonStyle.green)
-    async def start_now(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def start_now(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
         """Arm the beta to start at the current moment."""
         del button
         events = getattr(self._console.bot, "kingdoms_events_service", None)
@@ -137,7 +137,7 @@ class BetaStartView(discord.ui.View):
         await interaction.response.send_message(beta_start_report(report))
 
     @discord.ui.button(label="🕒", style=discord.ButtonStyle.blurple)
-    async def start_scheduled(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def start_scheduled(self, interaction: discord.Interaction, button: discord.ui.Button[Any]) -> None:
         """Open the modal for the exact start."""
         del button
         await interaction.response.send_modal(BetaStartModal(self._console, None))
