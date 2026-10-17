@@ -420,7 +420,7 @@ async def _kingdom_name(kingdoms_service: Any, kingdom_id: str | None) -> str:
 
 
 def _declare_view(strings: dict[str, str]) -> discord.ui.View:
-    """The CLEAN declare panel view: one declare button, nothing else.
+    """Return the CLEAN declare panel view: one declare button, nothing else.
 
     Drasah 17/10: « Déclarer une attaque » stays clean — the ongoing
     attacks (and their defend/join buttons) live in the Attaques salon.
@@ -431,7 +431,7 @@ def _declare_view(strings: dict[str, str]) -> discord.ui.View:
 
 
 def _board_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
-    """The Attaques salon board view: defend/join per open attack."""
+    """Return the Attaques salon board view: defend/join per open attack."""
     from kingdoms.mods.kingdoms.models import AttackKind
 
     view = discord.ui.View(timeout=None)
@@ -448,7 +448,7 @@ def _board_view(strings: dict[str, str], attacks: list[Any]) -> discord.ui.View:
 
 
 def declare_panel_text(strings: dict[str, str]) -> str:
-    """The clean declare panel message (title, help, pointer, marker)."""
+    """Render the clean declare panel message (title, help, pointer, marker)."""
     return "\n".join(
         (
             strings["panel_title"],
@@ -462,7 +462,7 @@ def declare_panel_text(strings: dict[str, str]) -> str:
 
 
 def board_text(strings: dict[str, str], rows: list[str]) -> str:
-    """The Attaques board message (title, live rows, marker)."""
+    """Render the Attaques board message (title, live rows, marker)."""
     body = rows if rows else [strings["board_empty"]]
     return "\n".join((strings["board_title"], "", *body, ATTACK_BOARD_MARKER))
 

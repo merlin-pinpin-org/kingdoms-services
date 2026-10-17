@@ -156,22 +156,23 @@ async def test_double_noshow_is_a_double_forfait() -> None:
 
 
 async def test_vs_ai_only_the_attacker_confirms() -> None:
-    """Vs the bot AI: only the attacker confirms — a no-show loses the attack."""
+    """Vs the bot AI: only the attacker confirms — a no-show loses the attack.
+
+    Drasah 17/10: the AI engages AT the meeting time (no pick & ban
+    vs the AI) — the RDV opens right away, the game decides (D20).
+    """
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack = await bundle.fresh_attack()  # nobody defends
-    await bundle.attacks.reveal_due(now=_CUTOFF)  # the AI takes the defense
-    await bundle.attacks.pick_ban_due(now=_LEAD)
-    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
-    await bundle.attacks.set_picks(
-        attack.id, "king-a", ["francs", "bretons", "goths"], now=_PICK_NOW
-    )
-    await bundle.attacks.validate_pickban(attack.id, "king-a", now=_PICK_NOW)
+    await bundle.attacks.reveal_due(now=_CUTOFF)  # the cover drops only
+    expired = await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
+    assert [item.id for item in expired] == [attack.id]
     due = await bundle.attacks.score_due(now=_T)
     assert [item.id for item in due] == [attack.id]
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.ai_defender is True
+    assert fresh.pickban["resolved_pickban"] is True  # no pick & ban vs the AI
     # The attacker declares alone — his Prêt is the presence proof
     # (attaques-phases-v2 gate), then the declaration validates direct.
     await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
@@ -188,13 +189,8 @@ async def test_vs_ai_attacker_noshow_loses() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack = await bundle.fresh_attack()
-    await bundle.attacks.reveal_due(now=_CUTOFF)
-    await bundle.attacks.pick_ban_due(now=_LEAD)
-    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
-    await bundle.attacks.set_picks(
-        attack.id, "king-a", ["francs", "bretons", "goths"], now=_PICK_NOW
-    )
-    await bundle.attacks.validate_pickban(attack.id, "king-a", now=_PICK_NOW)
+    await bundle.attacks.reveal_due(now=_CUTOFF)  # the cover drops only
+    await bundle.attacks.expire_stale(now=_T)  # the AI takes the defense
     await bundle.attacks.score_due(now=_T)
     handled = await bundle.attacks.ready_due(now=_T5)
     assert handled[0].winner_kingdom_id == await bundle.kingdom_id("Bourgogne")
