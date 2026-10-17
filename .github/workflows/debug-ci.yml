@@ -1,0 +1,27 @@
+name: Debug CI outputs (temporary, kingdoms patch diagnosis)
+
+on:
+  push:
+    branches: [vibe/drasah/main]
+
+jobs:
+  debug:
+    name: Debug pytest output (temporary)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: pytest with github annotations
+        run: |
+          uv sync
+          set +e
+          uv run pytest -q tests/unit/test_mods/test_kingdoms_beta_weekend.py > pytest-out.log 2>&1
+          status=$?
+          echo "pytest exit=$status"
+          grep -E "^(FAILED|ERROR)|assert|Error" pytest-out.log | head -40 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+          tail -60 pytest-out.log
+          exit 0
