@@ -301,12 +301,15 @@ class TreeLocaleModal(discord.ui.Modal):
     def __init__(self, locale: str, title: str) -> None:
         super().__init__(title=title[:45], timeout=None)
         self.locale = locale
-        self.add_item(
-            discord.ui.Label(
-                text=LOCALE_LABELS.get(locale, locale),
-                component=TreeLocaleSelect(locale),
-            )
+        self._select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"{_NS}:lang",
+            options=[
+                discord.SelectOption(label=label, value=code, default=code == locale)
+                for code, label in LOCALE_LABELS.items()
+            ],
+            placeholder=LOCALE_LABELS.get(locale, locale),
         )
+        self.add_item(discord.ui.Label(text=LOCALE_LABELS.get(locale, locale), component=self._select))
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Apply the chosen locale: guard, persist, refresh, answer."""
@@ -314,10 +317,11 @@ class TreeLocaleModal(discord.ui.Modal):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         value = ""
-        for child in self.children:
-            select = getattr(child, "component", None)
+        for item in self.walk_children():
+            select = getattr(item, "item", None) or item
             if isinstance(select, discord.ui.Select):
                 value = str(select.values[0]) if select.values else ""
+                break
         if not guild_id or not value:
             await interaction.response.defer(ephemeral=True)
             return

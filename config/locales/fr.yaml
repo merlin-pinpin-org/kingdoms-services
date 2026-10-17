@@ -305,6 +305,8 @@ fr:
 
       '
     bot_admin_only: R\u00e9serv\u00e9 aux bot admins.
+    access_nothing_to_add: Rien à accorder — tout est déjà actif.
+    access_nothing_to_remove: Rien à retirer — aucun jeu/mod actif.
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
     header: 'Audit des canaux — {count} écart(s) :'

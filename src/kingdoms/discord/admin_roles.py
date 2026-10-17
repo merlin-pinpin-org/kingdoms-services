@@ -138,13 +138,14 @@ class FunctionRolesSelect(
 
     def __init__(self, function: str, options: list[discord.SelectOption] | None = None) -> None:
         self.function = function
+        resolved = options or [discord.SelectOption(label="No role", value="none")]
         super().__init__(
             discord.ui.Select(
                 custom_id=f"{_FUNCTIONS_NS}:map:{function}"[:100],
-                options=options or [discord.SelectOption(label="No role", value="none")],
+                options=resolved,
                 placeholder=f"Roles for {function}...",
                 min_values=0,
-                max_values=25,
+                max_values=max(1, len(resolved)),
             )
         )
 

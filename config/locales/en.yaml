@@ -297,6 +297,8 @@ en:
 
       '
     bot_admin_only: Bot admins only.
+    access_nothing_to_add: Nothing to grant — everything is already active.
+    access_nothing_to_remove: Nothing to revoke — no active game/mod.
   channel_audit:
     clean: 'Channel audit: no drift detected.'
     header: 'Channel audit — {count} drift finding(s):'

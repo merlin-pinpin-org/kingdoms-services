@@ -437,7 +437,6 @@ class AccessGuildSelect(
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open the key picker for the chosen guild."""
-        from kingdoms.discord.guild_access_request import _request_options
         from kingdoms.discord.wiring import guild_access_platform
 
         guild_id = (_selected(interaction) or [""])[0]
@@ -446,15 +445,6 @@ class AccessGuildSelect(
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
         games, mods = guild_access_platform()
-        options = _request_options() or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
-        service = await _access_service()
-        granted: set[str] = set()
-        if service is not None:
-            doc = await service.get(guild_id)
-            if doc:
-                granted = {f"game:{k}" for k in doc.get("games") or []} | {f"mod:{k}" for k in doc.get("mods") or []}
-        for option in options:
-            option.default = option.value in granted
         view = discord.ui.LayoutView(timeout=None)
         service_note = _dm_tr(
             interaction, await _dm_locale(interaction), "access_server_note",
@@ -469,66 +459,27 @@ class AccessGuildSelect(
                 accent_colour=discord.Colour(0x5865F2),
             )
         )
-        keys_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        keys_row.add_item(AccessKeysSelect(guild_id, options))
-        view.add_item(keys_row)
         act_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        act_row.add_item(AccessApplyButton(guild_id, grant=True))
-        act_row.add_item(AccessApplyButton(guild_id, grant=False))
+        dm_locale = await _dm_locale(interaction)
+        act_row.add_item(AccessAddButton(guild_id, label=_dm_tr(interaction, dm_locale, "access_apply")))
+        act_row.add_item(AccessRemoveButton(guild_id, label=_dm_tr(interaction, dm_locale, "access_revoke")))
         view.add_item(act_row)
         await interaction.followup.send(view=view, ephemeral=True)
 
 
-class AccessKeysSelect(
-    discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:access:keys:(?P<guild_id>\d+)",
-):
-    """Pick the games/mods to grant or revoke (multi-select)."""
-
-    def __init__(self, guild_id: str, options: list[discord.SelectOption]) -> None:
-        self.guild_id = guild_id
-        super().__init__(
-            discord.ui.Select(
-                custom_id=f"{_NS}:access:keys:{guild_id}"[:100],
-                options=options,
-                placeholder="Jeux/mods à accorder ou retirer...",
-                min_values=1,
-                max_values=min(25, len(options)),
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> AccessKeysSelect:
-        """Rebuild from the wire."""
-        options = _current_options(interaction)
-        del item
-        return cls(match.group("guild_id"), options)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Remember the selection (the apply buttons read it)."""
-        await interaction.response.defer()
-
-
-class AccessApplyButton(
+class AccessAddButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:access:apply:(?P<action>grant|revoke):(?P<guild_id>\d+)",
+    template=rf"{_NS}:access:add:(?P<guild_id>[a-z0-9]+)",
 ):
-    """Apply the selected keys to the guild (grant or revoke)."""
+    """Open the grant modal: a multi-select of the not-yet-granted games/mods."""
 
-    def __init__(self, guild_id: str, grant: bool = True) -> None:
+    def __init__(self, guild_id: str, label: str = "Accorder") -> None:
         self.guild_id = guild_id
-        self.grant = grant
         super().__init__(
             discord.ui.Button(
-                label="Accorder" if grant else "Retirer",
-                style=discord.ButtonStyle.success if grant else discord.ButtonStyle.danger,
-                custom_id=f"{_NS}:access:apply:{'grant' if grant else 'revoke'}:{guild_id}"[:100],
+                label=label,
+                style=discord.ButtonStyle.success,
+                custom_id=f"{_NS}:access:add:{guild_id}"[:100],
             )
         )
 
@@ -539,51 +490,194 @@ class AccessApplyButton(
         item: discord.ui.Item[Any],
         match: re.Match[str],
         /,
-    ) -> AccessApplyButton:
+    ) -> AccessAddButton:
         """Rebuild from the wire."""
         del interaction, item
-        return cls(match.group("guild_id"), grant=match.group("action") == "grant")
+        return cls(match.group("guild_id"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Apply the selection through the service, report the outcome."""
+        """Guard, read the guild's grants, open the grant modal."""
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
         dm_locale = await _dm_locale(interaction)
-        keys = _selected(interaction)
-        if not keys:
+        from kingdoms.discord.guild_access_request import _request_options
+
+        options = [opt for opt in _request_options() if opt.value != "none"]
+        service = await _access_service()
+        granted: set[str] = set()
+        if service is not None:
+            doc = await service.get(self.guild_id)
+            if doc:
+                granted = {f"game:{k}" for k in doc.get("games") or []} | {
+                    f"mod:{k}" for k in doc.get("mods") or []
+                }
+        addable = [opt for opt in options if opt.value not in granted][:25]
+        if not addable:
             await interaction.response.send_message(
-                _dm_tr(interaction, dm_locale, "access_select_first"), ephemeral=True
+                _dm_tr(interaction, dm_locale, "access_nothing_to_add"), ephemeral=True
             )
             return
+        await interaction.response.send_modal(AccessGrantModal(self.guild_id, addable))
+
+
+class AccessGrantModal(discord.ui.Modal):
+    """The grant form: one multi-select of the addable games/mods."""
+
+    def __init__(self, guild_id: str, options: list[discord.SelectOption]) -> None:
+        super().__init__(title="Accorder", timeout=None)
+        self.guild_id = guild_id
+        self._select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"{_NS}:access:add-select:{guild_id}"[:100],
+            options=options,
+            placeholder="Jeux/mods à accorder...",
+            min_values=1,
+            max_values=min(25, len(options)),
+        )
+        self.add_item(discord.ui.Label(text="Jeux/mods à accorder", component=self._select))
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Grant the chosen keys, then report the outcome."""
+        if not _is_bot_admin(interaction):
+            await _deny(interaction)
+            return
+        keys = list(self._select.values or [])
+        if not keys:
+            await interaction.response.defer(ephemeral=True)
+            return
+        dm_locale = await _dm_locale(interaction)
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = await _access_service()
         if service is None:
-            await interaction.followup.send("Wiring indisponible.", ephemeral=True)
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "wiring_unavailable"), ephemeral=True
+            )
             return
         from kingdoms.core.services.guild_access import GuildAccessError
 
         try:
-            if self.grant:
-                doc = await service.grant(self.guild_id, keys)
-            else:
-                doc = await service.revoke_keys(self.guild_id, keys)
+            doc = await service.grant(self.guild_id, keys)
         except GuildAccessError as error:
             await interaction.followup.send(
                 _dm_tr(interaction, dm_locale, "access_denied", error=error), ephemeral=True
             )
             return
         except Exception:
-            logger.exception("DM ACCESS: direct apply failed (guild %s)", self.guild_id)
-            await interaction.followup.send(_dm_tr(interaction, dm_locale, "access_failed"), ephemeral=True)
+            logger.exception("DM ACCESS: grant modal failed (guild %s)", self.guild_id)
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "access_failed"), ephemeral=True
+            )
             return
         games = ", ".join(doc.get("games") or []) or "—"
         mods = ", ".join(doc.get("mods") or []) or "—"
         await interaction.followup.send(
-            _dm_tr(
-                interaction, await _dm_locale(interaction), "access_granted" if self.grant else "access_revoked",
-                guild_id=self.guild_id, games=games, mods=mods,
-            ),
+            _dm_tr(interaction, dm_locale, "access_granted", guild_id=self.guild_id, games=games, mods=mods),
+            ephemeral=True,
+        )
+
+
+class AccessRemoveButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:access:remove:(?P<guild_id>[a-z0-9]+)",
+):
+    """Open the revoke modal: a multi-select of the granted games/mods."""
+
+    def __init__(self, guild_id: str, label: str = "Retirer") -> None:
+        self.guild_id = guild_id
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_NS}:access:remove:{guild_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> AccessRemoveButton:
+        """Rebuild from the wire."""
+        del interaction, item
+        return cls(match.group("guild_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Guard, read the guild's grants, open the revoke modal."""
+        if not _is_bot_admin(interaction):
+            await _deny(interaction)
+            return
+        dm_locale = await _dm_locale(interaction)
+        service = await _access_service()
+        if service is None:
+            await interaction.response.send_message(
+                _dm_tr(interaction, dm_locale, "wiring_unavailable"), ephemeral=True
+            )
+            return
+        doc = await service.get(self.guild_id) or {}
+        options = [discord.SelectOption(label=f"jeu : {k}", value=f"game:{k}") for k in doc.get("games") or []]
+        options += [discord.SelectOption(label=f"mod : {k}", value=f"mod:{k}") for k in doc.get("mods") or []]
+        if not options:
+            await interaction.response.send_message(
+                _dm_tr(interaction, dm_locale, "access_nothing_to_remove"), ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(AccessRevokeModal(self.guild_id, options[:25]))
+
+
+class AccessRevokeModal(discord.ui.Modal):
+    """The revoke form: one multi-select of the granted games/mods."""
+
+    def __init__(self, guild_id: str, options: list[discord.SelectOption]) -> None:
+        super().__init__(title="Retirer", timeout=None)
+        self.guild_id = guild_id
+        self._select: discord.ui.Select[Any] = discord.ui.Select(
+            custom_id=f"{_NS}:access:remove-select:{guild_id}"[:100],
+            options=options,
+            placeholder="Jeux/mods à retirer...",
+            min_values=1,
+            max_values=min(25, len(options)),
+        )
+        self.add_item(discord.ui.Label(text="Jeux/mods à retirer", component=self._select))
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Revoke the chosen keys, then report the outcome."""
+        if not _is_bot_admin(interaction):
+            await _deny(interaction)
+            return
+        keys = list(self._select.values or [])
+        if not keys:
+            await interaction.response.defer(ephemeral=True)
+            return
+        dm_locale = await _dm_locale(interaction)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        service = await _access_service()
+        if service is None:
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "wiring_unavailable"), ephemeral=True
+            )
+            return
+        from kingdoms.core.services.guild_access import GuildAccessError
+
+        try:
+            doc = await service.revoke_keys(self.guild_id, keys)
+        except GuildAccessError as error:
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "access_denied", error=error), ephemeral=True
+            )
+            return
+        except Exception:
+            logger.exception("DM ACCESS: revoke modal failed (guild %s)", self.guild_id)
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "access_failed"), ephemeral=True
+            )
+            return
+        games = ", ".join(doc.get("games") or []) or "—"
+        mods = ", ".join(doc.get("mods") or []) or "—"
+        await interaction.followup.send(
+            _dm_tr(interaction, dm_locale, "access_revoked", guild_id=self.guild_id, games=games, mods=mods),
             ephemeral=True,
         )
 
@@ -595,20 +689,6 @@ def _selected(interaction: discord.Interaction) -> list[str]:
     return list(_selected_values(interaction) or [])
 
 
-def _current_options(interaction: discord.Interaction) -> list[discord.SelectOption]:
-    """Rebuild a keys select's options from the clicked message."""
-    raw = getattr(interaction, "data", None) or {}
-    component = getattr(interaction, "message", None)
-    options: list[discord.SelectOption] = []
-    if component is not None:
-        for row in getattr(component, "components", []) or []:
-            for child in getattr(row, "children", []) or []:
-                if getattr(child, "options", None):
-                    options = list(child.options)
-    del raw
-    return options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
-
-
 def register_admin_dm_items(bot: discord.Client) -> None:
     """Register the DM panel's persistent dynamic items."""
     bot.add_dynamic_items(AccessApproveButton)
@@ -616,5 +696,5 @@ def register_admin_dm_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(ContentRefreshButton)
     bot.add_dynamic_items(AccessGrantButton)
     bot.add_dynamic_items(AccessGuildSelect)
-    bot.add_dynamic_items(AccessKeysSelect)
-    bot.add_dynamic_items(AccessApplyButton)
+    bot.add_dynamic_items(AccessAddButton)
+    bot.add_dynamic_items(AccessRemoveButton)
