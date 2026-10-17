@@ -7,6 +7,7 @@ provisioning time.
 """
 from __future__ import annotations
 
+import pathlib
 import re
 from types import SimpleNamespace as _SimpleNS
 from typing import Any
@@ -56,7 +57,9 @@ class _FakeChannel:
     async def send(
         self, content: str | None = None, *, view: Any = None, **kwargs: Any
     ) -> Any:
-        message = type("Sent", (), {"content": content, "view": view})()
+        message = type(
+            "Sent", (), {"content": content, "view": view, "embed": kwargs.get("embed")}
+        )()
         self.sent.append(message)
         return message
 
@@ -214,6 +217,49 @@ async def test_rubric_pager_turns_pages_bounded() -> None:
 
 
 @pytest.mark.asyncio
+async def test_rubric_pages_lead_with_the_practical_intro() -> None:
+    """scriptorium-v2: each rubric opens with its « à quoi ça sert » chapeau."""
+    from kingdoms.mods.kingdoms.config import default_season_config
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _rubric_pages, _strings
+
+    config = default_season_config()
+    service = _SimpleNS(config=config)
+    pages = await _rubric_pages("cadastre", _strings("fr"), service)
+    assert pages[0].startswith("🗺️ **À quoi ça sert**")
+    pages_en = await _rubric_pages("cadastre", _strings("en"), service)
+    assert pages_en[0].startswith("🗺️ **What it's for**")
+
+
+async def test_scriptorium_artwork_is_none_until_shipped() -> None:
+    """Without the bundled png the helper degrades to None (no crash)."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _scriptorium_artwork
+
+    artwork = _scriptorium_artwork()
+    # No png is committed yet — Drasah drops it by hand; either way it's a Path
+    # or None and the sommaire deployment tolerates both.
+    assert artwork is None or artwork.name == "scriptorium.png"
+
+
+async def test_deploy_scriptorium_panel_illustrates_the_sommaire(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    """With the artwork shipped the sommaire embeds the illustration."""
+    import kingdoms.mods.kingdoms.kingdom_scriptorium as scriptorium
+
+    artwork = tmp_path / "scriptorium.png"
+    artwork.write_bytes(b"\x89PNG fake")
+    monkeypatch.setattr(scriptorium, "_scriptorium_artwork", lambda: artwork)
+
+    channel = _FakeChannel()
+    ok = await scriptorium.deploy_scriptorium_panel(channel, "fr")  # type: ignore[arg-type]
+    assert ok is True
+    assert len(channel.sent) == 1
+    embed = channel.sent[0].embed
+    assert embed is not None
+    assert embed.image is not None
+    assert "attachment://scriptorium.png" in str(embed.image.url)
+
+
 async def test_cleanup_legacy_structure_retires_salons_and_categories() -> None:
     """The cleanup removes the legacy salons and the retired categories."""
     from kingdoms.mods.kingdoms.kingdom_setup import cleanup_legacy_structure

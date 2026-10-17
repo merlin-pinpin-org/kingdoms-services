@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 from typing import Any, cast
 
 import discord
@@ -37,6 +38,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "topic_cadastre": "🗺️ Cadastre",
         "topic_diplomatie": "🤝 Diplomatie",
         "topic_seigneurie": "🛡️ Seigneurie",
+        "cadastre_intro": (
+            "🗺️ **What it's for**: the living inventory of the realm's territories. "
+            "Pick your first land at enrollment, spot each land's bonus "
+            "(spy, counter-spy, resources…) and plan your attacks knowingly."
+        ),
+        "diplomatie_intro": (
+            "🤝 **What it's for**: the registry of alliances. Every civilization "
+            "imposes its own conditions (offerings, territory…). Read them before "
+            "proposing a pact: your choice shapes your bonuses and your enemies."
+        ),
+        "seigneurie_intro": (
+            "🛡️ **What it's for**: the census of lords — kingdoms, roles and "
+            "fiches. Open a fiche to read one's status, Parish tier and "
+            "chronicle of deeds."
+        ),
         "cadastre_title": "# 🗺️ Cadastre — territories and their effects",
         "cadastre_empty": "The map catalog is empty.",
         "diplomatie_title": "# 🤝 Diplomatie — civilizations and their conditions",
@@ -81,6 +97,22 @@ _STRINGS: dict[str, dict[str, str]] = {
         "topic_cadastre": "🗺️ Cadastre",
         "topic_diplomatie": "🤝 Diplomatie",
         "topic_seigneurie": "🛡️ Seigneurie",
+        "cadastre_intro": (
+            "🗺️ **À quoi ça sert** : l'inventaire vivant des territoires du royaume. "
+            "Choisis ta première terre à l'installation, repère le bonus de chaque "
+            "terre (espionnage, contre-espionnage, ressources…) et prépare tes "
+            "attaques en connaissance de cause."
+        ),
+        "diplomatie_intro": (
+            "🤝 **À quoi ça sert** : le registre des alliances. Chaque civilisation "
+            "impose ses conditions (offrandes, territoire…). Consulte-les avant de "
+            "proposer un pacte : ton choix conditionne tes bonus et tes ennemis."
+        ),
+        "seigneurie_intro": (
+            "🛡️ **À quoi ça sert** : l'état des lieux des seigneurs — royaumes, "
+            "rôles et fiches. Ouvre une fiche pour consulter le statut, le palier "
+            "Paroisse et la chronique des faits d'armes."
+        ),
         "cadastre_title": "# 🗺️ Cadastre — territoires et leurs effets",
         "cadastre_empty": "Le catalogue de maps est vide.",
         "diplomatie_title": "# 🤝 Diplomatie — civilisations et leurs conditions",
@@ -534,8 +566,16 @@ def _paginate(lines: list[str], max_chars: int = 1800) -> list[str]:
 
 
 async def _rubric_pages(topic: str, strings: dict[str, str], kingdoms_service: Any) -> list[str]:
-    """Return one rubric's content paginated under Discord's limit."""
+    """Return one rubric's content paginated under Discord's limit.
+
+    scriptorium-v2 (Drasah 17/10): each rubric opens with its
+    practical-introduction chapeau (« à quoi ça sert ») before the
+    catalog itself, so players know what they are looking at.
+    """
     content = await _rubric_content(topic, strings, kingdoms_service)
+    intro = strings.get(f"{topic}_intro")
+    if intro:
+        content = f"{intro}\n\n{content}"
     return _paginate(content.split("\n"))
 
 
@@ -604,6 +644,13 @@ async def deploy_scriptorium_panel(
     """Pin (or refresh) the Scriptorium sommaire in its salon."""
     strings = _strings(locale)
     content = f"{strings['summary_title']}\n{strings['summary_line']}\n{SCRIPTORIUM_MARKER}"
+    artwork = _scriptorium_artwork()
+    file: discord.File | None = None
+    embed: discord.Embed | None = None
+    if artwork is not None:
+        file = discord.File(artwork, filename="scriptorium.png")
+        embed = discord.Embed(title="📜 Scriptorium")
+        embed.set_image(url="attachment://scriptorium.png")
     marked: Any = None
     try:
         async for message in channel.history(limit=50):
@@ -615,13 +662,29 @@ async def deploy_scriptorium_panel(
     view = _scriptorium_view(strings)
     try:
         if marked is not None:
-            await marked.edit(content=content, view=view)
+            await marked.edit(
+                content=content, view=view, embed=embed, attachments=[file] if file else []
+            )
+        elif file is not None and embed is not None:
+            await channel.send(content=content, view=view, embed=embed, file=file)
         else:
             await channel.send(content=content, view=view)
         return True
     except Exception:
         logger.warning("SCRIPTORIUM: sommaire send failed", exc_info=True)
         return False
+
+
+def _scriptorium_artwork() -> Path | None:
+    """Return the bundled Scriptorium illustration (None when not shipped).
+
+    scriptorium-v2 (Drasah 17/10): the sommaire opens on the
+    « Scriptorium » artwork. Drasah drops the file at
+    ``src/kingdoms/mods/kingdoms/assets/scriptorium.png`` — until
+    then the sommaire stays plain text and nothing breaks.
+    """
+    path = Path(__file__).parent / "assets" / "scriptorium.png"
+    return path if path.is_file() else None
 
 
 def find_scriptorium_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
