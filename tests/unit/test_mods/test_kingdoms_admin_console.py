@@ -61,8 +61,7 @@ class _Channel:
         self.sent.append(text)
         return SimpleNamespace(content=text)
 
-    async 
-def pins(self) -> list[object]:
+    async def pins(self) -> list[object]:
         return []
 
     async def pin(self) -> None:
@@ -136,8 +135,7 @@ def test_the_command_table_covers_the_spec_listing() -> None:
         "voir_attaques",
         "resultat",
         "restituer",
-       
- "ajouter_banque",
+        "ajouter_banque",
         "ajouter_mariage",
         "ajouter_market",
         "donner_civ",
@@ -194,8 +192,7 @@ async def test_non_admin_messages_are_denied() -> None:
 async def test_handle_message_answers_in_the_salon_never_ephemeral() -> None:
     console = _console(ConsoleBundle())
     message = _msg("bypass 1")
-    await console.h
-andle_message(message)
+    await console.handle_message(message)
     assert len(message.channel.sent) == 1
     assert "BYPASS ADMIN" in message.channel.sent[0]
     assert admin_bypass_enabled() is True
@@ -242,8 +239,7 @@ async def test_fin_oiseau_resets_the_voliere_cooldown() -> None:
     console = _console(bundle)
     await bundle.launch_season()
     reply = await console.dispatch("fin_oiseau Aquitaine corbeau")
-    ass
-ert "corbeau" in reply
+    assert "corbeau" in reply
     kingdom = next(k for k in await bundle.kingdoms.kingdoms() if k.name == "Aquitaine")
     assert int(kingdom.voliere_cooldowns["corbeau"]) <= datetime.now(tz=UTC).timestamp() + 60
 
@@ -291,8 +287,7 @@ async def test_ajouter_mariage_stocks_n_marriages() -> None:
     lords = [item for item in all_lords if item.kingdom_id == aquitaine and item.married_civilization]
     assert len(lords) == 2
     # The civs in argument win over the pool.
- 
-   await console.dispatch("ajouter_mariage Bourgogne 1 civ-x")
+    await console.dispatch("ajouter_mariage Bourgogne 1 civ-x")
     bourgogne = await bundle.kingdom_id("Bourgogne")
     every = await bundle.kingdoms.lords()
     bourgogne_lord = next(item for item in every if item.kingdom_id == bourgogne and item.married_civilization)
@@ -335,8 +330,7 @@ async def test_restituer_gives_the_weekly_attack_budget_back() -> None:
     lord = next(item for item in await bundle.kingdoms.lords() if item.id == "king-a")
     lord.attack_used = 1
     await bundle.store.upsert_lord(lord.to_mongo())
-    reply = await conso
-le.dispatch("restituer King A")
+    reply = await console.dispatch("restituer King A")
     assert "after=0" in reply
 
 
@@ -385,8 +379,7 @@ async def test_fin_attaque_opens_the_meeting_then_applies_the_noshow() -> None:
     await console.dispatch(f"fin_attaque {attack_id}")  # the T moment
     attack = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
     if attack.state is AttackState.DEFENDED:
-        # The pic
-k & ban never resolved (forfeit or waiting): the next
+        # The pick & ban never resolved (forfeit or waiting): the next
         # crank either resolves it or opens the score phase.
         third = await console.dispatch(f"fin_attaque {attack_id}")
         assert "score" in third or "expire" in third
@@ -427,8 +420,7 @@ async def test_resultat_resolves_a_disputed_meeting() -> None:
 
 # ----------------------------------------------------------------------
 # The clock — ajouter_temps (forward only) and skippe
-# --------------------------------------------------------------
---------
+# ----------------------------------------------------------------------
 
 
 async def test_ajouter_temps_advances_the_game_clock() -> None:
@@ -478,8 +470,7 @@ async def test_skippe_refuses_without_a_season() -> None:
 
 # ----------------------------------------------------------------------
 # The journal — the executed mutations, process-local
-# ---------------
--------------------------------------------------------
+# ----------------------------------------------------------------------
 
 
 async def test_journal_lists_the_executed_mutations() -> None:

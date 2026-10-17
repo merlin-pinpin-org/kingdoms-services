@@ -24,8 +24,7 @@ the&nbsp;bot-admin&nbsp;guard&nbsp;on&nbsp;EVERY&nbsp;message,&nbsp;a&nbsp;``COM
 per&nbsp;command&nbsp;—&nbsp;handler,&nbsp;usage,&nbsp;help,&nbsp;section)&nbsp;and&nbsp;a&nbsp;process-local<br>
 journal&nbsp;of&nbsp;the&nbsp;executed&nbsp;mutations&nbsp;(``journal&nbsp;[N]``).<br>
 &nbsp;<br>
-⚠️&nbsp;Requires&nbsp;the&nb
-sp;MESSAGE&nbsp;CONTENT&nbsp;intent&nbsp;(dev&nbsp;portal&nbsp;+&nbsp;the&nbsp;bot&nbsp;factory<br>
+⚠️&nbsp;Requires&nbsp;the&nbsp;MESSAGE&nbsp;CONTENT&nbsp;intent&nbsp;(dev&nbsp;portal&nbsp;+&nbsp;the&nbsp;bot&nbsp;factory<br>
 enables&nbsp;it)&nbsp;—&nbsp;without&nbsp;it&nbsp;the&nbsp;listener&nbsp;sees&nbsp;empty&nbsp;messages.</span></p>
 <p>
 <table class="section">
@@ -56,8 +55,7 @@ enables&nbsp;it)&nbsp;—&nbsp;without&nbsp;it&nbsp;the&nbsp;listener&nbsp;sees&
 <td class="section-title" colspan=3>&nbsp;<br><a name="AdminConsole">class <strong>AdminConsole</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminConsole">AdminConsole</a>(bot:&nbsp;'Any',&nbsp;*,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;roles_service:&nbsp;'Any'&nbsp;=&nbsp;N
-one)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AdminConsole">AdminConsole</a>(bot:&nbsp;'Any',&nbsp;*,&nbsp;bot_admins:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;(),&nbsp;roles_service:&nbsp;'Any'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 The&nbsp;console&nbsp;runtime:&nbsp;guard,&nbsp;parse,&nbsp;dispatch,&nbsp;answer&nbsp;in&nbsp;the&nbsp;salon.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -75,8 +73,7 @@ The&nbsp;console&nbsp;runtime:&nbsp;guard,&nbsp;parse,&nbsp;dispatch,&nbsp;answe
 <dl><dt><a name="AdminConsole-journal"><strong>journal</strong></a>(self, count: 'int' = 10) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;the&nbsp;last&nbsp;``count``&nbsp;executed&nbsp;mutations&nbsp;(process-local).</span></dd></dl>
 
 <hr>
-Readonly properties defined h
-ere:<br>
+Readonly properties defined here:<br>
 <dl><dt><strong>current_message</strong></dt>
 <dd><span class="code">Return&nbsp;the&nbsp;message&nbsp;of&nbsp;the&nbsp;dispatch&nbsp;in&nbsp;flight&nbsp;(None&nbsp;outside).</span></dd>
 </dl>
@@ -105,8 +102,7 @@ One&nbsp;console&nbsp;command:&nbsp;its&nbsp;handler,&nbsp;usage&nbsp;line,&nbsp
 
 <dl><dt><a name="CommandSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="CommandSpec-__init__"><strong>__init__</strong></a>(self, usage: 'str', help_fr: 'str', help_en: 'str', section: 'str', handler: 'Any') -&gt; None</dt><dd><span class="c
-ode">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="CommandSpec-__init__"><strong>__init__</strong></a>(self, usage: 'str', help_fr: 'str', help_en: 'str', section: 'str', handler: 'Any') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="CommandSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -133,8 +129,7 @@ Data and other attributes defined here:<br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=
-3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-ensure_console_welcome"><strong>ensure_console_welcome</strong></a>(channel: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;welcome&nbsp;message&nbsp;when&nbsp;absent&nbsp;(idempotent,&nbsp;best&nbsp;effort).</span></dd></dl>
@@ -149,12 +144,10 @@ bot&nbsp;admins;&nbsp;the&nbsp;answers&nbsp;go&nbsp;to&nbsp;the&nbsp;salon,&nbsp
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BIRDS</strong> = ('corbeau', 'faucon', 'pigeon')<br>
-<strong>COMMANDES</strong> = {'aide': CommandSpec(usage='aide [section]', help_fr='La ..., handler=&lt;function _cmd_help at 0xMEMORY_ADDRESS&gt;), 'ajouter_banque': CommandSpec(usage='ajouter_banque &lt;royaume&gt; &lt;qté...&lt;function _cmd_ajouter_banque at 0xMEMORY_ADDRESS&gt;), 'ajouter_mariage': CommandSpec(usage='ajouter_mariage &lt;royaume&gt; &lt;qt...function _cmd_ajouter_mariage at 0xMEMORY_ADDRESS&gt;), 'ajouter_market': CommandSpec(usage='ajouter_market &lt;royaume&gt; &lt;ent...&lt;function _cmd_ajouter_market at 0xMEMORY_ADDRESS&gt;), 'ajouter_oiseau': CommandSpec(usage='ajouter_oiseau &lt;roy
-aume&gt; &lt;cor...&lt;function _cmd_ajouter_oiseau at 0xMEMORY_ADDRESS&gt;), 'ajouter_temps': CommandSpec(usage='ajouter_temps &lt;heures&gt;-&lt;minut...=&lt;function _cmd_ajouter_temps at 0xMEMORY_ADDRESS&gt;), 'avancer_vol': CommandSpec(usage='avancer_vol &lt;royaume&gt; &lt;execut...er=&lt;function _cmd_avancer_vol at 0xMEMORY_ADDRESS&gt;), 'beta': CommandSpec(usage='beta', help_fr='État de la be..., handler=&lt;function _cmd_beta at 0xMEMORY_ADDRESS&gt;), 'bypass': CommandSpec(usage='bypass [0|1]', help_fr='Lire ...handler=&lt;function _cmd_bypass at 0xMEMORY_ADDRESS&gt;), 'chronique': CommandSpec(usage='chronique &lt;seigneur&gt; &lt;type&gt; [...dler=&lt;function _cmd_chronique at 0xMEMORY_ADDRESS&gt;), ...}<br>
+<strong>COMMANDES</strong> = {'aide': CommandSpec(usage='aide [section]', help_fr='La ..., handler=&lt;function _cmd_help at 0xMEMORY_ADDRESS&gt;), 'ajouter_banque': CommandSpec(usage='ajouter_banque &lt;royaume&gt; &lt;qté...&lt;function _cmd_ajouter_banque at 0xMEMORY_ADDRESS&gt;), 'ajouter_mariage': CommandSpec(usage='ajouter_mariage &lt;royaume&gt; &lt;qt...function _cmd_ajouter_mariage at 0xMEMORY_ADDRESS&gt;), 'ajouter_market': CommandSpec(usage='ajouter_market &lt;royaume&gt; &lt;ent...&lt;function _cmd_ajouter_market at 0xMEMORY_ADDRESS&gt;), 'ajouter_oiseau': CommandSpec(usage='ajouter_oiseau &lt;royaume&gt; &lt;cor...&lt;function _cmd_ajouter_oiseau at 0xMEMORY_ADDRESS&gt;), 'ajouter_temps': CommandSpec(usage='ajouter_temps &lt;heures&gt;-&lt;minut...=&lt;function _cmd_ajouter_temps at 0xMEMORY_ADDRESS&gt;), 'avancer_vol': CommandSpec(usage='avancer_vol &lt;royaume&gt; &lt;execut...er=&lt;function _cmd_avancer_vol at 0xMEMORY_ADDRESS&gt;), 'beta': CommandSpec(usage='beta', help_fr='État de la be..., handler=&lt;function _cmd_beta at 0xMEMORY_ADDRESS&gt;), 'bypass': CommandSpec(usage='bypass [0|1]', help_fr='Lire ...handler=&lt;function _cmd_bypass at 0xMEMORY_ADDRESS&gt;), 'chronique': CommandSpec(usage='chronique &lt;seigneur&gt; &lt;type&gt; [...dler=&lt;function _cmd_chronique at 0xMEMORY_ADDRESS&gt;), ...}<br>
 <strong>CONSOLE_CHANNEL_KEY</strong> = 'kingdoms:console'<br>
 <strong>CONSOLE_CHANNEL_SLUG</strong> = 'console-admin'<br>
-<strong>CONSOLE_STRINGS</strong> = {'en': {'aide_sections': 'Sections: {sections} — type `help &lt;section&gt;`.', 'bypass_off': '🧪 ADMIN BYPASS **OFF** — every gate check applies again.', 'bypass_on': '🧪 ADMIN BYPASS **ON** — the player-button gate checks are bypassed.', 'bypass_read': 'bypass: **{state}** (0 = gates on, 1 = skipped)', 'denied': '⚠️ Bot admins only — the console ignores you.', 'done': '✅ {report}', 'empty': 'Nothing to display.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}', 'journal_header': '📖 Journal of the last {count} mutations (process-local, lost on restart):', ...}, 'fr': {'aide_sections': 'Sections : {sections} — tape `aide &lt;section&gt;`.', 'bypass_off': "🧪 BYPASS ADMIN **DÉSACTIVÉ** — chaque gate s'applique à nouveau.", 'bypass_on': '🧪 BYPASS ADMIN **ACTIVÉ** — les gates des boutons joueurs sont contournées.', 'bypass_read': 'bypass : **{state}** (0 = gates actives, 1 = contournées)', 'denied': "⚠️ Réservé aux bot admins — la console t'ignore.", 'done': '✅ {report}', 'empty': 'Rien à afficher.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}'
-, 'journal_header': '📖 Journal des {count} dernières mutations (processus, perdu au redémarrage) :', ...}}<br>
+<strong>CONSOLE_STRINGS</strong> = {'en': {'aide_sections': 'Sections: {sections} — type `help &lt;section&gt;`.', 'bypass_off': '🧪 ADMIN BYPASS **OFF** — every gate check applies again.', 'bypass_on': '🧪 ADMIN BYPASS **ON** — the player-button gate checks are bypassed.', 'bypass_read': 'bypass: **{state}** (0 = gates on, 1 = skipped)', 'denied': '⚠️ Bot admins only — the console ignores you.', 'done': '✅ {report}', 'empty': 'Nothing to display.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}', 'journal_header': '📖 Journal of the last {count} mutations (process-local, lost on restart):', ...}, 'fr': {'aide_sections': 'Sections : {sections} — tape `aide &lt;section&gt;`.', 'bypass_off': "🧪 BYPASS ADMIN **DÉSACTIVÉ** — chaque gate s'applique à nouveau.", 'bypass_on': '🧪 BYPASS ADMIN **ACTIVÉ** — les gates des boutons joueurs sont contournées.', 'bypass_read': 'bypass : **{state}** (0 = gates actives, 1 = contournées)', 'denied': "⚠️ Réservé aux bot admins — la console t'ignore.", 'done': '✅ {report}', 'empty': 'Rien à afficher.', 'help_header': '🛠 CONSOLE — {section}', 'help_line': '• `{usage}` — {help}', 'journal_header': '📖 Journal des {count} dernières mutations (processus, perdu au redémarrage) :', ...}}<br>
 <strong>CONSOLE_WELCOME_MARKER</strong> = '🛠 CONSOLE ADMIN'<br>
 <strong>LOCK_KINDS</strong> = ('marriage', 'exploration', 'ffa')<br>
 <strong>PHASES_FR</strong> = {'draft': 'Draft', 'ready': 'RDV', 'score': 'Score', 'siege': 'Siège'}<br>

@@ -52,8 +52,7 @@ def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel |
 def _find_channel(
     guild: discord.Guild, category: discord.CategoryChannel | None, name: str
 ) -> discord.abc.GuildChannel | None:
-    """Find a structure channel by name, whatever its kind (text or forum
-)."""
+    """Find a structure channel by name, whatever its kind (text or forum)."""
     wanted = _slug(name)
     candidates = [*guild.text_channels, *getattr(guild, "forums", [])]
     for channel in candidates:
@@ -99,8 +98,7 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
- 
-   wiring = _wiring()
+    wiring = _wiring()
     channel_service = wiring.channel_service
     if channel_service is None:
         raise RuntimeError("the ChannelService is not wired — the salons-first bootstrap needs the platform services")
@@ -141,8 +139,7 @@ async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) ->
     removed: list[str] = []
     for slug in LEGACY_SALON_SLUGS:
         for channel in [c for c in guild.text_channels if _slug(c.name) == slug]:
-            if channel.
-id == epoch_channel_id:
+            if channel.id == epoch_channel_id:
                 continue
             try:
                 await channel.delete()
@@ -191,8 +188,7 @@ async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
 
 
 async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> list[str]:
-    """Retire the pre-restructuration salons and ca
-tegories (best effort).
+    """Retire the pre-restructuration salons and categories (best effort).
 
     Idempotent: missing salons/categories are simply skipped, the epoch
     channel is NEVER touched (it keeps its declared key, its name and
@@ -239,8 +235,7 @@ def register_kingdom_command(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
 ) -> None:
-    """Register the /kingdom boot
-strap command (admin only) on the tree."""
+    """Register the /kingdom bootstrap command (admin only) on the tree."""
 
     @tree.command(
         name=localized("commands.kingdom_name", "kingdom"),
@@ -283,8 +278,7 @@ strap command (admin only) on the tree."""
                 wiring.logs_service,
                 wiring.bot_admins,
                 wiring.mod_roles_service,
-                wiring.kingdom
-s_service,
+                wiring.kingdoms_service,
             )
         except Exception:
             logger.exception("KINGDOM SETUP: panel deploy failed for guild %s", guild.id)

@@ -59,8 +59,7 @@ PHASES_FR: dict[str, str] = {
 """The console's French phase names (attaques-phases-v2)."""
 
 
-# ---
--------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # The strings (FR first — the console is Drasah's private test salon)
 # ----------------------------------------------------------------------
 
@@ -96,8 +95,7 @@ CONSOLE_STRINGS: dict[str, dict[str, str]] = {
             "Kingdoms test console — type a command, the answer stays in the "
             "salon (the history).\n"
             "• `help` — the full list • `help <section>` — one section\n"
-            "• `state` — bypass, s
-eason, running corbeau thefts\n"
+            "• `state` — bypass, season, running corbeau thefts\n"
             "⚠️ Bot admins only — every mutation is logged."
         ),
         "denied": "⚠️ Bot admins only — the console ignores you.",
@@ -144,8 +142,7 @@ def _remaining(seconds: Any) -> str:
         parts.append(f"{days}j")
     if hours:
         parts.append(f"{hours}h")
-    if minutes or not parts
-:
+    if minutes or not parts:
         parts.append(f"{minutes}m")
     return " ".join(parts)
 
@@ -208,8 +205,7 @@ class AdminConsole:
         self._console_ids: dict[str, str] = {}
         self._current_message: Any = None
         """The message being dispatched (beta-weekend-v2): the beta
-        start panel needs the triggerin
-g message's channel to send
+        start panel needs the triggering message's channel to send
         its interactive view."""
 
     # -- wiring ------------------------------------------------------------
@@ -253,8 +249,7 @@ g message's channel to send
 
     # -- guard -------------------------------------------------------------
 
-    async def is_console_admin(self, messa
-ge: Any) -> bool:
+    async def is_console_admin(self, message: Any) -> bool:
         """Whether the message's author may use the console (every message)."""
         member = message.author
         if getattr(member, "bot", False):
@@ -296,8 +291,7 @@ ge: Any) -> bool:
             return  # the intent is off or an empty message — nothing to parse
         reply = await self.dispatch(text, message)
         if reply:
-            await self._send(message,
- reply)
+            await self._send(message, reply)
 
     async def _send(self, message: Any, text: str) -> None:
         """Answer in the salon (never ephemeral), chunked to the limit."""
@@ -348,8 +342,7 @@ ge: Any) -> bool:
 
     @property
     def current_message(self) -> Any:
-        """R
-eturn the message of the dispatch in flight (None outside)."""
+        """Return the message of the dispatch in flight (None outside)."""
         return self._current_message
 
 
@@ -402,8 +395,7 @@ async def _cmd_help(console: AdminConsole, args: list[str]) -> str:
 
 
 async def _cmd_etat(console: AdminConsole, args: list[str]) -> str:
-    """`etat` — bypass, saison, 
-cycle, âge, vols corbeau en cours."""
+    """`etat` — bypass, saison, cycle, âge, vols corbeau en cours."""
     del args
     debug = console._debug
     if debug is None:
@@ -454,8 +446,7 @@ async def _cmd_saison(console: AdminConsole, args: list[str]) -> str:
         ("fin de saison", "season_end_at"),
     ):
         slot = status.get(key)
-        if slot is n
-ot None:
+        if slot is not None:
             lines.append(f"{label} : {slot.strftime('%d/%m %H:%M')}")
     return "\n".join(lines)
 
@@ -507,8 +498,7 @@ async def _cmd_cooldowns(console: AdminConsole, args: list[str]) -> str:
                 t=_remaining(panel.get("traquenard_left", 0)) if panel.get("traquenard_left") else "—",
             )
         )
-        for lock in panel.get("locks", [
-]):
+        for lock in panel.get("locks", []):
             lines.append(f"  · 🔒 {lock['lord']} ({lock['lock']} : {_remaining(lock['left'])})")
         for attack in panel.get("attacks", []):
             lines.append(
@@ -555,8 +545,7 @@ async def _cmd_ajouter_oiseau(console: AdminConsole, args: list[str]) -> str:
     debug = console._debug
     kingdom, bird = args[0], args[1].casefold()
     if bird not in BIRDS:
-        raise 
-ValueError("unknown bird")
+        raise ValueError("unknown bird")
     count = max(1, int(args[2])) if len(args) > 2 else 1
     report = None
     for _ in range(count):
@@ -602,8 +591,7 @@ async def _cmd_voir_attaques(console: AdminConsole, args: list[str]) -> str:
                 id=attack["id"],
                 map=attack["map"],
                 phase=phase,
-                deadline=attack["expires_at"].s
-trftime("%d/%m %H:%M"),
+                deadline=attack["expires_at"].strftime("%d/%m %H:%M"),
                 left=_remaining(attack["expires_at"] - datetime.now(tz=attack["expires_at"].tzinfo)),
             )
         )
@@ -652,8 +640,7 @@ def _extract_civs(raw: list[str]) -> list[str]:
     civs: list[str] = []
     for chunk in raw:
         match = _PARAMS_RE.match(chunk.strip())
-        civs.ap
-pend(match.group(2).strip() if match else chunk)
+        civs.append(match.group(2).strip() if match else chunk)
     return civs
 
 
@@ -700,8 +687,7 @@ async def _cmd_voir_vol(console: AdminConsole, args: list[str]) -> str:
 async def _cmd_donner_territoire(console: AdminConsole, args: list[str]) -> str:
     """`donner_territoire <map_key> <royaume>` — direct transfer."""
     if len(args) < 2:
-        raise ValueError(
-"map key and kingdom required")
+        raise ValueError("map key and kingdom required")
     debug = console._debug
     report = await debug.grant_territory(args[0], args[1])
     return CONSOLE_STRINGS["fr"]["done"].format(report=_fmt_report(report))
@@ -753,8 +739,7 @@ async def _cmd_skippe(console: AdminConsole, args: list[str]) -> str:
 async def _cmd_chronique(console: AdminConsole, args: list[str]) -> str:
     """`chronique <seigneur> <type> [k=v,…]` — inject a fake entry."""
     if len(args) < 2:
-        raise ValueError("lo
-rd and kind required")
+        raise ValueError("lord and kind required")
     debug = console._debug
     params: dict[str, str] = {}
     for chunk in " ".join(args[2:]).split(","):
@@ -796,8 +781,7 @@ async def _cmd_lancer_beta(console: AdminConsole, args: list[str]) -> str:
     try:
         await message.channel.send(content, view=view)
     except Exception:
-     
-   logger.warning("CONSOLE: beta panel send failed", exc_info=True)
+        logger.warning("CONSOLE: beta panel send failed", exc_info=True)
         return "usage : `lancer_beta now JJ/MM HH:MM` (ex. `23/10 20:00`)"
     return "🚀 Panneau de départ beta envoyé — utilise les boutons ci-dessus."
 
@@ -813,6 +797,293 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
     if not season.beta_name:
         from kingdoms.mods.kingdoms.beta_weekend import beta_preset_names
 
-        return "aucune beta acti
+        return "aucune beta active — presets disponibles : " + ", ".join(beta_preset_names())
+    from zoneinfo import ZoneInfo
 
-... [Content truncated]
+    tz = ZoneInfo("Europe/Paris")
+    fmt = "%d/%m %H:%M"
+    from kingdoms.mods.kingdoms.game_clock import game_now as _game_now
+
+    armed = season.beta_start_at is not None and season.beta_start_at > _game_now()
+    lines = [f"beta « {season.beta_name} » " + ("ARMÉE :" if armed else "active :")]
+    if season.beta_start_at is not None:
+        lines.append(f"• départ : {season.beta_start_at.astimezone(tz).strftime(fmt)}")
+    if season.beta_age_at is not None:
+        lines.append(f"• passage d'âge : {season.beta_age_at.astimezone(tz).strftime(fmt)}")
+    for index, slot in enumerate(season.beta_cycle_slots, start=1):
+        lines.append(f"• cycle {index + 1} (Jour du Seigneur) : {slot.astimezone(tz).strftime(fmt)}")
+    if season.beta_end_at is not None:
+        lines.append(f"• fin de saison : {season.beta_end_at.astimezone(tz).strftime(fmt)}")
+    return "\n".join(lines)
+
+
+async def _cmd_regles(console: AdminConsole, args: list[str]) -> str:
+    """`regles` — rebuild the guide threads of the Règles forum.
+
+    guide-regles-v1 (Drasah 17/10/2026): after a salon reset, one
+    command re-creates (or refreshes) every guide thread with the LIVE
+    config values — the guide never lies. The refresh also runs at
+    every deploy; the command exists for the manual re-trigger.
+    """
+    kingdoms = getattr(console.bot, "kingdoms_service", None)
+    if kingdoms is None:
+        return CONSOLE_STRINGS["fr"]["not_wired"]
+    guild = getattr(console.current_message, "guild", None)
+    if guild is None:
+        return "usage : `regles` — la commande nécessite le salon (elle agit sur ce serveur)."
+    from kingdoms.mods.kingdoms.kingdom_guide import refresh_guide_forum
+
+    report = await refresh_guide_forum(guild, kingdoms)
+    if not report:
+        return "aucun forum « Règles » trouvé — crée le salon forum puis relance `regles`."
+    created = sum(1 for status in report.values() if status == "created")
+    updated = sum(1 for status in report.values() if status == "updated")
+    failed = sum(1 for status in report.values() if status == "failed")
+    lines = [f"📖 Guide du forum Règles : {created} créé(s), {updated} mis à jour."]
+    if failed:
+        lines.append(f"⚠️ {failed} échec(s) — voir les logs.")
+    return "\n".join(lines)
+
+
+COMMANDES: dict[str, CommandSpec] = {
+    "aide": CommandSpec(
+        "aide [section]",
+        "La liste complète (ou une section)",
+        "The full list (or one section)",
+        "général",
+        _cmd_help,
+    ),
+    "etat": CommandSpec(
+        "etat",
+        "Bypass, saison, cycle, âge, vols corbeau en cours",
+        "Bypass, season, cycle, age, running corbeau thefts",
+        "général",
+        _cmd_etat,
+    ),
+    "saison": CommandSpec(
+        "saison",
+        "Saison, cycle, âge, semaine, phase",
+        "Season, cycle, age, week, phase",
+        "général",
+        _cmd_saison,
+    ),
+    "voir": CommandSpec(
+        "voir <royaume|seigneur>",
+        "Fiche complète (banque, oiseaux, verrous, palier, civs)",
+        "The full fiche (bank, birds, locks, tier, civs)",
+        "général",
+        _cmd_voir,
+    ),
+    "journal": CommandSpec(
+        "journal [N]",
+        "Les N dernières mutations exécutées",
+        "The last N executed mutations",
+        "général",
+        _cmd_journal,
+    ),
+    "cooldowns": CommandSpec(
+        "cooldowns [royaume]",
+        "TOUS les CD actifs : oiseaux, verrous, attaques",
+        "EVERY active CD: birds, locks, attacks",
+        "général",
+        _cmd_cooldowns,
+    ),
+    "bypass": CommandSpec(
+        "bypass [0|1]",
+        "Lire / activer / désactiver (gates des VRAIS boutons joueurs)",
+        "Read / toggle (the REAL player-button gates)",
+        "bypass",
+        _cmd_bypass,
+    ),
+    "fin_oiseau": CommandSpec(
+        "fin_oiseau <royaume> [corbeau|faucon|pigeon|tous]",
+        "CD volière à zéro (effets applicables, tirage naturel)",
+        "Volière CD to zero (effects testable, natural draw)",
+        "volière",
+        _cmd_fin_oiseau,
+    ),
+    "ajouter_oiseau": CommandSpec(
+        "ajouter_oiseau <royaume> <corbeau|faucon|pigeon> [qté]",
+        "Rendre son perchoir à un oiseau (quantité = répéter)",
+        "Restore a bird to its slot (quantity = repeat)",
+        "volière",
+        _cmd_ajouter_oiseau,
+    ),
+    "fin_verrou": CommandSpec(
+        "fin_verrou <seigneur> [marriage|exploration|ffa|tous]",
+        "Purger un verrou temps réel",
+        "Purge a real-time lock",
+        "verrous",
+        _cmd_fin_verrou,
+    ),
+    "fin_attaque": CommandSpec(
+        "fin_attaque <id>",
+        "Forcer la phase suivante (1 appel = 1 cran, jusqu'au no-show)",
+        "Force the next phase (1 call = 1 step, up to the no-show line)",
+        "attaques",
+        _cmd_fin_attaque,
+    ),
+    "voir_attaques": CommandSpec(
+        "voir_attaques",
+        "Les attaques en cours (id, phase, échéance — source des id)",
+        "The ongoing attacks (id, phase, deadline — the id source)",
+        "attaques",
+        _cmd_voir_attaques,
+    ),
+    "resultat": CommandSpec(
+        "resultat <id> <royaume|double>",
+        "Face-check admin : override / arbitrage d'un résultat",
+        "Admin face-check: result override / dispute arbitration",
+        "attaques",
+        _cmd_resultat,
+    ),
+    "restituer": CommandSpec(
+        "restituer <seigneur>",
+        "Rendre le budget d'attaque hebdo (D17)",
+        "Give the weekly attack budget back (D17)",
+        "attaques",
+        _cmd_restituer,
+    ),
+    "ajouter_banque": CommandSpec(
+        "ajouter_banque <royaume> <qté>",
+        "+N/-N ⚙️ en banque tech",
+        "+N/-N ⚙️ on the tech bank",
+        "économie",
+        _cmd_ajouter_banque,
+    ),
+    "ajouter_mariage": CommandSpec(
+        "ajouter_mariage <royaume> <qté> [civ…]",
+        "N mariages dans les stocks (civs optionnelles)",
+        "N marriages in stock (civs optional)",
+        "économie",
+        _cmd_ajouter_mariage,
+    ),
+    "ajouter_market": CommandSpec(
+        "ajouter_market <royaume> <entité> <qté>",
+        "Créditer Explorateur/Garde/Traquenard/Patrouille/Corruption…",
+        "Credit Explorateur/Garde/Traquenard/Patrouille/Corruption…",
+        "économie",
+        _cmd_ajouter_market,
+    ),
+    "donner_civ": CommandSpec(
+        "donner_civ <royaume> <civ>",
+        "Forcer une civ dans la main",
+        "Force a civ into the hand",
+        "économie",
+        _cmd_donner_civ,
+    ),
+    "avancer_vol": CommandSpec(
+        "avancer_vol <royaume> <execution|fenetre>",
+        "Accélérer l'horloge du vol corbeau",
+        "Fast-forward the corbeau theft clock",
+        "corbeau",
+        _cmd_avancer_vol,
+    ),
+    "voir_vol": CommandSpec(
+        "voir_vol <royaume>",
+        "État du vol : phase, ⚙️ volés, fenêtre",
+        "The theft state: phase, stolen ⚙️, window",
+        "corbeau",
+        _cmd_voir_vol,
+    ),
+    "donner_territoire": CommandSpec(
+        "donner_territoire <map_key> <royaume>",
+        "Transférer un territoire",
+        "Transfer a territory",
+        "territoires",
+        _cmd_donner_territoire,
+    ),
+    "ajouter_temps": CommandSpec(
+        "ajouter_temps <heures>-<minutes>",
+        "Avancer l'horloge de jeu (Machine à temps, raccourci)",
+        "Advance the game clock (time machine shortcut)",
+        "territoires",
+        _cmd_ajouter_temps,
+    ),
+    "skippe": CommandSpec(
+        "skippe",
+        "Sauter au prochain passage d'événement (cycle/JdS, âge, fin)",
+        "Skip to the next event passage (cycle/JdS, age, end)",
+        "territoires",
+        _cmd_skippe,
+    ),
+    "chronique": CommandSpec(
+        "chronique <seigneur> <type> [k=v,…]",
+        "Injecter une entrée factice de chronique",
+        "Inject a fake chronicle entry",
+        "chronique",
+        _cmd_chronique,
+    ),
+    "lancer_beta": CommandSpec(
+        "lancer_beta now [JJ/MM HH:MM]",
+        "Interface de départ beta (boutons) ou départ direct — plan 52 h",
+        "Beta start interface (buttons) or direct start — 52 h plan",
+        "saison",
+        _cmd_lancer_beta,
+    ),
+    "beta": CommandSpec(
+        "beta",
+        "État de la beta (preset, plan, prochaine étape)",
+        "Beta status (preset, plan, next step)",
+        "saison",
+        _cmd_beta,
+    ),
+    "regles": CommandSpec(
+        "regles",
+        "Redéployer les posts du guide dans le forum Règles (valeurs live)",
+        "Rebuild the guide threads of the Règles forum (live values)",
+        "contenu",
+        _cmd_regles,
+    ),
+}
+
+
+# ----------------------------------------------------------------------
+# The pinned welcome message (best effort)
+# ----------------------------------------------------------------------
+
+
+async def ensure_console_welcome(channel: Any) -> bool:
+    """Pin the welcome message when absent (idempotent, best effort)."""
+    try:
+        for pinned in await channel.pins():
+            if CONSOLE_WELCOME_MARKER in str(getattr(pinned, "content", "")):
+                return False
+        message = await channel.send(CONSOLE_STRINGS["fr"]["welcome"])
+        await message.pin()
+        return True
+    except Exception:
+        logger.warning("CONSOLE: welcome pin failed", exc_info=True)
+        return False
+
+
+# ----------------------------------------------------------------------
+# The bot registration — the listener
+# ----------------------------------------------------------------------
+
+
+def register_kingdoms_admin_console(bot: Any) -> None:
+    """Attach the console listener onto the bot (register phase).
+
+    The listener guards EVERY message: only the console salon, only
+    bot admins; the answers go to the salon, never ephemeral.
+    """
+    status = getattr(bot, "status_service", None)
+    console = AdminConsole(
+        bot,
+        bot_admins=tuple(getattr(status, "bot_admins", ())),
+        roles_service=getattr(bot, "roles_service", None),
+    )
+    bot.kingdoms_admin_console = console
+
+    async def on_kingdoms_console_message(message: Any) -> None:
+        """Route one message through the console (guard inside)."""
+        await console.handle_message(message)
+
+    # Tolerant: the fake bots of the unit tests expose no listener seam.
+    add_listener = getattr(bot, "add_listener", None)
+    if callable(add_listener):
+        add_listener(on_kingdoms_console_message, "on_message")
+        logger.info("kingdoms admin console registered (listener on_message)")
+    else:
+        logger.warning("kingdoms admin console: the bot exposes no add_listener — listener skipped")
