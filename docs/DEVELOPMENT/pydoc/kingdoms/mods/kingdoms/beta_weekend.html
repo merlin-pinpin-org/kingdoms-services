@@ -9,18 +9,30 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.beta_weekend</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/beta_weekend.py">SOURCE_ROOT/mods/kingdoms/beta_weekend.py</a></td></tr></table>
-    <p><span class="code">Beta&nbsp;weekend&nbsp;presets&nbsp;(beta-weekend-v1,&nbsp;Drasah&nbsp;17/10/2026).<br>
+    <p><span class="code">Beta&nbsp;weekend&nbsp;presets&nbsp;(beta-weekend-v2,&nbsp;Drasah&nbsp;17/10/2026).<br>
 &nbsp;<br>
-Drasah&nbsp;opens&nbsp;a&nbsp;multi-user&nbsp;beta&nbsp;test&nbsp;on&nbsp;a&nbsp;weekend&nbsp;(Friday&nbsp;20:00&nbsp;→<br>
-Monday&nbsp;00:00,&nbsp;Europe/Paris):&nbsp;the&nbsp;whole&nbsp;season&nbsp;—&nbsp;2&nbsp;cycles,&nbsp;one&nbsp;age<br>
-switch,&nbsp;the&nbsp;official&nbsp;end&nbsp;with&nbsp;results&nbsp;and&nbsp;rewards&nbsp;—&nbsp;is&nbsp;compressed<br>
-into&nbsp;52&nbsp;hours.&nbsp;The&nbsp;console&nbsp;command&nbsp;``lancer_beta&nbsp;&lt;nom&gt;``&nbsp;activates&nbsp;a<br>
-NAMED&nbsp;preset:&nbsp;the&nbsp;shared&nbsp;season&nbsp;config&nbsp;is&nbsp;mutated&nbsp;in&nbsp;place&nbsp;(every<br>
-service&nbsp;reads&nbsp;it&nbsp;live)&nbsp;and&nbsp;the&nbsp;explicit&nbsp;slot&nbsp;plan&nbsp;is&nbsp;persisted&nbsp;on&nbsp;the<br>
-season&nbsp;document,&nbsp;so&nbsp;a&nbsp;restarted&nbsp;process&nbsp;re-applies&nbsp;the&nbsp;preset&nbsp;on&nbsp;its<br>
-first&nbsp;scheduler&nbsp;tick.&nbsp;A&nbsp;normal&nbsp;season&nbsp;is&nbsp;untouched&nbsp;—&nbsp;nothing&nbsp;changes<br>
-unless&nbsp;the&nbsp;console&nbsp;says&nbsp;so.</span></p>
+Drasah&nbsp;opens&nbsp;a&nbsp;multi-user&nbsp;beta&nbsp;test&nbsp;compressed&nbsp;into&nbsp;a&nbsp;52-hour&nbsp;window<br>
+that&nbsp;starts&nbsp;at&nbsp;an&nbsp;EXACT&nbsp;moment&nbsp;he&nbsp;picks:&nbsp;the&nbsp;console&nbsp;command<br>
+``lancer_beta&nbsp;now``&nbsp;opens&nbsp;a&nbsp;Discord&nbsp;interface&nbsp;(buttons&nbsp;+&nbsp;modal)&nbsp;to<br>
+define&nbsp;that&nbsp;precise&nbsp;start&nbsp;—&nbsp;T0.&nbsp;From&nbsp;T0&nbsp;the&nbsp;whole&nbsp;season&nbsp;follows&nbsp;the<br>
+relative&nbsp;plan:&nbsp;age&nbsp;switch&nbsp;at&nbsp;T0+4h,&nbsp;two&nbsp;Lord's&nbsp;Day&nbsp;cycles&nbsp;at&nbsp;T0+10h<br>
+and&nbsp;T0+34h&nbsp;(2h&nbsp;protected&nbsp;windows),&nbsp;and&nbsp;the&nbsp;official&nbsp;season&nbsp;end&nbsp;at<br>
+T0+52h&nbsp;(results&nbsp;+&nbsp;rewards).&nbsp;The&nbsp;compressed&nbsp;config&nbsp;applies&nbsp;AT&nbsp;T0,&nbsp;not<br>
+at&nbsp;the&nbsp;arming:&nbsp;a&nbsp;beta&nbsp;armed&nbsp;for&nbsp;Friday&nbsp;20:00&nbsp;leaves&nbsp;the&nbsp;season&nbsp;at&nbsp;its<br>
+normal&nbsp;pace&nbsp;until&nbsp;Friday&nbsp;20:00&nbsp;sharp.<br>
+&nbsp;<br>
+``now``&nbsp;replaces&nbsp;the&nbsp;v1&nbsp;preset&nbsp;``1.0``&nbsp;(anchored&nbsp;on&nbsp;calendar&nbsp;slots);<br>
+``1.0``&nbsp;stays&nbsp;loadable&nbsp;so&nbsp;a&nbsp;season&nbsp;armed&nbsp;before&nbsp;the&nbsp;v2&nbsp;deploy&nbsp;never<br>
+breaks.&nbsp;A&nbsp;normal&nbsp;season&nbsp;is&nbsp;untouched&nbsp;—&nbsp;nothing&nbsp;changes&nbsp;unless&nbsp;the<br>
+console&nbsp;says&nbsp;so.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
@@ -29,31 +41,43 @@ unless&nbsp;the&nbsp;console&nbsp;says&nbsp;so.</span></p>
 <td class="singlecolumn"><dl><dt><a name="-apply_beta_preset"><strong>apply_beta_preset</strong></a>(config: 'KingdomsSeasonConfig', name: 'str') -&gt; 'None'</dt><dd><span class="code">Mutate&nbsp;the&nbsp;shared&nbsp;season&nbsp;config&nbsp;in&nbsp;place&nbsp;onto&nbsp;the&nbsp;preset.<br>
 &nbsp;<br>
 Raises&nbsp;``ValueError``&nbsp;on&nbsp;an&nbsp;unknown&nbsp;preset&nbsp;—&nbsp;a&nbsp;typo&nbsp;in&nbsp;the&nbsp;console<br>
-must&nbsp;never&nbsp;silently&nbsp;run&nbsp;a&nbsp;normal-paced&nbsp;weekend.&nbsp;Every&nbsp;service&nbsp;holds<br>
+must&nbsp;never&nbsp;silently&nbsp;run&nbsp;a&nbsp;normal-paced&nbsp;beta.&nbsp;Every&nbsp;service&nbsp;holds<br>
 the&nbsp;SAME&nbsp;config&nbsp;object,&nbsp;so&nbsp;the&nbsp;new&nbsp;values&nbsp;apply&nbsp;instantly;&nbsp;the<br>
 scheduler&nbsp;re-applies&nbsp;the&nbsp;preset&nbsp;after&nbsp;a&nbsp;restart&nbsp;from&nbsp;the&nbsp;season<br>
 document.</span></dd></dl>
- <dl><dt><a name="-beta_lords_day_window"><strong>beta_lords_day_window</strong></a>(season: 'Any', now: 'datetime') -&gt; 'tuple[datetime, datetime] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;beta&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;around&nbsp;the&nbsp;last&nbsp;consumed&nbsp;cycle&nbsp;slot.<br>
+ <dl><dt><a name="-beta_lords_day_window"><strong>beta_lords_day_window</strong></a>(season: 'Any', now: 'datetime') -&gt; 'tuple[datetime, datetime] | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;beta&nbsp;Lord's&nbsp;Day&nbsp;window&nbsp;around&nbsp;the&nbsp;last&nbsp;cycle&nbsp;slot.<br>
 &nbsp;<br>
-Each&nbsp;beta&nbsp;cycle&nbsp;slot&nbsp;opens&nbsp;a&nbsp;short&nbsp;protected&nbsp;window&nbsp;(2h&nbsp;by&nbsp;default)<br>
-where&nbsp;no&nbsp;attack&nbsp;is&nbsp;PLAYED&nbsp;—&nbsp;the&nbsp;compressed&nbsp;equivalent&nbsp;of&nbsp;the<br>
-Sunday&nbsp;23:30&nbsp;→&nbsp;Monday&nbsp;10:00&nbsp;season&nbsp;window.&nbsp;Returns&nbsp;None&nbsp;outside<br>
-the&nbsp;windows&nbsp;(and&nbsp;on&nbsp;an&nbsp;unknown&nbsp;preset&nbsp;name&nbsp;—&nbsp;never&nbsp;block&nbsp;a&nbsp;season<br>
-on&nbsp;a&nbsp;missing&nbsp;preset).</span></dd></dl>
- <dl><dt><a name="-beta_preset_names"><strong>beta_preset_names</strong></a>() -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;available&nbsp;preset&nbsp;names&nbsp;(console&nbsp;help&nbsp;/&nbsp;error&nbsp;messages).</span></dd></dl>
- <dl><dt><a name="-plan_beta_slots"><strong>plan_beta_slots</strong></a>(name: 'str', now: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Compute&nbsp;the&nbsp;weekend&nbsp;slot&nbsp;plan&nbsp;anchored&nbsp;on&nbsp;the&nbsp;activation&nbsp;moment.<br>
+Each&nbsp;beta&nbsp;cycle&nbsp;slot&nbsp;opens&nbsp;a&nbsp;short&nbsp;protected&nbsp;window&nbsp;(2h)&nbsp;where&nbsp;no<br>
+attack&nbsp;is&nbsp;PLAYED&nbsp;—&nbsp;the&nbsp;compressed&nbsp;equivalent&nbsp;of&nbsp;the&nbsp;Sunday&nbsp;23:30<br>
+→&nbsp;Monday&nbsp;10:00&nbsp;season&nbsp;window.&nbsp;Returns&nbsp;None&nbsp;outside&nbsp;the&nbsp;windows<br>
+(and&nbsp;on&nbsp;an&nbsp;unknown&nbsp;preset&nbsp;name&nbsp;—&nbsp;never&nbsp;block&nbsp;a&nbsp;season&nbsp;on&nbsp;a<br>
+missing&nbsp;preset).</span></dd></dl>
+ <dl><dt><a name="-beta_preset_names"><strong>beta_preset_names</strong></a>() -&gt; 'tuple[str, ...]'</dt><dd><span class="code">Return&nbsp;the&nbsp;preset&nbsp;names&nbsp;the&nbsp;console&nbsp;advertises&nbsp;(``now``&nbsp;first).</span></dd></dl>
+ <dl><dt><a name="-beta_started"><strong>beta_started</strong></a>(season: 'Any', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;armed&nbsp;beta&nbsp;has&nbsp;actually&nbsp;started&nbsp;(T0&nbsp;reached).<br>
 &nbsp;<br>
-``now``&nbsp;is&nbsp;the&nbsp;activation&nbsp;timestamp&nbsp;(Friday&nbsp;20:00&nbsp;in&nbsp;Drasah's<br>
-flow):&nbsp;the&nbsp;age&nbsp;switch&nbsp;lands&nbsp;on&nbsp;the&nbsp;coming&nbsp;Saturday&nbsp;midnight,&nbsp;the<br>
-two&nbsp;Lord's&nbsp;Day&nbsp;cycles&nbsp;on&nbsp;the&nbsp;coming&nbsp;Saturday&nbsp;and&nbsp;Sunday&nbsp;mornings,<br>
-and&nbsp;the&nbsp;season&nbsp;end&nbsp;on&nbsp;the&nbsp;coming&nbsp;Monday&nbsp;at&nbsp;00:00&nbsp;Europe/Paris.</span></dd></dl>
+beta-weekend-v2:&nbsp;the&nbsp;compressed&nbsp;config&nbsp;applies&nbsp;at&nbsp;T0,&nbsp;not&nbsp;at&nbsp;the<br>
+arming&nbsp;—&nbsp;this&nbsp;gate&nbsp;drives&nbsp;both&nbsp;the&nbsp;scheduler's&nbsp;preset<br>
+(re)application&nbsp;and&nbsp;the&nbsp;console&nbsp;status&nbsp;lines.&nbsp;A&nbsp;season&nbsp;armed<br>
+without&nbsp;``beta_start_at``&nbsp;(legacy&nbsp;v1)&nbsp;counts&nbsp;as&nbsp;started.</span></dd></dl>
+ <dl><dt><a name="-beta_timezone"><strong>beta_timezone</strong></a>() -&gt; 'ZoneInfo'</dt><dd><span class="code">Return&nbsp;the&nbsp;beta&nbsp;scheduling&nbsp;timezone&nbsp;(Europe/Paris).</span></dd></dl>
+ <dl><dt><a name="-parse_beta_start"><strong>parse_beta_start</strong></a>(text: 'str', now: 'datetime') -&gt; 'datetime'</dt><dd><span class="code">Parse&nbsp;the&nbsp;console/modal&nbsp;start&nbsp;input&nbsp;into&nbsp;a&nbsp;Paris&nbsp;datetime.<br>
+&nbsp;<br>
+Accepted:&nbsp;``JJ/MM&nbsp;HH:MM``,&nbsp;``JJ/MM/AAAA&nbsp;HH:MM``,&nbsp;``maintenant``.<br>
+A&nbsp;start&nbsp;in&nbsp;the&nbsp;past&nbsp;is&nbsp;REFUSED&nbsp;—&nbsp;the&nbsp;interface&nbsp;defines&nbsp;when&nbsp;the<br>
+beta&nbsp;begins,&nbsp;never&nbsp;rewinds&nbsp;it&nbsp;(idempotent&nbsp;re-arming&nbsp;is&nbsp;done&nbsp;by<br>
+re-running&nbsp;the&nbsp;command&nbsp;with&nbsp;a&nbsp;new&nbsp;date).</span></dd></dl>
+ <dl><dt><a name="-plan_beta_slots"><strong>plan_beta_slots</strong></a>(name: 'str', start: 'datetime') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Compute&nbsp;the&nbsp;52h&nbsp;slot&nbsp;plan&nbsp;from&nbsp;the&nbsp;EXACT&nbsp;start&nbsp;``start``&nbsp;(T0).<br>
+&nbsp;<br>
+beta-weekend-v2:&nbsp;the&nbsp;plan&nbsp;rides&nbsp;T0&nbsp;—&nbsp;age&nbsp;at&nbsp;T0+4h,&nbsp;cycles&nbsp;at<br>
+T0+10h/T0+34h,&nbsp;official&nbsp;end&nbsp;at&nbsp;T0+52h&nbsp;—&nbsp;whatever&nbsp;the&nbsp;wall&nbsp;clock.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>BETA_PRESETS</strong> = {'1.0': {'ages': (Epoch(key='dark_age', display_name='Âge sombre', gaia_ai_level=2, tech_points=0, extra_marriages=1), Epoch(key='feudal_age', display_name='Âge féodal...aia_ai_level=3, tech_points=1, extra_marriages=1)), 'attacks': {'attacks_per_week': 2, 'defense_cutoff_minutes': 5, 'defenses_per_week': 2, 'gaia_attack_delay_hours': 1, 'gaia_attack_max_per_kingdom': 2, 'pick_ban_lead_minutes': 3, 'player_attack_delay_hours': 1, 'ready_grace_minutes': 3, 'score_dispute_after_reminder_hours': 1.0, 'score_reminder_hours': 0.5}, 'events': {'exploration_cron': '0 12 * * SAT', 'ffa_announce_lead_hours': 1, 'ffa_no_show_lock_hours': 6, 'ffa_start_hours': (14, 15, 16, 17, 18, 19, 20, 21, 22)}, 'parish': {'cathedral_chantier_hours': 8, 'tiers': (ParishTier(key='chapelle', display_name='Chapelle', cost=0, marriage_lock_hours=4, offering=0), ParishTier(key='eglise', display_name='Église', cost=2, marriage_lock_hours=2, offering=1), ParishTier(key='cathedrale', display_name='Cathédrale', cost=4, marriage_lock_hours=1, offering=2))}, 'plan': {'age': (5, 0), 'cycles': [(5, 6), (6, 6)], 'end': (0, 0), 'lords_day_window_hours': 2}, 'technologies': {'contre_espionnage': 0, 'corruption': 0, 'embuscade': 0, 'explorateur': 0, 'garde_royale': 0, 'jeu_d_armes': 0, 'limits': {}, 'mariage_arrange': 0, 'patrouille': 0, 'sabotage': 0, ...}, 'voliere': {'corbeau_civ_cooldown_hours': 4, 'corbeau_track_cooldown_hours': 6, 'corbeau_track_window_hours': 1, 'corbeau_verify_cooldown_hours': 2, 'faucon_release_cooldown_hours': 12, 'faucon_release_window_hours': 2, 'faucon_sabotage_cooldown_hours': 4, 'faucon_territory_cooldown_hours': 8, 'pigeon_civ_cooldown_hours': 4, 'pigeon_dm_cooldown_hours': 1, ...}}}<br>
+<td class="singlecolumn"><strong>BETA_PLAN_OFFSETS</strong> = {'age_hours': 4, 'cycle_hours': (10, 34), 'end_hours': 52, 'lords_day_window_hours': 2}<br>
+<strong>BETA_PRESETS</strong> = {'1.0': {'ages': (Epoch(key='dark_age', display_name='Âge sombre', gaia_ai_level=2, tech_points=0, extra_marriages=1), Epoch(key='feudal_age', display_name='Âge féodal...aia_ai_level=3, tech_points=1, extra_marriages=1)), 'attacks': {'attacks_per_week': 2, 'defense_cutoff_minutes': 5, 'defenses_per_week': 2, 'embuscade_delay_minutes': 60, 'gaia_attack_delay_minutes': 60, 'gaia_attack_max_per_kingdom': 2, 'pick_ban_lead_minutes': 3, 'player_attack_delay_minutes': 60, 'ready_grace_minutes': 3, 'score_dispute_after_reminder_hours': 1.0, ...}, 'events': {'exploration_cron': '0 12 * * SAT', 'ffa_announce_lead_hours': 1, 'ffa_no_show_lock_hours': 6, 'ffa_start_hours': (14, 15, 16, 17, 18, 19, 20, 21, 22)}, 'parish': {'cathedral_chantier_hours': 8, 'tiers': (ParishTier(key='chapelle', display_name='Chapelle', cost=0, marriage_lock_hours=4, offering=0), ParishTier(key='eglise', display_name='Église', cost=2, marriage_lock_hours=2, offering=1), ParishTier(key='cathedrale', display_name='Cathédrale', cost=4, marriage_lock_hours=1, offering=2))}, 'technologies': {'contre_espionnage': 0, 'corruption': 0, 'embuscade': 0, 'explorateur': 0, 'garde_royale': 0, 'jeu_d_armes': 0, 'limits': {}, 'mariage_arrange': 0, 'patrouille': 0, 'sabotage': 0, ...}, 'voliere': {'corbeau_civ_cooldown_hours': 4, 'corbeau_track_cooldown_hours': 6, 'corbeau_track_window_hours': 1, 'corbeau_verify_cooldown_hours': 2, 'faucon_release_cooldown_hours': 12, 'faucon_release_window_hours': 2, 'faucon_sabotage_cooldown_hours': 4, 'faucon_territory_cooldown_hours': 8, 'pigeon_civ_cooldown_hours': 4, 'pigeon_dm_cooldown_hours': 1, ...}}, 'now': {'ages': (Epoch(key='dark_age', display_name='Âge sombre', gaia_ai_level=2, tech_points=0, extra_marriages=1), Epoch(key='feudal_age', display_name='Âge féodal...aia_ai_level=3, tech_points=1, extra_marriages=1)), 'attacks': {'attacks_per_week': 2, 'defense_cutoff_minutes': 5, 'defenses_per_week': 2, 'embuscade_delay_minutes': 10, 'gaia_attack_delay_minutes': 10, 'gaia_attack_max_per_kingdom': 2, 'pick_ban_lead_minutes': 3, 'player_attack_delay_minutes': 10, 'ready_grace_minutes': 3, 'score_dispute_after_reminder_hours': 1.0, ...}, 'events': {'exploration_cron': '0 12 * * SAT', 'ffa_announce_lead_hours': 1, 'ffa_no_show_lock_hours': 6, 'ffa_start_hours': (14, 15, 16, 17, 18, 19, 20, 21, 22)}, 'parish': {'cathedral_chantier_hours': 8, 'tiers': (ParishTier(key='chapelle', display_name='Chapelle', cost=0, marriage_lock_hours=4, offering=0), ParishTier(key='eglise', display_name='Église', cost=2, marriage_lock_hours=2, offering=1), ParishTier(key='cathedrale', display_name='Cathédrale', cost=4, marriage_lock_hours=1, offering=2))}, 'technologies': {'contre_espionnage': 0, 'corruption': 0, 'embuscade': 0, 'explorateur': 0, 'garde_royale': 0, 'jeu_d_armes': 0, 'limits': {}, 'mariage_arrange': 0, 'patrouille': 0, 'sabotage': 0, ...}, 'voliere': {'corbeau_civ_cooldown_hours': 4, 'corbeau_track_cooldown_hours': 6, 'corbeau_track_window_hours': 1, 'corbeau_verify_cooldown_hours': 2, 'faucon_release_cooldown_hours': 12, 'faucon_release_window_hours': 2, 'faucon_sabotage_cooldown_hours': 4, 'faucon_territory_cooldown_hours': 8, 'pigeon_civ_cooldown_hours': 4, 'pigeon_dm_cooldown_hours': 1, ...}}}<br>
 <strong>BETA_TIMEZONE</strong> = 'Europe/Paris'<br>
-<strong>__annotations__</strong> = {'BETA_PRESETS': 'dict[str, dict[str, Any]]'}</td></tr></table>
+<strong>__annotations__</strong> = {'BETA_PLAN_OFFSETS': 'dict[str, Any]', 'BETA_PRESETS': 'dict[str, dict[str, Any]]'}</td></tr></table>
 </body></html>
