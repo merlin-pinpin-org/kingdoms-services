@@ -1,0 +1,179 @@
+# Kingdoms mod (Season II territory-conquest AoE2).
+# Design: kingdoms repo docs/MODS/kingdoms/ (reference Season II + DECISIONS.md D1-D54).
+# Enabled with T2 (enrollment); the declaration is validated at startup.
+#
+# Single source of truth of the salons-first structure (kingdoms#138,
+# kingdoms-services#175): the startup provisioning and the /kingdom
+# bootstrap both provision from this declaration — channel groups
+# (categories), kinds (text/forum/announce) and admin-only flags are
+# data here, never code in the mod.
+id: kingdoms
+enabled: true
+seasonal: true
+settings: {}
+channel_groups:
+  - key: profiles
+    display_name: Profils
+  - key: general
+    display_name: Général
+  - key: conscription
+    display_name: Conscription
+  - key: kingdoms
+    display_name: Kingdoms
+  - key: gaia
+    display_name: Royaume Gaïa
+  - key: battlefield
+    display_name: Champs de Bataille
+  - key: admin
+    display_name: Admin
+    admin_only: true
+  - key: support
+    display_name: Support
+channels:
+  - key: presentation
+    display_name: Présentation
+    description: Server presentation (admin-written)
+    group: general
+    kind: announce
+  - key: announce
+    display_name: Annonce
+    description: Announcements (admin-written)
+    group: general
+    kind: announce
+  - key: rules
+    display_name: Règles
+    description: The game rules
+    group: general
+    kind: forum
+  - key: season
+    display_name: Saison
+    description: Season talk
+    group: general
+  - key: update
+    display_name: Update
+    description: Patch notes (admin-written)
+    group: general
+    kind: announce
+  - key: tavern
+    display_name: Taverne
+    description: Off-topic
+    group: general
+  - key: suggestions
+    display_name: Suggestion
+    description: Player suggestions
+    group: general
+    kind: forum
+  - key: apply
+    display_name: Postuler
+    description: The enrollment panel channel
+    group: conscription
+  - key: applications
+    display_name: Candidatures
+    description: Submitted applications (admin only)
+    group: conscription
+    admin_only: true
+  - key: realms
+    display_name: Royaumes
+    description: Kingdom validation panel (admin only)
+    group: conscription
+    admin_only: true
+  - key: scriptorium
+    display_name: 📜 Scriptorium
+    description: Sommaire — Cadastre, Diplomatie, Seigneurie (ephemeral rubrics)
+    group: kingdoms
+  - key: market
+    display_name: Marché
+    description: Kingdoms market (trades and resources)
+    group: kingdoms
+  - key: geopolitics
+    display_name: Géopolitique
+    description: Announcements, treaties and political rules
+    group: kingdoms
+  - key: epoch
+    display_name: 🏺 Âge
+    description: The current age and the age scale (fixed name — the age lives in the pinned message)
+    group: kingdoms
+    kind: announce
+  - key: patrol
+    display_name: Patrouille
+    description: Gaia patrol reports
+    group: gaia
+  - key: territory
+    display_name: Territoire
+    description: Territories and their cadastre effects
+    group: gaia
+  - key: exploration
+    display_name: Exploration
+    description: Exploration reports
+    group: gaia
+  - key: attack_delays
+    display_name: Délais-attaque
+    description: Attack delay tracking
+    group: battlefield
+  - key: attack
+    display_name: Déclarer une attaque
+    description: The guided attack declaration panel
+    group: battlefield
+  - key: attacks
+    display_name: Attaques
+    description: Attack announcements (declarations, defenses, reveals)
+    group: battlefield
+  - key: talks
+    display_name: Pourparlers
+    description: War negotiations
+    group: battlefield
+  - key: settings
+    display_name: Paramètres
+    description: Mod settings panel channel
+    group: admin
+  - key: season_management
+    display_name: Gestion saison
+    description: Season management (admin only)
+    group: admin
+  - key: time_machine
+    display_name: Machine à temps
+    description: Game-clock test panel — fast-forward and snapshots (admin only)
+    group: admin
+    admin_only: true
+  - key: distributor
+    display_name: Distributeur
+    description: Admin test injector — hand elements to a kingdom (admin only)
+    group: admin
+    admin_only: true
+  - key: console
+    display_name: 🛠 console-admin
+    description: The admin test console — text commands, answers in the salon (admin only)
+    group: admin
+    admin_only: true
+  - key: requests
+    display_name: Demandes
+    description: Edit/leave requests (admin only)
+    group: admin
+  - key: question
+    display_name: Question
+    description: Player questions
+    group: support
+    kind: forum
+  - key: bug
+    display_name: Signaler un Bug
+    description: Bug reports
+    group: support
+    kind: forum
+roles:
+  - key: kingdoms_king
+    display_name: Kingdoms King
+    color: 0xE6B800
+    hoisted: true
+  - key: kingdoms_lord
+    display_name: Kingdoms Lord
+    color: 0x3498DB
+  - key: kingdoms_locked
+    display_name: 💍 Verrouillé
+    color: 0xE74C3C
+  - key: kingdoms_admin
+    display_name: Kingdoms Admin
+    color: 0xE74C3C
+    hoisted: true
+workflows: []
+commands: []
+dependencies: []

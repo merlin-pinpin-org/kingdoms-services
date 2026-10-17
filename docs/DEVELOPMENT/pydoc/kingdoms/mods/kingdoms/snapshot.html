@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.snapshot</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.snapshot</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/snapshot.py">SOURCE_ROOT/mods/kingdoms/snapshot.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;Lot&nbsp;C&nbsp;first&nbsp;slice:&nbsp;season&nbsp;snapshots&nbsp;for&nbsp;the&nbsp;Lot&nbsp;B&nbsp;views.<br>
+&nbsp;<br>
+Pure&nbsp;projections:&nbsp;season-state&nbsp;models&nbsp;(models.py)&nbsp;in,&nbsp;view&nbsp;dataclasses<br>
+(views.py)&nbsp;out.&nbsp;No&nbsp;Discord,&nbsp;no&nbsp;stores,&nbsp;no&nbsp;side&nbsp;effects&nbsp;—&nbsp;the&nbsp;wiring&nbsp;of<br>
+a&nbsp;later&nbsp;slice&nbsp;feeds&nbsp;these&nbsp;from&nbsp;the&nbsp;gRPC&nbsp;seams&nbsp;and&nbsp;hands&nbsp;the&nbsp;results&nbsp;to<br>
+the&nbsp;builders;&nbsp;the&nbsp;unit&nbsp;tests&nbsp;run&nbsp;on&nbsp;plain&nbsp;data&nbsp;only.<br>
+&nbsp;<br>
+Mapping&nbsp;decisions&nbsp;(reference&nbsp;§20,&nbsp;D9/D36):&nbsp;the&nbsp;technology&nbsp;shop&nbsp;is<br>
+derived&nbsp;from&nbsp;the&nbsp;config&nbsp;(costs&nbsp;and&nbsp;limits),&nbsp;the&nbsp;display&nbsp;names&nbsp;come&nbsp;from<br>
+the&nbsp;designer-authored&nbsp;FR/EN&nbsp;catalog&nbsp;below,&nbsp;and&nbsp;the&nbsp;cadastre&nbsp;lines&nbsp;read<br>
+the&nbsp;territory&nbsp;``map_key``&nbsp;as&nbsp;the&nbsp;map&nbsp;label&nbsp;until&nbsp;the&nbsp;map&nbsp;catalog&nbsp;lands.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-kingdom_card"><strong>kingdom_card</strong></a>(kingdom: 'KingdomModel', lords: 'Sequence[LordModel]', *, territory_count: 'int', tech_points: 'int', locale: 'str' = 'fr') -&gt; 'KingdomCard'</dt><dd><span class="code">Project&nbsp;one&nbsp;kingdom&nbsp;and&nbsp;its&nbsp;lords&nbsp;into&nbsp;a&nbsp;profile&nbsp;card&nbsp;(B2).</span></dd></dl>
+ <dl><dt><a name="-season_label"><strong>season_label</strong></a>(season: 'SeasonState', config: 'KingdomsSeasonConfig', *, locale: 'str' = 'fr') -&gt; 'str'</dt><dd><span class="code">Project&nbsp;the&nbsp;season&nbsp;progression&nbsp;into&nbsp;the&nbsp;cadastre&nbsp;sublabel&nbsp;(B1).<br>
+&nbsp;<br>
+Reads&nbsp;the&nbsp;current&nbsp;age&nbsp;display&nbsp;name&nbsp;from&nbsp;the&nbsp;config;&nbsp;an&nbsp;unknown&nbsp;age<br>
+key&nbsp;(config&nbsp;changed&nbsp;mid-season)&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;raw&nbsp;key.</span></dd></dl>
+ <dl><dt><a name="-tech_points_of"><strong>tech_points_of</strong></a>(state: 'TechnologyState | None') -&gt; 'int'</dt><dd><span class="code">Read&nbsp;a&nbsp;kingdom's&nbsp;tech&nbsp;points&nbsp;(a&nbsp;missing&nbsp;state&nbsp;reads&nbsp;as&nbsp;zero).</span></dd></dl>
+ <dl><dt><a name="-tech_shop"><strong>tech_shop</strong></a>(config: 'TechnologyCosts', *, locale: 'str' = 'fr') -&gt; 'tuple[SpecialActionCard, ...]'</dt><dd><span class="code">Project&nbsp;the&nbsp;config&nbsp;technology&nbsp;costs&nbsp;into&nbsp;the&nbsp;shop&nbsp;cards&nbsp;(B4).<br>
+&nbsp;<br>
+Only&nbsp;the&nbsp;integer&nbsp;costs&nbsp;become&nbsp;cards:&nbsp;the&nbsp;``limits``&nbsp;mapping&nbsp;is<br>
+admin&nbsp;data&nbsp;(D36),&nbsp;not&nbsp;a&nbsp;shop&nbsp;entry.</span></dd></dl>
+ <dl><dt><a name="-territory_lines"><strong>territory_lines</strong></a>(territories: 'Sequence[TerritoryModel]', kingdoms_by_id: 'Mapping[str, KingdomModel]') -&gt; 'tuple[TerritoryLine, ...]'</dt><dd><span class="code">Project&nbsp;the&nbsp;season&nbsp;territories&nbsp;into&nbsp;cadastre&nbsp;lines&nbsp;(B1).<br>
+&nbsp;<br>
+A&nbsp;territory&nbsp;whose&nbsp;owner&nbsp;is&nbsp;unknown&nbsp;(a&nbsp;dangling&nbsp;id&nbsp;in&nbsp;a&nbsp;mid-transfer<br>
+read)&nbsp;maps&nbsp;to&nbsp;the&nbsp;empty&nbsp;owner&nbsp;label&nbsp;—&nbsp;the&nbsp;cadastre&nbsp;never&nbsp;crashes&nbsp;on<br>
+a&nbsp;concurrent&nbsp;season&nbsp;transition.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_LOCALE</strong> = 'fr'<br>
+<strong>MOD_KEY</strong> = 'kingdoms'<br>
+<strong>TECHNOLOGY_NAMES</strong> = {'contre_espionnage': {'en': 'Counter-intelligence', 'fr': 'Contre-espionnage'}, 'corruption': {'en': 'Corruption', 'fr': 'Corruption'}, 'embuscade': {'en': 'Ambush', 'fr': 'Embuscade'}, 'explorateur': {'en': 'Explorer', 'fr': 'Explorateur'}, 'garde_royale': {'en': 'Royal guard', 'fr': 'Garde royale'}, 'jeu_d_armes': {'en': 'Weapons play', 'fr': "Jeu d'armes"}, 'mariage_arrange': {'en': 'Arranged marriage', 'fr': 'Mariage arrangé'}, 'patrouille': {'en': 'Patrol', 'fr': 'Patrouille'}, 'sabotage': {'en': 'Sabotage', 'fr': 'Sabotage'}, 'traquenard': {'en': 'Trap', 'fr': 'Traquenard'}}<br>
+<strong>__annotations__</strong> = {'TECHNOLOGY_NAMES': 'dict[str, dict[str, str]]'}</td></tr></table>
+</body></html>

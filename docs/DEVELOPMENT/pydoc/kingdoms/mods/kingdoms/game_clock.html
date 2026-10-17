@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.game_clock</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.game_clock</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/game_clock.py">SOURCE_ROOT/mods/kingdoms/game_clock.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;game&nbsp;clock&nbsp;seam&nbsp;(machine-temps-v2,&nbsp;Drasah&nbsp;14/10/2026).<br>
+&nbsp;<br>
+The&nbsp;v1&nbsp;time&nbsp;machine&nbsp;replayed&nbsp;the&nbsp;missed&nbsp;slots&nbsp;but&nbsp;did&nbsp;NOT&nbsp;move&nbsp;the<br>
+clock:&nbsp;``status()``&nbsp;answered&nbsp;the&nbsp;real&nbsp;wall&nbsp;time&nbsp;and&nbsp;the&nbsp;~29&nbsp;battle<br>
+phases,&nbsp;locks,&nbsp;cooldowns&nbsp;and&nbsp;cron&nbsp;reads&nbsp;still&nbsp;consulted<br>
+``datetime.now()``&nbsp;—&nbsp;a&nbsp;«&nbsp;+1&nbsp;day&nbsp;»&nbsp;left&nbsp;every&nbsp;T-15/T-5&nbsp;phase&nbsp;anchored<br>
+on&nbsp;the&nbsp;real&nbsp;calendar.<br>
+&nbsp;<br>
+This&nbsp;module&nbsp;owns&nbsp;the&nbsp;ONE&nbsp;seam&nbsp;the&nbsp;whole&nbsp;mod&nbsp;reads&nbsp;the&nbsp;time&nbsp;through:<br>
+&nbsp;<br>
+-&nbsp;``clock_offset``&nbsp;—&nbsp;the&nbsp;persisted&nbsp;seconds&nbsp;the&nbsp;game&nbsp;clock&nbsp;runs&nbsp;AHEAD<br>
+&nbsp;&nbsp;of&nbsp;the&nbsp;real&nbsp;clock&nbsp;(``SeasonState.clock_offset``,&nbsp;admin/test&nbsp;state<br>
+&nbsp;&nbsp;only:&nbsp;a&nbsp;normal&nbsp;game&nbsp;always&nbsp;runs&nbsp;at&nbsp;offset&nbsp;0);<br>
+-&nbsp;``<a href="#-game_now">game_now</a>()``&nbsp;—&nbsp;the&nbsp;game&nbsp;clock:&nbsp;``real&nbsp;now&nbsp;+&nbsp;offset``.&nbsp;Every<br>
+&nbsp;&nbsp;service,&nbsp;scheduler&nbsp;and&nbsp;surface&nbsp;that&nbsp;used&nbsp;to&nbsp;read&nbsp;``datetime.now()``<br>
+&nbsp;&nbsp;reads&nbsp;this&nbsp;instead;<br>
+-&nbsp;``<a href="#-parse_duration">parse_duration</a>()``&nbsp;—&nbsp;the&nbsp;free-jump&nbsp;parser&nbsp;(«&nbsp;90m&nbsp;»,&nbsp;«&nbsp;2h&nbsp;»,<br>
+&nbsp;&nbsp;«&nbsp;15m&nbsp;»,&nbsp;«&nbsp;3d&nbsp;»,&nbsp;combinable&nbsp;like&nbsp;«&nbsp;1d2h30m&nbsp;»);<br>
+-&nbsp;``<a href="#-format_offset">format_offset</a>()``&nbsp;—&nbsp;the&nbsp;«&nbsp;+2h&nbsp;15m&nbsp;»&nbsp;label&nbsp;of&nbsp;the&nbsp;panel&nbsp;line.<br>
+&nbsp;<br>
+The&nbsp;offset&nbsp;cache&nbsp;is&nbsp;process-wide&nbsp;and&nbsp;ALWAYS&nbsp;re-synced&nbsp;from&nbsp;the<br>
+persisted&nbsp;season:&nbsp;at&nbsp;every&nbsp;loop&nbsp;tick,&nbsp;at&nbsp;every&nbsp;time-machine&nbsp;read&nbsp;and<br>
+mutation,&nbsp;and&nbsp;after&nbsp;every&nbsp;snapshot&nbsp;restore&nbsp;—&nbsp;a&nbsp;restart&nbsp;converges&nbsp;back<br>
+to&nbsp;the&nbsp;persisted&nbsp;offset&nbsp;within&nbsp;one&nbsp;tick.&nbsp;The&nbsp;offset&nbsp;is&nbsp;never&nbsp;negative<br>
+(a&nbsp;rewind&nbsp;goes&nbsp;through&nbsp;the&nbsp;snapshots,&nbsp;never&nbsp;through&nbsp;the&nbsp;clock).</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-format_offset"><strong>format_offset</strong></a>(seconds: 'int') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;offset&nbsp;as&nbsp;Drasah&nbsp;reads&nbsp;it:&nbsp;«&nbsp;+2h&nbsp;15m&nbsp;»,&nbsp;«&nbsp;+3j&nbsp;».</span></dd></dl>
+ <dl><dt><a name="-game_now"><strong>game_now</strong></a>() -&gt; 'datetime'</dt><dd><span class="code">Return&nbsp;the&nbsp;game&nbsp;clock:&nbsp;the&nbsp;real&nbsp;UTC&nbsp;instant&nbsp;plus&nbsp;the&nbsp;test&nbsp;offset.</span></dd></dl>
+ <dl><dt><a name="-game_offset_seconds"><strong>game_offset_seconds</strong></a>() -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;current&nbsp;game-clock&nbsp;offset&nbsp;(seconds,&nbsp;never&nbsp;negative).</span></dd></dl>
+ <dl><dt><a name="-parse_duration"><strong>parse_duration</strong></a>(text: 'str') -&gt; 'int'</dt><dd><span class="code">Parse&nbsp;a&nbsp;free-jump&nbsp;duration&nbsp;into&nbsp;seconds&nbsp;(«&nbsp;90m&nbsp;»,&nbsp;«&nbsp;2h&nbsp;»,&nbsp;«&nbsp;3d&nbsp;»).<br>
+&nbsp;<br>
+Units:&nbsp;``m``/``min``&nbsp;(minutes),&nbsp;``h``&nbsp;(hours),&nbsp;``d``/``j``&nbsp;(days)&nbsp;—<br>
+combinable&nbsp;(«&nbsp;1d2h30m&nbsp;»).&nbsp;Spaces&nbsp;are&nbsp;free,&nbsp;the&nbsp;value&nbsp;must&nbsp;be<br>
+strictly&nbsp;positive:&nbsp;a&nbsp;negative&nbsp;or&nbsp;zero&nbsp;jump&nbsp;is&nbsp;refused&nbsp;loudly&nbsp;(the<br>
+rewind&nbsp;goes&nbsp;through&nbsp;the&nbsp;snapshots,&nbsp;never&nbsp;through&nbsp;the&nbsp;clock).</span></dd></dl>
+ <dl><dt><a name="-set_game_offset"><strong>set_game_offset</strong></a>(seconds: 'int') -&gt; 'None'</dt><dd><span class="code">Set&nbsp;the&nbsp;process&nbsp;game-clock&nbsp;offset&nbsp;(negative&nbsp;values&nbsp;are&nbsp;refused).</span></dd></dl>
+ <dl><dt>async <a name="-sync_game_offset"><strong>sync_game_offset</strong></a>(kingdoms_service: 'KingdomsService | None') -&gt; 'int'</dt><dd><span class="code">Re-sync&nbsp;the&nbsp;process&nbsp;offset&nbsp;from&nbsp;the&nbsp;persisted&nbsp;season&nbsp;(best&nbsp;effort).<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;applied&nbsp;offset.&nbsp;A&nbsp;missing&nbsp;service&nbsp;or&nbsp;season&nbsp;keeps&nbsp;the<br>
+cache&nbsp;untouched&nbsp;—&nbsp;a&nbsp;bot&nbsp;without&nbsp;a&nbsp;season&nbsp;runs&nbsp;on&nbsp;the&nbsp;real&nbsp;clock.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>TYPE_CHECKING</strong> = False<br>
+<strong>UTC</strong> = datetime.timezone.utc<br>
+<strong>__annotations__</strong> = {'_DURATION_UNITS': 'dict[str, int]', '_OFFSET_SECONDS': 'int'}</td></tr></table>
+</body></html>

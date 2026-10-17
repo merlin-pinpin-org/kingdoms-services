@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.ffa_exploration</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.ffa_exploration</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/ffa_exploration.py">SOURCE_ROOT/mods/kingdoms/ffa_exploration.py</a></td></tr></table>
+    <p><span class="code">The&nbsp;Saturday&nbsp;FFA&nbsp;Exploration&nbsp;service&nbsp;(ffa-exploration-v1,&nbsp;Drasah&nbsp;14/10/2026).<br>
+&nbsp;<br>
+Each&nbsp;Saturday&nbsp;the&nbsp;bot&nbsp;draws&nbsp;a&nbsp;random&nbsp;start&nbsp;hour&nbsp;(10h-20h&nbsp;Paris,&nbsp;full<br>
+hours),&nbsp;announces&nbsp;the&nbsp;FFA&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;salon&nbsp;2h&nbsp;before&nbsp;—&nbsp;the<br>
+announcement&nbsp;opens&nbsp;the&nbsp;enrollments&nbsp;through&nbsp;the&nbsp;persistent&nbsp;«&nbsp;Aller<br>
+explorer&nbsp;»&nbsp;button.&nbsp;Registration&nbsp;is&nbsp;FREE&nbsp;(no&nbsp;attack&nbsp;budget),&nbsp;capped&nbsp;by<br>
+the&nbsp;Gaïa&nbsp;free-for-all&nbsp;participant&nbsp;ceiling&nbsp;(7),&nbsp;with&nbsp;the&nbsp;admin<br>
+parameter&nbsp;``1&nbsp;seigneur&nbsp;par&nbsp;royaume``&nbsp;or&nbsp;``libre``;&nbsp;a&nbsp;lord&nbsp;locked&nbsp;by&nbsp;a<br>
+fresh&nbsp;Explorateur&nbsp;purchase&nbsp;(marche-v2&nbsp;art.&nbsp;6)&nbsp;or&nbsp;by&nbsp;a&nbsp;previous&nbsp;FFA<br>
+no-show&nbsp;cannot&nbsp;enroll.<br>
+&nbsp;<br>
+One&nbsp;single&nbsp;1h15&nbsp;game&nbsp;mixes&nbsp;the&nbsp;AI&nbsp;Gaïa&nbsp;and&nbsp;every&nbsp;participant;&nbsp;the<br>
+ranking&nbsp;comes&nbsp;back&nbsp;through&nbsp;the&nbsp;game&nbsp;contract&nbsp;(D20)&nbsp;as&nbsp;a&nbsp;lord-id&nbsp;list<br>
+best-first&nbsp;—&nbsp;the&nbsp;tie&nbsp;rule&nbsp;(plus&nbsp;petit&nbsp;Elo)&nbsp;is&nbsp;resolved&nbsp;upstream,&nbsp;the<br>
+mod&nbsp;carries&nbsp;no&nbsp;Elo&nbsp;yet.&nbsp;The&nbsp;rewards&nbsp;flow&nbsp;through&nbsp;the&nbsp;existing<br>
+``EventService.run_exploration``&nbsp;pipeline&nbsp;(random&nbsp;Gaïa&nbsp;map&nbsp;for&nbsp;the<br>
+winner&nbsp;+&nbsp;graduated&nbsp;tech&nbsp;points),&nbsp;and&nbsp;a&nbsp;registered&nbsp;participant&nbsp;absent<br>
+from&nbsp;the&nbsp;ranking&nbsp;is&nbsp;a&nbsp;no-show:&nbsp;72h&nbsp;combat&nbsp;lock&nbsp;starting&nbsp;at&nbsp;the&nbsp;NEXT<br>
+cycle&nbsp;switch.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="kingdoms.mods.kingdoms.chronicle.html">kingdoms.mods.kingdoms.chronicle</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"><a href="random.html">random</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAExplorationService">FFAExplorationService</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>(<a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAFullError">FFAFullError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAKingdomFullError">FFAKingdomFullError</a>
+</dt><dt class="heading-text"><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFANotOpenError">FFANotOpenError</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FFAError">class <strong>FFAError</strong></a>(<a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FFAError">FFAError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Base&nbsp;of&nbsp;the&nbsp;FFA&nbsp;Exploration&nbsp;errors.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_FFA_ERROR'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.ffa_unexpected'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="FFAError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="FFAError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="FFAError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="FFAError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="FFAError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="FFAError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FFAError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="FFAError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="FFAError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="FFAError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FFAExplorationService">class <strong>FFAExplorationService</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FFAExplorationService">FFAExplorationService</a>(store:&nbsp;'KingdomsStore',&nbsp;config:&nbsp;'KingdomsSeasonConfig',&nbsp;kingdoms:&nbsp;'KingdomsService',&nbsp;events:&nbsp;'EventService')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Own&nbsp;the&nbsp;Saturday&nbsp;FFA&nbsp;Exploration&nbsp;state&nbsp;machine.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="FFAExplorationService-__init__"><strong>__init__</strong></a>(self, store: 'KingdomsStore', config: 'KingdomsSeasonConfig', kingdoms: 'KingdomsService', events: 'EventService') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-current"><strong>current</strong></a>(self, now: 'datetime') -&gt; 'FFAExplorationModel | None'</dt><dd><span class="code">Return&nbsp;this&nbsp;Saturday's&nbsp;FFA&nbsp;document,&nbsp;None&nbsp;outside&nbsp;a&nbsp;Saturday&nbsp;draw.</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-draw_or_get"><strong>draw_or_get</strong></a>(self, now: 'datetime', *, seed: 'int | None' = None) -&gt; 'FFAExplorationModel | None'</dt><dd><span class="code">Draw&nbsp;(or&nbsp;return)&nbsp;this&nbsp;Saturday's&nbsp;FFA&nbsp;start&nbsp;hour.<br>
+&nbsp;<br>
+Restart-safe&nbsp;by&nbsp;persistence:&nbsp;the&nbsp;first&nbsp;tick&nbsp;of&nbsp;the&nbsp;Saturday<br>
+draws&nbsp;the&nbsp;hour&nbsp;and&nbsp;stores&nbsp;the&nbsp;document&nbsp;—&nbsp;every&nbsp;later&nbsp;tick&nbsp;(and<br>
+every&nbsp;restart)&nbsp;reads&nbsp;the&nbsp;same&nbsp;draw&nbsp;back.&nbsp;Returns&nbsp;None&nbsp;when&nbsp;the<br>
+FFA&nbsp;is&nbsp;disabled&nbsp;or&nbsp;the&nbsp;season&nbsp;has&nbsp;no&nbsp;running&nbsp;Saturday&nbsp;FFA.</span></dd></dl>
+
+<dl><dt><a name="FFAExplorationService-due_announce"><strong>due_announce</strong></a>(self, ffa: 'FFAExplorationModel', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;Géopolitique&nbsp;announcement&nbsp;is&nbsp;due&nbsp;(2h&nbsp;before).</span></dd></dl>
+
+<dl><dt><a name="FFAExplorationService-due_start"><strong>due_start</strong></a>(self, ffa: 'FFAExplorationModel', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;FFA&nbsp;game&nbsp;is&nbsp;due&nbsp;to&nbsp;start.</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-enroll"><strong>enroll</strong></a>(self, player_id: 'str', *, now: 'datetime | None' = None) -&gt; 'tuple[str, FFAExplorationModel]'</dt><dd><span class="code">Reserve&nbsp;(or&nbsp;release)&nbsp;one&nbsp;FFA&nbsp;slot&nbsp;—&nbsp;a&nbsp;toggle,&nbsp;first&nbsp;come&nbsp;first&nbsp;served.<br>
+&nbsp;<br>
+Drasah's&nbsp;open&nbsp;point&nbsp;(withdrawals):&nbsp;the&nbsp;executor's&nbsp;proposal&nbsp;is&nbsp;a<br>
+TOGGLE&nbsp;—&nbsp;clicking&nbsp;«&nbsp;Aller&nbsp;explorer&nbsp;»&nbsp;again&nbsp;before&nbsp;the&nbsp;start<br>
+RELEASES&nbsp;the&nbsp;slot,&nbsp;so&nbsp;a&nbsp;withdrawer&nbsp;never&nbsp;blocks&nbsp;a&nbsp;seat.</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-ingest_result"><strong>ingest_result</strong></a>(self, ranking: 'list[str]', *, now: 'datetime | None' = None) -&gt; 'FFAExplorationModel'</dt><dd><span class="code">Apply&nbsp;the&nbsp;game&nbsp;contract's&nbsp;ranking&nbsp;(lord&nbsp;ids&nbsp;best-first).<br>
+&nbsp;<br>
+The&nbsp;rewards&nbsp;flow&nbsp;through&nbsp;``EventService.run_exploration``&nbsp;with<br>
+the&nbsp;KINGDOM&nbsp;ranking&nbsp;(a&nbsp;kingdom&nbsp;ranks&nbsp;as&nbsp;its&nbsp;best&nbsp;lord,&nbsp;deduped<br>
+—&nbsp;the&nbsp;mod&nbsp;has&nbsp;no&nbsp;per-lord&nbsp;treasury).&nbsp;Every&nbsp;registered<br>
+participant&nbsp;absent&nbsp;from&nbsp;the&nbsp;ranking&nbsp;is&nbsp;a&nbsp;no-show:&nbsp;72h&nbsp;combat<br>
+lock&nbsp;starting&nbsp;at&nbsp;the&nbsp;NEXT&nbsp;cycle&nbsp;switch&nbsp;(the&nbsp;lock&nbsp;lands&nbsp;in&nbsp;the<br>
+future&nbsp;by&nbsp;construction&nbsp;—&nbsp;a&nbsp;no-show&nbsp;on&nbsp;Saturday&nbsp;is&nbsp;locked&nbsp;from<br>
+the&nbsp;following&nbsp;Sunday&nbsp;23:30).</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-mark_announced"><strong>mark_announced</strong></a>(self, ffa: 'FFAExplorationModel') -&gt; 'FFAExplorationModel'</dt><dd><span class="code">Flag&nbsp;the&nbsp;FFA&nbsp;as&nbsp;announced&nbsp;—&nbsp;enrollments&nbsp;open&nbsp;from&nbsp;now&nbsp;on.</span></dd></dl>
+
+<dl><dt><a name="FFAExplorationService-max_participants"><strong>max_participants</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;FFA&nbsp;participant&nbsp;ceiling&nbsp;(the&nbsp;Gaïa&nbsp;free-for-all&nbsp;cap,&nbsp;7).<br>
+&nbsp;<br>
+Exposed&nbsp;for&nbsp;the&nbsp;panel&nbsp;views&nbsp;and&nbsp;the&nbsp;join&nbsp;button&nbsp;notes.</span></dd></dl>
+
+<dl><dt>async <a name="FFAExplorationService-start_due"><strong>start_due</strong></a>(self, now: 'datetime | None' = None) -&gt; 'FFAExplorationModel | None'</dt><dd><span class="code">Flip&nbsp;the&nbsp;due&nbsp;FFA&nbsp;to&nbsp;started;&nbsp;return&nbsp;it&nbsp;when&nbsp;it&nbsp;just&nbsp;started.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FFAFullError">class <strong>FFAFullError</strong></a>(<a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FFAFullError">FFAFullError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;FFA&nbsp;accepts&nbsp;no&nbsp;more&nbsp;participant.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAFullError">FFAFullError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_FFA_FULL'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.ffa_full'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="FFAFullError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="FFAFullError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="FFAFullError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="FFAFullError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="FFAFullError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAFullError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="FFAFullError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAFullError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FFAKingdomFullError">class <strong>FFAKingdomFullError</strong></a>(<a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FFAKingdomFullError">FFAKingdomFullError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;the&nbsp;kingdom&nbsp;already&nbsp;holds&nbsp;a&nbsp;slot&nbsp;(1/royaume&nbsp;mode).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAKingdomFullError">FFAKingdomFullError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_FFA_KINGDOM_FULL'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.ffa_kingdom_full'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="FFAKingdomFullError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="FFAKingdomFullError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="FFAKingdomFullError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="FFAKingdomFullError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="FFAKingdomFullError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAKingdomFullError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="FFAKingdomFullError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFAKingdomFullError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FFANotOpenError">class <strong>FFANotOpenError</strong></a>(<a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FFANotOpenError">FFANotOpenError</a>(message:&nbsp;'str',&nbsp;**context:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Raised&nbsp;when&nbsp;no&nbsp;FFA&nbsp;accepts&nbsp;enrollments&nbsp;at&nbsp;the&nbsp;moment.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFANotOpenError">FFANotOpenError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.ffa_exploration.html#FFAError">FFAError</a></dd>
+<dd><a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a></dd>
+<dd><a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>code</strong> = 'KINGDOMS_FFA_NOT_OPEN'</dl>
+
+<dl><dt><strong>message_key</strong> = 'kingdoms.errors.ffa_not_open'</dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.mods.kingdoms.service.html#KingdomsModError">kingdoms.mods.kingdoms.service.KingdomsModError</a>:<br>
+<dl><dt><a name="FFANotOpenError-__init__"><strong>__init__</strong></a>(self, message: 'str', **context: 'str') -&gt; 'None'</dt><dd><span class="code">Create&nbsp;the&nbsp;error&nbsp;with&nbsp;serializable&nbsp;context&nbsp;entries.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><a name="FFANotOpenError-__str__"><strong>__str__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;log-friendly&nbsp;single-line&nbsp;shape:&nbsp;code&nbsp;and&nbsp;message.</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Serialize&nbsp;for&nbsp;audits&nbsp;and&nbsp;API&nbsp;responses.</span></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>user_key</strong></dt>
+<dd><span class="code">The&nbsp;i18n&nbsp;key&nbsp;of&nbsp;the&nbsp;user-facing&nbsp;answer.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="kingdoms.core.exceptions.base.html#KingdomsError">kingdoms.core.exceptions.base.KingdomsError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#Exception">builtins.Exception</a>:<br>
+<dl><dt><a name="FFANotOpenError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#Exception">builtins.Exception</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="FFANotOpenError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="FFANotOpenError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFANotOpenError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="FFANotOpenError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#FFANotOpenError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FFA_JOINED</strong> = 'joined'<br>
+<strong>FFA_LEFT</strong> = 'left'<br>
+<strong>TYPE_CHECKING</strong> = False<br>
+<strong>UTC</strong> = datetime.timezone.utc<br>
+<strong>logger</strong> = &lt;Logger kingdoms.ffa (WARNING)&gt;</td></tr></table>
+</body></html>

@@ -282,7 +282,8 @@ deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd><
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>DASHBOARD_MIN_EDIT_INTERVAL_S</strong> = 60<br>
+<td class="singlecolumn"><strong>DASHBOARD_FAILURE_COOLDOWN_S</strong> = 600<br>
+<strong>DASHBOARD_MIN_EDIT_INTERVAL_S</strong> = 60<br>
 <strong>DASHBOARD_REFRESH_INTERVAL_S</strong> = 15<br>
 <strong>GAME_KEY</strong> = 'aoe2'<br>
 <strong>LIVE_CHANNEL_NAME</strong> = '📡-live-dashboard'<br>
@@ -290,6 +291,6 @@ deleted&nbsp;message,&nbsp;healing&nbsp;a&nbsp;broken&nbsp;stream).</span></dd><
 <strong>LIVE_MESSAGE_KEY</strong> = 'live-dashboard'<br>
 <strong>MAX_EMBED_DESCRIPTION</strong> = 4096<br>
 <strong>PLATFORM</strong> = 'discord'<br>
-<strong>__annotations__</strong> = {'_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
+<strong>__annotations__</strong> = {'_GUILD_COOLDOWN': 'dict[str, float]', '_LAST_PUSH': 'dict[str, tuple[float, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.live (WARNING)&gt;</td></tr></table>
 </body></html>

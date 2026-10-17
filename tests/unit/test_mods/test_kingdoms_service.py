@@ -1,0 +1,480 @@
+"""Kingdoms mod season & enrollment service — unit tests (kingdoms-services#157).
+
+The domain rules of reference §3-§5 behind an in-memory store: manual
+launch (free or imposed), wholesale reset, King/Lord enrollment, the
+waiting queue, departures and the D23 replacement that inherits the
+weekly budgets — plus the D21 name rules.
+"""
+from __future__ import annotations
+
+import bson
+import pytest
+
+from kingdoms.mods.kingdoms.config import default_season_config
+from kingdoms.mods.kingdoms.models import GAIA_KINGDOM_KEY, KingdomValidation, LordRole
+from kingdoms.mods.kingdoms.service import (
+    AlreadyEnrolledError,
+    ImposedKingdomsError,
+    KingdomFullError,
+    KingdomLimitError,
+    KingdomNameInvalidError,
+    KingdomNotFoundError,
+    KingdomsService,
+    NoSeasonError,
+    NotEnrollableError,
+    NotQueuedError,
+    ReplacementError,
+)
+
+
+class MemoryStore:
+    """In-memory KingdomsStore — the domain tests stay network-free."""
+
+    def __init__(self) -> None:
+        self.seasons: dict[str, dict] = {}
+        self.kingdoms: dict[str, dict] = {}
+        self.lords: dict[str, dict] = {}
+        self.archives: dict[str, dict] = {}
+
+    async def upsert_season_archive(self, document: dict) -> None:
+        self.archives[document["_id"]] = document
+
+    async def find_season_archives(self) -> list[dict]:
+        return list(self.archives.values())
+
+    async def upsert_season(self, document: dict) -> None:
+        self.seasons[document["_id"]] = document
+
+    async def find_seasons(self) -> list[dict]:
+        return list(self.seasons.values())
+
+    async def upsert_kingdom(self, document: dict) -> None:
+        self.kingdoms[document["_id"]] = document
+
+    async def find_kingdoms(self) -> list[dict]:
+        return list(self.kingdoms.values())
+
+    async def delete_kingdom(self, kingdom_id: str) -> None:
+        self.kingdoms.pop(kingdom_id, None)
+
+    async def upsert_lord(self, document: dict) -> None:
+        self.lords[document["_id"]] = document
+
+    async def find_lords(self) -> list[dict]:
+        return list(self.lords.values())
+
+    async def delete_lord(self, lord_id: str) -> None:
+        self.lords.pop(lord_id, None)
+
+    async def wipe_season_data(self) -> None:
+        self.seasons.clear()
+        self.kingdoms.clear()
+        self.lords.clear()
+
+
+class MongoWireStore(MemoryStore):
+    """MemoryStore behind a BSON round-trip — what MongoDB really does.
+
+    BSON stringifies the StrEnum fields and returns plain lists, so
+    this store reproduces the production wire exactly: a strict
+    ``from_mongo`` that never saw a real document fails here.
+    """
+
+    @staticmethod
+    def _wire(document: dict) -> dict:
+        return bson.decode(bson.encode(document))
+
+    async def upsert_season(self, document: dict) -> None:
+        await super().upsert_season(self._wire(document))
+
+    async def find_seasons(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_seasons()]
+
+    async def upsert_kingdom(self, document: dict) -> None:
+        await super().upsert_kingdom(self._wire(document))
+
+    async def find_kingdoms(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_kingdoms()]
+
+    async def upsert_lord(self, document: dict) -> None:
+        await super().upsert_lord(self._wire(document))
+
+    async def find_lords(self) -> list[dict]:
+        return [self._wire(doc) for doc in await super().find_lords()]
+
+
+def _service() -> tuple[KingdomsService, MemoryStore]:
+    store = MemoryStore()
+    return KingdomsService(store, default_season_config()), store  # type: ignore[arg-type]
+
+
+async def test_enroll_requires_a_running_season() -> None:
+    service, _ = _service()
+    with pytest.raises(NoSeasonError):
+        await service.enroll("p1", "Player One", LordRole.LORD)
+
+
+async def test_launch_creates_season_and_gaia() -> None:
+    service, store = _service()
+    season = await service.launch()
+    assert season.imposed_kingdoms is False
+    kingdoms = await service.kingdoms()
+    assert [kingdom.name for kingdom in kingdoms] == [GAIA_KINGDOM_KEY]
+    assert kingdoms[0].name_approved is True
+    assert store.seasons  # the season document is persisted
+
+
+async def test_launch_imposed_kingdoms_seeds_them() -> None:
+    service, _ = _service()
+    season = await service.launch(["Aquitaine", "Bourgogne"])
+    assert season.imposed_kingdoms is True
+    names = {kingdom.name for kingdom in await service.kingdoms()}
+    assert {"Aquitaine", "Bourgogne", GAIA_KINGDOM_KEY} <= names
+
+
+async def test_reset_wipes_the_season_data() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.reset()
+    assert await service.current_season() is None
+    assert await service.kingdoms() == []
+
+
+async def test_king_founds_a_pending_name_kingdom() -> None:
+    service, _ = _service()
+    await service.launch()
+    lord = await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    assert lord.role is LordRole.KING
+    kingdom = next(k for k in await service.kingdoms() if not k.is_gaia)
+    assert kingdom.name == "Avalon"
+    assert kingdom.name_approved is False
+
+
+async def test_king_forbidden_in_the_imposed_mode() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    with pytest.raises(ImposedKingdomsError):
+        await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+
+
+async def test_kingdom_name_rules_are_enforced() -> None:
+    service, _ = _service()
+    await service.launch()
+    with pytest.raises(KingdomNameInvalidError):
+        await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="x")
+    with pytest.raises(KingdomNameInvalidError):
+        await service.enroll("p2", "Lancelot", LordRole.KING, proposed_name="bad;name!")
+
+
+async def test_kingdom_count_limit_is_enforced() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    await service.enroll("p2", "Lancelot", LordRole.KING, proposed_name="Camelot")
+    with pytest.raises(KingdomLimitError):
+        await service.enroll("p3", "Gauvain", LordRole.KING, proposed_name="Tintagel")
+
+
+async def test_lord_joins_a_kingdom_and_double_enrollment_fails() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    lord = await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+    assert lord.kingdom_id is not None
+    with pytest.raises(AlreadyEnrolledError):
+        await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+
+
+async def test_gaia_is_never_enrollable() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    with pytest.raises(NotEnrollableError):
+        await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name=GAIA_KINGDOM_KEY)
+
+
+async def test_lord_capacity_is_enforced() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    for index in range(service.config.lords_per_kingdom):
+        await service.enroll(f"p{index}", f"Lord {index}", LordRole.LORD, kingdom_name="Aquitaine")
+    with pytest.raises(KingdomFullError):
+        await service.enroll("p99", "Trop Tard", LordRole.LORD, kingdom_name="Aquitaine")
+
+
+async def test_lord_without_kingdom_waits_in_the_queue() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    lord = await service.enroll("p1", "Rollon", LordRole.LORD)
+    assert lord.in_queue is True
+    assert lord.kingdom_id is None
+
+
+async def test_assign_moves_a_queued_player() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD)
+    lord = await service.assign("p1", "Aquitaine", LordRole.LORD)
+    assert lord.in_queue is False
+    assert lord.kingdom_id is not None
+    with pytest.raises(NotQueuedError):
+        await service.assign("p1", "Aquitaine", LordRole.LORD)
+
+
+async def test_assign_unknown_kingdom_fails() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD)
+    with pytest.raises(KingdomNotFoundError):
+        await service.assign("p1", "Narnia", LordRole.LORD)
+
+
+async def test_leave_records_the_reason() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+    await service.leave("p1", "RL")
+    lord = next(item for item in await service.lords() if item.id == "p1")
+    assert lord.left is True
+    assert lord.left_reason == "RL"
+
+
+async def test_replace_inherits_the_weekly_budgets() -> None:
+    service, store = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+    outgoing = next(item for item in await service.lords() if item.id == "p1")
+    outgoing.attack_used = 1
+    outgoing.defense_used = 1
+    await store.upsert_lord(outgoing.to_mongo())  # persist the spent budgets
+    await service.leave("p1", "RL")
+    await service.enroll("p2", "Le Successeur", LordRole.LORD)  # queued
+    incoming = await service.replace("p1", "p2")
+    assert incoming.attack_used == 1
+    assert incoming.defense_used == 1
+    assert incoming.kingdom_id == outgoing.kingdom_id
+    assert all(item.id != "p1" for item in await service.lords())  # the outgoing doc is gone
+
+
+async def test_replace_requires_the_outgoing_to_have_left() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+    await service.enroll("p2", "Le Successeur", LordRole.LORD)
+    with pytest.raises(ReplacementError):
+        await service.replace("p1", "p2")
+
+
+async def test_decide_name_approves_or_falls_back() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    approved = await service.decide_name("Avalon", approved=True)
+    assert approved.name == "Avalon"
+    assert approved.name_approved is True
+    refused = await service.decide_name("Avalon", approved=False)
+    assert refused.name != "Avalon"
+    assert refused.name_approved is True
+
+
+async def test_re_enroll_after_leave_is_allowed() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    await service.enroll("p1", "Rollon", LordRole.LORD, kingdom_name="Aquitaine")
+    await service.leave("p1", "RL")
+    lord = await service.enroll("p1", "Rollon", LordRole.LORD)
+    assert lord.in_queue is True
+
+
+async def test_models_survive_the_mongo_wire_roundtrip() -> None:
+    """Regression (live incident 2026-10-10): a strict ``from_mongo``
+    rejected every document read back from MongoDB — BSON gives plain
+    strings for the StrEnum fields, and the season launch crashed with
+    ``ValidationError: type — Input should be an instance of
+    KingdomType`` the moment the starting draft re-read a freshly
+    upserted kingdom. The wire store below reproduces the exact BSON
+    round-trip, so a regression fails here, not on the live env."""
+    from kingdoms.mods.kingdoms.config import (
+        CivilizationCondition,
+        KingdomsSeasonConfig,
+    )
+
+    config = KingdomsSeasonConfig(
+        starting_civilizations=8,
+        civilizations=tuple(
+            CivilizationCondition(key=f"civ-{index}", display_name=f"Civ {index}")
+            for index in range(20)
+        ),
+    )
+    service = KingdomsService(MongoWireStore(), config)  # type: ignore[arg-type]
+    await service.launch(imposed_names=["Aquitaine", "Bourgogne"])
+    assert all(not k.civilizations for k in await service.kingdoms() if not k.is_gaia)
+    await service.start_season()  # the starting draft runs at the start
+    kingdoms = await service.kingdoms()  # reads back through BSON
+    assert len(kingdoms) == 3  # gaia + the two imposed
+    drawn = [civ for k in kingdoms if not k.is_gaia for civ in k.civilizations]
+    assert len(drawn) == 16
+    assert len(set(drawn)) == 16  # the draft stays duplicate-free over the wire
+    lords = await service.lords()
+    assert lords == []  # no lords yet, but the read must not crash either
+
+
+async def test_founding_creates_a_pending_kingdom() -> None:
+    service, _ = _service()
+    await service.launch()
+    lord = await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    assert kingdom.validation is KingdomValidation.PENDING
+    assert kingdom.name_approved is False
+    assert lord.kingdom_id == kingdom.id
+
+
+async def test_approve_kingdom_is_idempotent() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    first = await service.approve_kingdom(kingdom.id)
+    assert first.validation is KingdomValidation.APPROVED
+    assert first.name_approved is True
+    again = await service.approve_kingdom(kingdom.id)
+    assert again.validation is KingdomValidation.APPROVED
+
+
+async def test_refuse_kingdom_keeps_doc_and_queues_members() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    await service.enroll("p2", "Lancelot", LordRole.LORD, kingdom_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    refused = await service.refuse_kingdom(kingdom.id)
+    assert refused.validation is KingdomValidation.REFUSED
+    lords = {lord.id: lord for lord in await service.lords()}
+    assert lords["p1"].kingdom_id is None and lords["p1"].in_queue is True
+    assert lords["p2"].kingdom_id is None and lords["p2"].in_queue is True
+    # the document stays for the record and can be re-validated later
+    reapproved = await service.approve_kingdom(kingdom.id)
+    assert reapproved.validation is KingdomValidation.APPROVED
+
+
+async def test_joining_a_refused_kingdom_raises() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalon")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalon")
+    await service.refuse_kingdom(kingdom.id)
+    with pytest.raises(KingdomNotFoundError):
+        await service.enroll("p2", "Lancelot", LordRole.LORD, kingdom_name="Avalon")
+
+
+async def test_rename_kingdom_and_duplicate_guard() -> None:
+    service, _ = _service()
+    await service.launch()
+    await service.enroll("p1", "Arthur", LordRole.KING, proposed_name="Avalone")
+    kingdom = next(k for k in await service.kingdoms() if k.name == "Avalone")
+    renamed = await service.rename_kingdom(kingdom.id, "Avalon")
+    assert renamed.name == "Avalon"
+    await service.enroll("p2", "Béatrice", LordRole.KING, proposed_name="Bourgogne")
+    with pytest.raises(KingdomNameInvalidError):
+        await service.rename_kingdom(kingdom.id, "bourgogne")
+
+
+async def test_king_awaiting_name_flow_v2() -> None:
+    """Flow v2 (D70): approved King waits, then names the kingdom by DM."""
+    service, _ = _service()
+    await service.launch(None)
+    lord = await service.enroll_king_awaiting_name("p1", "Arthur")
+    assert lord.role is LordRole.KING and lord.in_queue and lord.kingdom_id is None
+    kingdom = await service.found_kingdom("p1", "Aquitaine")
+    assert kingdom.validation is KingdomValidation.PENDING
+    lords = await service.lords()
+    king = next(item for item in lords if item.id == "p1")
+    assert king.kingdom_id == kingdom.id and not king.in_queue
+
+
+async def test_king_awaiting_name_rejects_double_enrollment() -> None:
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    with pytest.raises(AlreadyEnrolledError):
+        await service.enroll_king_awaiting_name("p1", "Arthur")
+
+
+async def test_king_awaiting_name_refused_in_imposed_mode() -> None:
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    with pytest.raises(ImposedKingdomsError):
+        await service.enroll_king_awaiting_name("p1", "Arthur")
+
+
+async def test_found_kingdom_validates_the_caller() -> None:
+    """Only a King awaiting a name can found; a Lord cannot."""
+    service, _ = _service()
+    await service.launch(None)
+    with pytest.raises(KingdomNotFoundError):
+        await service.found_kingdom("unknown", "Aquitaine")
+    await service.enroll("p1", "Luc", LordRole.LORD)  # queued lord
+    with pytest.raises(NotQueuedError):
+        await service.found_kingdom("p1", "Aquitaine")
+
+
+async def test_found_kingdom_rejects_duplicate_names() -> None:
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    await service.found_kingdom("p1", "Aquitaine")
+    await service.enroll_king_awaiting_name("p2", "Béatrice")
+    with pytest.raises(KingdomNameInvalidError):
+        await service.found_kingdom("p2", "aquitaine")
+
+
+async def test_found_kingdom_can_then_be_approved() -> None:
+    """The DM-founded kingdom follows the normal validation queue."""
+    service, _ = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    kingdom = await service.found_kingdom("p1", "Pictavie")
+    approved = await service.approve_kingdom(kingdom.id)
+    assert approved.validation is KingdomValidation.APPROVED
+
+
+async def test_launch_archives_the_previous_season() -> None:
+    """A launch wipes the data but archives it first (Drasah's backup rule)."""
+    service, store = _service()
+    await service.launch(None)
+    await service.enroll_king_awaiting_name("p1", "Arthur")
+    await service.found_kingdom("p1", "Aquitaine")
+    store.archives.clear()  # the very first launch archived an empty set
+    await service.launch()
+    archives = await service.season_archives()
+    assert len(archives) == 1
+    archive = archives[0]
+    assert archive["kingdoms"], "the pre-wipe kingdoms are archived verbatim"
+    assert any(doc["_id"] == "p1" for doc in archive["lords"])
+    # and the live data set was wiped afterwards
+    assert all(kingdom.is_gaia for kingdom in await service.kingdoms())
+
+
+async def test_reset_archives_the_season_too() -> None:
+    service, store = _service()
+    await service.launch(["Aquitaine"])
+    store.archives.clear()
+    await service.reset()
+    assert len(store.archives) == 1
+    archive = next(iter(store.archives.values()))
+    assert any(doc.get("name") == "Aquitaine" for doc in archive["kingdoms"])
+
+
+async def test_delete_kingdom_removes_all_of_its_data() -> None:
+    """A hard delete drops the kingdom, its lords and its territories."""
+    service, _ = _service()
+    await service.launch(["Aquitaine"])
+    kingdoms = await service.kingdoms()
+    aquitaine = next(k for k in kingdoms if k.name == "Aquitaine")
+    await service.delete_kingdom(aquitaine.id)
+    assert all(kingdom.name != "Aquitaine" for kingdom in await service.kingdoms())
+
+
+async def test_delete_kingdom_refuses_gaia() -> None:
+    service, _ = _service()
+    await service.launch()
+    with pytest.raises(NotEnrollableError):
+        await service.delete_kingdom(GAIA_KINGDOM_KEY)

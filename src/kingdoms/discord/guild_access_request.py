@@ -88,7 +88,7 @@ class GuildAccessRequestSelect(
             )
             return
         pending = dict(doc.get("pending") or {})
-        requested_at = max(pending, key=int) if pending else ""
+        requested_at = _requested_at_for(pending, chosen) or (max(pending, key=int) if pending else "")
         await interaction.followup.send(
             "Demande enregistrée — un bot admin l'approuvera depuis ses DMs.", ephemeral=True
         )
@@ -178,6 +178,20 @@ _PENDING_DMS: dict[str, list[tuple[str, str]]] = {}
 
 def _dm_key(guild_id: str, requested_at: str) -> str:
     return f"{guild_id}:{requested_at}"
+
+
+def _requested_at_for(pending: dict[str, list[str]], keys: list[str]) -> str:
+    """Find the pending entry holding exactly these keys (re-request path).
+
+    When every requested key is already pending (a lost DM re-ask), the
+    notification must carry the existing entry's timestamp — not the
+    max — so the admin's approve/deny buttons target the right request.
+    """
+    wanted = set(keys)
+    for requested_at, entry_keys in pending.items():
+        if wanted.issubset(set(entry_keys)):
+            return str(requested_at)
+    return ""
 
 
 async def _notify_bot_admins(

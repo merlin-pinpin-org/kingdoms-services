@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: kingdoms.mods.kingdoms.chronicle</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.mods.html" class="white">mods</a>.<a href="kingdoms.mods.kingdoms.html" class="white">kingdoms</a>.chronicle</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/mods/kingdoms/chronicle.py">SOURCE_ROOT/mods/kingdoms/chronicle.py</a></td></tr></table>
+    <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;the&nbsp;Lord&nbsp;chronicle&nbsp;(Seigneurie&nbsp;V2&nbsp;+&nbsp;corbeau-v3,&nbsp;Drasah&nbsp;15/10/2026).<br>
+&nbsp;<br>
+Every&nbsp;lord&nbsp;carries&nbsp;a&nbsp;FACTUAL,&nbsp;exactly-timestamped&nbsp;log&nbsp;of&nbsp;the&nbsp;actions<br>
+they&nbsp;REALLY&nbsp;CLICKED&nbsp;(Drasah's&nbsp;fundamental&nbsp;rule,&nbsp;15/10):&nbsp;actions<br>
+SUFFERED&nbsp;never&nbsp;appear&nbsp;on&nbsp;the&nbsp;victim's&nbsp;fiche&nbsp;(being&nbsp;attacked&nbsp;shows&nbsp;on<br>
+the&nbsp;ATTACKER's&nbsp;chronicle),&nbsp;system&nbsp;events&nbsp;never&nbsp;appear&nbsp;(cycle/age<br>
+switches,&nbsp;Lord's&nbsp;Day&nbsp;losses&nbsp;—&nbsp;nobody&nbsp;clicked),&nbsp;and&nbsp;kingdom-level<br>
+actions&nbsp;are&nbsp;recorded&nbsp;on&nbsp;the&nbsp;CLICKING&nbsp;LORD,&nbsp;not&nbsp;the&nbsp;kingdom.<br>
+&nbsp;<br>
+The&nbsp;chronicle&nbsp;lives&nbsp;INSIDE&nbsp;the&nbsp;lord&nbsp;document&nbsp;(``LordModel.chronicle``,<br>
+cap&nbsp;50,&nbsp;oldest&nbsp;entries&nbsp;dropped&nbsp;first)&nbsp;—&nbsp;the&nbsp;MemoryStore&nbsp;test&nbsp;base&nbsp;stays<br>
+duck-typed&nbsp;and&nbsp;the&nbsp;KingdomsStore&nbsp;Protocol&nbsp;untouched.&nbsp;Recording&nbsp;is<br>
+BEST-EFFORT:&nbsp;a&nbsp;chronicle&nbsp;failure&nbsp;must&nbsp;never&nbsp;break&nbsp;the&nbsp;game&nbsp;action&nbsp;it<br>
+follows&nbsp;(every&nbsp;call&nbsp;site&nbsp;is&nbsp;post-success).<br>
+&nbsp;<br>
+The&nbsp;GATING&nbsp;lives&nbsp;here&nbsp;too:&nbsp;a&nbsp;fiche&nbsp;shows&nbsp;the&nbsp;status&nbsp;+&nbsp;chronique&nbsp;ONLY<br>
+when&nbsp;the&nbsp;target&nbsp;lord&nbsp;is&nbsp;currently&nbsp;«&nbsp;suivi&nbsp;»&nbsp;by&nbsp;the&nbsp;CONSULTING<br>
+kingdom's&nbsp;Corbeau&nbsp;(``corbeau_track``,&nbsp;24h&nbsp;window)&nbsp;—&nbsp;otherwise&nbsp;the&nbsp;fiche<br>
+shows&nbsp;the&nbsp;bare&nbsp;identity&nbsp;only.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="logging.html">logging</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-is_tracked_by"><strong>is_tracked_by</strong></a>(kingdom: 'KingdomModel', lord_id: 'str', now: 'datetime') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;``kingdom``&nbsp;currently&nbsp;«&nbsp;suit&nbsp;»&nbsp;the&nbsp;lord&nbsp;(corbeau_track,&nbsp;24h).</span></dd></dl>
+ <dl><dt><a name="-recent"><strong>recent</strong></a>(lord: 'LordModel', count: 'int' = 3) -&gt; 'list[ChronicleEntryModel]'</dt><dd><span class="code">Return&nbsp;the&nbsp;``count``&nbsp;most&nbsp;recent&nbsp;entries,&nbsp;NEWEST&nbsp;FIRST.</span></dd></dl>
+ <dl><dt>async <a name="-record"><strong>record</strong></a>(lord: 'LordModel', kind: 'str', *, now: 'datetime', store: 'Any', **params: 'str') -&gt; 'None'</dt><dd><span class="code">Append&nbsp;one&nbsp;chronicle&nbsp;entry&nbsp;to&nbsp;a&nbsp;lord's&nbsp;log&nbsp;(BEST-EFFORT,&nbsp;never&nbsp;raises).<br>
+&nbsp;<br>
+Called&nbsp;AFTER&nbsp;the&nbsp;game&nbsp;action&nbsp;succeeded:&nbsp;a&nbsp;chronicle&nbsp;failure&nbsp;is<br>
+logged&nbsp;for&nbsp;the&nbsp;admin&nbsp;but&nbsp;must&nbsp;never&nbsp;break&nbsp;the&nbsp;action&nbsp;it&nbsp;records.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CHRONICLE_CAP</strong> = 50<br>
+<strong>KIND_ARRANGED_MARRIAGE</strong> = 'arranged_marriage'<br>
+<strong>KIND_ATTACK_DECLARED</strong> = 'attack_declared'<br>
+<strong>KIND_ATTACK_RESULT</strong> = 'attack_result'<br>
+<strong>KIND_BIRD_CHOSEN</strong> = 'bird_chosen'<br>
+<strong>KIND_CATHEDRAL_CONSECRATED</strong> = 'cathedral_consecrated'<br>
+<strong>KIND_CORBEAU_CONTESTED</strong> = 'corbeau_contested'<br>
+<strong>KIND_CORBEAU_THEFT</strong> = 'corbeau_theft'<br>
+<strong>KIND_CORBEAU_THEFT_DEAD</strong> = 'corbeau_theft_dead'<br>
+<strong>KIND_CORBEAU_THEFT_STOP</strong> = 'corbeau_theft_stop'<br>
+<strong>KIND_CROWNED</strong> = 'crowned'<br>
+<strong>KIND_DEFENSE</strong> = 'defense'<br>
+<strong>KIND_DEFENSE_RESULT</strong> = 'defense_result'<br>
+<strong>KIND_EMBUSCADE</strong> = 'embuscade'<br>
+<strong>KIND_ENROLLED</strong> = 'enrolled'<br>
+<strong>KIND_FFA_JOINED</strong> = 'ffa_joined'<br>
+<strong>KIND_FFA_LEFT</strong> = 'ffa_left'<br>
+<strong>KIND_FFA_RESULT</strong> = 'ffa_result'<br>
+<strong>KIND_LEFT</strong> = 'left'<br>
+<strong>KIND_MARKET_PURCHASE</strong> = 'market_purchase'<br>
+<strong>KIND_MARRIAGE</strong> = 'marriage'<br>
+<strong>KIND_PARISH_UPGRADE</strong> = 'parish_upgrade'<br>
+<strong>KIND_PICKBAN</strong> = 'pickban'<br>
+<strong>KIND_RESTITUTION</strong> = 'restitution'<br>
+<strong>KIND_ROYAL_MARRIAGE</strong> = 'royal_marriage'<br>
+<strong>KIND_VOLIERE_ACTION</strong> = 'voliere_action'<br>
+<strong>TYPE_CHECKING</strong> = False<br>
+<strong>logger</strong> = &lt;Logger kingdoms.chronicle (WARNING)&gt;</td></tr></table>
+</body></html>

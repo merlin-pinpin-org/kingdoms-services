@@ -69,7 +69,7 @@ async def entity_post_content(
     service = content_service()
     locale = await guild_locale(guild_id, bot)
     if service is None:
-        return fallback_name, "", ""
+        return fallback_name, "", "", ""
     try:
         doc = await service.get(entity_id, locale)
     except Exception:

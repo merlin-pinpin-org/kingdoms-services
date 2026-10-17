@@ -4,6 +4,7 @@ name: Docs
 # docs. On every PR, a freshness step fails when the committed copy is stale
 # (fix: run `make docs` locally, or python3 .github/workflows/scripts/generate_pydoc.py, and
 # commit the result). Fail-closed: the freshness check is a required gate.
+
 on:
   push:
     branches: [main]

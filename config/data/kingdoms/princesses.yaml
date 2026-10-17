@@ -1,0 +1,427 @@
+# Princesses / queens by civilization — marriage feature data source.
+#
+# Used by the future marriage workflow to pick bride names per civilization.
+# source_status:
+#   documented — historically attested woman (written sources / inscriptions)
+#   tradition  — strong oral or literary tradition, semi-legendary
+#   legendary  — mythological or literary creation, not historical
+#
+# Civilizations follow the AoE2 civilization list (French names), minus the
+# removed "Indiens" (replaced by Hindoustanis).
+
+version: 1
+
+civilizations:
+  armeniens:
+    display_name: Arméniens
+    princesses:
+      - {name: Zabel la Juste, title: reine d'Arménie cilicienne, source_status: documented}
+      - {name: Parandzem, title: reine consort d'Arshak II, source_status: documented}
+      - {name: Ashkhen, title: reine consort de Tiridate III, source_status: documented}
+      - {name: Khanduts, title: princesse de Siounie, source_status: documented}
+      - {name: Shushanik, title: princesse, fille de Vardan Mamikonian, source_status: documented}
+  azteques:
+    display_name: Aztèques
+    princesses:
+      - {name: Atotoztli, title: reine consort, mère de Moctezuma Ier, source_status: documented}
+      - {name: Papantzin, title: princesse de Tenochtitlan, source_status: documented}
+      - {name: Azcalxochitzin, title: princesse, épouse de Nezahualcóyotl, source_status: documented}
+      - {name: Tlacuilolxochitzin, title: princesse d'Ecatepec, source_status: documented}
+      - {name: Teotlalco, title: épouse de Cuitláhuac, source_status: documented}
+  bengalis:
+    display_name: Bengalis
+    princesses:
+      - {name: Maynamati, title: reine, tradition du Bengale ancien, source_status: tradition}
+      - {name: Lakshmi Sen, title: reine Sen, source_status: tradition}
+      - {name: Ramadevi Choudhury, title: princesse de Khurda, source_status: documented}
+  berberes:
+    display_name: Berbères
+    princesses:
+      - {name: Dihya la Kahina, title: reine des Aurès, source_status: documented}
+      - {name: Tin Hinan, title: reine ancêtre des Touaregs, source_status: tradition}
+      - {name: Zaynab al-Nafzawiya, title: reine consort almoravide, source_status: documented}
+      - {name: Lalla Fatma N'Soumer, title: cheffe de guerre kabyle, source_status: documented}
+  birmans:
+    display_name: Birmans
+    princesses:
+      - {name: Shin Sawbu, title: reine de Hanthawaddy, source_status: documented}
+      - {name: Saw Min Hla, title: princesse d'Ava, source_status: documented}
+      - {name: Atula Sanda Dewi, title: reine consort d'Ava, source_status: documented}
+  bohemiens:
+    display_name: Bohémiens
+    princesses:
+      - {name: Ludmila de Bohême, title: duchesse, sainte, source_status: documented}
+      - {name: Anežka Přemyslovna, title: abbesse royale, source_status: documented}
+      - {name: Kunhuta Habsburská, title: reine consort, source_status: documented}
+      - {name: Žofie Bavorská, title: reine consort, source_status: documented}
+      - {name: Libuše, title: princesse fondatrice de Prague, source_status: legendary}
+  bourguignons:
+    display_name: Bourguignons
+    princesses:
+      - {name: Marguerite de Bourgogne, title: reine de France, source_status: documented}
+      - {name: Bonne de Berry, title: duchesse de Bourgogne, source_status: documented}
+      - {name: Isabeau de Bavière, title: reine de France, source_status: documented}
+      - {name: Marie de Bourgogne, title: duchesse de Bourgogne, source_status: documented}
+  britanniques:
+    display_name: Britanniques
+    princesses:
+      - {name: Æthelflæd, title: dame de Mercie, source_status: documented}
+      - {name: Mathilde l'Emperesse, title: reine d'Angleterre, source_status: documented}
+      - {name: Aliénor d'Aquitaine, title: reine d'Angleterre, source_status: documented}
+      - {name: Emma de Normandie, title: reine d'Angleterre, source_status: documented}
+      - {name: Boudicca, title: reine des Icénis, source_status: documented}
+  bulgares:
+    display_name: Bulgares
+    princesses:
+      - {name: Kera Tamara, title: princesse bulgare, épouse du sultan Murat Ier, source_status: documented}
+      - {name: Maria Paléologue, title: tsarine, source_status: documented}
+      - {name: Théodora, title: tsarine, épouse de Svetoslav, source_status: documented}
+      - {name: Anna de Bulgarie, title: princesse, fille d'Ivan Alexandre, source_status: documented}
+  byzantins:
+    display_name: Byzantins
+    princesses:
+      - {name: Théodora, title: impératrice, épouse de Justinien, source_status: documented}
+      - {name: Zoé Porphyrogénète, title: impératrice régnante, source_status: documented}
+      - {name: Irène l'Athénienne, title: impératrice régnante, source_status: documented}
+      - {name: Anne Comnène, title: princesse et historienne, source_status: documented}
+      - {name: Eudokia Makrembolitissa, title: impératrice, source_status: documented}
+  celtes:
+    display_name: Celtes
+    princesses:
+      - {name: Boudicca, title: reine des Icénis, source_status: documented}
+      - {name: Cartimandua, title: reine des Brigantes, source_status: documented}
+      - {name: Medb, title: reine de Connacht, source_status: legendary}
+      - {name: Macha Mong Ruad, title: reine d'Ulster, source_status: legendary}
+  chinois:
+    display_name: Chinois
+    princesses:
+      - {name: Wu Zetian, title: impératrice régnante des Tang, source_status: documented}
+      - {name: Lü Zhi, title: impératrice des Han, source_status: documented}
+      - {name: Wang Zhengjun, title: impératrice des Han, source_status: documented}
+      - {name: Yang Guifei, title: consort impérial des Tang, source_status: documented}
+      - {name: Xiaozhuang, title: impératrice douairière des Qing, source_status: documented}
+  coreens:
+    display_name: Coréens
+    princesses:
+      - {name: Sondok, title: reine régnante de Silla, source_status: documented}
+      - {name: Jindeok, title: reine régnante de Silla, source_status: documented}
+      - {name: Jinseong, title: reine régnante de Silla, source_status: documented}
+      - {name: Heo Hwang-ok, title: reine consort de Geungusu, source_status: tradition}
+      - {name: Munjeong, title: reine régente de Joseon, source_status: documented}
+  coumans:
+    display_name: Coumans
+    princesses:
+      - {name: Elizabeth la Coumane, title: reine de Hongrie, fille du khan Kuthen, source_status: documented}
+      - {name: Anna de Bulgarie, title: princesse, dynastie Terter d'origine coumane, source_status: documented}
+      - {name: Elena, title: épouse de Chaka, dynastie Terter, source_status: documented}
+  danois:
+    display_name: Danois
+    princesses:
+      - {name: Thyra Danebod, title: reine consort de Gorm, source_status: documented}
+      - {name: Gunnhild Konungamóðir, title: reine de Norvège, source_status: documented}
+      - {name: Margrete Valdemarsdatter, title: reine de Danemark, Norvège et Suède, source_status: documented}
+      - {name: Estrid Svendsdatter, title: princesse, éponyme de la dynastie Estrid, source_status: documented}
+      - {name: Sigrid la Haute, title: reine de Suède, source_status: documented}
+  dravidiens:
+    display_name: Dravidiens
+    princesses:
+      - {name: Sembiyan Mahadevi, title: reine consort Chola, source_status: documented}
+      - {name: Kundavai, title: princesse Chola, source_status: documented}
+      - {name: Lokamahadevi, title: reine consort Chola, source_status: documented}
+      - {name: Viramahadevi, title: reine consort Chola, source_status: documented}
+      - {name: Machchidevi, title: reine consort de Vikrama Chola, source_status: documented}
+  espagnols:
+    display_name: Espagnols
+    princesses:
+      - {name: Isabelle Ire de Castille, title: reine de Castille, source_status: documented}
+      - {name: Urraca Ire de León, title: reine régnante de León, source_status: documented}
+      - {name: Jeanne de Castille, title: reine de Castille, source_status: documented}
+      - {name: Blanche de Navarre, title: reine consort, source_status: documented}
+      - {name: Pétronille d'Aragon, title: reine régnante d'Aragon, source_status: documented}
+  ethiopiens:
+    display_name: Éthiopiens
+    princesses:
+      - {name: Gudit, title: reine, destructrice d'Aksoum, source_status: documented}
+      - {name: Eleni, title: impératrice régente, source_status: documented}
+      - {name: Mentewab, title: impératrice, source_status: documented}
+      - {name: Taytu Betul, title: impératrice, source_status: documented}
+      - {name: Makeda, title: reine de Saba, source_status: legendary}
+  francs:
+    display_name: Francs
+    princesses:
+      - {name: Brunehaut, title: reine d'Austrasie, source_status: documented}
+      - {name: Bathilde, title: reine de Neustrie, source_status: documented}
+      - {name: Clothilde, title: reine de Clovis, source_status: documented}
+      - {name: Rigunthe, title: princesse franque, source_status: documented}
+      - {name: Berthe aux Grands Pieds, title: reine de Pépin le Bref, source_status: documented}
+  georgiens:
+    display_name: Géorgiens
+    princesses:
+      - {name: Tamar la Grande, title: reine régnante de Géorgie, source_status: documented}
+      - {name: Rusudan, title: reine régnante de Géorgie, source_status: documented}
+      - {name: Ketevan de Kakheti, title: reine martyre, source_status: documented}
+      - {name: Gulkan, title: reine consort de Mingrélie, source_status: documented}
+      - {name: Dinar, title: princesse de Hereti, source_status: tradition}
+  goths:
+    display_name: Goths
+    princesses:
+      - {name: Amalaswinthe, title: reine des Ostrogoths, source_status: documented}
+      - {name: Theodelinde, title: reine des Lombards, source_status: documented}
+      - {name: Matasunthe, title: princesse ostrogothe, source_status: documented}
+      - {name: Gaïswinthe, title: princesse wisigothe, source_status: documented}
+      - {name: Rosamunde, title: princesse gépide, reine des Lombards, source_status: documented}
+  gurjaras:
+    display_name: Gurjaras
+    princesses:
+      - {name: Kurmadevi, title: reine régente des Guhila, source_status: documented}
+      - {name: Naikadevi, title: reine régente des Vaghela, source_status: documented}
+      - {name: Mira Bai, title: princesse de Merta, source_status: documented}
+      - {name: Padmini, title: reine de Chittor, source_status: tradition}
+      - {name: Rukmini, title: princesse de Vidarbha, source_status: legendary}
+  hindoustanis:
+    display_name: Hindoustanis
+    princesses:
+      - {name: Razia Sultana, title: sultane régnante de Delhi, source_status: documented}
+      - {name: Nur Jahan, title: impératrice moghole, source_status: documented}
+      - {name: Jodha Bai, title: impératrice consort, source_status: documented}
+      - {name: Mumtaz Mahal, title: impératrice consort, source_status: documented}
+      - {name: Roopmati, title: reine de Mandu, source_status: tradition}
+  huns:
+    display_name: Huns
+    princesses:
+      - {name: Kreka, title: reine d'Attila, source_status: documented}
+      - {name: Ildico, title: dernière épouse d'Attila, source_status: documented}
+      - {name: Fille d'Eskam, title: épouse d'Attila, source_status: documented}
+      - {name: Justa Grata Honoria, title: Augusta romaine, source_status: documented}
+  incas:
+    display_name: Incas
+    princesses:
+      - {name: Anahuarque, title: coya, épouse de Pachacútec, source_status: documented}
+      - {name: Cusirimay, title: coya, épouse de Túpac Yupanqui, source_status: documented}
+      - {name: Quispe Sisa, title: princesse, sœur d'Atahualpa, source_status: documented}
+      - {name: Tocto Ocllo, title: princesse, mère d'Atahualpa, source_status: documented}
+      - {name: Mama Ocllo, title: coya fondatrice, source_status: legendary}
+  italiens:
+    display_name: Italiens
+    princesses:
+      - {name: Matilde de Canossa, title: comtesse de Toscane, source_status: documented}
+      - {name: Constance de Hauteville, title: impératrice, source_status: documented}
+      - {name: Bianca Lancia, title: princesse, source_status: documented}
+      - {name: Béatrice de Provence, title: comtesse de Provence, source_status: documented}
+      - {name: Adélaïde de Susa, title: marquise de Turin, source_status: documented}
+  japonais:
+    display_name: Japonais
+    princesses:
+      - {name: Himiko, title: reine de Yamatai, source_status: documented}
+      - {name: Suiko, title: impératrice régnante, source_status: documented}
+      - {name: Kōken, title: impératrice régnante, source_status: documented}
+      - {name: Hōjō Masako, title: shogune régente, source_status: documented}
+      - {name: Saigō no Tsubone, title: dame du shogunat Tokugawa, source_status: documented}
+  jurchen:
+    display_name: Jürchen
+    princesses:
+      - {name: Impératrice Mingde, title: impératrice de la dynastie Jin, source_status: documented}
+      - {name: Impératrice Daoping, title: impératrice de la dynastie Jin, source_status: documented}
+      - {name: Impératrice Tailing, title: impératrice de la dynastie Jin, source_status: documented}
+      - {name: Impératrice Cheng'an, title: impératrice de la dynastie Jin, source_status: documented}
+  khitan:
+    display_name: Khitan
+    princesses:
+      - {name: Xiao Yanyan, title: impératrice Chengtian, régente des Liao, source_status: documented}
+      - {name: Yelü Pusuwan, title: princesse des Liao, source_status: documented}
+      - {name: Impératrice Shunsheng, title: impératrice des Liao, source_status: documented}
+      - {name: Impératrice Ruizhi, title: impératrice des Liao, source_status: documented}
+      - {name: Impératrice Huizhi, title: impératrice des Liao, source_status: documented}
+  khmers:
+    display_name: Khmers
+    princesses:
+      - {name: Jayarajadevi, title: reine de Jayavarman VII, source_status: documented}
+      - {name: Indradevi II, title: reine de Jayavarman VII, source_status: documented}
+      - {name: Indradevi I, title: reine d'Indravarman, source_status: documented}
+      - {name: Nrpatindradevi, title: reine de Rajendravarman Ier, source_status: documented}
+  lituaniens:
+    display_name: Lituaniens
+    princesses:
+      - {name: Birutė, title: duchesse, épouse de Kęstutis, source_status: documented}
+      - {name: Danutė, title: duchesse de Mazovie, source_status: documented}
+      - {name: Ona Vytautienė, title: grande-duchesse, source_status: documented}
+      - {name: Aldona, title: reine de Pologne, source_status: documented}
+      - {name: Rimgailė, title: duchesse, source_status: documented}
+  magyars:
+    display_name: Magyars
+    princesses:
+      - {name: Sarolt, title: grande-duchesse consort, source_status: documented}
+      - {name: Gisèle de Bavière, title: reine de Hongrie, source_status: documented}
+      - {name: Margit, title: princesse, sainte, source_status: documented}
+      - {name: Piroska, title: impératrice byzantine, source_status: documented}
+      - {name: Ilona, title: grande-duchesse consort, source_status: documented}
+  malais:
+    display_name: Malais
+    princesses:
+      - {name: Cik Siti Wan Kembang, title: reine de Kelantan, source_status: tradition}
+      - {name: Puteri Saadong, title: princesse de Kelantan, source_status: tradition}
+      - {name: Tun Fatimah, title: dame du sultanat de Malacca, source_status: documented}
+  maliens:
+    display_name: Maliens
+    princesses:
+      - {name: Sogolon Kédjou, title: reine mère de Soundiata, source_status: tradition}
+      - {name: Kankou Kanté, title: princesse mandingue, source_status: tradition}
+      - {name: Kamissa Camara, title: princesse, source_status: tradition}
+  mapuche:
+    display_name: Mapuche
+    princesses:
+      - {name: Janequeo, title: lonko / toqui, source_status: documented}
+      - {name: Guacolda, title: cheffe mapuche, source_status: tradition}
+      - {name: Fresia, title: cheffe mapuche, source_status: tradition}
+      - {name: Tegualda, title: dame mapuche, source_status: tradition}
+  mayas:
+    display_name: Mayas
+    princesses:
+      - {name: Lady Xoc, title: reine consort de Yaxchilán, source_status: documented}
+      - {name: Sak K'uk', title: reine régnante de Palenque, source_status: documented}
+      - {name: Ix Yohl Ik'nal, title: reine régnante de Palenque, source_status: documented}
+      - {name: Lady Six Sky, title: reine de Naranjo, princesse de Calakmul, source_status: documented}
+  mongols:
+    display_name: Mongols
+    princesses:
+      - {name: Börte, title: grande khatoune de Genghis Khan, source_status: documented}
+      - {name: Chabi, title: impératrice de Kubilaï, source_status: documented}
+      - {name: Töregene, title: régente de l'Empire mongol, source_status: documented}
+      - {name: Sorghaghtani Beki, title: mère des grands khans, source_status: documented}
+      - {name: Oghul Qaimish, title: régente de l'Empire mongol, source_status: documented}
+  muisca:
+    display_name: Muisca
+    princesses:
+      - {name: Usaca, title: princesse, sœur du zipa Tisquesusa, source_status: documented}
+      - {name: Machinza, title: princesse, fille de Tisquesusa, source_status: documented}
+      - {name: Zoratama, title: compagne de Tisquesusa, source_status: tradition}
+      - {name: Noncetá, title: dame muisca, source_status: tradition}
+      - {name: Magdalena de Guatavita, title: princesse de Guatavita, source_status: documented}
+  perses:
+    display_name: Perses
+    princesses:
+      - {name: Atossa, title: reine de Darius Ier, source_status: documented}
+      - {name: Parysatis, title: reine de Darius II, source_status: documented}
+      - {name: Roshanak, title: épouse d'Alexandre, source_status: documented}
+      - {name: Shirin, title: reine de Khosro II, source_status: documented}
+      - {name: Purandokht, title: reine régnante sassanide, source_status: documented}
+  polonais:
+    display_name: Polonais
+    princesses:
+      - {name: Jadwiga d'Anjou, title: reine de Pologne, source_status: documented}
+      - {name: Doubravka de Bohême, title: duchesse de Pologne, source_status: documented}
+      - {name: Bona Sforza, title: reine de Pologne, source_status: documented}
+      - {name: Anna Jagiellonka, title: reine de Pologne, source_status: documented}
+      - {name: Élizabeth de Pologne, title: reine de Hongrie, source_status: documented}
+  portugais:
+    display_name: Portugais
+    princesses:
+      - {name: Thérèse de León, title: comtesse de Portugal, source_status: documented}
+      - {name: Isabelle de Portugal, title: duchesse de Bourgogne, source_status: documented}
+      - {name: Jeanne de Portugal, title: reine consort, source_status: documented}
+      - {name: Béatrice de Portugal, title: reine de Castille, source_status: documented}
+  romains:
+    display_name: Romains
+    princesses:
+      - {name: Livie Drusilla, title: impératrice, source_status: documented}
+      - {name: Octavie la Jeune, title: sœur d'Auguste, source_status: documented}
+      - {name: Julia Caesaris, title: fille d'Auguste, source_status: documented}
+      - {name: Agrippine la Jeune, title: impératrice, source_status: documented}
+      - {name: Faustine la Jeune, title: impératrice, source_status: documented}
+  sarrasins:
+    display_name: Sarrasins
+    princesses:
+      - {name: Zénobie, title: reine de Palmyre, source_status: documented}
+      - {name: Shajar ad-Durr, title: sultane d'Égypte, source_status: documented}
+      - {name: Zubaida bint Ja'far, title: épouse de Haroun al-Rachid, source_status: documented}
+      - {name: Arwa al-Sulayhi, title: reine du Yémen, source_status: documented}
+      - {name: Aïcha bint Abi Bakr, title: épouse du Prophète, source_status: documented}
+  saxons:
+    display_name: Saxons
+    princesses:
+      - {name: Mathilde de Ringelheim, title: reine de Henri Ier, source_status: documented}
+      - {name: Edith d'Angleterre, title: reine de Otton Ier, source_status: documented}
+      - {name: Ælfgifu, title: reine consort d'Edmund Ier, source_status: documented}
+      - {name: Oda de Saxe, title: duchesse, source_status: tradition}
+  shu:
+    display_name: Shu
+    princesses:
+      - {name: Sun Shangxiang, title: épouse de Liu Bei, sœur de Sun Quan, source_status: documented}
+      - {name: Dame Gan, title: concubine de Liu Bei, source_status: documented}
+      - {name: Dame Mi, title: concubine de Liu Bei, source_status: documented}
+      - {name: Dame Zhang, title: épouse de Liu Bei, source_status: documented}
+      - {name: Dame Xiahou, title: nièce de Xiahou Yuan, source_status: documented}
+  siciliens:
+    display_name: Siciliens
+    princesses:
+      - {name: Constance de Hauteville, title: princesse sicilienne, impératrice, source_status: documented}
+      - {name: Adélaïde del Vasto, title: comtesse de Sicile, source_status: documented}
+      - {name: Marguerite de Navarre, title: reine régente de Sicile, source_status: documented}
+      - {name: Sibylle de Acerra, title: reine consort de Sicile, source_status: documented}
+  slaves:
+    display_name: Slaves
+    princesses:
+      - {name: Olga de Kiev, title: princesse régente, sainte, source_status: documented}
+      - {name: Rogneda de Polotsk, title: princesse, source_status: documented}
+      - {name: Dobrava de Bohême, title: duchesse de Pologne, source_status: documented}
+      - {name: Anne de Kiev, title: reine de France, source_status: documented}
+      - {name: Jelena Balšić, title: despina de Zeta, source_status: documented}
+  tatars:
+    display_name: Tatars
+    princesses:
+      - {name: Töregene, title: régente de l'Empire mongol, source_status: documented}
+      - {name: Oghul Qaimish, title: régente de l'Empire mongol, source_status: documented}
+      - {name: Nur Sultan, title: khatune de Crimée, source_status: documented}
+  teutons:
+    display_name: Teutons
+    princesses:
+      - {name: Mathilde de Toscane, title: comtesse de Toscane, source_status: documented}
+      - {name: Adélaïde de Meissen, title: duchesse, source_status: documented}
+      - {name: Kunigonde de Hohenstaufen, title: duchesse, source_status: documented}
+      - {name: Adélaïde de Vohburg, title: reine de Germanie, source_status: documented}
+      - {name: Béatrice de Souabe, title: duchesse, source_status: documented}
+  tupi:
+    display_name: Tupi
+    princesses:
+      - {name: Bartira, title: fille du chef Tibiriçá, source_status: documented}
+      - {name: Paraguaçu, title: épouse de Caramuru, source_status: documented}
+      - {name: Aracy, title: princesse tupi, source_status: legendary}
+  turcs:
+    display_name: Turcs
+    princesses:
+      - {name: Kösem Sultan, title: valides sultane, source_status: documented}
+      - {name: Hürrem Sultan, title: épouse de Soliman, source_status: documented}
+      - {name: Nurbanu Sultan, title: valides sultane, source_status: documented}
+      - {name: Safiye Sultan, title: valides sultane, source_status: documented}
+      - {name: Mihrimah Sultan, title: princesse ottomane, source_status: documented}
+  varegues:
+    display_name: Varègues
+    princesses:
+      - {name: Ingigerd Olofsdotter, title: grande-duchesse de Novgorod, source_status: documented}
+      - {name: Ellisif de Kiev, title: reine de Norvège, source_status: documented}
+      - {name: Astrid Tryggvesdatter, title: reine de Norvège, source_status: documented}
+      - {name: Rogneda de Polotsk, title: princesse varègue, source_status: documented}
+  vikings:
+    display_name: Vikings
+    princesses:
+      - {name: Aud Ketilsdóttir la Profonde, title: colonisatrice, source_status: documented}
+      - {name: Freydís Eriksdóttir, title: fille d'Erik le Rouge, source_status: documented}
+      - {name: Gunnhild Konungamóðir, title: reine de Norvège, source_status: documented}
+      - {name: Sigrid la Haute, title: reine de Suède, source_status: documented}
+      - {name: Thyra Danebod, title: reine du Danemark, source_status: documented}
+  wei:
+    display_name: Wei
+    princesses:
+      - {name: Dame Zhen, title: impératrice posthume de Wei, source_status: documented}
+      - {name: Dame Bian, title: impératrice douairière de Wei, source_status: documented}
+      - {name: Guo Nüwang, title: impératrice de Cao Pi, source_status: documented}
+      - {name: Cao Jie, title: impératrice des Han, princesse de Wei, source_status: documented}
+      - {name: Princesse Dongxiang, title: princesse de Wei, source_status: documented}
+  wu:
+    display_name: Wu
+    princesses:
+      - {name: Dame Bu Lianshi, title: consort de Sun Quan, source_status: documented}
+      - {name: Dame Xu, title: concubine de Sun Quan, source_status: documented}
+      - {name: Daqiao, title: épouse de Sun Ce, source_status: documented}
+      - {name: Xiaoqiao, title: épouse de Zhou Yu, source_status: documented}
+      - {name: Sun Shangxiang, title: épouse de Liu Bei, sœur de Sun Quan, source_status: documented}

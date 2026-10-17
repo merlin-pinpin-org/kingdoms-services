@@ -1,0 +1,194 @@
+# Kingdoms season configuration override (admin data).
+#
+# Civilizations — Diplomatie V1 (cadastre-diplomatie-v1, Drasah
+# 15/10/2026, source of truth: diplomatie-civs-conditions.md). EVERY
+# declared civilization carries its official acquisition condition —
+# the engine (DiplomacyService._condition_met) reads only these
+# fields. The cadastre bonus texts of the maps are DISPLAY-only and
+# may diverge. Keys match data/kingdoms/princesses.yaml so the
+# marriage workflow can pick the bride names per civilization.
+
+starting_civilizations: 8
+civilizations:
+  # --- map-key conditions (la map officielle débloque) ---
+  - key: azteques
+    display_name: "Aztèques"
+    requires_map_keys: [jungle-de-la-mangrove]
+  - key: bengalis
+    display_name: "Bengalis"
+    requires_map_keys: [cote]
+  - key: bourguignons
+    display_name: "Bourguignons"
+    requires_map_keys: [hamburger]
+  - key: britanniques
+    display_name: "Britanniques"
+    requires_map_keys: [islands]
+  - key: celtes
+    display_name: "Celtes"
+    requires_map_keys: [black-forest]
+  - key: ethiopiens
+    display_name: "Éthiopiens"
+    requires_map_keys: [serengeti]
+  - key: georgiens
+    display_name: "Géorgiens"
+    requires_map_keys: [gorges]
+  - key: huns
+    display_name: "Huns"
+    requires_map_keys: [repercussions]
+  - key: incas
+    display_name: "Incas"
+    requires_map_keys: [amazon-tunnel]
+  - key: italiens
+    display_name: "Italiens"
+    requires_map_keys: [lombardie]
+  - key: japonais
+    display_name: "Japonais"
+    requires_map_keys: [archipel, ile-volcanique]
+  - key: khmers
+    display_name: "Khmers"
+    requires_map_keys: [sources-sacrees]
+  - key: malais
+    display_name: "Malais"
+    requires_map_keys: [ile-du-pacifique]
+  - key: maliens
+    display_name: "Maliens"
+    requires_map_keys: [african-clearing]
+  - key: mapuche
+    display_name: "Mapuche"
+    requires_map_keys: [atacama]
+  - key: mayas
+    display_name: "Mayas"
+    requires_map_keys: [yucatan]
+  - key: mongols
+    display_name: "Mongols"
+    requires_map_keys: [mongolia]
+  - key: perses
+    display_name: "Perses"
+    requires_map_keys: [marche]
+  - key: polonais
+    display_name: "Polonais"
+    requires_map_keys: [ghost-lake]
+  - key: sarrasins
+    display_name: "Sarrasins"
+    requires_map_keys: [delta-du-nil]
+  - key: siciliens
+    display_name: "Siciliens"
+    requires_map_keys: [lombardie]
+  - key: slaves
+    display_name: "Slaves"
+    requires_map_keys: [ghost-lake]
+  - key: danois
+    display_name: "Danois"
+    requires_map_keys: [baltique]
+  - key: varegues
+    display_name: "Varègues"
+    requires_map_keys: [rivieres]
+  - key: saxons
+    display_name: "Saxons"
+    requires_map_keys: [bancs]
+  - key: tupi
+    display_name: "Tupi"
+    requires_map_keys: [foret-cotiere]
+  - key: vikings
+    display_name: "Vikings"
+    requires_map_keys: [iles-du-nord]
+  - key: muisca
+    display_name: "Muisca"
+    requires_map_keys: [crater-lake]
+  # --- N maps d'un tag Drasah ---
+  - key: armeniens
+    display_name: "Arméniens"
+    requires_map_types: [eau]
+    min_map_type_count: 5
+  - key: dravidiens
+    display_name: "Dravidiens"
+    requires_map_types: [eau]
+    min_map_type_count: 6
+  - key: berberes
+    display_name: "Berbères"
+    requires_map_types: [ouverte]
+    min_map_type_count: 2
+  - key: coumans
+    display_name: "Coumans"
+    requires_map_types: [desert]
+    min_map_type_count: 6
+  - key: espagnols
+    display_name: "Espagnols"
+    requires_map_types: [montagne]
+    min_map_type_count: 5
+  - key: francs
+    display_name: "Francs"
+    requires_map_types: [marais]
+    min_map_type_count: 2
+  - key: jurchen
+    display_name: "Jürchens"
+    requires_map_types: [nomade]
+    min_map_type_count: 2
+  - key: khitan
+    display_name: "Khitan"
+    requires_map_types: [nomade]
+    min_map_type_count: 3
+  - key: tatars
+    display_name: "Tatars"
+    requires_map_types: [nomade]
+    min_map_type_count: 1
+  - key: teutons
+    display_name: "Teutons"
+    requires_map_types: [mur_depart]
+    min_map_type_count: 4
+  # --- compteurs de maps (intitulé « Lacs »/« Or » interprétés
+  #     par listes de maps officielles, signalé à Drasah) ---
+  - key: goths
+    display_name: "Goths"
+    requires_map_keys: [la-cite-des-lacs, crater-lake, ghost-lake, lac-glacial, lac-alpin, quatre-lacs]
+    min_map_key_count: 4
+  - key: hindoustanis
+    display_name: "Hindoustanis"
+    requires_map_keys: [flot-dore, gouffre-dore, marais-d-or, gold-rush]
+    min_map_key_count: 3
+  - key: bulgares
+    display_name: "Bulgares"
+    min_map_count: 1
+  - key: lituaniens
+    display_name: "Lituaniens"
+    min_map_count: 2
+  - key: gurjaras
+    display_name: "Gurjaras"
+    min_map_count: 3
+  - key: coreens
+    display_name: "Coréens"
+    min_map_count: 6
+  - key: byzantins
+    display_name: "Byzantins"
+    min_map_count: 9
+  - key: romains
+    display_name: "Romains"
+    min_map_count: 11
+  - key: turcs
+    display_name: "Turcs"
+    min_map_count: 1
+  - key: chinois
+    display_name: "Chinois"
+    max_map_count: 2
+  # --- chaînage, nom de royaume et nouveaux compteurs ---
+  - key: shu
+    display_name: "Shu"
+    requires_civilization: chinois
+  - key: wei
+    display_name: "Wei"
+    requires_civilization: chinois
+  - key: wu
+    display_name: "Wu"
+    requires_civilization: chinois
+  - key: magyars
+    display_name: "Hongrois"
+    requires_kingdom_name_pattern: "(?i).*hen.*"
+  - key: birmans
+    display_name: "Birmans"
+    requires_tech_points: 2
+  - key: bohemiens
+    display_name: "Bohémiens"
+    requires_marriages: 2
+  - key: portugais
+    display_name: "Portugais"
+    requires_civilization_count: 5
