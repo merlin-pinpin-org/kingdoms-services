@@ -56,8 +56,7 @@ class ConsoleBundle(DebugBundle):
             self.attacks,
             self.voliere,
             time_machine=self.time,
-  
-      )
+        )
 
 
 class _Channel:
@@ -128,8 +127,7 @@ def _bypass_off() -> None:
 
 
 def test_the_command_table_covers_the_spec_listing() -> None:
-    """Every spec command is wir
-ed, FR names, with a usage line."""
+    """Every spec command is wired, FR names, with a usage line."""
     expected = {
         "aide",
         "etat",
@@ -194,8 +192,7 @@ async def test_non_admin_messages_are_denied() -> None:
         return _Message(member, _Channel(), "bypass")
 
     assert await console.is_console_admin(msg(_Member("intrus"))) is False
-    assert await console.is_console_admin(msg(_Member("admin"))) is 
-True
+    assert await console.is_console_admin(msg(_Member("admin"))) is True
     assert await console.is_console_admin(msg(_Member("boss", admin=True))) is True
     assert await console.is_console_admin(msg(_Member("admin", bot=True))) is False
 
@@ -240,8 +237,7 @@ async def test_bypass_reads_and_flips_like_a_cvar() -> None:
     assert "bypass : **0**" in await console.dispatch("bypass")
     assert "ACTIVÉ" in await console.dispatch("bypass 1")
     assert admin_bypass_enabled() is True
-    assert "DÉSACTIVÉ" in await console.dispatch
-("bypass 0")
+    assert "DÉSACTIVÉ" in await console.dispatch("bypass 0")
     # A bad cvar answers the usage.
     assert "usage" in await console.dispatch("bypass deux")
 
@@ -292,8 +288,7 @@ async def test_ajouter_mariage_stocks_n_marriages() -> None:
     bundle = ConsoleBundle()
     console = _console(bundle)
     await bundle.launch_season()
-    reply = await console.dis
-patch("ajouter_mariage Aquitaine 2")
+    reply = await console.dispatch("ajouter_mariage Aquitaine 2")
     assert "granted" in reply
     aquitaine = await bundle.kingdom_id("Aquitaine")
     all_lords = await bundle.kingdoms.lords()
@@ -335,8 +330,7 @@ async def test_donner_civ_and_donner_territoire_mutate_directly() -> None:
     assert bourgogne in reply
 
 
-async def test_restituer_gives_the
-_weekly_attack_budget_back() -> None:
+async def test_restituer_gives_the_weekly_attack_budget_back() -> None:
     bundle = ConsoleBundle()
     console = _console(bundle)
     await bundle.launch_season()
@@ -388,8 +382,7 @@ async def test_fin_attaque_opens_the_meeting_then_applies_the_noshow() -> None:
     console = _console(bundle)
     attack_id = await _declared(bundle)
     await bundle.attacks.respond_defense(attack_id, "lord-b")
-    awai
-t console.dispatch(f"fin_attaque {attack_id}")  # reveal
+    await console.dispatch(f"fin_attaque {attack_id}")  # reveal
     await console.dispatch(f"fin_attaque {attack_id}")  # pick&ban DMs
     await console.dispatch(f"fin_attaque {attack_id}")  # the T moment
     attack = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
@@ -428,8 +421,7 @@ async def test_resultat_resolves_a_disputed_meeting() -> None:
     with pytest.raises(Exception, match="neither side"):
         await bundle.debug.admin_result(attack_id, "Champagne")
     # No meeting reached: the face-check refuses (fin_attaque first).
- 
-   fresh = await _declared(bundle)
+    fresh = await _declared(bundle)
     with pytest.raises(Exception, match="no meeting"):
         await bundle.debug.admin_result(fresh, "Aquitaine")
 
@@ -477,8 +469,7 @@ async def test_skippe_jumps_to_the_next_scheduled_passage() -> None:
     assert expected is not None
 
 
-async def tes
-t_skippe_refuses_without_a_season() -> None:
+async def test_skippe_refuses_without_a_season() -> None:
     bundle = ConsoleBundle()
     console = _console(bundle)
     reply = await console.dispatch("skippe")
@@ -538,8 +529,7 @@ class _Followup:
 
 
 class _Interaction:
-    """A minimal component inter
-action (user, guild, response, followup)."""
+    """A minimal component interaction (user, guild, response, followup)."""
 
     def __init__(self, member: _Member, message: _Message | None = None) -> None:
         self.user = member
@@ -603,8 +593,7 @@ def test_the_panel_view_builds_every_button_with_custom_ids() -> None:
     found = _buttons(view)
     assert set(found) == {
         "kingdoms:console:aide",
-     
-   "kingdoms:console:etat",
+        "kingdoms:console:etat",
         "kingdoms:console:saison",
         "kingdoms:console:cooldowns",
         "kingdoms:console:attaques",
@@ -655,8 +644,7 @@ async def test_the_command_button_opens_the_modal() -> None:
     assert interaction.response.messages == []
 
 
-async def test_the_modal_runs_a_free_
-text_line() -> None:
+async def test_the_modal_runs_a_free_text_line() -> None:
     """The modal types any command — the parser stays the table."""
     bundle = ConsoleBundle()
     console = _console(bundle)
@@ -704,8 +692,7 @@ async def test_the_bypass_button_toggles_the_flag() -> None:
 
 
 async def test_ensure_console_panel_pins_then_edits() -> None:
-    """The panel pins when absent, edits in place 
-when already pinned."""
+    """The panel pins when absent, edits in place when already pinned."""
     channel = _PinChannel()
     created = await ensure_console_panel(channel)
     assert created is True
