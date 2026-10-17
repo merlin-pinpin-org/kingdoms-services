@@ -33,8 +33,7 @@ fr:
   lifecycle:
     stop: Arrêt du bot.
     policy:
-      grant: 'Politique d''accès mise à jour : le rôle <@&{role_id}> peut lire les
-        logs, par <@{by}>.'
+      grant: 'Politique d''accès mise à jour : le rôle <@&{role_id}> peut lire les logs, par <@{by}>.'
       reset: Politique d'accès réinitialisée (admins uniquement), par <@{by}>.
       route: Logs du bot routés vers <#{channel_id}>{previous_note}, par <@{by}>.
       visibility: 'Visibilité des logs : {state}, par <@{by}>.'
@@ -54,82 +53,103 @@ fr:
     profile:
       no_account: Aucun compte de jeu lié — ajoute-en un ci-dessous.
       account_removed: Compte retiré — la vue profil se rouvre.
-      accounts_removed: "Comptes retirés : {listed}."
-      removal_failed_for: "Retrait échoué pour : {failed}"
+      accounts_removed: 'Comptes retirés : {listed}.'
+      removal_failed_for: 'Retrait échoué pour : {failed}'
       add_title: Ajouter un compte
-      add_success: "✅ Compte lié — voilà ton profil à jour."
+      add_success: ✅ Compte lié — voilà ton profil à jour.
       add_taken: Ce profil est déjà lié — retire-le d'abord ou choisis un autre profil.
-      add_game_unconfigured: "Ajout échoué : le jeu {game} n'est pas configuré pour l'inscription."
-      add_unknown: "Ajout échoué : aucun profil trouvé pour {profile}. Colle l'URL de ta page aoe2insights (ou l'id qu'elle contient) — le bon id sera récupéré automatiquement."
-      add_provider_error: "Ajout échoué : le provider {provider} ne répond pas correctement — le détail part aux admins (vois les logs du bot)."
-      add_not_configured: "Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois les logs du bot."
+      add_game_unconfigured: 'Ajout échoué : le jeu {game} n''est pas configuré pour l''inscription.'
+      add_unknown: 'Ajout échoué : aucun profil trouvé pour {profile}. Colle l''URL de ta page aoe2insights
+        (ou l''id qu''elle contient) — le bon id sera récupéré automatiquement.'
+      add_provider_error: 'Ajout échoué : le provider {provider} ne répond pas correctement — le détail
+        part aux admins (vois les logs du bot).'
+      add_not_configured: 'Ajout échoué : le provider {provider} ne sert pas les stats de profil — vois
+        les logs du bot.'
       remove_title: Retirer des comptes
       remove_placeholder: Comptes à retirer...
       remove_label: Comptes à retirer
-      add_label: "Ton id aoe2insights ou ton relic id"
-      add_placeholder: "Ex. 17190369 ou https://www.aoe2insights.com/user/12488557/"
+      add_label: Ton id aoe2insights ou ton relic id
+      add_placeholder: Ex. 17190369 ou https://www.aoe2insights.com/user/12488557/
       game_label: Jeu du compte
       game_placeholder: Jeu du compte...
       rename_title: Ton pseudo
-      rename_label: "Pseudo (16 caractères max)"
+      rename_label: Pseudo (16 caractères max)
       rename_bad_length: Le pseudo doit faire entre 1 et 16 caractères.
       rename_failed: Renommage impossible pour le moment.
-      rename_success: "✅ Pseudo mis à jour : {name}"
+      rename_success: '✅ Pseudo mis à jour : {name}'
       remove_button: Retirer un compte
       add_button: Ajouter un compte
       rename_button: Changer de pseudo
-      header_no_name: "# 👤 Ton profil\nPseudo : *(non défini)*"
-      header_with_name: "# 👤 Ton profil\nPseudo : **{name}**"
+      header_no_name: '# 👤 Ton profil
+
+        Pseudo : *(non défini)*'
+      header_with_name: '# 👤 Ton profil
+
+        Pseudo : **{name}**'
       remove_empty: Quel compte retirer ?
-      remove_open_failed: "Retrait échoué pour : {failed} — le détail part aux admins."
+      remove_open_failed: 'Retrait échoué pour : {failed} — le détail part aux admins.'
       remove_not_found: introuvable
-      games_title: "# 🎮 Jeux"
-      games_subtitle: "Les jeux disponibles sur ce serveur, leurs données et leurs salons."
-      games_available: "Jeux disponibles :"
-      general_label: "Général"
-      civs_label: "Civilisations"
-      maps_label: "Maps"
-      pools_label: "Map pools"
-      mods_title: "# 🧩 Mods"
-      mods_subtitle: "Les mods disponibles pour ce serveur."
-      mods_available: "Mods disponibles :"
-      games_none: "Aucun jeu actif — demande à un <@&{admin_role}> ou à un bot-admin d'en activer un."
-      users_title: "# 👥 Joueurs enregistrés ({count})"
-      users_server: "## {server}"
-      mods_none: "Aucun mod actif pour ce serveur."
-      mods_admin_only: " *(installable par les bot-admins uniquement)*"
-      admin_btn_language: "Langue"
-      admin_btn_channels: "Salons"
-      admin_btn_roles: "Rôles"
-      admin_btn_games: "Jeux (admin)"
-      admin_btn_mods: "Mods (admin)"
+      games_title: '# 🎮 Jeux'
+      games_subtitle: Les jeux disponibles sur ce serveur, leurs données et leurs salons.
+      games_available: 'Jeux disponibles :'
+      general_label: Général
+      civs_label: Civilisations
+      maps_label: Maps
+      pools_label: Map pools
+      mods_title: '# 🧩 Mods'
+      mods_subtitle: Les mods disponibles pour ce serveur.
+      mods_available: 'Mods disponibles :'
+      games_none: Aucun jeu actif — demande à un <@&{admin_role}> ou à un bot-admin d'en activer un.
+      users_title: '# 👥 Joueurs enregistrés ({count})'
+      users_server: '## {server}'
+      mods_none: Aucun mod actif pour ce serveur.
+      mods_admin_only: ' *(installable par les bot-admins uniquement)*'
+      admin_btn_language: Langue
+      admin_btn_channels: Salons
+      admin_btn_roles: Rôles
+      admin_btn_games: Jeux (admin)
+      admin_btn_mods: Mods (admin)
       status_unavailable: Status indisponible.
       roster_unavailable: Roster indisponible (store non configuré).
       guild_not_found: Serveur introuvable.
       no_members_bound: Aucun membre de ce serveur n'a de compte lié.
-      game_section_stats: "{civs} civs · {maps} maps · {pools} map pools"
+      game_section_stats: '{civs} civs · {maps} maps · {pools} map pools'
     admin_tree:
-      title: "🛠️ Admin"
+      title: 🛠️ Admin
       subtitle: Langue, salons et rôles du serveur.
-      language: "🌐 Langue"
-      channels: "📋 Salons du bot"
-      roles: "🧩 Rôles"
+      language: 🌐 Langue
+      channels: 📋 Salons du bot
+      roles: 🧩 Rôles
       no_channel: Aucun salon
       channel_to_manage: Salon à gérer...
       route_placeholder: Nouveau salon pour ce point de gestion...
       route_failed: Reroutage impossible (voir les logs).
-      rerouted: "Salon rerouté sur <#{channel}> — les menus épinglés suivront à la prochaine vérification."
+      rerouted: Salon rerouté sur <#{channel}> — les menus épinglés suivront à la prochaine vérification.
       back: Retour
       back_to_admin: Retour au menu admin
-      admin_failed: "Le panneau des rôles a échoué — voir les logs du bot."
-      language_btn: "Langue"
-      channels_btn: "Salons"
-      roles_btn: "Rôles"
-      games_btn: "Jeux (admin)"
-      mods_btn: "Mods (admin)"
-      channel_access_everyone: "👁️ Lecture : @everyone\n✍️ Écriture : @everyone"
-      channel_access_readonly: "👁️ Lecture : @everyone\n🔒 Écriture : personne — menus épinglés uniquement"
-      channel_access_admin: "👁️ Lecture : bot-admins\n✍️ Écriture : bot-admins"
+      admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
+      language_btn: Langue
+      channels_btn: Salons
+      roles_btn: Rôles
+      games_btn: Jeux (admin)
+      mods_btn: Mods (admin)
+      channel_access_everyone: '👁️ Lecture : @everyone
+
+        ✍️ Écriture : @everyone'
+      channel_access_readonly: '👁️ Lecture : @everyone
+
+        🔒 Écriture : personne — menus épinglés uniquement'
+      channel_access_admin: '👁️ Lecture : bot-admins
+
+        ✍️ Écriture : bot-admins'
+      current: 'Salon actuel : {channel}'
+      role_line: 'Rôle : {role}'
+      channel_menu_title: Salon géré
+      footer_hint: Chaque salon géré par le bot, par périmètre.
+      section_bot: Bot
+      section_admin: Admin
+      section_mod: Mods
+      section_game: Jeux
   admin_replies:
     panel_unavailable: Le panneau admin n'est pas disponible.
     language_changed: Langue mise à jour.
@@ -160,8 +180,7 @@ fr:
     leaderboard_empty: Aucun joueur pour l'instant.
     joined_queue: Tu as rejoint la file.
     join_failed: 'Impossible de rejoindre : {reason}'
-    join_unconfigured: L'inscription n'est pas configurée — les profils ne peuvent
-      pas être vérifiés.
+    join_unconfigured: L'inscription n'est pas configurée — les profils ne peuvent pas être vérifiés.
     join_no_profile: Aucun profil AoE2 lié — utilise /inscription d'abord.
     season_state:
       scheduled: planifiée
@@ -197,11 +216,9 @@ fr:
     database: Une erreur de base de données est survenue. Réessayez plus tard.
     unexpected: Une erreur inattendue est survenue. Réessayez.
   permissions:
-    denied: Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle
-      que vous n'avez pas.
+    denied: Vous n'êtes pas autorisé à faire cela — cette action requiert un rôle que vous n'avez pas.
   guards:
-    denied: Vous n'êtes pas autorisé à faire cela — cette action est réservée aux
-      admins du bot.
+    denied: Vous n'êtes pas autorisé à faire cela — cette action est réservée aux admins du bot.
   admin:
     title: Kingdoms — Admin
     channel_bot_logs: Logs du bot
@@ -226,12 +243,12 @@ fr:
     visibility_placeholder: Visibilité…
     route_placeholder: Router vers un channel…
     not_provisioned: pas encore provisionné
-    admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins
-      (règle de transparence).
+    admin_channel_note: La visibilité du channel admin est gouvernée par le rôle bot-admins (règle de
+      transparence).
     dm_title: Kingdoms — Admin (DM)
     dm_language: Langue des DM
-    dm_language_hint: 'Cette langue s''applique à tous les DM que le bot vous envoie
-      : rapports d''erreur, inscription, rapports de match.'
+    dm_language_hint: 'Cette langue s''applique à tous les DM que le bot vous envoie : rapports d''erreur,
+      inscription, rapports de match.'
     dm_placeholder: Votre langue de DM…
     dm_change_failed: Échec du changement de langue — réessayez.
     route_failed: Échec du routage — voir les logs du bot.
@@ -239,42 +256,54 @@ fr:
     no_service: Les réglages admin sont indisponibles (pas de LogService câblé).
     panel_failed: La gestion des logs a échoué — `{detail}`
   admin_dm:
-    title: "Kingdoms \u2014 Bot admin"
+    title: Kingdoms — Bot admin
     wiring_unavailable: Wiring indisponible.
-    pending_title: "\U0001f4e9 Demandes d'acc\u00e8s en attente"
-    granted_title: "\U0001f513 Accords actifs"
-    language_title: "\U0001f310 Langue des DM"
-    pending_line: "- Serveur `{guild_id}` : {keys}"
+    pending_title: 📩 Demandes d'accès en attente
+    granted_title: 🔓 Accords actifs
+    language_title: 🌐 Langue des DM
+    pending_line: '- Serveur `{guild_id}` : {keys}'
     unknown_server: Serveur inconnu
-    granted_line: "- **{name}** `{guild_id}` : jeux={games}, mods={mods}"
+    granted_line: '- **{name}** `{guild_id}` : jeux={games}, mods={mods}'
     btn_approve: Approuver
-    btn_approve_pending: "Approuver ({pending} en attente)"
+    btn_approve_pending: Approuver ({pending} en attente)
     btn_deny: Refuser
-    btn_refresh: "Rafra\u00eechir le contenu"
-    btn_manage_access: "G\u00e9rer les acc\u00e8s"
-    access_title: "G\u00e9rer les acc\u00e8s"
+    btn_refresh: Rafraîchir le contenu
+    btn_manage_access: Gérer les accès
+    access_title: Gérer les accès
     access_subtitle: Choisis un serveur, puis les jeux/mods \u00e0 accorder ou retirer.
-    access_guild_placeholder: "Serveur \u00e0 g\u00e9rer..."
+    access_guild_placeholder: Serveur à gérer...
     access_no_server: Aucun serveur enregistr\u00e9.
-    access_list_failed: "\u00c9chec du listing des serveurs (voir les logs)."
-    access_server_label: "Serveur {guild_id}"
+    access_list_failed: Échec du listing des serveurs (voir les logs).
+    access_server_label: Serveur {guild_id}
     access_none_server: Aucun serveur
-    access_server_title: "Acc\u00e8s du serveur `{guild_id}`"
-    access_server_note: "Serveur `{guild_id}` \u2014 jeux : {games} \u00b7 mods : {mods}"
-    access_keys_placeholder: "Jeux/mods \u00e0 accorder ou retirer..."
+    access_server_title: Accès du serveur `{guild_id}`
+    access_server_note: 'Serveur `{guild_id}` — jeux : {games} · mods : {mods}'
+    access_keys_placeholder: Jeux/mods à accorder ou retirer...
     access_no_keys: Aucun jeu/mod actif
     access_apply: Accorder
     access_revoke: Retirer
     access_select_first: S\u00e9lectionne d'abord des jeux/mods.
-    access_granted: "Acc\u00e8s accord\u00e9s au serveur `{guild_id}`.\nJeux : {games}\nMods : {mods}"
-    access_revoked: "Acc\u00e8s retir\u00e9s au serveur `{guild_id}`.\nJeux : {games}\nMods : {mods}"
-    access_failed: "\u00c9chec (voir les logs)."
-    access_denied: "Refus : {error}"
-    approved: "Acc\u00e8s accord\u00e9 au serveur `{guild_id}`."
-    denied: "Acc\u00e8s refus\u00e9 au serveur `{guild_id}`."
-    refresh_failed: "Refresh \u00e9chou\u00e9 (voir les logs)."
-    refresh_done: "Contenu rafra\u00eechi : {factions} civs ({new} nouvelles), {docs} documents de contenu.\n{new_line}"
-    new_civs_line: "Nouvelles civs : {names}\n"
+    access_granted: 'Accès accordés au serveur `{guild_id}`.
+
+      Jeux : {games}
+
+      Mods : {mods}'
+    access_revoked: 'Accès retirés au serveur `{guild_id}`.
+
+      Jeux : {games}
+
+      Mods : {mods}'
+    access_failed: Échec (voir les logs).
+    access_denied: 'Refus : {error}'
+    approved: Accès accordé au serveur `{guild_id}`.
+    denied: Accès refusé au serveur `{guild_id}`.
+    refresh_failed: Refresh échoué (voir les logs).
+    refresh_done: 'Contenu rafraîchi : {factions} civs ({new} nouvelles), {docs} documents de contenu.
+
+      {new_line}'
+    new_civs_line: 'Nouvelles civs : {names}
+
+      '
     bot_admin_only: R\u00e9serv\u00e9 aux bot admins.
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
@@ -286,12 +315,11 @@ fr:
     no_players: Aucun joueur lié — liez un profil avec /game-link.
     all_offline: Tout le monde est hors ligne depuis plus d'une heure.
     unavailable: 'Dashboard indisponible : CORE_URI n''est pas configuré.'
-    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez
-      /game-link pour lier d'autres profils.
+    linked: Profil `{profile}` lié à <@{user}> — le dashboard l'affichera. Relancez /game-link pour lier
+      d'autres profils.
     unlinked: Profil `{profile}` délié.
     no_link: Aucun lien pour le profil `{profile}`.
-    degraded: ⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le
-      monde hors ligne.
+    degraded: ⚠️ Fournisseurs injoignables — états potentiellement périmés, tout le monde hors ligne.
   replies_shared:
     wiring_unavailable: Wiring indisponible.
     map_not_found: Map introuvable.
@@ -300,7 +328,8 @@ fr:
     creation_failed: Création impossible (nom déjà pris ?).
     edit_failed: Modification impossible (voir les logs).
     import_failed: Import échoué (nom déjà pris ? voir les logs).
-    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur l’environnement.'
+    liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur
+      l’environnement.'
     pool_locked: Ce pool est verrouillé — dupliquez-le pour l'éditer.
     guild_maps_only: Seules les maps du serveur sont modifiables.
     transition_failed: Transition impossible (voir les logs).
@@ -356,7 +385,6 @@ fr:
       no_map_available: Aucune map disponible
       new_state_placeholder: Nouvel etat du pool...
       name: Nom
-
       civs_section: Civs
       maps_section: Maps
       pools_section: Map pools
@@ -380,22 +408,6 @@ fr:
       pool_deleted: Pool supprimé
     panels:
       channels:
-        general: général
-        discussions: discussions
-        decisions: décisions
-        logs: logs
-        admin: admin
-        live: live
-        civs: civilisations
-        maps: maps
-        map_pools: map pools
-      categories:
-        bot: bot
-        games: games
-        games_aoe2: games/aoe2
-        mods: mods
-    panels:
-      channels:
         general: 🗺️ général
         discussions: 💬 discussions
         decisions: ⚖️ décisions
@@ -411,46 +423,48 @@ fr:
         games_aoe2: ⚔️ games/aoe2
         mods: 🧩 mods
     homes:
-      root_home_title: "🏰 Kingdoms"
-      root_home_description: "Bienvenue — chaque bouton ouvre une vue réservée à toi. Les échanges vont dans 💬 discussions."
-      games_home_title: "🎮 Games"
-      games_home_description: "Les jeux du serveur : forums de données, discussions et gestion."
-      games_aoe2_home_title: "⚔️ Age of Empires II"
-      games_aoe2_home_description: "Les données du jeu — civilisations, maps et map pools — et son suivi live."
-      mods_home_title: "🧩 Mods"
-      mods_home_description: "Les mods du serveur : données, discussions et gestion."
-      bot_home_title: "🤖 Bot"
-      btn_status: "Statut"
-      btn_profile: "Profil"
-      btn_games: "Jeux"
-      btn_admin: "Admin"
-      btn_aoe2: "AoE2"
-      btn_aoe2_admin: "Gérer AoE2"
-      btn_live: "Live"
-      heading_navigate: "🧭 Navigation"
-      heading_data: "📚 Données"
-      btn_civs: "Civs"
-      btn_maps: "Maps"
-      btn_pools: "Map pools"
-      games_aoe2_admin_title: "⚔️ Age of Empires II — admin"
-      games_aoe2_admin_description: "Les données du jeu : civilisations, maps et map pools."
-      games_admin_title: "🎮 Games — admin"
-      games_admin_description: "Les jeux autorisés et l'octroi d'accès."
-      mods_admin_title: "🧩 Mods — admin"
-      mods_admin_description: "Les mods du serveur et l'octroi d'accès."
-      bot_admin_title: "🤖 Bot — admin"
-      bot_admin_description: "L'exploitation du bot : langue, salons, rôles, jeux et mods."
-      heading_perimeters: "📦 Périmètres"
-      heading_configuration: "⚙️ Configuration"
-      btn_list: "Liste"
-      btn_request_access: "Demander l'accès"
-      btn_channels_roles: "Salons & rôles"
-      available_games: "Jeux disponibles :"
-      available_mods: "Mods disponibles :"
-      btn_mods: "Mods"
-      btn_users: "Joueurs"
-      heading_actions: "\U0001f3a9 Actions"
-      btn_add_map: "Ajouter une map"
-      btn_create_pool: "Cr\u00e9er un map pool"
-      btn_revoke_access: "Retirer l'acc\u00e8s"
-      bot_home_description: "L'exploitation du bot — logs, administration, décisions."
+      root_home_title: 🏰 Kingdoms
+      root_home_description: Bienvenue — chaque bouton ouvre une vue réservée à toi. Les échanges vont
+        dans 💬 discussions.
+      games_home_title: 🎮 Games
+      games_home_description: 'Les jeux du serveur : forums de données, discussions et gestion.'
+      games_aoe2_home_title: ⚔️ Age of Empires II
+      games_aoe2_home_description: Les données du jeu — civilisations, maps et map pools — et son suivi
+        live.
+      mods_home_title: 🧩 Mods
+      mods_home_description: 'Les mods du serveur : données, discussions et gestion.'
+      bot_home_title: 🤖 Bot
+      btn_status: Statut
+      btn_profile: Profil
+      btn_games: Jeux
+      btn_admin: Admin
+      btn_aoe2: AoE2
+      btn_aoe2_admin: Gérer AoE2
+      btn_live: Live
+      heading_navigate: 🧭 Navigation
+      heading_data: 📚 Données
+      btn_civs: Civs
+      btn_maps: Maps
+      btn_pools: Map pools
+      games_aoe2_admin_title: ⚔️ Age of Empires II — admin
+      games_aoe2_admin_description: 'Les données du jeu : civilisations, maps et map pools.'
+      games_admin_title: 🎮 Games — admin
+      games_admin_description: Les jeux autorisés et l'octroi d'accès.
+      mods_admin_title: 🧩 Mods — admin
+      mods_admin_description: Les mods du serveur et l'octroi d'accès.
+      bot_admin_title: 🤖 Bot — admin
+      bot_admin_description: 'L''exploitation du bot : langue, salons, rôles, jeux et mods.'
+      heading_perimeters: 📦 Périmètres
+      heading_configuration: ⚙️ Configuration
+      btn_list: Liste
+      btn_request_access: Demander l'accès
+      btn_channels_roles: Salons & rôles
+      available_games: 'Jeux disponibles :'
+      available_mods: 'Mods disponibles :'
+      btn_mods: Mods
+      btn_users: Joueurs
+      heading_actions: 🎩 Actions
+      btn_add_map: Ajouter une map
+      btn_create_pool: Créer un map pool
+      btn_revoke_access: Retirer l'accès
+      bot_home_description: L'exploitation du bot — logs, administration, décisions.

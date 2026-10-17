@@ -47,7 +47,7 @@ async def _tree_tr(interaction: Any, key: str, **kwargs: Any) -> str:
 _ACCESS_FALLBACKS = {
     "public": "\U0001f441\ufe0f Lecture : @everyone\n\u270d\ufe0f \u00c9criture : @everyone",
     "readonly": (
-        "\U0001f441\ufe0f Lecture : @everyone\n\U0001f512 \u00c9criture : personne" 
+        "\U0001f441\ufe0f Lecture : @everyone\n\U0001f512 \u00c9criture : personne "
         "\u2014 menus \u00e9pingl\u00e9s uniquement"
     ),
     "admin": "\U0001f441\ufe0f Lecture : bot-admins\n\u270d\ufe0f \u00c9criture : bot-admins",
@@ -87,6 +87,18 @@ def _tree_channels() -> list[tuple[str, str, str]]:
 def _channel_label(scope: str, key: str) -> str:
     """One channel's picker label: scope path and key."""
     return f"{scope}/{key}"[:100]
+
+
+def _channel_category(scope: str, locale: str, tr_key: str = "") -> str:
+    """Group channels under short section headings (bot/mods/games)."""
+    first = scope.split("/", 1)[0]
+    if first == "bot":
+        return locale + "|bot"
+    if first == "mods":
+        return locale + "|mods"
+    if first == "games":
+        return locale + "|games"
+    return locale + "|bot"
 
 
 LOCALE_LABELS = {"en": "🇬🇧 English", "fr": "🇫🇷 Français"}
@@ -200,12 +212,8 @@ class TreeOpenButton(
                     locale = str(await logs.get_locale(guild_id) or "en")
                 except Exception:
                     locale = "en"
-            modal = discord.ui.Modal(title=await _tree_tr(interaction, "admin_tree.language"), timeout=None)
-            modal.add_item(
-                discord.ui.Label(
-                    text=LOCALE_LABELS.get(locale, locale),
-                    component=TreeLocaleSelect(locale),
-                )
+            modal = TreeLocaleModal(
+                locale, await _tree_tr(interaction, "admin_tree.language")
             )
             try:
                 await interaction.response.send_modal(modal)
@@ -214,18 +222,9 @@ class TreeOpenButton(
                 logger.warning("ADMIN TREE: language modal failed", exc_info=True)
         await interaction.response.defer(ephemeral=True, thinking=True)
         if self.section == "channels":
-            channel_select = await TreeChannelSelect.create(guild_id, interaction)
-            picker = discord.ui.LayoutView(timeout=None)
-            picker.add_item(
-                discord.ui.Container(
-                    discord.ui.TextDisplay("## " + await _tree_tr(interaction, "admin_tree.channels")),
-                    accent_colour=discord.Colour(0x5865F2),
-                )
+            await interaction.followup.send(
+                view=await build_channels_overview(guild_id, interaction), ephemeral=True
             )
-            channel_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-            channel_row.add_item(channel_select)
-            picker.add_item(channel_row)
-            await interaction.followup.send(view=picker, ephemeral=True)
         elif self.section in ("games", "mods"):
             from kingdoms.discord.scope_pins import _admin_builder
 
@@ -274,7 +273,7 @@ async def build_admin_menu(
     for section, label, emoji in buttons:
         row.add_item(TreeOpenButton(section, label, emoji))
     view.add_item(row)
-    view.add_item(discord.ui.TextDisplay(footer(f"view:bot:admin guild={guild_id}")))
+    view.add_item(discord.ui.TextDisplay(footer("view:bot:admin", f"guild:{guild_id}")))
     return view
 
 
@@ -288,6 +287,63 @@ def _button_row(item: Any) -> discord.ui.ActionRow[discord.ui.LayoutView]:
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
     row.add_item(item)
     return row
+
+
+class TreeLocaleModal(discord.ui.Modal):
+    """The guild-language modal: a labelled select, applied on submit.
+
+    The modal's title cannot render asynchronously, so the opener
+    passes the localized title in (the click's locale); the submit
+    persists the chosen value, refreshes the pinned views, and
+    answers ephemerally.
+    """
+
+    def __init__(self, locale: str, title: str) -> None:
+        super().__init__(title=title[:45], timeout=None)
+        self.locale = locale
+        self.add_item(
+            discord.ui.Label(
+                text=LOCALE_LABELS.get(locale, locale),
+                component=TreeLocaleSelect(locale),
+            )
+        )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Apply the chosen locale: guard, persist, refresh, answer."""
+        if not await _guard(interaction):
+            return
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        value = ""
+        for child in self.children:
+            select = getattr(child, "component", None)
+            if isinstance(select, discord.ui.Select):
+                value = str(select.values[0]) if select.values else ""
+        if not guild_id or not value:
+            await interaction.response.defer(ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        logs = getattr(interaction.client, "logs_service", None)
+        if logs is None:
+            await interaction.followup.send(
+                await _tree_tr(interaction, "admin_tree.admin_failed"), ephemeral=True
+            )
+            return
+        try:
+            await logs.set_locale(guild_id, value, by=str(interaction.user.id))
+        except Exception:
+            logger.warning("ADMIN TREE: locale set failed (guild %s)", guild_id, exc_info=True)
+            await interaction.followup.send(
+                await _tree_tr(interaction, "admin_tree.route_failed"), ephemeral=True
+            )
+            return
+        from kingdoms.discord.pinned_views import refresh_registered_pins
+
+        await refresh_registered_pins(guild_id)
+        from kingdoms.discord.commands_i18n import reply
+
+        await interaction.followup.send(
+            await reply(interaction, "admin_replies.language_changed"), ephemeral=True
+        )
 
 
 class TreeLocaleSelect(
@@ -360,18 +416,16 @@ class TreeChannelSelect(
 
     @classmethod
     async def create(cls, guild_id: str, interaction: Any = None) -> TreeChannelSelect:
-        """Build the picker's options in the clicker's locale."""
+        """Build the flat picker's options (label + current channel)."""
         placeholder = await _tree_tr(interaction, "admin_tree.channel_to_manage")
         empty_label = await _tree_tr(interaction, "admin_tree.no_channel")
         options = []
-        for scope, key, access in _tree_channels():
-            status = await _channel_status(guild_id, scope, key)
-            description = f"{await _audience(interaction, access)} · {status}"[:100]
+        for scope, key, _access in _tree_channels():
             options.append(
                 discord.SelectOption(
                     label=_channel_label(scope, key),
                     value=_channel_value(scope, key),
-                    description=description,
+                    description=(await _channel_status(guild_id, scope, key) or None),
                 )
             )
         return cls(options[:25], placeholder=placeholder, empty_label=empty_label)
@@ -401,7 +455,7 @@ class TreeChannelSelect(
         await interaction.response.defer(ephemeral=True, thinking=True)
         scope, key = _parse_channel_value(chosen)
         await interaction.followup.send(
-            view=await build_channel_menu(str(interaction.guild_id), scope, key),
+            view=await build_channel_menu(str(interaction.guild_id), scope, key, interaction),
             ephemeral=True,
         )
 
@@ -508,17 +562,70 @@ def _channel_access(scope: str, key: str) -> str:
     return "public"
 
 
+async def build_channels_overview(guild_id: str, interaction: Any = None) -> discord.ui.LayoutView:
+    """Build the channels view: short sections per perimeter, one select each.
+
+    A flat select cannot hold the tree (the 25-option budget); the
+    overview groups the bot-managed channels per perimeter (bot,
+    games, mods), one select per section. Lines stay short for
+    mobile: label, then the current channel.
+    """
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [
+        discord.ui.TextDisplay("# \U0001f4cb " + await _tree_tr(interaction, "admin_tree.channels")),
+        discord.ui.TextDisplay(await _tree_tr(interaction, "admin_tree.footer_hint")),
+        discord.ui.Separator(),
+    ]
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    grouped: dict[str, list[tuple[str, str, str]]] = {}
+    channels = _tree_channels()
+    for scope, key, access in channels:
+        grouped.setdefault(scope.split("/", 1)[0], []).append((scope, key, access))
+    order: list[str] = [name for name in ("bot", "games", "mods") if name in grouped]
+    order += [name for name in grouped if name not in ("bot", "games", "mods")]
+    for name in order:
+        heading = await _tree_tr(
+            interaction,
+            f"admin_tree.section_{name}" if name in ("bot", "games", "mods") else "admin_tree.section_bot",
+        )
+        options = [
+            discord.SelectOption(
+                label=_channel_label(scope, key),
+                value=_channel_value(scope, key),
+                description=(await _channel_status(guild_id, scope, key) or None),
+            )
+            for scope, key, _access in grouped[name][:25]
+        ]
+        section_blocks: list[Any] = [
+            discord.ui.TextDisplay(f"## {heading}"),
+        ]
+        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        row.add_item(TreeChannelSelect(options))
+        view.add_item(
+            discord.ui.Container(
+                *section_blocks,
+                accent_colour=discord.Colour(0x5865F2),
+            )
+        )
+        view.add_item(row)
+    return view
+
+
 async def build_channel_menu(guild_id: str, scope: str, key: str, interaction: Any = None) -> discord.ui.LayoutView:
     """One tree channel's sub-menu: status, audience, pinned view, reroute."""
     status = await _channel_status(guild_id, scope, key)
     access = _channel_access(scope, key)
     pin_role = _pin_role(key)
-    lines = [f"Salon actuel : {status}", await _audience(interaction, access)]
+    title = await _tree_tr(interaction, "admin_tree.channel_menu_title")
+    lines = [
+        await _tree_tr(interaction, "admin_tree.current", channel=status),
+        await _audience(interaction, access),
+    ]
     if pin_role:
-        lines.append(f"Rôle : {pin_role}")
+        lines.append(await _tree_tr(interaction, "admin_tree.role_line", role=pin_role))
     view = discord.ui.LayoutView(timeout=None)
     blocks: list[Any] = [
-        discord.ui.TextDisplay(f"# 📋 Salon géré — {scope}/{key}"),
+        discord.ui.TextDisplay(f"# 📋 {title} — {scope}/{key}"),
         discord.ui.Separator(),
         discord.ui.TextDisplay(chr(10).join(lines)),
         discord.ui.Separator(),
