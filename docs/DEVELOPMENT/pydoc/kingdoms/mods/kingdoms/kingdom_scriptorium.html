@@ -69,7 +69,13 @@ The&nbsp;restart-proof&nbsp;rubric&nbsp;button&nbsp;of&nbsp;the&nbsp;pinned&nbsp
 Methods defined here:<br>
 <dl><dt><a name="KingdomScriptoriumButton-__init__"><strong>__init__</strong></a>(self, topic: 'str', label: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#KingdomScriptoriumButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="KingdomScriptoriumButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;topic's&nbsp;EPHEMERAL&nbsp;view&nbsp;(public&nbsp;rubric,&nbsp;market&nbsp;TTL).</span></dd></dl>
+<dl><dt>async <a name="KingdomScriptoriumButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Answer&nbsp;with&nbsp;the&nbsp;topic's&nbsp;EPHEMERAL&nbsp;view&nbsp;(public&nbsp;rubric,&nbsp;market&nbsp;TTL).<br>
+&nbsp;<br>
+Bug&nbsp;fix&nbsp;17/10&nbsp;(Drasah's&nbsp;report):&nbsp;the&nbsp;Cadastre/Diplomatie&nbsp;rubrics<br>
+exceed&nbsp;Discord's&nbsp;2000-character&nbsp;message&nbsp;limit&nbsp;with&nbsp;the&nbsp;live<br>
+catalog&nbsp;—&nbsp;the&nbsp;followup&nbsp;failed&nbsp;and&nbsp;the&nbsp;player&nbsp;saw&nbsp;nothing&nbsp;but<br>
+the&nbsp;thinking&nbsp;state.&nbsp;The&nbsp;rubric&nbsp;now&nbsp;rides&nbsp;paginated&nbsp;pages&nbsp;with<br>
+an&nbsp;ephemeral&nbsp;⬅️➡️&nbsp;pager.</span></dd></dl>
 
 <hr>
 Class methods defined here:<br>
