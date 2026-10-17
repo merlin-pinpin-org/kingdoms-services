@@ -147,6 +147,7 @@ def test_the_command_table_covers_the_spec_listing() -> None:
         "chronique",
         "lancer_beta",
         "beta",
+        "regles",
     }
     assert set(COMMANDES) == expected
 

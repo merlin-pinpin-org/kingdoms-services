@@ -394,4 +394,12 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
         report.update(await refresh_channel_descriptions(guild))
     except Exception:
         logger.warning("KINGDOM CONTENT: channel descriptions deployment failed", exc_info=True)
+    try:
+        from kingdoms.mods.kingdoms.kingdom_guide import refresh_guide_forum
+
+        guide = await refresh_guide_forum(guild, kingdoms_service)
+        if guide:
+            report["guide"] = "deployed"
+    except Exception:
+        logger.warning("KINGDOM CONTENT: guide deployment failed", exc_info=True)
     return report

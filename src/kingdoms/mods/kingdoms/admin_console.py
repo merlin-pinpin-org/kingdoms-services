@@ -817,6 +817,34 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
     return "\n".join(lines)
 
 
+async def _cmd_regles(console: AdminConsole, args: list[str]) -> str:
+    """`regles` — rebuild the guide threads of the Règles forum.
+
+    guide-regles-v1 (Drasah 17/10/2026): after a salon reset, one
+    command re-creates (or refreshes) every guide thread with the LIVE
+    config values — the guide never lies. The refresh also runs at
+    every deploy; the command exists for the manual re-trigger.
+    """
+    kingdoms = getattr(console.bot, "kingdoms_service", None)
+    if kingdoms is None:
+        return CONSOLE_STRINGS["fr"]["not_wired"]
+    guild = getattr(console.current_message, "guild", None)
+    if guild is None:
+        return "usage : `regles` — la commande nécessite le salon (elle agit sur ce serveur)."
+    from kingdoms.mods.kingdoms.kingdom_guide import refresh_guide_forum
+
+    report = await refresh_guide_forum(guild, kingdoms)
+    if not report:
+        return "aucun forum « Règles » trouvé — crée le salon forum puis relance `regles`."
+    created = sum(1 for status in report.values() if status == "created")
+    updated = sum(1 for status in report.values() if status == "updated")
+    failed = sum(1 for status in report.values() if status == "failed")
+    lines = [f"📖 Guide du forum Règles : {created} créé(s), {updated} mis à jour."]
+    if failed:
+        lines.append(f"⚠️ {failed} échec(s) — voir les logs.")
+    return "\n".join(lines)
+
+
 COMMANDES: dict[str, CommandSpec] = {
     "aide": CommandSpec(
         "aide [section]",
@@ -999,6 +1027,13 @@ COMMANDES: dict[str, CommandSpec] = {
         "Beta status (preset, plan, next step)",
         "saison",
         _cmd_beta,
+    ),
+    "regles": CommandSpec(
+        "regles",
+        "Redéployer les posts du guide dans le forum Règles (valeurs live)",
+        "Rebuild the guide threads of the Règles forum (live values)",
+        "contenu",
+        _cmd_regles,
     ),
 }
 
