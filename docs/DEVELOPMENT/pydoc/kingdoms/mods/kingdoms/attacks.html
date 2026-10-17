@@ -138,11 +138,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AttackError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="AttackError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="AttackError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="AttackError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AttackError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="AttackError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -221,11 +225,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AttackNotFoundError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="AttackNotFoundError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="AttackNotFoundError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="AttackNotFoundError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AttackNotFoundError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="AttackNotFoundError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -396,22 +404,24 @@ override:&nbsp;a&nbsp;reversed&nbsp;attacker&nbsp;win&nbsp;gives&nbsp;the&nbsp;t
 a&nbsp;new&nbsp;attacker&nbsp;win&nbsp;applies&nbsp;the&nbsp;usual&nbsp;chantier/sacré&nbsp;rules&nbsp;—<br>
 the&nbsp;chantier&nbsp;case&nbsp;cannot&nbsp;be&nbsp;undone&nbsp;(logged&nbsp;limitation).</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-respond_defense"><strong>respond_defense</strong></a>(self, attack_id: 'str', player_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Answer&nbsp;an&nbsp;attack:&nbsp;any&nbsp;lord&nbsp;of&nbsp;the&nbsp;defending&nbsp;kingdom&nbsp;(D7).<br>
+<dl><dt>async <a name="AttackService-respond_defense"><strong>respond_defense</strong></a>(self, attack_id: 'str', player_id: 'str', *, now: 'datetime | None' = None) -&gt; 'AttackModel'</dt><dd><span class="code">Answer&nbsp;an&nbsp;attack:&nbsp;any&nbsp;lord&nbsp;of&nbsp;the&nbsp;defending&nbsp;kingdom&nbsp;(D7).<br>
 &nbsp;<br>
-The&nbsp;defense&nbsp;closes&nbsp;at&nbsp;T-15&nbsp;(D77):&nbsp;the&nbsp;cutoff&nbsp;moment&nbsp;is<br>
-``expires_at&nbsp;-&nbsp;defense_cutoff_minutes``&nbsp;—&nbsp;after&nbsp;that&nbsp;the<br>
-defender&nbsp;can&nbsp;no&nbsp;longer&nbsp;react&nbsp;and&nbsp;the&nbsp;kingdom's&nbsp;bot&nbsp;AI&nbsp;takes<br>
-the&nbsp;defense&nbsp;instead.</span></dd></dl>
+The&nbsp;defense&nbsp;window&nbsp;is&nbsp;[T-15,&nbsp;T]&nbsp;(Drasah&nbsp;17/10&nbsp;—&nbsp;«&nbsp;l'accès&nbsp;au<br>
+bouclier&nbsp;doit&nbsp;être&nbsp;entre&nbsp;T10&nbsp;et&nbsp;T5&nbsp;»):&nbsp;the&nbsp;cutoff&nbsp;moment<br>
+``expires_at&nbsp;-&nbsp;defense_cutoff_minutes``&nbsp;OPENS&nbsp;the&nbsp;defense&nbsp;and<br>
+the&nbsp;meeting&nbsp;time&nbsp;``expires_at``&nbsp;closes&nbsp;it&nbsp;—&nbsp;nobody&nbsp;answered<br>
+by&nbsp;then&nbsp;and&nbsp;the&nbsp;kingdom's&nbsp;bot&nbsp;AI&nbsp;takes&nbsp;the&nbsp;defense&nbsp;instead.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-restitute"><strong>restitute</strong></a>(self, attack_id: 'str') -&gt; 'AttackModel'</dt><dd><span class="code">Admin&nbsp;exception&nbsp;(D17):&nbsp;give&nbsp;the&nbsp;consumed&nbsp;attack&nbsp;budget&nbsp;back.</span></dd></dl>
 
-<dl><dt>async <a name="AttackService-reveal_due"><strong>reveal_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Run&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;(D77):&nbsp;close&nbsp;the&nbsp;defense,&nbsp;unmask&nbsp;the&nbsp;cover.<br>
+<dl><dt>async <a name="AttackService-reveal_due"><strong>reveal_due</strong></a>(self, *, now: 'datetime | None' = None) -&gt; 'list[AttackModel]'</dt><dd><span class="code">Run&nbsp;the&nbsp;T-15&nbsp;reveal&nbsp;(D77):&nbsp;unmask&nbsp;the&nbsp;cover&nbsp;—&nbsp;the&nbsp;defense&nbsp;stays&nbsp;open.<br>
 &nbsp;<br>
-Idempotent&nbsp;through&nbsp;``revealed``&nbsp;—&nbsp;the&nbsp;scheduler&nbsp;tick&nbsp;can&nbsp;replay<br>
-it&nbsp;after&nbsp;every&nbsp;restart.&nbsp;When&nbsp;nobody&nbsp;answered,&nbsp;the&nbsp;defending<br>
-kingdom's&nbsp;bot&nbsp;AI&nbsp;takes&nbsp;the&nbsp;defense&nbsp;(the&nbsp;D77&nbsp;vs_ai&nbsp;rule;&nbsp;the<br>
-legacy&nbsp;auto_victory&nbsp;capture&nbsp;only&nbsp;applies&nbsp;at&nbsp;expiry&nbsp;for&nbsp;attacks<br>
-the&nbsp;reveal&nbsp;never&nbsp;reached).</span></dd></dl>
+Drasah&nbsp;17/10:&nbsp;the&nbsp;defense&nbsp;window&nbsp;moved&nbsp;to&nbsp;[T-15,&nbsp;T],&nbsp;so&nbsp;the<br>
+reveal&nbsp;no&nbsp;longer&nbsp;closes&nbsp;the&nbsp;defense&nbsp;nor&nbsp;engages&nbsp;the&nbsp;bot&nbsp;AI&nbsp;—<br>
+it&nbsp;only&nbsp;drops&nbsp;the&nbsp;Contre-espionnage&nbsp;cover.&nbsp;The&nbsp;AI&nbsp;fallback<br>
+happens&nbsp;at&nbsp;the&nbsp;meeting&nbsp;time&nbsp;(``expire_stale``).&nbsp;Idempotent<br>
+through&nbsp;``revealed``&nbsp;—&nbsp;the&nbsp;scheduler&nbsp;tick&nbsp;replays&nbsp;it&nbsp;after<br>
+every&nbsp;restart.</span></dd></dl>
 
 <dl><dt>async <a name="AttackService-sabotage_civilizations"><strong>sabotage_civilizations</strong></a>(self, attack_id: 'str', attacker_kingdom_id: 'str', civilizations: 'list[str]') -&gt; 'AttackModel'</dt><dd><span class="code">Snipe&nbsp;civilizations&nbsp;on&nbsp;a&nbsp;kingdom-vs-kingdom&nbsp;attack&nbsp;(D12/D28).<br>
 &nbsp;<br>
@@ -517,11 +527,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="AttackStateError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="AttackStateError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="AttackStateError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="AttackStateError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="AttackStateError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="AttackStateError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -600,11 +614,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DefenseCutoffError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="DefenseCutoffError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="DefenseCutoffError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="DefenseCutoffError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DefenseCutoffError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="DefenseCutoffError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -683,11 +701,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="EmbuscadeError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="EmbuscadeError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="EmbuscadeError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="EmbuscadeError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="EmbuscadeError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="EmbuscadeError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -766,11 +788,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="GaiaAttackFullError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="GaiaAttackFullError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="GaiaAttackFullError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="GaiaAttackFullError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GaiaAttackFullError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="GaiaAttackFullError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -850,11 +876,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="InsufficientTechPointsError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="InsufficientTechPointsError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="InsufficientTechPointsError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="InsufficientTechPointsError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="InsufficientTechPointsError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="InsufficientTechPointsError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -933,11 +963,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LordLockedError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="LordLockedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="LordLockedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="LordLockedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LordLockedError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="LordLockedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1021,11 +1055,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LordsDayAttackError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="LordsDayAttackError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="LordsDayAttackError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="LordsDayAttackError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LordsDayAttackError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="LordsDayAttackError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1104,11 +1142,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="NoBudgetError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="NoBudgetError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="NoBudgetError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="NoBudgetError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="NoBudgetError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="NoBudgetError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1187,11 +1229,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="NotEnrolledError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="NotEnrolledError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="NotEnrolledError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="NotEnrolledError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="NotEnrolledError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="NotEnrolledError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1270,11 +1316,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PatrolProtectedError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="PatrolProtectedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="PatrolProtectedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="PatrolProtectedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PatrolProtectedError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="PatrolProtectedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1353,11 +1403,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PickBanError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="PickBanError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="PickBanError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="PickBanError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PickBanError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="PickBanError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1437,11 +1491,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="PickBanStateError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="PickBanStateError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="PickBanStateError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="PickBanStateError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PickBanStateError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="PickBanStateError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1521,11 +1579,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="SabotageError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="SabotageError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="SabotageError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="SabotageError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="SabotageError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="SabotageError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1609,11 +1671,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ScoreNotReadyError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="ScoreNotReadyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="ScoreNotReadyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="ScoreNotReadyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ScoreNotReadyError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="ScoreNotReadyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1696,11 +1762,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="SeasonClosedError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="SeasonClosedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="SeasonClosedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="SeasonClosedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="SeasonClosedError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="SeasonClosedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1779,11 +1849,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="TechnologyError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="TechnologyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="TechnologyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TechnologyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TechnologyError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="TechnologyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1863,11 +1937,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="TechnologyLimitReachedError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="TechnologyLimitReachedError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="TechnologyLimitReachedError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TechnologyLimitReachedError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TechnologyLimitReachedError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="TechnologyLimitReachedError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -1946,11 +2024,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="TerritoryBusyError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="TerritoryBusyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="TerritoryBusyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TerritoryBusyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TerritoryBusyError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="TerritoryBusyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -2029,11 +2111,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="TerritoryNotAttackableError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="TerritoryNotAttackableError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="TerritoryNotAttackableError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="TerritoryNotAttackableError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TerritoryNotAttackableError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="TerritoryNotAttackableError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -2113,11 +2199,15 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="UnknownTechnologyError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
 <dl><dt><a name="UnknownTechnologyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="UnknownTechnologyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="UnknownTechnologyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="UnknownTechnologyError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="UnknownTechnologyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -2168,9 +2258,12 @@ widens&nbsp;from&nbsp;2h&nbsp;to&nbsp;3h.</span></dd></dl>
 &nbsp;<br>
 The&nbsp;internal&nbsp;T-15/T-5/T/T+5&nbsp;clock&nbsp;is&nbsp;never&nbsp;shown&nbsp;to&nbsp;a&nbsp;player&nbsp;—<br>
 one&nbsp;label&nbsp;per&nbsp;window&nbsp;instead&nbsp;(Drasah&nbsp;15/10):&nbsp;``siege``<br>
-(declaration&nbsp;+&nbsp;defense,&nbsp;before&nbsp;the&nbsp;reveal),&nbsp;``draft``&nbsp;(reveal&nbsp;+<br>
-pick&nbsp;&amp;&nbsp;ban),&nbsp;``ready``&nbsp;(the&nbsp;RDV&nbsp;presence)&nbsp;and&nbsp;``score``&nbsp;(the&nbsp;game<br>
-and&nbsp;its&nbsp;declaration&nbsp;—&nbsp;or&nbsp;a&nbsp;finished&nbsp;attack).</span></dd></dl>
+(declaration&nbsp;+&nbsp;defense),&nbsp;``draft``&nbsp;(the&nbsp;defense&nbsp;locked,&nbsp;pick&nbsp;&amp;<br>
+ban),&nbsp;``ready``&nbsp;(the&nbsp;RDV&nbsp;presence)&nbsp;and&nbsp;``score``&nbsp;(the&nbsp;game&nbsp;and<br>
+its&nbsp;declaration&nbsp;—&nbsp;or&nbsp;a&nbsp;finished&nbsp;attack).<br>
+&nbsp;<br>
+Drasah&nbsp;17/10:&nbsp;a&nbsp;revealed&nbsp;attack&nbsp;still&nbsp;DECLARED&nbsp;keeps&nbsp;``siege``<br>
+—&nbsp;the&nbsp;[T-15,&nbsp;T]&nbsp;defense&nbsp;window&nbsp;is&nbsp;open,&nbsp;the&nbsp;defend&nbsp;button&nbsp;live.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

@@ -1694,9 +1694,19 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-deploy_attack_panel"><strong>deploy_attack_panel</strong></a>(channel: 'discord.TextChannel | None', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;attack&nbsp;panel&nbsp;in&nbsp;the&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;salon.</span></dd></dl>
- <dl><dt><a name="-panel_text"><strong>panel_text</strong></a>(strings: 'dict[str, str]', rows: 'list[str]') -&gt; 'str'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;panel&nbsp;message&nbsp;(title,&nbsp;help,&nbsp;live&nbsp;rows,&nbsp;marker).</span></dd></dl>
- <dl><dt>async <a name="-refresh_attack_panel_safe"><strong>refresh_attack_panel_safe</strong></a>(guild: 'discord.Guild | None', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Re-pin&nbsp;one&nbsp;guild's&nbsp;attack&nbsp;panel&nbsp;after&nbsp;a&nbsp;mutation&nbsp;(best&nbsp;effort).</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-board_text"><strong>board_text</strong></a>(strings: 'dict[str, str]', rows: 'list[str]') -&gt; 'str'</dt><dd><span class="code">The&nbsp;Attaques&nbsp;board&nbsp;message&nbsp;(title,&nbsp;live&nbsp;rows,&nbsp;marker).</span></dd></dl>
+ <dl><dt><a name="-declare_panel_text"><strong>declare_panel_text</strong></a>(strings: 'dict[str, str]') -&gt; 'str'</dt><dd><span class="code">The&nbsp;clean&nbsp;declare&nbsp;panel&nbsp;message&nbsp;(title,&nbsp;help,&nbsp;pointer,&nbsp;marker).</span></dd></dl>
+ <dl><dt>async <a name="-deploy_attack_panel"><strong>deploy_attack_panel</strong></a>(channel: 'discord.TextChannel | None', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;CLEAN&nbsp;declare&nbsp;panel&nbsp;in&nbsp;the&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;salon.<br>
+&nbsp;<br>
+Drasah&nbsp;17/10:&nbsp;this&nbsp;salon&nbsp;keeps&nbsp;ONLY&nbsp;the&nbsp;declare&nbsp;flow&nbsp;—&nbsp;the&nbsp;ongoing<br>
+attacks&nbsp;(rows,&nbsp;defend/join&nbsp;buttons)&nbsp;moved&nbsp;to&nbsp;the&nbsp;Attaques&nbsp;salon<br>
+(``deploy_attacks_board``).&nbsp;The&nbsp;service&nbsp;params&nbsp;stay&nbsp;for&nbsp;API<br>
+compatibility&nbsp;with&nbsp;the&nbsp;existing&nbsp;call&nbsp;sites.</span></dd></dl>
+ <dl><dt>async <a name="-deploy_attacks_board"><strong>deploy_attacks_board</strong></a>(channel: 'discord.TextChannel | None', locale: 'str', kingdoms_service: 'Any' = None, attacks_service: 'Any' = None) -&gt; 'None'</dt><dd><span class="code">Pin&nbsp;(or&nbsp;refresh)&nbsp;the&nbsp;ongoing-attacks&nbsp;board&nbsp;in&nbsp;the&nbsp;Attaques&nbsp;salon.<br>
+&nbsp;<br>
+Drasah&nbsp;17/10:&nbsp;the&nbsp;ongoing&nbsp;attacks&nbsp;and&nbsp;their&nbsp;defend/join&nbsp;buttons<br>
+moved&nbsp;here&nbsp;—&nbsp;«&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;»&nbsp;keeps&nbsp;only&nbsp;the&nbsp;declare&nbsp;flow.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_attack_panel_safe"><strong>refresh_attack_panel_safe</strong></a>(guild: 'discord.Guild | None', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Re-pin&nbsp;the&nbsp;guild's&nbsp;declare&nbsp;panel&nbsp;and&nbsp;attacks&nbsp;board&nbsp;after&nbsp;a&nbsp;mutation.</span></dd></dl>
  <dl><dt>async <a name="-run_attack_phases_safe"><strong>run_attack_phases_safe</strong></a>(bot: 'Any') -&gt; 'None'</dt><dd><span class="code">Drive&nbsp;the&nbsp;D77&nbsp;phases&nbsp;for&nbsp;every&nbsp;guild:&nbsp;reveal,&nbsp;DMs,&nbsp;forfeits.<br>
 &nbsp;<br>
 attaques-panel-spam&nbsp;(Drasah&nbsp;15/10):&nbsp;the&nbsp;panel&nbsp;is&nbsp;redeployed&nbsp;ONLY<br>
@@ -1710,6 +1720,7 @@ their&nbsp;own&nbsp;refresh:&nbsp;they&nbsp;are&nbsp;the&nbsp;other&nbsp;legitim
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ANNOUNCE_CHANNEL_NAME</strong> = 'Attaques'<br>
+<strong>ATTACK_BOARD_MARKER</strong> = '&lt;!-- kingdoms-attacks-board --&gt;'<br>
 <strong>ATTACK_PANEL_MARKER</strong> = '&lt;!-- kingdoms-attack --&gt;'<br>
 <strong>DECLARE_CHANNEL_NAME</strong> = 'Déclarer une attaque'<br>
 <strong>SCORE_CHOICE_SIDE</strong> = {'attacker': 'score_win_attacker', 'defender': 'score_win_defender'}<br>
