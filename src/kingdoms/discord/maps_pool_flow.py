@@ -495,6 +495,7 @@ def _pool_delete_confirm_view(pool_id: str, name: str) -> discord.ui.View:
             )
 
         async def callback(self, interaction: _discord.Interaction) -> None:
+            """Open the deletion modal."""
             await _open(interaction)
 
     view.add_item(_ConfirmButton())
@@ -721,6 +722,7 @@ def _map_delete_confirm_view(map_id: str, game_key: str, name: str) -> discord.u
             )
 
         async def callback(self, interaction: _discord.Interaction) -> None:
+            """Open the deletion modal."""
             await _open(interaction)
 
     view.add_item(_ConfirmButton())

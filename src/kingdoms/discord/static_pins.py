@@ -92,6 +92,7 @@ def _layout_fingerprint(layout: Any) -> str:
     import json
 
     def walk(component: Any) -> Any:
+        """Reduce one component tree to its ids and labels."""
         if isinstance(component, (list, tuple)):
             return [walk(c) for c in component]
         if hasattr(component, "custom_id"):

@@ -316,10 +316,12 @@ class TreeLocaleSelect(
         match: re.Match[str],
         /,
     ) -> TreeLocaleSelect:
+        """Rebuild the locale select from the wire (current locale)."""
         del item, match
         return cls(await _guild_locale(interaction))
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Apply the chosen locale through the shared handler."""
         from kingdoms.discord.admin_persistent import _handle_locale
 
         await _handle_locale(interaction)
@@ -358,6 +360,7 @@ class TreeChannelSelect(
 
     @classmethod
     async def create(cls, guild_id: str, interaction: Any = None) -> TreeChannelSelect:
+        """Build the picker's options in the clicker's locale."""
         placeholder = await _tree_tr(interaction, "admin_tree.channel_to_manage")
         empty_label = await _tree_tr(interaction, "admin_tree.no_channel")
         options = []
@@ -381,11 +384,13 @@ class TreeChannelSelect(
         match: re.Match[str],
         /,
     ) -> TreeChannelSelect:
+        """Rebuild the picker from the wire (options rebuilt)."""
         del item, match
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
         return await cls.create(guild_id)
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the chosen channel's management view."""
         if not await _guard(interaction):
             return
         values = self.item.values or []
@@ -426,9 +431,11 @@ class TreeChannelRouteSelect(
         match: re.Match[str],
         /,
     ) -> TreeChannelRouteSelect:
+        """Rebuild the route select from the wire."""
         return cls(match["scope"], match["key"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Reroute the channel and report the outcome."""
         if not await _guard(interaction):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id else ""
@@ -482,10 +489,12 @@ class TreeRolesButton(
         match: re.Match[str],
         /,
     ) -> TreeRolesButton:
+        """Rebuild the roles button from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Re-render the admin menu."""
         from kingdoms.discord.admin_persistent import _handle_roles
 
         await _handle_roles(interaction)
@@ -540,10 +549,12 @@ class TreeBackButton(
         match: re.Match[str],
         /,
     ) -> TreeBackButton:
+        """Rebuild the back button from the wire."""
         del interaction, item, match
         return cls()
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the roles view through the shared handler."""
         if not await _guard(interaction):
             return
         await interaction.response.defer(ephemeral=True, thinking=True)

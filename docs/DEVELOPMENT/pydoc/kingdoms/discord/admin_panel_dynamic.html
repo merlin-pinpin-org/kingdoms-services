@@ -1068,7 +1068,10 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-build_pin_channel_menu"><strong>build_pin_channel_menu</strong></a>(logs_service: 'LogService', guild_id: 'str', category: 'str', catalog: 'MessageCatalog | None' = None, locale: 'str' = 'en', admin_channel_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;channel&nbsp;sub-menu:&nbsp;fully&nbsp;dynamic,&nbsp;category&nbsp;on&nbsp;the&nbsp;wire.</span></dd></dl>
- <dl><dt>async <a name="-build_pin_main_menu"><strong>build_pin_main_menu</strong></a>(logs_service: 'LogService', guild_id: 'str', catalog: 'MessageCatalog | None' = None, locale: 'str' = 'en', admin_channel_service: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;main&nbsp;menu:&nbsp;fully&nbsp;dynamic,&nbsp;no&nbsp;captured&nbsp;state.</span></dd></dl>
+ <dl><dt>async <a name="-build_pin_main_menu"><strong>build_pin_main_menu</strong></a>(logs_service: 'LogService', guild_id: 'str', catalog: 'MessageCatalog | None' = None, locale: 'str' = 'en', admin_channel_service: 'Any' = None, client: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;pinned&nbsp;admin&nbsp;menu:&nbsp;the&nbsp;new&nbsp;admin&nbsp;menu,&nbsp;frozen&nbsp;(stateless&nbsp;items).<br>
+&nbsp;<br>
+The&nbsp;games/mods&nbsp;access&nbsp;management&nbsp;lives&nbsp;in&nbsp;the&nbsp;scope&nbsp;admin&nbsp;menus<br>
+(games/admin,&nbsp;mods/admin)&nbsp;—&nbsp;never&nbsp;here.</span></dd></dl>
  <dl><dt><a name="-pin_route_id"><strong>pin_route_id</strong></a>(category: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;routing&nbsp;select&nbsp;id&nbsp;of&nbsp;one&nbsp;managed-channel&nbsp;category.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

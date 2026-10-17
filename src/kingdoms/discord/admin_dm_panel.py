@@ -40,9 +40,37 @@ def _is_bot_admin(interaction: discord.Interaction) -> bool:
 async def _deny(interaction: discord.Interaction) -> None:
     """Answer a non-bot-admin click ephemerally and mark it handled."""
     try:
-        await interaction.response.send_message("Réservé aux bot admins.", ephemeral=True)
+        await interaction.response.send_message(
+            _dm_tr(interaction, await _dm_locale(interaction), "bot_admin_only"), ephemeral=True
+        )
     except Exception:
         logger.warning("DM PANEL denial answer failed — best-effort", exc_info=True)
+
+
+async def _dm_locale(source: Any) -> str:
+    """Resolve the invoking admin's DM locale (user settings, en fallback)."""
+    client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
+    user = getattr(source, "user", None)
+    user_id = str(getattr(user, "id", "") or "") if user is not None else ""
+    logs = getattr(client, "logs_service", None)
+    if logs is None or not user_id:
+        return "en"
+    try:
+        return str(await logs.get_user_locale(user_id) or "en")
+    except Exception:
+        return "en"
+
+
+def _dm_tr(source: Any, locale: str, key: str, **kwargs: Any) -> str:
+    """Render one admin_dm key through the client's catalog (fr fallback)."""
+    client = source if isinstance(source, discord.Client) else getattr(source, "client", None)
+    catalog = getattr(client, "messages", None)
+    if catalog is None:
+        return key
+    rendered = catalog.render(f"admin_dm.{key}", locale, **kwargs)
+    if rendered == f"admin_dm.{key}":
+        rendered = catalog.render(f"admin_dm.{key}", "fr", **kwargs)
+    return str(rendered)
 
 
 async def _access_service() -> Any | None:
@@ -67,11 +95,14 @@ async def build_admin_dm_panel(
     client = interaction if isinstance(interaction, discord.Client) else getattr(interaction, "client", None)
     service = await _access_service()
     view = discord.ui.LayoutView(timeout=None)
-    blocks: list[Any] = [discord.ui.TextDisplay("# \U0001f6e1\ufe0f Bot admin \u2014 cross-guild")]
+    _locale = await _dm_locale(interaction)
+    blocks: list[Any] = [
+        discord.ui.TextDisplay("# \U0001f6e1\ufe0f " + _dm_tr(interaction, _locale, "title"))
+    ]
     if service is None:
-        blocks.append(discord.ui.TextDisplay("Wiring indisponible (Mongo absent)."))
+        blocks.append(discord.ui.TextDisplay(_dm_tr(interaction, _locale, "wiring_unavailable")))
         blocks.append(discord.ui.Separator())
-        blocks.append(discord.ui.TextDisplay("## \U0001f310 Langue des DM"))
+        blocks.append(discord.ui.TextDisplay("## " + _dm_tr(interaction, _locale, "language_title")))
         view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
         if locale_select is not None:
             early_row = discord.ui.ActionRow[discord.ui.LayoutView]()
@@ -84,24 +115,33 @@ async def build_admin_dm_panel(
         for request in requests[:20]:
             guild_id = request.get("guild_id")
             keys = ", ".join(request.get("keys") or [])
-            req_lines.append(f"- Guilde `{guild_id}` : {keys}")
+            req_lines.append(_dm_tr(interaction, _locale, "pending_line", guild_id=guild_id, keys=keys))
         blocks.append(discord.ui.Separator())
         blocks.append(
-            discord.ui.TextDisplay("## \U0001f4e9 Demandes d'acc\u00e8s en attente\n" + "\n".join(req_lines))
+            discord.ui.TextDisplay(
+                _dm_tr(interaction, _locale, "pending_title") + "\n" + "\n".join(req_lines)
+            )
         )
     access_docs = await service.list_all()
     granted_lines = []
     for doc in access_docs[:20]:
         guild = client.get_guild(int(doc.get("guild_id") or 0)) if client is not None else None
-        name = guild.name if guild is not None else "Guilde inconnue"
+        name = guild.name if guild is not None else _dm_tr(interaction, _locale, "unknown_server")
         games = ", ".join(doc.get("games") or []) or "\u2014"
         mods = ", ".join(doc.get("mods") or []) or "\u2014"
-        granted_lines.append(f"- **{name}** `{doc.get('guild_id')}` : jeux={games}, mods={mods}")
+        granted_lines.append(
+            _dm_tr(
+                interaction, _locale, "granted_line",
+                name=name, guild_id=doc.get("guild_id"), games=games, mods=mods,
+            )
+        )
     if granted_lines:
         blocks.append(discord.ui.Separator())
-        blocks.append(discord.ui.TextDisplay("## \U0001f513 Accords actifs\n" + "\n".join(granted_lines)))
+        blocks.append(
+            discord.ui.TextDisplay(_dm_tr(interaction, _locale, "granted_title") + "\n" + "\n".join(granted_lines))
+        )
     blocks.append(discord.ui.Separator())
-    blocks.append(discord.ui.TextDisplay("## \U0001f310 Langue des DM"))
+    blocks.append(discord.ui.TextDisplay("## " + _dm_tr(interaction, _locale, "language_title")))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     if requests:
         row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
@@ -138,7 +178,7 @@ class AccessApproveButton(
         self.requested_at = requested_at
         super().__init__(
             discord.ui.Button(
-                label=f"Approuver ({pending} en attente)" if pending > 1 else "Approuver",
+                label="Approuver" if pending <= 1 else f"Approuver ({pending})",
                 style=discord.ButtonStyle.success,
                 custom_id=f"{_NS}:approve:{guild_id}:{requested_at}"[:100],
             )
@@ -173,7 +213,9 @@ class AccessApproveButton(
             return
         await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
         await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
-        await interaction.followup.send(f"Accès accordé à la guilde `{self.guild_id}`.", ephemeral=True)
+        await interaction.followup.send(
+            _dm_tr(interaction, await _dm_locale(interaction), "approved", guild_id=self.guild_id), ephemeral=True
+        )
 
 
 class AccessDenyButton(
@@ -256,6 +298,7 @@ class ContentRefreshButton(
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
+        dm_locale = await _dm_locale(interaction)
         await interaction.response.defer(ephemeral=True)
         try:
             from kingdoms.core.games.aoe2.content_refresh import refresh_aoe2_content
@@ -263,15 +306,20 @@ class ContentRefreshButton(
             counts = await refresh_aoe2_content()
         except Exception:
             logger.exception("DM PANEL: content refresh failed")
-            await interaction.followup.send("Refresh échoué (voir les logs).", ephemeral=True)
+            await interaction.followup.send(_dm_tr(interaction, dm_locale, "refresh_failed"), ephemeral=True)
             return
         raw_new_factions = counts.get("new_factions") or []
         new_factions: list[str] = raw_new_factions if isinstance(raw_new_factions, list) else []
-        new_line = f"Nouvelles civs : {', '.join(new_factions)}\n" if new_factions else ""
+        new_line = (
+            _dm_tr(interaction, dm_locale, "new_civs_line", names=", ".join(new_factions))
+            if new_factions else ""
+        )
         await interaction.followup.send(
-            f"Contenu rafraîchi : {counts.get('total_factions', 0)} civs "
-            f"({counts.get('factions', 0)} nouvelles), "
-            f"{counts.get('content_docs', 0)} documents de contenu.\n{new_line}",
+            _dm_tr(
+                interaction, dm_locale, "refresh_done",
+                factions=counts.get("total_factions", 0), new=counts.get("factions", 0),
+                docs=counts.get("content_docs", 0), new_line=new_line,
+            ),
             ephemeral=True,
         )
 
@@ -285,7 +333,7 @@ class AccessGrantButton(
     def __init__(self) -> None:
         super().__init__(
             discord.ui.Button(
-                label="Gérer les accès",
+                label="G\u00e9rer les acc\u00e8s",
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:access:grant",
             )
@@ -308,6 +356,7 @@ class AccessGrantButton(
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
+        dm_locale = await _dm_locale(interaction)
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             service = await _access_service()
@@ -317,12 +366,12 @@ class AccessGrantButton(
             guilds = await service.list_all()
         except Exception:
             logger.exception("DM ACCESS: guild list failed")
-            await interaction.followup.send("Échec du listing des guildes (voir les logs).", ephemeral=True)
+            await interaction.followup.send(_dm_tr(interaction, dm_locale, "access_list_failed"), ephemeral=True)
             return
         options = []
         for doc in guilds[:25]:
             guild = interaction.client.get_guild(int(doc.get("guild_id") or 0))
-            name = guild.name if guild is not None else "Guilde inconnue"
+            name = guild.name if guild is not None else _dm_tr(interaction, dm_locale, "unknown_server")
             games = ", ".join(doc.get("games") or []) or "—"
             mods = ", ".join(doc.get("mods") or []) or "—"
             options.append(
@@ -333,13 +382,13 @@ class AccessGrantButton(
                 )
             )
         if not options:
-            await interaction.followup.send("Aucune guilde enregistrée.", ephemeral=True)
+            await interaction.followup.send(_dm_tr(interaction, dm_locale, "access_no_server"), ephemeral=True)
             return
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(
             discord.ui.Container(
                 discord.ui.TextDisplay("# Gérer les accès"),
-                discord.ui.TextDisplay("Choisis une guilde, puis les jeux/mods à accorder ou retirer."),
+                discord.ui.TextDisplay(_dm_tr(interaction, dm_locale, "access_subtitle")),
                 accent_colour=discord.Colour(0x5865F2),
             )
         )
@@ -360,7 +409,7 @@ class AccessGuildSelect(
             discord.ui.Select(
                 custom_id=f"{_NS}:access:guild:picker"[:100],
                 options=options,
-                placeholder="Guilde à gérer...",
+                placeholder="Serveur \u00e0 g\u00e9rer...",
                 max_values=1,
             )
         )
@@ -378,9 +427,12 @@ class AccessGuildSelect(
         service = await _access_service()
         guilds = await service.list_all() if service is not None else []
         options = [
-            discord.SelectOption(label=f"Guilde {doc.get('guild_id')}", value=str(doc.get("guild_id")))
+            discord.SelectOption(
+                label=f"Serveur {doc.get('guild_id')}",
+                value=str(doc.get("guild_id")),
+            )
             for doc in guilds[:25]
-        ] or [discord.SelectOption(label="Aucune guilde", value="none")]
+        ] or [discord.SelectOption(label="Aucun serveur", value="none")]
         return cls(options)
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -404,10 +456,15 @@ class AccessGuildSelect(
         for option in options:
             option.default = option.value in granted
         view = discord.ui.LayoutView(timeout=None)
-        service_note = f"Guilde `{guild_id}` — jeux : {', '.join(games) or '—'} · mods : {', '.join(mods) or '—'}"
+        service_note = _dm_tr(
+            interaction, await _dm_locale(interaction), "access_server_note",
+            guild_id=guild_id, games=", ".join(games) or "—", mods=", ".join(mods) or "—",
+        )
         view.add_item(
             discord.ui.Container(
-                discord.ui.TextDisplay(f"# Accès de la guilde `{guild_id}`"),
+                discord.ui.TextDisplay(
+                    "# " + _dm_tr(interaction, await _dm_locale(interaction), "access_server_title", guild_id=guild_id)
+                ),
                 discord.ui.TextDisplay(service_note),
                 accent_colour=discord.Colour(0x5865F2),
             )
@@ -492,9 +549,12 @@ class AccessApplyButton(
         if not _is_bot_admin(interaction):
             await _deny(interaction)
             return
+        dm_locale = await _dm_locale(interaction)
         keys = _selected(interaction)
         if not keys:
-            await interaction.response.send_message("Sélectionne d'abord des jeux/mods.", ephemeral=True)
+            await interaction.response.send_message(
+                _dm_tr(interaction, dm_locale, "access_select_first"), ephemeral=True
+            )
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
         service = await _access_service()
@@ -506,21 +566,24 @@ class AccessApplyButton(
         try:
             if self.grant:
                 doc = await service.grant(self.guild_id, keys)
-                action = "accordés"
             else:
                 doc = await service.revoke_keys(self.guild_id, keys)
-                action = "retirés"
         except GuildAccessError as error:
-            await interaction.followup.send(f"Refus : {error}", ephemeral=True)
+            await interaction.followup.send(
+                _dm_tr(interaction, dm_locale, "access_denied", error=error), ephemeral=True
+            )
             return
         except Exception:
             logger.exception("DM ACCESS: direct apply failed (guild %s)", self.guild_id)
-            await interaction.followup.send("Échec (voir les logs).", ephemeral=True)
+            await interaction.followup.send(_dm_tr(interaction, dm_locale, "access_failed"), ephemeral=True)
             return
         games = ", ".join(doc.get("games") or []) or "—"
         mods = ", ".join(doc.get("mods") or []) or "—"
         await interaction.followup.send(
-            f"Accès {action} à la guilde `{self.guild_id}`.\nJeux : {games}\nMods : {mods}",
+            _dm_tr(
+                interaction, await _dm_locale(interaction), "access_granted" if self.grant else "access_revoked",
+                guild_id=self.guild_id, games=games, mods=mods,
+            ),
             ephemeral=True,
         )
 

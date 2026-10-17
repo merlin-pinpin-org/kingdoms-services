@@ -105,12 +105,12 @@ fr:
       admin_btn_mods: "Mods (admin)"
       status_unavailable: Status indisponible.
       roster_unavailable: Roster indisponible (store non configuré).
-      guild_not_found: Guilde introuvable.
-      no_members_bound: Aucun membre de cette guilde n'a de compte lié.
+      guild_not_found: Serveur introuvable.
+      no_members_bound: Aucun membre de ce serveur n'a de compte lié.
       game_section_stats: "{civs} civs · {maps} maps · {pools} map pools"
     admin_tree:
       title: "🛠️ Admin"
-      subtitle: Langue, salons et rôles de la guilde.
+      subtitle: Langue, salons et rôles du serveur.
       language: "🌐 Langue"
       channels: "📋 Salons du bot"
       roles: "🧩 Rôles"
@@ -140,7 +140,7 @@ fr:
     staff_nominate_description: Nommer ce membre au staff (admin)
     status_description: 'Statut du bot : uptime, mods, jeux, admins'
     admin_name: admin
-    admin_description: Panneau admin (opérateurs du bot et admins de guilde uniquement)
+    admin_description: Panneau admin (opérateurs du bot et admins du serveur uniquement)
     register_name: inscription
     register_description: Lier votre profil AoE2 à votre compte (inscription en DM)
     live_name: live
@@ -150,7 +150,7 @@ fr:
     game_unlink_name: game-unlink
     game_unlink_description: Détachez votre profil AoE2 de votre compte
     home_name: home
-    home_description: Le menu d'accueil de la guilde
+    home_description: Le menu d'accueil du serveur
     ladder_name: ladder
     ladder_description: 'Ladder : file d''attente, matchs, classement'
   ladder:
@@ -207,12 +207,12 @@ fr:
     channel_bot_logs: Logs du bot
     channel_bot_admins: Admins du bot
     visibility_admin_label: Admins uniquement
-    visibility_admin_hint: Admins de la guilde et BOT_ADMINS uniquement
+    visibility_admin_hint: Admins du serveur et BOT_ADMINS uniquement
     visibility_public_label: Public
     visibility_public_hint: Tout le monde peut lire les logs
-    language: Langue de la guilde
+    language: Langue du serveur
     language_hint: 'Actuelle : {value} — utilisée pour tous les messages de channel.'
-    language_placeholder: Langue de la guilde — {value}
+    language_placeholder: Langue du serveur — {value}
     channels: Channels
     channels_placeholder: Gérer un channel…
     mods_placeholder: Section d'un mod…
@@ -238,6 +238,44 @@ fr:
     visibility_failed: Échec du changement de visibilité — voir les logs du bot.
     no_service: Les réglages admin sont indisponibles (pas de LogService câblé).
     panel_failed: La gestion des logs a échoué — `{detail}`
+  admin_dm:
+    title: "Kingdoms \u2014 Bot admin"
+    wiring_unavailable: Wiring indisponible.
+    pending_title: "\U0001f4e9 Demandes d'acc\u00e8s en attente"
+    granted_title: "\U0001f513 Accords actifs"
+    language_title: "\U0001f310 Langue des DM"
+    pending_line: "- Serveur `{guild_id}` : {keys}"
+    unknown_server: Serveur inconnu
+    granted_line: "- **{name}** `{guild_id}` : jeux={games}, mods={mods}"
+    btn_approve: Approuver
+    btn_approve_pending: "Approuver ({pending} en attente)"
+    btn_deny: Refuser
+    btn_refresh: "Rafra\u00eechir le contenu"
+    btn_manage_access: "G\u00e9rer les acc\u00e8s"
+    access_title: "G\u00e9rer les acc\u00e8s"
+    access_subtitle: Choisis un serveur, puis les jeux/mods \u00e0 accorder ou retirer.
+    access_guild_placeholder: "Serveur \u00e0 g\u00e9rer..."
+    access_no_server: Aucun serveur enregistr\u00e9.
+    access_list_failed: "\u00c9chec du listing des serveurs (voir les logs)."
+    access_server_label: "Serveur {guild_id}"
+    access_none_server: Aucun serveur
+    access_server_title: "Acc\u00e8s du serveur `{guild_id}`"
+    access_server_note: "Serveur `{guild_id}` \u2014 jeux : {games} \u00b7 mods : {mods}"
+    access_keys_placeholder: "Jeux/mods \u00e0 accorder ou retirer..."
+    access_no_keys: Aucun jeu/mod actif
+    access_apply: Accorder
+    access_revoke: Retirer
+    access_select_first: S\u00e9lectionne d'abord des jeux/mods.
+    access_granted: "Acc\u00e8s accord\u00e9s au serveur `{guild_id}`.\nJeux : {games}\nMods : {mods}"
+    access_revoked: "Acc\u00e8s retir\u00e9s au serveur `{guild_id}`.\nJeux : {games}\nMods : {mods}"
+    access_failed: "\u00c9chec (voir les logs)."
+    access_denied: "Refus : {error}"
+    approved: "Acc\u00e8s accord\u00e9 au serveur `{guild_id}`."
+    denied: "Acc\u00e8s refus\u00e9 au serveur `{guild_id}`."
+    refresh_failed: "Refresh \u00e9chou\u00e9 (voir les logs)."
+    refresh_done: "Contenu rafra\u00eechi : {factions} civs ({new} nouvelles), {docs} documents de contenu.\n{new_line}"
+    new_civs_line: "Nouvelles civs : {names}\n"
+    bot_admin_only: R\u00e9serv\u00e9 aux bot admins.
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
     header: 'Audit des canaux — {count} écart(s) :'
@@ -264,7 +302,7 @@ fr:
     import_failed: Import échoué (nom déjà pris ? voir les logs).
     liquipedia_unconfigured: 'Import Liquipedia désactivé : la variable LIQUIPEDIA_CONTACT manque sur l’environnement.'
     pool_locked: Ce pool est verrouillé — dupliquez-le pour l'éditer.
-    guild_maps_only: Seules les maps de la guilde sont modifiables.
+    guild_maps_only: Seules les maps du serveur sont modifiables.
     transition_failed: Transition impossible (voir les logs).
     name_required: Le nom est obligatoire.
     selection_invalid: Sélection invalide.
@@ -276,12 +314,12 @@ fr:
       no_pool: Aucun pool
       description: Description
       duplicate: Dupliquer
-      send_to_guild: Envoyer a une guilde
+      send_to_guild: Envoyer à un serveur
       file_label: Fichier (nom de fichier rms/txt)
       games: Games
       maps: Maps
       map_pools: Map pools
-      target_guild_id: ID de la guilde destinataire
+      target_guild_id: ID du serveur destinataire
       source_pool_id: Id du pool source (ex. map_pool:aoe2:ladder_cf_s1_r1)
       import_map: Importer une map
       import_pool: Importer un map pool
@@ -407,7 +445,8 @@ fr:
       btn_list: "Liste"
       btn_request_access: "Demander l'accès"
       btn_channels_roles: "Salons & rôles"
-      mods_doc_line: "📖 Documentation des mods : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS"
+      available_games: "Jeux disponibles :"
+      available_mods: "Mods disponibles :"
       btn_mods: "Mods"
       btn_users: "Joueurs"
       heading_actions: "\U0001f3a9 Actions"

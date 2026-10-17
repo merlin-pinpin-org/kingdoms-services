@@ -767,6 +767,7 @@ async def _view_game_for_guild(interaction: discord.Interaction, game_key: str) 
     pools_link = await _tree_channel_link(guild_id, f"games/{game_key}", "map-pools")
 
     def bullet(label: str, count: int, lnk: str) -> str:
+        """Render one catalog line: count, and its channel when routed."""
         text = f"\u2022 {label} : **{count}**"
         return f"{text} \u2014 {lnk}" if lnk else text
 
@@ -1159,6 +1160,7 @@ async def build_home_menu_for_guild(home: HomeService, bot: Any, guild_id: str) 
     }
 
     async def localized(view: str, fallback: str) -> str:
+        """Resolve one view button's label in the guild's locale."""
         if view.startswith("mod:"):
             return await tr_guild(guild_id, bot, "ui.homes.btn_mods", fallback)
         key, default = label_keys.get(view, ("", fallback))
@@ -1223,6 +1225,7 @@ def _async_layout(home: HomeService) -> Any:
     """Return the awaited-layout builder expected by PinnedMenuService."""
 
     async def build(guild_id: str) -> discord.ui.LayoutView:
+        """Render the pinned home menu for one guild."""
         return await build_home_menu_for_guild(home, _home_bot_ref(), guild_id)
 
     return build

@@ -227,6 +227,44 @@ en:
     visibility_failed: Visibility change failed — see the bot logs.
     no_service: Admin settings are unavailable (no LogService wired).
     panel_failed: Bot logs management failed — `{detail}`
+  admin_dm:
+    title: "Kingdoms \u2014 Bot admin"
+    wiring_unavailable: Wiring unavailable.
+    pending_title: "\U0001f4e9 Pending access requests"
+    granted_title: "\U0001f513 Active grants"
+    language_title: "\U0001f310 DM language"
+    pending_line: "- Server `{guild_id}`: {keys}"
+    unknown_server: Unknown server
+    granted_line: "- **{name}** `{guild_id}`: games={games}, mods={mods}"
+    btn_approve: Approve
+    btn_approve_pending: "Approve ({pending} pending)"
+    btn_deny: Deny
+    btn_refresh: "Refresh content"
+    btn_manage_access: "Manage access"
+    access_title: "Manage access"
+    access_subtitle: Pick a server, then the games/mods to grant or revoke.
+    access_guild_placeholder: "Server to manage..."
+    access_no_server: No registered server.
+    access_list_failed: "Server listing failed (see the logs)."
+    access_server_label: "Server {guild_id}"
+    access_none_server: No server
+    access_server_title: "Access of server `{guild_id}`"
+    access_server_note: "Server `{guild_id}` \u2014 games: {games} \u00b7 mods: {mods}"
+    access_keys_placeholder: "Games/mods to grant or revoke..."
+    access_no_keys: No active game/mod
+    access_apply: Grant
+    access_revoke: Revoke
+    access_select_first: Select games/mods first.
+    access_granted: "Access granted to server `{guild_id}`.\nGames: {games}\nMods: {mods}"
+    access_revoked: "Access revoked from server `{guild_id}`.\nGames: {games}\nMods: {mods}"
+    access_failed: "Failed (see the logs)."
+    access_denied: "Denied: {error}"
+    approved: "Access granted to server `{guild_id}`."
+    denied: "Access denied for server `{guild_id}`."
+    refresh_failed: "Refresh failed (see the logs)."
+    refresh_done: "Content refreshed: {factions} civs ({new} new), {docs} content documents.\n{new_line}"
+    new_civs_line: "New civs: {names}\n"
+    bot_admin_only: Bot admins only.
   channel_audit:
     clean: 'Channel audit: no drift detected.'
     header: 'Channel audit — {count} drift finding(s):'
@@ -395,7 +433,8 @@ en:
       btn_list: "List"
       btn_request_access: "Request access"
       btn_channels_roles: "Channels & roles"
-      mods_doc_line: "📖 Mods documentation: https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS"
+      available_games: "Available games:"
+      available_mods: "Available mods:"
       btn_mods: "Mods"
       btn_users: "Players"
       heading_actions: "\U0001f3a9 Actions"

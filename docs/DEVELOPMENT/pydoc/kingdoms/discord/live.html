@@ -259,11 +259,12 @@ provisioned&nbsp;and&nbsp;persisted&nbsp;by&nbsp;the&nbsp;Panels&nbsp;SDK;&nbsp;
 the&nbsp;resolution.&nbsp;Raises&nbsp;LookupError&nbsp;when&nbsp;the&nbsp;tree&nbsp;has&nbsp;not&nbsp;provided<br>
 it&nbsp;yet&nbsp;(the&nbsp;caller&nbsp;degrades&nbsp;quietly).</span></dd></dl>
  <dl><dt><a name="-group_by_account"><strong>group_by_account</strong></a>(players: 'list[dict[str, Any]]', stats: 'dict[str, dict[str, Any]] | None' = None) -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">Fold&nbsp;the&nbsp;flat&nbsp;per-profile&nbsp;list&nbsp;into&nbsp;per-Discord-account&nbsp;records.</span></dd></dl>
- <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/live,&nbsp;/game-link&nbsp;and&nbsp;/game-unlink&nbsp;commands.<br>
+ <dl><dt><a name="-register_live_commands"><strong>register_live_commands</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', catalog: 'MessageCatalog | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;nothing:&nbsp;every&nbsp;live&nbsp;surface&nbsp;is&nbsp;a&nbsp;pinned&nbsp;dashboard.<br>
 &nbsp;<br>
-The&nbsp;commands&nbsp;read&nbsp;svc-core's&nbsp;Live&nbsp;service&nbsp;through&nbsp;``LiveClient``<br>
-when&nbsp;``CORE_URI``&nbsp;is&nbsp;set;&nbsp;without&nbsp;it&nbsp;(local&nbsp;runs,&nbsp;providers&nbsp;down),<br>
-the&nbsp;dashboard&nbsp;degrades&nbsp;to&nbsp;a&nbsp;note&nbsp;—&nbsp;the&nbsp;command&nbsp;still&nbsp;answers.</span></dd></dl>
+The&nbsp;live&nbsp;dashboard&nbsp;lives&nbsp;in&nbsp;its&nbsp;autopin&nbsp;channel&nbsp;(games/aoe2/live)&nbsp;and<br>
+the&nbsp;profile&nbsp;link/unlink&nbsp;lives&nbsp;in&nbsp;the&nbsp;home&nbsp;profile&nbsp;menu&nbsp;—&nbsp;/live,<br>
+/game-link&nbsp;and&nbsp;/game-unlink&nbsp;were&nbsp;removed&nbsp;2026-10-16&nbsp;(/home,&nbsp;/admin<br>
+and&nbsp;/status&nbsp;are&nbsp;the&nbsp;platform's&nbsp;only&nbsp;commands).</span></dd></dl>
  <dl><dt><a name="-render_dashboard"><strong>render_dashboard</strong></a>(snapshot: 'dict[str, Any]', locale: 'str' = 'en', stats: 'dict[str, dict[str, Any]] | None' = None, now_ms: 'int | None' = None, bot: 'Any' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;dashboard&nbsp;snapshot&nbsp;as&nbsp;a&nbsp;plain-text&nbsp;message&nbsp;body.<br>
 &nbsp;<br>
 One&nbsp;line&nbsp;per&nbsp;Discord&nbsp;user:&nbsp;their&nbsp;linked&nbsp;profiles&nbsp;are&nbsp;fused&nbsp;into&nbsp;a<br>

@@ -201,15 +201,13 @@ def _admin_builder(bot: Any, scope: str) -> Any:
             # and the scope's own channels (the shared admin dispatches)
             kind = "games" if scope == "games" else "mods"
             granted_line = await _granted_line(bot, guild_id, kind)
-            extra = (granted_line,) if granted_line else ()
-            if scope == "mods":
-                extra = (*extra, _tr(
-                        catalog,
-                        "ui.homes.mods_doc_line",
-                        locale,
-                        "\U0001f4d6 Documentation des mods : https://github.com/merlin-pinpin-org/kingdoms/tree/main/docs/MODS",
-                    ),
-                )
+            available_line = _tr(
+                catalog,
+                "ui.homes.available_" + kind,
+                locale,
+                "Jeux disponibles :" if kind == "games" else "Mods disponibles :",
+            )
+            extra = tuple(line for line in (granted_line, available_line) if line)
             list_view = "games" if scope == "games" else "mods"
             return build_menu(
                 MenuSpec(
@@ -300,8 +298,8 @@ async def _granted_line(bot: Any, guild_id: str, kind: str) -> str:
         return ""
     if not granted:
         return ""
-    listed = ", ".join(f"`{key}`" for key in granted)
-    return f"**Accord\u00e9s** : {listed}"
+    listed = "\n".join(f"\u2022 **{key}**" for key in granted)
+    return listed
 
 
 def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:

@@ -2136,7 +2136,7 @@ class GamesPoolSendModal(discord.ui.Modal):
             return
         target = str(self.guild_id.value or "").strip()
         if not target.isdigit():
-            await interaction.response.send_message("L'ID de guilde doit etre numerique.", ephemeral=True)
+            await interaction.response.send_message("L'ID du serveur doit être numérique.", ephemeral=True)
             return
         try:
             copy = await service.send_map_pool_to_guild(self.pool_id, target, str(self.name.value).strip())
@@ -2145,7 +2145,7 @@ class GamesPoolSendModal(discord.ui.Modal):
             await interaction.response.send_message("Envoi echoue (nom deja pris ? voir les logs).", ephemeral=True)
             return
         await interaction.response.send_message(
-            f"Pool **{copy.name}** envoye a la guilde {target} - il y sera verrouille (non modifiable).",
+            f"Pool **{copy.name}** envoyé au serveur {target} — il y sera verrouillé (non modifiable).",
             ephemeral=True,
         )
 
@@ -2691,7 +2691,7 @@ class GamesPoolImportModal(discord.ui.Modal):
             return
         guild_id = str(interaction.guild_id) if interaction.guild_id is not None else None
         if guild_id is not None and source.owner_guild_id == guild_id:
-            await interaction.response.send_message("Ce pool appartient deja a cette guilde.", ephemeral=True)
+            await interaction.response.send_message("Ce pool appartient déjà à ce serveur.", ephemeral=True)
             return
         if not source.is_public:
             await interaction.response.send_message("Seuls les pools publies peuvent etre importes.", ephemeral=True)

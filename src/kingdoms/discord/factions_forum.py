@@ -147,6 +147,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
     """Build the factions forum spec wired onto the games service."""
 
     async def list_factions(guild_id: str) -> list[Any]:
+        """List the guild's granted factions, localized-name sorted."""
         from kingdoms.discord.wiring import granted_game_keys
 
         service = _game_data(bot)
@@ -158,6 +159,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         return await _sorted_by_localized_name(factions, guild_id, bot)
 
     async def build_post(faction: Any, guild_id: str) -> tuple[str, Any | None]:
+        """Build one faction's forum post: content lines and layout view."""
         from kingdoms.discord.civ_content import civ_section_lines, parse_civ_help
         from kingdoms.discord.content_posts import entity_post_content
 
@@ -179,6 +181,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         return content, view
 
     def tree_scope_for(faction: Any) -> str:
+        """Scope one faction's forum posts under its game's folder."""
         return f"games/{getattr(faction, 'game_key', '')!s}"
 
     return EntityForumSpec(

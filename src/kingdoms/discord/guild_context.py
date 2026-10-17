@@ -90,7 +90,7 @@ async def require_guild_context(
     if interaction.guild_id is not None:
         return str(interaction.guild_id)
     view = _picker_view(view_key, _guild_options(interaction.client))
-    text = "Cette vue est li\u00e9e \u00e0 une guilde \u2014 de laquelle s'agit-il ?"
+    text = "Cette vue est li\u00e9e \u00e0 un serveur \u2014 duquel s'agit-il ?"
     prompt: discord.ui.TextDisplay[Any] = discord.ui.TextDisplay(text)
     view.add_item(discord.ui.Container(prompt))
     await interaction.response.send_message(view=view, ephemeral=True)

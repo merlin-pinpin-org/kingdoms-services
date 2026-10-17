@@ -438,7 +438,11 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_enrollment_screen"><strong>build_enrollment_screen</strong></a>(user: 'dict[str, Any]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;enrollment&nbsp;confirmation&nbsp;text&nbsp;(i18n-neutral,&nbsp;used&nbsp;in&nbsp;DM).</span></dd></dl>
- <dl><dt><a name="-register_registration_command"><strong>register_registration_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', engine: 'WorkflowEngine | None', registration: 'RegistrationService | None', catalog: 'MessageCatalog | None' = None, bot: 'discord.Client | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;/register&nbsp;and&nbsp;the&nbsp;persistent&nbsp;confirm&nbsp;buttons.<br>
+ <dl><dt><a name="-register_registration_command"><strong>register_registration_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', engine: 'WorkflowEngine | None', registration: 'RegistrationService | None', catalog: 'MessageCatalog | None' = None, bot: 'discord.Client | None' = None) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;persistent&nbsp;confirm&nbsp;buttons&nbsp;(no&nbsp;/register&nbsp;command).<br>
+&nbsp;<br>
+The&nbsp;profile&nbsp;binding&nbsp;lives&nbsp;in&nbsp;the&nbsp;home&nbsp;profile&nbsp;menu&nbsp;since&nbsp;2026-10-16<br>
+(/home&nbsp;&gt;&nbsp;Profil)&nbsp;—&nbsp;the&nbsp;DM&nbsp;enrollment&nbsp;workflow&nbsp;and&nbsp;its&nbsp;confirm&nbsp;buttons<br>
+stay&nbsp;for&nbsp;the&nbsp;sessions&nbsp;that&nbsp;still&nbsp;ride&nbsp;them.<br>
 &nbsp;<br>
 ``engine``/``registration``&nbsp;may&nbsp;be&nbsp;None&nbsp;in&nbsp;local&nbsp;runs&nbsp;—&nbsp;the&nbsp;command<br>
 then&nbsp;answers&nbsp;with&nbsp;a&nbsp;note&nbsp;instead&nbsp;of&nbsp;failing.</span></dd></dl>
