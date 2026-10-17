@@ -1506,9 +1506,12 @@ async def build_settings_panel(
     # Lord's Day window, end-season and back-to-setup now live in the
     # kingdom_time_panel — Paramètres keeps only the season bootstrap
     # and the server maintenance.
+    # « Démarrer la beta » sits next to « Démarrer la saison » (Drasah
+    # 17/10): the same beta-weekend-v2 flow as the console's answer.
     buttons = (
         ("launch", "launch_button", discord.ButtonStyle.success),
         ("start-season", "start_season_button", discord.ButtonStyle.success),
+        ("start-beta", "start_beta_button", discord.ButtonStyle.success),
         ("status", "status_button", discord.ButtonStyle.secondary),
         ("deploy", "deploy_button", discord.ButtonStyle.primary),
         ("sync", "sync_button", discord.ButtonStyle.secondary),
@@ -1518,11 +1521,13 @@ async def build_settings_panel(
         ("season-mode", "season_mode_button", discord.ButtonStyle.secondary),
         ("remove", "remove_player_button", discord.ButtonStyle.danger),
     )
-    season_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    maintenance_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    # Rows pack in chunks of 5: an overlong ActionRow is rejected by
+    # Discord and kills the whole panel send (the D68 lesson).
+    rows: list[discord.ui.ActionRow[discord.ui.LayoutView]] = []
     for index, (action, key, style) in enumerate(buttons):
-        target = season_row if index < 5 else maintenance_row
-        target.add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
+        if index % 5 == 0:
+            rows.append(discord.ui.ActionRow())
+        rows[index // 5].add_item(KingdomAdminButton(action, admin_strings[key][:80], style))
 
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(
@@ -1530,8 +1535,7 @@ async def build_settings_panel(
             discord.ui.TextDisplay(f"# {strings['settings_title']}"),
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"## 🛠️ {admin_strings['admin_section']}"),
-            season_row,
-            maintenance_row,
+            *rows,
             discord.ui.Separator(),
             discord.ui.TextDisplay(f"-# {SETTINGS_PANEL_MARKER}"),
             accent_colour=GREEN,

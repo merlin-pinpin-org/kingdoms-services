@@ -22,6 +22,7 @@ async def test_settings_panel_carries_the_phase_buttons() -> None:
     view = await build_settings_panel(None, "1", "tester")
     ids = _custom_ids(view)
     assert "kingdoms:admin:start-season" in ids
+    assert "kingdoms:admin:start-beta" in ids
     assert "kingdoms:admin:season-mode" in ids
     # the existing actions survive (nothing broken)
     for action in (
@@ -171,3 +172,56 @@ async def test_ephemeral_confirmation_self_deletes() -> None:
             break
     await asyncio.sleep(0.05)
     assert deleted == [42]
+
+
+async def test_start_beta_button_answers_the_beta_panel() -> None:
+    """The 🚀 beta button of the Paramètres panel opens the beta start
+    panel (« Maintenant » / « Programmer… ») with the live wiring."""
+    from kingdoms.mods.kingdoms.beta_panel import BetaStartView
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        _run_start_beta,
+        register_kingdoms_panel_wiring,
+    )
+    from kingdoms.mods.kingdoms.kingdom_profiles import _strings
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring(events_service=object()))
+    sent: list[dict[str, Any]] = []
+
+    class _Response:
+        async def send_message(self, content: str, **kwargs: Any) -> None:
+            sent.append({"content": content, **kwargs})
+
+    class _Interaction:
+        locale = None
+        response = _Response()
+
+    await _run_start_beta(_Interaction(), _strings("fr"))  # type: ignore[arg-type]
+    assert len(sent) == 1
+    assert isinstance(sent[0]["view"], BetaStartView)
+    assert "beta" in sent[0]["content"].lower()
+
+
+async def test_start_beta_button_fails_cleanly_without_service() -> None:
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomsPanelWiring,
+        _run_start_beta,
+        register_kingdoms_panel_wiring,
+    )
+    from kingdoms.mods.kingdoms.kingdom_profiles import _strings
+
+    register_kingdoms_panel_wiring(KingdomsPanelWiring())
+    sent: list[tuple[str, bool]] = []
+
+    class _Response:
+        async def send_message(self, content: str, ephemeral: bool = False) -> None:
+            sent.append((content, ephemeral))
+
+    class _Interaction:
+        locale = None
+        response = _Response()
+
+    await _run_start_beta(_Interaction(), _strings("fr"))  # type: ignore[arg-type]
+    assert len(sent) == 1
+    assert "échoué" in sent[0][0]
+    assert sent[0][1] is True

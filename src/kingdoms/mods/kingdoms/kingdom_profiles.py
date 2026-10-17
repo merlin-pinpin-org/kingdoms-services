@@ -145,6 +145,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "Season started — civilization drafts revealed and territories distributed."
         ),
         "start_season_failed": "The season could not start — {}",
+        "start_beta_button": "🚀 Start the beta",
+        "start_beta_failed": "The beta could not start — {}",
         "season_mode_button": "🔄 Season mode",
         "season_mode_failed": "The mode change failed — {}",
         "season_mode_free": "Season mode: **free** — Kings may found their kingdoms.",
@@ -320,6 +322,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "Saison démarrée — drafts de civilisations révélés et territoires distribués."
         ),
         "start_season_failed": "Le démarrage a échoué — {}",
+        "start_beta_button": "🚀 Démarrer la beta",
+        "start_beta_failed": "Le lancement de la beta a échoué — {}",
         "season_mode_button": "🔄 Mode de saison",
         "season_mode_failed": "Le changement de mode a échoué — {}",
         "season_mode_free": "Mode de saison : **libre** — les Rois peuvent fonder leurs royaumes.",

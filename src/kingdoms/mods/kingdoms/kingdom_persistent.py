@@ -3155,7 +3155,7 @@ class KingdomAdminButton(
     template=(
         r"kingdoms:admin:(?P<action>remove|reset|reset-confirm|reset-cancel"
         r"|deploy|deploy-confirm|deploy-cancel|sync|sync-confirm|sync-cancel"
-        r"|status|assign|add-kingdom|launch|start-season|season-mode"
+        r"|status|assign|add-kingdom|launch|start-season|start-beta|season-mode"
         r"|back-setup|back-setup-confirm|back-setup-cancel"
         r"|end-season|end-season-confirm|end-season-cancel"
         r"|age-next|age-prev|lords-day-enter|lords-day-exit)"
@@ -3200,6 +3200,7 @@ class KingdomAdminButton(
             "assign": strings["assign_button"],
             "add-kingdom": strings["add_kingdom_button"],
             "start-season": strings["start_season_button"],
+            "start-beta": strings["start_beta_button"],
             "season-mode": strings["season_mode_button"],
             "back-setup": strings["back_setup_button"],
             "back-setup-confirm": strings["back_setup_confirm_button"],
@@ -3228,6 +3229,7 @@ class KingdomAdminButton(
             "assign": discord.ButtonStyle.primary,
             "add-kingdom": discord.ButtonStyle.primary,
             "start-season": discord.ButtonStyle.success,
+            "start-beta": discord.ButtonStyle.success,
             "season-mode": discord.ButtonStyle.secondary,
             "back-setup": discord.ButtonStyle.danger,
             "back-setup-confirm": discord.ButtonStyle.success,
@@ -3301,6 +3303,7 @@ class KingdomAdminButton(
             "sync-confirm": lambda _i, _l: _run_sync(interaction, strings),
             "reset-confirm": lambda _i, _l: _run_reset(interaction, strings),
             "start-season": lambda _i, _l: _run_start_season(interaction, strings),
+            "start-beta": lambda _i, _l: _run_start_beta(interaction, strings),
             "season-mode": lambda _i, _l: _run_season_mode(interaction, strings),
             "back-setup": lambda _i, _l: _ask_action_confirmation(interaction, strings, "back-setup"),
             "back-setup-cancel": lambda _i, _l: interaction.response.edit_message(
@@ -3419,6 +3422,29 @@ async def _run_start_season(interaction: discord.Interaction, strings: dict[str,
     await _ensure_realms_after_launch(guild, locale)
     await _refresh_season_status_safe(guild, locale)
     await interaction.followup.send(strings["start_season_done"], ephemeral=True)
+
+
+async def _run_start_beta(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
+    """Open the beta start panel (« Maintenant » / « Programmer… »).
+
+    The Drasah 17/10 decision: « Démarrer la beta » lives next to
+    « Démarrer la saison » on the Paramètres panel — same beta-weekend-v2
+    flow as the console's ``lancer_beta now`` answer.
+    """
+    from kingdoms.mods.kingdoms.beta_panel import beta_start_panel
+
+    wiring = _wiring()
+    if wiring.events_service is None:
+        await interaction.response.send_message(
+            strings["start_beta_failed"].format("no service"), ephemeral=True
+        )
+        return
+    # BetaStartView resolves the events service through ``console.bot``
+    # — a light shim exposes the live wiring (§3b click-time resolve).
+    console_shim = SimpleNamespace(bot=SimpleNamespace(kingdoms_events_service=wiring.events_service))
+    locale = str(interaction.locale) if interaction.locale else "en"
+    content, view = beta_start_panel(console_shim, locale)
+    await interaction.response.send_message(content, view=view, ephemeral=True)
 
 
 async def _run_season_mode(interaction: discord.Interaction, strings: dict[str, Any]) -> None:
