@@ -507,6 +507,81 @@ async def _rubric_content(topic: str, strings: dict[str, str], kingdoms_service:
     return _seigneurie_content(strings, kingdoms, lords, attack_budget, defense_budget)
 
 
+def _paginate(lines: list[str], max_chars: int = 1800) -> list[str]:
+    """Split one rubric's lines into pages Discord accepts (bug fix 17/10).
+
+    The Cadastre (96 maps) and the Diplomatie (55 civilizations with
+    their conditions) blow past Discord's 2000-character message limit
+    — the ephemeral ``followup.send`` failed with a 400 that the
+    best-effort except swallowed, leaving the player with the thinking
+    state and no answer. This pager keeps every page under the limit.
+    """
+    flat: list[str] = []
+    for line in lines:
+        flat.extend(line[start : start + max_chars] for start in range(0, max(len(line), 1), max_chars))
+    pages: list[str] = []
+    batch: list[str] = []
+    used = 0
+    for line in flat:
+        cost = len(line) + (1 if batch else 0)
+        if batch and used + cost > max_chars:
+            pages.append("\n".join(batch))
+            batch, used = [], 0
+        batch.append(line)
+        used += cost
+    pages.append("\n".join(batch))
+    return pages
+
+
+async def _rubric_pages(topic: str, strings: dict[str, str], kingdoms_service: Any) -> list[str]:
+    """Return one rubric's content paginated under Discord's limit."""
+    content = await _rubric_content(topic, strings, kingdoms_service)
+    return _paginate(content.split("\n"))
+
+
+class _RubricPager(discord.ui.View):
+    """The ephemeral ⬅️➡️ navigator of a long Cadastre/Diplomatie rubric."""
+
+    def __init__(self, pages: list[str], page: int = 0) -> None:
+        super().__init__(timeout=600)
+        self._pages = pages
+        self._page = max(0, min(page, len(pages) - 1))
+        prev_button: discord.ui.Button[Any] = discord.ui.Button(
+            label="◀️",
+            style=discord.ButtonStyle.secondary,
+            disabled=self._page == 0,
+            custom_id=f"kingdoms:scriptorium:page:{self._page - 1}",
+        )
+        prev_button.callback = self._go(self._page - 1)  # type: ignore[method-assign]
+        self.add_item(prev_button)
+        counter: discord.ui.Button[Any] = discord.ui.Button(
+            label=f"{self._page + 1}/{len(pages)}",
+            style=discord.ButtonStyle.secondary,
+            disabled=True,
+            custom_id="kingdoms:scriptorium:page:counter",
+        )
+        self.add_item(counter)
+        next_button: discord.ui.Button[Any] = discord.ui.Button(
+            label="▶️",
+            style=discord.ButtonStyle.secondary,
+            disabled=self._page >= len(pages) - 1,
+            custom_id=f"kingdoms:scriptorium:page:{self._page + 1}",
+        )
+        next_button.callback = self._go(self._page + 1)  # type: ignore[method-assign]
+        self.add_item(next_button)
+
+    def _go(self, page: int) -> Any:
+        """Build one page-turn callback (bounded at click time)."""
+
+        async def on_turn(interaction: discord.Interaction) -> None:
+            view = _RubricPager(self._pages, page)
+            await interaction.response.edit_message(
+                content=view._pages[view._page], view=cast(Any, view)
+            )
+
+        return on_turn
+
+
 # ----------------------------------------------------------------------
 # The pinned sommaire
 # ----------------------------------------------------------------------
@@ -594,18 +669,28 @@ class KingdomScriptoriumButton(
         return cls(str(match.group("topic")), strings[f"topic_{match.group('topic')}"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Answer with the topic's EPHEMERAL view (public rubric, market TTL)."""
+        """Answer with the topic's EPHEMERAL view (public rubric, market TTL).
+
+        Bug fix 17/10 (Drasah's report): the Cadastre/Diplomatie rubrics
+        exceed Discord's 2000-character message limit with the live
+        catalog — the followup failed and the player saw nothing but
+        the thinking state. The rubric now rides paginated pages with
+        an ephemeral ⬅️➡️ pager.
+        """
         from kingdoms.mods.kingdoms.kingdom_persistent import _market_ttl
 
         strings = _strings(_locale(interaction))
         locale = _locale(interaction)
         try:
-            content = await _rubric_content(self.topic, strings, None)
+            pages = await _rubric_pages(self.topic, strings, None)
         except Exception:
             logger.warning("SCRIPTORIUM: rubric build failed", exc_info=True)
             await interaction.response.send_message(strings["unknown"], ephemeral=True)
             return
+        content = pages[0]
         view: discord.ui.View | None = None
+        if len(pages) > 1:
+            view = _RubricPager(pages)
         if self.topic == "seigneurie":
             # Seigneurie V2 (Drasah 15/10): the rubric carries the
             # clickable fiche selector (max 25 — Discord's ceiling).
@@ -617,8 +702,9 @@ class KingdomScriptoriumButton(
                 kingdoms = await wiring.kingdoms_service.kingdoms()
                 select = _seigneurie_fiche_select(strings, lords, kingdoms)
                 select.callback = _fiche_select_callback(locale)  # type: ignore[method-assign]
-                view = discord.ui.View(timeout=600)
-                view.add_item(select)
+                seigneurie_view = discord.ui.View(timeout=600)
+                seigneurie_view.add_item(select)
+                view = seigneurie_view
             except Exception:
                 logger.warning("SCRIPTORIUM: fiche select build failed", exc_info=True)
                 view = None

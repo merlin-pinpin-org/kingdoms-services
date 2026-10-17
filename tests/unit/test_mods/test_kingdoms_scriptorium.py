@@ -141,6 +141,78 @@ async def test_cadastre_rubric_shows_bonus() -> None:
     assert "⛰️" in content
 
 
+# ----------------------------------------------------------------------
+# Rubric pagination (bug fix 17/10 — Cadastre/Diplomatie over 2000 chars)
+# ----------------------------------------------------------------------
+
+
+def test_paginate_keeps_every_page_under_discord_limit() -> None:
+    """Long rubrics split into pages under Discord's 2000-char limit."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _paginate
+
+    lines = [f"- **Map {index}** — ⛰️ 🌞 · Offre un contre-espionnage/semaine" for index in range(200)]
+    pages = _paginate(["# 🗺️ Cadastre", "", *lines])
+    assert len(pages) > 1
+    assert all(len(page) <= 1800 for page in pages)
+    rejoined = "\n".join(pages)
+    for index in (0, 100, 199):
+        assert f"**Map {index}**" in rejoined
+
+
+def test_paginate_returns_one_page_for_short_content() -> None:
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _paginate
+
+    assert _paginate(["# titre", "", "une ligne"]) == ["# titre\n\nune ligne"]
+    assert _paginate([]) == [""]
+
+
+async def test_rubric_pages_fit_the_real_catalog() -> None:
+    """The real 96-map catalog produces pages Discord accepts."""
+    from kingdoms.mods.kingdoms.config import default_season_config
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _rubric_pages, _strings
+
+    config = default_season_config()
+    assert len(config.maps) == 96  # the live catalog Drasah reported
+
+    service = _SimpleNS(config=config)
+
+    pages = await _rubric_pages("cadastre", _strings("fr"), service)
+    assert len(pages) > 1
+    assert all(len(page) <= 2000 for page in pages)
+    joined = "\n".join(pages)
+    assert any("Acropolis" in page for page in pages)
+    assert "Bois" in joined
+
+
+async def test_rubric_pager_turns_pages_bounded() -> None:
+    """The ⬅️➡️ pager edits the ephemeral in place and clamps the bounds."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _paginate, _RubricPager
+
+    pages = _paginate(["# titre", *[f"ligne {i}" for i in range(300)]])
+    view = _RubricPager(pages, 0)
+    assert len(pages) > 1
+    children = list(view.children)
+    assert len(children) == 3  # ◀️ · 1/N · ▶️
+    first, _counter, last = children
+    assert first.disabled is True  # page 1: no going back
+    assert last.disabled is False
+
+    turned = view._go(1)
+    interaction = MockInteraction(user=MockUser(id="u"))
+    await turned(interaction)
+    # MockInteraction stores the edited message: page 2 content and fresh pager view
+    edited = interaction.response.message
+    assert edited is not None
+    assert edited.content == pages[1]
+    new_view = edited.view
+    assert new_view is not None and new_view is not view
+    assert any(child.label == f"2/{len(pages)}" for child in new_view.children)
+    # turning past the last page clamps
+    clamped = new_view._go(len(pages))
+    await clamped(interaction)
+    assert interaction.response.message.content == pages[-1]
+
+
 @pytest.mark.asyncio
 async def test_cleanup_legacy_structure_retires_salons_and_categories() -> None:
     """The cleanup removes the legacy salons and the retired categories."""
