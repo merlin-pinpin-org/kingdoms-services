@@ -149,6 +149,29 @@ async def test_declare_defend_resolve_captures_the_territory() -> None:
     assert target in await bundle.owner_maps(aquitaine)
 
 
+async def test_defense_survives_the_naive_mongo_round_trip() -> None:
+    """Mongo BSON reloads every stored datetime naive (UTC) — the T-15
+    cutoff of ``respond_defense`` compares ``expires_at`` with the
+    AWARE game clock and must answer, never raise (live 17/10: « can't
+    compare offset-naive and offset-aware datetimes » for the
+    defender; normalized at the ``from_mongo`` seam, Check 69)."""
+    bundle = Bundle()
+    await bundle.launch_season()
+    await bundle.draw(7)
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby")
+    # The BSON wire shape: the stored document reloads naive (UTC).
+    document = bundle.store.attacks[attack.id]
+    for key in ("declared_at", "expires_at"):
+        document[key] = document[key].astimezone(UTC).replace(tzinfo=None)
+    defended = await bundle.attacks.respond_defense(attack.id, "king-b")
+    assert defended.state is AttackState.DEFENDED
+    # The seam re-attached UTC: every consumer reads an aware value.
+    reloaded = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert reloaded.expires_at.tzinfo is not None
+
+
 async def test_defense_keeps_the_territory_on_defender_win() -> None:
     bundle = Bundle()
     await bundle.launch_season()

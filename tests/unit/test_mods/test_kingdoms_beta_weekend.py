@@ -243,7 +243,10 @@ async def test_beta_plan_survives_the_naive_mongo_round_trip() -> None:
     await bundle.store.upsert_season(document)
     reloaded = await bundle.kingdoms.current_season()
     assert reloaded is not None
-    assert reloaded.beta_start_at is not None and reloaded.beta_start_at.tzinfo is None
+    assert reloaded.beta_start_at is not None
+    # The from_mongo seam re-attaches UTC to the naive wire values
+    # (models._aware_utc, Check 69) — aware on every path now.
+    assert reloaded.beta_start_at.tzinfo is UTC
 
     config: KingdomsSeasonConfig = bundle.config
     aware_now = datetime(2026, 10, 24, 7, 0, tzinfo=PARIS).astimezone(UTC)

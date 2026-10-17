@@ -20,6 +20,27 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 GAIA_KINGDOM_KEY = "gaia"
 
 
+def _aware_utc(value: Any) -> Any:
+    """Attach UTC to every naive datetime, recursively.
+
+    The ``MongoClient`` is not ``tz_aware`` (core/models/db.py), so
+    every BSON datetime reloads NAIVE (UTC by BSON convention) while
+    the game clock (``game_now``) is offset-aware — comparing the two
+    raises ``can't compare offset-naive and offset-aware datetimes``
+    (live 17/10: first the beta attack path, then the defense path —
+    the T-15 cutoff of ``respond_defense``). Normalizing at THIS seam
+    (shared by every ``from_mongo``) makes every reloaded model
+    aware-UTC once and for all; aware values pass through untouched.
+    """
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    if isinstance(value, dict):
+        return {key: _aware_utc(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_aware_utc(item) for item in value]
+    return value
+
+
 def _from_wire[ModelT: BaseModel](cls: type[ModelT], data: dict[str, Any]) -> ModelT:
     """Rebuild a model from a MongoDB document (wire-tolerant).
 
@@ -28,9 +49,11 @@ def _from_wire[ModelT: BaseModel](cls: type[ModelT], data: dict[str, Any]) -> Mo
     in-code constructor calls stay exact, but ``from_mongo`` must read
     the wire leniently (``strict=False``) or every stored document
     fails validation on the way back (first seen live: the starting
-    draft re-reading a freshly upserted kingdom, 2026-10-10).
+    draft re-reading a freshly upserted kingdom, 2026-10-10). The
+    naive-UTC datetimes of the wire are normalized aware first
+    (``_aware_utc``) — the stored documents stay byte-identical.
     """
-    return TypeAdapter(cls).validate_python(data, strict=False)
+    return TypeAdapter(cls).validate_python(_aware_utc(data), strict=False)
 
 
 
