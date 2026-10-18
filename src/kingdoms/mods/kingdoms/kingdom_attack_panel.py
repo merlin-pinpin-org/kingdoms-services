@@ -208,6 +208,23 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ Bataille Kingdoms en direct — {attacker} 🆚 {defender}.\n"
             "Civilisations et boutons de jeu : dans le salon vocal de la bataille."
         ),
+        "room_sabotage_button": "🪶 Sabotage / Passer",
+        "room_sabotage_title": (
+            "🪶 **Phase de sabotage** — agis (Faucon, Sabotage) puis valide."
+            " Le reveal tombe quand les deux camps ont validé."
+        ),
+        "room_sabotage_faucon": "🦅 Faucon",
+        "room_sabotage_techno": "🧪 Sabotage",
+        "room_sabotage_pass": "⚔️ Passer / Valider",
+        "room_sabotage_choose": "🎯 **Choisis la civilisation adverse à retirer :**",
+        "room_sabotage_done": "🪶 **{civ}** retirée du camp adverse.",
+        "room_sabotage_settled": "✅ Ton camp a validé — en attente de l'autre camp…",
+        "room_sabotage_revealed": "🎭 Le reveal vient d'être posté dans le salon !",
+        "room_sabotage_over": "🕊️ La phase de sabotage est terminée.",
+        "room_sabotage_not_player": "❌ Seuls les deux joueurs du match peuvent agir ici.",
+        "room_sabotage_empty": "🕊️ Aucune civilisation adverse disponible — passe ton tour.",
+        "room_reveal": "🎭 **Reveal — {map}**\n{lines}",
+        "room_reveal_line": "• **{player}** joue **{civ}** — picks : {picks}",
         "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
@@ -399,6 +416,23 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ Live Kingdoms battle — {attacker} 🆚 {defender}.\n"
             "Civilizations and game buttons: in the battle's voice channel."
         ),
+        "room_sabotage_button": "🪶 Sabotage / Pass",
+        "room_sabotage_title": (
+            "🪶 **Sabotage phase** — act (Faucon, Sabotage) then confirm."
+            " The reveal drops once both sides confirmed."
+        ),
+        "room_sabotage_faucon": "🦅 Faucon",
+        "room_sabotage_techno": "🧪 Sabotage",
+        "room_sabotage_pass": "⚔️ Pass / Confirm",
+        "room_sabotage_choose": "🎯 **Pick the enemy civilization to remove:**",
+        "room_sabotage_done": "🪶 **{civ}** removed from the enemy side.",
+        "room_sabotage_settled": "✅ Your side confirmed — waiting for the other side…",
+        "room_sabotage_revealed": "🎭 The reveal was just posted in the room!",
+        "room_sabotage_over": "🕊️ The sabotage phase is over.",
+        "room_sabotage_not_player": "❌ Only the two players of the match may act here.",
+        "room_sabotage_empty": "🕊️ No enemy civilization available — pass your turn.",
+        "room_reveal": "🎭 **Reveal — {map}**\n{lines}",
+        "room_reveal_line": "• **{player}** plays **{civ}** — picks: {picks}",
         "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
         "score_disputed": ("⚖️ Contradictory declarations — the admins arbitrate (game {game})."),
@@ -2103,6 +2137,9 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         room_view.add_item(
             KingdomRoomReadyButton(str(attack.id), strings["room_ready_button"])
         )
+        room_view.add_item(
+            KingdomRoomSabotageButton(str(attack.id), strings["room_sabotage_button"])
+        )
         try:
             await channel.send(
                 strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
@@ -2438,6 +2475,263 @@ class KingdomRoomReadyButton(
             return
         await _announce_room_start_safe(interaction, attack, strings)
         await interaction.response.send_message(strings["ready_done"], ephemeral=True)
+
+
+class KingdomRoomSabotageButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:room:sabotage:(?P<key>[0-9a-f]{16})",
+):
+    """The persistent 🪶 button of the battle room (sabotage phase).
+
+    Drasah 18/10 v3: each camp acts at its own rhythm — 🦅 Faucon (both
+    sides, volière permitting), 🧪 Sabotage (attacker with the bought
+    techno) — up to 2 removed civs per side, then ⚔️ Passer validates.
+    The reveal posts once, when BOTH camps validated (an AI defender
+    is settled from the start).
+    """
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:room:sabotage:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRoomSabotageButton:
+        """Resolve the room key back to an attack id (restart-safe)."""
+        label = _strings(_locale(interaction))["room_sabotage_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral sabotage menu of this battle room."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        try:
+            attack = next(
+                item
+                for item in await wiring.attacks_service.attacks()
+                if str(item.id) == self.attack_id
+            )
+        except Exception:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        if attack.is_over or str(getattr(attack, "state", "")) != "meeting":
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        if (attack.pickban or {}).get("room_revealed"):
+            await interaction.response.send_message(strings["room_sabotage_over"], ephemeral=True)
+            return
+        user_id = str(interaction.user.id)
+        side = _room_side_of(attack, user_id)
+        if side == "":
+            await interaction.response.send_message(
+                strings["room_sabotage_not_player"], ephemeral=True
+            )
+            return
+        view = await _room_sabotage_view(wiring, attack, side, strings)
+        await interaction.response.send_message(
+            strings["room_sabotage_title"], view=view, ephemeral=True
+        )
+
+
+def _room_side_of(attack: Any, user_id: str) -> str:
+    """Resolve which side of the meeting the user speaks for."""
+    if user_id == str(attack.attacker_lord_id):
+        return "attacker"
+    if user_id == str(attack.defender_lord_id) and not attack.ai_defender:
+        return "defender"
+    return ""
+
+
+async def _room_sabotage_view(
+    wiring: Any, attack: Any, side: str, strings: dict[str, str]
+) -> discord.ui.View:
+    """Build the ephemeral sabotage menu of one side of the room."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
+
+    user_id = str(getattr(attack, "attacker_lord_id" if side == "attacker" else "defender_lord_id"))
+    attack_id = str(attack.id)
+    view = discord.ui.View(timeout=300)
+    lord = await _lord_of(wiring.kingdoms_service, user_id)
+    kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
+    if wiring.voliere_service is not None and kingdom_id:
+        faucon: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+            label=strings["room_sabotage_faucon"][:80], style=discord.ButtonStyle.secondary
+        )
+
+        async def _on_faucon(target: discord.Interaction) -> None:
+            if str(getattr(target.user, "id", "")) != user_id:
+                await target.response.defer()
+                return
+            civ_view = await _room_civ_select_view(wiring, attack_id, side, "faucon", strings)
+            if civ_view is None:
+                await target.response.send_message(strings["room_sabotage_empty"], ephemeral=True)
+                return
+            await target.response.send_message(
+                strings["room_sabotage_choose"], view=civ_view, ephemeral=True
+            )
+
+        faucon.callback = _on_faucon  # type: ignore[method-assign,assignment]
+        view.add_item(faucon)
+    if side == "attacker":
+        bought = False
+        try:
+            state = await wiring.attacks_service.technology_state(attack.attacker_kingdom_id)
+            bought = state.purchases.get("sabotage", 0) > 0
+        except Exception:
+            bought = False
+        if bought:
+            techno: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+                label=strings["room_sabotage_techno"][:80], style=discord.ButtonStyle.secondary
+            )
+
+            async def _on_techno(target: discord.Interaction) -> None:
+                if str(getattr(target.user, "id", "")) != user_id:
+                    await target.response.defer()
+                    return
+                civ_view = await _room_civ_select_view(wiring, attack_id, side, "techno", strings)
+                if civ_view is None:
+                    await target.response.send_message(strings["room_sabotage_empty"], ephemeral=True)
+                    return
+                await target.response.send_message(
+                    strings["room_sabotage_choose"], view=civ_view, ephemeral=True
+                )
+
+            techno.callback = _on_techno  # type: ignore[method-assign,assignment]
+            view.add_item(techno)
+    passer: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+        label=strings["room_sabotage_pass"][:80], style=discord.ButtonStyle.success
+    )
+
+    async def _on_pass(target: discord.Interaction) -> None:
+        if str(getattr(target.user, "id", "")) != user_id:
+            await target.response.defer()
+            return
+        try:
+            fresh = await wiring.attacks_service.room_settle(attack_id, user_id)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await target.response.send_message(
+                strings["failed"].format(message=message), ephemeral=True
+            )
+            return
+        if (fresh.pickban or {}).get("room_revealed"):
+            await _post_room_reveal_safe(target.channel, wiring, fresh, strings)
+            await target.response.send_message(
+                strings["room_sabotage_revealed"], ephemeral=True
+            )
+            return
+        await target.response.send_message(strings["room_sabotage_settled"], ephemeral=True)
+
+    passer.callback = _on_pass  # type: ignore[method-assign,assignment]
+    view.add_item(passer)
+    return view
+
+
+async def _room_civ_select_view(
+    wiring: Any, attack_id: str, side: str, action: str, strings: dict[str, str]
+) -> discord.ui.View | None:
+    """Build the enemy-civ select of one sabotage action (None when empty)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
+
+    try:
+        attack = next(
+            item for item in await wiring.attacks_service.attacks() if str(item.id) == attack_id
+        )
+    except Exception:
+        return None
+    user_id = str(attack.attacker_lord_id if side == "attacker" else attack.defender_lord_id)
+    pickban = dict(attack.pickban or {})
+    enemy = "defender" if side == "attacker" else "attacker"
+    already = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
+    options = [
+        civ
+        for civ in _shuffled_civs(pickban.get(f"{enemy}_picks"))
+        if civ not in already
+    ][:25]
+    if not options:
+        return None
+    view = discord.ui.View(timeout=300)
+    select: discord.ui.Select[Any] = discord.ui.Select(
+        placeholder=strings["room_sabotage_choose"][:100],
+        options=[discord.SelectOption(label=civ[:100], value=civ) for civ in options],
+        min_values=1,
+        max_values=1,
+    )
+
+    async def _on_pick(target: discord.Interaction) -> None:
+        if str(getattr(target.user, "id", "")) != user_id:
+            await target.response.defer()
+            return
+        civ = str(select.values[0])
+        try:
+            if action == "faucon":
+                lord = await _lord_of(wiring.kingdoms_service, user_id)
+                kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
+                await wiring.voliere_service.faucon_sabotage(
+                    kingdom_id, attack_id, civ, now=datetime.now(UTC)
+                )
+            else:
+                await wiring.attacks_service.room_sabotage_techno(attack_id, user_id, civ)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await target.response.send_message(
+                strings["failed"].format(message=message), ephemeral=True
+            )
+            return
+        await target.response.send_message(
+            strings["room_sabotage_done"].format(civ=civ), ephemeral=True
+        )
+
+    select.callback = _on_pick  # type: ignore[method-assign,assignment]
+    view.add_item(select)
+    return view
+
+
+async def _post_room_reveal_safe(channel: Any, wiring: Any, attack: Any, strings: dict[str, str]) -> None:
+    """Post the room reveal (both camps settled) — best effort, once.
+
+    The played civilization is the FIRST surviving pick of each side's
+    ranked list (the ranking stays secret — only the shuffled picks
+    were ever shown); the sabotaged civs appear struck through.
+    """
+    pickban = dict(attack.pickban or {})
+
+    def _line(player: str, side: str) -> str:
+        picks = [str(civ) for civ in (pickban.get(f"{side}_picks") or [])]
+        enemy = "defender" if side == "attacker" else "attacker"
+        struck = [str(civ) for civ in (pickban.get(f"{enemy}_sabotages") or [])]
+        final = next((civ for civ in picks if civ not in struck), "")
+        shown = " ".join(f"~~{civ}~~" if civ in struck else civ for civ in picks)
+        return strings["room_reveal_line"].format(
+            player=player, civ=final or "—", picks=shown or "—"
+        )
+
+    try:
+        attacker = await _lord_name(wiring.kingdoms_service, attack.attacker_lord_id)
+        defender = await _lord_name(wiring.kingdoms_service, attack.defender_lord_id)
+        content = strings["room_reveal"].format(
+            map=attack.map_key,
+            lines="\n".join([_line(attacker, "attacker"), _line(defender, "defender")]),
+        )
+        await channel.send(content)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: room reveal post failed", exc_info=True)
 
 
 async def _announce_room_start_safe(
