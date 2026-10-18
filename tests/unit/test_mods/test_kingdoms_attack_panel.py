@@ -1109,8 +1109,16 @@ async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> 
             user=MockUser(id=player), guild=guild, channel=room, locale="fr", client=bot
         )
         await button.callback(click)  # type: ignore[arg-type]
+        # The ephemeral winner select pops — pick the attacker kingdom.
         assert click.response.message is not None
-        content = str(click.response.message.content or "")
+        select = click.response.message.view.children[0]  # type: ignore[union-attr]
+        select._values = [str(aquitaine)]  # type: ignore[attr-defined]
+        target = MockInteraction(
+            user=MockUser(id=player), guild=guild, channel=room, locale="fr", client=bot
+        )
+        await select.callback(target)  # type: ignore[arg-type,union-attr,func-returns-value]
+        assert target.response.message is not None
+        content = str(target.response.message.content or "")
         if "Résultat enregistré" in content:
             outcomes.append("resolved")
         elif "Résultat" in content:
