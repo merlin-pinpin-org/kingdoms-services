@@ -19,11 +19,11 @@ jobs:
           python-version: "3.12"
       - name: Run ruff, mypy, pytest (never fail)
         run: |
-          uv sync
+          uv sync || true
           { uv run ruff check src/ tests/; echo "EXIT:$?"; } > /tmp/ruff.log 2>&1 || true
           { uv run mypy src/; echo "EXIT:$?"; } > /tmp/mypy.log 2>&1 || true
           { uv run pytest -q --no-header -p no:cacheprovider; echo "EXIT:$?"; } > /tmp/pytest.log 2>&1 || true
-          wc -c /tmp/ruff.log /tmp/mypy.log /tmp/pytest.log
+          wc -c /tmp/ruff.log /tmp/mypy.log /tmp/pytest.log || true
       - name: Post the outputs on PR 244
         env:
           GH_TOKEN: ${{ github.token }}
@@ -32,18 +32,18 @@ jobs:
             echo "## Debug check73 outputs"
             echo '<details><summary>ruff</summary>'
             echo '```'
-            tail -c 6000 /tmp/ruff.log
+            tail -c 6000 /tmp/ruff.log || true
             echo '```'
             echo '</details>'
             echo '<details><summary>mypy</summary>'
             echo '```'
-            tail -c 6000 /tmp/mypy.log
+            tail -c 6000 /tmp/mypy.log || true
             echo '```'
             echo '</details>'
             echo '<details><summary>pytest</summary>'
             echo '```'
-            tail -c 20000 /tmp/pytest.log
+            tail -c 20000 /tmp/pytest.log || true
             echo '```'
             echo '</details>'
           } > /tmp/body.md
-          gh pr comment 244 --repo "$GITHUB_REPOSITORY" --body-file /tmp/body.m
+          gh pr comment 244 --repo "$GITHUB_REPOSITORY" --body-file /tmp/body.md
