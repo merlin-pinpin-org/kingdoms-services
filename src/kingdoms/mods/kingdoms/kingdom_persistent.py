@@ -3754,8 +3754,18 @@ async def _send_welcome(
             await channel.send(f"{welcome}\n{strings['welcome_fallback']}")
 
 
-async def _send_king_name_request(guild: discord.Guild, applicant_id: str, locale: str) -> None:
-    """DM the approved King asking for their kingdom's name (flow v2, D70)."""
+async def _send_king_name_request(
+    guild: discord.Guild,
+    applicant_id: str,
+    locale: str,
+    available: list[Any] | None = None,
+) -> None:
+    """DM the approved King asking for their kingdom's name (flow v2, D70).
+
+    Drasah 18/10: when kingless thrones exist (kingdoms added by an
+    admin, for instance), the DM ALSO carries the claim select — the
+    King may found a new kingdom OR take an existing throne.
+    """
     member = guild.get_member(int(applicant_id))
     if member is None:
         try:
@@ -3766,8 +3776,20 @@ async def _send_king_name_request(guild: discord.Guild, applicant_id: str, local
         return
     strings = _king_name_strings(locale)
     request = f"# {strings['king_name_dm_title']}\n{strings['king_name_dm_body']}"
+    if available:
+        request = f"{request}\n\n{strings['king_name_claim_hint']}"
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomKingNameButton(strings["king_name_button"][:80]))
+    if available:
+        view.add_item(
+            KingdomKingClaimSelect(
+                [
+                    discord.SelectOption(label=str(k.name)[:100], value=str(k.id))
+                    for k in available[:25]
+                ],
+                strings["king_claim_placeholder"][:100],
+            )
+        )
     try:
         await member.send(request, view=view)
     except Exception:
@@ -3796,18 +3818,19 @@ async def _send_king_kingdom_request(guild: discord.Guild, applicant_id: str, lo
         season = await wiring.kingdoms_service.current_season()
     except Exception:
         season = None
+    available: list[Any] = []
+    try:
+        available = await wiring.kingdoms_service.available_kingdoms()
+    except Exception:
+        logger.info("CANDIDATURES: available kingdoms lookup failed", exc_info=True)
+        available = []
     if season is not None and season.imposed_kingdoms:
-        try:
-            available = await wiring.kingdoms_service.available_kingdoms()
-        except Exception:
-            logger.info("CANDIDATURES: available kingdoms lookup failed", exc_info=True)
-            available = []
         if available:
             await _send_king_claim_request(guild, applicant_id, locale, available)
         else:
             await _send_king_awaiting_kingdom(guild, applicant_id, locale)
         return
-    await _send_king_name_request(guild, applicant_id, locale)
+    await _send_king_name_request(guild, applicant_id, locale, available)
 
 
 async def _send_king_claim_request(
