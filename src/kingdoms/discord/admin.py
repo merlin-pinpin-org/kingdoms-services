@@ -157,14 +157,16 @@ async def build_dm_setup_view(
         if not interaction.guild_id and _is_bot_admin(interaction.user.id, bot_admins):
             from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
-            dm_view = await build_dm_setup_view(
+            # the fresh view re-resolves the locale through the service —
+            # never through this closure's pre-change `locale`
+            fresh_view = await build_dm_setup_view(
                 logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
             )
-            locale_select = next(
-                (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)), None
+            fresh_select = next(
+                (item for item in fresh_view.walk_children() if isinstance(item, discord.ui.Select)), None
             )
             await interaction.response.edit_message(
-                view=await build_admin_dm_panel(interaction, locale_select=locale_select)
+                view=await build_admin_dm_panel(interaction, locale_select=fresh_select)
             )
         else:
             await interaction.response.edit_message(

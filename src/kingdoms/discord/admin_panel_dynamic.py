@@ -463,7 +463,7 @@ def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.Layout
     from kingdoms.discord.guild_access_request import GuildAccessRequestButton
 
     row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(GuildAccessRequestButton(guild_id))
+    row.add_item(GuildAccessRequestButton(guild_id, kind="games"))
     return row
 
 

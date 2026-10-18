@@ -503,7 +503,7 @@ class AccessAddButton(
         dm_locale = await _dm_locale(interaction)
         from kingdoms.discord.guild_access_request import _request_options
 
-        options = [opt for opt in _request_options() if opt.value != "none"]
+        options = [opt for opt in _request_options("all") if opt.value != "none"]
         service = await _access_service()
         granted: set[str] = set()
         if service is not None:

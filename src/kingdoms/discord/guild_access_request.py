@@ -29,20 +29,31 @@ async def _access_service() -> Any | None:
 
 class GuildAccessRequestSelect(
     discord.ui.DynamicItem[discord.ui.Select[Any]],
-    template=rf"{_NS}:select:(?P<guild_id>\d+)",
+    template=rf"{_NS}:select:(?P<kind>games|mods):(?P<guild_id>\d+)",
 ):
-    """Pick the games/mods the guild requests (guild admins only)."""
+    """Pick the resources the guild requests (guild admins only).
+
+    One component, two perimeters: the kind (``games``/``mods``)
+    rides the custom_id, so the games and mods admin menus dispatch
+    to disjoint selects — each lists only its own perimeter.
+    """
 
     def __init__(
-        self, guild_id: str, options: list[discord.SelectOption] | None = None, disabled: bool = False
+        self,
+        guild_id: str,
+        kind: str = "games",
+        options: list[discord.SelectOption] | None = None,
+        disabled: bool = False,
     ) -> None:
         self.guild_id = guild_id
-        resolved = options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
+        self.kind = kind
+        empty = "Aucun jeu actif" if kind == "games" else "Aucun mod actif"
+        resolved = options or [discord.SelectOption(label=empty, value="none")]
         super().__init__(
             discord.ui.Select(
-                custom_id=f"{_NS}:select:{guild_id}"[:100],
+                custom_id=f"{_NS}:select:{kind}:{guild_id}"[:100],
                 options=resolved,
-                placeholder="Jeux/mods à demander...",
+                placeholder="Jeux à demander..." if kind == "games" else "Mods à demander...",
                 min_values=1,
                 max_values=min(25, len(resolved)),
                 disabled=disabled or all(o.value == "none" for o in resolved),
@@ -59,7 +70,8 @@ class GuildAccessRequestSelect(
     ) -> GuildAccessRequestSelect:
         """Rebuild the select's options at click time (known keys only)."""
         del interaction, item
-        return cls(match.group("guild_id"), _request_options())
+        kind = match.group("kind")
+        return cls(match.group("guild_id"), kind, _request_options(kind))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Ack within the 3s window, then record the request and DM admins.
@@ -101,17 +113,23 @@ class GuildAccessRequestSelect(
 
 class GuildAccessRequestButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:open:(?P<guild_id>\d+)",
+    template=rf"{_NS}:open:(?P<kind>games|mods):(?P<guild_id>\d+)",
 ):
-    """Open the request picker from the guild's /admin panel."""
+    """Open the request picker from the perimeter's admin menu.
 
-    def __init__(self, guild_id: str) -> None:
+    The kind (``games``/``mods``) rides the custom_id: the two admin
+    menus share the component but never each other's options.
+    """
+
+    def __init__(self, guild_id: str, kind: str = "games", label: str = "") -> None:
         self.guild_id = guild_id
+        self.kind = kind
+        text = label or ("Demander l'accès aux jeux" if kind == "games" else "Demander l'accès aux mods")
         super().__init__(
             discord.ui.Button(
-                label="Demander l'accès aux jeux/mods",
+                label=text,
                 style=discord.ButtonStyle.primary,
-                custom_id=f"{_NS}:open:{guild_id}"[:100],
+                custom_id=f"{_NS}:open:{kind}:{guild_id}"[:100],
             )
         )
 
@@ -125,7 +143,7 @@ class GuildAccessRequestButton(
     ) -> GuildAccessRequestButton:
         """Rebuild from the wire."""
         del interaction, item
-        return cls(match.group("guild_id"))
+        return cls(match.group("guild_id"), match.group("kind"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Guard (guild admins), then open the request select.
@@ -136,18 +154,19 @@ class GuildAccessRequestButton(
         await interaction.response.defer(ephemeral=True, thinking=True)
         if not await _guard_admin_deferred(interaction):
             return
-        options = _request_options()
+        options = _request_options(self.kind)
         if all(option.value == "none" for option in options):
             await interaction.followup.send(
                 "Aucun jeu/mod actif sur la plateforme pour le moment — demande a un bot admin d'en activer un.",
                 ephemeral=True,
             )
             return
-        select = GuildAccessRequestSelect(self.guild_id, options)
+        select = GuildAccessRequestSelect(self.guild_id, self.kind, options)
         picker = discord.ui.View(timeout=None)
         picker.add_item(select)
         await interaction.followup.send(
-            "Choisis les jeux/mods que la guilde demande :",
+            "Choisis les jeux que le serveur demande :" if self.kind == "games"
+            else "Choisis les mods que le serveur demande :",
             view=picker,
             ephemeral=True,
         )
@@ -166,14 +185,26 @@ async def _guard_admin_deferred(interaction: discord.Interaction) -> bool:
     return False
 
 
-def _request_options() -> list[discord.SelectOption]:
-    """List the platform's known games and mods as request options."""
+def _request_options(kind: str = "games") -> list[discord.SelectOption]:
+    """List the perimeter's known resources as request options.
+
+    ``kind`` scopes the list (``games``/``mods``); ``all`` keeps the
+    legacy combined listing for the DM panel's direct-grant flow.
+    """
     from kingdoms.discord.wiring import guild_access_platform
 
     games, mods = guild_access_platform()
-    options = [discord.SelectOption(label=f"jeu : {g}", value=f"game:{g}") for g in games]
-    options += [discord.SelectOption(label=f"mod : {m}", value=f"mod:{m}") for m in mods]
-    return options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
+    if kind == "all":
+        options = [discord.SelectOption(label=f"jeu : {g}", value=f"game:{g}") for g in games]
+        options += [discord.SelectOption(label=f"mod : {m}", value=f"mod:{m}") for m in mods]
+        return options or [discord.SelectOption(label="Aucun jeu/mod actif", value="none")]
+    if kind == "mods":
+        return [discord.SelectOption(label=m, value=f"mod:{m}") for m in mods] or [
+            discord.SelectOption(label="Aucun mod actif", value="none")
+        ]
+    return [discord.SelectOption(label=g, value=f"game:{g}") for g in games] or [
+        discord.SelectOption(label="Aucun jeu actif", value="none")
+    ]
 
 
 def _with_required_games(chosen: list[str]) -> list[str]:
@@ -392,17 +423,22 @@ async def _delete_pending_admin_dms(bot: Any, guild_id: str, requested_at: str) 
 
 class GuildAccessRevokeButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=rf"{_NS}:revoke:(?P<guild_id>\d+)",
+    template=rf"{_NS}:revoke:(?P<kind>games|mods):(?P<guild_id>\d+)",
 ):
-    """Open the granted-keys picker to revoke one access (guild admins)."""
+    """Open the granted-keys picker to revoke one access (guild admins).
 
-    def __init__(self, guild_id: str) -> None:
+    The kind (``games``/``mods``) rides the custom_id: each perimeter
+    revokes only its own granted resources.
+    """
+
+    def __init__(self, guild_id: str, kind: str = "games") -> None:
         self.guild_id = guild_id
+        self.kind = kind
         super().__init__(
             discord.ui.Button(
                 label="Retirer un acc\u00e8s",
                 style=discord.ButtonStyle.danger,
-                custom_id=f"{_NS}:revoke:{guild_id}"[:100],
+                custom_id=f"{_NS}:revoke:{kind}:{guild_id}"[:100],
             )
         )
 
@@ -416,7 +452,7 @@ class GuildAccessRevokeButton(
     ) -> GuildAccessRevokeButton:
         """Rebuild from the wire."""
         del interaction, item
-        return cls(match.group("guild_id"))
+        return cls(match.group("guild_id"), match.group("kind"))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Guard (guild admins), then open the granted-keys picker."""
@@ -431,14 +467,20 @@ class GuildAccessRevokeButton(
         try:
             doc = await service.get(self.guild_id)
             if doc:
-                granted = [f"game:{k}" for k in doc.get("games") or []]
-                granted += [f"mod:{k}" for k in doc.get("mods") or []]
+                if self.kind == "games":
+                    granted = [f"game:{k}" for k in doc.get("games") or []]
+                else:
+                    granted = [f"mod:{k}" for k in doc.get("mods") or []]
         except Exception:
             logger.exception("ACCESS REVOKE list failed (guild %s)", self.guild_id)
             await interaction.followup.send("Listing impossible (voir les logs).", ephemeral=True)
             return
         if not granted:
-            await interaction.followup.send("Aucun acc\u00e8s accord\u00e9 \u00e0 retirer.", ephemeral=True)
+            none_note = (
+                "Aucun jeu accord\u00e9 \u00e0 retirer." if self.kind == "games"
+                else "Aucun mod accord\u00e9 \u00e0 retirer."
+            )
+            await interaction.followup.send(none_note, ephemeral=True)
             return
         options = [discord.SelectOption(label=key, value=key) for key in granted[:25]]
         picker = discord.ui.View(timeout=None)

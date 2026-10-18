@@ -501,7 +501,7 @@ async def _send_boot_admin_dm(bot: discord.Client, user: Any) -> None:
         if logs is not None:
             from kingdoms.discord.admin import build_dm_setup_view
 
-            dm_view = await build_dm_setup_view(logs, str(user.id))
+            dm_view = await build_dm_setup_view(logs, str(user.id), catalog=getattr(bot, "messages", None))
             locale_select = next(
                 (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)),
                 None,

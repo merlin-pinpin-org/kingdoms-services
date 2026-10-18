@@ -230,12 +230,12 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                                     "\U0001f4cb",
                                 ),
                                 (
-                                    f"admin:access:open:{guild_id}",
+                                    f"admin:access:open:{kind}:{guild_id}",
                                     _tr(catalog, "ui.homes.btn_request_access", locale, "Demander l'acc\u00e8s"),
                                     "\u2709\ufe0f",
                                 ),
                                 (
-                                    f"admin:access:revoke:{guild_id}",
+                                    f"admin:access:revoke:{kind}:{guild_id}",
                                     _tr(catalog, "ui.homes.btn_revoke_access", locale, "Retirer l'acc\u00e8s"),
                                     "\U0001f5d1",
                                 ),
