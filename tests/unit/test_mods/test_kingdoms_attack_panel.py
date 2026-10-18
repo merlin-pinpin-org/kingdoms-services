@@ -455,9 +455,8 @@ async def test_join_button_adds_a_lord_to_the_gaia_battle() -> None:
 
 async def test_defend_button_takes_the_defense() -> None:
     """The persistent defend button runs respond_defense (D77)."""
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton, _strings
-
     from kingdoms.mods.kingdoms import attacks as attacks_module
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton, _strings
 
     bundle = PhasesBundle()
     await bundle.launch_season()

@@ -94,8 +94,9 @@ async def test_score_due_opens_the_meeting_at_t() -> None:
     assert await bundle.attacks.score_due(now=_T) == []
 
 
-async def test_score_due_ignores_unresolved_pickbans() -> None:
-    """The legacy forfeit at T stays — an unresolved pick & ban never opens."""
+async def test_forgotten_draft_defaults_the_defender_and_opens_the_meeting() -> None:
+    """Drasah 18/10: a forgotten draft defaults (random civs, no
+    sabotage, never a forfeit) — the RDV still opens at T."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
@@ -108,9 +109,23 @@ async def test_score_due_ignores_unresolved_pickbans() -> None:
     fresh.pickban = pickban
     await bundle.store.upsert_attack(fresh.to_mongo())
     assert await bundle.attacks.score_due(now=_T) == []
-    expired = await bundle.attacks.expire_stale(now=_T)
-    assert [item.id for item in expired] == [attack.id]
-    assert expired[0].state is AttackState.RESOLVED  # the forfeit rule
+    # Anti-blocking default: expire_stale NEVER forfeits the attack.
+    assert await bundle.attacks.expire_stale(now=_T) == []
+    defaulted = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert defaulted.state is AttackState.DEFENDED
+    assert defaulted.pickban["resolved_pickban"] is True
+    assert defaulted.pickban["default_picks"] == ["defender"]
+    assert defaulted.pickban["defender_picks"]
+    assert sorted(defaulted.pickban["defender_picks"]) == [
+        "byzantins",
+        "huns",
+        "perses",
+    ]
+    assert defaulted.pickban["sabotages"] == {}
+    assert defaulted.pickban["defender_sabotages"] == []
+    # The RDV opens on the next tick — the game decides.
+    due = await bundle.attacks.score_due(now=_T)
+    assert [item.id for item in due] == [attack.id]
 
 
 async def test_ready_clicks_and_unilateral_noshow() -> None:

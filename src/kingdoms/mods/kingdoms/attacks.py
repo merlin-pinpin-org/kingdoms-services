@@ -364,8 +364,8 @@ def phase_label(attack: AttackModel) -> str:
     ban), ``ready`` (the RDV presence) and ``score`` (the game and
     its declaration — or a finished attack).
 
-    Drasah 17/10: a revealed attack still DECLARED keeps ``siege``
-    — the [T-15, T] defense window is open, the defend button live.
+    Drasah 18/10: a DECLARED attack keeps ``siege`` — the
+    [declaration, T-5] defense window is open, the defend button live.
     """
     if attack.state is AttackState.MEETING:
         return "score" if attack.score.get("all_ready") else "ready"
@@ -891,10 +891,9 @@ class AttackService:
         At T (``expires_at``): a defense never locked moves to the
         kingdom's bot AI (vs_ai default) — legacy ``auto_victory``
         captures without a game when configured. A locked defense
-        whose pick & ban never resolved is a FORFAIT: the side that
-        missed its validation loses (both missed → the attacker, the
-        present, wins). A resolved pick & ban keeps waiting for the
-        game result (D20) — the RDV itself.
+        whose pick & ban never resolved is anti-blocking defaulted
+        (Drasah 18/10): random civs, no sabotage, never a forfeit —
+        the RDV then waits for the game result (D20).
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -930,7 +929,7 @@ class AttackService:
                 attack.resolved_at = timestamp
                 await self._territories.transfer(attack.territory_id, attack.attacker_kingdom_id)
             else:
-                # The defense window [T-15, T] closed with no defender:
+                # The defense window [declaration, T-5] closed with no defender:
                 # the bot AI takes the defense AT the meeting time and
                 # the RDV opens directly — no pick & ban ever left (the
                 # defense side had no human to pick, and the attacker's
@@ -967,7 +966,7 @@ class AttackService:
         pickban = dict(attack.pickban)
         if not pickban.get("sent"):
             # A defense locked after the last pick & ban tick (the
-            # [T-15, T] window, Drasah 17/10): no DM ever left — the
+            # [declaration, T-5] window, Drasah 18/10): no DM ever left — the
             # pick & ban is skipped and the RDV (score phase) decides,
             # no forfait.
             pickban["resolved_pickban"] = True
@@ -1017,8 +1016,9 @@ class AttackService:
 
         The tick moves the attack to the new ``MEETING`` state: the
         RDV itself. Idempotent through ``score["opened"]`` — a restart
-        replays nothing. Un-resolved pick & bans keep the legacy
-        forfeit path (``_expire_defended``) — the two rules coexist.
+        replays nothing. Un-resolved pick & bans are anti-blocking
+        defaulted by ``_expire_defended`` (random civs, no sabotage)
+        and open on the next tick.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()

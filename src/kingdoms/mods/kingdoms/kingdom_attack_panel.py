@@ -143,7 +143,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "de la main adverse.\n"
             "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
             "3 civilisations seront tirées **au hasard** de ta main — et aucun "
-            "sabotage ni faucon ne s’appliquera. Le RDV a lieu quoi qu’il arrive.\n"
+            "sabotage ni faucon ne s'appliquera. Le RDV a lieu quoi qu'il arrive.\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
         ),
         "pickban_pick": "Choix {n}",

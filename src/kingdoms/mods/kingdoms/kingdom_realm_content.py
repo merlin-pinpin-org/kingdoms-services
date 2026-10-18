@@ -745,11 +745,11 @@ def _build_patrol(
         lines.append(strings["remparts_guard_stock"].format(stock))
     lines.append(strings["patrol_window"])
     body = "\n".join(lines)
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomDefenseManagerButton
     from kingdoms.mods.kingdoms.kingdom_persistent import (
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
     )
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomDefenseManagerButton
 
     return _panel_view_with_buttons(
         strings["patrol_title"].format(getattr(kingdom, "name", "")),
