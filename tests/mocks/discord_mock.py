@@ -427,6 +427,11 @@ class MockVoiceChannel(discord.VoiceChannel):
     def members(self) -> list[discord.Member]:
         return list(self._connected_members)
 
+    async def delete(self, *, delay: float | None = None) -> None:
+        # Drasah 18/10 v4: a deleted vocal leaves the guild registry —
+        # the battle-room cleanup tests read get_channel afterwards.
+        await self.guild.delete_channel(self)  # type: ignore[arg-type]
+
     def __repr__(self) -> str:
         return f"<MockVoiceChannel id={self.id} name={self.name!r}>"
 

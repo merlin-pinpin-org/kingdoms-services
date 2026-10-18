@@ -178,6 +178,30 @@ async def test_ready_clicks_count_as_presence_without_the_vocal() -> None:
     assert fresh.state is AttackState.MEETING
 
 
+async def test_open_meeting_now_opens_the_room_before_t() -> None:
+    """Drasah 18/10 v4: once BOTH camps settled the sabotage phase the
+    meeting opens at once — the vocal is wanted before T, and the T
+    tick replays without duplicating it."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    # One settle alone is not enough.
+    first = await bundle.attacks.sabotage_settle(attack.id, "king-a")
+    assert (first.pickban or {}).get("sabotage_resolved") is not True
+    assert await bundle.attacks.open_meeting_now(attack.id) is None
+    # The second settle completes the phase — the meeting opens BEFORE T.
+    second = await bundle.attacks.sabotage_settle(attack.id, "lord-b")
+    assert (second.pickban or {}).get("sabotage_resolved") is True
+    fresh = await bundle.attacks.open_meeting_now(attack.id)
+    assert fresh is not None
+    assert fresh.state is AttackState.MEETING
+    assert fresh.score["opened"] is True
+    assert fresh.score["ready_deadline"] == int(_T5.timestamp())
+    # The T tick skips the already-open meeting (idempotent).
+    assert await bundle.attacks.score_due(now=_T) == []
+
+
 async def test_attacker_noshow_gives_the_defense() -> None:
     """T+5: the attacker missed — the defending kingdom keeps the map."""
     bundle = ScoreBundle()
