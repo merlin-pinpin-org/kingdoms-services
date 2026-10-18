@@ -158,21 +158,24 @@ async def test_voice_presence_and_unilateral_noshow() -> None:
     assert await bundle.owner_of(attack) == aquitaine
 
 
-async def test_ready_click_still_records_the_ui_confirmation() -> None:
-    """The Prêt button stays a plain UI confirmation (no forfeit role)."""
+async def test_ready_clicks_count_as_presence_without_the_vocal() -> None:
+    """Drasah 18/10 v4 regression: a pair playing the game WITHOUT
+    sitting in the Discord vocal was falsely forfeited at T+5 — the
+    battle room died mid-game. A Prêt click IS a presence now."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, _aquitaine, _bourgogne = await bundle.open_meeting()
     await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    await bundle.attacks.mark_ready(attack.id, "lord-b", now=_T)
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
-    assert fresh.score["ready"] == ["king-a"]
-    # The Prêt click is NOT the presence: only the attacker joined the
-    # room voice — the defender no-show still forfeits at T+5.
-    await bundle.present(attack, "king-a")
-    handled = await bundle.attacks.ready_due(now=_T5)
-    assert [item.id for item in handled] == [attack.id]
-    assert handled[0].score["noshow"] == "defender"
+    assert fresh.score["ready"] == ["king-a", "lord-b"]
+    assert fresh.score["all_ready"]
+    # Neither player ever joined the voice — no forfeit at T+5.
+    assert await bundle.attacks.ready_due(now=_T + timedelta(minutes=4)) == []
+    assert await bundle.attacks.ready_due(now=_T5) == []
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.state is AttackState.MEETING
 
 
 async def test_attacker_noshow_gives_the_defense() -> None:

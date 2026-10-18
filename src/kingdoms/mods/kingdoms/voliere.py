@@ -716,16 +716,19 @@ class VoliereService:
         if kingdom_id not in (attack.attacker_kingdom_id, attack.defender_kingdom_id):
             raise VoliereTargetError("the kingdom is not part of the attack")
         pickban = dict(attack.pickban or {})
-        # Drasah 18/10 v4: the Faucon strikes in the SABOTAGE phase —
-        # the window opened when the draft resolved (the reveal of the
-        # adversary civs) and closes when the phase settles (or at T).
-        phase_open = (
-            bool(pickban.get("sent"))
-            and not bool(pickban.get("sabotage_resolved"))
-            and not attack.is_over
+        # Drasah 18/10 v3: the Faucon also strikes from the battle room
+        # (phase Sabotage du vocal) — the meeting state is a valid window.
+        in_draft = bool(pickban.get("sent")) and not bool(pickban.get("resolved_pickban"))
+        in_room = str(getattr(attack, "state", "")) == "meeting"
+        # Drasah 18/10 v4: the post-draft SabotagePhase (DMs, before the
+        # battle room) is a valid Faucon window too.
+        in_sabotage = bool(pickban.get("resolved_pickban")) and not bool(
+            pickban.get("room_revealed")
         )
-        if not phase_open:
-            raise VoliereTargetError("the sabotage phase is over")
+        if not in_draft and not in_room and not in_sabotage:
+            if not bool(pickban.get("sent")):
+                raise VoliereTargetError("the pick & ban phase is not running")
+            raise VoliereTargetError("the pick & ban phase is over")
         side = "attacker" if kingdom_id == attack.attacker_kingdom_id else "defender"
         sabotages = list(pickban.get(f"{side}_sabotages") or [])
         if len(sabotages) >= 2:
