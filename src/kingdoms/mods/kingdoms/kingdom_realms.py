@@ -274,6 +274,13 @@ async def _realm_overwrites(
                 member = await guild.fetch_member(member_id)
             except Exception:
                 member = None
+        if member is None:
+            # Live incident 2026-10-18: a claimed King was silently
+            # absent from his own category — this must be loud.
+            logger.warning(
+                "KINGDOM REALMS: member %s skipped from overwrites (unresolvable)", member_id
+            )
+            continue
         if member is not None:
             # Drasah's live finding (2026-10-12): view_channel alone is
             # NOT enough — an unspecified permission falls back to the
@@ -386,6 +393,67 @@ async def ensure_realm_structure(
             )
 
     return category
+
+
+async def ensure_member_realm_access(
+    guild: discord.Guild,
+    kingdom: Any,
+    member_id: int,
+) -> bool:
+    """Guarantee one member's view/history overwrites on their realm category.
+
+    Drasah's live incident (2026-10-18): a King who claimed an admin-
+    created throne had no access to his own category — the blanket
+    ``ensure_all_realm_structures`` re-sync skipped him silently when
+    the member lookup failed inside ``_realm_overwrites``. This
+    targeted pass runs AFTER the re-sync: it reads the live overwrites
+    and grants the missing member overwrite directly, logging loudly
+    instead of failing silently.
+    """
+    category = _find_realm_category(guild, kingdom.name)
+    if category is None:
+        logger.warning(
+            "KINGDOM REALMS: no category %s to guarantee access for %s", kingdom.name, member_id
+        )
+        return False
+    member = guild.get_member(member_id)
+    if member is None:
+        try:
+            member = await guild.fetch_member(member_id)
+        except Exception:
+            member = None
+    if member is None:
+        logger.warning(
+            "KINGDOM REALMS: member %s unresolvable, access not guaranteed", member_id
+        )
+        return False
+    lookup = getattr(category, "permission_overwrite_for", None)
+    existing: Any = None
+    if lookup is not None:
+        existing = lookup(member)
+    else:
+        current = getattr(category, "overwrites", None) or {}
+        existing = next(
+            (
+                overwrite
+                for target, overwrite in current.items()
+                if getattr(target, "id", None) == member.id
+            ),
+            None,
+        )
+    if existing is not None and bool(getattr(existing, "view_channel", None)):
+        return True
+    try:
+        await category.set_permissions(member, view_channel=True, read_message_history=True)
+        logger.info(
+            "KINGDOM REALMS: targeted access granted for %s on %s", member_id, kingdom.name
+        )
+    except Exception:
+        logger.warning(
+            "KINGDOM REALMS: targeted access grant failed for %s", member_id, exc_info=True
+        )
+        return False
+    return True
 
 
 async def delete_orphan_realm_categories(guild: discord.Guild, kingdoms: Any) -> int:
