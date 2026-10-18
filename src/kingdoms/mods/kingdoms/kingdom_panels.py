@@ -216,6 +216,10 @@ STRINGS: dict[str, dict[str, Any]] = {
             "will then be submitted to the admins for validation."
         ),
         "king_name_dm_fallback": "Click the button below to name your kingdom.",
+        "king_name_claim_hint": (
+            "👑 Free thrones are open — you can also join an existing"
+            " kingdom through the dropdown."
+        ),
         "king_name_button": "🏷️ Name my kingdom",
         "king_name_modal_title": "Your kingdom's name",
         "king_name_field": "Kingdom name (max 40 characters)",
@@ -607,6 +611,10 @@ STRINGS: dict[str, dict[str, Any]] = {
             "caractères). Il sera ensuite soumis à la validation des admins."
         ),
         "king_name_dm_fallback": "Clique sur le bouton ci-dessous pour nommer ton royaume.",
+        "king_name_claim_hint": (
+            "👑 Des trônes sont libres — tu peux aussi rejoindre un royaume"
+            " existant via le menu déroulant."
+        ),
         "king_name_button": "🏷️ Nommer mon royaume",
         "king_name_modal_title": "Nom de ton royaume",
         "king_name_field": "Nom du royaume (max 40 caractères)",
