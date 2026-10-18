@@ -1207,42 +1207,66 @@ async def _rewrite_flow_confirmation(
         _schedule_ephemeral_delete(anchor, flow_message, seconds=_CONFIRM_TTL_SECONDS)
 
 
+async def _enrolled_blocker(
+    strings: dict[str, Any],
+    service: Any,
+    applicant_id: int,
+) -> str | None:
+    """Return the refusal string when the player is already enrolled."""
+    if service is None:
+        return None
+    try:
+        lords = await service.lords()
+    except Exception:
+        lords = []
+    for lord in lords:
+        if str(lord.id) == str(applicant_id) and not lord.left:
+            return str(strings["apply_already_enrolled"])
+    return None
+
+
+async def _pending_candidature_blocker(
+    strings: dict[str, Any],
+    channel: discord.abc.Messageable | None,
+    applicant_id: int,
+) -> str | None:
+    """Return the refusal string when a candidature is still pending.
+
+    A candidature counts as pending while its decision view is still
+    attached (``components`` non-empty) — a decided message keeps its
+    content but loses its buttons, so the player may re-apply after a
+    refusal.
+    """
+    if channel is None:
+        return None
+    mention = f"<@{applicant_id}>"
+    try:
+        recent = await channel_messages(channel)
+    except Exception:
+        recent = []
+    for message in recent:
+        content = getattr(message, "content", "") or ""
+        if mention not in content:
+            continue
+        if strings["candidature_title"] not in content:
+            continue
+        if getattr(message, "components", None):
+            return str(strings["apply_already_pending"])
+    return None
+
+
 async def _apply_blocker(context: _ApplicationContext, applicant_id: int) -> str | None:
     """Return the refusal string when the player may not apply again.
 
     Drasah's rule (2026-10-18): ONE candidature per person — a player
-    with a still-pending candidature (its decision buttons have not
-    been used) or already enrolled in the current season must not
-    stack applications. The pending check scans the #candidatures
-    recent history for the applicant's message whose decision view is
-    still attached (``components`` non-empty).
+    with a still-pending candidature or already enrolled in the
+    current season must not stack applications.
     """
     strings = _strings(context.locale)
-    service = context.kingdoms_service
-    if service is not None:
-        try:
-            lords = await service.lords()
-        except Exception:
-            lords = []
-        for lord in lords:
-            if str(lord.id) == str(applicant_id) and not lord.left:
-                return strings["apply_already_enrolled"]
-    channel = context.candidatures_channel
-    if channel is not None:
-        mention = f"<@{applicant_id}>"
-        try:
-            recent = await channel_messages(channel)
-        except Exception:
-            recent = []
-        for message in recent:
-            content = getattr(message, "content", "") or ""
-            if mention not in content:
-                continue
-            if strings["candidature_title"] not in content:
-                continue
-            if getattr(message, "components", None):
-                return strings["apply_already_pending"]
-    return None
+    enrolled = await _enrolled_blocker(strings, context.kingdoms_service, applicant_id)
+    if enrolled is not None:
+        return enrolled
+    return await _pending_candidature_blocker(strings, context.candidatures_channel, applicant_id)
 
 
 def _summary_view(
@@ -1299,33 +1323,17 @@ def _summary_view(
             await interaction.followup.send(strings["no_service"], ephemeral=True)
             return
         await target.send("\n".join(lines), view=view)
-        guild = interaction.guild
-        profile_note = ""
-        if guild is not None:
-            try:
-                from kingdoms.mods.kingdoms.kingdom_profiles import (
-                    build_profile_message,
-                    ensure_profile_channel,
-                )
-
-                profile_channel = await ensure_profile_channel(guild, interaction.user)  # type: ignore[arg-type]
-                if profile_channel is not None:
-                    role_label = strings["role_king"] if is_king else strings["role_lord"]
-                    content, profile_view = build_profile_message(
-                        context.locale,
-                        member_name=interaction.user.name or "joueur",
-                        state=strings["pending"],
-                        role_label=role_label,
-                        kingdom=kingdom_name,
-                        queued=queued,
-                        insight=insight,
-                        game_id=game_id,
-                        smurfs=smurfs,
-                    )
-                    await profile_channel.send(content, view=profile_view)
-                    profile_note = strings["profile_created"]
-            except Exception:
-                logger.warning("KINGDOM PANELS: profile provisioning failed", exc_info=True)
+        profile_note = await _provision_profile_note(
+            context,
+            interaction,
+            strings,
+            is_king=is_king,
+            kingdom_name=kingdom_name,
+            queued=queued,
+            insight=insight,
+            game_id=game_id,
+            smurfs=smurfs,
+        )
         confirmation = strings["sent"] if not profile_note else f"{strings['sent']}\n{profile_note}"
         confirmation = f"{confirmation}\n{strings['sent_ttl']}"
         await _rewrite_flow_confirmation(context, interaction, confirmation)
@@ -2011,3 +2019,46 @@ def register_kingdom_panels_command(
             await interaction.followup.send(view=view, ephemeral=True)
         else:
             await interaction.followup.send(view=view, ephemeral=True)
+
+
+async def _provision_profile_note(
+    context: _ApplicationContext,
+    interaction: discord.Interaction,
+    strings: dict[str, Any],
+    *,
+    is_king: bool,
+    kingdom_name: str,
+    queued: bool,
+    insight: str,
+    game_id: str,
+    smurfs: tuple[str, ...],
+) -> str:
+    """Provision the applicant's profile message; return the note (or "")."""
+    guild = interaction.guild
+    if guild is None:
+        return ""
+    try:
+        from kingdoms.mods.kingdoms.kingdom_profiles import (
+            build_profile_message,
+            ensure_profile_channel,
+        )
+
+        profile_channel = await ensure_profile_channel(guild, interaction.user)  # type: ignore[arg-type]
+        if profile_channel is not None:
+            role_label = strings["role_king"] if is_king else strings["role_lord"]
+            content, profile_view = build_profile_message(
+                context.locale,
+                member_name=interaction.user.name or "joueur",
+                state=strings["pending"],
+                role_label=role_label,
+                kingdom=kingdom_name,
+                queued=queued,
+                insight=insight,
+                game_id=game_id,
+                smurfs=smurfs,
+            )
+            await profile_channel.send(content, view=profile_view)
+            return str(strings["profile_created"])
+    except Exception:
+        logger.warning("KINGDOM PANELS: profile provisioning failed", exc_info=True)
+    return ""
