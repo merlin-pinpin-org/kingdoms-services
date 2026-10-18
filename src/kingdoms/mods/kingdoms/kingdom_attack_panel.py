@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -197,9 +197,17 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — déclare le"
             " résultat de la game avec le bouton 🏆 du salon de la bataille !"
         ),
-        "score_modal_title": "Résultat de la game",
-        "score_modal_label": "ID de la game (requis)",
-        "score_modal_placeholder": "ex. 123456",
+        "room_ready_button": "✅ Prêt",
+        "room_ready_wait": "✅ Prêt enregistré — en attente de l'autre joueur…",
+        "room_start": (
+            "🎮 **La partie commence — {map}** !\n"
+            "{mentions} — retrouvez-vous dans le salon vocal et bonne game ! 🍀"
+        ),
+        "room_event_name": "⚔️ {map} — {attacker} 🆚 {defender}",
+        "room_event_description": (
+            "⚔️ Bataille Kingdoms en direct — {attacker} 🆚 {defender}.\n"
+            "Civilisations et boutons de jeu : dans le salon vocal de la bataille."
+        ),
         "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
@@ -380,9 +388,17 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⏰ **Meeting — {map}**: no result declared for 3 hours — declare the"
             " game result with the 🏆 button of the battle room!"
         ),
-        "score_modal_title": "Game result",
-        "score_modal_label": "Game ID (required)",
-        "score_modal_placeholder": "e.g. 123456",
+        "room_ready_button": "✅ Ready",
+        "room_ready_wait": "✅ Readiness recorded — waiting for the other player…",
+        "room_start": (
+            "🎮 **The game starts — {map}**!\n"
+            "{mentions} — meet in the voice channel and good luck! 🍀"
+        ),
+        "room_event_name": "⚔️ {map} — {attacker} 🆚 {defender}",
+        "room_event_description": (
+            "⚔️ Live Kingdoms battle — {attacker} 🆚 {defender}.\n"
+            "Civilizations and game buttons: in the battle's voice channel."
+        ),
         "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
         "score_disputed": ("⚖️ Contradictory declarations — the admins arbitrate (game {game})."),
@@ -640,9 +656,11 @@ async def deploy_attack_panel(
     panel_message = await _find_panel_message(channel)
     if panel_message is not None:
         if (panel_message.content or "") == content:
+            await _purge_declare_channel_safe(channel, panel_message)
             return  # unchanged — nothing to touch (no API call at all)
         try:
             await panel_message.edit(content=content, view=view)
+            await _purge_declare_channel_safe(channel, panel_message)
             return
         except Exception:
             logger.warning("KINGDOM ATTACK: panel edit failed", exc_info=True)
@@ -650,6 +668,9 @@ async def deploy_attack_panel(
         await channel.send(content=content, view=view)
     except Exception:
         logger.warning("KINGDOM ATTACK: panel send failed", exc_info=True)
+        return
+    panel_message = await _find_panel_message(channel)
+    await _purge_declare_channel_safe(channel, panel_message)
 
 
 async def deploy_attacks_board(
@@ -690,6 +711,29 @@ async def deploy_attacks_board(
         await channel.send(content=content, view=view)
     except Exception:
         logger.warning("KINGDOM ATTACK: board send failed", exc_info=True)
+
+
+async def _purge_declare_channel_safe(channel: Any, keep: Any) -> None:
+    """Delete every other bot message of the declare salon (Drasah 18/10).
+
+    The salon must stay clean: only the pinned panel lives there. The
+    ephemeral flow answers cannot be deleted (they expire), but every
+    stale NON-ephemeral bot message (old panels, old flows, error
+    leftovers) is swept on each deploy.
+    """
+    try:
+        async for message in channel.history(limit=100):
+            if message.id == getattr(keep, "id", None):
+                continue
+            author = getattr(message, "author", None)
+            if author is None or not getattr(author, "bot", False):
+                continue
+            try:
+                await message.delete()
+            except Exception:
+                logger.warning("KINGDOM ATTACK: declare salon purge failed", exc_info=True)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: declare salon sweep failed", exc_info=True)
 
 
 async def _find_panel_message(
@@ -2056,6 +2100,9 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         room_view.add_item(
             KingdomRoomResultButton(str(attack.id), strings["result_button"])
         )
+        room_view.add_item(
+            KingdomRoomReadyButton(str(attack.id), strings["room_ready_button"])
+        )
         try:
             await channel.send(
                 strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
@@ -2270,8 +2317,10 @@ class KingdomRoomResultButton(
             if str(getattr(target.user, "id", "")) != str(interaction.user.id):
                 await target.response.defer()
                 return
-            await target.response.send_modal(
-                KingdomRoomResultModal(self.attack_id, str(target.user.id), str(select.values[0]))
+            # Drasah 18/10: the game-id popup made no sense here — the
+            # declaration lands straight from the winner select.
+            await _declare_room_score(
+                target, wiring, strings, self.attack_id, str(target.user.id), str(select.values[0])
             )
 
         select.callback = _on_winner  # type: ignore[method-assign,assignment]
@@ -2281,74 +2330,166 @@ class KingdomRoomResultButton(
         )
 
 
-class KingdomRoomResultModal(discord.ui.Modal):
-    """The battle-room result modal: the game id rides the winner.
+async def _declare_room_score(
+    interaction: discord.Interaction,
+    wiring: Any,
+    strings: dict[str, str],
+    attack_id: str,
+    player_id: str,
+    winner_kingdom_id: str,
+) -> None:
+    """Declare the result from the battle room (resolved or pending).
 
     Drasah 18/10 v2: the declaration lives in the room — ``resolved``
     announces on the spot, ``disputed`` DMs the admins the arbitration
-    view and a lone declaration pends ``score_confirm_minutes``.
+    view and a lone declaration pends ``score_confirm_minutes``. The
+    game-id popup was removed (Drasah 18/10: no sense at this point).
+    """
+    if wiring.attacks_service is None or not attack_id:
+        await interaction.response.send_message(strings["no_service"], ephemeral=True)
+        return
+    try:
+        attack, outcome = await wiring.attacks_service.declare_score(attack_id, player_id, winner_kingdom_id, "")
+    except Exception as exc:
+        message = getattr(exc, "message", None) or str(exc)
+        await interaction.response.send_message(
+            strings["failed"].format(message=message), ephemeral=True
+        )
+        return
+    if outcome == "disputed":
+        await interaction.response.send_message(strings["score_disputed"].format(game="—"))
+        await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+        return
+    if outcome == "already":
+        await interaction.response.send_message(strings["score_already"], ephemeral=True)
+        return
+    if outcome == "resolved":
+        winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
+        await interaction.response.send_message(
+            strings["score_resolved"].format(winner=winner, map=attack.map_key, game="—")
+        )
+        return
+    minutes = 10
+    try:
+        minutes = int(wiring.attacks_service._config.attacks.score_confirm_minutes)
+    except Exception:
+        minutes = 10
+    await interaction.response.send_message(
+        strings["score_pending"].format(game="—", minutes=minutes)
+    )
+
+
+class KingdomRoomReadyButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:room:ready:(?P<key>[0-9a-f]{16})",
+):
+    """The persistent ✅ Prêt button of the battle room (Drasah 18/10).
+
+    The click records the readiness; when BOTH players are ready the
+    match is announced: a Discord scheduled event carrying the match
+    infos is created and the room tells the players to start.
     """
 
-    def __init__(self, attack_id: str, player_id: str, winner_kingdom_id: str) -> None:
-        strings = _strings("fr")
-        super().__init__(title=strings["score_modal_title"][:45], timeout=300)
-        self.attack_id = attack_id
-        self.player_id = player_id
-        self.winner_kingdom_id = winner_kingdom_id
-        self.strings = strings
-        self.game_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label=strings["score_modal_label"][:45],
-            placeholder=strings["score_modal_placeholder"][:100],
-            required=True,
-            max_length=100,
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:room:ready:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.success,
+            )
         )
-        self.add_item(self.game_input)
+        self.attack_id = attack_id
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Declare the result from the battle room (resolved or pending)."""
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRoomReadyButton:
+        """Resolve the room key back to an attack id (restart-safe)."""
+        label = _strings(_locale(interaction))["room_ready_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Record the readiness — both ready creates the match event."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
-        strings = self.strings
+        strings = _strings(_locale(interaction))
         wiring = _wiring()
         if wiring.attacks_service is None or not self.attack_id:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
-        game_id = str(self.game_input.value or "").strip()
         try:
-            attack, outcome = await wiring.attacks_service.declare_score(
-                self.attack_id, self.player_id, self.winner_kingdom_id, game_id
-            )
+            attack = await wiring.attacks_service.mark_ready(self.attack_id, str(interaction.user.id))
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(
                 strings["failed"].format(message=message), ephemeral=True
             )
             return
-        if outcome == "disputed":
-            await interaction.response.send_message(
-                strings["score_disputed"].format(game=game_id or "—")
-            )
-            await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+        score = attack.score or {}
+        if not score.get("all_ready"):
+            await interaction.response.send_message(strings["room_ready_wait"], ephemeral=True)
             return
-        if outcome == "already":
-            await interaction.response.send_message(strings["score_already"], ephemeral=True)
+        if score.get("room_event_id"):
+            await interaction.response.send_message(strings["ready_done"], ephemeral=True)
             return
-        if outcome == "resolved":
-            winner = await _kingdom_name(wiring.kingdoms_service, self.winner_kingdom_id)
-            await interaction.response.send_message(
-                strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "—")
-            )
-            return
-        minutes = 10
-        try:
-            minutes = int(
-                wiring.attacks_service._config.attacks.score_confirm_minutes
-            )
-        except Exception:
-            minutes = 10
-        await interaction.response.send_message(
-            strings["score_pending"].format(game=game_id or "—", minutes=minutes)
+        await _announce_room_start_safe(interaction, attack, strings)
+        await interaction.response.send_message(strings["ready_done"], ephemeral=True)
+
+
+async def _announce_room_start_safe(
+    interaction: discord.Interaction, attack: Any, strings: dict[str, str]
+) -> None:
+    """Create the match scheduled event + the room start message (best effort).
+
+    Drasah 18/10: both players clicked Prêt in the vocal — the match
+    is announced through a Discord scheduled event (the server's
+    calendar carries the infos). A bot cannot trigger a soundboard
+    sound (Discord API limitation — sounds are user-side only), so
+    the announcement mentions the players in the room instead.
+    """
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    guild = interaction.guild
+    channel = interaction.channel
+    score = dict(attack.score or {})
+    attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
+    defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
+    try:
+        event = await guild.create_scheduled_event(
+            name=strings["room_event_name"].format(
+                map=attack.map_key, attacker=attacker_name, defender=defender_name
+            )[:100],
+            description=strings["room_event_description"].format(
+                attacker=attacker_name, defender=defender_name
+            ),
+            start_time=datetime.now(UTC),
+            entity_type=discord.EntityType.voice,
+            privacy_level=discord.PrivacyLevel.guild_only,
+            channel=channel,
         )
+        score["room_event_id"] = int(event.id)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: room match event creation failed", exc_info=True)
+    if int(score.get("room_event_id") or 0) > 0:
+        try:
+            if wiring.attacks_service is not None:
+                await wiring.attacks_service.record_room_event(
+                    str(attack.id), int(score["room_event_id"])
+                )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: room event ref not stored", exc_info=True)
+    try:
+        mentions = " ".join(f"<@{player_id}>" for player_id in _score_players(attack))
+        await channel.send(
+            strings["room_start"].format(map=attack.map_key, mentions=mentions),
+        )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: room start message failed", exc_info=True)
 
 
 async def _resolve_room_attack_id_async(key: str) -> str:
