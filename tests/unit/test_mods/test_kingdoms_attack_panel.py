@@ -395,7 +395,7 @@ async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
     bourgogne = await bundle.kingdom_id("Bourgogne")
     target = (await bundle.owner_maps(bourgogne))[0]
     # The king is ALONE: the only other Aquitaine lord left the season.
-    lord_a = next(l for l in await bundle.kingdoms.lords() if str(l.id) == "lord-a")
+    lord_a = next(item for item in await bundle.kingdoms.lords() if str(item.id) == "lord-a")
     lord_a.left = True
     await bundle.store.upsert_lord(lord_a.to_mongo())
     await bundle.stock(aquitaine, contre_espionnage=1)

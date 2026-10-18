@@ -108,7 +108,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cover_no_button": "❌ NON — à visage découvert",
         "choose_cover": "🕶️ Sous le pseudo de quel seigneur déclarer l'attaque ?",
         "cover_no_lords": (
-            "ℹ️ Ton royaume n'a aucun autre seigneur actif — impossible de bluffer :"
+            "🕵️ Ton royaume n'a aucun autre seigneur actif — impossible de bluffer :"
             " l'attaque part à visage découvert (aucune charge consommée)."
         ),
         "announce_v1": (
@@ -370,7 +370,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cover_no_button": "❌ NO — open-faced",
         "choose_cover": "🕶️ Under which lord's name should the attack be declared?",
         "cover_no_lords": (
-            "ℹ️ Your kingdom has no other active lord — no bluff possible: the"
+            "🕵️ Your kingdom has no other active lord — no bluff possible: the"
             " attack is declared in the open (no charge consumed)."
         ),
         "announce_v1": (
