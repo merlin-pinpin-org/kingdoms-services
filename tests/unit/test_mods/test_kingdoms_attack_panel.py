@@ -933,8 +933,18 @@ async def test_room_sabotage_button_flows_to_the_reveal_in_the_vocal() -> None:
     first = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
     await passer.callback(first)  # type: ignore[arg-type]
     assert "attente" in str(first.response.message.content or "")
+    # The defender opens HIS OWN ephemeral menu (no Techno on his side)
+    # and validates — the reveal fires from his Passer click.
+    click_b = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(click_b)  # type: ignore[arg-type]
+    assert click_b.response.message is not None
+    menu_b = click_b.response.message.view
+    assert menu_b is not None
+    labels_b = [str(getattr(child, "label", "")) for child in menu_b.children]
+    assert strings["room_sabotage_techno"] not in labels_b
+    passer_b = next(c for c in menu_b.children if str(getattr(c, "label", "")) == strings["room_sabotage_pass"])
     second = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
-    await passer.callback(second)  # type: ignore[arg-type]
+    await passer_b.callback(second)  # type: ignore[arg-type]
     # The reveal lands in the vocal: huns struck, perses survives.
     reveal = [m for m in room.messages if "Reveal" in str(m.content or "")]
     assert reveal, [str(m.content) for m in room.messages]
