@@ -1347,29 +1347,9 @@ class AttackService:
         if winner_kingdom_id not in allowed:
             raise AttackStateError("this kingdom took no part in the attack")
         if attack.is_over:
-            score = dict(attack.score)
-            declarations = dict(score.get("declarations") or {})
-            declarations[player_id] = {
-                "winner": winner_kingdom_id,
-                "game_id": game_id,
-                "at": int(timestamp.timestamp()),
-            }
-            score["declarations"] = declarations
-            score["game_id"] = game_id
-            if attack.winner_kingdom_id == winner_kingdom_id:
-                await self._store.upsert_attack(attack.to_mongo())
-                return attack, "already"
-            score["disputed"] = True
-            attack.score = score
-            await self._store.upsert_attack(attack.to_mongo())
-            logger.warning(
-                "kingdoms: DISPUTE on %s — %s declares %s after the %s resolution",
-                attack.map_key,
-                player_id,
-                winner_kingdom_id,
-                attack.winner_kingdom_id,
+            return await self._declare_after_resolution(
+                attack, player_id, winner_kingdom_id, game_id, timestamp
             )
-            return attack, "disputed"
         if attack.state is not AttackState.MEETING:
             raise AttackStateError("the score phase is not open on this attack")
         self._require_score_player(attack, player_id)
@@ -1401,6 +1381,58 @@ class AttackService:
                 winner_kingdom_id,
             )
             return attack, "resolved"
+        return await self._resolve_two_humans_declaration(
+            attack, player_id, winner_kingdom_id, game_id, timestamp
+        )
+
+    async def _declare_after_resolution(
+        self,
+        attack: AttackModel,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        timestamp: datetime,
+    ) -> tuple[AttackModel, str]:
+        """Answer a late declaration of an already-resolved attack.
+
+        The same winner is idempotent (``already``); a contrary
+        declaration re-opens the dispute for the admins (``disputed``).
+        """
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
+        declarations[player_id] = {
+            "winner": winner_kingdom_id,
+            "game_id": game_id,
+            "at": int(timestamp.timestamp()),
+        }
+        score["declarations"] = declarations
+        score["game_id"] = game_id
+        if attack.winner_kingdom_id == winner_kingdom_id:
+            await self._store.upsert_attack(attack.to_mongo())
+            return attack, "already"
+        score["disputed"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.warning(
+            "kingdoms: DISPUTE on %s — %s declares %s after the %s resolution",
+            attack.map_key,
+            player_id,
+            winner_kingdom_id,
+            attack.winner_kingdom_id,
+        )
+        return attack, "disputed"
+
+    async def _resolve_two_humans_declaration(
+        self,
+        attack: AttackModel,
+        player_id: str,
+        winner_kingdom_id: str,
+        game_id: str,
+        timestamp: datetime,
+    ) -> tuple[AttackModel, str]:
+        """Apply the declaration rules of a two-humans meeting."""
+        score = dict(attack.score)
+        declarations = dict(score.get("declarations") or {})
         winners = {str(declaration["winner"]) for declaration in declarations.values()}
         if len(winners) > 1:
             score["disputed"] = True

@@ -1519,20 +1519,20 @@ class KingdomPickBanView(discord.ui.View):
 
 
 def _ready_key(attack_id: str, player_id: str) -> str:
-    """The 16-hex digest keying the Prêt button (custom ids stay short)."""
+    """Return the 16-hex digest keying the Prêt button (custom ids stay short)."""
     return hashlib.sha256(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
 
 
 def _room_key(attack_id: str) -> str:
-    """The 16-hex digest keying a battle-room component."""
+    """Return the 16-hex digest keying a battle-room component."""
     return hashlib.sha256(str(attack_id).encode()).hexdigest()[:16]
 
 
 def _ready_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui.View:
-    """The persistent Prêt view appended to the pick & ban DM."""
+    """Build the persistent Prêt view appended to the pick & ban DM."""
     view = discord.ui.View(timeout=None)
     view.add_item(
-        KingdomReadyButton(attack_id, player_id, _strings(locale)["ready_button"])  # type: ignore[arg-type]
+        KingdomReadyButton(attack_id, player_id, _strings(locale)["ready_button"])
     )
     return view
 
@@ -1766,55 +1766,72 @@ async def run_attack_phases_safe(bot: Any) -> None:
         strings = _strings(locale)
         dirty = 0
         if announce_channel is not None:
-            try:
-                dirty += await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
-                pickbans = await attacks_service.pick_ban_due()
-                for attack in pickbans:
-                    await _send_pickban_dm(bot, attack, kingdoms_service, locale)
-                dirty += len(pickbans)
-                # Drasah 18/10 v2: at T the meeting opens a BATTLE ROOM
-                # (dedicated role, voice channel under « Champs de
-                # bataille », the shuffled civs in its text channel)
-                # and DMs the link to both players.
-                scores = await attacks_service.score_due()
-                for attack in scores:
-                    await _open_battle_room(bot, guild, attack, kingdoms_service, locale)
-                dirty += len(scores)
-                # A lone result declaration holds
-                # score_confirm_minutes, then the declared result
-                # applies (fait foi) — announced like any resolution.
-                confirmed = await attacks_service.score_confirm_due()
-                for attack in confirmed:
-                    winner = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
-                    await _announce_safe(
-                        announce_channel,
-                        strings["score_resolved"].format(
-                            winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
-                        ),
-                    )
-                dirty += len(confirmed)
-                # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
-                reminders = await attacks_service.score_reminder_due()
-                for attack in reminders:
-                    await _send_score_reminder_dm(bot, attack, locale)
-                dirty += len(reminders)
-                # bug n°2 (Check 59, Drasah 16/10): 15h without a
-                # declared result — the dispute auto-opens, the admins
-                # arbitrate; no meeting hangs forever.
-                disputes = await attacks_service.dispute_due()
-                for attack in disputes:
-                    await _announce_safe(announce_channel, strings["auto_dispute"].format(map=attack.map_key))
-                dirty += len(disputes)
-                dirty += await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
-                dirty += await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
-            except Exception:
-                logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
+            dirty += await _run_phases_announce_safe(
+                bot, guild, attacks_service, kingdoms_service, announce_channel, strings, locale
+            )
         # The resolved meetings free their battle room (channel +
         # role) — whatever the resolution (declared, forfeit, admin).
         dirty += await _cleanup_battle_rooms_safe(bot, attacks_service)
         if dirty:
             await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
             await deploy_attacks_board(announce_channel, locale, kingdoms_service, attacks_service)
+
+
+async def _run_phases_announce_safe(
+    bot: Any,
+    guild: Any,
+    attacks_service: Any,
+    kingdoms_service: Any,
+    announce_channel: Any,
+    strings: dict[str, str],
+    locale: str,
+) -> int:
+    """Play the announce-channel phases of one guild — never raise."""
+    dirty = 0
+    try:
+        dirty += await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
+        pickbans = await attacks_service.pick_ban_due()
+        for attack in pickbans:
+            await _send_pickban_dm(bot, attack, kingdoms_service, locale)
+        dirty += len(pickbans)
+        # Drasah 18/10 v2: at T the meeting opens a BATTLE ROOM
+        # (dedicated role, voice channel under « Champs de bataille »,
+        # the shuffled civs in its text channel) and DMs the link to
+        # both players.
+        scores = await attacks_service.score_due()
+        for attack in scores:
+            await _open_battle_room(bot, guild, attack, kingdoms_service, locale)
+        dirty += len(scores)
+        # A lone result declaration holds score_confirm_minutes, then
+        # the declared result applies (fait foi) — announced like any
+        # resolution.
+        confirmed = await attacks_service.score_confirm_due()
+        for attack in confirmed:
+            winner = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
+            await _announce_safe(
+                announce_channel,
+                strings["score_resolved"].format(
+                    winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
+                ),
+            )
+        dirty += len(confirmed)
+        # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
+        reminders = await attacks_service.score_reminder_due()
+        for attack in reminders:
+            await _send_score_reminder_dm(bot, attack, locale)
+        dirty += len(reminders)
+        # bug n°2 (Check 59, Drasah 16/10): 15h without a declared
+        # result — the dispute auto-opens, the admins arbitrate; no
+        # meeting hangs forever.
+        disputes = await attacks_service.dispute_due()
+        for attack in disputes:
+            await _announce_safe(announce_channel, strings["auto_dispute"].format(map=attack.map_key))
+        dirty += len(disputes)
+        dirty += await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
+        dirty += await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
+    return dirty
 
 
 async def _run_reveals_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
@@ -1964,10 +1981,10 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         ]
         room_view = discord.ui.View(timeout=None)
         room_view.add_item(
-            KingdomRoomUrlButton(str(attack.id), strings["score_url_button"])  # type: ignore[arg-type]
+            KingdomRoomUrlButton(str(attack.id), strings["score_url_button"])
         )
         room_view.add_item(
-            KingdomRoomResultButton(str(attack.id), strings["result_button"])  # type: ignore[arg-type]
+            KingdomRoomResultButton(str(attack.id), strings["result_button"])
         )
         await channel.send(
             strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
@@ -2067,10 +2084,12 @@ class KingdomRoomUrlButton(
         match: re.Match[str],
         /,
     ) -> KingdomRoomUrlButton:
+        """Resolve the room key back to an attack id (restart-safe)."""
         label = _strings(_locale(interaction))["score_url_button"]
         return cls(await _resolve_room_attack_id_async(match["key"]), label)
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the game URL modal of this battle room."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = _strings(_locale(interaction))
@@ -2115,7 +2134,8 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         try:
-            await interaction.channel.send(strings["score_url_posted"].format(url=url))
+            room_channel: Any = interaction.channel
+            await room_channel.send(strings["score_url_posted"].format(url=url))
         except Exception:
             logger.warning("KINGDOM ATTACK: battle room URL post failed", exc_info=True)
         await interaction.response.send_message(strings["score_url_set"], ephemeral=True)
@@ -2145,6 +2165,7 @@ class KingdomRoomResultButton(
         match: re.Match[str],
         /,
     ) -> KingdomRoomResultButton:
+        """Resolve the room key back to an attack id (restart-safe)."""
         label = _strings(_locale(interaction))["result_button"]
         return cls(await _resolve_room_attack_id_async(match["key"]), label)
 
@@ -2190,15 +2211,85 @@ class KingdomRoomResultButton(
                 KingdomRoomResultModal(self.attack_id, str(target.user.id), str(select.values[0]))
             )
 
-        select.callback = _on_winner  # type: ignore[method-assign]
+        select.callback = _on_winner  # type: ignore[method-assign,assignment]
         view.add_item(select)
         await interaction.response.send_message(
             strings["result_select_title"], view=view, ephemeral=True
         )
 
 
+class KingdomRoomResultModal(discord.ui.Modal):
+    """The battle-room result modal: the game id rides the winner.
+
+    Drasah 18/10 v2: the declaration lives in the room — ``resolved``
+    announces on the spot, ``disputed`` DMs the admins the arbitration
+    view and a lone declaration pends ``score_confirm_minutes``.
+    """
+
+    def __init__(self, attack_id: str, player_id: str, winner_kingdom_id: str) -> None:
+        strings = _strings("fr")
+        super().__init__(title=strings["score_modal_title"][:45], timeout=300)
+        self.attack_id = attack_id
+        self.player_id = player_id
+        self.winner_kingdom_id = winner_kingdom_id
+        self.strings = strings
+        self.game_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=strings["score_modal_label"][:45],
+            placeholder=strings["score_modal_placeholder"][:100],
+            required=True,
+            max_length=100,
+        )
+        self.add_item(self.game_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Declare the result from the battle room (resolved or pending)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = self.strings
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        game_id = str(self.game_input.value or "").strip()
+        try:
+            attack, outcome = await wiring.attacks_service.declare_score(
+                self.attack_id, self.player_id, self.winner_kingdom_id, game_id
+            )
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.response.send_message(
+                strings["failed"].format(message=message), ephemeral=True
+            )
+            return
+        if outcome == "disputed":
+            await interaction.response.send_message(
+                strings["score_disputed"].format(game=game_id or "—")
+            )
+            await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
+            return
+        if outcome == "already":
+            await interaction.response.send_message(strings["score_already"], ephemeral=True)
+            return
+        if outcome == "resolved":
+            winner = await _kingdom_name(wiring.kingdoms_service, self.winner_kingdom_id)
+            await interaction.response.send_message(
+                strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "—")
+            )
+            return
+        minutes = 10
+        try:
+            minutes = int(
+                wiring.attacks_service._config.attacks.score_confirm_minutes  # noqa: SLF001
+            )
+        except Exception:
+            minutes = 10
+        await interaction.response.send_message(
+            strings["score_pending"].format(game=game_id or "—", minutes=minutes)
+        )
+
+
 async def _resolve_room_attack_id_async(key: str) -> str:
-    """The async half of the room key resolution (service scan)."""
+    """Resolve the room key back to an attack id (the async service scan)."""
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
     wiring = _wiring()

@@ -110,7 +110,7 @@ class MockUser(discord.User):
         embed: discord.Embed | None = None,
         view: discord.ui.View | None = None,
         **kwargs: Any,
-    ) -> "MockMessage":
+    ) -> MockMessage:
         """In-memory DM: the message lands in ``dm_messages``."""
         message = MockMessage(content=content, embed=embed, view=view)
         self.dm_messages.append(message)
@@ -396,6 +396,9 @@ class MockVoiceChannel(discord.VoiceChannel):
         self._category = category
         self._connected_members: list[discord.Member] = []
         self.messages: list[MockMessage] = []
+        # ``create_voice_channel(overwrites=...)``: the real property is
+        # read-only, the mock stashes the dict instead of setattr-failing.
+        self._overwrites: dict[Any, Any] = kwargs.pop("overwrites", None) or {}
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -505,7 +508,7 @@ class MockCategoryChannel(discord.CategoryChannel):
 class MockPartialMessage:
     """In-memory :class:`discord.PartialMessage` over a mock channel."""
 
-    def __init__(self, channel: "MockDMChannel", message_id: int) -> None:
+    def __init__(self, channel: MockDMChannel, message_id: int) -> None:
         self.channel = channel
         self.id = message_id
 
