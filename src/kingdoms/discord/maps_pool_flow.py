@@ -375,6 +375,137 @@ class PoolMapPickerView(discord.ui.View):
             logger.warning("POOL FLOW: pools forum sync failed — best-effort")
 
 
+_REMOVE_FROM_POOL_NS = "games:pool:removemaps"
+
+
+class PoolRemoveMapsButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_REMOVE_FROM_POOL_NS}:(?P<pool_id>.+)",
+):
+    """The pool post's remove action: multi-uncheck the pool's maps (admins)."""
+
+    def __init__(self, pool_id: str, label: str = "Retirer des maps") -> None:
+        self.pool_id = pool_id
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                emoji="\U0001f5d1",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"{_REMOVE_FROM_POOL_NS}:{pool_id}"[:100],
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> PoolRemoveMapsButton:
+        """Rebuild from the wire; the pool id rides the custom_id."""
+        return cls(match.group("pool_id"))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Answer with the ephemeral multi-select of the pool's maps."""
+        if not await _guard_admin(interaction):
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.wiring_unavailable"), ephemeral=True
+            )
+            return
+        pool = await service.get_map_pool(self.pool_id)
+        if pool is None:
+            await interaction.response.send_message(
+                await reply(interaction, "replies_shared.pool_not_found"), ephemeral=True
+            )
+            return
+        entries = []
+        for map_id in pool.map_ids:
+            entry = await service.get_map(map_id)
+            if entry is not None:
+                entries.append(entry)
+        if not entries:
+            await interaction.response.send_message("Le pool est vide.", ephemeral=True)
+            return
+        view = PoolRemoveMapsView(pool, entries)
+        await view.build(interaction)
+
+
+class PoolRemoveMapsView(discord.ui.View):
+    """Ephemeral multi-select: uncheck (remove) the chosen maps from the pool."""
+
+    def __init__(self, pool: Any, entries: list[Any]) -> None:
+        super().__init__(timeout=180)
+        self.pool = pool
+        self.entries = entries
+
+    async def build(self, interaction: discord.Interaction) -> None:
+        """Answer with the multi-select of the pool's current maps."""
+        selectable = self.entries[:25]
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder=f"{self.pool.name} \u2014 maps \u00e0 retirer",
+            options=[discord.SelectOption(label=m.name, value=m.id) for m in selectable],
+            min_values=1,
+            max_values=len(selectable),
+        )
+        select.callback = self._on_remove  # type: ignore[method-assign]
+        self.add_item(select)
+        note = ""
+        if len(self.entries) > 25:
+            note = (
+                "\nLe pool d\u00e9passe 25 maps \u2014 seules les 25 premi\u00e8res sont "
+                "s\u00e9lectionnables ici ; retire en plusieurs passages."
+            )
+        await interaction.response.send_message(
+            f"Retirer des maps de **{self.pool.name}**{note}", view=self, ephemeral=True
+        )
+
+    async def _on_remove(self, interaction: discord.Interaction) -> None:
+        children = [c for c in self.children if isinstance(c, discord.ui.Select)]
+        chosen = set(children[0].values or []) if children else set()
+        if not chosen:
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.selection_invalid")
+            )
+            return
+        service = _games_wiring()
+        if service is None:
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.wiring_unavailable")
+            )
+            return
+        pool = await service.get_map_pool(self.pool.id)
+        if pool is None:
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.pool_not_found")
+            )
+            return
+        remaining = tuple(mid for mid in pool.map_ids if mid not in chosen)
+        try:
+            updated = await service.update_map_pool(pool.id, map_ids=remaining)
+        except Exception:
+            logger.warning("POOL FLOW: remove from pool failed", exc_info=True)
+            await interaction.response.edit_message(
+                content=await reply(interaction, "replies_shared.action_failed")
+            )
+            return
+        removed = len(pool.map_ids) - len(updated.map_ids)
+        await interaction.response.edit_message(
+            content=f"{removed} map(s) retir\u00e9e(s) de **{pool.name}** \u2014 "
+            f"{len(updated.map_ids)} restante(s)."
+        )
+        try:
+            from kingdoms.discord.pools_forum import sync_pools_forum
+
+            if interaction.guild_id is not None:
+                await sync_pools_forum(str(interaction.guild_id), interaction.client)
+        except Exception:
+            logger.warning("POOL FLOW: pools forum sync after remove failed \u2014 best-effort")
+
+
 class PoolAddMapByIdModal(discord.ui.Modal):
     """Add one map to a pool by id (map:public:arena) — the over-25 path."""
 
@@ -975,3 +1106,4 @@ def register_pool_flow_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(MapDeleteButton)
     bot.add_dynamic_items(PoolDeleteButton)
     bot.add_dynamic_items(PoolTransitionButton)
+    bot.add_dynamic_items(PoolRemoveMapsButton)

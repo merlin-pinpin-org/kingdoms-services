@@ -79,9 +79,15 @@ async def entity_post_content(entity_id: str, fallback_name: str, guild_id: str,
         doc = None
     if doc is None:
         return fallback_name, "", "", ""
+    source_url = str(doc.get("source_url") or "")
+    if "aoe2techtree.net" in source_url and "?" not in source_url:
+        # the site localizes through ?lng= — carry the guild's locale
+        source_url = f"{source_url.split('#', 1)[0]}?lng={locale}" + (
+            f"#{source_url.split('#', 1)[1]}" if "#" in source_url else ""
+        )
     return (
         str(doc.get("name") or fallback_name),
         str(doc.get("summary") or ""),
-        str(doc.get("source_url") or ""),
+        source_url,
         str(doc.get("image_url") or ""),
     )

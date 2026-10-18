@@ -83,6 +83,7 @@ async def build_entity_admin_menu(
         MapEditButton,
         PoolAddMapButton,
         PoolDeleteButton,
+        PoolRemoveMapsButton,
         PoolTransitionButton,
     )
     from kingdoms.discord.ui.menu_template import MenuSpec, build_menu
@@ -114,6 +115,7 @@ async def build_entity_admin_menu(
         )
         pool_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
         pool_row.add_item(PoolAddMapButton(entity_id))
+        pool_row.add_item(PoolRemoveMapsButton(entity_id))
         pool_row.add_item(PoolTransitionButton(entity_id))
         pool_row.add_item(PoolDeleteButton(entity_id, game_key=game_key))
         menu.add_item(pool_row)
