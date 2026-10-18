@@ -14,6 +14,7 @@ strings (FR/EN mirrors below).
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 from datetime import datetime
@@ -161,10 +162,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "side_defender": "le défenseur",
         "score_dm": (
             "🏟️ **RDV — {map}**\nLe Draft est résolu — civilisations en jeu :"
-            "**{civs}**.\nConfirme ta présence avec **Prêt**, puis joue et déclare le"
-            " résultat avec l'**ID de la game**. Un manqué au RDV est un forfait !"
+            "**{civs}**.\nConfirme ta présence avec **Prêt**, partage l'**URL de la"
+            " partie** avec 🔗, puis joue et déclare le résultat avec l'**ID de la"
+            " game**. Un manqué au RDV est un forfait !"
         ),
         "score_not_ready": ("❌ Confirme ta présence au RDV d'abord — clique **Prêt** avant de déclarer le résultat."),
+        "score_url_button": "🔗 URL de la partie",
+        "score_url_modal_title": "URL de la partie",
+        "score_url_modal_label": "URL du lobby de jeu",
+        "score_url_modal_placeholder": "aoe2de://…",
+        "score_url_set": ("✅ URL enregistrée — elle a été envoyée à l'autre joueur par MP."),
+        "score_url_dm": ("🔗 **RDV — {map}** — l'URL de la partie vient d'être partagée : **{url}**"),
         "score_reminder_dm": (
             "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — pense à déclarer"
             " le résultat de la game (avec l'**ID de la game**) via les boutons du DM !"
@@ -321,13 +329,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "side_defender": "the defender",
         "score_dm": (
             "🏟️ **Meeting — {map}**\nThe Draft is resolved — civilizations in"
-            " play: **{civs}**.\nConfirm your presence with **Ready**, then play and"
-            " declare the result with the **game ID**. A miss at the meeting is"
-            " a forfeit!"
+            " play: **{civs}**.\nConfirm your presence with **Ready**, share the"
+            " **game URL** with 🔗, then play and declare the result with the"
+            " **game ID**. A miss at the meeting is a forfeit!"
         ),
         "score_not_ready": (
             "❌ Confirm your presence at the meeting first — click **Ready** before declaring the result."
         ),
+        "score_url_button": "🔗 Game URL",
+        "score_url_modal_title": "Game URL",
+        "score_url_modal_label": "Game lobby URL",
+        "score_url_modal_placeholder": "aoe2de://…",
+        "score_url_set": "✅ URL saved — it was DM'ed to the other player.",
+        "score_url_dm": "🔗 **Meeting — {map}** — the game URL was just shared: **{url}**",
         "score_reminder_dm": (
             "⏰ **Meeting — {map}**: no result declared for 3 hours — remember to"
             " declare the game result (with the **game ID**) through the DM buttons!"
@@ -1080,10 +1094,16 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         self.cover_lord_id = cover_lord_id
         self.kingdom_name = kingdom_name
         self.is_gaia = is_gaia
-        self.lobby_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
-            label=strings["modal_lobby"][:45], max_length=200, required=True
-        )
-        self.add_item(self.lobby_input)
+        # Drasah 18/10: a PLAYER attack no longer asks for the game
+        # lobby URL at the declaration — the RDV DM's 🔗 button
+        # collects it at the ready phase. The Gaïa free-for-all keeps
+        # the field (the first declarer's URL is the meeting point).
+        self.lobby_input: discord.ui.TextInput[discord.ui.Modal] | None = None
+        if is_gaia:
+            self.lobby_input = discord.ui.TextInput(
+                label=strings["modal_lobby"][:45], max_length=200, required=True
+            )
+            self.add_item(self.lobby_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Declare the attack (Gaïa free-for-all or player attack), confirm, announce."""
@@ -1098,13 +1118,16 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
                 attack = await attacks.declare_gaia_attack(
                     str(interaction.user.id),
                     self.map_key,
-                    self.lobby_input.value.strip(),
+                    (self.lobby_input.value if self.lobby_input else "").strip(),
                 )
             else:
+                # No lobby field anymore for a player attack (Drasah
+                # 18/10) — the RDV DM collects the URL at the ready
+                # phase. The chronicle/announcement never used it.
                 attack = await attacks.declare_attack(
                     str(interaction.user.id),
                     self.map_key,
-                    self.lobby_input.value.strip(),
+                    "",
                     cover_lord_id=self.cover_lord_id,
                 )
         except Exception as exc:
@@ -1372,6 +1395,7 @@ class KingdomPickBanView(discord.ui.View):
                 min_values=1 if index == 0 else 0,
                 max_values=1,
             )
+            select.callback = self._make_on_select()  # type: ignore[method-assign, assignment]
             self.rank_selects.append(select)
             self.add_item(select)
         self.sabotage_select: discord.ui.Select[Any] | None = None
@@ -1383,6 +1407,7 @@ class KingdomPickBanView(discord.ui.View):
                 min_values=0,
                 max_values=min(2, len(adversary_hand)),
             )
+            sabotage.callback = self._make_on_select()  # type: ignore[method-assign, assignment]
             self.sabotage_select = sabotage
             self.add_item(sabotage)
         button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
@@ -1392,6 +1417,21 @@ class KingdomPickBanView(discord.ui.View):
         )
         button.callback = self._on_validate  # type: ignore[method-assign]
         self.add_item(button)
+
+    def _make_on_select(self) -> Any:
+        """Ack a select interaction — live beta 18/10: the selects had
+        no callback, Discord showed « the application did not respond »
+        and no civilization could ever be picked. The acknowledged
+        interaction refreshes the select values held by THIS view
+        instance — `_on_validate` reads them back at submit time."""
+
+        async def _on_select(interaction: discord.Interaction) -> None:
+            try:
+                await interaction.response.defer()
+            except Exception:
+                logger.warning("KINGDOM ATTACK: pick & ban select ack failed", exc_info=True)
+
+        return _on_select
 
     async def _on_validate(self, interaction: discord.Interaction) -> None:
         """Submit the ranked picks + sabotages, then validate (D77)."""
@@ -1506,7 +1546,11 @@ async def _dm_user_safe(bot: Any, user_id: str, content: str, view: discord.ui.V
         if user is not None:
             await user.send(content, view=view)
     except Exception:
-        logger.warning("KINGDOM ATTACK: pick & ban DM failed (%s)", user_id, exc_info=True)
+        # The message stays generic on purpose: _dm_user_safe carries
+        # BOTH the pick & ban DMs and the RDV DMs (live beta 18/10: the
+        # log said « pick & ban DM failed » for a dying RDV DM — the
+        # 50035 custom_id rejection read like a draft bug).
+        logger.warning("KINGDOM ATTACK: player DM failed (%s)", user_id, exc_info=True)
 
 
 # ----------------------------------------------------------------------
@@ -1659,21 +1703,39 @@ class KingdomScoreView(discord.ui.View):
         self.announce_channel = announce_channel
         strings = _strings(locale)
         self.strings = strings
+        # Live beta 18/10: the custom ids used to embed the FULL
+        # attack id (~64 chars) + the player snowflake — 110+ chars,
+        # Discord rejects the DM with 50035 « custom_id Must be
+        # between 1 and 100 in length » and the RDV (Prêt) NEVER
+        # reached the players (double no-show → double forfait). The
+        # callbacks carry their state in THIS instance — the custom id
+        # only needs to stay unique and stable across restarts: a
+        # 16-hex digest of (attack id, player id) does exactly that.
+        key = hashlib.md5(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
         ready: discord.ui.Button[discord.ui.View] = discord.ui.Button(
             label=strings["score_ready"][:80],
-            custom_id=f"kingdoms:attack:score:ready:{attack_id}:{player_id}",
+            custom_id=f"kingdoms:attack:score:ready:{key}",
             style=discord.ButtonStyle.secondary,
         )
         ready.callback = self._on_ready  # type: ignore[method-assign]
         self.add_item(ready)
-        for side, key in SCORE_CHOICE_SIDE.items():
+        for side, choice_key in SCORE_CHOICE_SIDE.items():
             button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-                label=strings[key][:80],
-                custom_id=f"kingdoms:attack:score:win:{side}:{attack_id}:{player_id}",
+                label=strings[choice_key][:80],
+                custom_id=f"kingdoms:attack:score:win:{side}:{key}",
                 style=discord.ButtonStyle.primary,
             )
             button.callback = self._make_on_win(side)  # type: ignore[method-assign]
             self.add_item(button)
+        # Drasah 18/10: the game lobby URL is shared HERE (ready
+        # phase) — the declaration no longer asks for it.
+        lobby: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+            label=strings["score_url_button"][:80],
+            custom_id=f"kingdoms:attack:score:url:{key}",
+            style=discord.ButtonStyle.secondary,
+        )
+        lobby.callback = self._on_share_url  # type: ignore[method-assign]
+        self.add_item(lobby)
 
     async def _on_ready(self, interaction: discord.Interaction) -> None:
         """Confirm the presence at the meeting (the T+5 no-show line)."""
@@ -1692,6 +1754,16 @@ class KingdomScoreView(discord.ui.View):
             return
         await interaction.response.send_message(strings["score_ready_done"], ephemeral=True)
 
+    async def _on_share_url(self, interaction: discord.Interaction) -> None:
+        """Open the lobby-URL modal of the meeting (Drasah 18/10)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(self.strings["no_service"], ephemeral=True)
+            return
+        await interaction.response.send_modal(KingdomLobbyUrlModal(self))
+
     def _make_on_win(self, side: str) -> Any:
         """Open the game-id modal for the declared winning side."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
@@ -1704,6 +1776,49 @@ class KingdomScoreView(discord.ui.View):
             await interaction.response.send_modal(KingdomScoreModal(self, self.winners[side], side))
 
         return _on_win
+
+
+class KingdomLobbyUrlModal(discord.ui.Modal):
+    """The ready-phase game lobby URL modal (Drasah 18/10)."""
+
+    def __init__(self, view: KingdomScoreView) -> None:
+        super().__init__(title=view.strings["score_url_modal_title"][:45], timeout=300)
+        self.score_view = view
+        self.url_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=view.strings["score_url_modal_label"][:45],
+            placeholder=view.strings["score_url_modal_placeholder"][:100],
+            required=True,
+            max_length=200,
+        )
+        self.add_item(self.url_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Store the URL, confirm, and DM it to the other player."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        view = self.score_view
+        strings = view.strings
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        url = str(self.url_input.value or "").strip()
+        try:
+            attack = await wiring.attacks_service.set_lobby_url(view.attack_id, view.player_id, url)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await interaction.response.send_message(strings["score_url_set"], ephemeral=True)
+        other = str(attack.defender_lord_id) if view.player_id == str(attack.attacker_lord_id) else str(
+            attack.attacker_lord_id
+        )
+        if other and other != view.player_id:
+            await _dm_user_safe(
+                interaction.client,
+                other,
+                strings["score_url_dm"].format(map=attack.map_key, url=url),
+            )
 
 
 class KingdomScoreModal(discord.ui.Modal):
@@ -1780,7 +1895,7 @@ class KingdomDisputeView(discord.ui.View):
         ):
             button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
                 label=strings[key][:80],
-                custom_id=f"kingdoms:attack:dispute:{choice}:{attack_id}",
+                custom_id=f"kingdoms:attack:dispute:{choice}:{hashlib.md5(str(attack_id).encode()).hexdigest()[:16]}",
                 style=discord.ButtonStyle.danger,
             )
             button.callback = self._make_on_arbitrate(choice)  # type: ignore[method-assign]

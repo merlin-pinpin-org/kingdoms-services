@@ -379,3 +379,44 @@ def test_meeting_is_not_over_and_cancels_at_season_end() -> None:
         AttackState.RESOLVED,
         AttackState.EXPIRED,
     )
+
+
+async def test_lobby_url_shared_at_the_meeting_not_the_declaration() -> None:
+    """Drasah 18/10: the declaration carries no lobby URL — the RDV
+    (ready phase) collects it through set_lobby_url."""
+    from kingdoms.mods.kingdoms.attacks import AttackError, AttackStateError
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    # The declaration accepts an empty lobby URL (the old raise is gone).
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack(
+        "king-a", target, "", now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+    )
+    assert attack.lobby_url == ""
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    await bundle.attacks.reveal_due(now=_CUTOFF)
+    await bundle.attacks.pick_ban_due(now=_LEAD)
+    await bundle.attacks.expire_stale(now=_T)
+    await bundle.attacks.score_due(now=_T)
+    # Any player of the meeting shares the URL at the RDV.
+    fresh = await bundle.attacks.set_lobby_url(
+        attack.id, str(attack.attacker_lord_id), "aoe2de://lobby/12345"
+    )
+    assert fresh.lobby_url == "aoe2de://lobby/12345"
+    reloaded = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert reloaded.lobby_url == "aoe2de://lobby/12345"
+    # The defender may share it too (the last share wins).
+    reloaded = await bundle.attacks.set_lobby_url(
+        attack.id, str(attack.defender_lord_id), "aoe2de://lobby/6789"
+    )
+    assert reloaded.lobby_url == "aoe2de://lobby/6789"
+    # An outsider is refused, and so is an empty URL.
+    with pytest.raises(AttackStateError):
+        await bundle.attacks.set_lobby_url(attack.id, "intrus", "aoe2de://x")
+    with pytest.raises(AttackError):
+        await bundle.attacks.set_lobby_url(attack.id, str(attack.attacker_lord_id), "  ")

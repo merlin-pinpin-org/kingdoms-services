@@ -438,8 +438,10 @@ class AttackService:
             f"attack budget of {lord.display_name} ({lord.attack_used})"
         ):
             raise NoBudgetError("the weekly attack budget is spent")
-        if not lobby_url.strip():
-            raise AttackError("the attacker must provide the game lobby link")
+        # Drasah 18/10: the lobby URL is no longer asked at the
+        # declaration — it is shared at the RDV (ready phase) through
+        # the meeting DM's 🔗 button. An empty URL at the declaration
+        # is therefore VALID for a player attack.
         # Volière Corbeau (voliere-v1): a « suivi » lord declares with
         # the 24h delay for the whole 24h tracking window.
         delay_minutes = self._config.attacks.player_attack_delay_minutes
@@ -1011,6 +1013,34 @@ class AttackService:
     # ------------------------------------------------------------------
     # The RDV score phase (attaques-score-v1)
     # ------------------------------------------------------------------
+    async def set_lobby_url(self, attack_id: str, player_id: str, lobby_url: str) -> AttackModel:
+        """Store the game lobby URL shared at the RDV (Drasah 18/10).
+
+        The declaration no longer asks for the URL — the RDV DM's 🔗
+        button calls this: any human player of the meeting (attacker
+        or defender) may share it, an outsider may not, and a finished
+        attack no longer moves.
+        """
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            raise AttackError("the season is finished")
+        if not lobby_url.strip():
+            raise AttackError("the lobby link is empty")
+        attack = next((item for item in await self.attacks() if item.id == attack_id), None)
+        if attack is None or attack.kind is not AttackKind.PLAYER:
+            raise AttackError("unknown attack")
+        if attack.is_over:
+            raise AttackError("the attack is over")
+        allowed = {str(attack.attacker_lord_id)}
+        if attack.defender_lord_id and not attack.ai_defender:
+            allowed.add(str(attack.defender_lord_id))
+        if player_id not in allowed:
+            raise AttackStateError("only a player of the meeting may share the lobby link")
+        attack.lobby_url = lobby_url.strip()
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info("kingdoms: lobby url shared on %s by %s", attack.map_key, player_id)
+        return attack
+
     async def score_due(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Open the score phase at T for every resolved pick & ban.
 

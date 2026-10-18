@@ -303,7 +303,9 @@ async def test_declare_flow_declares_the_attack() -> None:
     assert isinstance(modal, KingdomAttackLobbyModal)
     assert modal.map_key == target
     assert modal.cover_lord_id is None
-    modal.lobby_input._value = "aoe2de://lobby"  # type: ignore[attr-defined]
+    # Drasah 18/10: a player attack no longer asks for the lobby URL
+    # at the declaration — no lobby field on the modal.
+    assert modal.lobby_input is None
     submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
     await modal.on_submit(submit)  # type: ignore[arg-type]
     attacks = await bundle.attacks.attacks()
@@ -409,7 +411,7 @@ async def test_declare_flow_attacks_gaia_through_the_free_for_all() -> None:
     modal = step2.response.modal
     assert isinstance(modal, KingdomAttackLobbyModal)
     assert modal.is_gaia is True
-    modal.lobby_input._value = "aoe2de://gaia"  # type: ignore[attr-defined]
+    modal.lobby_input._value = "aoe2de://gaia"  # type: ignore[union-attr]
     submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
     await modal.on_submit(submit)  # type: ignore[arg-type]
     attacks = await bundle.attacks.attacks()
@@ -602,3 +604,43 @@ async def test_scheduler_reveal_deploys_the_outcome_line() -> None:
     assert "défenseur :" not in (boards2[-1].content or "")
     assert "défense en place" in (boards2[-1].content or "")
 
+
+
+async def test_pickban_view_selects_acknowledge_and_validate() -> None:
+    """Live beta 18/10: the pick & ban selects carry a callback — the
+    acknowledged interaction stores the values on the view instance."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomPickBanView
+
+    view = KingdomPickBanView(
+        "s-20261018-015707-a-t-steppe-king-a-1791720000", "king-a", "attacker",
+        ["francs", "bretons", "goths"], ["huns", "perses", "byzantins"], "fr",
+    )
+    selects = [c for c in view.children if getattr(c, "custom_id", "").startswith("kingdoms:attack:pickban:pick:")]
+    assert len(selects) == 3
+    for select in selects:
+        assert callable(select.callback)  # « the application did not respond » fix
+    sabotage = next(
+        c for c in view.children if getattr(c, "custom_id", "") == "kingdoms:attack:pickban:sabotage"
+    )
+    assert callable(sabotage.callback)
+
+
+async def test_score_view_custom_ids_fit_the_discord_limit() -> None:
+    """Live beta 18/10: the RDV DM died with 50035 (custom_id > 100) —
+    the ids must stay short whatever the attack id length."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomScoreView
+
+    attack_id = "s-20261018-015707-a-s-20261018-015707-t-plaine-king-a-1791720000"
+    player_id = "242421489536729100"
+    view = KingdomScoreView(
+        attack_id, player_id, {"attacker": "k1", "defender": "k2"}, "fr"
+    )
+    ids = [str(c.custom_id) for c in view.children]
+    assert len(ids) == 4  # ready, win attacker, win defender, game URL
+    for custom_id in ids:
+        assert 1 <= len(custom_id) <= 100
+    assert len(set(ids)) == 4
+    # Restart-stable: the same inputs rebuild the same ids (bot.add_view
+    # re-registration must keep answering).
+    twin = KingdomScoreView(attack_id, player_id, {"attacker": "k1", "defender": "k2"}, "fr")
+    assert [str(c.custom_id) for c in twin.children] == ids
