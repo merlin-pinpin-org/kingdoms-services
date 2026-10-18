@@ -1067,6 +1067,24 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
+    async def record_room_message(
+        self, attack_id: str, channel_id: int, message_id: int
+    ) -> AttackModel:
+        """Store the battle-room single-message ref (Drasah 18/10 v5).
+
+        The room lives on ONE edited message (ID → Prêt → Résultat) —
+        the ref lets every step refresh that message in place.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_channel_id"] = int(channel_id)
+        score["room_message_id"] = int(message_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
     async def record_voice_join(self, channel_id: int, player_id: str) -> AttackModel | None:
         """Record a player joining the battle-room voice channel.
 

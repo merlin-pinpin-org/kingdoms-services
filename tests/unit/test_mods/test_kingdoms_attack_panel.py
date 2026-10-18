@@ -732,19 +732,32 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     assert "huns" in body
     assert "bretons" not in body
     assert "perses" not in body
-    # The two persistent room buttons.
+    # v5 single message: 🔗 ID only at first — ✅ Prêt appears once
+    # the ID is set, 🏆 once both players are Prêt.
     view = room.messages[0].view
     ids = {str(c.custom_id) for c in view.children}
     assert any(cid.startswith("kingdoms:attack:room:url:") for cid in ids)
-    assert any(cid.startswith("kingdoms:attack:room:result:") for cid in ids)
-    # Check 76: the vocal also carries the ✅ Prêt button.
-    assert any(cid.startswith("kingdoms:attack:room:ready:") for cid in ids)
+    assert not any(cid.startswith("kingdoms:attack:room:ready:") for cid in ids)
+    assert not any(cid.startswith("kingdoms:attack:room:result:") for cid in ids)
+    assert fresh.score.get("room_message_id") == room.messages[0].id
     # v4: the sabotage moved to the DMs — no sabotage button in the room.
     assert not any("sabotage" in cid or cid.startswith("kingdoms:attack:room:sab:") for cid in ids)
     # Idempotent: a replayed tick never duplicates the room.
     await _open_battle_room(bot, guild, fresh, bundle.kingdoms, "fr")
     rooms = [c for c in guild.channels if getattr(c, "user_limit", None) == 2]
     assert len(rooms) == 1
+    # The ID is shared — the SAME message refreshes: ✅ Prêt unlocks,
+    # the ID shows in the body, 🏆 stays hidden until both are Prêt.
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _refresh_room_message_safe
+
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "4242")
+    stamped = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _refresh_room_message_safe(bot, stamped, "fr")
+    assert len(room.messages) == 1
+    refreshed = {str(c.custom_id) for c in room.messages[0].view.children}
+    assert any(cid.startswith("kingdoms:attack:room:ready:") for cid in refreshed)
+    assert not any(cid.startswith("kingdoms:attack:room:result:") for cid in refreshed)
+    assert "4242" in str(room.messages[0].content or "")
 
 
 async def test_battle_room_text_post_failure_still_grants_roles_and_dms(
@@ -829,7 +842,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     # type: ignore[arg-type]
     await button.callback(refused)  # type: ignore[arg-type]
     assert refused.response.message is not None
-    assert "URL" in str(refused.response.message.content or "")
+    assert "ID" in str(refused.response.message.content or "")
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert not (fresh.score or {}).get("ready")
     # The attacker shares the lobby URL — the gate opens.
@@ -860,7 +873,13 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert len(created) == 1
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert (fresh.score or {}).get("room_event_id") == 987654321
-    assert any("La partie commence" in (m.content or "") for m in room.messages)
+    # v5: no extra post — the SAME room message carries 🏆 and the
+    # « bonne game » footer once both are Prêt (no « La partie commence »).
+    assert len(room.messages) == 1
+    final_view = {str(c.custom_id) for c in room.messages[0].view.children}
+    assert any(cid.startswith("kingdoms:attack:room:result:") for cid in final_view)
+    assert "bonne game" in str(room.messages[0].content or "")
+    assert not any("La partie commence" in (m.content or "") for m in room.messages)
     # A re-click by the same player never re-announces the match.
     again = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")
     # type: ignore[arg-type]
@@ -1037,3 +1056,62 @@ async def test_cleanup_battle_rooms_waits_the_delay_after_the_resolution() -> No
     assert guild.get_channel(room_id) is None
     cleaned = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert (cleaned.score or {}).get("room_cleaned")
+
+
+async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> None:
+    """v5: 🏆 refuses before both Prêt; the resolved match posts the
+    Géopolitique conquest recap with its detail thread (game ID reused)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomRoomResultButton,
+        _open_battle_room,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    geo = MockTextChannel(name="Géopolitique", guild=guild)
+    guild._channels[geo.id] = geo
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+    strings = _strings("fr")
+    await bundle.attacks.set_lobby_url(attack.id, "king-a", "4242")
+    button = KingdomRoomResultButton(attack.id, strings["result_button"])
+    # Not both Prêt yet — the stale 🏆 click is politely refused.
+    early = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")
+    await button.callback(early)  # type: ignore[arg-type]
+    assert early.response.message is not None
+    assert "Prêts" in str(early.response.message.content or "")
+    # Both ready, both declare the same winner — the ID rides along.
+    await bundle.attacks.mark_ready(attack.id, "king-a")
+    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    outcomes: list[str] = []
+    for player in ("king-a", "lord-b"):
+        click = MockInteraction(
+            user=MockUser(id=player), guild=guild, channel=room, locale="fr", client=bot
+        )
+        await button.callback(click)  # type: ignore[arg-type]
+        assert click.response.message is not None
+        content = str(click.response.message.content or "")
+        if "Résultat enregistré" in content:
+            outcomes.append("resolved")
+        elif "Résultat" in content:
+            outcomes.append("pending")
+    assert "resolved" in outcomes
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.is_over
+    assert str(fresh.winner_kingdom_id) == str(aquitaine)
+    # The conquest recap landed in Géopolitique with its detail thread.
+    assert geo.messages, "the conquest recap landed in Géopolitique"
+    assert "a conquis" in str(geo.messages[0].content or "")
+    assert geo.threads, "the recap spawned its detail thread"
+    assert geo.threads[0].name == "Détail de la conquête"
+    detail = str(geo.threads[0].messages[0].content or "")
+    assert "4242" in detail  # the game ID declared earlier is reused
+    assert "jouait" in detail  # the played civilizations

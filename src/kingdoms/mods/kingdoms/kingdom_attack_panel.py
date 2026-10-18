@@ -189,15 +189,28 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_body": (
             "🏟️ **Préparez-vous à la bataille — {map}**\n"
             "{lines}\n"
-            "🔗 partagez l'URL de la partie · ✅ Prêt une fois l'URL"
-            " indiquée · 🏆 déclarez le résultat à la fin."
+            "{footer}"
+        ),
+        "room_footer_wait_id": (
+            "🔗 Renseignez l'**ID de la partie** (bouton ci-dessus) —"
+            " le bouton ✅ Prêt apparaîtra ensuite."
+        ),
+        "room_footer_wait_ready": (
+            "🔗 ID de la partie : **{url}**\n"
+            "✅ Mettez-vous **Prêt** — le bouton 🏆 Déclarer le vainqueur"
+            " apparaît quand les deux joueurs sont prêts."
+        ),
+        "room_footer_go": (
+            "🔗 ID de la partie : **{url}**\n"
+            "🎮 Les deux joueurs sont prêts — bonne game ! Déclarez le"
+            " vainqueur à la fin avec 🏆."
         ),
         "room_dm": (
             "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
             "Rejoins ton adversaire : {room} — et surveille le salon textuel du"
-            " vocal (URL de la partie, résultat)."
+            " vocal (ID de la partie, résultat)."
         ),
-        "result_button": "🏆 Déclarer le résultat",
+        "result_button": "🏆 Déclarer le vainqueur",
         "result_select_title": "🏆 **Qui remporte la partie ?**",
         "result_select_placeholder": "Le vainqueur de la game",
         "score_url_posted": "🔗 **URL de la partie** : {url}",
@@ -211,11 +224,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "forfeit_side": "🏳️ Forfait sur **{map}** — **{side}** a manqué la validation : victoire de **{kingdom}**.",
         "side_attacker": "l'attaquant",
         "side_defender": "le défenseur",
-        "score_url_button": "🔗 URL de la partie",
-        "score_url_modal_title": "URL de la partie",
-        "score_url_modal_label": "URL du lobby de jeu",
-        "score_url_modal_placeholder": "aoe2de://…",
-        "score_url_set": "✅ URL enregistrée — elle est visible dans le salon de la bataille.",
+        "score_url_button": "🔗 ID de la partie",
+        "score_url_modal_title": "ID de la partie",
+        "score_url_modal_label": "ID de la partie",
+        "score_url_modal_placeholder": "ex. 123456",
+        "score_url_set": "✅ ID de la partie enregistré — visible dans le message de la bataille.",
         "score_reminder_dm": (
             "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — déclare le"
             " résultat de la game avec le bouton 🏆 du salon de la bataille !"
@@ -233,8 +246,30 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "room_civ_line": "• **{player}** joue **{civ}**",
         "room_ready_needs_url": (
-            "🔗 Indique d'abord l'URL du lobby (bouton URL) — le Prêt"
-            " s'active une fois l'URL partagée."
+            "🔗 Renseigne d'abord l'ID de la partie (bouton 🔗) — le"
+            " bouton ✅ Prêt n'apparaît qu'après."
+        ),
+        "result_not_ready": (
+            "⏳ Le bouton Déclarer le vainqueur apparaît une fois que"
+            " les deux joueurs sont Prêts."
+        ),
+        "conquest_title": "⚔️ Le Royaume **{winner}** a conquis **{map}** !",
+        "conquest_defense_title": "🛡️ Le Royaume **{winner}** a défendu **{map}** !",
+        "conquest_thread": "Détail de la conquête",
+        "conquest_thread_defense": "Détail de la défense",
+        "conquest_attacker_line": "⚔️ Attaquant : **{player}** ({kingdom})",
+        "conquest_defense_line": "🛡️ Défense : **{player}** ({kingdom})",
+        "conquest_ai_defense": "🛡️ Défense : IA du royaume **{kingdom}** (niveau {level})",
+        "conquest_civ_line": "🎯 {player} jouait **{civ}**",
+        "conquest_embuscade_line": "🥷 Embuscade utilisée",
+        "conquest_sabotages_line": "🧨 Sabotages ({side}, Faucon/Techno) : {civs}",
+        "conquest_id_line": "🔗 ID de la partie : **{game}**",
+        "conquest_none": "aucune",
+        "conquest_side_attacker": "attaquant",
+        "conquest_side_defender": "défenseur",
+        "conquest_married_lost": (
+            "💔 **{player}** perd son lien sacré avec la civilisation"
+            " **{civ}**."
         ),
         "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
@@ -408,15 +443,28 @@ _STRINGS: dict[str, dict[str, str]] = {
         "room_body": (
             "🏟️ **Prepare for battle — {map}**\n"
             "{lines}\n"
-            "🔗 share the game URL · ✅ Ready once the URL is set ·"
-            " 🏆 declare the result at the end."
+            "{footer}"
+        ),
+        "room_footer_wait_id": (
+            "🔗 Enter the **game ID** (button above) — the ✅ Ready"
+            " button appears afterwards."
+        ),
+        "room_footer_wait_ready": (
+            "🔗 Game ID: **{url}**\n"
+            "✅ Get **Ready** — the 🏆 Declare-the-winner button appears"
+            " once both players are ready."
+        ),
+        "room_footer_go": (
+            "🔗 Game ID: **{url}**\n"
+            "🎮 Both players are ready — good luck! Declare the winner"
+            " at the end with 🏆."
         ),
         "room_dm": (
             "🏟️ **The battle room is open — {map}**\n"
             "Join your adversary: {room} — and watch the voice room's text"
-            " channel (game URL, result)."
+            " channel (game ID, result)."
         ),
-        "result_button": "🏆 Declare the result",
+        "result_button": "🏆 Declare the winner",
         "result_select_title": "🏆 **Who wins the game?**",
         "result_select_placeholder": "The game's winner",
         "score_url_posted": "🔗 **Game URL**: {url}",
@@ -430,11 +478,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "forfeit_side": "🏳️ Forfeit on **{map}** — **{side}** missed the validation: victory of **{kingdom}**.",
         "side_attacker": "the attacker",
         "side_defender": "the defender",
-        "score_url_button": "🔗 Game URL",
+        "score_url_button": "🔗 Game ID",
         "score_url_modal_title": "Game URL",
         "score_url_modal_label": "Game lobby URL",
-        "score_url_modal_placeholder": "aoe2de://…",
-        "score_url_set": "✅ URL saved — visible in the battle room.",
+        "score_url_modal_placeholder": "ex. 123456",
+        "score_url_set": "✅ Game ID saved — visible in the battle message.",
         "score_reminder_dm": (
             "⏰ **Meeting — {map}**: no result declared for 3 hours — declare the"
             " game result with the 🏆 button of the battle room!"
@@ -452,8 +500,30 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "room_civ_line": "• **{player}** plays **{civ}**",
         "room_ready_needs_url": (
-            "🔗 Share the lobby URL first (URL button) — Ready"
-            " unlocks once the URL is shared."
+            "🔗 Enter the game ID first (🔗 button) — the ✅ Ready"
+            " button appears afterwards."
+        ),
+        "result_not_ready": (
+            "⏳ The Declare-the-winner button appears once both players"
+            " are Ready."
+        ),
+        "conquest_title": "⚔️ Kingdom **{winner}** conquered **{map}**!",
+        "conquest_defense_title": "🛡️ Kingdom **{winner}** defended **{map}**!",
+        "conquest_thread": "Conquest details",
+        "conquest_thread_defense": "Defense details",
+        "conquest_attacker_line": "⚔️ Attacker: **{player}** ({kingdom})",
+        "conquest_defense_line": "🛡️ Defense: **{player}** ({kingdom})",
+        "conquest_ai_defense": "🛡️ Defense: the kingdom **{kingdom}**'s AI (level {level})",
+        "conquest_civ_line": "🎯 {player} played **{civ}**",
+        "conquest_embuscade_line": "🥷 Ambush used",
+        "conquest_sabotages_line": "🧨 Sabotages ({side}, Falcon/Tech): {civs}",
+        "conquest_id_line": "🔗 Game ID: **{game}**",
+        "conquest_none": "none",
+        "conquest_side_attacker": "attacker",
+        "conquest_side_defender": "defender",
+        "conquest_married_lost": (
+            "💔 **{player}** loses their sacred bond with civilization"
+            " **{civ}**."
         ),
         "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
@@ -496,6 +566,7 @@ def _fmt_paris(moment: Any) -> str:
 
 DECLARE_CHANNEL_NAME = "Déclarer une attaque"
 ANNOUNCE_CHANNEL_NAME = "Attaques"
+GEOPOLITICS_CHANNEL_NAME = "Géopolitique"
 
 
 def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
@@ -521,6 +592,23 @@ def _announce_channel(guild: discord.Guild | None) -> discord.TextChannel | None
     if guild is None:
         return None
     wanted = _slug(ANNOUNCE_CHANNEL_NAME)
+    return next(
+        (c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) == wanted),
+        None,
+    )
+
+
+def _geopolitics_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
+    """Return the guild's « Géopolitique » recap salon (None when absent).
+
+    Drasah 18/10 v5: the conquest recaps land there; the « Attaques »
+    salon stays the fallback when the guild has no Géopolitique.
+    """
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    if guild is None:
+        return None
+    wanted = _slug(GEOPOLITICS_CHANNEL_NAME)
     return next(
         (c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) == wanted),
         None,
@@ -2095,6 +2183,7 @@ async def _run_phases_announce_safe(
                     winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
                 ),
             )
+            await _announce_conquest_safe(bot, kingdoms_service, attack, locale)
         dirty += len(confirmed)
         # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
         reminders = await attacks_service.score_reminder_due()
@@ -2279,6 +2368,172 @@ async def _grant_battle_room_role_safe(guild: Any, role: Any, player_id: str) ->
             logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
 
 
+def _room_view(attack: Any, strings: dict[str, str]) -> discord.ui.View:
+    """Build the battle-room button set of the current state (v5).
+
+    Drasah 18/10 v5: the room lives on ONE message — 🔗 ID always
+    visible; ✅ Prêt appears once the ID is set; 🏆 Déclarer le
+    vainqueur appears once BOTH players are Prêt.
+    """
+    score = dict(attack.score or {})
+    view = discord.ui.View(timeout=None)
+    view.add_item(KingdomRoomUrlButton(str(attack.id), strings["score_url_button"]))
+    if str(attack.lobby_url or "").strip():
+        view.add_item(KingdomRoomReadyButton(str(attack.id), strings["room_ready_button"]))
+    if score.get("all_ready"):
+        view.add_item(KingdomRoomResultButton(str(attack.id), strings["result_button"]))
+    return view
+
+
+async def _room_body_text(attack: Any, kingdoms_service: Any, strings: dict[str, str]) -> str:
+    """Build the battle-room message body (civs + state footer)."""
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    score = dict(attack.score or {})
+    attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+    defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
+    lines = [
+        strings["room_civ_line"].format(player=attacker, civ=_final_civ(pickban, "attacker")),
+        strings["room_civ_line"].format(player=defender, civ=_final_civ(pickban, "defender")),
+    ]
+    url = str(attack.lobby_url or "").strip()
+    if score.get("all_ready"):
+        footer = strings["room_footer_go"].format(url=url)
+    elif url:
+        footer = strings["room_footer_wait_ready"].format(url=url)
+    else:
+        footer = strings["room_footer_wait_id"]
+    return strings["room_body"].format(map=attack.map_key, lines="\n".join(lines), footer=footer)
+
+
+async def _refresh_room_message_safe(bot: Any, attack: Any, locale: str) -> None:
+    """Best-effort refresh of the room's single message (ID → Prêt → 🏆)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    score = dict(attack.score or {})
+    channel_id = int(score.get("room_channel_id") or 0)
+    message_id = int(score.get("room_message_id") or 0)
+    if not channel_id or not message_id or wiring.kingdoms_service is None:
+        return
+    strings = _strings(locale)
+    for guild in list(getattr(bot, "guilds", [])):
+        channel = getattr(guild, "get_channel", lambda _id: None)(channel_id)
+        if channel is None:
+            continue
+        message = next(
+            (
+                item
+                for item in getattr(channel, "messages", [])
+                if int(getattr(item, "id", 0)) == message_id
+            ),
+            None,
+        )
+        try:
+            if message is None and hasattr(channel, "get_partial_message"):
+                message = channel.get_partial_message(message_id)
+            if message is not None:
+                await message.edit(
+                    content=await _room_body_text(attack, wiring.kingdoms_service, strings),
+                    view=_room_view(attack, strings),
+                )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room refresh failed", exc_info=True)
+
+
+async def _announce_conquest_safe(bot: Any, kingdoms_service: Any, attack: Any, locale: str) -> None:
+    """Post the conquest recap in Géopolitique + its detail thread.
+
+    Drasah 18/10 v5: every resolved meeting tells its story in the
+    « Géopolitique » salon — the title announces who took (or kept)
+    the map, a dedicated thread carries the details (players, civs,
+    sabotage, embuscade, game ID, broken sacred bond).
+    """
+    strings = _strings(locale)
+    winner_id = str(getattr(attack, "winner_kingdom_id", "") or "")
+    if not winner_id:
+        return
+    attacker_won = winner_id == str(attack.attacker_kingdom_id)
+    winner = await _kingdom_name(kingdoms_service, winner_id)
+    title_key = "conquest_title" if attacker_won else "conquest_defense_title"
+    thread_key = "conquest_thread" if attacker_won else "conquest_thread_defense"
+    title = strings[title_key].format(winner=winner, map=attack.map_key)
+    detail = await _conquest_detail(kingdoms_service, attack, strings, attacker_won)
+    for guild in list(getattr(bot, "guilds", [])):
+        channel = _geopolitics_channel(guild) or _announce_channel(guild)
+        if channel is None:
+            continue
+        try:
+            message = await channel.send(title)
+        except Exception:
+            logger.warning("KINGDOM ATTACK: conquest recap post failed", exc_info=True)
+            continue
+        try:
+            thread = await channel.create_thread(name=strings[thread_key][:100], message=message)
+            await thread.send(detail)
+        except Exception:
+            logger.warning("KINGDOM ATTACK: conquest thread failed — flat fallback", exc_info=True)
+            try:
+                await channel.send(detail)
+            except Exception:
+                logger.warning("KINGDOM ATTACK: conquest detail post failed", exc_info=True)
+
+
+async def _conquest_detail(
+    kingdoms_service: Any, attack: Any, strings: dict[str, str], attacker_won: bool
+) -> str:
+    """Build the conquest recap's detail body (the thread content)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
+
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+    attacker_kingdom = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
+    defender_kingdom = await _kingdom_name(kingdoms_service, attack.defender_kingdom_id)
+    lines = [
+        strings["conquest_attacker_line"].format(player=attacker, kingdom=attacker_kingdom)
+    ]
+    if getattr(attack, "ai_defender", False):
+        level = int((attack.effects or {}).get("ai_level") or 1)
+        defender = defender_kingdom
+        lines.append(
+            strings["conquest_ai_defense"].format(kingdom=defender_kingdom, level=level)
+        )
+    else:
+        defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
+        lines.append(
+            strings["conquest_defense_line"].format(player=defender, kingdom=defender_kingdom)
+        )
+    lines.append(
+        strings["conquest_civ_line"].format(player=attacker, civ=_final_civ(pickban, "attacker"))
+    )
+    defender_civ = _final_civ(pickban, "defender")
+    if defender_civ:
+        lines.append(strings["conquest_civ_line"].format(player=defender, civ=defender_civ))
+    if getattr(attack, "embuscade", False):
+        lines.append(strings["conquest_embuscade_line"])
+    for side in ("attacker", "defender"):
+        sabotages = [str(civ) for civ in (pickban.get(f"{side}_sabotages") or [])]
+        if sabotages:
+            lines.append(
+                strings["conquest_sabotages_line"].format(
+                    side=strings[f"conquest_side_{side}"], civs=", ".join(sabotages)
+                )
+            )
+    game = str((attack.score or {}).get("game_id") or attack.lobby_url or "")
+    lines.append(strings["conquest_id_line"].format(game=game or strings["conquest_none"]))
+    # The defeated player's sacred bond breaks when they were married.
+    loser_id = str(attack.defender_lord_id) if attacker_won else str(attack.attacker_lord_id)
+    if loser_id and not (attacker_won and getattr(attack, "ai_defender", False)):
+        lord = await _lord_of(kingdoms_service, loser_id)
+        married = str(getattr(lord, "married_civilization", "") or "") if lord else ""
+        if married:
+            lines.append(
+                strings["conquest_married_lost"].format(
+                    player=await _lord_name(kingdoms_service, loser_id), civ=married
+                )
+            )
+    return "\n".join(lines)
+
+
 async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Open the battle room of a meeting (Drasah 18/10 v2).
 
@@ -2312,30 +2567,14 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         # Drasah 18/10 v4: the sabotage phase happened BEFORE the RDV —
         # the room shows each player's FINAL civilization (the first
         # ranked pick the enemy sabotages did not strike).
-        pickban: dict[str, Any] = dict(attack.pickban or {})
-        lines = [
-            strings["room_civ_line"].format(
-                player=attacker, civ=_final_civ(pickban, "attacker")
-            ),
-            strings["room_civ_line"].format(
-                player=defender, civ=_final_civ(pickban, "defender")
-            ),
-        ]
-        room_view = discord.ui.View(timeout=None)
-        room_view.add_item(
-            KingdomRoomUrlButton(str(attack.id), strings["score_url_button"])
-        )
-        room_view.add_item(
-            KingdomRoomResultButton(str(attack.id), strings["result_button"])
-        )
-        room_view.add_item(
-            KingdomRoomReadyButton(str(attack.id), strings["room_ready_button"])
-        )
+        # Drasah 18/10 v5: the room lives on ONE message — 🔗 ID first,
+        # ✅ Prêt once the ID is set, 🏆 once both players are Prêt.
         try:
-            await channel.send(
-                strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
-                view=room_view,
+            message = await channel.send(
+                await _room_body_text(attack, kingdoms_service, strings),
+                view=_room_view(attack, strings),
             )
+            await record_room_message_safe(attack, channel.id, int(message.id))
         except Exception:
             logger.warning("KINGDOM ATTACK: battle room text post failed", exc_info=True)
         for player_id in _score_players(attack):
@@ -2364,6 +2603,21 @@ async def record_battle_room_safe(attack: Any, channel_id: int, role_id: int) ->
         await wiring.attacks_service.record_battle_room(str(attack.id), int(channel_id), int(role_id))
     except Exception:
         logger.warning("KINGDOM ATTACK: battle room refs not stored", exc_info=True)
+
+
+async def record_room_message_safe(attack: Any, channel_id: int, message_id: int) -> None:
+    """Store the room's single-message ref (the refresh target)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return
+    try:
+        await wiring.attacks_service.record_room_message(
+            str(attack.id), int(channel_id), int(message_id)
+        )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle room message ref not stored", exc_info=True)
 
 
 async def _delete_battle_room_safe(bot: Any, channel_id: int, role_id: Any) -> None:
@@ -2487,11 +2741,9 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
-        try:
-            room_channel: Any = interaction.channel
-            await room_channel.send(strings["score_url_posted"].format(url=url))
-        except Exception:
-            logger.warning("KINGDOM ATTACK: battle room URL post failed", exc_info=True)
+        # Drasah 18/10 v5: no extra post — the room's single message
+        # refreshes in place (the ID line + the unlocked ✅ Prêt).
+        await _refresh_room_message_safe(interaction.client, attack, _locale(interaction))
         await interaction.response.send_message(strings["score_url_set"], ephemeral=True)
 
 
@@ -2544,6 +2796,11 @@ class KingdomRoomResultButton(
         if attack.is_over or str(getattr(attack, "state", "")) != "meeting":
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
+        if not (attack.score or {}).get("all_ready"):
+            # Drasah 18/10 v5: no 🏆 before both players are Prêt — a
+            # stale click (an old view) is politely refused.
+            await interaction.response.send_message(strings["result_not_ready"], ephemeral=True)
+            return
         attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
         defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
         view = discord.ui.View(timeout=300)
@@ -2564,7 +2821,13 @@ class KingdomRoomResultButton(
             # Drasah 18/10: the game-id popup made no sense here — the
             # declaration lands straight from the winner select.
             await _declare_room_score(
-                target, wiring, strings, self.attack_id, str(target.user.id), str(select.values[0])
+                target,
+                wiring,
+                strings,
+                self.attack_id,
+                str(target.user.id),
+                str(select.values[0]),
+                game_id=str(attack.lobby_url or ""),
             )
 
         select.callback = _on_winner  # type: ignore[method-assign,assignment]
@@ -2581,19 +2844,21 @@ async def _declare_room_score(
     attack_id: str,
     player_id: str,
     winner_kingdom_id: str,
+    game_id: str = "",
 ) -> None:
     """Declare the result from the battle room (resolved or pending).
 
-    Drasah 18/10 v2: the declaration lives in the room — ``resolved``
-    announces on the spot, ``disputed`` DMs the admins the arbitration
-    view and a lone declaration pends ``score_confirm_minutes``. The
-    game-id popup was removed (Drasah 18/10: no sense at this point).
+    Drasah 18/10 v5: the ID of the party entered earlier rides the
+    declaration (no more « the game id is required »), ``resolved``
+    stays ephemeral in the room and tells the story in Géopolitique.
     """
     if wiring.attacks_service is None or not attack_id:
         await interaction.response.send_message(strings["no_service"], ephemeral=True)
         return
     try:
-        attack, outcome = await wiring.attacks_service.declare_score(attack_id, player_id, winner_kingdom_id, "")
+        attack, outcome = await wiring.attacks_service.declare_score(
+            attack_id, player_id, winner_kingdom_id, game_id
+        )
     except Exception as exc:
         message = getattr(exc, "message", None) or str(exc)
         await interaction.response.send_message(
@@ -2601,7 +2866,9 @@ async def _declare_room_score(
         )
         return
     if outcome == "disputed":
-        await interaction.response.send_message(strings["score_disputed"].format(game="—"))
+        await interaction.response.send_message(
+            strings["score_disputed"].format(game=game_id or "—")
+        )
         await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
         return
     if outcome == "already":
@@ -2610,7 +2877,13 @@ async def _declare_room_score(
     if outcome == "resolved":
         winner = await _kingdom_name(wiring.kingdoms_service, winner_kingdom_id)
         await interaction.response.send_message(
-            strings["score_resolved"].format(winner=winner, map=attack.map_key, game="—")
+            strings["score_resolved"].format(
+                winner=winner, map=attack.map_key, game=game_id or "—"
+            ),
+            ephemeral=True,
+        )
+        await _announce_conquest_safe(
+            interaction.client, wiring.kingdoms_service, attack, _locale(interaction)
         )
         return
     minutes = 10
@@ -2619,7 +2892,8 @@ async def _declare_room_score(
     except Exception:
         minutes = 10
     await interaction.response.send_message(
-        strings["score_pending"].format(game="—", minutes=minutes)
+        strings["score_pending"].format(game=game_id or "—", minutes=minutes),
+        ephemeral=True,
     )
 
 
@@ -2691,6 +2965,9 @@ class KingdomRoomReadyButton(
                 strings["failed"].format(message=message), ephemeral=True
             )
             return
+        # Drasah 18/10 v5: the room message refreshes in place — the
+        # footer tracks the readiness, 🏆 appears once both are Prêt.
+        await _refresh_room_message_safe(interaction.client, attack, _locale(interaction))
         score = attack.score or {}
         if not score.get("all_ready"):
             await interaction.response.send_message(strings["room_ready_wait"], ephemeral=True)
@@ -2842,13 +3119,11 @@ async def _sabotage_civ_select_view(
 async def _announce_room_start_safe(
     interaction: discord.Interaction, attack: Any, strings: dict[str, str]
 ) -> None:
-    """Create the match scheduled event + the room start message (best effort).
+    """Create the match scheduled event (best effort).
 
-    Drasah 18/10: both players clicked Prêt in the vocal — the match
-    is announced through a Discord scheduled event (the server's
-    calendar carries the infos). A bot cannot trigger a soundboard
-    sound (Discord API limitation — sounds are user-side only), so
-    the announcement mentions the players in the room instead.
+    Drasah 18/10 v5: both players clicked Prêt — the announcement
+    lives in the ROOM MESSAGE's refreshed footer (no extra post, the
+    vocal stays clean); only the server-calendar event is created here.
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -2890,14 +3165,6 @@ async def _announce_room_start_safe(
                 )
         except Exception:
             logger.warning("KINGDOM ATTACK: room event ref not stored", exc_info=True)
-    try:
-        mentions = " ".join(f"<@{player_id}>" for player_id in _score_players(attack))
-        await channel.send(
-            strings["room_start"].format(map=attack.map_key, mentions=mentions),
-        )
-    except Exception:
-        logger.warning("KINGDOM ATTACK: room start message failed", exc_info=True)
-
 
 async def _resolve_room_attack_id_async(key: str) -> str:
     """Resolve the room key back to an attack id (the async service scan)."""

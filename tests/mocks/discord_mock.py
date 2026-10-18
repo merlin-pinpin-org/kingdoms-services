@@ -309,6 +309,7 @@ class MockTextChannel(discord.TextChannel):
         self._category = category
         self._permissions: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         self.messages: list[MockMessage] = []
+        self.threads: list["MockThread"] = []
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -339,6 +340,15 @@ class MockTextChannel(discord.TextChannel):
     async def edit(self, **kwargs: Any) -> None:
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    async def create_thread(
+        self, name: str, *, message: Any = None, **kwargs: Any
+    ) -> "MockThread":
+        """Create a public thread anchored on ``message`` (in-memory)."""
+        thread = MockThread(name=name[:100], guild=self.guild, parent_id=self.id)
+        self.threads.append(thread)
+        self.guild._channels[thread.id] = thread  # type: ignore[index]
+        return thread
 
     async def set_permissions(
         self,
@@ -374,6 +384,47 @@ class MockTextChannel(discord.TextChannel):
 
     def __repr__(self) -> str:
         return f"<MockTextChannel id={self.id} name={self.name!r}>"
+
+
+class MockThread(discord.Thread):
+    """In-memory :class:`discord.Thread` (the conquest recap threads)."""
+
+    def __init__(
+        self,
+        id: int | None = None,
+        name: str = "thread",
+        *,
+        guild: "MockGuild | None" = None,
+        parent_id: int | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.id = id if id is not None else _next_id()
+        self.name = name
+        self.guild = guild or MockGuild()
+        self.parent_id = parent_id
+        self.messages: list[MockMessage] = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @property
+    def type(self) -> discord.ChannelType:
+        return discord.ChannelType.public_thread
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """Record the thread post in ``messages``."""
+        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        self.messages.append(message)
+        return message
+
+    def __repr__(self) -> str:
+        return f"<MockThread id={self.id} name={self.name!r}>"
 
 
 class MockVoiceChannel(discord.VoiceChannel):
