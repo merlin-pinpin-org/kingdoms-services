@@ -840,3 +840,107 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     again = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
     await button.callback(again)  # type: ignore[arg-type]
     assert len(created) == 1
+
+
+async def test_room_sabotage_techno_lands_and_the_reveal_fires_once() -> None:
+    """Drasah 18/10 v3 (phase Sabotage du vocal): the attacker with the
+    bought techno removes one enemy civ (2-limit, same storage as the
+    Faucon), the defender may not, and the reveal flips only when BOTH
+    camps settled — an AI defender is settled from the start."""
+    import pytest as _pytest
+
+    from kingdoms.mods.kingdoms.attacks import AttackStateError
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.stock(aquitaine, sabotage=1)
+
+    # The attacker snipes the defender's first-ranked civ.
+    moved = await bundle.attacks.room_sabotage_techno(attack.id, "king-a", "huns")
+    assert (moved.pickban or {}).get("attacker_sabotages") == ["huns"]
+    # A second snipe on the same civ or an outsider civ is refused.
+    with _pytest.raises(AttackStateError):
+        await bundle.attacks.room_sabotage_techno(attack.id, "king-a", "huns")
+    with _pytest.raises(AttackStateError):
+        await bundle.attacks.room_sabotage_techno(attack.id, "king-a", "francs")
+    # The defender never carries the techno sabotage.
+    with _pytest.raises(AttackStateError):
+        await bundle.attacks.room_sabotage_techno(attack.id, "lord-b", "francs")
+    # Settling one side alone reveals nothing.
+    first = await bundle.attacks.room_settle(attack.id, "king-a")
+    assert not (first.pickban or {}).get("room_revealed")
+    assert (first.pickban or {}).get("room_settled_attacker") is True
+    # The second settle flips the reveal exactly once.
+    second = await bundle.attacks.room_settle(attack.id, "lord-b")
+    assert (second.pickban or {}).get("room_revealed") is True
+    again = await bundle.attacks.room_settle(attack.id, "lord-b")
+    assert (again.pickban or {}).get("room_revealed") is True
+
+
+async def test_room_sabotage_button_flows_to_the_reveal_in_the_vocal() -> None:
+    """The 🪶 button of the battle room opens the ephemeral menu; the
+    techno path removes a civ, then both Passer clicks post the reveal
+    (struck sabotages, surviving civ) in the voice room."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomRoomSabotageButton,
+        _open_battle_room,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.stock(aquitaine, sabotage=1)
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+    strings = _strings("fr")
+
+    button = KingdomRoomSabotageButton(attack.id, strings["room_sabotage_button"])
+    assert len(str(button.custom_id)) <= 100
+
+    click = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(click)  # type: ignore[arg-type]
+    assert click.response.message is not None
+    menu = click.response.message.view
+    assert "sabotage" in str(click.response.message.content or "").lower()
+    assert menu is not None
+
+    # The volière is absent here — the menu carries Techno + Passer.
+    labels = [str(getattr(child, "label", "")) for child in menu.children]
+    assert strings["room_sabotage_techno"] in labels
+    assert strings["room_sabotage_pass"] in labels
+
+    techno = next(c for c in menu.children if str(getattr(c, "label", "")) == strings["room_sabotage_techno"])
+    step = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await techno.callback(step)  # type: ignore[arg-type]
+    civ_view = step.response.message.view if step.response.message is not None else None
+    assert civ_view is not None
+    select = next(c for c in civ_view.children if hasattr(c, "callback"))
+    select._values = ["huns"]  # type: ignore[attr-defined]
+    pick = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await select.callback(pick)  # type: ignore[arg-type]
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.pickban or {}).get("attacker_sabotages") == ["huns"]
+
+    passer = next(c for c in menu.children if str(getattr(c, "label", "")) == strings["room_sabotage_pass"])
+    first = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await passer.callback(first)  # type: ignore[arg-type]
+    assert "attente" in str(first.response.message.content or "")
+    second = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await passer.callback(second)  # type: ignore[arg-type]
+    # The reveal lands in the vocal: huns struck, perses survives.
+    reveal = [m for m in room.messages if "Reveal" in str(m.content or "")]
+    assert reveal, [str(m.content) for m in room.messages]
+    assert "~~huns~~" in str(reveal[-1].content)
+    assert "perses" in str(reveal[-1].content)
+    # A re-click after the reveal is politely refused.
+    late = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(late)  # type: ignore[arg-type]
+    assert "terminée" in str(late.response.message.content or "")

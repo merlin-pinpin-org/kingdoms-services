@@ -375,6 +375,28 @@ async def test_faucon_sabotage_counts_in_the_two_limit() -> None:
         await bundle.voliere.faucon_sabotage(champagne, attack.id, civs[0], now=_NOW)
 
 
+async def test_faucon_sabotage_strikes_from_the_battle_room() -> None:
+    """Drasah 18/10 v3: the meeting state is a valid Faucon window — the
+    phase Sabotage du vocal reuses the pick & ban side storage."""
+    from kingdoms.mods.kingdoms.models import AttackState
+
+    bundle = VoliereBundle()
+    await bundle.launch_season()
+    await bundle.draw(2)
+    await bundle.to_feudal()
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    await bundle.choose(aquitaine, "faucon")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://x", now=_NOW)
+    attack.state = AttackState.MEETING
+    attack.pickban = {"sent": True, "resolved_pickban": True, "defender_picks": ["civ-0", "civ-1", "civ-2"]}
+    await bundle.store.upsert_attack(attack.to_mongo())
+    await bundle.voliere.faucon_sabotage(aquitaine, attack.id, "civ-1", now=_NOW)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.pickban["attacker_sabotages"] == ["civ-1"]
+
+
 async def test_pool_empty_when_everything_is_drawn() -> None:
     """Every map already in game — the Faucon territory draw is empty."""
     bundle = VoliereBundle()
