@@ -2562,59 +2562,70 @@ async def _room_sabotage_view(
     wiring: Any, attack: Any, side: str, strings: dict[str, str]
 ) -> discord.ui.View:
     """Build the ephemeral sabotage menu of one side of the room."""
+    user_id = str(getattr(attack, "attacker_lord_id" if side == "attacker" else "defender_lord_id"))
+    view = discord.ui.View(timeout=300)
+    for action in ("faucon", "techno"):
+        button = await _room_action_button(wiring, attack, user_id, side, action, strings)
+        if button is not None:
+            view.add_item(button)
+    view.add_item(_room_passer_button(wiring, str(attack.id), user_id, strings))
+    return view
+
+
+async def _room_action_button(
+    wiring: Any, attack: Any, user_id: str, side: str, action: str, strings: dict[str, str]
+) -> discord.ui.Button[discord.ui.View] | None:
+    """Build one sabotage action button, None when unavailable.
+
+    Faucon: both sides, when the volière service is wired and the
+    clicking lord carries a kingdom. Techno: the attacker only, when
+    the kingdom bought the Sabotage technology.
+    """
     from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
 
-    user_id = str(getattr(attack, "attacker_lord_id" if side == "attacker" else "defender_lord_id"))
-    attack_id = str(attack.id)
-    view = discord.ui.View(timeout=300)
-    lord = await _lord_of(wiring.kingdoms_service, user_id)
-    kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
-    if wiring.voliere_service is not None and kingdom_id:
-        faucon: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label=strings["room_sabotage_faucon"][:80], style=discord.ButtonStyle.secondary
-        )
-
-        async def _on_faucon(target: discord.Interaction) -> None:
-            if str(getattr(target.user, "id", "")) != user_id:
-                await target.response.defer()
-                return
-            civ_view = await _room_civ_select_view(wiring, attack_id, side, "faucon", strings)
-            if civ_view is None:
-                await target.response.send_message(strings["room_sabotage_empty"], ephemeral=True)
-                return
-            await target.response.send_message(
-                strings["room_sabotage_choose"], view=civ_view, ephemeral=True
-            )
-
-        faucon.callback = _on_faucon  # type: ignore[method-assign,assignment]
-        view.add_item(faucon)
-    if side == "attacker":
+    if action == "faucon":
+        if wiring.voliere_service is None:
+            return None
+        lord = await _lord_of(wiring.kingdoms_service, user_id)
+        kingdom_id = str(getattr(lord, "kingdom_id", "") or "") if lord is not None else ""
+        if not kingdom_id:
+            return None
+    else:
+        if side != "attacker":
+            return None
         bought = False
         try:
             state = await wiring.attacks_service.technology_state(attack.attacker_kingdom_id)
             bought = state.purchases.get("sabotage", 0) > 0
         except Exception:
             bought = False
-        if bought:
-            techno: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-                label=strings["room_sabotage_techno"][:80], style=discord.ButtonStyle.secondary
-            )
+        if not bought:
+            return None
+    button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+        label=strings[f"room_sabotage_{action}"][:80], style=discord.ButtonStyle.secondary
+    )
 
-            async def _on_techno(target: discord.Interaction) -> None:
-                if str(getattr(target.user, "id", "")) != user_id:
-                    await target.response.defer()
-                    return
-                civ_view = await _room_civ_select_view(wiring, attack_id, side, "techno", strings)
-                if civ_view is None:
-                    await target.response.send_message(strings["room_sabotage_empty"], ephemeral=True)
-                    return
-                await target.response.send_message(
-                    strings["room_sabotage_choose"], view=civ_view, ephemeral=True
-                )
+    async def _on_action(target: discord.Interaction) -> None:
+        if str(getattr(target.user, "id", "")) != user_id:
+            await target.response.defer()
+            return
+        civ_view = await _room_civ_select_view(wiring, str(attack.id), side, action, strings)
+        if civ_view is None:
+            await target.response.send_message(strings["room_sabotage_empty"], ephemeral=True)
+            return
+        await target.response.send_message(
+            strings["room_sabotage_choose"], view=civ_view, ephemeral=True
+        )
 
-            techno.callback = _on_techno  # type: ignore[method-assign,assignment]
-            view.add_item(techno)
-    passer: discord.ui.Button[discord.ui.View] = discord.ui.Button(
+    button.callback = _on_action  # type: ignore[method-assign,assignment]
+    return button
+
+
+def _room_passer_button(
+    wiring: Any, attack_id: str, user_id: str, strings: dict[str, str]
+) -> discord.ui.Button[discord.ui.View]:
+    """Build the ⚔️ Passer button (validates the side, fires the reveal)."""
+    button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
         label=strings["room_sabotage_pass"][:80], style=discord.ButtonStyle.success
     )
 
@@ -2638,9 +2649,8 @@ async def _room_sabotage_view(
             return
         await target.response.send_message(strings["room_sabotage_settled"], ephemeral=True)
 
-    passer.callback = _on_pass  # type: ignore[method-assign,assignment]
-    view.add_item(passer)
-    return view
+    button.callback = _on_pass  # type: ignore[method-assign,assignment]
+    return button
 
 
 async def _room_civ_select_view(
