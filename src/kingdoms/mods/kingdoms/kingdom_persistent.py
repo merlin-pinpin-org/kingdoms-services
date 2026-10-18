@@ -119,6 +119,11 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomAttackDeclareButton,
         KingdomAttackDefendButton,
+        KingdomAttackJoinButton,
+        KingdomDefenseManagerButton,
+        KingdomReadyButton,
+        KingdomRoomResultButton,
+        KingdomRoomUrlButton,
     )
     from kingdoms.mods.kingdoms.kingdom_distributor_panel import (
         KingdomDistributorButton,
@@ -140,6 +145,11 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
         KingdomSeigneurieSelect,
         KingdomAttackDeclareButton,
         KingdomAttackDefendButton,
+        KingdomAttackJoinButton,
+        KingdomDefenseManagerButton,
+        KingdomReadyButton,
+        KingdomRoomResultButton,
+        KingdomRoomUrlButton,
         KingdomApplyButton,
         KingdomCandidatureButton,
         KingdomProfileButton,

@@ -16,9 +16,10 @@ from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomsPanelWiring,
     register_kingdoms_panel_wiring,
 )
-from tests.mocks.discord_mock import MockInteraction, MockUser
+from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
 
 from .test_kingdoms_attack_phases import PhasesBundle
+from .test_kingdoms_attack_score import ScoreBundle
 
 _SAFE_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
 """Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
@@ -607,35 +608,99 @@ async def test_pickban_view_selects_acknowledge_and_validate() -> None:
     from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomPickBanView
 
     view = KingdomPickBanView(
-        "s-20261018-015707-a-t-steppe-king-a-1791720000", "king-a", "attacker",
-        ["francs", "bretons", "goths"], ["huns", "perses", "byzantins"], "fr",
+        "s-20261018-015707-a-t-steppe-king-a-1791720000",
+        "king-a",
+        "attacker",
+        ["francs", "bretons", "goths"],
+        "fr",
     )
-    selects = [c for c in view.children if getattr(c, "custom_id", "").startswith("kingdoms:attack:pickban:pick:")]
+    selects = [
+        c
+        for c in view.children
+        if getattr(c, "custom_id", "").startswith("kingdoms:attack:pickban:pick:")
+    ]
     assert len(selects) == 3
     for select in selects:
         assert callable(select.callback)  # « the application did not respond » fix
-    sabotage = next(
-        c for c in view.children if getattr(c, "custom_id", "") == "kingdoms:attack:pickban:sabotage"
+    validate = next(
+        c for c in view.children if getattr(c, "custom_id", "") == "kingdoms:attack:pickban:validate"
     )
-    assert callable(sabotage.callback)
+    assert callable(validate.callback)
+    # Drasah 18/10 v2: no sabotage select anymore — the moves ride the
+    # battle room, and the resolution is BLIND (no adversary hand here).
+    assert not [
+        c for c in view.children if "sabotage" in str(getattr(c, "custom_id", ""))
+    ]
+    assert len(view.children) == 4  # 3 picks + validate
 
 
-async def test_score_view_custom_ids_fit_the_discord_limit() -> None:
+async def test_room_and_ready_custom_ids_fit_the_discord_limit() -> None:
     """Live beta 18/10: the RDV DM died with 50035 (custom_id > 100) —
-    the ids must stay short whatever the attack id length."""
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomScoreView
+    the persistent ids must stay short whatever the attack id length."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomReadyButton,
+        KingdomRoomResultButton,
+        KingdomRoomUrlButton,
+        _strings,
+    )
 
     attack_id = "s-20261018-015707-a-s-20261018-015707-t-plaine-king-a-1791720000"
     player_id = "242421489536729100"
-    view = KingdomScoreView(
-        attack_id, player_id, {"attacker": "k1", "defender": "k2"}, "fr"
-    )
-    ids = [str(c.custom_id) for c in view.children]
-    assert len(ids) == 4  # ready, win attacker, win defender, game URL
+    strings = _strings("fr")
+    ready = KingdomReadyButton(attack_id, player_id, strings["ready_button"])
+    url = KingdomRoomUrlButton(attack_id, strings["score_url_button"])
+    result = KingdomRoomResultButton(attack_id, strings["result_button"])
+    ids = [str(ready.custom_id), str(url.custom_id), str(result.custom_id)]
     for custom_id in ids:
         assert 1 <= len(custom_id) <= 100
-    assert len(set(ids)) == 4
+    assert len(set(ids)) == 3
     # Restart-stable: the same inputs rebuild the same ids (bot.add_view
     # re-registration must keep answering).
-    twin = KingdomScoreView(attack_id, player_id, {"attacker": "k1", "defender": "k2"}, "fr")
-    assert [str(c.custom_id) for c in twin.children] == ids
+    twin = [
+        KingdomReadyButton(attack_id, player_id, strings["ready_button"]),
+        KingdomRoomUrlButton(attack_id, strings["score_url_button"]),
+        KingdomRoomResultButton(attack_id, strings["result_button"]),
+    ]
+    assert [str(item.custom_id) for item in twin] == ids
+    # The key is a 16-hex digest — the raw attack id never rides the id.
+    assert all(re.fullmatch(r"[0-9a-f]{16}", part) for part in
+               (ready.custom_id.split(":")[-1], url.custom_id.split(":")[-1]))
+
+
+async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
+    """Drasah 18/10 v2: at T the meeting opens a battle room — role,
+    voice channel under « Champs de bataille », a text-in-voice message
+    with each player's SHUFFLED civs + the URL/result buttons, and the
+    room refs stored for the presence tracking."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room, _strings
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    room_id = fresh.score.get("room_channel_id")
+    assert room_id
+    assert fresh.score.get("room_role_id")
+    room = guild.get_channel(int(room_id))
+    assert room is not None
+    assert room.user_limit == 2
+    assert room.category is not None
+    assert room.category.name == _strings("fr")["room_category"]
+    body = (room.messages[0].content or "")
+    # Each player's 3 picks, shuffled — the ranking stays hidden.
+    for civ in ("francs", "bretons", "goths", "huns", "perses", "byzantins"):
+        assert civ in body
+    # The two persistent room buttons.
+    view = room.messages[0].view
+    ids = {str(c.custom_id) for c in view.children}
+    assert any(cid.startswith("kingdoms:attack:room:url:") for cid in ids)
+    assert any(cid.startswith("kingdoms:attack:room:result:") for cid in ids)
+    # Idempotent: a replayed tick never duplicates the room.
+    await _open_battle_room(bot, guild, fresh, bundle.kingdoms, "fr")
+    rooms = [c for c in guild.channels if getattr(c, "user_limit", None) == 2]
+    assert len(rooms) == 1

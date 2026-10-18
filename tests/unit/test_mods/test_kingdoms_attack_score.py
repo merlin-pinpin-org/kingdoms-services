@@ -1,11 +1,12 @@
 """Kingdoms RDV score phase (attaques-score-v1) - unit tests.
 
 The meeting state machine behind an in-memory store: the score phase
-opening at T (only for resolved pick & bans), the Prêt confirmations
-and the T+5 no-show line (unilateral / double / vs AI), the game
-result declaration (consensus, unilateral fait-foi, dispute after
-resolution), the admin arbitration, the epoch-unique attack ids and
-the FFA naive-datetime fix.
+opening at T (only for resolved pick & bans), the VOICE presence of
+the battle room and the T+5 no-show line (unilateral / double / vs
+AI, Drasah 18/10 v2), the game result declaration (consensus, lone
+pending declaration confirmed after 10 minutes, contested dispute),
+the admin arbitration, the epoch-unique attack ids and the FFA
+naive-datetime fix.
 """
 from __future__ import annotations
 
@@ -68,6 +69,12 @@ class ScoreBundle(PhasesBundle):
         await self.attacks.score_due(now=_T)
         return attack, aquitaine, bourgogne
 
+    async def present(self, attack: AttackModel, *player_ids: str) -> None:
+        """Open the battle room and join it (the voice presence, Drasah 18/10 v2)."""
+        await self.attacks.record_battle_room(attack.id, 4242)
+        for player_id in player_ids:
+            await self.attacks.record_voice_join(4242, player_id)
+
     async def owner_of(self, attack: AttackModel) -> str | None:
         territory = next(
             item
@@ -128,17 +135,19 @@ async def test_forgotten_draft_defaults_the_defender_and_opens_the_meeting() -> 
     assert [item.id for item in due] == [attack.id]
 
 
-async def test_ready_clicks_and_unilateral_noshow() -> None:
-    """T+5: the defender missed the RDV — the attacker wins by no-show."""
+async def test_voice_presence_and_unilateral_noshow() -> None:
+    """Drasah 18/10 v2: the forfeit rides the VOICE presence — the
+    defender never joined the battle room, the attacker wins at T+5."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, _bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "king-a")
-    # Idempotent + the outsider is refused.
-    await bundle.attacks.mark_ready(attack.id, "king-a")
-    with pytest.raises(AttackStateError):
-        await bundle.attacks.mark_ready(attack.id, "intrus")
+    await bundle.present(attack, "king-a")
+    # Idempotent (a double join adds nothing) + an outsider joins nothing.
+    await bundle.attacks.record_voice_join(4242, "king-a")
+    await bundle.attacks.record_voice_join(4242, "intrus")
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.score["voice_joined"] == ["king-a"]
     assert await bundle.attacks.ready_due(now=_T + timedelta(minutes=4)) == []
     handled = await bundle.attacks.ready_due(now=_T5)
     assert [item.id for item in handled] == [attack.id]
@@ -149,13 +158,28 @@ async def test_ready_clicks_and_unilateral_noshow() -> None:
     assert await bundle.owner_of(attack) == aquitaine
 
 
+async def test_ready_click_still_records_the_ui_confirmation() -> None:
+    """The Prêt button stays a plain UI confirmation (no forfeit role)."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.score["ready"] == ["king-a"]
+    # Without a VOICE join the T+5 line still forfeits the meeting.
+    handled = await bundle.attacks.ready_due(now=_T5)
+    assert [item.id for item in handled] == [attack.id]
+    assert handled[0].score["noshow"] == "defender"
+
+
 async def test_attacker_noshow_gives_the_defense() -> None:
     """T+5: the attacker missed — the defending kingdom keeps the map."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, _aquitaine, _bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "lord-b")
+    await bundle.present(attack, "lord-b")
     handled = await bundle.attacks.ready_due(now=_T5)
     assert handled[0].winner_kingdom_id == await bundle.kingdom_id("Bourgogne")
     assert await bundle.owner_of(attack) == await bundle.kingdom_id("Bourgogne")
@@ -192,9 +216,8 @@ async def test_vs_ai_only_the_attacker_confirms() -> None:
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.ai_defender is True
     assert fresh.pickban["resolved_pickban"] is True  # no pick & ban vs the AI
-    # The attacker declares alone — his Prêt is the presence proof
-    # (attaques-phases-v2 gate), then the declaration validates direct.
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    # Drasah 18/10 v2: vs the AI the lone attacker declaration FAIT
+    # FOI at once (no Prêt gate, no second human to confirm).
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "king-a", fresh.attacker_kingdom_id, "g-123", now=_T
     )
@@ -216,44 +239,74 @@ async def test_vs_ai_attacker_noshow_loses() -> None:
     assert handled[0].score["noshow"] == "attacker"
 
 
-async def test_unilateral_declaration_fait_foi() -> None:
-    """The FIRST declaration resolves — consensus is the happy case only."""
+async def test_lone_declaration_pends_then_confirms() -> None:
+    """Drasah 18/10 v2: a lone declaration of two humans holds 10
+    minutes, then the declared result FAIT FOI (score_confirm_due)."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, _bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "king-a", aquitaine, "g-42", now=_T
     )
-    assert outcome == "resolved"
+    assert outcome == "pending"
+    assert fresh.state is AttackState.MEETING  # nothing applied yet
+    assert fresh.winner_kingdom_id is None
+    assert fresh.score["game_id"] == "g-42"
+    assert await bundle.owner_of(attack) != aquitaine
+    # Inside the window nothing moves; a tick replays safely.
+    assert await bundle.attacks.score_confirm_due(now=_T + timedelta(minutes=9)) == []
+    confirmed = await bundle.attacks.score_confirm_due(now=_T + timedelta(minutes=10))
+    assert [item.id for item in confirmed] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.state is AttackState.RESOLVED
     assert fresh.winner_kingdom_id == aquitaine
-    assert fresh.score["game_id"] == "g-42"
     assert await bundle.owner_of(attack) == aquitaine
-    # A same-result replay is idempotent ("already").
+    # A same-result replay after the resolution is idempotent ("already").
     _, outcome = await bundle.attacks.declare_score(
-        attack.id, "lord-b", aquitaine, "g-42", now=_T
+        attack.id, "lord-b", aquitaine, "g-42", now=_T + timedelta(minutes=11)
     )
     assert outcome == "already"
 
 
-async def test_contradory_declaration_raises_a_dispute() -> None:
-    """A contrary declaration AFTER the resolution flags a dispute."""
+async def test_consensus_of_both_players_resolves_at_once() -> None:
+    """Both players declare the same winner — the meeting resolves at once."""
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(9)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    _, outcome = await bundle.attacks.declare_score(
+        attack.id, "king-a", aquitaine, "g-7", now=_T
+    )
+    assert outcome == "pending"
+    fresh, outcome = await bundle.attacks.declare_score(
+        attack.id, "lord-b", aquitaine, "g-7", now=_T + timedelta(minutes=2)
+    )
+    assert outcome == "resolved"
+    assert fresh.state is AttackState.RESOLVED
+    assert fresh.winner_kingdom_id == aquitaine
+    assert await bundle.owner_of(attack) == aquitaine
+
+
+async def test_contested_declaration_raises_a_dispute() -> None:
+    """Drasah 18/10 v2: a contrary declaration INSIDE the pending
+    window flags a dispute — nothing applies until an admin rules."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
-    await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
+    _, outcome = await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
+    assert outcome == "pending"
     fresh, outcome = await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)
     )
     assert outcome == "disputed"
     assert fresh.score["disputed"] is True
-    # The resolution stands until an admin arbitrates.
-    assert fresh.winner_kingdom_id == aquitaine
-    assert await bundle.owner_of(attack) == aquitaine
+    # No resolution stands — the admins arbitrate.
+    assert fresh.state is AttackState.MEETING
+    assert fresh.winner_kingdom_id is None
+    # The confirm line leaves a disputed meeting alone.
+    assert await bundle.attacks.score_confirm_due(now=_T + timedelta(minutes=30)) == []
     # The arbitration CONSUMES the dispute: replaying refuses.
     await bundle.attacks.resolve_dispute(attack.id, "attacker", now=_T + timedelta(minutes=2))
     with pytest.raises(AttackStateError):
@@ -266,7 +319,6 @@ async def test_admin_arbitration_overrides_the_result() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
     await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)
@@ -285,7 +337,6 @@ async def test_admin_arbitration_double_forfait() -> None:
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, bourgogne = await bundle.open_meeting()
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "g-1", now=_T)
     await bundle.attacks.declare_score(
         attack.id, "lord-b", bourgogne, "g-2", now=_T + timedelta(minutes=1)

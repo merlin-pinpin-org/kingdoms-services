@@ -211,11 +211,13 @@ class PickBanStateError(PickBanError):
 
 
 class ScoreNotReadyError(AttackStateError):
-    """Raised when a score declaration comes from a player without « Prêt ».
+    """Legacy Prêt gate (attaques-phases-v2) — retired by the battle room.
 
-    attaques-phases-v2 FIX: before this gate a player could declare a
-    result without confirming the RDV presence and short-circuit the
-    T+5 no-show line (Check 57 follow-up).
+    Drasah 18/10 v2: the forfeit now rides the REAL voice presence
+    (``record_voice_join``), the Prêt button is a plain UI
+    confirmation and a result declaration needs no Prêt anymore. The
+    class stays importable for the historical wiring — nothing raises
+    it anymore.
     """
 
     code = "KINGDOMS_SCORE_NOT_READY"
@@ -319,21 +321,6 @@ def _random_picks(hand: list[str]) -> list[str]:
     pool = list(hand)
     random.shuffle(pool)
     return pool[:3]
-
-
-def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
-    """Apply both sides' sabotages to the targeted picks (D77).
-
-    A sabotaged civilization leaves the adversary's ranked picks — the
-    played civ is the best-ranked NON-sabotaged pick of each side. The
-    sabotages themselves stay recorded for the game setup.
-    """
-    result = dict(pickban)
-    attacker_sabotages = list(result.get("attacker_sabotages") or [])
-    defender_sabotages = list(result.get("defender_sabotages") or [])
-    result["attacker_picks"] = [civ for civ in (result.get("attacker_picks") or []) if civ not in defender_sabotages]
-    result["defender_picks"] = [civ for civ in (result.get("defender_picks") or []) if civ not in attacker_sabotages]
-    return result
 
 
 CORBEAU_TRACK_DELAY_MINUTES = 24 * 60
@@ -506,20 +493,6 @@ class AttackService:
                 ):
                     return True
         return False
-
-    async def _void_faucon_sabotages(
-        self, attack: AttackModel, pickban: dict[str, Any], timestamp: datetime
-    ) -> dict[str, Any]:
-        """Volière Lâcher de faucon: a released side suffers no sabotage."""
-        kingdoms = {k.id: k for k in await self._kingdoms.kingdoms()}
-        out = dict(pickban)
-        attacker = kingdoms.get(attack.attacker_kingdom_id)
-        defender = kingdoms.get(attack.defender_kingdom_id)
-        if attacker is not None and _faucon_released(attacker, timestamp):
-            out["defender_sabotages"] = []
-        if defender is not None and _faucon_released(defender, timestamp):
-            out["attacker_sabotages"] = []
-        return out
 
     async def declare_embuscade(
         self,
@@ -793,17 +766,17 @@ class AttackService:
         player_id: str,
         picks: list[str],
         *,
-        sabotages: list[str] | None = None,
         now: datetime | None = None,
     ) -> AttackModel:
-        """Submit one side's ranked civilizations and sabotages (D77).
+        """Submit one side's ranked civilizations (D77, Drasah 18/10 v2).
 
         Each side ranks up to 3 civilizations from ITS OWN hand (blind
-        pick — the adversary's hand is public through Alliances, the
-        espionage stays legal) and engages up to 2 sabotages against
-        civilizations of the ADVERSARY hand. Only the declaring lord
-        picks for the attack side; only the lord who took the defense
-        picks for the defense side.
+        pick). The Sabotage/Faucon no longer applies here — the live
+        beta showed the asymmetry (the second validator saw the first
+        player's civilizations): the sabotages move to the battle
+        room (a future feature) and the pick & ban stays purely blind.
+        Only the declaring lord picks for the attack side; only the
+        lord who took the defense picks for the defense side.
         """
         attack = await self._require_pickban_attack(attack_id, now or _now())
         side = await self._pick_ban_side(attack, player_id)
@@ -813,17 +786,9 @@ class AttackService:
             raise PickBanStateError(f"rank exactly {required} distinct civilization(s)")
         if any(pick not in hand for pick in picks):
             raise PickBanStateError("every pick must come from your kingdom's hand")
-        sabotages = sabotages or []
-        if len(sabotages) > 2:
-            raise PickBanStateError("at most two sabotages per side")
-        adversary_hand = await self._side_hand(
-            attack.defender_kingdom_id if side == "attacker" else attack.attacker_kingdom_id
-        )
-        if any(civ not in adversary_hand for civ in sabotages):
-            raise PickBanStateError("every sabotage targets the adversary's hand")
         pickban = dict(attack.pickban)
         pickban[f"{side}_picks"] = list(picks)
-        pickban[f"{side}_sabotages"] = list(sabotages)
+        pickban[f"{side}_sabotages"] = []  # legacy field — the draft is sabotage-free
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
         picker = await self._require_lord(player_id)
@@ -839,24 +804,41 @@ class AttackService:
         return attack
 
     async def validate_pickban(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
-        """Validate one side's pick & ban (D77).
+        """Validate one side's pick & ban (D77, Drasah 18/10 v2).
 
-        When both sides validated, the sabotages apply (a sabotaged
-        civilization leaves the targeted picks) and the civilizations
-        are revealed — the played civ is the best-ranked non-sabotaged
-        pick of each side.
+        When both sides validated the draft resolves — BLIND. The
+        civs are never announced to the players here (the live beta
+        asymmetry: the second validator saw everything first); the
+        battle room reveals the shuffled civilizations at the RDV.
         """
         attack = await self._require_pickban_attack(attack_id, now or _now())
         side = await self._pick_ban_side(attack, player_id)
         pickban = dict(attack.pickban)
         pickban[f"{side}_validated"] = True
         if pickban.get("attacker_validated") and pickban.get("defender_validated"):
-            pickban = _apply_sabotages(await self._void_faucon_sabotages(attack, pickban, now or _now()))
             pickban["resolved_pickban"] = True
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
         logger.info("kingdoms: pick & ban validated by %s on %s", player_id, attack.map_key)
         return attack
+
+    async def record_pickban_dm(
+        self, attack_id: str, player_id: str, channel_id: int, message_id: int
+    ) -> None:
+        """Store the DM message refs of a pick & ban (Drasah 18/10 v2).
+
+        The resolution edits the SAME DM (anti-spam): the refs let the
+        panel append the « Prêt » button to the existing message
+        instead of sending a new one.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return
+        side = await self._pick_ban_side(attack, player_id)
+        pickban = dict(attack.pickban)
+        pickban[f"{side}_dm"] = {"channel_id": int(channel_id), "message_id": int(message_id)}
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
 
     async def _require_pickban_attack(self, attack_id: str, timestamp: datetime) -> AttackModel:
         """Fetch the attack and enforce the pré-combat window (D77)."""
@@ -1004,7 +986,15 @@ class AttackService:
                 attack.map_key,
                 pickban["default_picks"],
             )
-        pickban = _apply_sabotages(pickban)
+        # Drasah 18/10 v2 — the draft is sabotage-free (the
+        # Sabotage/Faucon moves to the battle room later): the default
+        # keeps its anti-blocking guarantees — random civs for the
+        # missing side(s), no sabotage, never a forfeit. The empty
+        # lists also scrub any legacy/volière sabotage of a resolved
+        # document.
+        pickban["sabotages"] = {}
+        pickban["attacker_sabotages"] = []
+        pickban["defender_sabotages"] = []
         pickban["resolved_pickban"] = True
         attack.pickban = pickban
         await self._store.upsert_attack(attack.to_mongo())
@@ -1040,6 +1030,66 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         logger.info("kingdoms: lobby url shared on %s by %s", attack.map_key, player_id)
         return attack
+
+    async def record_battle_room(
+        self, attack_id: str, channel_id: int, role_id: int | None = None
+    ) -> AttackModel:
+        """Store the battle-room voice channel (and its role) refs.
+
+        Drasah 18/10 v2: the scheduler opens a dedicated voice room at
+        the RDV — the presence tracking (forfeit line), the URL share
+        and the result declaration all ride this channel id.
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_channel_id"] = int(channel_id)
+        if role_id is not None:
+            score["room_role_id"] = int(role_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
+    async def record_voice_join(self, channel_id: int, player_id: str) -> AttackModel | None:
+        """Record a player joining the battle-room voice channel.
+
+        The voice listener maps the Discord event to the open meeting
+        through the stored ``room_channel_id``. Idempotent — a double
+        join adds nothing.
+        """
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = attack.score or {}
+            if int(score.get("room_channel_id") or 0) != int(channel_id):
+                continue
+            if player_id not in expected_score_players(attack):
+                continue
+            joined = list(score.get("voice_joined") or [])
+            fresh = dict(score)
+            if player_id not in joined:
+                joined.append(player_id)
+                fresh["voice_joined"] = joined
+                attack.score = fresh
+                await self._store.upsert_attack(attack.to_mongo())
+                logger.info(
+                    "kingdoms: %s joined the battle room of %s",
+                    player_id,
+                    attack.map_key,
+                )
+            return attack
+        return None
+
+    async def mark_room_cleaned(self, attack_id: str) -> None:
+        """Flag the battle room (channel + role) as cleaned up."""
+        attack = await self._find_attack(attack_id)
+        score = dict(attack.score or {})
+        if not score.get("room_channel_id") or score.get("room_cleaned"):
+            return
+        score["room_cleaned"] = True
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
 
     async def score_due(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Open the score phase at T for every resolved pick & ban.
@@ -1107,9 +1157,11 @@ class AttackService:
             if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
                 continue
             score = dict(attack.score)
-            # Only the all-Prêt meetings can hang: a missing Prêt at
-            # T+5 is forfeited by ready_due, so those never reach 15h.
-            if not score.get("all_ready") or score.get("declarations"):
+            # Only a DECLARATION-less meeting can hang: the no-show
+            # line (ready_due) forfeits the absent players at T+grace,
+            # the lone declarations confirm (score_confirm_due) and
+            # the disputed ones wait for the admin arbitration.
+            if score.get("declarations") or score.get("disputed"):
                 continue
             if score.get("auto_dispute"):
                 continue
@@ -1140,12 +1192,11 @@ class AttackService:
     async def mark_ready(self, attack_id: str, player_id: str, *, now: datetime | None = None) -> AttackModel:
         """Record one player's « Prêt » click in the score phase.
 
-        Idempotent — a double click adds nothing. Only the two players
-        of the meeting confirm; the AI defender never does. The
-        attaque-phases-v2 early close: as soon as EVERY expected
-        player is Prêt the score phase is « open » right away
-        (``all_ready``) — the T+5 deadline stays the forfeit line, it
-        is never a minimum wait (Drasah 15/10).
+        Drasah 18/10 v2: the Prêt is a plain UI confirmation recorded
+        in ``score["ready"]`` — the forfeit line rides the voice
+        presence, not this click. Idempotent — a double click adds
+        nothing. Only the two players of the meeting confirm; the AI
+        defender never does.
         """
         attack = await self._require_meeting(attack_id)
         self._require_score_player(attack, player_id)
@@ -1168,12 +1219,14 @@ class AttackService:
     async def ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Apply the T+5 no-show line of every open meeting.
 
-        A player without « Prêt » at T+5 loses the meeting (the other
-        camp wins, immediate resolution). Both human players missing →
-        double forfait: the territory stays with the defender (the
-        attack ends ``expired``, no transfer). Vs AI the attacker is
-        the only one who can no-show. The tick replays it safely —
-        resolved meetings leave the MEETING state.
+        Drasah 18/10 v2: the forfeit rides the REAL presence — a
+        player who never joined the battle-room voice channel at
+        T+grace loses the meeting (the other camp wins, immediate
+        resolution). Both human players missing → double forfait:
+        the territory stays with the defender (the attack ends
+        ``expired``, no transfer). Vs AI the attacker is the only one
+        who can no-show. The tick replays it safely — resolved
+        meetings leave the MEETING state.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -1188,18 +1241,18 @@ class AttackService:
             deadline = int(attack.score.get("ready_deadline") or 0)
             if timestamp.timestamp() < deadline:
                 continue
-            ready = set(attack.score.get("ready") or [])
-            attacker_ready = attack.attacker_lord_id in ready
+            joined = set(attack.score.get("voice_joined") or [])
+            attacker_present = str(attack.attacker_lord_id) in joined
             defender_needed = not attack.ai_defender and attack.defender_lord_id is not None
-            defender_ready = attack.defender_lord_id in ready
-            if attacker_ready and (defender_ready or not defender_needed):
+            defender_present = str(attack.defender_lord_id) in joined
+            if attacker_present and (defender_present or not defender_needed):
                 continue  # both present — the game decides
-            if not attacker_ready and defender_ready:
+            if not attacker_present and defender_present:
                 await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
-            elif attacker_ready:
+            elif attacker_present:
                 await self._apply_noshow(attack, attack.attacker_kingdom_id, "defender", timestamp)
             elif not defender_needed:
-                # vs AI: only the attacker confirms — he no-showed.
+                # vs AI: only the attacker joins the voice room — he no-showed.
                 await self._apply_noshow(attack, attack.defender_kingdom_id, "attacker", timestamp)
             else:
                 # double no-show: double forfait, no transfer (Drasah).
@@ -1271,12 +1324,12 @@ class AttackService:
         """Declare the game result of a meeting (attaques-score-v1).
 
         Returns ``(attack, outcome)`` where outcome is ``"resolved"``
-        (the result was applied — consensus or the unilatéral fait-foi
-        rule, vs AI included), ``"already"`` (the same result of an
-        already resolved attack — idempotent) or ``"disputed"`` (a
-        contrary declaration after the resolution: the score phase
-        flags ``disputed`` and the admins arbitrate — see
-        ``resolve_dispute``).
+        (consensus, a lone human, or vs AI), ``"pending"`` (a lone
+        declaration of two humans — confirmed by ``score_confirm_due``
+        after ``score_confirm_minutes``, contested before), ``"already"``
+        (the same result of an already resolved attack — idempotent)
+        or ``"disputed"`` (contrary declarations — the admins arbitrate
+        through ``resolve_dispute``).
         """
         await self._require_running_season()
         timestamp = now or _now()
@@ -1320,13 +1373,6 @@ class AttackService:
         if attack.state is not AttackState.MEETING:
             raise AttackStateError("the score phase is not open on this attack")
         self._require_score_player(attack, player_id)
-        # attaques-phases-v2 FIX (gate Prêt): a player without « Prêt »
-        # cannot declare — the T+5 no-show line cannot be short-circuited
-        # by a fast declaration anymore (Check 57 follow-up).
-        if player_id not in (attack.score.get("ready") or []):
-            raise ScoreNotReadyError(
-                "confirm your presence at the meeting first (the Prêt button) before declaring a result"
-            )
         score = dict(attack.score)
         declarations = dict(score.get("declarations") or {})
         declarations[player_id] = {
@@ -1337,18 +1383,94 @@ class AttackService:
         score["declarations"] = declarations
         score["game_id"] = game_id
         attack.score = score
-        # The FIRST declaring player's result FAIT FOI (Drasah 15/10) —
-        # consensus is only the happy case where both agree; a contrary
-        # declaration lands AFTER the resolution as a dispute.
-        await self._resolve_score(attack, winner_kingdom_id, timestamp)
+        # Drasah 18/10 v2 — the result rides the ROOM, not the Prêt
+        # gate: both players may declare from the battle room. Vs AI
+        # (or a single human) the first declaration FAIT FOI. With
+        # two humans: same winner from both → resolved at once; a
+        # contrary declaration → dispute (admins arbitrate); a lone
+        # declaration → pending, confirmed by ``score_confirm_due``
+        # after ``score_confirm_minutes`` unless contested.
+        humans = expected_score_players(attack)
+        if len(humans) <= 1:
+            await self._resolve_score(attack, winner_kingdom_id, timestamp)
+            logger.info(
+                "kingdoms: result declared on %s by %s (game %s) — %s wins",
+                attack.map_key,
+                player_id,
+                game_id,
+                winner_kingdom_id,
+            )
+            return attack, "resolved"
+        winners = {str(declaration["winner"]) for declaration in declarations.values()}
+        if len(winners) > 1:
+            score["disputed"] = True
+            attack.score = score
+            await self._store.upsert_attack(attack.to_mongo())
+            logger.warning(
+                "kingdoms: DISPUTE on %s — %s declares %s against %s",
+                attack.map_key,
+                player_id,
+                winner_kingdom_id,
+                ", ".join(sorted(winners)),
+            )
+            return attack, "disputed"
+        if len(declarations) >= 2:
+            await self._resolve_score(attack, winner_kingdom_id, timestamp)
+            logger.info(
+                "kingdoms: consensus result on %s (game %s) — %s wins",
+                attack.map_key,
+                game_id,
+                winner_kingdom_id,
+            )
+            return attack, "resolved"
+        score["pending_since"] = int(timestamp.timestamp())
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
         logger.info(
-            "kingdoms: result declared on %s by %s (game %s) — %s wins",
+            "kingdoms: result declared on %s by %s (game %s) — pending confirmation",
             attack.map_key,
             player_id,
             game_id,
-            winner_kingdom_id,
         )
-        return attack, "resolved"
+        return attack, "pending"
+
+    async def score_confirm_due(self, *, now: datetime | None = None) -> list[AttackModel]:
+        """Confirm every un-contested lone declaration past its delay.
+
+        Drasah 18/10 v2: a single-player declaration holds for
+        ``score_confirm_minutes`` (10 by default) — the other player
+        may contest it (dispute) inside that window; after it the
+        declared result FAIT FOI and resolves the meeting. Idempotent
+        through the MEETING state — the tick replays it safely.
+        """
+        timestamp = now or _now()
+        season = await self._kingdoms.current_season()
+        if season is not None and season.finished:
+            return []
+        due: list[AttackModel] = []
+        for attack in await self.attacks():
+            if attack.kind is not AttackKind.PLAYER or attack.state is not AttackState.MEETING:
+                continue
+            score = dict(attack.score or {})
+            pending_since = int(score.get("pending_since") or 0)
+            if not pending_since or score.get("disputed"):
+                continue
+            declarations = dict(score.get("declarations") or {})
+            if not declarations:
+                continue
+            if timestamp.timestamp() < pending_since + int(
+                self._config.attacks.score_confirm_minutes * 60
+            ):
+                continue
+            winner = next(iter(declarations.values()))["winner"]
+            await self._resolve_score(attack, str(winner), timestamp)
+            due.append(attack)
+            logger.info(
+                "kingdoms: lone result confirmed on %s — %s wins",
+                attack.map_key,
+                winner,
+            )
+        return due
 
     async def _resolve_score(self, attack: AttackModel, winner_kingdom_id: str, timestamp: datetime) -> None:
         """Apply the game result of a meeting (D20), idempotently."""

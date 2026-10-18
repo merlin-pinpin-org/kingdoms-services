@@ -177,6 +177,11 @@ class AttackSettings(BaseModel):
     """Score phase (beta-weekend-v1, bug n°2 / Check 61): hours after
     the reminder before a result-less meeting auto-opens its dispute
     (12h by default — the admins arbitrate via the console)."""
+    score_confirm_minutes: int = Field(default=10, ge=0)
+    """Score phase (Drasah 18/10 v2): minutes a LONE result
+    declaration stays pending — the other player may contest it
+    (dispute) inside the window, after which the declared result is
+    confirmed. The battle room declares the results now."""
 
 
 class VoliereSettings(BaseModel):

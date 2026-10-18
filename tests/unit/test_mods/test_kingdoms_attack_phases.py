@@ -297,8 +297,9 @@ async def test_pick_ban_opens_at_the_reveal() -> None:
     )
 
 
-async def test_pick_ban_ranks_sabotages_and_resolves_on_mutual_validation() -> None:
-    """D77: 3 ranked picks from one's hand, 2 sabotages max, mutual reveal."""
+async def test_pick_ban_ranks_picks_and_resolves_on_mutual_validation() -> None:
+    """D77 (Drasah 18/10 v2): 3 ranked picks from one's hand, BLIND
+    resolution — no sabotage anymore, the ranked picks stay intact."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(9)
@@ -320,42 +321,24 @@ async def test_pick_ban_ranks_sabotages_and_resolves_on_mutual_validation() -> N
         await bundle.attacks.set_picks(
             attack.id, "king-a", ["francs", "huns", "goths"], now=pick_now
         )
-    with pytest.raises(PickBanStateError):  # three sabotages
-        await bundle.attacks.set_picks(
-            attack.id,
-            "king-a",
-            ["francs", "bretons", "goths"],
-            sabotages=["huns", "perses", "byzantins"],
-            now=pick_now,
-        )
-    with pytest.raises(PickBanStateError):  # a sabotage must target the adversary hand
-        await bundle.attacks.set_picks(
-            attack.id,
-            "king-a",
-            ["francs", "bretons", "goths"],
-            sabotages=["francs"],
-            now=pick_now,
-        )
     with pytest.raises(PickBanStateError):  # outsiders cannot pick
         await bundle.attacks.set_picks(
             attack.id, "king-b", ["huns", "perses", "byzantins"], now=pick_now
         )
-    # Both sides rank their picks; the attacker sabotages the Huns.
+    # Both sides rank their picks — no sabotage param anymore.
     await bundle.attacks.set_picks(
-        attack.id,
-        "king-a",
-        ["francs", "bretons", "goths"],
-        sabotages=["huns"],
-        now=pick_now,
+        attack.id, "king-a", ["francs", "bretons", "goths"], now=pick_now
     )
     await bundle.attacks.set_picks(attack.id, "lord-b", ["huns", "perses", "byzantins"], now=pick_now)
     attack = await bundle.attacks.validate_pickban(attack.id, "king-a", now=pick_now)
     assert attack.pickban.get("resolved_pickban") is not True  # one side is not enough
     attack = await bundle.attacks.validate_pickban(attack.id, "lord-b", now=pick_now)
     assert attack.pickban["resolved_pickban"] is True
-    # The played civ is the best-ranked NON-sabotaged pick of each side.
+    # Drasah 18/10 v2: the draft is sabotage-free — the ranked picks
+    # stay intact (the battle room shows them SHUFFLED, never ranked).
     assert attack.pickban["attacker_picks"] == ["francs", "bretons", "goths"]
-    assert attack.pickban["defender_picks"] == ["perses", "byzantins"]  # huns sabotaged
+    assert attack.pickban["defender_picks"] == ["huns", "perses", "byzantins"]
+    assert attack.pickban["attacker_sabotages"] == []
     # A resolved pick & ban is closed for further edits.
     with pytest.raises(PickBanStateError):
         await bundle.attacks.set_picks(

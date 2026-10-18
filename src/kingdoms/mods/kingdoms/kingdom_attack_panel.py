@@ -122,9 +122,9 @@ _STRINGS: dict[str, dict[str, str]] = {
             "• **Siège** — la défense reste ouverte ; à la fin du Siège (reveal), le bluff"
             " (s'il y en a un) tombe et sans défenseur l'IA du royaume prend la défense.\n"
             "• **Draft** — le pick & ban part en MP : 3 civilisations classées de votre"
-            " main, jusqu'à 2 sabotages, validation des deux côtés.\n"
-            "• **RDV** — chaque camp confirme sa présence (« Prêt ») : une absence au RDV"
-            " est un forfait.\n"
+            " main, validation des deux côtés (les civs partent au salon de la bataille).\n"
+            "• **RDV** — un salon vocal de bataille s'ouvre à l'heure du RDV : une absence"
+            " au vocal est un forfait.\n"
             "• **Score** — la game : déclarez le résultat avec l'ID de la game.\n"
             "🛡️ N'importe quel seigneur du royaume défenseur peut défendre via le"
             " bouton du panel **Déclarer une attaque**.\n"
@@ -139,55 +139,71 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "reveal_defense": "🛡️ La défense de **{map}** est verrouillée — RDV **{time}** (Paris).",
         "pickban_dm": (
-            "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** civilisations (ton "
-            "classement ordonne les replis) et sabotes jusqu'à **2** civilisations "
-            "de la main adverse.\n"
+            "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** pick de civilisation par ordre de préférence "
+            "(ton classement ordonne les replis).\n"
+            "Si tu possèdes un Sabotage ou un Faucon, tu pourras en faire usage dans le salon de la bataille.\n"
+            "\n"
             "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
             "3 civilisations seront tirées **au hasard** de ta main — et aucun "
             "sabotage ni faucon ne s'appliquera. Le RDV a lieu quoi qu'il arrive.\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
         ),
         "pickban_pick": "Choix {n}",
-        "pickban_sabotage": "Sabotages (max 2, optionnel)",
         "pickban_validate": "✅ Valider",
         "pickban_missing": "❌ Classe d'abord tes {count} civilisations.",
         "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
-        "pickban_resolved": "⚔️ Civs en jeu — toi : **{mine}** · adversaire : **{theirs}**. Bonne partie !",
-        "pickban_announce": "⚔️ **{map}** — la partie part sur **{mine}** 🆚 **{theirs}** !",
+        "pickban_ready_prompt": (
+            "⚔️ **Draft résolu — {map}**\nLes civilisations partent au salon de la"
+            " bataille à l'heure du RDV.\nConfirme ta présence avec le bouton"
+            " ci-dessous — un joueur absent du salon vocal à l'heure du RDV est"
+            " déclaré forfait !"
+        ),
+        "ready_button": "✅ Prêt — confirme ta présence",
+        "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
+        "room_category": "Champs de bataille",
+        "room_title": "{map} — {attacker} 🆚 {defender}",
+        "room_role": "Bataille {map}",
+        "room_body": (
+            "🏟️ **Préparez-vous à la bataille — {map}**\n"
+            "{lines}\n"
+            "Sabotage ou usage du Faucon : via ce salon textuel.\n"
+            "🔗 partagez l'URL de la partie · 🏆 déclarez le résultat à la fin."
+        ),
+        "room_dm": (
+            "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
+            "Rejoins ton adversaire : {room} — et surveille le salon textuel du"
+            " vocal (URL de la partie, résultat, sabotages)."
+        ),
+        "result_button": "🏆 Déclarer le résultat",
+        "result_select_title": "🏆 **Qui remporte la partie ?**",
+        "result_select_placeholder": "Le vainqueur de la game",
+        "score_url_posted": "🔗 **URL de la partie** : {url}",
+        "score_pending": (
+            "⏳ Résultat enregistré (game {game}) — il sera appliqué sauf"
+            " contestation de l'autre joueur dans les {minutes} prochaines minutes."
+        ),
         "forfeit_both": (
             "🏳️ Forfait général sur **{map}** — personne n'a validé : l'attaquant, présent, l'emporte (**{kingdom}**)."
         ),
         "forfeit_side": "🏳️ Forfait sur **{map}** — **{side}** a manqué la validation : victoire de **{kingdom}**.",
         "side_attacker": "l'attaquant",
         "side_defender": "le défenseur",
-        "score_dm": (
-            "🏟️ **RDV — {map}**\nLe Draft est résolu — civilisations en jeu :"
-            "**{civs}**.\nConfirme ta présence avec **Prêt**, partage l'**URL de la"
-            " partie** avec 🔗, puis joue et déclare le résultat avec l'**ID de la"
-            " game**. Un manqué au RDV est un forfait !"
-        ),
-        "score_not_ready": ("❌ Confirme ta présence au RDV d'abord — clique **Prêt** avant de déclarer le résultat."),
         "score_url_button": "🔗 URL de la partie",
         "score_url_modal_title": "URL de la partie",
         "score_url_modal_label": "URL du lobby de jeu",
         "score_url_modal_placeholder": "aoe2de://…",
-        "score_url_set": ("✅ URL enregistrée — elle a été envoyée à l'autre joueur par MP."),
-        "score_url_dm": ("🔗 **RDV — {map}** — l'URL de la partie vient d'être partagée : **{url}**"),
+        "score_url_set": "✅ URL enregistrée — elle est visible dans le salon de la bataille.",
         "score_reminder_dm": (
-            "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — pense à déclarer"
-            " le résultat de la game (avec l'**ID de la game**) via les boutons du DM !"
+            "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — déclare le"
+            " résultat de la game avec le bouton 🏆 du salon de la bataille !"
         ),
-        "score_ready": "✅ Prêt",
-        "score_win_attacker": "🏆 Victoire attaquant",
-        "score_win_defender": "🏆 Victoire défenseur",
-        "score_ready_done": "✅ Présence confirmée — déclare le résultat après la partie.",
         "score_modal_title": "Résultat de la game",
         "score_modal_label": "ID de la game (requis)",
         "score_modal_placeholder": "ex. 123456",
         "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
         "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
-            "⚖️ Ta déclaration contredit le résultat déjà enregistré — les admins arbitrent (game {game})."
+            "⚖️ Déclaration contradictoire — les admins arbitrent (game {game})."
         ),
         "noshow_side": ("🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."),
         "noshow_both": ("🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste à son propriétaire."),
@@ -290,10 +306,10 @@ _STRINGS: dict[str, dict[str, str]] = {
             "📜 **Attack rundown & defender rights**\n"
             "• **Siege** — the defense stays open; at the end of the Siege (reveal), the"
             " bluff (if any) drops and with no defender the kingdom's AI takes the defense.\n"
-            "• **Draft** — the pick & ban lands in the DMs: 3 ranked civilizations, up to"
-            " 2 sabotages, both sides validate.\n"
-            "• **Meeting** — each side confirms their presence (« Ready »): a miss at the"
-            " meeting is a forfeit.\n"
+            "• **Draft** — the pick & ban lands in the DMs: 3 ranked civilizations,"
+            " both sides validate (the civs land in the battle room).\n"
+            "• **Meeting** — a battle voice room opens at the meeting time: a miss"
+            " from the voice room is a forfeit.\n"
             "• **Score** — the game: declare the result with the game ID.\n"
             "🛡️ Any lord of the defending kingdom may defend via the button of the"
             " **Declare an attack** panel.\n"
@@ -306,56 +322,70 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "reveal_defense": "🛡️ The defense of **{map}** is locked — meeting **{time}** (Paris).",
         "pickban_dm": (
-            "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilizations (your "
-            "ranking orders the fallbacks) and sabotage up to **2** civilizations "
-            "of the adversary hand.\n"
+            "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilization picks by"
+            " order of preference (your ranking orders the fallbacks).\n"
+            "If you own a Sabotage or a Faucon, you will use it in the battle room.\n"
+            "\n"
             "⚠️ **Anti-blocking rule**: no choice validated before the meeting → "
             "3 **random** civilizations from your hand — and no sabotage or faucon "
             "applies. The meeting happens anyway.\n"
             "Your hand: {hand}\nAdversary hand: {theirs}"
         ),
         "pickban_pick": "Choice {n}",
-        "pickban_sabotage": "Sabotages (max 2, optional)",
         "pickban_validate": "✅ Validate",
         "pickban_missing": "❌ Rank your {count} civilizations first.",
         "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
-        "pickban_resolved": "⚔️ Civs in play — you: **{mine}** · adversary: **{theirs}**. Good game!",
-        "pickban_announce": "⚔️ **{map}** — the game starts on **{mine}** 🆚 **{theirs}**!",
+        "pickban_ready_prompt": (
+            "⚔️ **Draft resolved — {map}**\nThe civilizations land in the battle"
+            " room at the meeting time.\nConfirm your presence with the button"
+            " below — a player missing from the voice room at the meeting time"
+            " is a forfeit!"
+        ),
+        "ready_button": "✅ Ready — confirm your presence",
+        "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
+        "room_category": "Battlefields",
+        "room_title": "{map} — {attacker} 🆚 {defender}",
+        "room_role": "Battle {map}",
+        "room_body": (
+            "🏟️ **Prepare for battle — {map}**\n"
+            "{lines}\n"
+            "Sabotage or Faucon use: through this text room.\n"
+            "🔗 share the game URL · 🏆 declare the result at the end."
+        ),
+        "room_dm": (
+            "🏟️ **The battle room is open — {map}**\n"
+            "Join your adversary: {room} — and watch the voice room's text"
+            " channel (game URL, result, sabotages)."
+        ),
+        "result_button": "🏆 Declare the result",
+        "result_select_title": "🏆 **Who wins the game?**",
+        "result_select_placeholder": "The game's winner",
+        "score_url_posted": "🔗 **Game URL**: {url}",
+        "score_pending": (
+            "⏳ Result recorded (game {game}) — it applies unless the other"
+            " player contests it within the next {minutes} minutes."
+        ),
         "forfeit_both": (
             "🏳️ General forfeit on **{map}** — nobody validated: the attacker, present, wins (**{kingdom}**)."
         ),
         "forfeit_side": "🏳️ Forfeit on **{map}** — **{side}** missed the validation: victory of **{kingdom}**.",
         "side_attacker": "the attacker",
         "side_defender": "the defender",
-        "score_dm": (
-            "🏟️ **Meeting — {map}**\nThe Draft is resolved — civilizations in"
-            " play: **{civs}**.\nConfirm your presence with **Ready**, share the"
-            " **game URL** with 🔗, then play and declare the result with the"
-            " **game ID**. A miss at the meeting is a forfeit!"
-        ),
-        "score_not_ready": (
-            "❌ Confirm your presence at the meeting first — click **Ready** before declaring the result."
-        ),
         "score_url_button": "🔗 Game URL",
         "score_url_modal_title": "Game URL",
         "score_url_modal_label": "Game lobby URL",
         "score_url_modal_placeholder": "aoe2de://…",
-        "score_url_set": "✅ URL saved — it was DM'ed to the other player.",
-        "score_url_dm": "🔗 **Meeting — {map}** — the game URL was just shared: **{url}**",
+        "score_url_set": "✅ URL saved — visible in the battle room.",
         "score_reminder_dm": (
-            "⏰ **Meeting — {map}**: no result declared for 3 hours — remember to"
-            " declare the game result (with the **game ID**) through the DM buttons!"
+            "⏰ **Meeting — {map}**: no result declared for 3 hours — declare the"
+            " game result with the 🏆 button of the battle room!"
         ),
-        "score_ready": "✅ Ready",
-        "score_win_attacker": "🏆 Attacker wins",
-        "score_win_defender": "🏆 Defender wins",
-        "score_ready_done": "✅ Presence confirmed — declare the result after the game.",
         "score_modal_title": "Game result",
         "score_modal_label": "Game ID (required)",
         "score_modal_placeholder": "e.g. 123456",
         "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
         "score_already": "✅ This result was already recorded — nothing to do.",
-        "score_disputed": ("⚖️ Your declaration contradicts the recorded result — the admins arbitrate (game {game})."),
+        "score_disputed": ("⚖️ Contradictory declarations — the admins arbitrate (game {game})."),
         "noshow_side": ("🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."),
         "noshow_both": ("🏳️ **{map}** — double forfeit: no player at the meeting, the territory stays with its owner."),
         "dispute_admin_dm": ("⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."),
@@ -1387,11 +1417,14 @@ class KingdomAttackJoinButton(
 # The DM pick & ban view (T-5)
 # ----------------------------------------------------------------------
 class KingdomPickBanView(discord.ui.View):
-    """The ephemeral DM view: ranked picks, sabotages, one validate button.
+    """The ephemeral DM view: ranked picks, one validate button.
 
-    The view lives the 5 minutes between T-5 and T — a restart inside
-    that window loses the DM view (the meeting-time catch-up settles
-    the attack as a forfeit), which keeps the component restart-simple.
+    Drasah 18/10 v2: NO sabotage select anymore (the Sabotage/Faucon
+    moves to the battle room) and a BLIND resolution — the validating
+    player NEVER sees the adversary civilizations (the live beta
+    asymmetry: the second validator knew everything first). When the
+    draft resolves, BOTH DMs are edited (anti-spam) into the ready
+    prompt carrying the « Prêt » button.
     """
 
     def __init__(
@@ -1400,15 +1433,12 @@ class KingdomPickBanView(discord.ui.View):
         player_id: str,
         side: str,
         hand: list[str],
-        adversary_hand: list[str],
         locale: str,
-        announce_channel: Any = None,
     ) -> None:
         super().__init__(timeout=600)
         self.attack_id = attack_id
         self.player_id = player_id
         self.side = side
-        self.announce_channel = announce_channel
         strings = _strings(locale)
         self.strings = strings
         self.rank_selects: list[discord.ui.Select[Any]] = []
@@ -1423,18 +1453,6 @@ class KingdomPickBanView(discord.ui.View):
             select.callback = self._make_on_select()  # type: ignore[method-assign]
             self.rank_selects.append(select)
             self.add_item(select)
-        self.sabotage_select: discord.ui.Select[Any] | None = None
-        if adversary_hand:
-            sabotage: discord.ui.Select[Any] = discord.ui.Select(
-                placeholder=strings["pickban_sabotage"][:100],
-                custom_id="kingdoms:attack:pickban:sabotage",
-                options=[discord.SelectOption(label=str(civ)[:100], value=str(civ)) for civ in adversary_hand][:25],
-                min_values=0,
-                max_values=min(2, len(adversary_hand)),
-            )
-            sabotage.callback = self._make_on_select()  # type: ignore[method-assign]
-            self.sabotage_select = sabotage
-            self.add_item(sabotage)
         button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
             label=strings["pickban_validate"][:80],
             custom_id="kingdoms:attack:pickban:validate",
@@ -1462,7 +1480,7 @@ class KingdomPickBanView(discord.ui.View):
         return _on_select
 
     async def _on_validate(self, interaction: discord.Interaction) -> None:
-        """Submit the ranked picks + sabotages, then validate (D77)."""
+        """Submit the ranked picks, then validate (D77, blind)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = self.strings
@@ -1478,39 +1496,149 @@ class KingdomPickBanView(discord.ui.View):
                 strings["pickban_missing"].format(count=len(self.rank_selects)), ephemeral=True
             )
             return
-        sabotages = list(self.sabotage_select.values) if self.sabotage_select else []
         try:
-            await wiring.attacks_service.set_picks(self.attack_id, self.player_id, picks, sabotages=sabotages)
+            await wiring.attacks_service.set_picks(self.attack_id, self.player_id, picks)
             attack = await wiring.attacks_service.validate_pickban(self.attack_id, self.player_id)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
-        pickban: dict[str, Any] = dict(attack.pickban or {})
-        mine = pickban.get(f"{self.side}_picks") or picks
-        theirs = pickban.get("attacker_picks" if self.side == "defender" else "defender_picks")
-        if pickban.get("resolved_pickban"):
-            content = strings["pickban_resolved"].format(
-                mine=", ".join(mine) or "—", theirs=", ".join(theirs or []) or "—"
-            )
-            await _announce_safe(
-                self.announce_channel,
-                strings["pickban_announce"].format(
-                    map=attack.map_key,
-                    mine=", ".join(pickban.get("attacker_picks") or []),
-                    theirs=", ".join(pickban.get("defender_picks") or []),
-                ),
-            )
-        else:
-            content = strings["pickban_waiting"]
+        # Symmetry (Drasah 18/10 v2): the SAME answer for the first
+        # and the second validator — nobody sees the adversary civs.
+        content = strings["pickban_waiting"]
         try:
             await interaction.response.edit_message(content=content, view=None)
         except Exception:
             logger.warning("KINGDOM ATTACK: pick & ban DM edit failed", exc_info=True)
+        pickban: dict[str, Any] = dict(attack.pickban or {})
+        if not pickban.get("resolved_pickban"):
+            return
+        # The draft resolved: edit BOTH DMs into the ready prompt
+        # (anti-spam — no new DM), the Prêt button rides the message.
+        await _edit_pickban_dms_ready(interaction.client, attack, strings)
 
 
-async def _send_pickban_dm(bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
-    """Send the T-5 pick & ban DM to each human player of the meeting."""
+def _ready_key(attack_id: str, player_id: str) -> str:
+    """The 16-hex digest keying the Prêt button (custom ids stay short)."""
+    return hashlib.sha256(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
+
+
+def _room_key(attack_id: str) -> str:
+    """The 16-hex digest keying a battle-room component."""
+    return hashlib.sha256(str(attack_id).encode()).hexdigest()[:16]
+
+
+def _ready_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui.View:
+    """The persistent Prêt view appended to the pick & ban DM."""
+    view = discord.ui.View(timeout=None)
+    view.add_item(
+        KingdomReadyButton(attack_id, player_id, _strings(locale)["ready_button"])  # type: ignore[arg-type]
+    )
+    return view
+
+
+async def _edit_dm_message_safe(bot: Any, ref: Any, content: str, view: discord.ui.View | None) -> bool:
+    """Edit a stored DM message (channel_id + message_id) — best effort."""
+    try:
+        channel = getattr(bot, "get_channel", lambda _id: None)(int(ref["channel_id"]))
+        if channel is None:
+            channel = await bot.fetch_channel(int(ref["channel_id"]))
+        message = channel.get_partial_message(int(ref["message_id"]))
+        await message.edit(content=content, view=view)
+        return True
+    except Exception:
+        logger.warning("KINGDOM ATTACK: DM edit failed — falling back to a new DM", exc_info=True)
+        return False
+
+
+async def _edit_pickban_dms_ready(bot: Any, attack: Any, strings: dict[str, str]) -> None:
+    """Edit both pick & ban DMs into the ready prompt (Drasah 18/10 v2).
+
+    The refs come from the pickban store (``record_pickban_dm``); a
+    failed edit (restart gap, expired message) falls back to a NEW
+    DM — the Prêt button must reach both players.
+    """
+    pickban: dict[str, Any] = dict(attack.pickban or {})
+    for side, player_id in (
+        ("attacker", str(attack.attacker_lord_id)),
+        ("defender", str(attack.defender_lord_id or "")),
+    ):
+        if not player_id or (side == "defender" and attack.ai_defender):
+            continue
+        content = strings["pickban_ready_prompt"].format(map=attack.map_key)
+        view = _ready_dm_view(str(attack.id), player_id, "fr")
+        ref = pickban.get(f"{side}_dm") or {}
+        edited = False
+        if ref.get("channel_id") and ref.get("message_id"):
+            edited = await _edit_dm_message_safe(bot, ref, content, view)
+        if not edited:
+            await _dm_user_safe(bot, player_id, content, view)
+
+
+class KingdomReadyButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:ready:(?P<key>[0-9a-f]{16})",
+):
+    """The restart-proof « Prêt » button of the pick & ban DM."""
+
+    def __init__(self, attack_id: str, player_id: str, label: str) -> None:
+        key = _ready_key(attack_id, player_id)
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:ready:{key}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.attack_id = attack_id
+        self.player_id = player_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomReadyButton:
+        """Resolve the key back to a meeting player (both loops)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        label = _strings(_locale(interaction))["ready_button"]
+        wiring = _wiring()
+        key = match["key"]
+        if wiring.attacks_service is not None:
+            try:
+                for attack in await wiring.attacks_service.attacks():
+                    if str(getattr(attack, "state", "")) != "meeting":
+                        continue
+                    for player_id in _score_players(attack):
+                        if _ready_key(str(attack.id), player_id) == key:
+                            return cls(str(attack.id), player_id, label)
+            except Exception:
+                logger.warning("KINGDOM ATTACK: ready key resolution failed", exc_info=True)
+        return cls("", "", label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Confirm the presence (UI record — the forfeit rides the voice)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        try:
+            await wiring.attacks_service.mark_ready(self.attack_id, self.player_id)
+        except Exception as exc:
+            message = getattr(exc, "message", None) or str(exc)
+            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
+            return
+        await interaction.response.send_message(strings["ready_done"], ephemeral=True)
+
+
+async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
+    """Send the pick & ban DM to each human player (Drasah 18/10 v2)."""
     strings = _strings(locale)
     hand = await _hand_of(kingdoms_service, attack.attacker_kingdom_id)
     adversary = await _hand_of(kingdoms_service, attack.defender_kingdom_id)
@@ -1519,11 +1647,9 @@ async def _send_pickban_dm(bot: Any, channel: Any, attack: Any, kingdoms_service
         str(attack.attacker_lord_id),
         "attacker",
         hand,
-        adversary,
         locale,
-        announce_channel=channel,
     )
-    await _dm_user_safe(
+    message = await _dm_user_safe(
         bot,
         str(attack.attacker_lord_id),
         strings["pickban_dm"].format(
@@ -1534,17 +1660,17 @@ async def _send_pickban_dm(bot: Any, channel: Any, attack: Any, kingdoms_service
         ),
         view,
     )
+    if message is not None:
+        await _record_pickban_dm_safe(str(attack.id), str(attack.attacker_lord_id), message)
     if not attack.ai_defender and attack.defender_lord_id:
         view = KingdomPickBanView(
             str(attack.id),
             str(attack.defender_lord_id),
             "defender",
             adversary,
-            hand,
             locale,
-            announce_channel=channel,
         )
-        await _dm_user_safe(
+        message = await _dm_user_safe(
             bot,
             str(attack.defender_lord_id),
             strings["pickban_dm"].format(
@@ -1555,6 +1681,24 @@ async def _send_pickban_dm(bot: Any, channel: Any, attack: Any, kingdoms_service
             ),
             view,
         )
+        if message is not None:
+            await _record_pickban_dm_safe(str(attack.id), str(attack.defender_lord_id), message)
+
+
+async def _record_pickban_dm_safe(attack_id: str, player_id: str, message: Any) -> None:
+    """Store the DM refs so the resolution can edit the SAME message."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return
+    try:
+        channel = getattr(message, "channel", None)
+        await wiring.attacks_service.record_pickban_dm(
+            attack_id, player_id, int(getattr(channel, "id", 0)), int(getattr(message, "id", 0))
+        )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: pick & ban DM refs not stored", exc_info=True)
 
 
 async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
@@ -1565,20 +1709,23 @@ async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
     return list(getattr(kingdom, "civilizations", None) or []) if kingdom else []
 
 
-async def _dm_user_safe(bot: Any, user_id: str, content: str, view: discord.ui.View | None = None) -> None:
-    """Best-effort DM to one player."""
+async def _dm_user_safe(
+    bot: Any, user_id: str, content: str, view: discord.ui.View | None = None
+) -> Any:
+    """Best-effort DM to one player — returns the message (or None)."""
     try:
         user = getattr(bot, "get_user", lambda _id: None)(user_id)
         if user is None:
             user = await bot.fetch_user(int(user_id))
         if user is not None:
-            await user.send(content, view=view)
+            return await user.send(content, view=view)
     except Exception:
         # The message stays generic on purpose: _dm_user_safe carries
         # BOTH the pick & ban DMs and the RDV DMs (live beta 18/10: the
         # log said « pick & ban DM failed » for a dying RDV DM — the
         # 50035 custom_id rejection read like a draft bug).
         logger.warning("KINGDOM ATTACK: player DM failed (%s)", user_id, exc_info=True)
+    return None
 
 
 # ----------------------------------------------------------------------
@@ -1596,17 +1743,23 @@ async def _guild_locale(bot: Any, guild_id: str) -> str:
 
 
 async def run_attack_phases_safe(bot: Any) -> None:
-    """Drive the D77 phases for every guild: reveal, DMs, forfeits.
+    """Drive the D77 phases for every guild: reveal, DMs, rooms, forfeits.
 
     attaques-panel-spam (Drasah 15/10): the panel is redeployed ONLY
     when a phase was actually played this tick — an idle tick touches
     nothing (no delete, no send, no edit). The mutation hooks keep
     their own refresh: they are the other legitimate content change.
+
+    Drasah 18/10 v2: the score_due tick opens the BATTLE ROOM (voice +
+    role + text-in-voice civs) instead of sending RDV DMs; the lone
+    result declarations confirm through score_confirm_due and the
+    resolved rooms are cleaned up by the tick.
     """
     attacks_service = getattr(bot, "kingdoms_attacks_service", None)
     kingdoms_service = getattr(bot, "kingdoms_service", None)
     if attacks_service is None:
         return
+    _register_voice_listener(bot)
     for guild in list(getattr(bot, "guilds", [])):
         announce_channel = _announce_channel(guild)
         locale = await _guild_locale(bot, str(guild.id))
@@ -1617,12 +1770,29 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 dirty += await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
                 pickbans = await attacks_service.pick_ban_due()
                 for attack in pickbans:
-                    await _send_pickban_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                    await _send_pickban_dm(bot, attack, kingdoms_service, locale)
                 dirty += len(pickbans)
+                # Drasah 18/10 v2: at T the meeting opens a BATTLE ROOM
+                # (dedicated role, voice channel under « Champs de
+                # bataille », the shuffled civs in its text channel)
+                # and DMs the link to both players.
                 scores = await attacks_service.score_due()
                 for attack in scores:
-                    await _send_score_dm(bot, announce_channel, attack, kingdoms_service, locale)
+                    await _open_battle_room(bot, guild, attack, kingdoms_service, locale)
                 dirty += len(scores)
+                # A lone result declaration holds
+                # score_confirm_minutes, then the declared result
+                # applies (fait foi) — announced like any resolution.
+                confirmed = await attacks_service.score_confirm_due()
+                for attack in confirmed:
+                    winner = await _kingdom_name(kingdoms_service, attack.winner_kingdom_id)
+                    await _announce_safe(
+                        announce_channel,
+                        strings["score_resolved"].format(
+                            winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
+                        ),
+                    )
+                dirty += len(confirmed)
                 # attaques-phases-v2: the 3h no-result reminder (DM only, no forfeit).
                 reminders = await attacks_service.score_reminder_due()
                 for attack in reminders:
@@ -1635,11 +1805,13 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 for attack in disputes:
                     await _announce_safe(announce_channel, strings["auto_dispute"].format(map=attack.map_key))
                 dirty += len(disputes)
-                await _register_score_views_safe(bot, attacks_service, locale)
                 dirty += await _run_forfeits_safe(attacks_service, kingdoms_service, announce_channel, strings)
                 dirty += await _run_noshows_safe(attacks_service, kingdoms_service, announce_channel, strings)
             except Exception:
                 logger.warning("KINGDOM ATTACK: phase run failed", exc_info=True)
+        # The resolved meetings free their battle room (channel +
+        # role) — whatever the resolution (declared, forfeit, admin).
+        dirty += await _cleanup_battle_rooms_safe(bot, attacks_service)
         if dirty:
             await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
             await deploy_attacks_board(announce_channel, locale, kingdoms_service, attacks_service)
@@ -1702,71 +1874,232 @@ async def _run_forfeits_safe(attacks_service: Any, kingdoms_service: Any, channe
     return played
 
 
+
 # ----------------------------------------------------------------------
-# The RDV score phase (attaques-score-v1)
+# The battle room (Drasah 18/10 v2 — the RDV lives in a voice room)
 # ----------------------------------------------------------------------
-SCORE_CHOICE_SIDE = {"attacker": "score_win_attacker", "defender": "score_win_defender"}
+_VOICE_LISTENER_REGISTERED = False
 
 
-class KingdomScoreView(discord.ui.View):
-    """The persistent DM view of the RDV: Prêt + result declaration.
+def _register_voice_listener(bot: Any) -> None:
+    """Register the voice-presence listener once (restart-safe flag)."""
+    global _VOICE_LISTENER_REGISTERED
+    if _VOICE_LISTENER_REGISTERED:
+        return
+    add_listener = getattr(bot, "add_listener", None)
+    if add_listener is None:
+        return
 
-    Restart-safe: the tick re-registers one view per meeting player
-    (``bot.add_view``) so the custom ids keep answering after every
-    restart, and the DMs leave only once (``score_due`` idempotence).
+    async def _on_voice_state_update(member: Any, before: Any, after: Any) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        channel = getattr(after, "channel", None)
+        if channel is None or getattr(member, "bot", False):
+            return
+        wiring = _wiring()
+        if wiring.attacks_service is None:
+            return
+        try:
+            await wiring.attacks_service.record_voice_join(
+                int(getattr(channel, "id", 0)), str(getattr(member, "id", ""))
+            )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: voice join record failed", exc_info=True)
+
+    try:
+        add_listener(_on_voice_state_update, "on_voice_state_update")
+        _VOICE_LISTENER_REGISTERED = True
+    except Exception:
+        logger.warning("KINGDOM ATTACK: voice listener registration failed", exc_info=True)
+
+
+def _shuffled_civs(picks: Any) -> list[str]:
+    """Shuffle one side's 3 picks — the ranking must stay hidden."""
+    import random as _random
+
+    pool = [str(civ) for civ in (picks or [])]
+    _random.shuffle(pool)
+    return pool
+
+
+async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
+    """Open the battle room of a meeting (Drasah 18/10 v2).
+
+    A dedicated role (given to both players), a voice channel under
+    the « Champs de bataille » category (user_limit 2, access locked
+    to the role) and a text-in-voice message carrying the SHUFFLED
+    civilizations of each player + the persistent URL/result buttons.
+    Both players get a DM pointing at the room.
     """
+    strings = _strings(locale)
+    score = attack.score or {}
+    if score.get("room_channel_id"):
+        return  # already opened (tick replay after a restart)
+    try:
+        attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
+        defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
+        role = await guild.create_role(name=strings["room_role"].format(map=attack.map_key)[:100])
+        category = next(
+            (item for item in getattr(guild, "categories", []) if str(item.name) == strings["room_category"]),
+            None,
+        )
+        if category is None:
+            category = await guild.create_category(strings["room_category"])
+        everyone = getattr(guild, "default_role", None)
+        overwrites: dict[Any, discord.PermissionOverwrite] = {
+            role: discord.PermissionOverwrite(connect=True, view_channel=True),
+        }
+        if everyone is not None:
+            overwrites[everyone] = discord.PermissionOverwrite(connect=False, view_channel=False)
+        channel = await guild.create_voice_channel(
+            strings["room_title"].format(map=attack.map_key, attacker=attacker, defender=defender)[:100],
+            category=category,
+            user_limit=2,
+            overwrites=overwrites,
+        )
+        pickban: dict[str, Any] = dict(attack.pickban or {})
+        lines = [
+            f"**{attacker}** — {' '.join(_shuffled_civs(pickban.get('attacker_picks')))}",
+            f"**{defender}** — {' '.join(_shuffled_civs(pickban.get('defender_picks')))}",
+        ]
+        room_view = discord.ui.View(timeout=None)
+        room_view.add_item(
+            KingdomRoomUrlButton(str(attack.id), strings["score_url_button"])  # type: ignore[arg-type]
+        )
+        room_view.add_item(
+            KingdomRoomResultButton(str(attack.id), strings["result_button"])  # type: ignore[arg-type]
+        )
+        await channel.send(
+            strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
+            view=room_view,
+        )
+        for player_id in _score_players(attack):
+            member = None
+            try:
+                member = guild.get_member(int(player_id))
+            except (TypeError, ValueError):
+                member = None
+            if member is not None:
+                try:
+                    await member.add_roles(role)
+                except Exception:
+                    logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
+        await record_battle_room_safe(attack, channel.id, role.id)
+        for player_id in _score_players(attack):
+            await _dm_user_safe(
+                bot,
+                player_id,
+                strings["room_dm"].format(
+                    map=attack.map_key,
+                    room=f"<#{channel.id}>",
+                ),
+            )
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle room opening failed", exc_info=True)
 
-    def __init__(
-        self,
-        attack_id: str,
-        player_id: str,
-        winners: dict[str, str],
-        locale: str,
-        announce_channel: Any = None,
-    ) -> None:
-        super().__init__(timeout=None)
+
+async def record_battle_room_safe(attack: Any, channel_id: int, role_id: int) -> None:
+    """Store the room refs through the attacks service (best effort)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return
+    try:
+        await wiring.attacks_service.record_battle_room(str(attack.id), int(channel_id), int(role_id))
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle room refs not stored", exc_info=True)
+
+
+async def _cleanup_battle_rooms_safe(bot: Any, attacks_service: Any) -> int:
+    """Delete the battle room (channel + role) of every resolved meeting."""
+    played = 0
+    try:
+        attacks = await attacks_service.attacks()
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle room scan failed", exc_info=True)
+        return 0
+    for attack in attacks:
+        score = attack.score or {}
+        if not attack.is_over or not score.get("room_channel_id") or score.get("room_cleaned"):
+            continue
+        try:
+            for guild in list(getattr(bot, "guilds", [])):
+                channel = getattr(guild, "get_channel", lambda _id: None)(int(score["room_channel_id"]))
+                if channel is not None:
+                    await channel.delete()
+                role_id = score.get("room_role_id")
+                if role_id is not None:
+                    role = getattr(guild, "get_role", lambda _id: None)(int(role_id))
+                    if role is not None and hasattr(role, "delete"):
+                        await role.delete()
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room cleanup failed", exc_info=True)
+        try:
+            await attacks_service.mark_room_cleaned(str(attack.id))
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room cleanup flag failed", exc_info=True)
+        played += 1
+    return played
+
+
+class KingdomRoomUrlButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:room:url:(?P<key>[0-9a-f]{16})",
+):
+    """The persistent 🔗 button of the battle room (URL share)."""
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:room:url:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+        self.attack_id = attack_id
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRoomUrlButton:
+        label = _strings(_locale(interaction))["score_url_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or not self.attack_id:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        await interaction.response.send_modal(KingdomRoomUrlModal(self.attack_id, str(interaction.user.id)))
+
+
+class KingdomRoomUrlModal(discord.ui.Modal):
+    """The battle-room game URL modal (Drasah 18/10 v2)."""
+
+    def __init__(self, attack_id: str, player_id: str) -> None:
+        strings = _strings("fr")
+        super().__init__(title=strings["score_url_modal_title"][:45], timeout=300)
         self.attack_id = attack_id
         self.player_id = player_id
-        self.winners = winners  # side -> kingdom id
-        self.announce_channel = announce_channel
-        strings = _strings(locale)
         self.strings = strings
-        # Live beta 18/10: the custom ids used to embed the FULL
-        # attack id (~64 chars) + the player snowflake — 110+ chars,
-        # Discord rejects the DM with 50035 « custom_id Must be
-        # between 1 and 100 in length » and the RDV (Prêt) NEVER
-        # reached the players (double no-show → double forfait). The
-        # callbacks carry their state in THIS instance — the custom id
-        # only needs to stay unique and stable across restarts: a
-        # 16-hex digest of (attack id, player id) does exactly that.
-        key = hashlib.sha256(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
-        ready: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label=strings["score_ready"][:80],
-            custom_id=f"kingdoms:attack:score:ready:{key}",
-            style=discord.ButtonStyle.secondary,
+        self.url_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
+            label=strings["score_url_modal_label"][:45],
+            placeholder=strings["score_url_modal_placeholder"][:100],
+            required=True,
+            max_length=200,
         )
-        ready.callback = self._on_ready  # type: ignore[method-assign]
-        self.add_item(ready)
-        for side, choice_key in SCORE_CHOICE_SIDE.items():
-            button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-                label=strings[choice_key][:80],
-                custom_id=f"kingdoms:attack:score:win:{side}:{key}",
-                style=discord.ButtonStyle.primary,
-            )
-            button.callback = self._make_on_win(side)  # type: ignore[method-assign]
-            self.add_item(button)
-        # Drasah 18/10: the game lobby URL is shared HERE (ready
-        # phase) — the declaration no longer asks for it.
-        lobby: discord.ui.Button[discord.ui.View] = discord.ui.Button(
-            label=strings["score_url_button"][:80],
-            custom_id=f"kingdoms:attack:score:url:{key}",
-            style=discord.ButtonStyle.secondary,
-        )
-        lobby.callback = self._on_share_url  # type: ignore[method-assign]
-        self.add_item(lobby)
+        self.add_item(self.url_input)
 
-    async def _on_ready(self, interaction: discord.Interaction) -> None:
-        """Confirm the presence at the meeting (the T+5 no-show line)."""
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Store the URL and post it in the battle room's text channel."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = self.strings
@@ -1774,138 +2107,110 @@ class KingdomScoreView(discord.ui.View):
         if wiring.attacks_service is None:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
-        try:
-            await wiring.attacks_service.mark_ready(self.attack_id, self.player_id)
-        except Exception as exc:
-            message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
-            return
-        await interaction.response.send_message(strings["score_ready_done"], ephemeral=True)
-
-    async def _on_share_url(self, interaction: discord.Interaction) -> None:
-        """Open the lobby-URL modal of the meeting (Drasah 18/10)."""
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-
-        wiring = _wiring()
-        if wiring.attacks_service is None:
-            await interaction.response.send_message(self.strings["no_service"], ephemeral=True)
-            return
-        await interaction.response.send_modal(KingdomLobbyUrlModal(self))
-
-    def _make_on_win(self, side: str) -> Any:
-        """Open the game-id modal for the declared winning side."""
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-
-        async def _on_win(interaction: discord.Interaction) -> None:
-            wiring = _wiring()
-            if wiring.attacks_service is None:
-                await interaction.response.send_message(self.strings["no_service"], ephemeral=True)
-                return
-            await interaction.response.send_modal(KingdomScoreModal(self, self.winners[side], side))
-
-        return _on_win
-
-
-class KingdomLobbyUrlModal(discord.ui.Modal):
-    """The ready-phase game lobby URL modal (Drasah 18/10)."""
-
-    def __init__(self, view: KingdomScoreView) -> None:
-        super().__init__(title=view.strings["score_url_modal_title"][:45], timeout=300)
-        self.score_view = view
-        self.url_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label=view.strings["score_url_modal_label"][:45],
-            placeholder=view.strings["score_url_modal_placeholder"][:100],
-            required=True,
-            max_length=200,
-        )
-        self.add_item(self.url_input)
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Store the URL, confirm, and DM it to the other player."""
-        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-
-        view = self.score_view
-        strings = view.strings
-        wiring = _wiring()
-        if wiring.attacks_service is None:
-            await interaction.response.send_message(strings["no_service"], ephemeral=True)
-            return
         url = str(self.url_input.value or "").strip()
         try:
-            attack = await wiring.attacks_service.set_lobby_url(view.attack_id, view.player_id, url)
+            await wiring.attacks_service.set_lobby_url(self.attack_id, self.player_id, url)
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
+        try:
+            await interaction.channel.send(strings["score_url_posted"].format(url=url))
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room URL post failed", exc_info=True)
         await interaction.response.send_message(strings["score_url_set"], ephemeral=True)
-        other = str(attack.defender_lord_id) if view.player_id == str(attack.attacker_lord_id) else str(
-            attack.attacker_lord_id
-        )
-        if other and other != view.player_id:
-            await _dm_user_safe(
-                interaction.client,
-                other,
-                strings["score_url_dm"].format(map=attack.map_key, url=url),
+
+
+class KingdomRoomResultButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:room:result:(?P<key>[0-9a-f]{16})",
+):
+    """The persistent 🏆 button of the battle room (result declaration)."""
+
+    def __init__(self, attack_id: str, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id=f"kingdoms:attack:room:result:{_room_key(attack_id)}",
+                style=discord.ButtonStyle.primary,
             )
-
-
-class KingdomScoreModal(discord.ui.Modal):
-    """The game-id + result declaration modal (attaques-score-v1)."""
-
-    def __init__(self, view: KingdomScoreView, winner_kingdom_id: str, side: str) -> None:
-        super().__init__(title=view.strings["score_modal_title"][:45], timeout=300)
-        self.score_view = view
-        self.winner_kingdom_id = winner_kingdom_id
-        self.side = side
-        self.game_input: discord.ui.TextInput[Any] = discord.ui.TextInput(
-            label=view.strings["score_modal_label"][:45],
-            placeholder=view.strings["score_modal_placeholder"][:100],
-            required=True,
-            max_length=100,
         )
-        self.add_item(self.game_input)
+        self.attack_id = attack_id
 
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Apply the declaration — fait foi; a contrary one disputes."""
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRoomResultButton:
+        label = _strings(_locale(interaction))["result_button"]
+        return cls(await _resolve_room_attack_id_async(match["key"]), label)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Ephemeral winner select → game-id modal (Drasah 18/10 v2)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
-        view = self.score_view
-        strings = view.strings
+        strings = _strings(_locale(interaction))
         wiring = _wiring()
-        if wiring.attacks_service is None:
+        if wiring.attacks_service is None or not self.attack_id:
             await interaction.response.send_message(strings["no_service"], ephemeral=True)
             return
-        game_id = str(self.game_input.value or "").strip()
         try:
-            attack, outcome = await wiring.attacks_service.declare_score(
-                view.attack_id, view.player_id, self.winner_kingdom_id, game_id
+            attack = next(
+                item
+                for item in await wiring.attacks_service.attacks()
+                if str(item.id) == self.attack_id
             )
-        except Exception as exc:
-            from kingdoms.mods.kingdoms.attacks import ScoreNotReadyError
+        except Exception:
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        if attack.is_over or str(getattr(attack, "state", "")) != "meeting":
+            await interaction.response.send_message(strings["no_service"], ephemeral=True)
+            return
+        attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
+        defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
+        view = discord.ui.View(timeout=300)
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder=strings["result_select_placeholder"][:100],
+            options=[
+                discord.SelectOption(label=str(attacker_name)[:100], value=str(attack.attacker_kingdom_id)),
+                discord.SelectOption(label=str(defender_name)[:100], value=str(attack.defender_kingdom_id)),
+            ],
+            min_values=1,
+            max_values=1,
+        )
 
-            if isinstance(exc, ScoreNotReadyError):
-                # attaques-phases-v2: the Prêt gate answers with its own line.
-                await interaction.response.send_message(strings["score_not_ready"], ephemeral=True)
+        async def _on_winner(target: discord.Interaction) -> None:
+            if str(getattr(target.user, "id", "")) != str(interaction.user.id):
+                await target.response.defer()
                 return
-            message = getattr(exc, "message", None) or str(exc)
-            await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
-            return
-        if outcome == "disputed":
-            await interaction.response.send_message(strings["score_disputed"].format(game=game_id), ephemeral=True)
-            await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
-            return
-        if outcome == "already":
-            await interaction.response.send_message(strings["score_already"], ephemeral=True)
-            return
-        winner = await _kingdom_name(wiring.kingdoms_service, attack.winner_kingdom_id)
+            await target.response.send_modal(
+                KingdomRoomResultModal(self.attack_id, str(target.user.id), str(select.values[0]))
+            )
+
+        select.callback = _on_winner  # type: ignore[method-assign]
+        view.add_item(select)
         await interaction.response.send_message(
-            strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id),
-            ephemeral=True,
+            strings["result_select_title"], view=view, ephemeral=True
         )
-        await _announce_safe(
-            view.announce_channel,
-            strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id),
-        )
+
+
+async def _resolve_room_attack_id_async(key: str) -> str:
+    """The async half of the room key resolution (service scan)."""
+    from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+
+    wiring = _wiring()
+    if wiring.attacks_service is None:
+        return ""
+    try:
+        for attack in await wiring.attacks_service.attacks():
+            if _room_key(str(attack.id)) == key:
+                return str(attack.id)
+    except Exception:
+        logger.warning("KINGDOM ATTACK: room key resolution failed", exc_info=True)
+    return ""
 
 
 class KingdomDisputeView(discord.ui.View):
@@ -1961,40 +2266,6 @@ class KingdomDisputeView(discord.ui.View):
         return _on_arbitrate
 
 
-def _score_civs(attack: Any) -> str:
-    """Return the post-sabotage civilizations of the meeting (D77)."""
-    pickban: dict[str, Any] = dict(attack.pickban or {})
-    mine = pickban.get("attacker_picks") or []
-    theirs = pickban.get("defender_picks") or []
-    return f"{', '.join(mine) or '—'} 🆚 {', '.join(theirs) or '—'}"
-
-
-async def _send_score_dm(bot: Any, channel: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
-    """Send the RDV DM (Prêt + result buttons) to each human player."""
-    strings = _strings(locale)
-    winners = {
-        "attacker": str(attack.attacker_kingdom_id),
-        "defender": str(attack.defender_kingdom_id),
-    }
-    # attaques-phases-v2: the T+5 forfeit deadline is internal — the DM
-    # shows the phase, never the clock (Drasah 15/10).
-    content = strings["score_dm"].format(map=attack.map_key, civs=_score_civs(attack))
-    for player_id in _score_players(attack):
-        view = KingdomScoreView(str(attack.id), str(player_id), winners, locale, announce_channel=channel)
-        try:
-            bot.add_view(view)  # restart-safe callbacks from the first second
-        except Exception:
-            logger.warning("KINGDOM ATTACK: score view registration failed", exc_info=True)
-        await _dm_user_safe(bot, str(player_id), content, view)
-
-
-async def _send_score_reminder_dm(bot: Any, attack: Any, locale: str) -> None:
-    """Send the 3h no-result reminder DM to each human player (no auto-forfeit)."""
-    content = _strings(locale)["score_reminder_dm"].format(map=attack.map_key)
-    for player_id in _score_players(attack):
-        await _dm_user_safe(bot, player_id, content)
-
-
 def _score_players(attack: Any) -> list[str]:
     """Return the human players of the meeting (the AI never declares)."""
     players = [str(attack.attacker_lord_id)]
@@ -2003,29 +2274,12 @@ def _score_players(attack: Any) -> list[str]:
     return players
 
 
-async def _register_score_views_safe(bot: Any, attacks_service: Any, locale: str) -> None:
-    """Re-register the DM views of every open meeting after a restart."""
-    try:
-        meetings = [
-            attack
-            for attack in await attacks_service.attacks()
-            if getattr(attack, "state", None) is not None
-            and str(attack.state) == "meeting"
-            and (attack.score or {}).get("opened")
-        ]
-    except Exception:
-        logger.warning("KINGDOM ATTACK: meeting scan failed", exc_info=True)
-        return
-    for attack in meetings:
-        winners = {
-            "attacker": str(attack.attacker_kingdom_id),
-            "defender": str(attack.defender_kingdom_id),
-        }
-        for player_id in _score_players(attack):
-            try:
-                bot.add_view(KingdomScoreView(str(attack.id), str(player_id), winners, locale))
-            except Exception:
-                logger.warning("KINGDOM ATTACK: score view re-registration failed", exc_info=True)
+async def _send_score_reminder_dm(bot: Any, attack: Any, locale: str) -> None:
+    """Send the 3h no-result reminder DM to each human player (no auto-forfeit)."""
+    content = _strings(locale)["score_reminder_dm"].format(map=attack.map_key)
+    for player_id in _score_players(attack):
+        await _dm_user_safe(bot, player_id, content)
+
 
 
 async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: dict[str, str]) -> None:

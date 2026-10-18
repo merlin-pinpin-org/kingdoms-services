@@ -82,6 +82,7 @@ class MockUser(discord.User):
         self.global_name = name
         self.bot = bot
         self.system = False
+        self.dm_messages: list[MockMessage] = []
         self._avatar = None
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -101,6 +102,19 @@ class MockUser(discord.User):
     @property
     def mention(self) -> str:
         return f"<@{self.id}>"
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> "MockMessage":
+        """In-memory DM: the message lands in ``dm_messages``."""
+        message = MockMessage(content=content, embed=embed, view=view)
+        self.dm_messages.append(message)
+        return message
 
     def __repr__(self) -> str:
         return f"<MockUser id={self.id} name={self.name!r}>"
@@ -268,6 +282,9 @@ class MockRole(discord.Role):
     def mention(self) -> str:
         return f"<@&{self.id}>"
 
+    async def delete(self, *, reason: str | None = None) -> None:
+        """In-memory role deletion (the battle-room cleanup)."""
+
     def __repr__(self) -> str:
         return f"<MockRole id={self.id} name={self.name!r}>"
 
@@ -378,12 +395,26 @@ class MockVoiceChannel(discord.VoiceChannel):
         self.guild = guild or MockGuild()
         self._category = category
         self._connected_members: list[discord.Member] = []
+        self.messages: list[MockMessage] = []
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
     def type(self) -> discord.ChannelType:
         return discord.ChannelType.voice
+
+    async def send(
+        self,
+        content: str | None = None,
+        *,
+        embed: discord.Embed | None = None,
+        view: discord.ui.View | None = None,
+        **kwargs: Any,
+    ) -> MockMessage:
+        """Text-in-voice: the battle-room message lands in ``messages``."""
+        message = MockMessage(content=content, embed=embed, view=view, channel=self)
+        self.messages.append(message)
+        return message
 
     @property
     def category(self) -> MockCategoryChannel | None:
@@ -471,6 +502,20 @@ class MockCategoryChannel(discord.CategoryChannel):
         return f"<MockCategoryChannel id={self.id} name={self.name!r}>"
 
 
+class MockPartialMessage:
+    """In-memory :class:`discord.PartialMessage` over a mock channel."""
+
+    def __init__(self, channel: "MockDMChannel", message_id: int) -> None:
+        self.channel = channel
+        self.id = message_id
+
+    async def edit(self, **kwargs: Any) -> MockMessage | None:
+        for message in self.channel.messages:
+            if message.id == self.id:
+                return await message.edit(**kwargs)
+        raise RuntimeError(f"no message {self.id} in the mock channel")
+
+
 class MockDMChannel(discord.DMChannel):
     """In-memory :class:`discord.DMChannel` with message history capture."""
 
@@ -505,6 +550,10 @@ class MockDMChannel(discord.DMChannel):
         message = MockMessage(content=content, embed=embed, view=view, channel=self)
         self.messages.append(message)
         return message
+
+    def get_partial_message(self, message_id: int) -> MockPartialMessage:
+        """Mirror :meth:`discord.DMChannel.get_partial_message` (DM edits)."""
+        return MockPartialMessage(self, message_id)
 
     def __repr__(self) -> str:
         return f"<MockDMChannel id={self.id} recipient={self.recipient.name!r}>"

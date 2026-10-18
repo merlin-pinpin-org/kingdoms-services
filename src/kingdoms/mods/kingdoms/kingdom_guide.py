@@ -146,6 +146,7 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
     embuscade_delay = _fr_minutes(getattr(attacks, "embuscade_delay_minutes", 60))
     cutoff = int(getattr(attacks, "defense_cutoff_minutes", 15))
     grace = int(getattr(attacks, "ready_grace_minutes", 5))
+    confirm = int(getattr(attacks, "score_confirm_minutes", 10))
     reminder = _fr_hours(getattr(attacks, "score_reminder_hours", 3))
     dispute = _fr_hours(getattr(attacks, "score_dispute_after_reminder_hours", 12))
     gaia_max_kingdom = int(getattr(attacks, "gaia_attack_max_per_kingdom", 1))
@@ -244,16 +245,21 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 f"**T-{cutoff}** — le reveal lève la couverture et, sans défenseur, "
                 "**l'IA du royaume défenseur** joue la partie.\n"
                 f"2. **Draft** — dès le reveal (**T-{cutoff}**, Drasah 18/10), le "
-                "pick & ban part en DM : chaque camp classe 3 civilisations (jusqu'à 2 "
-                "sabotages). La révélation annonce "
+                "pick & ban part en DM : chaque camp classe 3 civilisations, en "
+                "aveugle (aucun camp ne voit la main adverse). La révélation annonce "
                 "« ⚔️ Bataille en vue » ou « 🏳️ Assaut irrésistible ». "
                 "**Règle anti-blocage** : sans choix validé avant le RDV, 3 civilisations "
-                "sont tirées **au hasard** de la main et **aucun sabotage ni faucon** "
-                "ne s'applique — le RDV a lieu quoi qu'il arrive.\n"
-                f"3. **Ready** — le RDV de la vraie partie AoE2. Chaque camp clique "
-                f"**Prêt** dans le DM (grâce {grace} min après l'heure).\n"
-                "4. **Score** — chaque camp déclare le résultat (ID de game requis). Le "
-                "premier déclarant fait foi ; une déclaration contraire ouvre un **litige** "
+                "sont tirées **au hasard** de la main — le RDV a lieu quoi qu'il arrive. "
+                "Le Sabotage/Faucon se joue plus tard, dans le salon de la bataille.\n"
+                f"3. **Ready** — à l'heure du RDV, le bot ouvre le **salon de bataille** "
+                "(vocal, 2 places) : civilisations en jeu affichées dans un ordre "
+                "aléatoire, URL de la partie et résultat à déclarer sur place. "
+                f"Rejoignez le salon — une absence vocale à **+{grace} min** est un "
+                "forfait.\n"
+                "4. **Score** — chaque camp déclare le résultat sur place (ID de game "
+                "requis). Le premier déclarant fait foi après "
+                f"**{confirm} min** sans "
+                "contestation ; une déclaration contraire ouvre un **litige** "
                 "arbitré par un admin.\n\n"
                 f"**Garde-fous :** rappel DM {reminder} après l'ouverture du score sans "
                 f"résultat ; litige auto {dispute} après le rappel ; **Embuscade** "
@@ -422,8 +428,8 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 "• **FFA** — la partie libre du samedi, tous royaumes confondus.\n"
                 "• **Embuscade** — attaque déclarée en retard : piège à défenseurs "
                 "endormis.\n"
-                "• **Pick & ban** — le classement des 3 civs par camp avant la "
-                "partie, avec sabotages possibles.\n"
+                "• **Pick & ban** — le classement des 3 civs par camp, en "
+                "aveugle, avant la partie.\n"
                 "• **Litige** — deux déclarations de score contraires : un admin "
                 "tranche.\n"
                 "• **Volière** — corbeau (espion), faucon (saboteur), pigeon "

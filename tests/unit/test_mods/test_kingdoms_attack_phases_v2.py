@@ -1,10 +1,11 @@
-"""Kingdoms attack phase taxonomy + Prêt gate (attaques-phases-v2) - unit tests.
+"""Kingdoms attack phase taxonomy + presence line (attaques-phases-v2) - unit tests.
 
 The player-facing phases (Siège → Draft → RDV/Ready → Score) behind the
-engine's internal T-15/T-5/T/T+5 clock, the FIX gate Prêt (no result
-declaration without a presence confirmation), the early close of the
-Ready phase (everyone Prêt opens the Score phase right away — T+5 stays
-the forfeit deadline only) and the 3h no-result reminder line.
+engine's internal T-15/T-5/T/T+5 clock, the forfeit line riding the
+REAL voice presence (Drasah 18/10 v2 — the Prêt click stays a plain UI
+confirmation), the early close of the Ready phase (everyone Prêt opens
+the Score phase right away — T+5 stays the forfeit deadline only) and
+the 3h no-result reminder line.
 """
 
 from __future__ import annotations
@@ -14,8 +15,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from kingdoms.mods.kingdoms.attacks import (
-    AttackStateError,
-    ScoreNotReadyError,
     expected_score_players,
     phase_label,
 )
@@ -83,23 +82,26 @@ async def test_phase_labels_follow_the_timeline() -> None:
     assert phase_label(await _get(bundle, attack.id)) == "score"  # finished
 
 
-async def test_declare_score_refuses_a_player_without_pret() -> None:
-    """attaques-phases-v2 FIX: no result declaration without « Prêt »."""
+async def test_declare_score_rides_the_room_not_the_pret_gate() -> None:
+    """Drasah 18/10 v2: no Prêt gate — a lone declaration pends, then
+    FAIT FOI after ``score_confirm_minutes`` unless contested."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, aquitaine, _bourgogne = await bundle.open_meeting()
-    with pytest.raises(ScoreNotReadyError):
-        await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-1", now=_T)
-    # Also an AttackStateError (the shared state-machine family).
-    with pytest.raises(AttackStateError):
-        await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-1", now=_T)
-    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
-    assert fresh.state is AttackState.MEETING  # nothing applied, no short-circuit
-    # After the Prêt click the declaration goes through (fait-foi intact).
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    # No Prêt click at all — the declaration is still accepted.
     attack, outcome = await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-1", now=_T)
-    assert outcome == "resolved"
+    assert outcome == "pending"
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.state is AttackState.MEETING  # waiting for the confirm window
+    # Inside the window: still pending, nothing applied.
+    assert await bundle.attacks.score_confirm_due(now=_T + timedelta(minutes=9)) == []
+    # Past the 10-minute window: the lone result FAIT FOI.
+    confirmed = await bundle.attacks.score_confirm_due(now=_T + timedelta(minutes=10))
+    assert [item.id for item in confirmed] == [attack.id]
+    fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
+    assert fresh.state is AttackState.RESOLVED
+    assert fresh.winner_kingdom_id == aquitaine
 
 
 async def test_early_close_opens_score_as_soon_as_everyone_is_ready() -> None:
@@ -117,7 +119,9 @@ async def test_early_close_opens_score_as_soon_as_everyone_is_ready() -> None:
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.score["all_ready"] == int(_T.timestamp())
     assert phase_label(fresh) == "score"
-    # The T+5 line never forfeits a meeting where everyone showed up.
+    # The T+5 line never forfeits a meeting where everyone showed up
+    # (the voice presence, Drasah 18/10 v2).
+    await bundle.present(attack, "king-a", "lord-b")
     handled = await bundle.attacks.ready_due(now=_T5)
     assert handled == []
     still = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
@@ -156,9 +160,8 @@ async def test_score_reminder_due_at_three_hours_without_a_result() -> None:
     assert due[0].score.get("reminded") is True
     # Idempotent: the tick replays without a second DM.
     assert await bundle.attacks.score_reminder_due(now=_T3H + timedelta(minutes=5)) == []
-    # A declared result ends the meeting — the reminder never fires again
-    # (a resolved attack left the MEETING state; the gate Prêt holds too).
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    # A declared result freezes the reminder — the meeting now waits
+    # for the confirm window, not for a DM (Drasah 18/10 v2).
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-9", now=_T3H)
     assert await bundle.attacks.score_reminder_due(now=_T3H + timedelta(hours=3)) == []
 
@@ -207,21 +210,28 @@ async def test_auto_dispute_leaves_a_declared_result_alone() -> None:
     await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     await bundle.attacks.mark_ready(attack.id, "lord-b", now=_T)
     await bundle.attacks.declare_score(attack.id, "king-a", aquitaine, "game-7", now=_T3H)
+    # The lone declaration pends, then FAIT FOI after the confirm window.
+    confirmed = await bundle.attacks.score_confirm_due(
+        now=_T3H + timedelta(minutes=10)
+    )
+    assert [item.id for item in confirmed] == [attack.id]
     assert await bundle.attacks.dispute_due(now=_T15H) == []
     fresh = await _get(bundle, attack.id)
     assert fresh.state is AttackState.RESOLVED
     assert fresh.score.get("disputed") is None
 
 
-async def test_auto_dispute_ignores_meetings_without_everyone_ready() -> None:
-    """A meeting that never reached all-Prêt is forfeited by ready_due,
-    not by the 15h line — only the all-Prêt meetings can hang."""
+async def test_auto_dispute_ignores_meetings_without_a_declaration() -> None:
+    """A meeting whose players never declared anything is settled by the
+    presence lines (ready_due) or the 15h dispute — never both; a
+    DECLARATION-less meeting is the only one the 15h line can hang."""
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(9)
     attack, _aquitaine, _bourgogne = await bundle.open_meeting()
-    # Only the attacker clicked Prêt; the defender no-showed at T+5.
-    await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
+    # The attacker showed up in the battle room; the defender no-showed
+    # at T+5 — the voice presence line settles it, not the 15h dispute.
+    await bundle.present(attack, "king-a")
     handled = await bundle.attacks.ready_due(now=_T5)
     assert [item.id for item in handled] == [attack.id]
     assert await bundle.attacks.dispute_due(now=_T15H) == []
