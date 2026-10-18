@@ -5,7 +5,7 @@ The pinned panel of the Attaquer salon (marker ``<!-- kingdoms-attack
 ``kingdoms:attack:declare`` / ``kingdoms:attack:defend:<id>`` buttons.
 The scheduler tick (``run_attack_phases_safe``) drives the phases:
 the T-15 reveal announcement, the T-5 pick & ban DMs and the
-meeting-time forfeits â every step replays safely after a restart
+meeting-time forfeits — every step replays safely after a restart
 through the service-side flags.
 
 Lesson Check 30: the persistent buttons read ONLY this module's
@@ -33,372 +33,372 @@ _PARIS = ZoneInfo("Europe/Paris")
 
 _STRINGS: dict[str, dict[str, str]] = {
     "fr": {
-        "panel_title": "âï¸ **Champ de bataille â Attaquer**",
+        "panel_title": "⚔️ **Champ de bataille — Attaquer**",
         "panel_help": (
-            "DÃ©clarez une attaque sur un territoire adverse â le RDV est fixÃ© Ã  l'heure affichÃ©e.\n"
-            "DÃ©roulÃ© : **SiÃ¨ge** (la dÃ©fense s'ouvre Ã  T-15, dans le salon Attaques) â **Draft** "
-            "(pick & ban en MP) â **RDV** (confirmez votre prÃ©sence) â **Score** (la game, "
-            "dÃ©clarez le rÃ©sultat)."
+            "Déclarez une attaque sur un territoire adverse — le RDV est fixé à l'heure affichée.\n"
+            "Déroulé : **Siège** (la défense s'ouvre à T-15, dans le salon Attaques) → **Draft** "
+            "(pick & ban en MP) → **RDV** (confirmez votre présence) → **Score** (la game, "
+            "déclarez le résultat)."
         ),
-        "panel_pointer": "â³ Attaques en cours et dÃ©fenses : rendez-vous dans le salon **Attaques**.",
-        "board_title": "ð¡ï¸ **Attaques en cours**",
-        "board_empty": "ðï¸ Aucune attaque en cours.",
-        "panel_empty": "ðï¸ Aucune attaque en cours.",
-        "attack_line": "âï¸ **{map}** â {attacker} ({kingdom}) ð {defender} â RDV **{time}** (Paris) Â· {phase}",
-        "gaia_line": "ð¦ **{map}** â bataille GaÃ¯a Â· {count} combattant(s) â RDV **{time}** (Paris)",
-        "gaia_join_button": "ð¦ Rejoindre la bataille",
+        "panel_pointer": "↳ Attaques en cours et défenses : rendez-vous dans le salon **Attaques**.",
+        "board_title": "🗡️ **Attaques en cours**",
+        "board_empty": "🕊️ Aucune attaque en cours.",
+        "panel_empty": "🕊️ Aucune attaque en cours.",
+        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — RDV **{time}** (Paris) · {phase}",
+        "gaia_line": "🦅 **{map}** — bataille Gaïa · {count} combattant(s) — RDV **{time}** (Paris)",
+        "gaia_join_button": "🦅 Rejoindre la bataille",
         "gaia_join_note": (
-            "ð¦ Tu as rejoint la bataille sur **{map}** ({count} combattants) â RDV **{time}** (heure de Paris)."
+            "🦅 Tu as rejoint la bataille sur **{map}** ({count} combattants) — RDV **{time}** (heure de Paris)."
         ),
-        "gaia_join_announce": "ð¦ **{lord}** rejoint la bataille sur **{map}** ({count} combattants) !",
-        "gaia_gone": "â Cette bataille n'accepte plus de participants.",
+        "gaia_join_announce": "🦅 **{lord}** rejoint la bataille sur **{map}** ({count} combattants) !",
+        "gaia_gone": "❌ Cette bataille n'accepte plus de participants.",
         "announce_v1_gaia": (
-            "\nð¦ D'autres seigneurs peuvent rejoindre la bataille via le bouton"
-            " **Rejoindre** du panel Attaquer (jusqu'Ã  {max} combattants) !"
+            "\n🦅 D'autres seigneurs peuvent rejoindre la bataille via le bouton"
+            " **Rejoindre** du panel Attaquer (jusqu'à {max} combattants) !"
         ),
-        "phase_siege": "SiÃ¨ge",
+        "phase_siege": "Siège",
         "phase_draft": "Draft",
         "phase_ready": "RDV",
         "phase_score": "Score",
-        "reveal_battle": "âï¸ Bataille en vue (dÃ©fenseur : {defender})",
-        "reveal_battle_anon": "âï¸ Bataille en vue",
-        "defense_manager_button": "ð¡ï¸ Gestion de la dÃ©fense",
-        "defense_manager_title": "ð¡ï¸ Gestion de la dÃ©fense â attaques contre **{kingdom}**",
-        "defense_manager_empty": "ðº Aucune attaque en cours contre ton royaume.",
-        "defense_manager_row": "â¢ **{map}** â RDV **{time}** (Paris) Â· {state}",
-        "defense_manager_defended": "dÃ©fendue par **{lord}** â",
-        "defense_manager_waiting": "en attente de dÃ©fenseur â³",
-        "defense_manager_not_defender": "â Tu n'es pas un seigneur actif d'un royaume.",
-        "defense_manager_no_service": "â Le service des attaques est indisponible.",
-        "reveal_no_defense": "ð³ï¸ Assaut irrÃ©sistible â aucune dÃ©fense",
-        "defender_pending": "en attente de dÃ©fense",
-        "defender_anon": "dÃ©fense en place ð",
-        "defender_ai": "IA ð¤",
-        "covered_tag": " ð¶ï¸",
-        "declare_button": "âï¸ DÃ©clarer une attaque",
-        "defend_button": "ð¡ï¸ DÃ©fendre",
-        "modal_title": "âï¸ DÃ©clarer une attaque",
-        "modal_map": "Territoire adverse (clÃ© de carte)",
+        "reveal_battle": "⚔️ Bataille en vue (défenseur : {defender})",
+        "reveal_battle_anon": "⚔️ Bataille en vue",
+        "defense_manager_button": "🛡️ Gestion de la défense",
+        "defense_manager_title": "🛡️ Gestion de la défense — attaques contre **{kingdom}**",
+        "defense_manager_empty": "🐺 Aucune attaque en cours contre ton royaume.",
+        "defense_manager_row": "• **{map}** — RDV **{time}** (Paris) · {state}",
+        "defense_manager_defended": "défendue par **{lord}** ✓",
+        "defense_manager_waiting": "en attente de défenseur ⏳",
+        "defense_manager_not_defender": "❌ Tu n'es pas un seigneur actif d'un royaume.",
+        "defense_manager_no_service": "❌ Le service des attaques est indisponible.",
+        "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
+        "defender_pending": "en attente de défense",
+        "defender_anon": "défense en place 🔒",
+        "defender_ai": "IA 🤖",
+        "covered_tag": " 🕶️",
+        "declare_button": "⚔️ Déclarer une attaque",
+        "defend_button": "🛡️ Défendre",
+        "modal_title": "⚔️ Déclarer une attaque",
+        "modal_map": "Territoire adverse (clé de carte)",
         "modal_lobby": "URL du lobby de jeu",
         "modal_cover": "Seigneur de couverture (mention, optionnel)",
         "modal_traquenard": "Traquenard ? (oui/non)",
-        "declared_note": "âï¸ Attaque dÃ©clarÃ©e sur **{map}** â RDV Ã  **{time}** (heure de Paris).",
+        "declared_note": "⚔️ Attaque déclarée sur **{map}** — RDV à **{time}** (heure de Paris).",
         "declared_announce": (
-            "âï¸ **{attacker}** ({kingdom}) attaque **{map}** ð {defender_kingdom} â RDV **{time}** (heure de Paris) !"
+            "⚔️ **{attacker}** ({kingdom}) attaque **{map}** 🆚 {defender_kingdom} — RDV **{time}** (heure de Paris) !"
         ),
-        "defense_done": "ð¡ï¸ **{map}** â tu portes la dÃ©fense de ton royaume ! RDV **{time}** (Paris).",
-        "failed": "â {message}",
-        "not_a_lord": "â Tu n'es pas un seigneur actif d'un royaume.",
-        "no_service": "â Le service des attaques est indisponible.",
-        "no_target": "â Aucun royaume adverse attaquable pour le moment.",
-        "choose_kingdom": "ð¯ **Choisis le royaume Ã  attaquer :**",
-        "protected_line": "ð¡ï¸ Sous patrouille (impossible d'attaquer) : {kingdoms}",
-        "patrol_kingdom": "**{name}** jusqu'Ã  {end}h00",
-        "ai_level_desc": "IA de dÃ©fense : {level}/5 Â· {count} territoire(s)",
-        "choose_territory": "ðºï¸ **Choisis le territoire de {kingdom} Ã  attaquer :**",
+        "defense_done": "🛡️ **{map}** — tu portes la défense de ton royaume ! RDV **{time}** (Paris).",
+        "failed": "❌ {message}",
+        "not_a_lord": "❌ Tu n'es pas un seigneur actif d'un royaume.",
+        "no_service": "❌ Le service des attaques est indisponible.",
+        "no_target": "❌ Aucun royaume adverse attaquable pour le moment.",
+        "choose_kingdom": "🎯 **Choisis le royaume à attaquer :**",
+        "protected_line": "🛡️ Sous patrouille (impossible d'attaquer) : {kingdoms}",
+        "patrol_kingdom": "**{name}** jusqu'à {end}h00",
+        "ai_level_desc": "IA de défense : {level}/5 · {count} territoire(s)",
+        "choose_territory": "🗺️ **Choisis le territoire de {kingdom} à attaquer :**",
         "traquenard_hint": (
-            "ðª¤ Info : un royaume peut activer un Traquenard sur son adversaire â l'IA de"
-            " dÃ©fense devient Facile pendant 6h et les mariages scellÃ©s prennent +2h de verrou."
+            "🪤 Info : un royaume peut activer un Traquenard sur son adversaire — l'IA de"
+            " défense devient Facile pendant 6h et les mariages scellés prennent +2h de verrou."
         ),
         "cover_question": (
-            "ð¶ï¸ Utiliser un contre-espionnage ? (1 charge â l'attaque sera annoncÃ©e sous"
-            " le pseudo d'un autre seigneur, dÃ©masquÃ© Ã  la fin du SiÃ¨ge)"
+            "🕶️ Utiliser un contre-espionnage ? (1 charge — l'attaque sera annoncée sous"
+            " le pseudo d'un autre seigneur, démasqué à la fin du Siège)"
         ),
-        "cover_yes_button": "ð¶ï¸ OUI â bluffer",
-        "cover_no_button": "â NON â Ã  visage dÃ©couvert",
-        "choose_cover": "ð¶ï¸ Sous le pseudo de quel seigneur dÃ©clarer l'attaque ?",
+        "cover_yes_button": "🕶️ OUI — bluffer",
+        "cover_no_button": "❌ NON — à visage découvert",
+        "choose_cover": "🕶️ Sous le pseudo de quel seigneur déclarer l'attaque ?",
         "announce_v1": (
-            "âï¸ {attacker} du royaume {kingdom} a lancÃ© une attaque sur le royaume"
-            " {defender} !\nð {date}\nBonne chance aux combattants ! ð"
+            "⚔️ {attacker} du royaume {kingdom} a lancé une attaque sur le royaume"
+            " {defender} !\n📅 {date}\nBonne chance aux combattants ! 🍀"
         ),
         "announce_v1_traquenard": (
-            "\nðª¤ Un Traquenard est actif â l'IA du royaume dÃ©fenseur est Facile (fenÃªtre 6h) !"
+            "\n🪤 Un Traquenard est actif — l'IA du royaume défenseur est Facile (fenêtre 6h) !"
         ),
-        "date_full": "{weekday} {day}/{month}/{year} Ã  {hour}h{minute}",
+        "date_full": "{weekday} {day}/{month}/{year} à {hour}h{minute}",
         "weekdays": "Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche",
-        "thread_title": "âï¸ {kingdom} ð {defender} â {map}",
+        "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
         "thread_body": (
-            "ð **DÃ©roulÃ© de l'attaque & droits du dÃ©fenseur**\n"
-            "â¢ **SiÃ¨ge** â la dÃ©fense reste ouverte ; Ã  la fin du SiÃ¨ge (reveal), le bluff"
-            " (s'il y en a un) tombe et sans dÃ©fenseur l'IA du royaume prend la dÃ©fense.\n"
-            "â¢ **Draft** â le pick & ban part en MP : 3 civilisations classÃ©es de votre"
-            " main, validation des deux cÃ´tÃ©s (les civs partent au salon de la bataille).\n"
-            "â¢ **RDV** â un salon vocal de bataille s'ouvre Ã  l'heure du RDV : une absence"
+            "📜 **Déroulé de l'attaque & droits du défenseur**\n"
+            "• **Siège** — la défense reste ouverte ; à la fin du Siège (reveal), le bluff"
+            " (s'il y en a un) tombe et sans défenseur l'IA du royaume prend la défense.\n"
+            "• **Draft** — le pick & ban part en MP : 3 civilisations classées de votre"
+            " main, validation des deux côtés (les civs partent au salon de la bataille).\n"
+            "• **RDV** — un salon vocal de bataille s'ouvre à l'heure du RDV : une absence"
             " au vocal est un forfait.\n"
-            "â¢ **Score** â la game : dÃ©clarez le rÃ©sultat avec l'ID de la game.\n"
-            "ð¡ï¸ N'importe quel seigneur du royaume dÃ©fenseur peut dÃ©fendre via le"
-            " bouton du panel **DÃ©clarer une attaque**.\n"
-            "ðª¤ Un royaume peut activer un Traquenard sur son adversaire : l'IA de"
-            " dÃ©fense devient Facile pendant 6h et les mariages scellÃ©s prennent +2h"
+            "• **Score** — la game : déclarez le résultat avec l'ID de la game.\n"
+            "🛡️ N'importe quel seigneur du royaume défenseur peut défendre via le"
+            " bouton du panel **Déclarer une attaque**.\n"
+            "🪤 Un royaume peut activer un Traquenard sur son adversaire : l'IA de"
+            " défense devient Facile pendant 6h et les mariages scellés prennent +2h"
             " de verrou."
         ),
-        "reveal_cover": ("ð¶ï¸ Reveal â l'attaque sur **{map}** Ã©tait menÃ©e par **{lord}** (la couverture tombe)."),
+        "reveal_cover": ("🕶️ Reveal — l'attaque sur **{map}** était menée par **{lord}** (la couverture tombe)."),
         "reveal_ai": (
-            "ð¤ Personne n'a dÃ©fendu **{map}** â l'IA du royaume **{kingdom}** prend la dÃ©fense"
+            "🤖 Personne n'a défendu **{map}** — l'IA du royaume **{kingdom}** prend la défense"
             " (niveau **{level}**/5) !"
         ),
-        "reveal_defense": "ð¡ï¸ La dÃ©fense de **{map}** est verrouillÃ©e â RDV **{time}** (Paris).",
+        "reveal_defense": "🛡️ La défense de **{map}** est verrouillée — RDV **{time}** (Paris).",
         "pickban_dm": (
-            "âï¸ **Pick & ban â {map}**\nClasse tes **{count}** pick de civilisation par ordre de prÃ©fÃ©rence "
+            "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** pick de civilisation par ordre de préférence "
             "(ton classement ordonne les replis).\n"
-            "Si tu possÃ¨des un Sabotage ou un Faucon, tu pourras en faire usage dans le salon de la bataille.\n"
+            "Si tu possèdes un Sabotage ou un Faucon, tu pourras en faire usage dans le salon de la bataille.\n"
             "\n"
-            "â ï¸ **RÃ¨gle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
-            "3 civilisations seront tirÃ©es **au hasard** de ta main â et aucun "
+            "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
+            "3 civilisations seront tirées **au hasard** de ta main — et aucun "
             "sabotage ni faucon ne s'appliquera. Le RDV a lieu quoi qu'il arrive.\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
         ),
         "pickban_pick": "Choix {n}",
-        "pickban_validate": "â Valider",
-        "pickban_missing": "â Classe d'abord tes {count} civilisations.",
-        "pickban_waiting": "â³ Picks enregistrÃ©s et validÃ©s â en attente de l'adversaire.",
+        "pickban_validate": "✅ Valider",
+        "pickban_missing": "❌ Classe d'abord tes {count} civilisations.",
+        "pickban_waiting": "⏳ Picks enregistrés et validés — en attente de l'adversaire.",
         "pickban_ready_prompt": (
-            "âï¸ **Draft rÃ©solu â {map}**\nLes civilisations partent au salon de la"
-            " bataille Ã  l'heure du RDV.\nConfirme ta prÃ©sence avec le bouton"
-            " ci-dessous â un joueur absent du salon vocal Ã  l'heure du RDV est"
-            " dÃ©clarÃ© forfait !"
+            "⚔️ **Draft résolu — {map}**\nLes civilisations partent au salon de la"
+            " bataille à l'heure du RDV.\nConfirme ta présence avec le bouton"
+            " ci-dessous — un joueur absent du salon vocal à l'heure du RDV est"
+            " déclaré forfait !"
         ),
-        "ready_button": "â PrÃªt â confirme ta prÃ©sence",
-        "ready_done": "â PrÃ©sence confirmÃ©e â rejoins le salon de la bataille Ã  l'heure du RDV.",
+        "ready_button": "✅ Prêt — confirme ta présence",
+        "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
         "room_category": "Champs de bataille",
-        "room_title": "{map} â {attacker} ð {defender}",
+        "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Bataille {map}",
         "room_body": (
-            "ðï¸ **PrÃ©parez-vous Ã  la bataille â {map}**\n"
+            "🏟️ **Préparez-vous à la bataille — {map}**\n"
             "{lines}\n"
             "Sabotage ou usage du Faucon : via ce salon textuel.\n"
-            "ð partagez l'URL de la partie Â· ð dÃ©clarez le rÃ©sultat Ã  la fin."
+            "🔗 partagez l'URL de la partie · 🏆 déclarez le résultat à la fin."
         ),
         "room_dm": (
-            "ðï¸ **Le salon de la bataille est ouvert â {map}**\n"
-            "Rejoins ton adversaire : {room} â et surveille le salon textuel du"
-            " vocal (URL de la partie, rÃ©sultat, sabotages)."
+            "🏟️ **Le salon de la bataille est ouvert — {map}**\n"
+            "Rejoins ton adversaire : {room} — et surveille le salon textuel du"
+            " vocal (URL de la partie, résultat, sabotages)."
         ),
-        "result_button": "ð DÃ©clarer le rÃ©sultat",
-        "result_select_title": "ð **Qui remporte la partie ?**",
+        "result_button": "🏆 Déclarer le résultat",
+        "result_select_title": "🏆 **Qui remporte la partie ?**",
         "result_select_placeholder": "Le vainqueur de la game",
-        "score_url_posted": "ð **URL de la partie** : {url}",
+        "score_url_posted": "🔗 **URL de la partie** : {url}",
         "score_pending": (
-            "â³ RÃ©sultat enregistrÃ© (game {game}) â il sera appliquÃ© sauf"
+            "⏳ Résultat enregistré (game {game}) — il sera appliqué sauf"
             " contestation de l'autre joueur dans les {minutes} prochaines minutes."
         ),
         "forfeit_both": (
-            "ð³ï¸ Forfait gÃ©nÃ©ral sur **{map}** â personne n'a validÃ© : l'attaquant, prÃ©sent, l'emporte (**{kingdom}**)."
+            "🏳️ Forfait général sur **{map}** — personne n'a validé : l'attaquant, présent, l'emporte (**{kingdom}**)."
         ),
-        "forfeit_side": "ð³ï¸ Forfait sur **{map}** â **{side}** a manquÃ© la validation : victoire de **{kingdom}**.",
+        "forfeit_side": "🏳️ Forfait sur **{map}** — **{side}** a manqué la validation : victoire de **{kingdom}**.",
         "side_attacker": "l'attaquant",
-        "side_defender": "le dÃ©fenseur",
-        "score_url_button": "ð URL de la partie",
+        "side_defender": "le défenseur",
+        "score_url_button": "🔗 URL de la partie",
         "score_url_modal_title": "URL de la partie",
         "score_url_modal_label": "URL du lobby de jeu",
-        "score_url_modal_placeholder": "aoe2de://â¦",
-        "score_url_set": "â URL enregistrÃ©e â elle est visible dans le salon de la bataille.",
+        "score_url_modal_placeholder": "aoe2de://…",
+        "score_url_set": "✅ URL enregistrée — elle est visible dans le salon de la bataille.",
         "score_reminder_dm": (
-            "â° **RDV â {map}** : aucun rÃ©sultat dÃ©clarÃ© depuis 3h â dÃ©clare le"
-            " rÃ©sultat de la game avec le bouton ð du salon de la bataille !"
+            "⏰ **RDV — {map}** : aucun résultat déclaré depuis 3h — déclare le"
+            " résultat de la game avec le bouton 🏆 du salon de la bataille !"
         ),
-        "score_modal_title": "RÃ©sultat de la game",
+        "score_modal_title": "Résultat de la game",
         "score_modal_label": "ID de la game (requis)",
         "score_modal_placeholder": "ex. 123456",
-        "score_resolved": ("ð RÃ©sultat enregistrÃ© â **{winner}** remporte **{map}** (game {game})."),
-        "score_already": "â Ce rÃ©sultat Ã©tait dÃ©jÃ  enregistrÃ© â rien Ã  faire.",
+        "score_resolved": ("🏆 Résultat enregistré — **{winner}** remporte **{map}** (game {game})."),
+        "score_already": "✅ Ce résultat était déjà enregistré — rien à faire.",
         "score_disputed": (
-            "âï¸ DÃ©claration contradictoire â les admins arbitrent (game {game})."
+            "⚖️ Déclaration contradictoire — les admins arbitrent (game {game})."
         ),
-        "noshow_side": ("ð³ï¸ **{map}** â **{side}** a manquÃ© le RDV : victoire de **{kingdom}**."),
-        "noshow_both": ("ð³ï¸ **{map}** â double forfait : aucun joueur au RDV, le territoire reste Ã  son propriÃ©taire."),
-        "dispute_admin_dm": ("âï¸ **Litige â {map}**\n{declarations}\nTranche le rÃ©sultat (game {game})."),
+        "noshow_side": ("🏳️ **{map}** — **{side}** a manqué le RDV : victoire de **{kingdom}**."),
+        "noshow_both": ("🏳️ **{map}** — double forfait : aucun joueur au RDV, le territoire reste à son propriétaire."),
+        "dispute_admin_dm": ("⚖️ **Litige — {map}**\n{declarations}\nTranche le résultat (game {game})."),
         "auto_dispute": (
-            "âï¸ **Litige auto-ouvert sur {map}** â aucun rÃ©sultat dÃ©clarÃ© 15 h aprÃ¨s"
+            "⚖️ **Litige auto-ouvert sur {map}** — aucun résultat déclaré 15 h après"
             " l'ouverture de la partie : un admin tranche via la console (`resultat`)."
         ),
-        "dispute_win_attacker": "âï¸ Tranche : attaquant",
-        "dispute_win_defender": "âï¸ Tranche : dÃ©fenseur",
-        "dispute_double": "ð³ï¸ Double forfait",
-        "dispute_applied": "âï¸ Arbitrage appliquÃ© â **{kingdom}** remporte **{map}**.",
-        "dispute_forfeit": "âï¸ Arbitrage appliquÃ© â double forfait sur **{map}**.",
-        "dispute_not_admin": "â Seuls les bot-admins arbitrent un litige.",
+        "dispute_win_attacker": "⚖️ Tranche : attaquant",
+        "dispute_win_defender": "⚖️ Tranche : défenseur",
+        "dispute_double": "🏳️ Double forfait",
+        "dispute_applied": "⚖️ Arbitrage appliqué — **{kingdom}** remporte **{map}**.",
+        "dispute_forfeit": "⚖️ Arbitrage appliqué — double forfait sur **{map}**.",
+        "dispute_not_admin": "❌ Seuls les bot-admins arbitrent un litige.",
     },
     "en": {
-        "panel_title": "âï¸ **Battlefield â Attack**",
+        "panel_title": "⚔️ **Battlefield — Attack**",
         "panel_help": (
-            "Declare an attack on an adversary territory â the meeting is set at the displayed time.\n"
-            "Flow: **Siege** (the defense opens at T-15, in the Attaques salon) â **Draft** "
-            "(DM pick & ban) â **Meeting** (confirm your presence) â **Score** (the game, "
+            "Declare an attack on an adversary territory — the meeting is set at the displayed time.\n"
+            "Flow: **Siege** (the defense opens at T-15, in the Attaques salon) → **Draft** "
+            "(DM pick & ban) → **Meeting** (confirm your presence) → **Score** (the game, "
             "declare the result)."
         ),
-        "panel_pointer": "â³ Ongoing attacks and defenses: see the **Attaques** salon.",
-        "board_title": "ð¡ï¸ **Ongoing attacks**",
-        "board_empty": "ðï¸ No ongoing attack.",
-        "panel_empty": "ðï¸ No ongoing attack.",
-        "attack_line": "âï¸ **{map}** â {attacker} ({kingdom}) ð {defender} â meets **{time}** (Paris) Â· {phase}",
-        "gaia_line": "ð¦ **{map}** â GaÃ¯a battle Â· {count} fighter(s) â meets **{time}** (Paris)",
-        "gaia_join_button": "ð¦ Join the battle",
+        "panel_pointer": "↳ Ongoing attacks and defenses: see the **Attaques** salon.",
+        "board_title": "🗡️ **Ongoing attacks**",
+        "board_empty": "🕊️ No ongoing attack.",
+        "panel_empty": "🕊️ No ongoing attack.",
+        "attack_line": "⚔️ **{map}** — {attacker} ({kingdom}) 🆚 {defender} — meets **{time}** (Paris) · {phase}",
+        "gaia_line": "🦅 **{map}** — Gaïa battle · {count} fighter(s) — meets **{time}** (Paris)",
+        "gaia_join_button": "🦅 Join the battle",
         "gaia_join_note": (
-            "ð¦ You joined the battle on **{map}** ({count} fighters) â meeting **{time}** (Paris time)."
+            "🦅 You joined the battle on **{map}** ({count} fighters) — meeting **{time}** (Paris time)."
         ),
-        "gaia_join_announce": "ð¦ **{lord}** joins the battle on **{map}** ({count} fighters)!",
-        "gaia_gone": "â This battle no longer accepts participants.",
+        "gaia_join_announce": "🦅 **{lord}** joins the battle on **{map}** ({count} fighters)!",
+        "gaia_gone": "❌ This battle no longer accepts participants.",
         "announce_v1_gaia": (
-            "\nð¦ Other lords may join the battle through the **Join** button of"
+            "\n🦅 Other lords may join the battle through the **Join** button of"
             " the Attack panel (up to {max} fighters)!"
         ),
         "phase_siege": "Siege",
         "phase_draft": "Draft",
         "phase_ready": "Meeting",
         "phase_score": "Score",
-        "reveal_battle": "âï¸ Battle ahead (defender: {defender})",
-        "reveal_battle_anon": "âï¸ Battle ahead",
-        "defense_manager_button": "ð¡ï¸ Defense management",
-        "defense_manager_title": "ð¡ï¸ Defense management â attacks against **{kingdom}**",
-        "defense_manager_empty": "ðº No ongoing attack against your kingdom.",
-        "defense_manager_row": "â¢ **{map}** â meeting **{time}** (Paris) Â· {state}",
-        "defense_manager_defended": "defended by **{lord}** â",
-        "defense_manager_waiting": "waiting for a defender â³",
-        "defense_manager_not_defender": "â You are no active lord of a kingdom.",
-        "defense_manager_no_service": "â The attack service is unavailable.",
-        "reveal_no_defense": "ð³ï¸ Irresistible assault â no defense",
+        "reveal_battle": "⚔️ Battle ahead (defender: {defender})",
+        "reveal_battle_anon": "⚔️ Battle ahead",
+        "defense_manager_button": "🛡️ Defense management",
+        "defense_manager_title": "🛡️ Defense management — attacks against **{kingdom}**",
+        "defense_manager_empty": "🐺 No ongoing attack against your kingdom.",
+        "defense_manager_row": "• **{map}** — meeting **{time}** (Paris) · {state}",
+        "defense_manager_defended": "defended by **{lord}** ✓",
+        "defense_manager_waiting": "waiting for a defender ⏳",
+        "defense_manager_not_defender": "❌ You are no active lord of a kingdom.",
+        "defense_manager_no_service": "❌ The attack service is unavailable.",
+        "reveal_no_defense": "🏳️ Irresistible assault — no defense",
         "defender_pending": "waiting for a defender",
-        "defender_anon": "defense in place ð",
-        "defender_ai": "AI ð¤",
-        "covered_tag": " ð¶ï¸",
-        "declare_button": "âï¸ Declare an attack",
-        "defend_button": "ð¡ï¸ Defend",
-        "modal_title": "âï¸ Declare an attack",
+        "defender_anon": "defense in place 🔒",
+        "defender_ai": "AI 🤖",
+        "covered_tag": " 🕶️",
+        "declare_button": "⚔️ Declare an attack",
+        "defend_button": "🛡️ Defend",
+        "modal_title": "⚔️ Declare an attack",
         "modal_map": "Adversary territory (map key)",
         "modal_lobby": "Game lobby URL",
         "modal_cover": "Cover lord (mention, optional)",
         "modal_traquenard": "Ambush trap? (yes/no)",
-        "declared_note": "âï¸ Attack declared on **{map}** â meeting at **{time}** (Paris time).",
+        "declared_note": "⚔️ Attack declared on **{map}** — meeting at **{time}** (Paris time).",
         "declared_announce": (
-            "âï¸ **{attacker}** ({kingdom}) attacks **{map}** ð {defender_kingdom} â meeting **{time}** (Paris time)!"
+            "⚔️ **{attacker}** ({kingdom}) attacks **{map}** 🆚 {defender_kingdom} — meeting **{time}** (Paris time)!"
         ),
-        "defense_done": "ð¡ï¸ **{map}** â you carry your kingdom's defense! Meeting **{time}** (Paris).",
-        "failed": "â {message}",
-        "not_a_lord": "â You are no active lord of a kingdom.",
-        "no_service": "â The attack service is unavailable.",
-        "no_target": "â No adversary kingdom is attackable right now.",
-        "choose_kingdom": "ð¯ **Choose the kingdom to attack:**",
-        "protected_line": "ð¡ï¸ Under patrol (cannot be attacked): {kingdoms}",
+        "defense_done": "🛡️ **{map}** — you carry your kingdom's defense! Meeting **{time}** (Paris).",
+        "failed": "❌ {message}",
+        "not_a_lord": "❌ You are no active lord of a kingdom.",
+        "no_service": "❌ The attack service is unavailable.",
+        "no_target": "❌ No adversary kingdom is attackable right now.",
+        "choose_kingdom": "🎯 **Choose the kingdom to attack:**",
+        "protected_line": "🛡️ Under patrol (cannot be attacked): {kingdoms}",
         "patrol_kingdom": "**{name}** until {end}:00",
-        "ai_level_desc": "Defense AI: {level}/5 Â· {count} territor(y|ies)",
-        "choose_territory": "ðºï¸ **Choose the territory of {kingdom} to attack:**",
+        "ai_level_desc": "Defense AI: {level}/5 · {count} territor(y|ies)",
+        "choose_territory": "🗺️ **Choose the territory of {kingdom} to attack:**",
         "traquenard_hint": (
-            "ðª¤ Info: a kingdom may activate a Traquenard on its adversary â the defense"
+            "🪤 Info: a kingdom may activate a Traquenard on its adversary — the defense"
             " AI turns Easy for 6h and sealed marriages gain +2h of lock."
         ),
         "cover_question": (
-            "ð¶ï¸ Use a counter-espionage? (1 charge â the attack is announced under"
+            "🕶️ Use a counter-espionage? (1 charge — the attack is announced under"
             " another lord's name, unmasked at the end of the Siege)"
         ),
-        "cover_yes_button": "ð¶ï¸ YES â bluff",
-        "cover_no_button": "â NO â open-faced",
-        "choose_cover": "ð¶ï¸ Under which lord's name should the attack be declared?",
+        "cover_yes_button": "🕶️ YES — bluff",
+        "cover_no_button": "❌ NO — open-faced",
+        "choose_cover": "🕶️ Under which lord's name should the attack be declared?",
         "announce_v1": (
-            "âï¸ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
-            " {defender}!\nð {date}\nGood luck to the fighters! ð"
+            "⚔️ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
+            " {defender}!\n📅 {date}\nGood luck to the fighters! 🍀"
         ),
-        "announce_v1_traquenard": ("\nðª¤ A Traquenard is active â the defender kingdom's AI is Easy (6h window)!"),
+        "announce_v1_traquenard": ("\n🪤 A Traquenard is active — the defender kingdom's AI is Easy (6h window)!"),
         "date_full": "{weekday} {day}/{month}/{year} at {hour}:{minute}",
         "weekdays": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
-        "thread_title": "âï¸ {kingdom} ð {defender} â {map}",
+        "thread_title": "⚔️ {kingdom} 🆚 {defender} — {map}",
         "thread_body": (
-            "ð **Attack rundown & defender rights**\n"
-            "â¢ **Siege** â the defense stays open; at the end of the Siege (reveal), the"
+            "📜 **Attack rundown & defender rights**\n"
+            "• **Siege** — the defense stays open; at the end of the Siege (reveal), the"
             " bluff (if any) drops and with no defender the kingdom's AI takes the defense.\n"
-            "â¢ **Draft** â the pick & ban lands in the DMs: 3 ranked civilizations,"
+            "• **Draft** — the pick & ban lands in the DMs: 3 ranked civilizations,"
             " both sides validate (the civs land in the battle room).\n"
-            "â¢ **Meeting** â a battle voice room opens at the meeting time: a miss"
+            "• **Meeting** — a battle voice room opens at the meeting time: a miss"
             " from the voice room is a forfeit.\n"
-            "â¢ **Score** â the game: declare the result with the game ID.\n"
-            "ð¡ï¸ Any lord of the defending kingdom may defend via the button of the"
+            "• **Score** — the game: declare the result with the game ID.\n"
+            "🛡️ Any lord of the defending kingdom may defend via the button of the"
             " **Declare an attack** panel.\n"
-            "ðª¤ A kingdom may activate a Traquenard on its adversary: the defense AI"
+            "🪤 A kingdom may activate a Traquenard on its adversary: the defense AI"
             " turns Easy for 6h and sealed marriages gain +2h of lock."
         ),
-        "reveal_cover": ("ð¶ï¸ Reveal â the attack on **{map}** was led by **{lord}** (the cover drops)."),
+        "reveal_cover": ("🕶️ Reveal — the attack on **{map}** was led by **{lord}** (the cover drops)."),
         "reveal_ai": (
-            "ð¤ Nobody defended **{map}** â the AI of kingdom **{kingdom}** takes the defense (level **{level}**/5)!"
+            "🤖 Nobody defended **{map}** — the AI of kingdom **{kingdom}** takes the defense (level **{level}**/5)!"
         ),
-        "reveal_defense": "ð¡ï¸ The defense of **{map}** is locked â meeting **{time}** (Paris).",
+        "reveal_defense": "🛡️ The defense of **{map}** is locked — meeting **{time}** (Paris).",
         "pickban_dm": (
-            "âï¸ **Pick & ban â {map}**\nRank your **{count}** civilization picks by"
+            "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilization picks by"
             " order of preference (your ranking orders the fallbacks).\n"
             "If you own a Sabotage or a Faucon, you will use it in the battle room.\n"
             "\n"
-            "â ï¸ **Anti-blocking rule**: no choice validated before the meeting â "
-            "3 **random** civilizations from your hand â and no sabotage or faucon "
+            "⚠️ **Anti-blocking rule**: no choice validated before the meeting → "
+            "3 **random** civilizations from your hand — and no sabotage or faucon "
             "applies. The meeting happens anyway.\n"
             "Your hand: {hand}\nAdversary hand: {theirs}"
         ),
         "pickban_pick": "Choice {n}",
-        "pickban_validate": "â Validate",
-        "pickban_missing": "â Rank your {count} civilizations first.",
-        "pickban_waiting": "â³ Picks recorded and validated â waiting for the adversary.",
+        "pickban_validate": "✅ Validate",
+        "pickban_missing": "❌ Rank your {count} civilizations first.",
+        "pickban_waiting": "⏳ Picks recorded and validated — waiting for the adversary.",
         "pickban_ready_prompt": (
-            "âï¸ **Draft resolved â {map}**\nThe civilizations land in the battle"
+            "⚔️ **Draft resolved — {map}**\nThe civilizations land in the battle"
             " room at the meeting time.\nConfirm your presence with the button"
-            " below â a player missing from the voice room at the meeting time"
+            " below — a player missing from the voice room at the meeting time"
             " is a forfeit!"
         ),
-        "ready_button": "â Ready â confirm your presence",
-        "ready_done": "â Presence confirmed â join the battle room at the meeting time.",
+        "ready_button": "✅ Ready — confirm your presence",
+        "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
         "room_category": "Battlefields",
-        "room_title": "{map} â {attacker} ð {defender}",
+        "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Battle {map}",
         "room_body": (
-            "ðï¸ **Prepare for battle â {map}**\n"
+            "🏟️ **Prepare for battle — {map}**\n"
             "{lines}\n"
             "Sabotage or Faucon use: through this text room.\n"
-            "ð share the game URL Â· ð declare the result at the end."
+            "🔗 share the game URL · 🏆 declare the result at the end."
         ),
         "room_dm": (
-            "ðï¸ **The battle room is open â {map}**\n"
-            "Join your adversary: {room} â and watch the voice room's text"
+            "🏟️ **The battle room is open — {map}**\n"
+            "Join your adversary: {room} — and watch the voice room's text"
             " channel (game URL, result, sabotages)."
         ),
-        "result_button": "ð Declare the result",
-        "result_select_title": "ð **Who wins the game?**",
+        "result_button": "🏆 Declare the result",
+        "result_select_title": "🏆 **Who wins the game?**",
         "result_select_placeholder": "The game's winner",
-        "score_url_posted": "ð **Game URL**: {url}",
+        "score_url_posted": "🔗 **Game URL**: {url}",
         "score_pending": (
-            "â³ Result recorded (game {game}) â it applies unless the other"
+            "⏳ Result recorded (game {game}) — it applies unless the other"
             " player contests it within the next {minutes} minutes."
         ),
         "forfeit_both": (
-            "ð³ï¸ General forfeit on **{map}** â nobody validated: the attacker, present, wins (**{kingdom}**)."
+            "🏳️ General forfeit on **{map}** — nobody validated: the attacker, present, wins (**{kingdom}**)."
         ),
-        "forfeit_side": "ð³ï¸ Forfeit on **{map}** â **{side}** missed the validation: victory of **{kingdom}**.",
+        "forfeit_side": "🏳️ Forfeit on **{map}** — **{side}** missed the validation: victory of **{kingdom}**.",
         "side_attacker": "the attacker",
         "side_defender": "the defender",
-        "score_url_button": "ð Game URL",
+        "score_url_button": "🔗 Game URL",
         "score_url_modal_title": "Game URL",
         "score_url_modal_label": "Game lobby URL",
-        "score_url_modal_placeholder": "aoe2de://â¦",
-        "score_url_set": "â URL saved â visible in the battle room.",
+        "score_url_modal_placeholder": "aoe2de://…",
+        "score_url_set": "✅ URL saved — visible in the battle room.",
         "score_reminder_dm": (
-            "â° **Meeting â {map}**: no result declared for 3 hours â declare the"
-            " game result with the ð button of the battle room!"
+            "⏰ **Meeting — {map}**: no result declared for 3 hours — declare the"
+            " game result with the 🏆 button of the battle room!"
         ),
         "score_modal_title": "Game result",
         "score_modal_label": "Game ID (required)",
         "score_modal_placeholder": "e.g. 123456",
-        "score_resolved": ("ð Result recorded â **{winner}** wins **{map}** (game {game})."),
-        "score_already": "â This result was already recorded â nothing to do.",
-        "score_disputed": ("âï¸ Contradictory declarations â the admins arbitrate (game {game})."),
-        "noshow_side": ("ð³ï¸ **{map}** â **{side}** missed the meeting: victory of **{kingdom}**."),
-        "noshow_both": ("ð³ï¸ **{map}** â double forfeit: no player at the meeting, the territory stays with its owner."),
-        "dispute_admin_dm": ("âï¸ **Dispute â {map}**\n{declarations}\nCut the result (game {game})."),
+        "score_resolved": ("🏆 Result recorded — **{winner}** wins **{map}** (game {game})."),
+        "score_already": "✅ This result was already recorded — nothing to do.",
+        "score_disputed": ("⚖️ Contradictory declarations — the admins arbitrate (game {game})."),
+        "noshow_side": ("🏳️ **{map}** — **{side}** missed the meeting: victory of **{kingdom}**."),
+        "noshow_both": ("🏳️ **{map}** — double forfeit: no player at the meeting, the territory stays with its owner."),
+        "dispute_admin_dm": ("⚖️ **Dispute — {map}**\n{declarations}\nCut the result (game {game})."),
         "auto_dispute": (
-            "âï¸ **Dispute auto-opened on {map}** â no result declared 15h after the"
+            "⚖️ **Dispute auto-opened on {map}** — no result declared 15h after the"
             " game opened: an admin arbitrates through the console (`resultat`)."
         ),
-        "dispute_win_attacker": "âï¸ Rule: attacker",
-        "dispute_win_defender": "âï¸ Rule: defender",
-        "dispute_double": "ð³ï¸ Double forfeit",
-        "dispute_applied": "âï¸ Arbitration applied â **{kingdom}** wins **{map}**.",
-        "dispute_forfeit": "âï¸ Arbitration applied â double forfeit on **{map}**.",
-        "dispute_not_admin": "â Only bot-admins arbitrate a dispute.",
+        "dispute_win_attacker": "⚖️ Rule: attacker",
+        "dispute_win_defender": "⚖️ Rule: defender",
+        "dispute_double": "🏳️ Double forfeit",
+        "dispute_applied": "⚖️ Arbitration applied — **{kingdom}** wins **{map}**.",
+        "dispute_forfeit": "⚖️ Arbitration applied — double forfeit on **{map}**.",
+        "dispute_not_admin": "❌ Only bot-admins arbitrate a dispute.",
     },
 }
 
@@ -422,15 +422,15 @@ def _fmt_paris(moment: Any) -> str:
     return when.astimezone(_PARIS).strftime("%d/%m %H:%M")
 
 
-DECLARE_CHANNEL_NAME = "DÃ©clarer une attaque"
+DECLARE_CHANNEL_NAME = "Déclarer une attaque"
 ANNOUNCE_CHANNEL_NAME = "Attaques"
 
 
 def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
-    """Return the guild's Â« DÃ©clarer une attaque Â» salon (None when absent).
+    """Return the guild's « Déclarer une attaque » salon (None when absent).
 
-    Patch restructuration-royaume: the legacy Â« Attaquer Â» salon is the
-    declared fallback â the provisioning adopts it by key and
+    Patch restructuration-royaume: the legacy « Attaquer » salon is the
+    declared fallback — the provisioning adopts it by key and
     ``deploy_attack_panel`` renames it in place.
     """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
@@ -443,7 +443,7 @@ def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
 
 
 def _announce_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
-    """Return the guild's Â« Attaques Â» announce salon (None when absent)."""
+    """Return the guild's « Attaques » announce salon (None when absent)."""
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if guild is None:
@@ -470,7 +470,7 @@ async def _lord_name(kingdoms_service: Any, lord_id: str | None) -> str:
     from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of
 
     if not lord_id:
-        return "â"
+        return "—"
     lord = await _lord_of(kingdoms_service, lord_id)
     if lord is None:
         return lord_id
@@ -483,14 +483,14 @@ async def _kingdom_name(kingdoms_service: Any, kingdom_id: str | None) -> str:
 
     kingdom = await _kingdom_by_id_safe(kingdoms_service, kingdom_id or "")
     if kingdom is None:
-        return str(kingdom_id or "â")
+        return str(kingdom_id or "—")
     return str(getattr(kingdom, "name", None) or kingdom_id)
 
 
 def _declare_view(strings: dict[str, str]) -> discord.ui.View:
     """Return the CLEAN declare panel view: one declare button, nothing else.
 
-    Drasah 17/10: Â« DÃ©clarer une attaque Â» stays clean â the ongoing
+    Drasah 17/10: « Déclarer une attaque » stays clean — the ongoing
     attacks (and their defend/join buttons) live in the Attaques salon.
     """
     view = discord.ui.View(timeout=None)
@@ -551,7 +551,7 @@ async def _ongoing_rows(
         return [], []
     for attack in attacks:
         if getattr(attack, "kind", None) is AttackKind.GAIA:
-            # A GaÃ¯a battle is a free-for-all other lords may join.
+            # A Gaïa battle is a free-for-all other lords may join.
             rows.append(
                 strings["gaia_line"].format(
                     map=attack.map_key,
@@ -568,9 +568,9 @@ async def _ongoing_rows(
         else:
             attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
         kingdom = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
-        # Drasah 18/10 â effet de surprise : le nom du dÃ©fenseur humain
-        # n'apparaÃ®t JAMAIS sur le board public ; le royaume dÃ©fenseur
-        # le voit via la Gestion de la dÃ©fense (Remparts).
+        # Drasah 18/10 — effet de surprise : le nom du défenseur humain
+        # n'apparaît JAMAIS sur le board public ; le royaume défenseur
+        # le voit via la Gestion de la défense (Remparts).
         if getattr(attack, "state", None) is AttackState.DEFENDED:
             defender = (
                 strings["defender_ai"] if attack.ai_defender else strings["defender_anon"]
@@ -579,13 +579,13 @@ async def _ongoing_rows(
             defender = strings["defender_pending"]
         phase = _phase_display(phase_label(attack), strings)
         # attaques-panel-spam (Drasah 15/10): at the T-15 reveal the line
-        # shows the defense window's outcome instead of the bare phase â
-        # Â« Bataille en vue Â» when a lord defends, Â« Assaut irrÃ©sistible Â»
+        # shows the defense window's outcome instead of the bare phase —
+        # « Bataille en vue » when a lord defends, « Assaut irrésistible »
         # when nobody did (AI fallback). Nothing new to compute: the
         # reveal (reveal_due) already resolved cover/AI/locked defense.
-        # Drasah 18/10 â effet de surprise : le board public ne nomme
-        # JAMAIS le dÃ©fenseur humain ; seul le royaume dÃ©fenseur le
-        # voit (Gestion de la dÃ©fense, Remparts).
+        # Drasah 18/10 — effet de surprise : le board public ne nomme
+        # JAMAIS le défenseur humain ; seul le royaume défenseur le
+        # voit (Gestion de la défense, Remparts).
         if getattr(attack, "revealed", False) and not attack.is_over:
             if attack.ai_defender:
                 phase = strings["reveal_no_defense"]
@@ -610,9 +610,9 @@ async def deploy_attack_panel(
     kingdoms_service: Any = None,
     attacks_service: Any = None,
 ) -> None:
-    """Pin (or refresh) the CLEAN declare panel in the DÃ©clarer une attaque salon.
+    """Pin (or refresh) the CLEAN declare panel in the Déclarer une attaque salon.
 
-    Drasah 17/10: this salon keeps ONLY the declare flow â the ongoing
+    Drasah 17/10: this salon keeps ONLY the declare flow — the ongoing
     attacks (rows, defend/join buttons) moved to the Attaques salon
     (``deploy_attacks_board``). The service params stay for API
     compatibility with the existing call sites.
@@ -632,7 +632,7 @@ async def deploy_attack_panel(
     strings = _strings(locale)
     content = declare_panel_text(strings)
     view = _declare_view(strings)
-    # attaques-panel-spam (Drasah 15/10): the panel is EDITED in place â
+    # attaques-panel-spam (Drasah 15/10): the panel is EDITED in place —
     # delete+send on every call multiplied messages whenever the old
     # message delete failed (rate limit, out of the history scan depth).
     # The scan reads deep (200) so a rate-limited delete of the previous
@@ -640,7 +640,7 @@ async def deploy_attack_panel(
     panel_message = await _find_panel_message(channel)
     if panel_message is not None:
         if (panel_message.content or "") == content:
-            return  # unchanged â nothing to touch (no API call at all)
+            return  # unchanged — nothing to touch (no API call at all)
         try:
             await panel_message.edit(content=content, view=view)
             return
@@ -661,7 +661,7 @@ async def deploy_attacks_board(
     """Pin (or refresh) the ongoing-attacks board in the Attaques salon.
 
     Drasah 17/10: the ongoing attacks and their defend/join buttons
-    moved here â Â« DÃ©clarer une attaque Â» keeps only the declare flow.
+    moved here — « Déclarer une attaque » keeps only the declare flow.
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -680,7 +680,7 @@ async def deploy_attacks_board(
     board_message = await _find_panel_message(channel, ATTACK_BOARD_MARKER)
     if board_message is not None:
         if (board_message.content or "") == content:
-            return  # unchanged â nothing to touch (no API call at all)
+            return  # unchanged — nothing to touch (no API call at all)
         try:
             await board_message.edit(content=content, view=view)
             return
@@ -698,7 +698,7 @@ async def _find_panel_message(
     """Return the live panel message of the salon, pruning the duplicates.
 
     attaques-panel-spam: the scan reads deep (200) so a rate-limited
-    delete of a previous cycle cannot let two panels coexist â the
+    delete of a previous cycle cannot let two panels coexist — the
     first marker wins, the others are removed.
     """
     panel_message: Any = None
@@ -750,15 +750,15 @@ class KingdomAttackDeclareButton(
         match: re.Match[str],
         /,
     ) -> KingdomAttackDeclareButton:
-        """Rebuild the button from the wire â THIS module's strings only."""
+        """Rebuild the button from the wire — THIS module's strings only."""
         return cls(_strings(_locale(interaction))["declare_button"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Guard the click, then open the GUIDED declaration flow.
 
-        Drasah's recÃ¢blage (2026-10-14): the bare modal is replaced by
-        a guided ephemeral flow â kingdom â territory â (cover?) â
-        lobby â so the attacker SEES the defense AI level, the patrol
+        Drasah's recâblage (2026-10-14): the bare modal is replaced by
+        a guided ephemeral flow — kingdom → territory → (cover?) →
+        lobby — so the attacker SEES the defense AI level, the patrol
         shields and the cadastre of every option before choosing.
         """
         from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
@@ -780,7 +780,7 @@ class KingdomAttackDeclareButton(
 
 
 def _fmt_paris_full(moment: Any, strings: dict[str, str]) -> str:
-    """Format a moment as Â« Vendredi 29/08/2025 Ã  19h15 Â» (the players' clock)."""
+    """Format a moment as « Vendredi 29/08/2025 à 19h15 » (the players' clock)."""
     when = moment if isinstance(moment, datetime) else datetime.fromtimestamp(moment, tz=_PARIS)
     local = when.astimezone(_PARIS)
     weekdays = str(strings.get("weekdays", "")).split(",")
@@ -806,18 +806,18 @@ def _kingdom_mention(guild: Any, name: str) -> str:
 
 _MAP_TAG_KEYS: tuple[tuple[str, str], ...] = (
     # The 12 Drasah cadastre tags (cadastre-diplomatie-v1, 15/10).
-    ("eau", "ð§"),
-    ("hybride", "ð"),
-    ("objectif", "ð¯"),
-    ("nomade", "ð¾"),
-    ("foret", "ð²"),
-    ("montagne", "â°ï¸"),
-    ("desert", "ðï¸"),
-    ("marais", "ðª·"),
-    ("ouverte", "ð"),
-    ("chaotique", "ð"),
-    ("mur_depart", "ð§±"),
-    ("ferme", "ð"),
+    ("eau", "💧"),
+    ("hybride", "🌊"),
+    ("objectif", "🎯"),
+    ("nomade", "🌾"),
+    ("foret", "🌲"),
+    ("montagne", "⛰️"),
+    ("desert", "🏜️"),
+    ("marais", "🪷"),
+    ("ouverte", "🌞"),
+    ("chaotique", "🌀"),
+    ("mur_depart", "🧱"),
+    ("ferme", "🔒"),
 )
 
 
@@ -829,7 +829,7 @@ def _map_description(entry: Any, strings: dict[str, str]) -> str:
     parts = [" ".join(tags)] if tags else []
     if bonus:
         parts.append(bonus)
-    return " Â· ".join(parts)[:100]
+    return " · ".join(parts)[:100]
 
 
 def _kingdom_option(kingdom: Any, level: int, count: int, strings: dict[str, str]) -> discord.SelectOption:
@@ -870,7 +870,7 @@ async def _kingdom_step_options(
         if not owned:
             continue
         if getattr(kingdom, "is_gaia", False):
-            # GaÃ¯a territories are attackable through the free-for-all
+            # Gaïa territories are attackable through the free-for-all
             # (Drasah 14/10): the epoch's AI defends, any other lord
             # may then join the battle via the panel's Join button.
             options.append(_kingdom_option(kingdom, base, len(owned), strings))
@@ -890,7 +890,7 @@ async def _kingdom_step_options(
 async def _kingdom_select_view(
     wiring: Any, own_kingdom_id: str, strings: dict[str, str]
 ) -> tuple[str, discord.ui.View | None]:
-    """Step 1 â the attackable kingdoms (patrol-shielded ones stay visible)."""
+    """Step 1 — the attackable kingdoms (patrol-shielded ones stay visible)."""
     import discord
 
     kingdoms_service = wiring.kingdoms_service
@@ -924,7 +924,7 @@ async def _kingdom_select_view(
     view.add_item(select)
     lines = [str(strings["choose_kingdom"])]
     if protected:
-        lines.append(str(strings["protected_line"]).format(kingdoms=" Â· ".join(protected)))
+        lines.append(str(strings["protected_line"]).format(kingdoms=" · ".join(protected)))
     lines.append(str(strings["traquenard_hint"]))
     return "\n".join(lines), view
 
@@ -932,7 +932,7 @@ async def _kingdom_select_view(
 async def _territory_select_view(
     wiring: Any, own_kingdom_id: str, kingdom_id: str, strings: dict[str, str]
 ) -> tuple[str, discord.ui.View | None]:
-    """Step 2 â the territories of the chosen kingdom (tags + cadastre)."""
+    """Step 2 — the territories of the chosen kingdom (tags + cadastre)."""
     import discord
 
     kingdoms_service = wiring.kingdoms_service
@@ -990,13 +990,13 @@ async def _declare_player_attack(
     map_key: str,
     cover_lord_id: str | None,
 ) -> None:
-    """Declare a player attack at step 3 â no modal anymore.
+    """Declare a player attack at step 3 — no modal anymore.
 
     Live beta 18/10: the lobby URL field was removed from the
-    declaration (it moved to the RDV DM's ð button) and the modal
-    was left with ZERO component â Discord refuses an empty modal
+    declaration (it moved to the RDV DM's 🔗 button) and the modal
+    was left with ZERO component — Discord refuses an empty modal
     (400 Bad Request), the callback died and the attacker saw
-    Â« Kingdoms n'a pas rÃ©pondu Ã  temps Â». A player attack needs no
+    « Kingdoms n'a pas répondu à temps ». A player attack needs no
     extra input anymore: declare directly, then confirm.
     """
     attacks = wiring.attacks_service
@@ -1029,10 +1029,10 @@ async def _open_cover_step(
     *,
     is_gaia: bool = False,
 ) -> None:
-    """Step 3 â the counter-espionage question (skipped without a charge).
+    """Step 3 — the counter-espionage question (skipped without a charge).
 
-    A GaÃ¯a target skips the cover entirely: the free-for-all has no
-    defender to bluff (Drasah 14/10 â GaÃ¯a is attackable like any
+    A Gaïa target skips the cover entirely: the free-for-all has no
+    defender to bluff (Drasah 14/10 — Gaïa is attackable like any
     kingdom, the battle just accepts extra lords).
     """
     import discord
@@ -1144,7 +1144,7 @@ async def _announce_declaration_safe(guild: Any, wiring: Any, strings: dict[str,
 
 
 class KingdomAttackLobbyModal(discord.ui.Modal):
-    """Final step â the game lobby URL (the territory is already chosen)."""
+    """Final step — the game lobby URL (the territory is already chosen)."""
 
     def __init__(
         self,
@@ -1161,10 +1161,10 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         self.cover_lord_id = cover_lord_id
         self.kingdom_name = kingdom_name
         self.is_gaia = is_gaia
-        # Drasah 18/10: the modal is GAÃA-ONLY now (a player attack
-        # declares directly â an empty modal is rejected by Discord
+        # Drasah 18/10: the modal is GAÏA-ONLY now (a player attack
+        # declares directly — an empty modal is rejected by Discord
         # and killed the whole declare flow, live beta 18/10). The
-        # GaÃ¯a free-for-all keeps the field: the first declarer's URL
+        # Gaïa free-for-all keeps the field: the first declarer's URL
         # is the meeting point of the battle.
         self.lobby_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
             label=strings["modal_lobby"][:45], max_length=200, required=True
@@ -1172,7 +1172,7 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         self.add_item(self.lobby_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        """Declare the attack (GaÃ¯a free-for-all or player attack), confirm, announce."""
+        """Declare the attack (Gaïa free-for-all or player attack), confirm, announce."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = self.strings
@@ -1246,7 +1246,7 @@ class KingdomAttackDefendButton(
         match: re.Match[str],
         /,
     ) -> KingdomAttackDefendButton:
-        """Rebuild the button from the wire â THIS module's strings only."""
+        """Rebuild the button from the wire — THIS module's strings only."""
         return cls(
             await _resolve_attack_id_by_key_async(match["key"]),
             _strings(_locale(interaction))["defend_button"],
@@ -1272,9 +1272,9 @@ class KingdomAttackDefendButton(
             strings["defense_done"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             ephemeral=True,
         )
-        # Drasah 18/10 â effet de surprise : plus d'annonce publique du
-        # dÃ©fenseur. Seul le royaume dÃ©fenseur voit qui dÃ©fend (bouton
-        # Â« Gestion de la dÃ©fense Â» des Remparts) ; le board public
+        # Drasah 18/10 — effet de surprise : plus d'annonce publique du
+        # défenseur. Seul le royaume défenseur voit qui défend (bouton
+        # « Gestion de la défense » des Remparts) ; le board public
         # reste anonyme jusqu'au reveal.
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
 
@@ -1283,13 +1283,13 @@ class KingdomDefenseManagerButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:attack:defense-manager",
 ):
-    """The ð¡ï¸ Â« Gestion de la dÃ©fense Â» button of the Remparts panel.
+    """The 🛡️ « Gestion de la défense » button of the Remparts panel.
 
-    Drasah 18/10 â effet de surprise : la dÃ©fense n'est plus annoncÃ©e
-    publiquement et le board Attaques ne nomme jamais le dÃ©fenseur.
-    Ce bouton (visible du royaume dÃ©fenseur dans ses Remparts) montre
-    l'Ã©tat de chaque attaque subie et QUI dÃ©fend â la rÃ©assurance
-    privÃ©e du royaume.
+    Drasah 18/10 — effet de surprise : la défense n'est plus annoncée
+    publiquement et le board Attaques ne nomme jamais le défenseur.
+    Ce bouton (visible du royaume défenseur dans ses Remparts) montre
+    l'état de chaque attaque subie et QUI défend — la réassurance
+    privée du royaume.
     """
 
     def __init__(self, label: str) -> None:
@@ -1309,7 +1309,7 @@ class KingdomDefenseManagerButton(
         match: re.Match[str],
         /,
     ) -> KingdomDefenseManagerButton:
-        """Rebuild the button from the wire â THIS module's strings only."""
+        """Rebuild the button from the wire — THIS module's strings only."""
         return cls(_strings(_locale(interaction))["defense_manager_button"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1360,12 +1360,12 @@ class KingdomAttackJoinButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:attack:join:(?P<key>[0-9a-f]{16})",
 ):
-    """The restart-proof join button of one open GaÃ¯a battle.
+    """The restart-proof join button of one open Gaïa battle.
 
-    Drasah 14/10: a GaÃ¯a territory is attacked through the declare
+    Drasah 14/10: a Gaïa territory is attacked through the declare
     flow like any kingdom; other lords then JOIN the battle from the
-    panel (1v1v1â¦, one lord per kingdom, up to the participant
-    ceiling) â the lobby URL of the first declarer is the meeting
+    panel (1v1v1…, one lord per kingdom, up to the participant
+    ceiling) — the lobby URL of the first declarer is the meeting
     point.
     """
 
@@ -1387,14 +1387,14 @@ class KingdomAttackJoinButton(
         match: re.Match[str],
         /,
     ) -> KingdomAttackJoinButton:
-        """Rebuild the button from the wire â THIS module's strings only."""
+        """Rebuild the button from the wire — THIS module's strings only."""
         return cls(
             await _resolve_attack_id_by_key_async(match["key"]),
             _strings(_locale(interaction))["gaia_join_button"],
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Join the open GaÃ¯a battle of this button's attack."""
+        """Join the open Gaïa battle of this button's attack."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
         from kingdoms.mods.kingdoms.models import AttackKind
 
@@ -1448,11 +1448,11 @@ class KingdomPickBanView(discord.ui.View):
     """The ephemeral DM view: ranked picks, one validate button.
 
     Drasah 18/10 v2: NO sabotage select anymore (the Sabotage/Faucon
-    moves to the battle room) and a BLIND resolution â the validating
+    moves to the battle room) and a BLIND resolution — the validating
     player NEVER sees the adversary civilizations (the live beta
     asymmetry: the second validator knew everything first). When the
     draft resolves, BOTH DMs are edited (anti-spam) into the ready
-    prompt carrying the Â« PrÃªt Â» button.
+    prompt carrying the « Prêt » button.
     """
 
     def __init__(
@@ -1492,10 +1492,10 @@ class KingdomPickBanView(discord.ui.View):
     def _make_on_select(self) -> Any:
         """Ack a select interaction (live beta 18/10 fix).
 
-        The selects had no callback: Discord showed Â« the application
-        did not respond Â» and no civilization could ever be picked. The
+        The selects had no callback: Discord showed « the application
+        did not respond » and no civilization could ever be picked. The
         acknowledged interaction refreshes the select values held by
-        THIS view instance â `_on_validate` reads them back at submit
+        THIS view instance — `_on_validate` reads them back at submit
         time.
         """
 
@@ -1532,7 +1532,7 @@ class KingdomPickBanView(discord.ui.View):
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)
             return
         # Symmetry (Drasah 18/10 v2): the SAME answer for the first
-        # and the second validator â nobody sees the adversary civs.
+        # and the second validator — nobody sees the adversary civs.
         content = strings["pickban_waiting"]
         try:
             await interaction.response.edit_message(content=content, view=None)
@@ -1542,12 +1542,12 @@ class KingdomPickBanView(discord.ui.View):
         if not pickban.get("resolved_pickban"):
             return
         # The draft resolved: edit BOTH DMs into the ready prompt
-        # (anti-spam â no new DM), the PrÃªt button rides the message.
+        # (anti-spam — no new DM), the Prêt button rides the message.
         await _edit_pickban_dms_ready(interaction.client, attack, strings)
 
 
 def _ready_key(attack_id: str, player_id: str) -> str:
-    """Return the 16-hex digest keying the PrÃªt button (custom ids stay short)."""
+    """Return the 16-hex digest keying the Prêt button (custom ids stay short)."""
     return hashlib.sha256(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
 
 
@@ -1557,7 +1557,7 @@ def _room_key(attack_id: str) -> str:
 
 
 def _ready_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui.View:
-    """Build the persistent PrÃªt view appended to the pick & ban DM."""
+    """Build the persistent Prêt view appended to the pick & ban DM."""
     view = discord.ui.View(timeout=None)
     view.add_item(
         KingdomReadyButton(attack_id, player_id, _strings(locale)["ready_button"])
@@ -1566,7 +1566,7 @@ def _ready_dm_view(attack_id: str, player_id: str, locale: str) -> discord.ui.Vi
 
 
 async def _edit_dm_message_safe(bot: Any, ref: Any, content: str, view: discord.ui.View | None) -> bool:
-    """Edit a stored DM message (channel_id + message_id) â best effort."""
+    """Edit a stored DM message (channel_id + message_id) — best effort."""
     try:
         channel = getattr(bot, "get_channel", lambda _id: None)(int(ref["channel_id"]))
         if channel is None:
@@ -1575,7 +1575,7 @@ async def _edit_dm_message_safe(bot: Any, ref: Any, content: str, view: discord.
         await message.edit(content=content, view=view)
         return True
     except Exception:
-        logger.warning("KINGDOM ATTACK: DM edit failed â falling back to a new DM", exc_info=True)
+        logger.warning("KINGDOM ATTACK: DM edit failed — falling back to a new DM", exc_info=True)
         return False
 
 
@@ -1584,7 +1584,7 @@ async def _edit_pickban_dms_ready(bot: Any, attack: Any, strings: dict[str, str]
 
     The refs come from the pickban store (``record_pickban_dm``); a
     failed edit (restart gap, expired message) falls back to a NEW
-    DM â the PrÃªt button must reach both players.
+    DM — the Prêt button must reach both players.
     """
     pickban: dict[str, Any] = dict(attack.pickban or {})
     for side, player_id in (
@@ -1607,7 +1607,7 @@ class KingdomReadyButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:attack:ready:(?P<key>[0-9a-f]{16})",
 ):
-    """The restart-proof Â« PrÃªt Â» button of the pick & ban DM."""
+    """The restart-proof « Prêt » button of the pick & ban DM."""
 
     def __init__(self, attack_id: str, player_id: str, label: str) -> None:
         key = _ready_key(attack_id, player_id)
@@ -1648,7 +1648,7 @@ class KingdomReadyButton(
         return cls("", "", label)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Confirm the presence (UI record â the forfeit rides the voice)."""
+        """Confirm the presence (UI record — the forfeit rides the voice)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = _strings(_locale(interaction))
@@ -1683,8 +1683,8 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
         strings["pickban_dm"].format(
             map=attack.map_key,
             count=min(3, len(hand)) or 1,
-            hand=", ".join(hand) or "â",
-            theirs=", ".join(adversary) or "â",
+            hand=", ".join(hand) or "—",
+            theirs=", ".join(adversary) or "—",
         ),
         view,
     )
@@ -1704,8 +1704,8 @@ async def _send_pickban_dm(bot: Any, attack: Any, kingdoms_service: Any, locale:
             strings["pickban_dm"].format(
                 map=attack.map_key,
                 count=min(3, len(adversary)) or 1,
-                hand=", ".join(adversary) or "â",
-                theirs=", ".join(hand) or "â",
+                hand=", ".join(adversary) or "—",
+                theirs=", ".join(hand) or "—",
             ),
             view,
         )
@@ -1740,7 +1740,7 @@ async def _hand_of(kingdoms_service: Any, kingdom_id: str | None) -> list[str]:
 async def _dm_user_safe(
     bot: Any, user_id: str, content: str, view: discord.ui.View | None = None
 ) -> Any:
-    """Best-effort DM to one player â returns the message (or None)."""
+    """Best-effort DM to one player — returns the message (or None)."""
     try:
         user = getattr(bot, "get_user", lambda _id: None)(user_id)
         if user is None:
@@ -1750,7 +1750,7 @@ async def _dm_user_safe(
     except Exception:
         # The message stays generic on purpose: _dm_user_safe carries
         # BOTH the pick & ban DMs and the RDV DMs (live beta 18/10: the
-        # log said Â« pick & ban DM failed Â» for a dying RDV DM â the
+        # log said « pick & ban DM failed » for a dying RDV DM — the
         # 50035 custom_id rejection read like a draft bug).
         logger.warning("KINGDOM ATTACK: player DM failed (%s)", user_id, exc_info=True)
     return None
@@ -1774,7 +1774,7 @@ async def run_attack_phases_safe(bot: Any) -> None:
     """Drive the D77 phases for every guild: reveal, DMs, rooms, forfeits.
 
     attaques-panel-spam (Drasah 15/10): the panel is redeployed ONLY
-    when a phase was actually played this tick â an idle tick touches
+    when a phase was actually played this tick — an idle tick touches
     nothing (no delete, no send, no edit). The mutation hooks keep
     their own refresh: they are the other legitimate content change.
 
@@ -1798,7 +1798,7 @@ async def run_attack_phases_safe(bot: Any) -> None:
                 bot, guild, attacks_service, kingdoms_service, announce_channel, strings, locale
             )
         # The resolved meetings free their battle room (channel +
-        # role) â whatever the resolution (declared, forfeit, admin).
+        # role) — whatever the resolution (declared, forfeit, admin).
         dirty += await _cleanup_battle_rooms_safe(bot, attacks_service)
         if dirty:
             await deploy_attack_panel(_declare_channel(guild), locale, kingdoms_service, attacks_service)
@@ -1814,7 +1814,7 @@ async def _run_phases_announce_safe(
     strings: dict[str, str],
     locale: str,
 ) -> int:
-    """Play the announce-channel phases of one guild â never raise."""
+    """Play the announce-channel phases of one guild — never raise."""
     dirty = 0
     try:
         dirty += await _run_reveals_safe(attacks_service, kingdoms_service, announce_channel, strings)
@@ -1823,7 +1823,7 @@ async def _run_phases_announce_safe(
             await _send_pickban_dm(bot, attack, kingdoms_service, locale)
         dirty += len(pickbans)
         # Drasah 18/10 v2: at T the meeting opens a BATTLE ROOM
-        # (dedicated role, voice channel under Â« Champs de bataille Â»,
+        # (dedicated role, voice channel under « Champs de bataille »,
         # the shuffled civs in its text channel) and DMs the link to
         # both players.
         scores = await attacks_service.score_due()
@@ -1831,7 +1831,7 @@ async def _run_phases_announce_safe(
             await _open_battle_room(bot, guild, attack, kingdoms_service, locale)
         dirty += len(scores)
         # A lone result declaration holds score_confirm_minutes, then
-        # the declared result applies (fait foi) â announced like any
+        # the declared result applies (fait foi) — announced like any
         # resolution.
         confirmed = await attacks_service.score_confirm_due()
         for attack in confirmed:
@@ -1839,7 +1839,7 @@ async def _run_phases_announce_safe(
             await _announce_safe(
                 announce_channel,
                 strings["score_resolved"].format(
-                    winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "â"
+                    winner=winner, map=attack.map_key, game=(attack.score or {}).get("game_id") or "—"
                 ),
             )
         dirty += len(confirmed)
@@ -1848,8 +1848,8 @@ async def _run_phases_announce_safe(
         for attack in reminders:
             await _send_score_reminder_dm(bot, attack, locale)
         dirty += len(reminders)
-        # bug nÂ°2 (Check 59, Drasah 16/10): 15h without a declared
-        # result â the dispute auto-opens, the admins arbitrate; no
+        # bug n°2 (Check 59, Drasah 16/10): 15h without a declared
+        # result — the dispute auto-opens, the admins arbitrate; no
         # meeting hangs forever.
         disputes = await attacks_service.dispute_due()
         for attack in disputes:
@@ -1865,7 +1865,7 @@ async def _run_phases_announce_safe(
 async def _run_reveals_safe(attacks_service: Any, kingdoms_service: Any, channel: Any, strings: dict[str, str]) -> int:
     """Announce the T-15 reveals (cover drop only).
 
-    Drasah 17/10: the defense window is [T-15, T] â at the cutoff the
+    Drasah 17/10: the defense window is [T-15, T] — at the cutoff the
     cover drops but the defense stays open; the AI fallback announces
     at the meeting time (``_run_forfeits_safe``). Returns the number
     of reveals played (attaques-panel-spam: the tick redeploy is
@@ -1895,7 +1895,7 @@ async def _run_forfeits_safe(attacks_service: Any, kingdoms_service: Any, channe
     for attack in await attacks_service.expire_stale():
         played += 1
         if attack.ai_defender:
-            # The [T-15, T] window closed with no defender â the bot
+            # The [T-15, T] window closed with no defender — the bot
             # AI takes the defense at the meeting time (Drasah 17/10).
             await _announce_safe(
                 channel,
@@ -1921,7 +1921,7 @@ async def _run_forfeits_safe(attacks_service: Any, kingdoms_service: Any, channe
 
 
 # ----------------------------------------------------------------------
-# The battle room (Drasah 18/10 v2 â the RDV lives in a voice room)
+# The battle room (Drasah 18/10 v2 — the RDV lives in a voice room)
 # ----------------------------------------------------------------------
 _VOICE_LISTENER_REGISTERED = False
 
@@ -1959,7 +1959,7 @@ def _register_voice_listener(bot: Any) -> None:
 
 
 def _shuffled_civs(picks: Any) -> list[str]:
-    """Shuffle one side's 3 picks â the ranking must stay hidden."""
+    """Shuffle one side's 3 picks — the ranking must stay hidden."""
     import random as _random
 
     pool = [str(civ) for civ in (picks or [])]
@@ -1971,7 +1971,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
     """Open the battle room of a meeting (Drasah 18/10 v2).
 
     A dedicated role (given to both players), a voice channel under
-    the Â« Champs de bataille Â» category (user_limit 2, access locked
+    the « Champs de bataille » category (user_limit 2, access locked
     to the role) and a text-in-voice message carrying the SHUFFLED
     civilizations of each player + the persistent URL/result buttons.
     Both players get a DM pointing at the room.
@@ -2004,8 +2004,8 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         )
         pickban: dict[str, Any] = dict(attack.pickban or {})
         lines = [
-            f"**{attacker}** â {' '.join(_shuffled_civs(pickban.get('attacker_picks')))}",
-            f"**{defender}** â {' '.join(_shuffled_civs(pickban.get('defender_picks')))}",
+            f"**{attacker}** — {' '.join(_shuffled_civs(pickban.get('attacker_picks')))}",
+            f"**{defender}** — {' '.join(_shuffled_civs(pickban.get('defender_picks')))}",
         ]
         room_view = discord.ui.View(timeout=None)
         room_view.add_item(
@@ -2092,7 +2092,7 @@ class KingdomRoomUrlButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:attack:room:url:(?P<key>[0-9a-f]{16})",
 ):
-    """The persistent ð button of the battle room (URL share)."""
+    """The persistent 🔗 button of the battle room (URL share)."""
 
     def __init__(self, attack_id: str, label: str) -> None:
         super().__init__(
@@ -2173,7 +2173,7 @@ class KingdomRoomResultButton(
     discord.ui.DynamicItem[discord.ui.Button[Any]],
     template=r"kingdoms:attack:room:result:(?P<key>[0-9a-f]{16})",
 ):
-    """The persistent ð button of the battle room (result declaration)."""
+    """The persistent 🏆 button of the battle room (result declaration)."""
 
     def __init__(self, attack_id: str, label: str) -> None:
         super().__init__(
@@ -2198,7 +2198,7 @@ class KingdomRoomResultButton(
         return cls(await _resolve_room_attack_id_async(match["key"]), label)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Ephemeral winner select â game-id modal (Drasah 18/10 v2)."""
+        """Ephemeral winner select → game-id modal (Drasah 18/10 v2)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         strings = _strings(_locale(interaction))
@@ -2249,7 +2249,7 @@ class KingdomRoomResultButton(
 class KingdomRoomResultModal(discord.ui.Modal):
     """The battle-room result modal: the game id rides the winner.
 
-    Drasah 18/10 v2: the declaration lives in the room â ``resolved``
+    Drasah 18/10 v2: the declaration lives in the room — ``resolved``
     announces on the spot, ``disputed`` DMs the admins the arbitration
     view and a lone declaration pends ``score_confirm_minutes``.
     """
@@ -2291,7 +2291,7 @@ class KingdomRoomResultModal(discord.ui.Modal):
             return
         if outcome == "disputed":
             await interaction.response.send_message(
-                strings["score_disputed"].format(game=game_id or "â")
+                strings["score_disputed"].format(game=game_id or "—")
             )
             await _dm_admins_dispute_safe(interaction.client, wiring, attack, strings)
             return
@@ -2301,7 +2301,7 @@ class KingdomRoomResultModal(discord.ui.Modal):
         if outcome == "resolved":
             winner = await _kingdom_name(wiring.kingdoms_service, self.winner_kingdom_id)
             await interaction.response.send_message(
-                strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "â")
+                strings["score_resolved"].format(winner=winner, map=attack.map_key, game=game_id or "—")
             )
             return
         minutes = 10
@@ -2312,7 +2312,7 @@ class KingdomRoomResultModal(discord.ui.Modal):
         except Exception:
             minutes = 10
         await interaction.response.send_message(
-            strings["score_pending"].format(game=game_id or "â", minutes=minutes)
+            strings["score_pending"].format(game=game_id or "—", minutes=minutes)
         )
 
 
@@ -2405,12 +2405,12 @@ async def _dm_admins_dispute_safe(bot: Any, wiring: Any, attack: Any, strings: d
     """DM the bot-admins a disputed meeting with the arbitration buttons."""
     declarations = (attack.score or {}).get("declarations") or {}
     lines = [
-        f"â¢ <@{player}> â {decl.get('winner')} (game {decl.get('game_id')})" for player, decl in declarations.items()
+        f"• <@{player}> → {decl.get('winner')} (game {decl.get('game_id')})" for player, decl in declarations.items()
     ]
     content = strings["dispute_admin_dm"].format(
         map=attack.map_key,
-        declarations="\n".join(lines) or "â",
-        game=(attack.score or {}).get("game_id") or "â",
+        declarations="\n".join(lines) or "—",
+        game=(attack.score or {}).get("game_id") or "—",
     )
     view = KingdomDisputeView(str(attack.id), "fr")
     for admin_id in wiring.bot_admins or ():
@@ -2438,4 +2438,3 @@ async def _run_noshows_safe(attacks_service: Any, kingdoms_service: Any, channel
             strings["noshow_side"].format(map=attack.map_key, side=strings[f"side_{noshow}"], kingdom=kingdom),
         )
     return played
-
