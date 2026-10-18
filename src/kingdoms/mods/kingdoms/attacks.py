@@ -1051,6 +1051,22 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
+    async def record_room_event(self, attack_id: str, event_id: int) -> AttackModel:
+        """Store the battle-room match event ref (Drasah 18/10).
+
+        Both players clicked Prêt in the vocal — the announced match
+        rides a Discord scheduled event; the ref keeps the announce
+        idempotent (a re-click never recreates the event).
+        """
+        attack = await self._find_attack(attack_id)
+        if attack.is_over:
+            return attack
+        score = dict(attack.score)
+        score["room_event_id"] = int(event_id)
+        attack.score = score
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
     async def record_voice_join(self, channel_id: int, player_id: str) -> AttackModel | None:
         """Record a player joining the battle-room voice channel.
 

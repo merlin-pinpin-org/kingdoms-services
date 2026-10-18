@@ -730,6 +730,8 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     ids = {str(c.custom_id) for c in view.children}
     assert any(cid.startswith("kingdoms:attack:room:url:") for cid in ids)
     assert any(cid.startswith("kingdoms:attack:room:result:") for cid in ids)
+    # Check 76: the vocal also carries the ✅ Prêt button.
+    assert any(cid.startswith("kingdoms:attack:room:ready:") for cid in ids)
     # Idempotent: a replayed tick never duplicates the room.
     await _open_battle_room(bot, guild, fresh, bundle.kingdoms, "fr")
     rooms = [c for c in guild.channels if getattr(c, "user_limit", None) == 2]
@@ -784,3 +786,56 @@ async def test_battle_room_text_post_failure_still_grants_roles_and_dms(
     # Both players still got the room DM pointing at the vocal.
     dm_targets = {uid for uid, _msg in outbox}
     assert dm_targets >= {str(attack.attacker_lord_id), str(attack.defender_lord_id)}
+
+
+async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
+    """Check 76: the vocal's ✅ Prêt button records the readiness and,
+    once BOTH players clicked, creates the match scheduled event and
+    announces the start in the room (a re-click never re-announces)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomRoomReadyButton,
+        _open_battle_room,
+        _strings,
+    )
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
+
+    created: list[dict[str, Any]] = []
+
+    async def _fake_create_scheduled_event(**kwargs: Any) -> Any:
+        created.append(kwargs)
+
+        class _E:
+            id = 987654321
+
+        return _E()
+
+    guild.create_scheduled_event = _fake_create_scheduled_event  # type: ignore[method-assign]
+    strings = _strings("fr")
+    button = KingdomRoomReadyButton(attack.id, strings["room_ready_button"])
+    first = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(first)  # type: ignore[arg-type]
+    # First click: waiting for the other player — no event yet.
+    assert first.response.message is not None
+    assert "attente" in str(first.response.message.content or "")
+    assert not created
+    second = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(second)  # type: ignore[arg-type]
+    # Both ready: the match event is created once, the ref is stored.
+    assert len(created) == 1
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert (fresh.score or {}).get("room_event_id") == 987654321
+    assert any("La partie commence" in (m.content or "") for m in room.messages)
+    # A re-click by the same player never re-announces the match.
+    again = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")  # type: ignore[arg-type]
+    await button.callback(again)  # type: ignore[arg-type]
+    assert len(created) == 1
