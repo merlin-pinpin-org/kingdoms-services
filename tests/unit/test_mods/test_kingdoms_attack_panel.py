@@ -801,7 +801,8 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     bundle = ScoreBundle()
     await bundle.launch_season()
     await bundle.draw(26)
-    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    # open_meeting: the score phase must be OPEN before a Prêt click.
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
     _wiring(bundle)
     guild = MockGuild()
     bot = _FakeBot(bundle)

@@ -2456,6 +2456,14 @@ async def _announce_room_start_safe(
     wiring = _wiring()
     guild = interaction.guild
     channel = interaction.channel
+    if guild is None:
+        logger.warning("KINGDOM ATTACK: room match announce without a guild")
+        return
+    if not isinstance(
+        channel, (discord.VoiceChannel, discord.StageChannel, discord.TextChannel, discord.Thread)
+    ):
+        logger.warning("KINGDOM ATTACK: room match announce outside a room channel")
+        return
     score = dict(attack.score or {})
     attacker_name = await _kingdom_name(wiring.kingdoms_service, attack.attacker_kingdom_id)
     defender_name = await _kingdom_name(wiring.kingdoms_service, attack.defender_kingdom_id)
