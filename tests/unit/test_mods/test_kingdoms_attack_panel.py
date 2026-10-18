@@ -262,7 +262,6 @@ async def test_declare_flow_declares_the_attack() -> None:
     """The GUIDED flow (kingdom → territory → cover → lobby) declares (recâblage)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         KingdomAttackDeclareButton,
-        KingdomAttackLobbyModal,
         _strings,
     )
 
@@ -297,22 +296,18 @@ async def test_declare_flow_declares_the_attack() -> None:
     step2 = MockInteraction(  # type: ignore[arg-type]
         user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
     )
-    # Step 3 — no contre-espionnage stock: the lobby modal opens directly.
+    # Step 3 — no contre-espionnage stock: the attack declares
+    # DIRECTLY (Drasah 18/10 — no modal: an empty modal is rejected
+    # by Discord and killed the flow, live beta 18/10).
     await territory_select.callback(step2)  # type: ignore[arg-type]
-    modal = step2.response.modal
-    assert isinstance(modal, KingdomAttackLobbyModal)
-    assert modal.map_key == target
-    assert modal.cover_lord_id is None
-    # Drasah 18/10: a player attack no longer asks for the lobby URL
-    # at the declaration — no lobby field on the modal.
-    assert modal.lobby_input is None
-    submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
-    await modal.on_submit(submit)  # type: ignore[arg-type]
     attacks = await bundle.attacks.attacks()
     assert len(attacks) == 1
     assert str(attacks[0].state.value) == "declared"
-    assert submit.followup.messages
-    assert "Attaque déclarée" in (submit.followup.messages[0].content or "")
+    assert attacks[0].map_key == target
+    assert attacks[0].lobby_url == ""
+    assert step2.response.deferred is True
+    assert step2.followup.messages
+    assert "Attaque déclarée" in (step2.followup.messages[0].content or "")
 
 
 async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
@@ -411,7 +406,7 @@ async def test_declare_flow_attacks_gaia_through_the_free_for_all() -> None:
     modal = step2.response.modal
     assert isinstance(modal, KingdomAttackLobbyModal)
     assert modal.is_gaia is True
-    modal.lobby_input._value = "aoe2de://gaia"  # type: ignore[union-attr]
+    modal.lobby_input._value = "aoe2de://gaia"  # type: ignore[attr-defined]
     submit = MockInteraction(user=MockUser(id="king-a"), locale="fr")  # type: ignore[arg-type]
     await modal.on_submit(submit)  # type: ignore[arg-type]
     attacks = await bundle.attacks.attacks()

@@ -953,6 +953,43 @@ async def _territory_select_view(
     return str(strings["choose_territory"]).format(kingdom=f"**{kingdom.name}**"), view
 
 
+async def _declare_player_attack(
+    wiring: Any,
+    target: discord.Interaction[Any],
+    strings: dict[str, str],
+    map_key: str,
+    cover_lord_id: str | None,
+) -> None:
+    """Declare a player attack at step 3 — no modal anymore.
+
+    Live beta 18/10: the lobby URL field was removed from the
+    declaration (it moved to the RDV DM's 🔗 button) and the modal
+    was left with ZERO component — Discord refuses an empty modal
+    (400 Bad Request), the callback died and the attacker saw
+    « Kingdoms n'a pas répondu à temps ». A player attack needs no
+    extra input anymore: declare directly, then confirm.
+    """
+    attacks = wiring.attacks_service
+    if attacks is None:
+        await target.response.send_message(strings["no_service"], ephemeral=True)
+        return
+    await target.response.defer(ephemeral=True)
+    try:
+        attack = await attacks.declare_attack(
+            str(target.user.id), map_key, "", cover_lord_id=cover_lord_id
+        )
+    except Exception as exc:
+        message = getattr(exc, "message", None) or str(exc)
+        await target.followup.send(strings["failed"].format(message=message), ephemeral=True)
+        return
+    await target.followup.send(
+        strings["declared_note"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
+        ephemeral=True,
+    )
+    await _announce_declaration_safe(target.guild, wiring, strings, attack)
+    await refresh_attack_panel_safe(target.guild, _locale(target))
+
+
 async def _open_cover_step(
     wiring: Any,
     interaction: discord.Interaction[Any],
@@ -970,21 +1007,21 @@ async def _open_cover_step(
     """
     import discord
 
-    attacks_service = wiring.attacks_service
     if is_gaia:
         await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, "", is_gaia=True))
         return
+    attacks_service = wiring.attacks_service
     if attacks_service is None:
-        await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, ""))
+        await interaction.response.send_message(strings["no_service"], ephemeral=True)
         return
     state = await attacks_service.technology_state(own_kingdom_id)
     if state.purchases.get("contre_espionnage", 0) <= 0:
-        await interaction.response.send_modal(KingdomAttackLobbyModal(strings, map_key, None, ""))
+        await _declare_player_attack(wiring, interaction, strings, map_key, None)
         return
     view = discord.ui.View(timeout=600)
 
     async def open_lobby(cover_lord_id: str | None, target: discord.Interaction[Any]) -> None:
-        await target.response.send_modal(KingdomAttackLobbyModal(strings, map_key, cover_lord_id, ""))
+        await _declare_player_attack(wiring, target, strings, map_key, cover_lord_id)
 
     async def on_yes(target: discord.Interaction[Any]) -> None:
         lords = [
@@ -1094,16 +1131,15 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         self.cover_lord_id = cover_lord_id
         self.kingdom_name = kingdom_name
         self.is_gaia = is_gaia
-        # Drasah 18/10: a PLAYER attack no longer asks for the game
-        # lobby URL at the declaration — the RDV DM's 🔗 button
-        # collects it at the ready phase. The Gaïa free-for-all keeps
-        # the field (the first declarer's URL is the meeting point).
-        self.lobby_input: discord.ui.TextInput[discord.ui.Modal] | None = None
-        if is_gaia:
-            self.lobby_input = discord.ui.TextInput(
-                label=strings["modal_lobby"][:45], max_length=200, required=True
-            )
-            self.add_item(self.lobby_input)
+        # Drasah 18/10: the modal is GAÏA-ONLY now (a player attack
+        # declares directly — an empty modal is rejected by Discord
+        # and killed the whole declare flow, live beta 18/10). The
+        # Gaïa free-for-all keeps the field: the first declarer's URL
+        # is the meeting point of the battle.
+        self.lobby_input: discord.ui.TextInput[discord.ui.Modal] = discord.ui.TextInput(
+            label=strings["modal_lobby"][:45], max_length=200, required=True
+        )
+        self.add_item(self.lobby_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Declare the attack (Gaïa free-for-all or player attack), confirm, announce."""
@@ -1114,22 +1150,11 @@ class KingdomAttackLobbyModal(discord.ui.Modal):
         attacks = wiring.attacks_service
         await interaction.response.defer(ephemeral=True)
         try:
-            if self.is_gaia:
-                attack = await attacks.declare_gaia_attack(
-                    str(interaction.user.id),
-                    self.map_key,
-                    (self.lobby_input.value if self.lobby_input else "").strip(),
-                )
-            else:
-                # No lobby field anymore for a player attack (Drasah
-                # 18/10) — the RDV DM collects the URL at the ready
-                # phase. The chronicle/announcement never used it.
-                attack = await attacks.declare_attack(
-                    str(interaction.user.id),
-                    self.map_key,
-                    "",
-                    cover_lord_id=self.cover_lord_id,
-                )
+            attack = await attacks.declare_gaia_attack(
+                str(interaction.user.id),
+                self.map_key,
+                (self.lobby_input.value if self.lobby_input else "").strip(),
+            )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.followup.send(strings["failed"].format(message=message), ephemeral=True)
