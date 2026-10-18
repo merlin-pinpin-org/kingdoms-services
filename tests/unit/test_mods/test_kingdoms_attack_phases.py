@@ -62,8 +62,9 @@ class PhasesBundle(Bundle):
         )
 
 
-async def test_defense_opens_at_t_minus_15() -> None:
-    """Drasah 17/10: the defense window is [T-15, T] — not before."""
+async def test_defense_opens_at_declaration_and_closes_at_t_minus_15() -> None:
+    """Drasah 18/10: the defense window is [declaration, T-15] — open the
+    second the attack is declared, closed by the T-15 reveal."""
     from kingdoms.mods.kingdoms import attacks as attacks_module
 
     bundle = PhasesBundle()
@@ -71,16 +72,18 @@ async def test_defense_opens_at_t_minus_15() -> None:
     await bundle.draw(2)
     attack = await bundle.fresh_attack()
     assert attack.expires_at == datetime(2026, 10, 11, 18, 0, tzinfo=UTC)
-    # Before the 17:45 cutoff the shield is not accessible yet.
-    attacks_module._now = lambda: datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    # Past the 17:45 cutoff the shield is closed (the reveal locked it).
+    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
     try:
         with pytest.raises(DefenseCutoffError):
             await bundle.attacks.respond_defense(attack.id, "lord-b")
         assert attack.state is AttackState.DECLARED
     finally:
         attacks_module._now = lambda: _SAFE_NOW
-    # 17:50 (frozen clock): inside [17:45, 18:00) — the defense lands.
-    defended = await bundle.attacks.respond_defense(attack.id, "lord-b")
+    # 12:30 — right after the 12:00 declaration: the defense lands.
+    defended = await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
     assert defended.state is AttackState.DEFENDED
 
 
@@ -202,8 +205,10 @@ async def test_reveal_keeps_a_locked_human_defense() -> None:
     await bundle.launch_season()
     await bundle.draw(6)
     attack = await bundle.fresh_attack()
-    # The defense lands inside the [T-15, T] window (frozen clock).
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
+    # The defense lands right after the declaration (new window).
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
     revealed = await bundle.attacks.reveal_due(now=_SAFE_NOW)
     assert [item.id for item in revealed] == [attack.id]
     assert revealed[0].ai_defender is False
@@ -233,43 +238,63 @@ async def test_ai_defense_skips_the_pick_ban_and_opens_the_meeting() -> None:
     assert await bundle.attacks.expire_stale(now=attack.expires_at + timedelta(minutes=5)) == []
 
 
-async def test_last_minute_defense_skips_the_pick_ban() -> None:
-    """Drasah 17/10: a defense locked after the last pick & ban tick
-    skips the pick & ban (no forfait) — the RDV decides."""
+async def test_forgotten_draft_defaults_to_random_picks_no_sabotage() -> None:
+    """Drasah 18/10 — anti-blocking default: nobody ranks/validates in the
+    draft → 3 RANDOM civs per hand, no sabotage, no faucon, RDV proceeds."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(12)
     attack = await bundle.fresh_attack()
-    # 17:58: inside the defense window, after the T-5 pick & ban lead.
-    defended = await bundle.attacks.respond_defense(
-        attack.id, "lord-b", now=datetime(2026, 10, 11, 17, 58, tzinfo=UTC)
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths", "huns")
+    await bundle.give_civs("Bourgogne", "perses", "byzantins", "celtes", "maya")
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
     )
-    assert defended.state is AttackState.DEFENDED
-    # The pick & ban window [17:55, 18:00) is gone at the next tick.
+    # The reveal (T-15) locks the defense and the draft DMs leave.
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    due = await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 46, tzinfo=UTC))
+    assert [item.id for item in due] == [attack.id]
+    # Nobody picks or validates — the meeting time applies the default.
     expired = await bundle.attacks.expire_stale(now=attack.expires_at)
-    assert expired == []  # no forfait — the RDV opens instead
+    assert expired == []  # never a forfeit — the RDV opens instead
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     assert fresh.pickban["resolved_pickban"] is True
-    due = await bundle.attacks.score_due(now=attack.expires_at)
-    assert [item.id for item in due] == [attack.id]
-    assert due[0].state is AttackState.MEETING
+    assert sorted(fresh.pickban["default_picks"]) == ["attacker", "defender"]
+    assert len(fresh.pickban["attacker_picks"]) == 3  # random, from the hand
+    assert len(fresh.pickban["defender_picks"]) == 3
+    assert fresh.pickban["attacker_sabotages"] == []
+    assert fresh.pickban["defender_sabotages"] == []
+    assert fresh.state is AttackState.DEFENDED  # the meeting still decides
+    meetings = await bundle.attacks.score_due(now=attack.expires_at)
+    assert [item.id for item in meetings] == [attack.id]
+    assert meetings[0].state is AttackState.MEETING
 
 
-async def test_pick_ban_window_opens_at_t_minus_5() -> None:
-    """D77: no pick & ban before the T-5 DMs leave."""
+async def test_pick_ban_opens_at_the_reveal() -> None:
+    """Drasah 18/10: the draft DMs leave AT the T-15 reveal — no pick
+    & ban before it, live picks after it."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(8)
     attack = await bundle.fresh_attack()
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
     await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
+    # Before the reveal the draft never left — picking is refused.
     with pytest.raises(PickBanStateError):
         await bundle.attacks.set_picks(
             attack.id,
             "king-a",
             ["francs", "bretons", "goths"],
-            now=datetime(2026, 10, 11, 17, 50, tzinfo=UTC),
+            now=datetime(2026, 10, 11, 17, 30, tzinfo=UTC),
         )
+    # The reveal (17:45) locks the defense and the DMs leave.
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    assert await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.set_picks(
+        attack.id, "king-a", ["francs", "bretons", "goths"], now=datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
+    )
 
 
 async def test_pick_ban_ranks_sabotages_and_resolves_on_mutual_validation() -> None:
@@ -278,8 +303,11 @@ async def test_pick_ban_ranks_sabotages_and_resolves_on_mutual_validation() -> N
     await bundle.launch_season()
     await bundle.draw(9)
     attack = await bundle.fresh_attack()
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
-    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC))
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 46, tzinfo=UTC))
     await bundle.give_civs("Aquitaine", "francs", "bretons", "goths")
     await bundle.give_civs("Bourgogne", "huns", "perses", "byzantins")
     pick_now = datetime(2026, 10, 11, 17, 56, tzinfo=UTC)
@@ -335,40 +363,55 @@ async def test_pick_ban_ranks_sabotages_and_resolves_on_mutual_validation() -> N
         )
 
 
-async def test_meeting_time_forfeit_when_both_sides_miss_the_validation() -> None:
-    """D77: nobody validates — the attacker, the present, wins the forfait."""
+async def test_forgotten_draft_by_one_side_defaults_only_that_side() -> None:
+    """Drasah 18/10: only the side that missed its validation gets the
+    random default — the present side keeps its ranked picks, no
+    sabotage, no forfait, the RDV decides."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(10)
-    aquitaine = await bundle.kingdom_id("Aquitaine")
     attack = await bundle.fresh_attack()
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
-    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC))
-    expired = await bundle.attacks.expire_stale(now=attack.expires_at)
-    assert [item.id for item in expired] == [attack.id]
-    assert expired[0].state is AttackState.RESOLVED
-    assert expired[0].winner_kingdom_id == aquitaine
-    assert expired[0].pickban["forfeit_side"] == "both"
-    territory = next(
-        t for t in await bundle.territories.territories() if t.id == attack.territory_id
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
     )
-    assert territory.owner_kingdom_id == aquitaine
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 46, tzinfo=UTC))
+    await bundle.give_civs("Aquitaine", "francs", "bretons", "goths", "huns")
+    await bundle.give_civs("Bourgogne", "perses", "byzantins", "celtes", "maya")
+    # The defender ranks and validates; the attacker never does.
+    await bundle.attacks.set_picks(
+        attack.id, "lord-b", ["perses", "byzantins", "celtes"], now=datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
+    )
+    await bundle.attacks.validate_pickban(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 17, 51, tzinfo=UTC)
+    )
+    expired = await bundle.attacks.expire_stale(now=attack.expires_at)
+    assert expired == []  # the default applies — no forfait at all
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    assert fresh.pickban["default_picks"] == ["attacker"]
+    assert len(fresh.pickban["attacker_picks"]) == 3  # random from the hand
+    assert fresh.pickban["defender_picks"] == ["perses", "byzantins", "celtes"]
+    assert fresh.state is AttackState.DEFENDED  # the meeting still decides
+    assert fresh.winner_kingdom_id is None
 
 
-async def test_meeting_time_forfait_when_only_one_side_validates() -> None:
-    """D77: the side that missed its validation loses the forfait."""
+async def test_meeting_time_still_waits_for_the_game_result_after_default() -> None:
+    """Drasah 18/10: after the anti-blocking default the meeting opens —
+    the game result (not the draft) decides the territory."""
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(11)
-    bourgogne = await bundle.kingdom_id("Bourgogne")
     attack = await bundle.fresh_attack()
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
-    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 55, tzinfo=UTC))
-    await bundle.attacks.validate_pickban(attack.id, "lord-b")
-    expired = await bundle.attacks.expire_stale(now=attack.expires_at)
-    assert expired[0].state is AttackState.RESOLVED
-    assert expired[0].winner_kingdom_id == bourgogne  # the attacker missed it
-    assert expired[0].pickban["forfeit_side"] == "attacker"
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
+    await bundle.attacks.reveal_due(now=datetime(2026, 10, 11, 17, 45, tzinfo=UTC))
+    await bundle.attacks.pick_ban_due(now=datetime(2026, 10, 11, 17, 46, tzinfo=UTC))
+    assert await bundle.attacks.expire_stale(now=attack.expires_at) == []
+    meetings = await bundle.attacks.score_due(now=attack.expires_at)
+    assert [item.id for item in meetings] == [attack.id]
+    assert meetings[0].state is AttackState.MEETING
+    assert await bundle.attacks.expire_stale(now=attack.expires_at + timedelta(minutes=5)) == []
 
 
 async def test_meeting_time_catches_up_an_unrevealed_attack_with_the_ai() -> None:

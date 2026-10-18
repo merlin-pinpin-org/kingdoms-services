@@ -145,7 +145,6 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
     gaia_delay = _fr_minutes(getattr(attacks, "gaia_attack_delay_minutes", 180))
     embuscade_delay = _fr_minutes(getattr(attacks, "embuscade_delay_minutes", 60))
     cutoff = int(getattr(attacks, "defense_cutoff_minutes", 15))
-    pick_ban = int(getattr(attacks, "pick_ban_lead_minutes", 5))
     grace = int(getattr(attacks, "ready_grace_minutes", 5))
     reminder = _fr_hours(getattr(attacks, "score_reminder_hours", 3))
     dispute = _fr_hours(getattr(attacks, "score_dispute_after_reminder_hours", 12))
@@ -240,13 +239,17 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 f"un territoire. Le RDV de la partie est fixé à **+{attack_delay}** "
                 f"(Gaïa : +{gaia_delay}) ; l'annonce part dans les salons concernés.\n\n"
                 "**Les phases, dans l'ordre :**\n"
-                f"1. **Siège** — déclaration et défense. La défense se ferme à "
-                f"**T-{cutoff}** : passé ce délai, plus personne ne peut défendre, la "
-                "couverture est révélée, et si personne n'a pris la défense, **l'IA du "
-                "royaume défenseur** joue la partie.\n"
-                f"2. **Draft** — à **T-{pick_ban}**, le pick & ban part en DM : chaque camp "
-                "classe 3 civilisations (jusqu'à 2 sabotages). La révélation annonce "
-                "« ⚔️ Bataille en vue » ou « 🏳️ Assaut irrésistible ».\n"
+                "1. **Siège** — déclaration et défense : la défense est possible "
+                "**dès la déclaration** (à la seconde) et se ferme à "
+                f"**T-{cutoff}** — le reveal lève la couverture et, sans défenseur, "
+                "**l'IA du royaume défenseur** joue la partie.\n"
+                f"2. **Draft** — dès le reveal (**T-{cutoff}**, Drasah 18/10), le "
+                "pick & ban part en DM : chaque camp classe 3 civilisations (jusqu'à 2 "
+                "sabotages). La révélation annonce "
+                "« ⚔️ Bataille en vue » ou « 🏳️ Assaut irrésistible ». "
+                "**Règle anti-blocage** : sans choix validé avant le RDV, 3 civilisations "
+                "sont tirées **au hasard** de la main et **aucun sabotage ni faucon** "
+                "ne s'applique — le RDV a lieu quoi qu'il arrive.\n"
                 f"3. **Ready** — le RDV de la vraie partie AoE2. Chaque camp clique "
                 f"**Prêt** dans le DM (grâce {grace} min après l'heure).\n"
                 "4. **Score** — chaque camp déclare le résultat (ID de game requis). Le "

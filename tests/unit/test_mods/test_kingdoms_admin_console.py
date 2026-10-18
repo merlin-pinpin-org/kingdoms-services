@@ -363,7 +363,7 @@ async def test_fin_attaque_cranks_reveal_then_pickban() -> None:
     attack_id = await _declared(bundle)
     declared = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
     attack = await bundle.attacks.respond_defense(
-        attack_id, "lord-b", now=declared.expires_at - timedelta(minutes=10)
+        attack_id, "lord-b", now=declared.declared_at + timedelta(minutes=10)
     )
     assert attack.state is AttackState.DEFENDED
     first = await console.dispatch(f"fin_attaque {attack_id}")
@@ -378,7 +378,7 @@ async def test_fin_attaque_opens_the_meeting_then_applies_the_noshow() -> None:
     attack_id = await _declared(bundle)
     declared = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
     await bundle.attacks.respond_defense(
-        attack_id, "lord-b", now=declared.expires_at - timedelta(minutes=10)
+        attack_id, "lord-b", now=declared.declared_at + timedelta(minutes=10)
     )
     await console.dispatch(f"fin_attaque {attack_id}")  # reveal
     await console.dispatch(f"fin_attaque {attack_id}")  # pick&ban DMs
@@ -403,7 +403,7 @@ async def test_resultat_resolves_a_disputed_meeting() -> None:
     attack_id = await _declared(bundle)
     declared = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
     await bundle.attacks.respond_defense(
-        attack_id, "lord-b", now=declared.expires_at - timedelta(minutes=10)
+        attack_id, "lord-b", now=declared.declared_at + timedelta(minutes=10)
     )
     attack = next(a for a in await bundle.attacks.attacks() if a.id == attack_id)
     score = dict(attack.score)

@@ -40,7 +40,11 @@ class ScoreBundle(PhasesBundle):
     async def meeting(self) -> tuple[AttackModel, str, str]:
         """A defended attack with a resolved pick & ban, T = 18:00 UTC."""
         attack = await self.fresh_attack()
-        await self.attacks.respond_defense(attack.id, "lord-b")
+        # Drasah 18/10: the defense lands right after the declaration
+        # (the window is [declaration, T-15] now).
+        await self.attacks.respond_defense(
+            attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+        )
         await self.attacks.reveal_due(now=_CUTOFF)
         await self.attacks.pick_ban_due(now=_LEAD)
         await self.give_civs("Aquitaine", "francs", "bretons", "goths")

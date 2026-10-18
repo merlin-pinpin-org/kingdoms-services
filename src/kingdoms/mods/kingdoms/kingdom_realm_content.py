@@ -749,6 +749,7 @@ def _build_patrol(
         KingdomRempartsGuardButton,
         KingdomRempartsPatrouilleButton,
     )
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomDefenseManagerButton
 
     return _panel_view_with_buttons(
         strings["patrol_title"].format(getattr(kingdom, "name", "")),
@@ -759,6 +760,9 @@ def _build_patrol(
             KingdomRempartsGuardButton(strings),
             KingdomRempartsPatrouilleButton(1, strings),
             KingdomRempartsPatrouilleButton(2, strings),
+            # Drasah 18/10: la vue privée du royaume défenseur — qui
+            # défend quoi, l'effet de surprise restant public-board-free.
+            KingdomDefenseManagerButton(strings.get("defense_manager_button", "🛡️ Gestion de la défense")),
         ],
     )
 

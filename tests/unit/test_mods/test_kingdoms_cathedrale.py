@@ -73,9 +73,9 @@ class Bundle(_AttackBundle):
         await self.store.upsert_kingdom(kingdom.to_mongo())
 
     async def arm(self, attack: Any) -> None:
-        """Pin the defense INSIDE the [T-15, T] window (real clock)."""
+        """Pin the defense INSIDE the [declaration, T-15] window (real clock)."""
         attack_doc = attack.to_mongo()
-        attack_doc["expires_at"] = datetime.now(tz=UTC) + timedelta(minutes=10)
+        attack_doc["expires_at"] = datetime.now(tz=UTC) + timedelta(minutes=30)
         await self.store.upsert_attack(attack_doc)
 
 

@@ -15,6 +15,7 @@ territory transfer on capture.
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -306,6 +307,18 @@ def _refuse_lords_day_execution(
             "the attack would be played inside the Lord's Day window "
             "(declare only if the execution lands after it closes)"
         )
+
+
+def _random_picks(hand: list[str]) -> list[str]:
+    """Return 3 random civilizations of a hand (the anti-blocking draft default).
+
+    Drasah 18/10: a forgotten pick & ban is never blocking — the
+    missing side plays 3 random civilizations of its Alliances hand
+    (fewer when the hand is shorter), with no sabotage and no faucon.
+    """
+    pool = list(hand)
+    random.shuffle(pool)
+    return pool[:3]
 
 
 def _apply_sabotages(pickban: dict[str, Any]) -> dict[str, Any]:
@@ -651,11 +664,14 @@ class AttackService:
     ) -> AttackModel:
         """Answer an attack: any lord of the defending kingdom (D7).
 
-        The defense window is [T-15, T] (Drasah 17/10 — « l'accès au
-        bouclier doit être entre T10 et T5 »): the cutoff moment
-        ``expires_at - defense_cutoff_minutes`` OPENS the defense and
-        the meeting time ``expires_at`` closes it — nobody answered
-        by then and the kingdom's bot AI takes the defense instead.
+        The defense window is [declaration, T-15] (Drasah 18/10 —
+        « il faut pouvoir défendre dès qu'une attaque a été déclarée,
+        à la seconde près » puis « l'accès au bouclier doit être
+        entre T10 et T5 »): the defense OPENS the second the attack
+        is declared and CLOSES at the cutoff moment
+        ``expires_at - defense_cutoff_minutes`` (the T-15 reveal
+        locks the defense). Nobody answered by then and the kingdom's
+        bot AI takes the defense at the meeting time instead.
         """
         await self._require_running_season()
         attack = await self._find_attack(attack_id)
@@ -665,12 +681,10 @@ class AttackService:
             raise AttackStateError("the attack no longer waits for a defender")
         timestamp = now or _now()
         cutoff = attack.expires_at - timedelta(minutes=self._config.attacks.defense_cutoff_minutes)
-        if timestamp < cutoff and not bypass_guard("defense window opening (T-15)"):
+        if timestamp >= cutoff and not bypass_guard("defense window closing (T-15)"):
             raise DefenseCutoffError(
-                "the defense is not open yet — it opens T-15 before the meeting (watch the Attaques salon)"
+                "la fenêtre de défense est fermée (T-15) — le reveal a verrouillé la partie"
             )
-        if timestamp >= attack.expires_at and not bypass_guard("defense meeting-time cutoff"):
-            raise DefenseCutoffError("the meeting time is reached — the bot AI takes the defense")
         lord = await self._require_lord(player_id)
         if lord.kingdom_id != attack.defender_kingdom_id or lord.left:
             raise AttackStateError("only a lord of the defending kingdom can defend")
@@ -709,14 +723,15 @@ class AttackService:
         return attack
 
     async def reveal_due(self, *, now: datetime | None = None) -> list[AttackModel]:
-        """Run the T-15 reveal (D77): unmask the cover — the defense stays open.
+        """Run the T-15 reveal (D77): unmask the cover, close the defense.
 
-        Drasah 17/10: the defense window moved to [T-15, T], so the
-        reveal no longer closes the defense nor engages the bot AI —
-        it only drops the Contre-espionnage cover. The AI fallback
-        happens at the meeting time (``expire_stale``). Idempotent
-        through ``revealed`` — the scheduler tick replays it after
-        every restart.
+        Drasah 18/10: the defense window is [declaration, T-15] — the
+        reveal CLOSES the defense (no more answers) and, on the same
+        tick, the defended attacks' pick & ban DMs leave
+        (``pick_ban_due`` rides ``revealed``). Without a defender the
+        bot AI still takes the defense at the meeting time
+        (``expire_stale``). Idempotent through ``revealed`` — the
+        scheduler tick replays it after every restart.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -741,6 +756,13 @@ class AttackService:
 
         Idempotent through ``pickban["sent"]``. The AI side
         auto-validates at the same moment (no human to wait for).
+
+        Drasah 18/10: the DMs leave AT THE REVEAL (T-15), the moment
+        the defense locks — the old T-5 lead window was shorter than
+        the scheduler tick and the draft NEVER left (live beta 17/10:
+        no DM, then double forfeit at T). The pickban rides
+        ``revealed``: once the reveal ran on a defended attack, the
+        DMs are due on the very same tick.
         """
         timestamp = now or _now()
         season = await self._kingdoms.current_season()
@@ -752,8 +774,7 @@ class AttackService:
                 continue
             if attack.pickban.get("sent") or attack.is_over:
                 continue
-            lead = attack.expires_at - timedelta(minutes=self._config.attacks.pick_ban_lead_minutes)
-            if timestamp < lead or timestamp >= attack.expires_at:
+            if not attack.revealed or timestamp >= attack.expires_at:
                 continue
             pickban = dict(attack.pickban)
             pickban["sent"] = True
@@ -845,9 +866,9 @@ class AttackService:
         if attack.pickban.get("resolved_pickban"):
             raise PickBanStateError("the pick & ban is already resolved")
         if not attack.pickban.get("sent"):
-            raise PickBanStateError("the pick & ban opens at T-5")
+            raise PickBanStateError("le draft n'est pas encore ouvert (il part au reveal T-15)")
         if timestamp >= attack.expires_at:
-            raise PickBanStateError("the meeting time is reached — the pick & ban is closed")
+            raise PickBanStateError("l'heure du RDV est atteinte — le draft est fermé")
         return attack
 
     async def _pick_ban_side(self, attack: AttackModel, player_id: str) -> str:
@@ -953,29 +974,40 @@ class AttackService:
             attack.pickban = pickban
             await self._store.upsert_attack(attack.to_mongo())
             return None
+        # Drasah 18/10 — the anti-blocking default: a side that never
+        # ranked its 3 civilizations gets 3 RANDOM ones from its hand,
+        # NO sabotage and NO faucon apply for anyone, and the meeting
+        # proceeds (RDV decides, D20). A forgotten draft is never a
+        # forfeit anymore.
         attacker_ok = bool(pickban.get("attacker_validated"))
         defender_ok = bool(pickban.get("defender_validated")) or attack.ai_defender
-        if attacker_ok and defender_ok:
-            pickban = _apply_sabotages(await self._void_faucon_sabotages(attack, pickban, timestamp))
-            pickban["resolved_pickban"] = True
-            attack.pickban = pickban
-            await self._store.upsert_attack(attack.to_mongo())
-            return None  # validated at the wire — the game decides (D20)
-        if attacker_ok:
-            winner, forfeit = attack.attacker_kingdom_id, "defender"
-        elif defender_ok:
-            winner, forfeit = attack.defender_kingdom_id, "attacker"
-        else:
-            winner, forfeit = attack.attacker_kingdom_id, "both"  # the present wins
-        pickban["forfeit_side"] = forfeit
+        if not (attacker_ok and defender_ok):
+            pickban["default_picks"] = sorted(
+                side for side, ok in (("attacker", attacker_ok), ("defender", defender_ok)) if not ok
+            )
+            pickban["sabotages"] = {}
+            pickban["attacker_sabotages"] = []
+            pickban["defender_sabotages"] = []
+            if not attacker_ok and not pickban.get("attacker_picks"):
+                pickban["attacker_picks"] = _random_picks(await self._side_hand(attack.attacker_kingdom_id))
+            if (
+                not attack.ai_defender
+                and not defender_ok
+                and not pickban.get("defender_picks")
+            ):
+                pickban["defender_picks"] = _random_picks(await self._side_hand(attack.defender_kingdom_id))
+            pickban["attacker_validated"] = True
+            pickban["defender_validated"] = True
+            logger.info(
+                "kingdoms: draft defaulted (random civs, no sabotage) on %s — sides %s",
+                attack.map_key,
+                pickban["default_picks"],
+            )
+        pickban = _apply_sabotages(pickban)
+        pickban["resolved_pickban"] = True
         attack.pickban = pickban
-        attack.state = AttackState.RESOLVED
-        attack.winner_kingdom_id = winner
-        attack.resolved_at = timestamp
-        if winner == attack.attacker_kingdom_id:
-            await self._territories.transfer(attack.territory_id, winner)
         await self._store.upsert_attack(attack.to_mongo())
-        return attack
+        return None  # defaulted at the wire — the game decides (D20)
 
     # ------------------------------------------------------------------
     # The RDV score phase (attaques-score-v1)

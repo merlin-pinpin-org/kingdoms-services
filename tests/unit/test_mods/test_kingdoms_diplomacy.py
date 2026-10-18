@@ -304,7 +304,7 @@ async def test_marriage_lock_blocks_attack_and_defense() -> None:
         from kingdoms.mods.kingdoms import attacks as attacks_module
 
         previous = attacks_module._now
-        attacks_module._now = lambda: attack.expires_at - timedelta(minutes=10)  # type: ignore[assignment]
+        attacks_module._now = lambda: attack.declared_at + timedelta(minutes=10)  # type: ignore[assignment]
         try:
             await bundle.attacks.respond_defense(attack.id, "lord-a")
         finally:

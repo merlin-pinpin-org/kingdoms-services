@@ -457,10 +457,15 @@ async def test_defend_button_takes_the_defense() -> None:
     """The persistent defend button runs respond_defense (D77)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton, _strings
 
+    from kingdoms.mods.kingdoms import attacks as attacks_module
+
     bundle = PhasesBundle()
     await bundle.launch_season()
     await bundle.draw(22)
     attack = await bundle.fresh_attack()
+    # Drasah 18/10: the defense window opens AT the declaration — the
+    # frozen clock sits inside it (12:30, declared at 12:00).
+    attacks_module._now = lambda: datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
     _wiring(bundle)
     button = KingdomAttackDefendButton(attack.id, _strings("fr")["defend_button"])
     interaction = MockInteraction(user=MockUser(id="lord-b"), locale="fr")  # type: ignore[arg-type]
@@ -574,14 +579,16 @@ async def test_scheduler_reveal_deploys_the_outcome_line() -> None:
     assert fresh.ai_defender is True
     assert "Assaut irrésistible — aucune défense" in (boards[-1].content or "")
 
-    # The defended case: another attack, a lord defends INSIDE the
-    # [T-15, T] window (17:50), then the reveal tick shows the battle.
+    # The defended case: another attack, a lord defends right after
+    # the declaration (new [declaration, T-15] window), then the
+    # reveal tick shows the battle — ANONYMOUSLY (surprise, 18/10).
     bundle2 = PhasesBundle()
     await bundle2.launch_season()
     await bundle2.draw(25)
     attack2 = await bundle2.fresh_attack()
-    attacks_module._now = lambda: datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
-    await bundle2.attacks.respond_defense(attack2.id, "lord-b")
+    await bundle2.attacks.respond_defense(
+        attack2.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
     declare_channel2 = _FakeChannel("Déclarer une attaque")
     announce_channel2 = _FakeChannel("Attaques")
     bot2 = _FakeBot(bundle2, declare_channel2, announce_channel2)
@@ -589,5 +596,10 @@ async def test_scheduler_reveal_deploys_the_outcome_line() -> None:
     await run_attack_phases_safe(bot2)
     boards2 = [m for m in announce_channel2.sent if ATTACK_BOARD_MARKER in (m.content or "")]
     assert boards2
-    assert "Bataille en vue (défenseur" in (boards2[-1].content or "")
+    assert "Bataille en vue" in (boards2[-1].content or "")
+    # The surprise (Drasah 18/10): the public board never names the
+    # human defender — the defense manager (Remparts) is the only
+    # place the kingdom sees who defends.
+    assert "défenseur :" not in (boards2[-1].content or "")
+    assert "défense en place" in (boards2[-1].content or "")
 

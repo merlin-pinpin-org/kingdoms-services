@@ -139,7 +139,7 @@ async def test_declare_defend_resolve_captures_the_territory() -> None:
     assert attack.defender_kingdom_id == bourgogne
     # Any lord of the defending kingdom defends (D7).
     defended = await bundle.attacks.respond_defense(
-        attack.id, "lord-b", now=attack.expires_at - timedelta(minutes=10)
+        attack.id, "lord-b", now=attack.declared_at + timedelta(minutes=10)
     )
     assert defended.state is AttackState.DEFENDED
     assert defended.defender_lord_id == "lord-b"
@@ -168,7 +168,7 @@ async def test_defense_survives_the_naive_mongo_round_trip() -> None:
     for key in ("declared_at", "expires_at"):
         document[key] = document[key].astimezone(UTC).replace(tzinfo=None)
     defended = await bundle.attacks.respond_defense(
-        attack.id, "king-b", now=attack.expires_at - timedelta(minutes=10)
+        attack.id, "king-b", now=attack.declared_at + timedelta(minutes=10)
     )
     assert defended.state is AttackState.DEFENDED
     # The seam re-attached UTC: every consumer reads an aware value.
@@ -183,7 +183,7 @@ async def test_defense_keeps_the_territory_on_defender_win() -> None:
     bourgogne = await bundle.kingdom_id("Bourgogne")
     target = (await bundle.owner_maps(bourgogne))[0]
     attack = await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby")
-    await bundle.attacks.respond_defense(attack.id, "king-b", now=attack.expires_at - timedelta(minutes=10))
+    await bundle.attacks.respond_defense(attack.id, "king-b", now=attack.declared_at + timedelta(minutes=10))
     resolved = await bundle.attacks.resolve(attack.id, bourgogne)
     assert resolved.winner_kingdom_id == bourgogne
     assert target in await bundle.owner_maps(bourgogne)
@@ -439,7 +439,7 @@ async def test_resolve_rejects_outside_kingdoms() -> None:
     with pytest.raises(AttackNotFoundError):
         await bundle.attacks.resolve("no-such-attack", bourgogne)
     # An unknown winner kingdom is refused before the state check.
-    await bundle.attacks.respond_defense(attack.id, "king-b", now=attack.expires_at - timedelta(minutes=10))
+    await bundle.attacks.respond_defense(attack.id, "king-b", now=attack.declared_at + timedelta(minutes=10))
     from kingdoms.mods.kingdoms.service import KingdomNotFoundError
 
     with pytest.raises(KingdomNotFoundError):
@@ -524,7 +524,7 @@ async def test_resolve_is_blocked_during_lords_day(monkeypatch: pytest.MonkeyPat
     attack = await bundle.attacks.declare_attack(
         "king-a", target, "aoe2de://lobby", now=datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
     )
-    await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.expires_at - timedelta(minutes=10))
+    await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.declared_at + timedelta(minutes=10))
     inside = datetime(2026, 10, 12, 7, 0, tzinfo=UTC)
     monkeypatch.setattr(attacks_module, "_now", lambda: inside)
     with pytest.raises(LordsDayAttackError):
@@ -566,7 +566,7 @@ async def test_forced_lords_day_window_blocks_executions() -> None:
 
     attacks_module._now = lambda: datetime(2026, 10, 10, 18, 0, tzinfo=UTC)  # type: ignore[assignment]
     try:
-        await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.expires_at - timedelta(minutes=10))
+        await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.declared_at + timedelta(minutes=10))
         with pytest.raises(LordsDayAttackError):
             await bundle.attacks.resolve(attack.id, await bundle.kingdom_id("Aquitaine"))
     finally:
@@ -597,7 +597,7 @@ async def test_a_finished_season_refuses_every_combat_action() -> None:
     with pytest.raises(SeasonClosedError):
         await bundle.attacks.declare_attack("king-a", target, "aoe2de://lobby2")
     with pytest.raises(SeasonClosedError):
-        await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.expires_at - timedelta(minutes=10))
+        await bundle.attacks.respond_defense(attack.id, "lord-b", now=attack.declared_at + timedelta(minutes=10))
     with pytest.raises(SeasonClosedError):
         await bundle.attacks.resolve(attack.id, aquitaine)
     # The stale expiry quietly does nothing on a finished season.
@@ -613,7 +613,7 @@ async def test_cancel_ongoing_expires_the_ongoing_attacks() -> None:
     maps = await bundle.owner_maps(bourgogne)
     first = await bundle.attacks.declare_attack("king-a", maps[0], "aoe2de://lobby")
     second = await bundle.attacks.declare_attack("lord-a", maps[1], "aoe2de://lobby")
-    await bundle.attacks.respond_defense(first.id, "lord-b", now=first.expires_at - timedelta(minutes=10))
+    await bundle.attacks.respond_defense(first.id, "lord-b", now=first.declared_at + timedelta(minutes=10))
     cancelled = await bundle.attacks.cancel_ongoing()
     assert {item.id for item in cancelled} == {first.id, second.id}
     states = {a.id: a.state for a in await bundle.attacks.attacks()}

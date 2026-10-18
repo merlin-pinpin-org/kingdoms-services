@@ -566,10 +566,32 @@ async def _ring_theft_alarms_safe(
             logger.warning("KINGDOMS EVENTS: theft prompt failed", exc_info=True)
 
 
+async def _beta_tick_seconds(bot: Any, default_seconds: int) -> int:
+    """Return the loop sleep for this iteration: 60s under an armed beta.
+
+    Drasah 18/10: the beta windows are minutes (defense cutoff T-5,
+    draft at the reveal) while the stock tick is 300s — the reveal
+    and the draft DMs must land within the minute, not within 5.
+    Best effort: any failure keeps the stock cadence.
+    """
+    try:
+        from kingdoms.mods.kingdoms.beta_weekend import beta_started
+
+        service = getattr(bot, "kingdoms_service", None)
+        if service is None:
+            return default_seconds
+        season = await service.current_season()
+        if season is not None and beta_started(season, game_now()):
+            return min(default_seconds, 60)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: beta tick probe failed", exc_info=True)
+    return default_seconds
+
+
 async def _kingdoms_events_loop(bot: Any, tick_seconds: int) -> None:
     """Tick forever: replay the due weekly slots, then announce."""
     while True:
-        await asyncio.sleep(tick_seconds)
+        await asyncio.sleep(await _beta_tick_seconds(bot, tick_seconds))
         # machine-temps-v2: re-sync the game-clock offset cache from
         # the persisted season every tick — a restarted (or wiped)
         # process converges back to the test offset within one tick.

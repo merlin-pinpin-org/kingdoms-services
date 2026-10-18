@@ -35,7 +35,8 @@ _BEFORE3H = _T + timedelta(hours=3) - timedelta(minutes=1)
 _T15H = _T + timedelta(hours=15)  # the auto-dispute line (3h reminder + 12h)
 _BEFORE15H = _T15H - timedelta(minutes=1)
 _FROZEN_NOW = datetime(2026, 10, 11, 17, 50, tzinfo=UTC)
-"""Frozen INSIDE the [T-15, T] defense window (fresh attack T = 18:00)."""
+"""Frozen at 17:50 (past the T-15 cutoff, fresh attack T = 18:00) — the
+score-phase clock: the defense itself lands pre-cutoff (new window)."""
 
 
 @pytest.fixture(autouse=True)
@@ -59,7 +60,11 @@ async def test_phase_labels_follow_the_timeline() -> None:
     # The same attack walks the whole timeline (one territory, one attack).
     aquitaine, bourgogne = await bundle.kingdom_id("Aquitaine"), await bundle.kingdom_id("Bourgogne")
     del bourgogne
-    await bundle.attacks.respond_defense(attack.id, "lord-b")
+    # Drasah 18/10: the defense window is [declaration, T-15] — the
+    # defense lands right after the declaration, not at the end.
+    await bundle.attacks.respond_defense(
+        attack.id, "lord-b", now=datetime(2026, 10, 11, 12, 30, tzinfo=UTC)
+    )
     await bundle.attacks.reveal_due(now=_CUTOFF)
     assert phase_label(await _get(bundle, attack.id)) == "draft"  # revealed, pick & ban
     await bundle.attacks.pick_ban_due(now=_LEAD)

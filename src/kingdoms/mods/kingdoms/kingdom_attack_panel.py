@@ -60,8 +60,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "phase_ready": "RDV",
         "phase_score": "Score",
         "reveal_battle": "⚔️ Bataille en vue (défenseur : {defender})",
+        "reveal_battle_anon": "⚔️ Bataille en vue",
+        "defense_manager_button": "🛡️ Gestion de la défense",
+        "defense_manager_title": "🛡️ Gestion de la défense — attaques contre **{kingdom}**",
+        "defense_manager_empty": "🐺 Aucune attaque en cours contre ton royaume.",
+        "defense_manager_row": "• **{map}** — RDV **{time}** (Paris) · {state}",
+        "defense_manager_defended": "défendue par **{lord}** ✓",
+        "defense_manager_waiting": "en attente de défenseur ⏳",
+        "defense_manager_not_defender": "❌ Tu n'es pas un seigneur actif d'un royaume.",
+        "defense_manager_no_service": "❌ Le service des attaques est indisponible.",
         "reveal_no_defense": "🏳️ Assaut irrésistible — aucune défense",
         "defender_pending": "en attente de défense",
+        "defender_anon": "défense en place 🔒",
         "defender_ai": "IA 🤖",
         "covered_tag": " 🕶️",
         "declare_button": "⚔️ Déclarer une attaque",
@@ -76,7 +86,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ **{attacker}** ({kingdom}) attaque **{map}** 🆚 {defender_kingdom} — RDV **{time}** (heure de Paris) !"
         ),
         "defense_done": "🛡️ **{map}** — tu portes la défense de ton royaume ! RDV **{time}** (Paris).",
-        "defense_announce": "🛡️ **{lord}** défend **{map}** !",
         "failed": "❌ {message}",
         "not_a_lord": "❌ Tu n'es pas un seigneur actif d'un royaume.",
         "no_service": "❌ Le service des attaques est indisponible.",
@@ -131,7 +140,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nClasse tes **{count}** civilisations (ton "
             "classement ordonne les replis) et sabotes jusqu'à **2** civilisations "
-            "de la main adverse. Valide avant l'heure du RDV — un manqué est un forfait !\n"
+            "de la main adverse.\n"
+            "⚠️ **Règle anti-blocage** : si tu ne valides aucun choix avant le RDV, "
+            "3 civilisations seront tirées **au hasard** de ta main — et aucun "
+            "sabotage ni faucon ne s’appliquera. Le RDV a lieu quoi qu’il arrive.\n"
             "Ta main : {hand}\nMain adverse : {theirs}"
         ),
         "pickban_pick": "Choix {n}",
@@ -212,8 +224,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "phase_ready": "Meeting",
         "phase_score": "Score",
         "reveal_battle": "⚔️ Battle ahead (defender: {defender})",
+        "reveal_battle_anon": "⚔️ Battle ahead",
+        "defense_manager_button": "🛡️ Defense management",
+        "defense_manager_title": "🛡️ Defense management — attacks against **{kingdom}**",
+        "defense_manager_empty": "🐺 No ongoing attack against your kingdom.",
+        "defense_manager_row": "• **{map}** — meeting **{time}** (Paris) · {state}",
+        "defense_manager_defended": "defended by **{lord}** ✓",
+        "defense_manager_waiting": "waiting for a defender ⏳",
+        "defense_manager_not_defender": "❌ You are no active lord of a kingdom.",
+        "defense_manager_no_service": "❌ The attack service is unavailable.",
         "reveal_no_defense": "🏳️ Irresistible assault — no defense",
         "defender_pending": "waiting for a defender",
+        "defender_anon": "defense in place 🔒",
         "defender_ai": "AI 🤖",
         "covered_tag": " 🕶️",
         "declare_button": "⚔️ Declare an attack",
@@ -228,7 +250,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "⚔️ **{attacker}** ({kingdom}) attacks **{map}** 🆚 {defender_kingdom} — meeting **{time}** (Paris time)!"
         ),
         "defense_done": "🛡️ **{map}** — you carry your kingdom's defense! Meeting **{time}** (Paris).",
-        "defense_announce": "🛡️ **{lord}** defends **{map}**!",
         "failed": "❌ {message}",
         "not_a_lord": "❌ You are no active lord of a kingdom.",
         "no_service": "❌ The attack service is unavailable.",
@@ -279,7 +300,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "pickban_dm": (
             "⚔️ **Pick & ban — {map}**\nRank your **{count}** civilizations (your "
             "ranking orders the fallbacks) and sabotage up to **2** civilizations "
-            "of the adversary hand. Validate before the meeting time — a miss is a forfeit!\n"
+            "of the adversary hand.\n"
+            "⚠️ **Anti-blocking rule**: no choice validated before the meeting → "
+            "3 **random** civilizations from your hand — and no sabotage or faucon "
+            "applies. The meeting happens anyway.\n"
             "Your hand: {hand}\nAdversary hand: {theirs}"
         ),
         "pickban_pick": "Choice {n}",
@@ -500,11 +524,12 @@ async def _ongoing_rows(
         else:
             attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
         kingdom = await _kingdom_name(kingdoms_service, attack.attacker_kingdom_id)
+        # Drasah 18/10 — effet de surprise : le nom du défenseur humain
+        # n'apparaît JAMAIS sur le board public ; le royaume défenseur
+        # le voit via la Gestion de la défense (Remparts).
         if getattr(attack, "state", None) is AttackState.DEFENDED:
             defender = (
-                strings["defender_ai"]
-                if attack.ai_defender
-                else await _lord_name(kingdoms_service, attack.defender_lord_id)
+                strings["defender_ai"] if attack.ai_defender else strings["defender_anon"]
             )
         else:
             defender = strings["defender_pending"]
@@ -514,11 +539,14 @@ async def _ongoing_rows(
         # « Bataille en vue » when a lord defends, « Assaut irrésistible »
         # when nobody did (AI fallback). Nothing new to compute: the
         # reveal (reveal_due) already resolved cover/AI/locked defense.
+        # Drasah 18/10 — effet de surprise : le board public ne nomme
+        # JAMAIS le défenseur humain ; seul le royaume défenseur le
+        # voit (Gestion de la défense, Remparts).
         if getattr(attack, "revealed", False) and not attack.is_over:
             if attack.ai_defender:
                 phase = strings["reveal_no_defense"]
             elif getattr(attack, "state", None) is AttackState.DEFENDED:
-                phase = strings["reveal_battle"].format(defender=defender)
+                phase = strings["reveal_battle_anon"]
         rows.append(
             strings["attack_line"].format(
                 map=attack.map_key,
@@ -1141,12 +1169,88 @@ class KingdomAttackDefendButton(
             strings["defense_done"].format(map=attack.map_key, time=_fmt_paris(attack.expires_at)),
             ephemeral=True,
         )
-        channel = _announce_channel(interaction.guild)
-        await _announce_safe(
-            channel,
-            strings["defense_announce"].format(lord=interaction.user.display_name, map=attack.map_key),
-        )
+        # Drasah 18/10 — effet de surprise : plus d'annonce publique du
+        # défenseur. Seul le royaume défenseur voit qui défend (bouton
+        # « Gestion de la défense » des Remparts) ; le board public
+        # reste anonyme jusqu'au reveal.
         await refresh_attack_panel_safe(interaction.guild, _locale(interaction))
+
+
+class KingdomDefenseManagerButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:attack:defense-manager",
+):
+    """The 🛡️ « Gestion de la défense » button of the Remparts panel.
+
+    Drasah 18/10 — effet de surprise : la défense n'est plus annoncée
+    publiquement et le board Attaques ne nomme jamais le défenseur.
+    Ce bouton (visible du royaume défenseur dans ses Remparts) montre
+    l'état de chaque attaque subie et QUI défend — la réassurance
+    privée du royaume.
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:attack:defense-manager",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomDefenseManagerButton:
+        """Rebuild the button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["defense_manager_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show the kingdom's ongoing attacks and their defenders (ephemeral)."""
+        from kingdoms.mods.kingdoms.kingdom_persistent import _lord_of, _wiring
+
+        strings = _strings(_locale(interaction))
+        wiring = _wiring()
+        if wiring.attacks_service is None or wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["defense_manager_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or getattr(lord, "kingdom_id", None) is None:
+            await interaction.response.send_message(strings["defense_manager_not_defender"], ephemeral=True)
+            return
+        kingdom_id = str(lord.kingdom_id)
+        kingdom_name = await _kingdom_name(wiring.kingdoms_service, kingdom_id)
+        rows: list[str] = []
+        try:
+            ongoing = [
+                a
+                for a in await wiring.attacks_service.attacks()
+                if not a.is_over and str(getattr(a, "defender_kingdom_id", "")) == kingdom_id
+            ]
+        except Exception:
+            ongoing = []
+        from kingdoms.mods.kingdoms.models import AttackState
+
+        for attack in ongoing:
+            if getattr(attack, "state", None) is AttackState.DEFENDED and not attack.ai_defender:
+                defender = await _lord_name(wiring.kingdoms_service, attack.defender_lord_id)
+                state = strings["defense_manager_defended"].format(lord=defender)
+            else:
+                state = strings["defense_manager_waiting"]
+            rows.append(
+                strings["defense_manager_row"].format(
+                    map=attack.map_key, time=_fmt_paris(attack.expires_at), state=state
+                )
+            )
+        body = "\n".join(rows) if rows else strings["defense_manager_empty"]
+        await interaction.response.send_message(
+            strings["defense_manager_title"].format(kingdom=kingdom_name) + "\n" + body,
+            ephemeral=True,
+        )
 
 
 class KingdomAttackJoinButton(
