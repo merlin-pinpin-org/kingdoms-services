@@ -167,7 +167,9 @@ async def test_ready_click_still_records_the_ui_confirmation() -> None:
     await bundle.attacks.mark_ready(attack.id, "king-a", now=_T)
     fresh = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert fresh.score["ready"] == ["king-a"]
-    # Without a VOICE join the T+5 line still forfeits the meeting.
+    # The Prêt click is NOT the presence: only the attacker joined the
+    # room voice — the defender no-show still forfeits at T+5.
+    await bundle.present(attack, "king-a")
     handled = await bundle.attacks.ready_due(now=_T5)
     assert [item.id for item in handled] == [attack.id]
     assert handled[0].score["noshow"] == "defender"

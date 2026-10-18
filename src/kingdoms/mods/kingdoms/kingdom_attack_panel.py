@@ -2279,7 +2279,7 @@ class KingdomRoomResultModal(discord.ui.Modal):
         minutes = 10
         try:
             minutes = int(
-                wiring.attacks_service._config.attacks.score_confirm_minutes  # noqa: SLF001
+                wiring.attacks_service._config.attacks.score_confirm_minutes
             )
         except Exception:
             minutes = 10

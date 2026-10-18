@@ -250,7 +250,7 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 "« ⚔️ Bataille en vue » ou « 🏳️ Assaut irrésistible ». "
                 "**Règle anti-blocage** : sans choix validé avant le RDV, 3 civilisations "
                 "sont tirées **au hasard** de la main — le RDV a lieu quoi qu'il arrive. "
-                "Le Sabotage/Faucon se joue plus tard, dans le salon de la bataille.\n"
+                "Sabotage/Faucon : dans le salon de la bataille.\n"
                 f"3. **Ready** — à l'heure du RDV, le bot ouvre le **salon de bataille** "
                 "(vocal, 2 places) : civilisations en jeu affichées dans un ordre "
                 "aléatoire, URL de la partie et résultat à déclarer sur place. "

@@ -681,6 +681,9 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     _wiring(bundle)
     guild = MockGuild()
     bot = _FakeBot(bundle)
+    # The scheduler passes the FRESH store object (a stale pre-draft
+    # snapshot would carry an empty pick & ban).
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     room_id = fresh.score.get("room_channel_id")
