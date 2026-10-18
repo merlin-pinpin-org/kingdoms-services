@@ -3654,12 +3654,19 @@ async def _enroll_applicant(
     announcements read it) — the legacy fallback keeps a mention for the
     announcement rendering, never for a select label.
     """
-    from kingdoms.mods.kingdoms.service import KING_ROLE, LORD_ROLE
+    from kingdoms.mods.kingdoms.service import (
+        KING_ROLE,
+        LORD_ROLE,
+        AlreadyEnrolledError,
+    )
 
     stored_name = display_name or f"<@{player_id}>"
     if is_king and not kingdom_name:
         try:
             await kingdoms_service.enroll_king_awaiting_kingdom(player_id, stored_name)
+        except AlreadyEnrolledError:
+            logger.warning("CANDIDATURES: king %s already enrolled", player_id)
+            return strings["enroll_already"], False
         except Exception as exc:
             logger.warning("CANDIDATURES: king enrollment failed for %s", player_id, exc_info=True)
             return strings["enroll_failed"].format(type(exc).__name__), False
@@ -3680,6 +3687,9 @@ async def _enroll_applicant(
             lord = await kingdoms_service.enroll(
                 player_id, stored_name, LORD_ROLE, kingdom_name=kingdom_name
             )
+    except AlreadyEnrolledError:
+        logger.warning("CANDIDATURES: player %s already enrolled", player_id)
+        return strings["enroll_already"], False
     except Exception as exc:
         logger.warning("CANDIDATURES: enrollment failed for %s", player_id, exc_info=True)
         return strings["enroll_failed"].format(type(exc).__name__), False
@@ -4624,6 +4634,13 @@ async def _after_claim_refresh(guild: discord.Guild, locale: str, kingdom: Any, 
         await ensure_all_realm_structures(guild, wiring.kingdoms_service)
     except Exception:
         logger.warning("CANDIDATURES: realm overwrites re-sync failed after claim", exc_info=True)
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realms import ensure_member_realm_access
+
+        if str(player_id).isdigit():
+            await ensure_member_realm_access(guild, kingdom, int(player_id))
+    except Exception:
+        logger.warning("CANDIDATURES: king access guarantee failed after claim", exc_info=True)
     await _refresh_realm_views_for_kingdom_safe(guild, str(kingdom.id))
     await _refresh_season_status_safe(guild, locale)
     await _refresh_realms_panel_safe(guild, locale)
