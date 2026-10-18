@@ -107,6 +107,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cover_yes_button": "🕶️ OUI — bluffer",
         "cover_no_button": "❌ NON — à visage découvert",
         "choose_cover": "🕶️ Sous le pseudo de quel seigneur déclarer l'attaque ?",
+        "cover_no_lords": (
+            "ℹ️ Ton royaume n'a aucun autre seigneur actif — impossible de bluffer :"
+            " l'attaque part à visage découvert (aucune charge consommée)."
+        ),
         "announce_v1": (
             "⚔️ {attacker} du royaume {kingdom} a lancé une attaque sur le royaume"
             " {defender} !\n📅 {date}\nBonne chance aux combattants ! 🍀"
@@ -365,6 +369,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "cover_yes_button": "🕶️ YES — bluff",
         "cover_no_button": "❌ NO — open-faced",
         "choose_cover": "🕶️ Under which lord's name should the attack be declared?",
+        "cover_no_lords": (
+            "ℹ️ Your kingdom has no other active lord — no bluff possible: the"
+            " attack is declared in the open (no charge consumed)."
+        ),
         "announce_v1": (
             "⚔️ {attacker} of kingdom {kingdom} has launched an attack on kingdom"
             " {defender}!\n📅 {date}\nGood luck to the fighters! 🍀"
@@ -1208,6 +1216,28 @@ async def _declare_player_attack(
     await refresh_attack_panel_safe(target.guild, _locale(target))
 
 
+async def _kingdom_other_lords(wiring: Any, kingdom_id: str, except_user_id: str) -> list[Any]:
+    """Return the kingdom's OTHER active lords (the bluff candidates).
+
+    Drasah 18/10 v5: a lone lord cannot bluff anyone — the cover flow
+    needs to know it BEFORE offering the OUI/NON question.
+    """
+    if wiring.kingdoms_service is None:
+        return []
+    try:
+        lords = await wiring.kingdoms_service.lords()
+    except Exception:
+        logger.warning("KINGDOM ATTACK: cover lord scan failed", exc_info=True)
+        return []
+    return [
+        lord
+        for lord in lords
+        if str(lord.kingdom_id) == str(kingdom_id)
+        and not getattr(lord, "left", False)
+        and str(lord.id) != str(except_user_id)
+    ]
+
+
 async def _open_cover_step(
     wiring: Any,
     interaction: discord.Interaction[Any],
@@ -1222,6 +1252,10 @@ async def _open_cover_step(
     A Gaïa target skips the cover entirely: the free-for-all has no
     defender to bluff (Drasah 14/10 — Gaïa is attackable like any
     kingdom, the battle just accepts extra lords).
+
+    Drasah 18/10 v5: a LONE lord cannot bluff anyone either — the
+    question is skipped and an explicit note says why (the live beta
+    showed a silent jump to the lobby instead).
     """
     import discord
 
@@ -1233,8 +1267,12 @@ async def _open_cover_step(
         await interaction.response.send_message(strings["no_service"], ephemeral=True)
         return
     state = await attacks_service.technology_state(own_kingdom_id)
-    if state.purchases.get("contre_espionnage", 0) <= 0:
+    has_stock = state.purchases.get("contre_espionnage", 0) > 0
+    other_lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(interaction.user.id))
+    if not has_stock or not other_lords:
         await _declare_player_attack(wiring, interaction, strings, map_key, None)
+        if has_stock:
+            await interaction.followup.send(strings["cover_no_lords"], ephemeral=True)
         return
     view = discord.ui.View(timeout=600)
 
@@ -1242,15 +1280,12 @@ async def _open_cover_step(
         await _declare_player_attack(wiring, target, strings, map_key, cover_lord_id)
 
     async def on_yes(target: discord.Interaction[Any]) -> None:
-        lords = [
-            lord
-            for lord in await wiring.kingdoms_service.lords()
-            if lord.kingdom_id == own_kingdom_id
-            and not getattr(lord, "left", False)
-            and str(lord.id) != str(target.user.id)
-        ]
+        lords = await _kingdom_other_lords(wiring, own_kingdom_id, str(target.user.id))
         if not lords:
+            # Nobody left to bluff (a departure since the question was
+            # shown) — declare openly and say WHY, never silently.
             await open_lobby(None, target)
+            await target.followup.send(strings["cover_no_lords"], ephemeral=True)
             return
         select: discord.ui.Select[Any] = discord.ui.Select(
             custom_id="kingdoms:attack:choose:cover",

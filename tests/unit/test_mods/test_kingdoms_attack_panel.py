@@ -378,6 +378,67 @@ async def test_declare_flow_asks_the_cover_when_stock_exists() -> None:
     assert "kingdoms:attack:cover:no" in ids
 
 
+async def test_declare_flow_skips_the_cover_when_the_attacker_is_solo() -> None:
+    """Drasah 18/10 v5: a lone lord cannot bluff — even WITH a
+    contre-espionnage charge the question is skipped, the attack
+    declares openly and an explicit note says why (live beta: the OUI
+    click jumped to the lobby in silence)."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDeclareButton,
+        _strings,
+    )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(25)
+    aquitaine = await bundle.kingdom_id("Aquitaine")
+    bourgogne = await bundle.kingdom_id("Bourgogne")
+    target = (await bundle.owner_maps(bourgogne))[0]
+    # The king is ALONE: the only other Aquitaine lord left the season.
+    lord_a = next(l for l in await bundle.kingdoms.lords() if str(l.id) == "lord-a")
+    lord_a.left = True
+    await bundle.store.upsert_lord(lord_a.to_mongo())
+    await bundle.stock(aquitaine, contre_espionnage=1)
+    _wiring(bundle)
+    click = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"),  # type: ignore[arg-type]
+        custom_id="kingdoms:attack:declare",
+        locale="fr",
+    )
+    button = KingdomAttackDeclareButton(_strings("fr")["declare_button"])
+    await button.callback(click)  # type: ignore[arg-type]
+    kingdom_view = click.response.message and click.response.message.view
+    assert kingdom_view is not None
+    kingdom_select = next(
+        c for c in kingdom_view.children if c.custom_id == "kingdoms:attack:choose:kingdom"
+    )
+    step = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [bourgogne]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await kingdom_select.callback(step)  # type: ignore[arg-type]
+    territory_view = step.response.message and step.response.message.view
+    assert territory_view is not None
+    territory_select = next(
+        c for c in territory_view.children if c.custom_id == "kingdoms:attack:choose:territory"
+    )
+    step2 = MockInteraction(  # type: ignore[arg-type]
+        user=MockUser(id="king-a"), data={"values": [target]}, locale="fr"  # type: ignore[arg-type]
+    )
+    await territory_select.callback(step2)  # type: ignore[arg-type]
+    # Solo: the attack declares DIRECTLY — no OUI/NON question…
+    attacks = await bundle.attacks.attacks()
+    assert len(attacks) == 1
+    assert attacks[0].cover_lord_id is None
+    assert step2.response.deferred is True
+    assert not step2.response.message
+    # …and the note explains WHY (no silent skip, no charge consumed).
+    bodies = [str(m.content or "") for m in step2.followup.messages]
+    assert any("Attaque déclarée" in body for body in bodies)
+    assert any("aucun autre seigneur actif" in body for body in bodies)
+    fresh_state = await bundle.attacks.technology_state(aquitaine)
+    assert fresh_state.purchases.get("contre_espionnage") == 1
+
+
 async def test_declare_flow_attacks_gaia_through_the_free_for_all() -> None:
     """Drasah 15/10: Gaïa is attackable via the guided flow (no cover step)."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
