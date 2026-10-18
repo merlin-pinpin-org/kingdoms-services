@@ -159,6 +159,15 @@ STRINGS: dict[str, dict[str, Any]] = {
         "roleinfo_king_button": "📖 View the King role",
         "roleinfo_lord_button": "📖 View the Lord role",
         "apply_sending": "⏳ Sending your application…",
+        "apply_already_pending": (
+            "⛔ You already have a pending application — an admin must "
+            "process it before you can send another one."
+        ),
+        "apply_already_enrolled": (
+            "⛔ You are already enrolled in a kingdom this season — "
+            "only one application per person."
+        ),
+        "enroll_already": "⚠️ Already enrolled in the current season.",
         "role_sheet_king": (
             "# 👑 THE KING — RIGHTS & OBLIGATIONS\n"
             "\n"
@@ -551,6 +560,15 @@ STRINGS: dict[str, dict[str, Any]] = {
         "roleinfo_king_button": "📖 Voir le rôle Roi",
         "roleinfo_lord_button": "📖 Voir le rôle Seigneur",
         "apply_sending": "⏳ Envoi de ta candidature…",
+        "apply_already_pending": (
+            "⛔ Tu as déjà une candidature en attente — un admin doit "
+            "la traiter avant que tu puisses en renvoyer une."
+        ),
+        "apply_already_enrolled": (
+            "⛔ Tu es déjà inscrit dans un royaume cette saison — "
+            "une seule candidature par personne."
+        ),
+        "enroll_already": "⚠️ Déjà inscrit dans la saison courante.",
         "role_sheet_king": (
             "# 👑 LE ROI — DROITS & OBLIGATIONS\n"
             "\n"
@@ -1189,6 +1207,44 @@ async def _rewrite_flow_confirmation(
         _schedule_ephemeral_delete(anchor, flow_message, seconds=_CONFIRM_TTL_SECONDS)
 
 
+async def _apply_blocker(context: _ApplicationContext, applicant_id: int) -> str | None:
+    """Return the refusal string when the player may not apply again.
+
+    Drasah's rule (2026-10-18): ONE candidature per person — a player
+    with a still-pending candidature (its decision buttons have not
+    been used) or already enrolled in the current season must not
+    stack applications. The pending check scans the #candidatures
+    recent history for the applicant's message whose decision view is
+    still attached (``components`` non-empty).
+    """
+    strings = _strings(context.locale)
+    service = context.kingdoms_service
+    if service is not None:
+        try:
+            lords = await service.lords()
+        except Exception:
+            lords = []
+        for lord in lords:
+            if str(lord.id) == str(applicant_id) and not lord.left:
+                return strings["apply_already_enrolled"]
+    channel = context.candidatures_channel
+    if channel is not None:
+        mention = f"<@{applicant_id}>"
+        try:
+            recent = await channel_messages(channel)
+        except Exception:
+            recent = []
+        for message in recent:
+            content = getattr(message, "content", "") or ""
+            if mention not in content:
+                continue
+            if strings["candidature_title"] not in content:
+                continue
+            if getattr(message, "components", None):
+                return strings["apply_already_pending"]
+    return None
+
+
 def _summary_view(
     applicant_id: int,
     applicant_name: str,
@@ -1208,6 +1264,10 @@ def _summary_view(
         # Ack first (3-second rule): rewrite the single flow bubble into
         # its "sending" state while the slow work runs.
         await interaction.response.edit_message(content=strings["apply_sending"], view=None)
+        blocker = await _apply_blocker(context, applicant_id)
+        if blocker is not None:
+            await interaction.followup.send(blocker, ephemeral=True)
+            return
         role_label = strings["role_king"] if is_king else strings["role_lord"]
         lines = [
             f"# 📋 {applicant_name}",
