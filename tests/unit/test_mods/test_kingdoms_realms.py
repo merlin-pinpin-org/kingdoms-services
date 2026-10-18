@@ -383,3 +383,28 @@ async def test_ensure_realm_structure_grants_members_the_message_history() -> No
     assert overwrite.read_message_history is True, (
         "a member must read the salons' history, not just see them"
     )
+
+
+async def test_ensure_member_realm_access_grants_the_missing_king_overwrite() -> None:
+    """Live incident 2026-10-18: a claimed King with no category access.
+
+    The blanket re-sync can skip a member silently; the targeted pass
+    must grant the missing overwrite and stay idempotent.
+    """
+    from kingdoms.mods.kingdoms.kingdom_realms import ensure_member_realm_access
+
+    guild = MockGuild()
+    member = MockMember(id=111, name="Arthur", guild=guild)
+    guild.add_member(member)
+    kingdom = _Kingdom("k-1", "Avalon", "approved")
+    category = await ensure_realm_structure(guild, kingdom, [])
+    # Pre-fix state: the category exists but the member has no overwrite.
+    assert category.permission_overwrite_for(member) is None
+    assert await ensure_member_realm_access(guild, kingdom, 111) is True
+    overwrite = category.permission_overwrite_for(member)
+    assert overwrite is not None and overwrite.view_channel is True
+    # Idempotent: the second pass is a no-op.
+    assert await ensure_member_realm_access(guild, kingdom, 111) is True
+
+    # An unresolvable member cannot be healed but must not raise.
+    assert await ensure_member_realm_access(guild, kingdom, 999999) is False

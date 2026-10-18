@@ -46,11 +46,13 @@ def _context(
     locale: str = "fr",
     candidatures: MockTextChannel | None = None,
     anchor: MockInteraction | None = None,
+    kingdoms_service: Any = None,
 ) -> _ApplicationContext:
     return _ApplicationContext(
         locale=locale,
         candidatures_channel=candidatures,
         anchor=anchor,
+        kingdoms_service=kingdoms_service,
     )
 
 
@@ -193,6 +195,80 @@ async def test_submit_falls_back_to_a_followup_without_an_anchor() -> None:
     await submit_button.callback(interaction)
     assert len(interaction.followup.messages) == 1
     assert strings["sent"] in (interaction.followup.messages[0].content or "")
+
+
+async def test_submit_refuses_a_second_pending_candidature() -> None:
+    """Drasah's rule (2026-10-18): ONE candidature per person.
+
+    A player whose candidature message still carries its decision
+    buttons must not stack a second application.
+    """
+    strings = _strings("fr")
+    candidatures = MockTextChannel(name="candidatures")
+    pending_view = discord.ui.View(timeout=None)
+    pending_view.add_item(discord.ui.Button(custom_id="kingdoms:candidature:approve"))
+    pending = MockMessage(
+        content=f"{strings['candidature_title']}\n<@42>", view=pending_view
+    )
+    candidatures.messages.append(pending)
+    context = _context(candidatures=candidatures)
+    view = _summary_view(
+        42,
+        "Drasah",
+        is_king=True,
+        kingdom_name="",
+        queued=False,
+        insight="https://www.aoe2insight.com/players/123",
+        game_id="12345678",
+        smurfs=(),
+        context=context,
+    )
+    submit_button = next(b for b in view.children if getattr(b, "custom_id", None) == "kingdoms:apply:submit")
+    interaction = MockInteraction(locale="fr", user=MockUser(id=42, name="Drasah"))
+    await submit_button.callback(interaction)
+    # No new candidature was stacked, and the refusal is explicit.
+    assert len(candidatures.messages) == 1
+    assert interaction.followup.messages, "the refusal must reach the player"
+    assert strings["apply_already_pending"] in (
+        interaction.followup.messages[0].content or ""
+    )
+
+
+class _EnrolledLord:
+    id = "42"
+    kingdom_id = "k-1"
+    left = False
+
+
+class _EnrolledService:
+    async def lords(self) -> list[Any]:
+        return [_EnrolledLord()]
+
+
+async def test_submit_refuses_a_player_already_enrolled() -> None:
+    """An enrolled player must not re-apply (one application per person)."""
+    strings = _strings("fr")
+    candidatures = MockTextChannel(name="candidatures")
+    context = _context(candidatures=candidatures, kingdoms_service=_EnrolledService())
+    view = _summary_view(
+        42,
+        "Drasah",
+        is_king=True,
+        kingdom_name="",
+        queued=False,
+        insight="https://www.aoe2insight.com/players/123",
+        game_id="12345678",
+        smurfs=(),
+        context=context,
+    )
+    submit_button = next(b for b in view.children if getattr(b, "custom_id", None) == "kingdoms:apply:submit")
+    interaction = MockInteraction(locale="fr", user=MockUser(id=42, name="Drasah"))
+    await submit_button.callback(interaction)
+    assert len(candidatures.messages) == 0
+    assert interaction.followup.messages, "the refusal must reach the player"
+    assert strings["apply_already_enrolled"] in (
+        interaction.followup.messages[0].content or ""
+    )
 
 
 def test_confirmation_ttl_is_the_short_postulation_one() -> None:
