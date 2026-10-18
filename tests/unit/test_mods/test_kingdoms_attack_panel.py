@@ -1016,6 +1016,9 @@ async def test_cleanup_battle_rooms_waits_the_delay_after_the_resolution() -> No
     # A winner is declared — the resolution timestamp is FRESH (the
     # attacks clock is frozen at 2026-10-11, the cleanup tick reads
     # the real clock, so pin the resolution on the real now).
+    # The cleanup tick reads bot.guilds, not the passed guild — point
+    # the fake bot at the real MockGuild holding the room.
+    bot.guilds = [guild]
     await bundle.attacks.resolve(attack.id, aquitaine)
     resolved = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     resolved.resolved_at = datetime.now(UTC)
