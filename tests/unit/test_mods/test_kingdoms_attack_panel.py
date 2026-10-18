@@ -714,6 +714,13 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     assert room.user_limit == 2
     assert room.category is not None
     assert room.category.name == _strings("fr")["room_category"]
+    # Check 75 live: the @everyone deny locked the bot out of its own
+    # room (403 50001 on the text-in-voice message) — the bot must carry
+    # its own overwrites on the channel it creates.
+    mine = room._overwrites.get(guild.me)
+    assert mine is not None
+    assert mine.view_channel is True
+    assert mine.send_messages is True
     body = (room.messages[0].content or "")
     # Each player's 3 picks, shuffled — the ranking stays hidden.
     for civ in ("francs", "bretons", "goths", "huns", "perses", "byzantins"):
@@ -727,3 +734,53 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     await _open_battle_room(bot, guild, fresh, bundle.kingdoms, "fr")
     rooms = [c for c in guild.channels if getattr(c, "user_limit", None) == 2]
     assert len(rooms) == 1
+
+
+async def test_battle_room_text_post_failure_still_grants_roles_and_dms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Check 75: the text-in-voice post is best effort — a failing send
+    must not bury the role grants, the room refs nor the room DMs."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
+    from tests.mocks.discord_mock import MockVoiceChannel
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+
+    class _DmUser:
+        def __init__(self, uid: int) -> None:
+            self.id = uid
+
+        async def send(self, content: str, view: Any = None) -> Any:
+            outbox.append((str(self.id), content))
+            return None
+
+    class _DmBot(_FakeBot):
+        async def fetch_user(self, user_id: int) -> Any:
+            return _DmUser(user_id)
+
+    outbox: list[tuple[str, str]] = []
+    bot = _DmBot(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+
+    original_send = MockVoiceChannel.send
+
+    async def failing_send(self: MockVoiceChannel, *args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("403 50001 Missing Access (simulated)")
+
+    monkeypatch.setattr(MockVoiceChannel, "send", failing_send)
+    try:
+        await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    finally:
+        monkeypatch.setattr(MockVoiceChannel, "send", original_send)
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    # The refs are stored BEFORE the message: cleanup can find the room.
+    assert fresh.score.get("room_channel_id")
+    assert fresh.score.get("room_role_id")
+    # Both players still got the room DM pointing at the vocal.
+    dm_targets = {uid for uid, _msg in outbox}
+    assert dm_targets >= {str(attack.attacker_lord_id), str(attack.defender_lord_id)}

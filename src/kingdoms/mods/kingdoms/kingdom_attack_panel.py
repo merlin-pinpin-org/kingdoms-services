@@ -1994,6 +1994,18 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         overwrites: dict[Any, discord.PermissionOverwrite] = {
             role: discord.PermissionOverwrite(connect=True, view_channel=True),
         }
+        # Check 75 live: the @everyone deny locked the BOT itself out of
+        # the channel it had just created — the room message died with
+        # 403 50001 Missing Access and the whole flow (roles, DMs, refs)
+        # collapsed with it. The bot carries its own overwrites.
+        me = getattr(guild, "me", None)
+        if me is not None:
+            overwrites[me] = discord.PermissionOverwrite(
+                view_channel=True,
+                connect=True,
+                send_messages=True,
+                read_message_history=True,
+            )
         if everyone is not None:
             overwrites[everyone] = discord.PermissionOverwrite(connect=False, view_channel=False)
         channel = await guild.create_voice_channel(
@@ -2002,6 +2014,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
             user_limit=2,
             overwrites=overwrites,
         )
+        await record_battle_room_safe(attack, channel.id, role.id)
         pickban: dict[str, Any] = dict(attack.pickban or {})
         lines = [
             f"**{attacker}** — {' '.join(_shuffled_civs(pickban.get('attacker_picks')))}",
@@ -2014,22 +2027,29 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         room_view.add_item(
             KingdomRoomResultButton(str(attack.id), strings["result_button"])
         )
-        await channel.send(
-            strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
-            view=room_view,
-        )
+        try:
+            await channel.send(
+                strings["room_body"].format(map=attack.map_key, lines="\n".join(lines)),
+                view=room_view,
+            )
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room text post failed", exc_info=True)
         for player_id in _score_players(attack):
             member = None
             try:
                 member = guild.get_member(int(player_id))
             except (TypeError, ValueError):
                 member = None
+            if member is None:
+                try:
+                    member = await guild.fetch_member(int(player_id))
+                except Exception:
+                    member = None
             if member is not None:
                 try:
                     await member.add_roles(role)
                 except Exception:
                     logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
-        await record_battle_room_safe(attack, channel.id, role.id)
         for player_id in _score_players(attack):
             await _dm_user_safe(
                 bot,
