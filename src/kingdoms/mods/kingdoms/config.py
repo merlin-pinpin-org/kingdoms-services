@@ -166,6 +166,12 @@ class AttackSettings(BaseModel):
     contract (D20) — auto_victory is legacy (the attacker captured the
     territory without a game) and no longer the default."""
     ready_grace_minutes: int = Field(default=5, ge=0)
+    """The T+grace no-show line of a meeting (minutes)."""
+    room_cleanup_delay_minutes: int = Field(default=30, ge=0)
+    """Drasah 18/10 v4: the battle room survives this long (minutes)
+    after the meeting resolved — the room only disappears once a
+    winner is known, then lingers for a post-game wrap-up."""
+
     """Score phase (beta-weekend-v1, Drasah 17/10/2026): the no-show
     grace past the meeting time (T+5 by default) — the phase where
     both sides click Prêt, a missing Prêt at the deadline being a
