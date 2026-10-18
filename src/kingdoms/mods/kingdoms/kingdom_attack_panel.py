@@ -2736,7 +2736,9 @@ class KingdomRoomUrlModal(discord.ui.Modal):
             return
         url = str(self.url_input.value or "").strip()
         try:
-            await wiring.attacks_service.set_lobby_url(self.attack_id, self.player_id, url)
+            attack = await wiring.attacks_service.set_lobby_url(
+                self.attack_id, self.player_id, url
+            )
         except Exception as exc:
             message = getattr(exc, "message", None) or str(exc)
             await interaction.response.send_message(strings["failed"].format(message=message), ephemeral=True)

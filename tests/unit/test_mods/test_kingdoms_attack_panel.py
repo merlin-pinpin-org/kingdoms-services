@@ -16,7 +16,7 @@ from kingdoms.mods.kingdoms.kingdom_persistent import (
     KingdomsPanelWiring,
     register_kingdoms_panel_wiring,
 )
-from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
+from tests.mocks.discord_mock import MockGuild, MockInteraction, MockTextChannel, MockUser
 
 from .test_kingdoms_attack_phases import PhasesBundle
 from .test_kingdoms_attack_score import ScoreBundle
@@ -705,9 +705,14 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     _wiring(bundle)
     guild = MockGuild()
     bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
     # The scheduler passes the FRESH store object (a stale pre-draft
     # snapshot would carry an empty pick & ban).
     attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    # The fixture declares with a legacy lobby URL — production declares
+    # empty (the ID is shared at the RDV, v5): clear it like the real flow.
+    attack.lobby_url = ""
+    await bundle.store.upsert_attack(attack.to_mongo())
     await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
     fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     room_id = fresh.score.get("room_channel_id")
@@ -828,6 +833,7 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     _wiring(bundle)
     guild = MockGuild()
     bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
     attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
     await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
     room = next(c for c in guild.channels if getattr(c, "user_limit", None) == 2)
@@ -859,14 +865,18 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
         return _E()
 
     guild.create_scheduled_event = _fake_create_scheduled_event  # type: ignore[method-assign]
-    first = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")
+    first = MockInteraction(
+        user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr", client=bot
+    )
     # type: ignore[arg-type]
     await button.callback(first)  # type: ignore[arg-type]
     # First click: waiting for the other player — no event yet.
     assert first.response.message is not None
     assert "attente" in str(first.response.message.content or "")
     assert not created
-    second = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")
+    second = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
     # type: ignore[arg-type]
     await button.callback(second)  # type: ignore[arg-type]
     # Both ready: the match event is created once, the ref is stored.
@@ -881,7 +891,9 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     assert "bonne game" in str(room.messages[0].content or "")
     assert not any("La partie commence" in (m.content or "") for m in room.messages)
     # A re-click by the same player never re-announces the match.
-    again = MockInteraction(user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr")
+    again = MockInteraction(
+        user=MockUser(id="lord-b"), guild=guild, channel=room, locale="fr", client=bot
+    )
     # type: ignore[arg-type]
     await button.callback(again)  # type: ignore[arg-type]
     assert len(created) == 1

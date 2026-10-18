@@ -309,13 +309,18 @@ class MockTextChannel(discord.TextChannel):
         self._category = category
         self._permissions: dict[tuple[int, bool], discord.PermissionOverwrite | None] = {}
         self.messages: list[MockMessage] = []
-        self.threads: list["MockThread"] = []
+        self._threads: list[MockThread] = []
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
     def type(self) -> discord.ChannelType:
         return discord.ChannelType.text
+
+    @property
+    def threads(self) -> list[MockThread]:
+        """The threads created on this channel (overridden in-memory)."""
+        return self._threads
 
     @property
     def category(self) -> MockCategoryChannel | None:
@@ -343,10 +348,10 @@ class MockTextChannel(discord.TextChannel):
 
     async def create_thread(
         self, name: str, *, message: Any = None, **kwargs: Any
-    ) -> "MockThread":
+    ) -> MockThread:
         """Create a public thread anchored on ``message`` (in-memory)."""
         thread = MockThread(name=name[:100], guild=self.guild, parent_id=self.id)
-        self.threads.append(thread)
+        self._threads.append(thread)
         self.guild._channels[thread.id] = thread  # type: ignore[index]
         return thread
 
@@ -394,7 +399,7 @@ class MockThread(discord.Thread):
         id: int | None = None,
         name: str = "thread",
         *,
-        guild: "MockGuild | None" = None,
+        guild: MockGuild | None = None,
         parent_id: int | None = None,
         **kwargs: Any,
     ) -> None:
