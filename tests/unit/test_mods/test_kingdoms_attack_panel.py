@@ -118,6 +118,7 @@ def test_panel_buttons_rebuild_from_the_wire_in_both_locales() -> None:
         ATTACK_PANEL_MARKER,
         KingdomAttackDeclareButton,
         KingdomAttackDefendButton,
+        _room_key,
         _strings,
     )
 
@@ -126,25 +127,39 @@ def test_panel_buttons_rebuild_from_the_wire_in_both_locales() -> None:
         declare = KingdomAttackDeclareButton(strings["declare_button"])
         assert declare.item.custom_id == "kingdoms:attack:declare"
         defend = KingdomAttackDefendButton("s1-a-t-king-a", strings["defend_button"])
-        assert defend.item.custom_id == "kingdoms:attack:defend:s1-a-t-king-a"
+        # Check 73: the id rides a 16-hex digest (the raw ~64-char attack
+        # id blew Discord's 100-char cap and killed the board edit).
+        assert defend.item.custom_id == f"kingdoms:attack:defend:{_room_key('s1-a-t-king-a')}"
+        assert len(str(defend.item.custom_id)) <= 100
         assert ATTACK_PANEL_MARKER
 
 
 async def test_defend_button_rebuilds_with_the_attack_id() -> None:
-    """The restart-proof rebuild keeps the embedded attack id."""
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import KingdomAttackDefendButton
-
-    match: Any = re.match(
-        r"kingdoms:attack:defend:(?P<attack_id>[A-Za-z0-9_:\-]+)",
-        "kingdoms:attack:defend:s1-a-t-king-a",
+    """The restart-proof rebuild resolves the digest back to the attack."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        KingdomAttackDefendButton,
+        _room_key,
     )
+
+    bundle = PhasesBundle()
+    await bundle.launch_season()
+    await bundle.draw(22)
+    attack = await bundle.fresh_attack()
+    _wiring(bundle)
+    custom_id = f"kingdoms:attack:defend:{_room_key(attack.id)}"
+    assert len(custom_id) <= 100
+    match: Any = re.match(
+        r"kingdoms:attack:defend:(?P<key>[0-9a-f]{16})",
+        custom_id,
+    )
+    assert match is not None
     button = await KingdomAttackDefendButton.from_custom_id(
         MockInteraction(locale="en-US"),  # type: ignore[arg-type]
         None,  # type: ignore[arg-type]
         match,  # type: ignore[arg-type]
     )
-    assert button.attack_id == "s1-a-t-king-a"
-    assert button.item.custom_id == "kingdoms:attack:defend:s1-a-t-king-a"
+    assert button.attack_id == attack.id
+    assert button.item.custom_id == custom_id
 
 
 async def test_deploy_attack_panel_pins_marker_and_buttons() -> None:
@@ -174,6 +189,7 @@ async def test_deploy_attacks_board_pins_the_defend_buttons() -> None:
     """The Attaques salon board carries the ongoing attacks + defend buttons."""
     from kingdoms.mods.kingdoms.kingdom_attack_panel import (
         ATTACK_BOARD_MARKER,
+        _room_key,
         deploy_attacks_board,
     )
 
@@ -188,7 +204,10 @@ async def test_deploy_attacks_board_pins_the_defend_buttons() -> None:
     assert ATTACK_BOARD_MARKER in content
     assert attack.map_key in content
     ids = [item.custom_id for item in channel.sent[0].view.children]
-    assert f"kingdoms:attack:defend:{attack.id}" in ids
+    # Check 73: the defend id rides the digest — the raw attack id made
+    # the custom_id exceed Discord's 100-char cap (50035 live).
+    assert f"kingdoms:attack:defend:{_room_key(attack.id)}" in ids
+    assert all(len(str(custom_id)) <= 100 for custom_id in ids)
     assert "kingdoms:attack:declare" not in ids  # the declare button stays home
 
 
@@ -430,9 +449,10 @@ async def test_join_button_adds_a_lord_to_the_gaia_battle() -> None:
     assert battle.participants == ["king-a"]
     _wiring(bundle)
     button = KingdomAttackJoinButton(battle.id, _strings("fr")["gaia_join_button"])
+    assert len(str(button.item.custom_id)) <= 100  # Check 73: digest, not raw id
     click = MockInteraction(  # type: ignore[arg-type]
         user=MockUser(id="king-b"),  # type: ignore[arg-type]
-        custom_id=f"kingdoms:attack:join:{battle.id}",
+        custom_id=str(button.item.custom_id),
         locale="fr",
     )
     await button.callback(click)  # type: ignore[arg-type]
@@ -443,7 +463,7 @@ async def test_join_button_adds_a_lord_to_the_gaia_battle() -> None:
     # A kingdom joins a free-for-all once (D42): king-b cannot rejoin.
     again = MockInteraction(  # type: ignore[arg-type]
         user=MockUser(id="king-b"),  # type: ignore[arg-type]
-        custom_id=f"kingdoms:attack:join:{battle.id}",
+        custom_id=str(button.item.custom_id),
         locale="fr",
     )
     await button.callback(again)  # type: ignore[arg-type]
