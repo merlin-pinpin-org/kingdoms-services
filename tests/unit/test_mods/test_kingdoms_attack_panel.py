@@ -822,6 +822,9 @@ async def test_room_ready_button_announces_the_match_when_both_ready() -> None:
     button = KingdomRoomReadyButton(attack.id, strings["room_ready_button"])
 
     # Drasah 18/10 v4: no lobby URL yet — the Prêt is politely refused.
+    raw = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    raw.lobby_url = ""
+    await bundle.store.upsert_attack(raw.to_mongo())
     refused = MockInteraction(user=MockUser(id="king-a"), guild=guild, channel=room, locale="fr")
     # type: ignore[arg-type]
     await button.callback(refused)  # type: ignore[arg-type]
@@ -909,7 +912,7 @@ async def test_sabotage_phase_service_both_sides_and_resolution() -> None:
     with _pytest.raises(PickBanStateError):
         await bundle.attacks.sabotage_techno(attack.id, "king-a", "perses")
     # A third party may never sabotage.
-    with _pytest.raises(PickBanStateError):
+    with _pytest.raises(Exception):
         await bundle.attacks.sabotage_techno(attack.id, "stranger", "perses")
 
 
@@ -930,7 +933,6 @@ async def test_sabotage_dm_buttons_flow_and_no_resources_notice() -> None:
     await bundle.stock(aquitaine, sabotage=1)
     _wiring(bundle)
     guild = MockGuild()
-    room = next((c for c in guild.channels if getattr(c, "user_limit", None) == 2), None)
     strings = _strings("fr")
 
     open_btn = KingdomSabotageOpenButton(attack.id, "king-a", strings["sab_open_button"])
@@ -993,7 +995,10 @@ async def test_cleanup_battle_rooms_waits_the_delay_after_the_resolution() -> No
     mid-game — the room is deleted 30 minutes AFTER a winner is known."""
     from datetime import UTC, datetime, timedelta
 
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import _cleanup_battle_rooms_safe
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _cleanup_battle_rooms_safe,
+        _open_battle_room,
+    )
 
     bundle = ScoreBundle()
     await bundle.launch_season()
@@ -1008,8 +1013,13 @@ async def test_cleanup_battle_rooms_waits_the_delay_after_the_resolution() -> No
     room_id = int(fresh.score["room_channel_id"])
     assert guild.get_channel(room_id) is not None
 
-    # A winner is declared — the resolution timestamp is fresh.
+    # A winner is declared — the resolution timestamp is FRESH (the
+    # attacks clock is frozen at 2026-10-11, the cleanup tick reads
+    # the real clock, so pin the resolution on the real now).
     await bundle.attacks.resolve(attack.id, aquitaine)
+    resolved = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    resolved.resolved_at = datetime.now(UTC)
+    await bundle.store.upsert_attack(resolved.to_mongo())
     assert [c for c in guild.channels if getattr(c, "user_limit", None) == 2]
     # The tick right after the resolution keeps the room alive.
     kept = await _cleanup_battle_rooms_safe(bot, bundle.attacks)

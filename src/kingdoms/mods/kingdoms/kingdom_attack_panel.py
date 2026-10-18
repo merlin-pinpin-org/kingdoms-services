@@ -1784,6 +1784,7 @@ class KingdomSabotageOpenButton(
         match: re.Match[str],
         /,
     ) -> KingdomSabotageOpenButton:
+        """Resolve the DM key back to an attack and player (restart-safe)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         label = _strings(_locale(interaction))["sab_open_button"]
@@ -1856,6 +1857,7 @@ class KingdomSabotagePassButton(
         match: re.Match[str],
         /,
     ) -> KingdomSabotagePassButton:
+        """Resolve the DM key back to an attack and player (restart-safe)."""
         from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
         label = _strings(_locale(interaction))["sab_pass_button"]
@@ -2337,6 +2339,21 @@ async def record_battle_room_safe(attack: Any, channel_id: int, role_id: int) ->
         logger.warning("KINGDOM ATTACK: battle room refs not stored", exc_info=True)
 
 
+async def _delete_battle_room_safe(bot: Any, channel_id: int, role_id: Any) -> None:
+    """Delete the battle room channel + role on every guild (best effort)."""
+    try:
+        for guild in list(getattr(bot, "guilds", [])):
+            channel = getattr(guild, "get_channel", lambda _id: None)(channel_id)
+            if channel is not None:
+                await channel.delete()
+            if role_id is not None:
+                role = getattr(guild, "get_role", lambda _id: None)(int(role_id))
+                if role is not None and hasattr(role, "delete"):
+                    await role.delete()
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle room cleanup failed", exc_info=True)
+
+
 async def _cleanup_battle_rooms_safe(bot: Any, attacks_service: Any) -> int:
     """Delete the battle room (channel + role) of every resolved meeting."""
     played = 0
@@ -2359,18 +2376,9 @@ async def _cleanup_battle_rooms_safe(bot: Any, attacks_service: Any) -> int:
             deadline = resolved_at + timedelta(minutes=delay_minutes)
             if now < deadline:
                 continue
-        try:
-            for guild in list(getattr(bot, "guilds", [])):
-                channel = getattr(guild, "get_channel", lambda _id: None)(int(score["room_channel_id"]))
-                if channel is not None:
-                    await channel.delete()
-                role_id = score.get("room_role_id")
-                if role_id is not None:
-                    role = getattr(guild, "get_role", lambda _id: None)(int(role_id))
-                    if role is not None and hasattr(role, "delete"):
-                        await role.delete()
-        except Exception:
-            logger.warning("KINGDOM ATTACK: battle room cleanup failed", exc_info=True)
+        await _delete_battle_room_safe(
+            bot, int(score["room_channel_id"]), score.get("room_role_id")
+        )
         try:
             await attacks_service.mark_room_cleaned(str(attack.id))
         except Exception:

@@ -1308,9 +1308,17 @@ class AttackService:
         BOTH camps settled — an AI defender counts as settled from the
         start. Idempotent — a double click changes nothing.
         """
-        attack = await self._require_sabotage_attack(attack_id, _now())
+        attack = await self._find_attack(attack_id)
         side = await self._sabotage_side(attack, player_id)
         pickban = dict(attack.pickban)
+        if not pickban.get("sabotage_resolved"):
+            # A live settle enforces the window; a replay after the
+            # phase resolved (this side already settled) is a no-op.
+            attack = await self._require_sabotage_attack(attack_id, _now())
+            side = await self._sabotage_side(attack, player_id)
+            pickban = dict(attack.pickban)
+        elif pickban.get(f"sabotage_settled_{side}"):
+            return attack
         pickban[f"sabotage_settled_{side}"] = True
         attacker_settled = bool(pickban.get("sabotage_settled_attacker"))
         defender_settled = bool(pickban.get("sabotage_settled_defender")) or attack.ai_defender
