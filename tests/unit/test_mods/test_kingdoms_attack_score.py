@@ -410,13 +410,15 @@ async def test_lobby_url_shared_at_the_meeting_not_the_declaration() -> None:
     assert fresh.lobby_url == "aoe2de://lobby/12345"
     reloaded = next(item for item in await bundle.attacks.attacks() if item.id == attack.id)
     assert reloaded.lobby_url == "aoe2de://lobby/12345"
-    # The defender may share it too (the last share wins).
+    # The defender may share it too (the last share wins) — the
+    # in-memory `attack` predates the defense, so read the RELOADED
+    # defender lord id.
     reloaded = await bundle.attacks.set_lobby_url(
-        attack.id, str(attack.defender_lord_id), "aoe2de://lobby/6789"
+        fresh.id, str(fresh.defender_lord_id), "aoe2de://lobby/6789"
     )
     assert reloaded.lobby_url == "aoe2de://lobby/6789"
     # An outsider is refused, and so is an empty URL.
     with pytest.raises(AttackStateError):
-        await bundle.attacks.set_lobby_url(attack.id, "intrus", "aoe2de://x")
+        await bundle.attacks.set_lobby_url(fresh.id, "intrus", "aoe2de://x")
     with pytest.raises(AttackError):
-        await bundle.attacks.set_lobby_url(attack.id, str(attack.attacker_lord_id), "  ")
+        await bundle.attacks.set_lobby_url(fresh.id, str(fresh.attacker_lord_id), "  ")

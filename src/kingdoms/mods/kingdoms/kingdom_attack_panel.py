@@ -1395,7 +1395,7 @@ class KingdomPickBanView(discord.ui.View):
                 min_values=1 if index == 0 else 0,
                 max_values=1,
             )
-            select.callback = self._make_on_select()  # type: ignore[method-assign, assignment]
+            select.callback = self._make_on_select()  # type: ignore[method-assign]
             self.rank_selects.append(select)
             self.add_item(select)
         self.sabotage_select: discord.ui.Select[Any] | None = None
@@ -1407,7 +1407,7 @@ class KingdomPickBanView(discord.ui.View):
                 min_values=0,
                 max_values=min(2, len(adversary_hand)),
             )
-            sabotage.callback = self._make_on_select()  # type: ignore[method-assign, assignment]
+            sabotage.callback = self._make_on_select()  # type: ignore[method-assign]
             self.sabotage_select = sabotage
             self.add_item(sabotage)
         button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
@@ -1419,11 +1419,14 @@ class KingdomPickBanView(discord.ui.View):
         self.add_item(button)
 
     def _make_on_select(self) -> Any:
-        """Ack a select interaction — live beta 18/10: the selects had
-        no callback, Discord showed « the application did not respond »
-        and no civilization could ever be picked. The acknowledged
-        interaction refreshes the select values held by THIS view
-        instance — `_on_validate` reads them back at submit time."""
+        """Ack a select interaction (live beta 18/10 fix).
+
+        The selects had no callback: Discord showed « the application
+        did not respond » and no civilization could ever be picked. The
+        acknowledged interaction refreshes the select values held by
+        THIS view instance — `_on_validate` reads them back at submit
+        time.
+        """
 
         async def _on_select(interaction: discord.Interaction) -> None:
             try:
@@ -1711,7 +1714,7 @@ class KingdomScoreView(discord.ui.View):
         # callbacks carry their state in THIS instance — the custom id
         # only needs to stay unique and stable across restarts: a
         # 16-hex digest of (attack id, player id) does exactly that.
-        key = hashlib.md5(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
+        key = hashlib.sha256(f"{attack_id}:{player_id}".encode()).hexdigest()[:16]
         ready: discord.ui.Button[discord.ui.View] = discord.ui.Button(
             label=strings["score_ready"][:80],
             custom_id=f"kingdoms:attack:score:ready:{key}",
@@ -1895,7 +1898,7 @@ class KingdomDisputeView(discord.ui.View):
         ):
             button: discord.ui.Button[discord.ui.View] = discord.ui.Button(
                 label=strings[key][:80],
-                custom_id=f"kingdoms:attack:dispute:{choice}:{hashlib.md5(str(attack_id).encode()).hexdigest()[:16]}",
+                custom_id=f"kingdoms:attack:dispute:{choice}:{hashlib.sha256(str(attack_id).encode()).hexdigest()[:16]}",
                 style=discord.ButtonStyle.danger,
             )
             button.callback = self._make_on_arbitrate(choice)  # type: ignore[method-assign]
