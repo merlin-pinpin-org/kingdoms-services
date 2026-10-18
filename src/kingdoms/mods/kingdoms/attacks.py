@@ -1232,6 +1232,67 @@ class AttackService:
         await self._store.upsert_attack(attack.to_mongo())
         return attack
 
+    async def room_sabotage_techno(self, attack_id: str, player_id: str, civ_key: str) -> AttackModel:
+        """Retire one enemy civ in the battle room with the bought Sabotage.
+
+        Drasah 18/10 v3 (phase Sabotage du vocal): the attacking side
+        may snipe up to 2 enemy civilizations with the Sabotage techno
+        bought during the season. The move lands in
+        ``pickban["attacker_sabotages"]`` — the same storage the Faucon
+        uses, so the reveal reads one shape only.
+        """
+        attack = await self._require_meeting(attack_id)
+        side = self._require_score_player(attack, player_id)
+        if side != "attacker":
+            raise AttackStateError("only the attacker carries the sabotage technology")
+        state = await self.technology_state(attack.attacker_kingdom_id)
+        if state.purchases.get("sabotage", 0) <= 0:
+            raise AttackStateError("the kingdom has not bought the sabotage technology")
+        pickban = dict(attack.pickban)
+        enemy_picks = [str(civ) for civ in (pickban.get("defender_picks") or [])]
+        if civ_key not in enemy_picks:
+            raise AttackStateError("this civilization is not in the enemy picks")
+        sabotages = list(pickban.get("attacker_sabotages") or [])
+        if civ_key in sabotages:
+            raise AttackStateError("this civilization is already sabotaged")
+        if len(sabotages) >= 2:
+            raise SabotageError("the sabotage limit (2) is already reached")
+        sabotages.append(civ_key)
+        pickban["attacker_sabotages"] = sabotages
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        logger.info(
+            "kingdoms: %s sabotaged %s in the battle room of %s",
+            player_id,
+            civ_key,
+            attack.map_key,
+        )
+        return attack
+
+    async def room_settle(self, attack_id: str, player_id: str) -> AttackModel:
+        """Mark one side done with the room sabotage phase.
+
+        Drasah 18/10 v3: each camp acts at its own rhythm (sabotages
+        then a Passer click); the reveal fires when BOTH camps settled
+        — an AI defender counts as settled from the start. Idempotent —
+        a double click changes nothing.
+        """
+        attack = await self._require_meeting(attack_id)
+        side = self._require_score_player(attack, player_id)
+        pickban = dict(attack.pickban)
+        pickban[f"room_settled_{side}"] = True
+        attacker_settled = bool(pickban.get("room_settled_attacker"))
+        defender_settled = bool(pickban.get("room_settled_defender")) or attack.ai_defender
+        if attacker_settled and defender_settled and not pickban.get("room_revealed"):
+            pickban["room_revealed"] = True
+            logger.info(
+                "kingdoms: room sabotage phase settled on %s — reveal",
+                attack.map_key,
+            )
+        attack.pickban = pickban
+        await self._store.upsert_attack(attack.to_mongo())
+        return attack
+
     async def ready_due(self, *, now: datetime | None = None) -> list[AttackModel]:
         """Apply the T+5 no-show line of every open meeting.
 

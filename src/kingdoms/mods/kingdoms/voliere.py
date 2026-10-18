@@ -716,9 +716,13 @@ class VoliereService:
         if kingdom_id not in (attack.attacker_kingdom_id, attack.defender_kingdom_id):
             raise VoliereTargetError("the kingdom is not part of the attack")
         pickban = dict(attack.pickban or {})
-        if not bool(pickban.get("sent")):
-            raise VoliereTargetError("the pick & ban phase is not running")
-        if bool(pickban.get("resolved_pickban")):
+        # Drasah 18/10 v3: the Faucon also strikes from the battle room
+        # (phase Sabotage du vocal) — the meeting state is a valid window.
+        in_draft = bool(pickban.get("sent")) and not bool(pickban.get("resolved_pickban"))
+        in_room = str(getattr(attack, "state", "")) == "meeting"
+        if not in_draft and not in_room:
+            if not bool(pickban.get("sent")):
+                raise VoliereTargetError("the pick & ban phase is not running")
             raise VoliereTargetError("the pick & ban phase is over")
         side = "attacker" if kingdom_id == attack.attacker_kingdom_id else "defender"
         sabotages = list(pickban.get(f"{side}_sabotages") or [])
