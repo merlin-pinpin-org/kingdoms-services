@@ -299,6 +299,14 @@ en:
     bot_admin_only: Bot admins only.
     access_nothing_to_add: Nothing to grant — everything is already active.
     access_nothing_to_remove: Nothing to revoke — no active game/mod.
+    menu_status: ⏳ {requests} pending request(s) · 🌐 {servers} active server(s)
+    menu_btn_language: Language
+    menu_btn_requests: Requests
+    menu_btn_servers: Servers
+    menu_btn_sync: Sync AoE2
+    sync_title: AoE2 data sync
+    sync_subtitle: Refreshes civilisations and maps from the aoe2techtree dataset.
+    access_btn_manage: Manage access
   channel_audit:
     clean: 'Channel audit: no drift detected.'
     header: 'Channel audit — {count} drift finding(s):'

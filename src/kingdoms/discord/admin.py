@@ -155,18 +155,16 @@ async def build_dm_setup_view(
         # select) when the clicker is a bot admin outside a guild — the
         # dm_setup view alone replaced the whole admin panel before.
         if not interaction.guild_id and _is_bot_admin(interaction.user.id, bot_admins):
-            from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
+            # the frozen DM menu re-renders at the fresh locale (the
+            # language sub-view is ephemeral; the menu itself carries
+            # localized labels)
+            from kingdoms.discord.admin_dm_panel import _refresh_admin_dm_menus
 
-            # the fresh view re-resolves the locale through the service —
-            # never through this closure's pre-change `locale`
-            fresh_view = await build_dm_setup_view(
-                logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
-            )
-            fresh_select = next(
-                (item for item in fresh_view.walk_children() if isinstance(item, discord.ui.Select)), None
-            )
+            await _refresh_admin_dm_menus(interaction.client)
             await interaction.response.edit_message(
-                view=await build_admin_dm_panel(interaction, locale_select=fresh_select)
+                view=await build_dm_setup_view(
+                    logs_service, str(interaction.user.id), bot_admins, catalog, error_reporter
+                )
             )
         else:
             await interaction.response.edit_message(

@@ -83,81 +83,80 @@ async def build_admin_dm_panel(
     interaction: discord.Interaction | discord.Client,
     locale_select: discord.ui.Item[Any] | None = None,
 ) -> discord.ui.LayoutView:
-    """Render the bot-admin DM panel: one FR menu, sectioned.
+    """Render the bot-admin DM menu: frozen, five openers (the home/admin charte).
 
-    Sections: demandes en attente (approve/deny), accords actifs, la
-    langue des DM du bot admin (the DM locale select rides inside this
-    single panel), refresh du contenu civs/maps et gestion directe des
-    accords (sans demande). No provider-mapping section. The caller
-    passes the interaction (clicks) or the client itself (the boot's
-    DM delivery) — only the client reference is read.
+    The menu never re-renders on navigation — every button opens an
+    ephemeral sub-view. It carries one status line (pending requests,
+    granted servers) so the data reads at a glance, and the callers
+    that mutate the data re-render it in place (same message id).
     """
-    client = interaction if isinstance(interaction, discord.Client) else getattr(interaction, "client", None)
-    service = await _access_service()
+    dm_locale = await _dm_locale(interaction)
     view = discord.ui.LayoutView(timeout=None)
-    _locale = await _dm_locale(interaction)
-    blocks: list[Any] = [
-        discord.ui.TextDisplay("# \U0001f6e1\ufe0f " + _dm_tr(interaction, _locale, "title"))
-    ]
-    if service is None:
-        blocks.append(discord.ui.TextDisplay(_dm_tr(interaction, _locale, "wiring_unavailable")))
-        blocks.append(discord.ui.Separator())
-        blocks.append(discord.ui.TextDisplay("## " + _dm_tr(interaction, _locale, "language_title")))
-        view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-        if locale_select is not None:
-            early_row = discord.ui.ActionRow[discord.ui.LayoutView]()
-            early_row.add_item(locale_select)
-            view.add_item(early_row)
-        return view
-    requests = await service.pending_requests()
-    if requests:
-        req_lines = []
-        for request in requests[:20]:
-            guild_id = request.get("guild_id")
-            keys = ", ".join(request.get("keys") or [])
-            req_lines.append(_dm_tr(interaction, _locale, "pending_line", guild_id=guild_id, keys=keys))
-        blocks.append(discord.ui.Separator())
-        blocks.append(
-            discord.ui.TextDisplay(
-                _dm_tr(interaction, _locale, "pending_title") + "\n" + "\n".join(req_lines)
-            )
+    service = await _access_service()
+
+    status_parts: list[str] = []
+    requests: list[dict[str, Any]] = []
+    if service is not None:
+        try:
+            requests = list((await service.pending_requests()) or [])[:20]
+        except Exception:
+            logger.warning("DM PANEL: pending read failed", exc_info=True)
+        try:
+            servers = len((await service.list_all()) or [])
+        except Exception:
+            servers = 0
+        status_parts.append(_dm_tr(interaction, dm_locale, "menu_status", requests=len(requests), servers=servers))
+    else:
+        status_parts.append(_dm_tr(interaction, dm_locale, "wiring_unavailable"))
+
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("# \U0001f6e1\ufe0f " + _dm_tr(interaction, dm_locale, "title")),
+            discord.ui.TextDisplay("\n".join(status_parts)),
+            accent_colour=discord.Colour(0x5865F2),
         )
-    access_docs = await service.list_all()
-    granted_lines = []
-    for doc in access_docs[:20]:
-        guild = client.get_guild(int(doc.get("guild_id") or 0)) if client is not None else None
-        name = guild.name if guild is not None else _dm_tr(interaction, _locale, "unknown_server")
-        games = ", ".join(doc.get("games") or []) or "\u2014"
-        mods = ", ".join(doc.get("mods") or []) or "\u2014"
-        granted_lines.append(
-            _dm_tr(
-                interaction, _locale, "granted_line",
-                name=name, guild_id=doc.get("guild_id"), games=games, mods=mods,
-            )
-        )
-    if granted_lines:
-        blocks.append(discord.ui.Separator())
-        blocks.append(
-            discord.ui.TextDisplay(_dm_tr(interaction, _locale, "granted_title") + "\n" + "\n".join(granted_lines))
-        )
-    blocks.append(discord.ui.Separator())
-    blocks.append(discord.ui.TextDisplay("## " + _dm_tr(interaction, _locale, "language_title")))
-    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
-    if requests:
-        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        first = requests[0]
-        row.add_item(AccessApproveButton(str(first["guild_id"]), str(first["requested_at"]), len(requests)))
-        row.add_item(AccessDenyButton(str(first["guild_id"]), str(first["requested_at"])))
-        view.add_item(row)
-    if locale_select is not None:
-        locale_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-        locale_row.add_item(locale_select)
-        view.add_item(locale_row)
-    actions_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    actions_row.add_item(ContentRefreshButton())
-    actions_row.add_item(AccessGrantButton())
-    view.add_item(actions_row)
+    )
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(DmOpenButton("language", _dm_tr(interaction, dm_locale, "menu_btn_language")))
+    row.add_item(DmOpenButton("requests", _dm_tr(interaction, dm_locale, "menu_btn_requests"), disabled=not requests))
+    row.add_item(DmOpenButton("servers", _dm_tr(interaction, dm_locale, "menu_btn_servers")))
+    row.add_item(DmOpenButton("sync", _dm_tr(interaction, dm_locale, "menu_btn_sync")))
+    view.add_item(row)
     return view
+
+
+async def _render_dm_menu_into(message: Any, client: Any) -> None:
+    """Edit one DM menu message to the current menu (best-effort)."""
+    try:
+        await message.edit(view=await build_admin_dm_panel(client))
+    except Exception:
+        logger.warning("DM PANEL: menu refresh failed \u2014 best-effort", exc_info=True)
+
+
+async def _refresh_admin_dm_menus(client: Any, exclude_channel: int | None = None) -> None:
+    """Re-render every bot-admin's pinned DM menu (best-effort).
+
+    The boot delivery pins one menu per admin; each is registered in
+    the module's store, so a data change re-renders them all.
+    """
+    for channel_id, message in list(_ADMIN_MENU_MESSAGES.items()):
+        if exclude_channel is not None and channel_id == exclude_channel:
+            continue
+        try:
+            await message.edit(view=await build_admin_dm_panel(client))
+        except Exception:
+            _ADMIN_MENU_MESSAGES.pop(channel_id, None)
+            logger.info("DM PANEL: menu gone (channel %s) \u2014 dropping from the store", channel_id)
+
+
+_ADMIN_MENU_MESSAGES: dict[int, Any] = {}
+
+
+def track_admin_menu(message: Any) -> None:
+    """Track one freshly delivered DM menu message (per admin)."""
+    channel = getattr(message, "channel", None)
+    if message is not None and channel is not None:
+        _ADMIN_MENU_MESSAGES[channel.id] = message
 
 
 async def _cleanup_request_dms(interaction: discord.Interaction, guild_id: str, requested_at: str) -> None:
@@ -165,6 +164,168 @@ async def _cleanup_request_dms(interaction: discord.Interaction, guild_id: str, 
     from kingdoms.discord.guild_access_request import _delete_pending_admin_dms
 
     await _delete_pending_admin_dms(interaction.client, guild_id, requested_at)
+
+
+class DmOpenButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=rf"{_NS}:open:(?P<section>[a-z]+)",
+):
+    """One DM menu opener: opens its section's ephemeral sub-view."""
+
+    SECTIONS = ("language", "requests", "servers", "sync")
+
+    def __init__(self, section: str, label: str, disabled: bool = False) -> None:
+        self.section = section
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                style=discord.ButtonStyle.secondary,
+                custom_id=f"{_NS}:open:{section}",
+                disabled=disabled,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> DmOpenButton:
+        """Rebuild from the wire (labels via the admin's DM locale)."""
+        section = match.group("section")
+        if section not in cls.SECTIONS:
+            section = "language"
+        dm_locale = await _dm_locale(interaction)
+        labels = {
+            "language": "menu_btn_language",
+            "requests": "menu_btn_requests",
+            "servers": "menu_btn_servers",
+            "sync": "menu_btn_sync",
+        }
+        return cls(section, _dm_tr(interaction, dm_locale, labels[section]))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the section's ephemeral sub-view (guarded)."""
+        if not _is_bot_admin(interaction):
+            await _deny(interaction)
+            return
+        if self.section == "language":
+            await _open_language(interaction)
+        elif self.section == "requests":
+            await _open_requests(interaction)
+        elif self.section == "servers":
+            await _open_servers(interaction)
+        elif self.section == "sync":
+            await _open_sync(interaction)
+
+
+async def _open_language(interaction: discord.Interaction) -> None:
+    """Open the DM language sub-view: the locale picker panel."""
+    from kingdoms.discord.admin import build_dm_setup_view
+
+    logs = getattr(interaction.client, "logs_service", None)
+    catalog = getattr(interaction.client, "messages", None)
+    view = await build_dm_setup_view(
+        logs, str(interaction.user.id), catalog=catalog
+    )
+    await interaction.response.send_message(view=view, ephemeral=True)
+
+
+async def _open_requests(interaction: discord.Interaction) -> None:
+    """Open the pending-requests sub-view: one row per request."""
+    dm_locale = await _dm_locale(interaction)
+    service = await _access_service()
+    if service is None:
+        await interaction.response.send_message(
+            _dm_tr(interaction, dm_locale, "wiring_unavailable"), ephemeral=True
+        )
+        return
+    requests = list((await service.pending_requests()) or [])[:20]
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [
+        discord.ui.TextDisplay("# " + _dm_tr(interaction, dm_locale, "pending_title")),
+    ]
+    for request in requests:
+        keys = ", ".join(request.get("keys") or [])
+        blocks.append(
+            discord.ui.TextDisplay(
+                _dm_tr(
+                    interaction,
+                    dm_locale,
+                    "pending_line",
+                    guild_id=request.get("guild_id"),
+                    keys=keys,
+                )
+            )
+        )
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    for request in requests[:5]:
+        row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+        row.add_item(
+            AccessApproveButton(str(request["guild_id"]), str(request["requested_at"]), 1)
+        )
+        row.add_item(AccessDenyButton(str(request["guild_id"]), str(request["requested_at"])))
+        view.add_item(row)
+    await interaction.response.send_message(view=view, ephemeral=True)
+
+
+async def _open_servers(interaction: discord.Interaction) -> None:
+    """Open the granted-servers sub-view: the grant/revoke flow."""
+    dm_locale = await _dm_locale(interaction)
+    service = await _access_service()
+    if service is None:
+        await interaction.response.send_message(
+            _dm_tr(interaction, dm_locale, "wiring_unavailable"), ephemeral=True
+        )
+        return
+    docs = list((await service.list_all()) or [])[:20]
+    view = discord.ui.LayoutView(timeout=None)
+    blocks: list[Any] = [
+        discord.ui.TextDisplay("# " + _dm_tr(interaction, dm_locale, "granted_title")),
+    ]
+    client = interaction.client
+    for doc in docs:
+        guild = client.get_guild(int(doc.get("guild_id") or 0))
+        name = guild.name if guild is not None else _dm_tr(interaction, dm_locale, "unknown_server")
+        games = ", ".join(doc.get("games") or []) or "\u2014"
+        mods = ", ".join(doc.get("mods") or []) or "\u2014"
+        blocks.append(
+            discord.ui.TextDisplay(
+                _dm_tr(
+                    interaction,
+                    dm_locale,
+                    "granted_line",
+                    name=name,
+                    guild_id=doc.get("guild_id"),
+                    games=games,
+                    mods=mods,
+                )
+            )
+        )
+    view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
+    act_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    act_row.add_item(AccessGrantButton(label=_dm_tr(interaction, dm_locale, "access_btn_manage")))
+    view.add_item(act_row)
+    await interaction.response.send_message(view=view, ephemeral=True)
+
+
+async def _open_sync(interaction: discord.Interaction) -> None:
+    """Open the content sync sub-view: the refresh action."""
+    dm_locale = await _dm_locale(interaction)
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("# " + _dm_tr(interaction, dm_locale, "sync_title")),
+            discord.ui.TextDisplay(_dm_tr(interaction, dm_locale, "sync_subtitle")),
+            accent_colour=discord.Colour(0x5865F2),
+        )
+    )
+    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
+    row.add_item(ContentRefreshButton(label=_dm_tr(interaction, dm_locale, "menu_btn_sync")))
+    view.add_item(row)
+    await interaction.response.send_message(view=view, ephemeral=True)
 
 
 class AccessApproveButton(
@@ -212,7 +373,8 @@ class AccessApproveButton(
             await interaction.response.send_message("Approbation échouée (déjà traitée ?).", ephemeral=True)
             return
         await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
-        await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await _refresh_admin_dm_menus(interaction.client, exclude_channel=interaction.channel_id)
         await interaction.followup.send(
             _dm_tr(interaction, await _dm_locale(interaction), "approved", guild_id=self.guild_id), ephemeral=True
         )
@@ -263,7 +425,8 @@ class AccessDenyButton(
             await interaction.response.send_message("Refus échoué (déjà traitée ?).", ephemeral=True)
             return
         await _cleanup_request_dms(interaction, self.guild_id, self.requested_at)
-        await interaction.response.edit_message(view=await build_admin_dm_panel(interaction))
+        await interaction.response.defer(ephemeral=True)
+        await _refresh_admin_dm_menus(interaction.client, exclude_channel=interaction.channel_id)
 
 
 class ContentRefreshButton(
@@ -272,10 +435,10 @@ class ContentRefreshButton(
 ):
     """Refresh the localized faction content from the vendored dataset."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "Rafraîchir") -> None:
         super().__init__(
             discord.ui.Button(
-                label="Rafraîchir le contenu civs/maps",
+                label=label[:80],
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:refresh",
             )
@@ -330,10 +493,10 @@ class AccessGrantButton(
 ):
     """Open the direct grant/revoke flow (no request needed)."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "Gérer les accès") -> None:
         super().__init__(
             discord.ui.Button(
-                label="G\u00e9rer les acc\u00e8s",
+                label=label[:80],
                 style=discord.ButtonStyle.secondary,
                 custom_id=f"{_NS}:access:grant",
             )
@@ -570,6 +733,7 @@ class AccessGrantModal(discord.ui.Modal):
             return
         games = ", ".join(doc.get("games") or []) or "—"
         mods = ", ".join(doc.get("mods") or []) or "—"
+        await _refresh_admin_dm_menus(interaction.client)
         await interaction.followup.send(
             _dm_tr(interaction, dm_locale, "access_granted", guild_id=self.guild_id, games=games, mods=mods),
             ephemeral=True,
@@ -676,6 +840,7 @@ class AccessRevokeModal(discord.ui.Modal):
             return
         games = ", ".join(doc.get("games") or []) or "—"
         mods = ", ".join(doc.get("mods") or []) or "—"
+        await _refresh_admin_dm_menus(interaction.client)
         await interaction.followup.send(
             _dm_tr(interaction, dm_locale, "access_revoked", guild_id=self.guild_id, games=games, mods=mods),
             ephemeral=True,
@@ -691,6 +856,7 @@ def _selected(interaction: discord.Interaction) -> list[str]:
 
 def register_admin_dm_items(bot: discord.Client) -> None:
     """Register the DM panel's persistent dynamic items."""
+    bot.add_dynamic_items(DmOpenButton)
     bot.add_dynamic_items(AccessApproveButton)
     bot.add_dynamic_items(AccessDenyButton)
     bot.add_dynamic_items(ContentRefreshButton)

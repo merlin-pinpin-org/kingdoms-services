@@ -93,8 +93,13 @@ async def test_admin_command_dm_shows_user_locale_setup() -> None:
     assert interaction.followup.messages, "the DM panel arrives through the followup"
     layouts = [m.layout for m in interaction.followup.messages]
     assert all(layout is not None for layout in layouts)
-    assert any(USER_LOCALE_SELECT_ID in _custom_ids(layout) for layout in layouts if layout is not None)
-    assert logs.user_locales_read == ["111111111"]
+    # the frozen DM menu: the locale select lives behind the language
+    # opener (admin:dm:open:language), never inline on the menu itself
+    assert any(
+        any(cid.startswith("admin:dm:open:") for cid in _custom_ids(layout))
+        for layout in layouts
+        if layout is not None
+    ), "the DM menu carries its openers"
     await client.close()
 
 
@@ -109,13 +114,31 @@ async def test_admin_command_dm_locale_change_persists() -> None:
     interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
     interaction.guild_id = None
     await command._callback(interaction)  # type: ignore[union-attr]
-    select = None
-    for message in interaction.followup.messages:
-        select = _find_select(message.layout, USER_LOCALE_SELECT_ID)
-        if select is not None:
-            break
+    # the frozen DM menu: the language button opens the locale picker
+    menu = next(
+        (m.layout for m in interaction.followup.messages if m.layout is not None),
+        None,
+    )
+    assert menu is not None
+    assert any(
+        cid.startswith("admin:dm:open:language") for cid in _custom_ids(menu)
+    ), "the DM menu carries the language opener"
+    # clicking the opener opens the ephemeral language sub-view
+    from kingdoms.discord.admin_dm_panel import DmOpenButton
+
+    opener_interaction = MockInteraction(user=MockUser(id=111111111), guild=None)
+    opener_interaction.guild_id = None
+    opener_interaction.client.status_service = type(
+        "Status", (), {"bot_admins": ("111111111",)}
+    )()
+    opener_interaction.client.logs_service = logs
+    opener_interaction.client.messages = None
+    opener = DmOpenButton("language", "Langue")
+    await opener.callback(opener_interaction)
+    assert opener_interaction.response.sent, "the language sub-view answers"
+    select = _find_select(opener_interaction.response.message.layout, USER_LOCALE_SELECT_ID)
     assert select is not None
-    await _choose(select, interaction, ["fr"])
+    await _choose(select, opener_interaction, ["fr"])
     assert logs.user_locales_set == [("111111111", "fr")]
     await client.close()
 

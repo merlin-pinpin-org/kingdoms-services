@@ -53,6 +53,7 @@ click&nbsp;has&nbsp;exactly&nbsp;one&nbsp;dispatch&nbsp;path.</span></p>
 </dt><dt class="heading-text"><a href="kingdoms.discord.admin_dm_panel.html#AccessGuildSelect">AccessGuildSelect</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.admin_dm_panel.html#AccessRemoveButton">AccessRemoveButton</a>
 </dt><dt class="heading-text"><a href="kingdoms.discord.admin_dm_panel.html#ContentRefreshButton">ContentRefreshButton</a>
+</dt><dt class="heading-text"><a href="kingdoms.discord.admin_dm_panel.html#DmOpenButton">DmOpenButton</a>
 </dt></dl>
 </dd>
 <dt class="heading-text"><a href="discord.ui.modal.html#Modal">discord.ui.modal.Modal</a>(<a href="discord.ui.view.html#BaseView">discord.ui.view.BaseView</a>)
@@ -489,7 +490,7 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><a name="AccessGrantButton">class <strong>AccessGrantButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#AccessGrantButton">AccessGrantButton</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#AccessGrantButton">AccessGrantButton</a>(label:&nbsp;'str'&nbsp;=&nbsp;'Gérer&nbsp;les&nbsp;accès')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Open&nbsp;the&nbsp;direct&nbsp;grant/revoke&nbsp;flow&nbsp;(no&nbsp;request&nbsp;needed).<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -502,7 +503,7 @@ Open&nbsp;the&nbsp;direct&nbsp;grant/revoke&nbsp;flow&nbsp;(no&nbsp;request&nbsp
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="AccessGrantButton-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#AccessGrantButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="AccessGrantButton-__init__"><strong>__init__</strong></a>(self, label: 'str' = 'Gérer les accès') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#AccessGrantButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="AccessGrantButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard,&nbsp;then&nbsp;open&nbsp;the&nbsp;guild&nbsp;picker&nbsp;(never&nbsp;silent).</span></dd></dl>
 
@@ -1389,7 +1390,7 @@ Data and other attributes inherited from <a href="discord.ui.view.html#BaseView"
 <td class="section-title" colspan=3>&nbsp;<br><a name="ContentRefreshButton">class <strong>ContentRefreshButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
     
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ContentRefreshButton">ContentRefreshButton</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ContentRefreshButton">ContentRefreshButton</a>(label:&nbsp;'str'&nbsp;=&nbsp;'Rafraîchir')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Refresh&nbsp;the&nbsp;localized&nbsp;faction&nbsp;content&nbsp;from&nbsp;the&nbsp;vendored&nbsp;dataset.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -1402,7 +1403,7 @@ Refresh&nbsp;the&nbsp;localized&nbsp;faction&nbsp;content&nbsp;from&nbsp;the&nbs
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ContentRefreshButton-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ContentRefreshButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ContentRefreshButton-__init__"><strong>__init__</strong></a>(self, label: 'str' = 'Rafraîchir') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#ContentRefreshButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt>async <a name="ContentRefreshButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Guard,&nbsp;run&nbsp;the&nbsp;dataset&nbsp;refresh&nbsp;(catalog&nbsp;+&nbsp;content),&nbsp;confirm.</span></dd></dl>
 
@@ -1523,26 +1524,168 @@ when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`
 However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
 classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
 
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DmOpenButton">class <strong>DmOpenButton</strong></a>(<a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DmOpenButton">DmOpenButton</a>(section:&nbsp;'str',&nbsp;label:&nbsp;'str',&nbsp;disabled:&nbsp;'bool'&nbsp;=&nbsp;False)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+One&nbsp;DM&nbsp;menu&nbsp;opener:&nbsp;opens&nbsp;its&nbsp;section's&nbsp;ephemeral&nbsp;sub-view.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="kingdoms.discord.admin_dm_panel.html#DmOpenButton">DmOpenButton</a></dd>
+<dd><a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a></dd>
+<dd><a href="discord.ui.item.html#Item">discord.ui.item.Item</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DmOpenButton-__init__"><strong>__init__</strong></a>(self, section: 'str', label: 'str', disabled: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(<a href="#DmOpenButton-type">type</a>(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt>async <a name="DmOpenButton-callback"><strong>callback</strong></a>(self, interaction: 'discord.Interaction') -&gt; 'None'</dt><dd><span class="code">Open&nbsp;the&nbsp;section's&nbsp;ephemeral&nbsp;sub-view&nbsp;(guarded).</span></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt>async <a name="DmOpenButton-from_custom_id"><strong>from_custom_id</strong></a>(interaction: 'discord.Interaction', item: 'discord.ui.Item[Any]', match: 're.Match[str]', /) -&gt; 'DmOpenButton'</dt><dd><span class="code">Rebuild&nbsp;from&nbsp;the&nbsp;wire&nbsp;(labels&nbsp;via&nbsp;the&nbsp;admin's&nbsp;DM&nbsp;locale).</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>SECTIONS</strong> = ('language', 'requests', 'servers', 'sync')</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__discord_ui_compiled_template__</strong> = re.compile('admin:dm:open:(?P&lt;section&gt;[a-z]+)')</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (discord.ui.dynamic.DynamicItem[discord.ui.button.Button[typing.Any]],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt>async <a name="DmOpenButton-interaction_check"><strong>interaction_check</strong></a>(self, interaction: 'Interaction[ClientT]', /) -&gt; 'bool'</dt><dd><span class="code">|coro|<br>
+&nbsp;<br>
+A&nbsp;callback&nbsp;that&nbsp;is&nbsp;called&nbsp;when&nbsp;an&nbsp;interaction&nbsp;happens&nbsp;within&nbsp;this&nbsp;item<br>
+that&nbsp;checks&nbsp;whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;useful&nbsp;to&nbsp;override&nbsp;if,&nbsp;for&nbsp;example,&nbsp;you&nbsp;want&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the<br>
+interaction&nbsp;author&nbsp;is&nbsp;a&nbsp;given&nbsp;user.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;of&nbsp;this&nbsp;returns&nbsp;``True``.<br>
+&nbsp;<br>
+..&nbsp;note::<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;an&nbsp;exception&nbsp;occurs&nbsp;within&nbsp;the&nbsp;body&nbsp;then&nbsp;the&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;considered&nbsp;a&nbsp;failure&nbsp;and&nbsp;:meth:`View.on_error`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(or&nbsp;:meth:`LayoutView.on_error`)&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;:class:`~discord.ui.<a href="discord.ui.dynamic.html#DynamicItem">DynamicItem</a>`&nbsp;this&nbsp;does&nbsp;not&nbsp;call&nbsp;the&nbsp;``on_error``<br>
+&nbsp;&nbsp;&nbsp;&nbsp;handler.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.4<br>
+&nbsp;<br>
+Parameters<br>
+-----------<br>
+interaction:&nbsp;:class:`~discord.Interaction`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interaction&nbsp;that&nbsp;occurred.<br>
+&nbsp;<br>
+Returns<br>
+---------<br>
+:class:`bool`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;the&nbsp;callback&nbsp;should&nbsp;be&nbsp;called.</span></dd></dl>
+
+<dl><dt><a name="DmOpenButton-is_dispatchable"><strong>is_dispatchable</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="DmOpenButton-is_persistent"><strong>is_persistent</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<dl><dt><a name="DmOpenButton-to_component_dict"><strong>to_component_dict</strong></a>(self) -&gt; 'Dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><a name="DmOpenButton-__init_subclass__"><strong>__init_subclass__</strong></a>(*, template: 'Union[str, re.Pattern[str]]') -&gt; 'None'</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<dl><dt><a name="DmOpenButton-from_component"><strong>from_component</strong></a>(component: 'Component') -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>template</strong></dt>
+<dd><span class="code">``re.Pattern``:&nbsp;The&nbsp;compiled&nbsp;regular&nbsp;expression&nbsp;that&nbsp;is&nbsp;used&nbsp;to&nbsp;parse&nbsp;the&nbsp;``custom_id``.</span></dd>
+</dl>
+<dl><dt><strong>type</strong></dt>
+</dl>
+<dl><dt><strong>width</strong></dt>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>custom_id</strong></dt>
+<dd><span class="code">:class:`str`:&nbsp;The&nbsp;ID&nbsp;of&nbsp;the&nbsp;dynamic&nbsp;item&nbsp;that&nbsp;gets&nbsp;received&nbsp;during&nbsp;an&nbsp;interaction.</span></dd>
+</dl>
+<dl><dt><strong>row</strong></dt>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="discord.ui.dynamic.html#DynamicItem">discord.ui.dynamic.DynamicItem</a>:<br>
+<dl><dt><strong>__item_repr_attributes__</strong> = ('item', 'template')</dl>
+
+<hr>
+Methods inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><a name="DmOpenButton-__repr__"><strong>__repr__</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DmOpenButton-copy"><strong>copy</strong></a>(self) -&gt; 'Self'</dt></dl>
+
+<hr>
+Readonly properties inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>parent</strong></dt>
+<dd><span class="code">Optional[:class:`Item`]:&nbsp;This&nbsp;item's&nbsp;parent,&nbsp;if&nbsp;applicable.&nbsp;Only&nbsp;available&nbsp;on&nbsp;items&nbsp;with&nbsp;children.<br>
+&nbsp;<br>
+..&nbsp;versionadded::&nbsp;2.6</span></dd>
+</dl>
+<dl><dt><strong>view</strong></dt>
+<dd><span class="code">Optional[Union[:class:`View`,&nbsp;:class:`LayoutView`]]:&nbsp;The&nbsp;underlying&nbsp;view&nbsp;for&nbsp;this&nbsp;item.</span></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="discord.ui.item.html#Item">discord.ui.item.Item</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><span class="code">Optional[:class:`int`]:&nbsp;The&nbsp;ID&nbsp;of&nbsp;this&nbsp;component.</span></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="DmOpenButton-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction | discord.Client', locale_select: 'discord.ui.Item[Any] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;panel:&nbsp;one&nbsp;FR&nbsp;menu,&nbsp;sectioned.<br>
+<td class="singlecolumn"><dl><dt>async <a name="-build_admin_dm_panel"><strong>build_admin_dm_panel</strong></a>(interaction: 'discord.Interaction | discord.Client', locale_select: 'discord.ui.Item[Any] | None' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Render&nbsp;the&nbsp;bot-admin&nbsp;DM&nbsp;menu:&nbsp;frozen,&nbsp;five&nbsp;openers&nbsp;(the&nbsp;home/admin&nbsp;charte).<br>
 &nbsp;<br>
-Sections:&nbsp;demandes&nbsp;en&nbsp;attente&nbsp;(approve/deny),&nbsp;accords&nbsp;actifs,&nbsp;la<br>
-langue&nbsp;des&nbsp;DM&nbsp;du&nbsp;bot&nbsp;admin&nbsp;(the&nbsp;DM&nbsp;locale&nbsp;select&nbsp;rides&nbsp;inside&nbsp;this<br>
-single&nbsp;panel),&nbsp;refresh&nbsp;du&nbsp;contenu&nbsp;civs/maps&nbsp;et&nbsp;gestion&nbsp;directe&nbsp;des<br>
-accords&nbsp;(sans&nbsp;demande).&nbsp;No&nbsp;provider-mapping&nbsp;section.&nbsp;The&nbsp;caller<br>
-passes&nbsp;the&nbsp;interaction&nbsp;(clicks)&nbsp;or&nbsp;the&nbsp;client&nbsp;itself&nbsp;(the&nbsp;boot's<br>
-DM&nbsp;delivery)&nbsp;—&nbsp;only&nbsp;the&nbsp;client&nbsp;reference&nbsp;is&nbsp;read.</span></dd></dl>
+The&nbsp;menu&nbsp;never&nbsp;re-renders&nbsp;on&nbsp;navigation&nbsp;—&nbsp;every&nbsp;button&nbsp;opens&nbsp;an<br>
+ephemeral&nbsp;sub-view.&nbsp;It&nbsp;carries&nbsp;one&nbsp;status&nbsp;line&nbsp;(pending&nbsp;requests,<br>
+granted&nbsp;servers)&nbsp;so&nbsp;the&nbsp;data&nbsp;reads&nbsp;at&nbsp;a&nbsp;glance,&nbsp;and&nbsp;the&nbsp;callers<br>
+that&nbsp;mutate&nbsp;the&nbsp;data&nbsp;re-render&nbsp;it&nbsp;in&nbsp;place&nbsp;(same&nbsp;message&nbsp;id).</span></dd></dl>
  <dl><dt><a name="-register_admin_dm_items"><strong>register_admin_dm_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;DM&nbsp;panel's&nbsp;persistent&nbsp;dynamic&nbsp;items.</span></dd></dl>
+ <dl><dt><a name="-track_admin_menu"><strong>track_admin_menu</strong></a>(message: 'Any') -&gt; 'None'</dt><dd><span class="code">Track&nbsp;one&nbsp;freshly&nbsp;delivered&nbsp;DM&nbsp;menu&nbsp;message&nbsp;(per&nbsp;admin).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.admin_dm (WARNING)&gt;</td></tr></table>
+<td class="singlecolumn"><strong>__annotations__</strong> = {'_ADMIN_MENU_MESSAGES': 'dict[int, Any]'}<br>
+<strong>logger</strong> = &lt;Logger kingdoms.admin_dm (WARNING)&gt;</td></tr></table>
 </body></html>

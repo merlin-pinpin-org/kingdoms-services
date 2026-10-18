@@ -496,22 +496,15 @@ async def _send_boot_admin_dm(bot: discord.Client, user: Any) -> None:
     from kingdoms.discord.admin_dm_panel import build_admin_dm_panel
 
     try:
-        locale_select = None
-        logs = getattr(bot, "logs_service", None)
-        if logs is not None:
-            from kingdoms.discord.admin import build_dm_setup_view
-
-            dm_view = await build_dm_setup_view(logs, str(user.id), catalog=getattr(bot, "messages", None))
-            locale_select = next(
-                (item for item in dm_view.walk_children() if isinstance(item, discord.ui.Select)),
-                None,
-            )
-        panel = await build_admin_dm_panel(bot, locale_select=locale_select)
+        panel = await build_admin_dm_panel(bot)
         message = await user.send(view=panel)
         try:
             await message.pin(reason="kingdoms: boot admin DM menu")
         except Exception:
             logger.info("BOOT ADMIN DM menu pin skipped (admin %s)", user.id)
+        from kingdoms.discord.admin_dm_panel import track_admin_menu
+
+        track_admin_menu(message)
         logger.info("BOOT ADMIN DM menu sent to bot-admin %s", user.id)
     except Exception:
         logger.warning("BOOT ADMIN DM menu failed (admin %s) — best-effort", user.id, exc_info=True)

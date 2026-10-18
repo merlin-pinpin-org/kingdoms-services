@@ -307,6 +307,14 @@ fr:
     bot_admin_only: R\u00e9serv\u00e9 aux bot admins.
     access_nothing_to_add: Rien à accorder — tout est déjà actif.
     access_nothing_to_remove: Rien à retirer — aucun jeu/mod actif.
+    menu_status: ⏳ {requests} demande(s) en attente · 🌐 {servers} serveur(s) actif(s)
+    menu_btn_language: Langue
+    menu_btn_requests: Demandes
+    menu_btn_servers: Serveurs
+    menu_btn_sync: Sync AoE2
+    sync_title: Sync des données AoE2
+    sync_subtitle: Rafraîchit les civilisations et maps depuis le dataset aoe2techtree.
+    access_btn_manage: Gérer les accès
   channel_audit:
     clean: 'Audit des canaux : aucun écart détecté.'
     header: 'Audit des canaux — {count} écart(s) :'
