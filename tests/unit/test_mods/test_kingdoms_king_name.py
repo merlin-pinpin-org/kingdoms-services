@@ -161,3 +161,32 @@ async def test_send_king_name_request_is_a_silent_noop_for_a_gone_member() -> No
     guild = MockGuild()  # nobody: the DM is skipped without raising
     await _send_king_name_request(guild, "404", "en")
     assert guild.text_channels == []
+
+
+async def test_send_king_name_request_offers_the_free_thrones_too() -> None:
+    """Drasah 18/10: kingdoms added by an admin leave kingless thrones —
+    the approved King's DM carries the naming button AND the claim
+    select, so he may found a new kingdom or take an existing one."""
+    guild = MockGuild()
+    member = MockMember(id=111, name="Arthur", guild=guild)
+    guild.add_member(member)
+    available = [FakeKingdom("k-1", "HeN"), FakeKingdom("k-2", "AEGIS")]
+    await _send_king_name_request(guild, "111", "en", available)
+    assert len(member.dm_messages) == 1
+    message = member.dm_messages[0]
+    assert message.view is not None
+    custom_ids = [getattr(item, "custom_id", None) for item in message.view.children]
+    assert "kingdoms:king:name-request" in custom_ids
+    assert "kingdoms:king:claim-select" in custom_ids
+    assert _king_name_strings("en")["king_name_claim_hint"] in (message.content or "")
+    # No free throne: the DM stays the plain naming request.
+    solo = MockGuild()
+    solo_member = MockMember(id=222, name="Lancelot", guild=solo)
+    solo.add_member(solo_member)
+    await _send_king_name_request(solo, "222", "en", [])
+    assert len(solo_member.dm_messages) == 1
+    solo_ids = [
+        getattr(item, "custom_id", None)
+        for item in solo_member.dm_messages[0].view.children  # type: ignore[union-attr]
+    ]
+    assert "kingdoms:king:claim-select" not in solo_ids
