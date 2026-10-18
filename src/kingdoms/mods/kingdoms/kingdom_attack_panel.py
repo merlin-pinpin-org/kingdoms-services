@@ -1967,6 +1967,53 @@ def _shuffled_civs(picks: Any) -> list[str]:
     return pool
 
 
+def _battle_room_overwrites(guild: Any, role: Any) -> dict[Any, discord.PermissionOverwrite]:
+    """Build the battle-room channel overwrites (players' role only).
+
+    Check 75 live: the @everyone deny locked the BOT itself out of the
+    channel it had just created — the room message died with 403 50001
+    Missing Access and the whole flow (roles, DMs, refs) collapsed
+    with it. The bot carries its own overwrites.
+    """
+    overwrites: dict[Any, discord.PermissionOverwrite] = {
+        role: discord.PermissionOverwrite(connect=True, view_channel=True),
+    }
+    me = getattr(guild, "me", None)
+    if me is not None:
+        overwrites[me] = discord.PermissionOverwrite(
+            view_channel=True,
+            connect=True,
+            send_messages=True,
+            read_message_history=True,
+        )
+    everyone = getattr(guild, "default_role", None)
+    if everyone is not None:
+        overwrites[everyone] = discord.PermissionOverwrite(connect=False, view_channel=False)
+    return overwrites
+
+
+async def _grant_battle_room_role_safe(guild: Any, role: Any, player_id: str) -> None:
+    """Give the battle-room role to one player (best effort).
+
+    The member cache is often cold — ``fetch_member`` is the fallback.
+    """
+    member = None
+    try:
+        member = guild.get_member(int(player_id))
+    except (TypeError, ValueError):
+        member = None
+    if member is None:
+        try:
+            member = await guild.fetch_member(int(player_id))
+        except Exception:
+            member = None
+    if member is not None:
+        try:
+            await member.add_roles(role)
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
+
+
 async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service: Any, locale: str) -> None:
     """Open the battle room of a meeting (Drasah 18/10 v2).
 
@@ -1990,29 +2037,11 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         )
         if category is None:
             category = await guild.create_category(strings["room_category"])
-        everyone = getattr(guild, "default_role", None)
-        overwrites: dict[Any, discord.PermissionOverwrite] = {
-            role: discord.PermissionOverwrite(connect=True, view_channel=True),
-        }
-        # Check 75 live: the @everyone deny locked the BOT itself out of
-        # the channel it had just created — the room message died with
-        # 403 50001 Missing Access and the whole flow (roles, DMs, refs)
-        # collapsed with it. The bot carries its own overwrites.
-        me = getattr(guild, "me", None)
-        if me is not None:
-            overwrites[me] = discord.PermissionOverwrite(
-                view_channel=True,
-                connect=True,
-                send_messages=True,
-                read_message_history=True,
-            )
-        if everyone is not None:
-            overwrites[everyone] = discord.PermissionOverwrite(connect=False, view_channel=False)
         channel = await guild.create_voice_channel(
             strings["room_title"].format(map=attack.map_key, attacker=attacker, defender=defender)[:100],
             category=category,
             user_limit=2,
-            overwrites=overwrites,
+            overwrites=_battle_room_overwrites(guild, role),
         )
         await record_battle_room_safe(attack, channel.id, role.id)
         pickban: dict[str, Any] = dict(attack.pickban or {})
@@ -2035,21 +2064,7 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         except Exception:
             logger.warning("KINGDOM ATTACK: battle room text post failed", exc_info=True)
         for player_id in _score_players(attack):
-            member = None
-            try:
-                member = guild.get_member(int(player_id))
-            except (TypeError, ValueError):
-                member = None
-            if member is None:
-                try:
-                    member = await guild.fetch_member(int(player_id))
-                except Exception:
-                    member = None
-            if member is not None:
-                try:
-                    await member.add_roles(role)
-                except Exception:
-                    logger.warning("KINGDOM ATTACK: battle room role grant failed", exc_info=True)
+            await _grant_battle_room_role_safe(guild, role, player_id)
         for player_id in _score_players(attack):
             await _dm_user_safe(
                 bot,

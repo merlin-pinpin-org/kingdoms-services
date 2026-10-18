@@ -752,7 +752,7 @@ async def test_battle_room_text_post_failure_still_grants_roles_and_dms(
     guild = MockGuild()
 
     class _DmUser:
-        def __init__(self, uid: int) -> None:
+        def __init__(self, uid: str) -> None:
             self.id = uid
 
         async def send(self, content: str, view: Any = None) -> Any:
@@ -760,8 +760,8 @@ async def test_battle_room_text_post_failure_still_grants_roles_and_dms(
             return None
 
     class _DmBot(_FakeBot):
-        async def fetch_user(self, user_id: int) -> Any:
-            return _DmUser(user_id)
+        def get_user(self, user_id: str) -> Any:
+            return _DmUser(str(user_id))
 
     outbox: list[tuple[str, str]] = []
     bot = _DmBot(bundle)
