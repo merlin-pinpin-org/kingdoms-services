@@ -94,7 +94,13 @@ Categories&nbsp;created&nbsp;BEFORE&nbsp;the&nbsp;bot-access&nbsp;fix&nbsp;carry
 the&nbsp;bot&nbsp;cannot&nbsp;even&nbsp;delete&nbsp;them&nbsp;(403&nbsp;Missing&nbsp;Access&nbsp;on&nbsp;every<br>
 category&nbsp;deletion&nbsp;—&nbsp;drasah&nbsp;live&nbsp;incident&nbsp;2026-10-10).&nbsp;Granting&nbsp;the<br>
 bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nbsp;path&nbsp;work&nbsp;again.</span></dd></dl>
- <dl><dt><a name="-realm_category_name"><strong>realm_category_name</strong></a>(kingdom_name: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;display&nbsp;name&nbsp;of&nbsp;a&nbsp;kingdom's&nbsp;category:&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;».</span></dd></dl>
+ <dl><dt><a name="-realm_category_name"><strong>realm_category_name</strong></a>(kingdom_name: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;display&nbsp;name&nbsp;of&nbsp;a&nbsp;kingdom's&nbsp;category:&nbsp;«&nbsp;🏰&nbsp;[Nom]&nbsp;».<br>
+&nbsp;<br>
+ordre-salons-v1&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;grimoire&nbsp;charte&nbsp;—&nbsp;a&nbsp;realm<br>
+category&nbsp;carries&nbsp;the&nbsp;same&nbsp;🏰&nbsp;as&nbsp;the&nbsp;structure's&nbsp;Kingdoms/Gaïa<br>
+categories,&nbsp;so&nbsp;it&nbsp;slugs&nbsp;to&nbsp;the&nbsp;bare&nbsp;kingdom&nbsp;name.&nbsp;The&nbsp;legacy<br>
+«&nbsp;Royaume&nbsp;[Nom]&nbsp;»&nbsp;form&nbsp;is&nbsp;still&nbsp;adopted&nbsp;(dual&nbsp;match&nbsp;in<br>
+``_find_realm_category``)&nbsp;and&nbsp;renamed&nbsp;at&nbsp;the&nbsp;next&nbsp;provisioning.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -108,7 +114,7 @@ bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nb
 <strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
 <strong>REALMS_CHANNEL</strong> = 'Royaumes'<br>
 <strong>REALMS_PANEL_MARKER</strong> = 'kingdoms:panel:royaumes'<br>
-<strong>REALM_SALONS</strong> = (('salle-du-conseil', 'Salle du Conseil'), ('le-royaume', 'Le-Royaume'), ('territoire', 'Territoire'), ('alliances', 'Alliances'), ('eglise', 'Paroisse'))<br>
+<strong>REALM_SALONS</strong> = (('salle-du-conseil', '💬 salle du conseil'), ('le-royaume', '🏰 le-royaume'), ('territoire', '🗺️ territoire'), ('alliances', '🤝 alliances'), ('eglise', '⛪ paroisse'))<br>
 <strong>REMOVED_REALM_SALONS</strong> = (('remparts', '🧱 Remparts'), ('seigneurs', 'Seigneurs'), ('pigeon-voyageur', 'Pigeon-Voyageur'))<br>
 <strong>STATUS_EMOJI</strong> = {'approved': '✅', 'pending': '⏳', 'refused': '❌'}<br>
 <strong>STRINGS</strong> = {'en': {'realms_approve_button': '✅ Validate', 'realms_approved': 'Validated', 'realms_cancelled': 'Cancelled.', 'realms_delete_button': '🗑️ Delete', 'realms_delete_cancel_button': 'Cancel', 'realms_delete_confirm_button': '🗑️ Delete for good', 'realms_delete_confirm_hint': 'This removes the kingdom, its members, its terri...s. The refusal trace does not survive a deletion.', 'realms_delete_confirm_title': 'Delete the kingdom?', 'realms_deleted': 'Kingdom deleted.', 'realms_done': 'Done.', ...}, 'fr': {'realms_approve_button': '✅ Valider', 'realms_approved': 'Validé', 'realms_cancelled': 'Annulé.', 'realms_delete_button': '🗑️ Supprimer', 'realms_delete_cancel_button': 'Annuler', 'realms_delete_confirm_button': '🗑️ Supprimer définitivement', 'realms_delete_confirm_hint': 'Cela supprime le royaume, ses membres, ses terri...iscord. Aucune trace ne survit à une suppression.', 'realms_delete_confirm_title': 'Supprimer le royaume ?', 'realms_deleted': 'Royaume supprimé.', 'realms_done': "C'est fait.", ...}}<br>

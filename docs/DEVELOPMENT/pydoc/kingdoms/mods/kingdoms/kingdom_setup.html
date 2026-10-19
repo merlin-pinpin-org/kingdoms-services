@@ -51,7 +51,12 @@ The&nbsp;declaration&nbsp;(``config/mods/kingdoms.yaml``)&nbsp;is&nbsp;the&nbsp;
 of&nbsp;truth:&nbsp;groups&nbsp;in&nbsp;declaration&nbsp;order,&nbsp;then&nbsp;each&nbsp;group's&nbsp;channels&nbsp;—<br>
 kinds,&nbsp;admin-only&nbsp;flags&nbsp;and&nbsp;positions&nbsp;are&nbsp;data.&nbsp;Existing&nbsp;channels<br>
 are&nbsp;adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe.&nbsp;Returns&nbsp;the<br>
-(created,&nbsp;adopted)&nbsp;display&nbsp;paths&nbsp;from&nbsp;the&nbsp;provision&nbsp;report.</span></dd></dl>
+(created,&nbsp;adopted)&nbsp;display&nbsp;paths&nbsp;from&nbsp;the&nbsp;provision&nbsp;report.<br>
+&nbsp;<br>
+ordre-salons-v1&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;charte&nbsp;pass&nbsp;renames&nbsp;the&nbsp;LIVE<br>
+structure&nbsp;to&nbsp;the&nbsp;declared&nbsp;display&nbsp;names&nbsp;BEFORE&nbsp;the&nbsp;core&nbsp;provisions&nbsp;—<br>
+the&nbsp;core&nbsp;adopts&nbsp;categories&nbsp;by&nbsp;name,&nbsp;so&nbsp;renaming&nbsp;after&nbsp;(or&nbsp;never)<br>
+would&nbsp;duplicate&nbsp;every&nbsp;decorated&nbsp;category&nbsp;(the&nbsp;Check&nbsp;87&nbsp;bug&nbsp;class).</span></dd></dl>
  <dl><dt><a name="-register_kingdom_command"><strong>register_kingdom_command</strong></a>(tree: 'app_commands.CommandTree[discord.Client]', bot_admins: 'tuple[str, ...]' = ()) -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;/kingdom&nbsp;bootstrap&nbsp;command&nbsp;(admin&nbsp;only)&nbsp;on&nbsp;the&nbsp;tree.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
@@ -61,11 +66,11 @@ are&nbsp;adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BLURPLE</strong> = 5793266<br>
 <strong>EPOCH_CHANNEL_KEY</strong> = 'epoch'<br>
-<strong>KINGDOMS_CATEGORY_ORDER</strong> = ('📜 Scriptorium', 'Marché', 'Géopolitique')<br>
+<strong>KINGDOMS_CATEGORY_ORDER</strong> = ('📜 scriptorium', '🛒 marché', '🌍 géopolitique')<br>
 <strong>LEGACY_BATTLE_CATEGORY_NAMES</strong> = ('Champs de bataille', 'Battlefields')<br>
-<strong>LEGACY_CATEGORY_NAMES</strong> = ('Époque', 'Scriptorium', 'Général')<br>
-<strong>LEGACY_SALON_SLUGS</strong> = ('seigneurs', 'diplomatie', 'cadastre', 'delais-attaque', 'attaques', 'patrouille', 'exploration', 'presentation', 'annonce', 'regles', 'saison', 'update', 'suggestion', 'taverne', '🏺-age')<br>
+<strong>LEGACY_CATEGORY_NAMES</strong> = ('Époque', 'Scriptorium', 'Général', 'Support')<br>
+<strong>LEGACY_SALON_SLUGS</strong> = ('seigneurs', 'diplomatie', 'cadastre', 'delais-attaque', 'attaques', 'patrouille', 'exploration', 'presentation', 'annonce', 'regles', 'saison', 'update', 'suggestion', 'taverne', 'age', 'question', 'signaler-un-bug')<br>
 <strong>MOD_NAME</strong> = 'kingdoms'<br>
-<strong>__annotations__</strong> = {'KINGDOMS_CATEGORY_ORDER': 'tuple[str, ...]', 'LEGACY_BATTLE_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_SALON_SLUGS': 'tuple[str, ...]'}<br>
+<strong>__annotations__</strong> = {'KINGDOMS_CATEGORY_ORDER': 'tuple[str, ...]', 'LEGACY_BATTLE_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_SALON_SLUGS': 'tuple[str, ...]', '_CHARTE_CATEGORY_DISPLAY': 'dict[str, str]', '_CHARTE_CHANNEL_DISPLAY': 'dict[str, str]', '_CHARTE_TOPICS': 'dict[str, str]', '_CONSCRIPTION_ROLE_CANDIDATES': 'tuple[tuple[str, ...], ...]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>
 </body></html>
