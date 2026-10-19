@@ -974,7 +974,7 @@ dev = [
     { name = "types-pyyaml", specifier = ">=6.0" },
     { name = "types-redis", specifier = ">=4.5.5" },
 ]
-visuals = [{ name = "visual-generator", directory = "../github__merlin-pinpin-org__visual-generator" }]
+visuals = [{ name = "visual-generator", url = "https://github.com/merlin-pinpin-org/visual-generator/archive/e92d719cbfda23cd9a13724053b434f3d0e944fb.tar.gz" }]
 
 [[package]]
 name = "kiwisolver"
@@ -2209,11 +2209,12 @@ wheels = [
 [[package]]
 name = "visual-generator"
 version = "0.1.0"
-source = { directory = "../github__merlin-pinpin-org__visual-generator" }
+source = { url = "https://github.com/merlin-pinpin-org/visual-generator/archive/e92d719cbfda23cd9a13724053b434f3d0e944fb.tar.gz" }
 dependencies = [
     { name = "matplotlib" },
     { name = "pillow" },
 ]
+sdist = { hash = "sha256:51b31ce3da18f6c8e092ac37e273377b8762aadc69c27fe2a38cb2a5479257c9" }
 
 [package.metadata]
 requires-dist = [
