@@ -14,8 +14,8 @@ settings: {}
 channel_groups:
   - key: profiles
     display_name: Profils
-  - key: general
-    display_name: Général
+  # restructuration-serveur-v1 e (Drasah 19/10): the general group is
+  # GONE ENTIRELY (Taverne + the vocal) — nothing is kept or moved.
   - key: conscription
     display_name: Conscription
   - key: kingdoms
@@ -30,14 +30,9 @@ channel_groups:
   - key: support
     display_name: Support
 channels:
-  - key: tavern
-    display_name: Taverne
-    description: Off-topic
-    group: general
-    # restructuration-serveur-v1 c+d (Drasah 19/10): presentation/announce/
-    # rules/season/update/suggestions are RETIRED — the pitch and the
-    # rules live in the Scriptorium's ephemeral buttons, the salons
-    # themselves disappear at the next provisioning.
+  # restructuration-serveur-v1 e (Drasah 19/10): the general group and
+  # its Taverne are RETIRED — the category disappears at the next
+  # provisioning (the legacy cleanup sweeps both).
   - key: apply
     display_name: Postuler
     description: The enrollment panel channel
