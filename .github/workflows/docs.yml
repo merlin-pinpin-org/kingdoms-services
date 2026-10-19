@@ -11,7 +11,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   generate:
@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12.14"
@@ -39,22 +37,3 @@ jobs:
             cat /tmp/pydoc-diff.txt
             exit 1
           fi
-      # TEMPORARY (permissions-serveur-v1): one-shot self-heal — when the
-      # committed copy is stale on a PR, commit the CI-generated tree back
-      # into the PR branch so the gate converges green on the next push.
-      - name: One-shot auto-regenerate the stale pydoc into the branch
-        if: failure() && github.event_name == 'pull_request'
-        run: |
-          echo "stale files:"
-          cat /tmp/pydoc-diff.txt
-          git config user.name "kingdoms-docs-bot"
-          git config user.email "actions@users.noreply.github.com"
-          rm -rf docs/DEVELOPMENT/pydoc
-          cp -r /tmp/pydoc-fresh docs/DEVELOPMENT/pydoc
-          git add docs/DEVELOPMENT/pydoc
-          if git diff --cached --quiet; then
-            echo "nothing to commit — fresh tree matches the committed one"
-            exit 0
-          fi
-          git commit -m "docs(pydoc): auto-regenerate the stale pages (ci one-shot)"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
