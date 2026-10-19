@@ -166,6 +166,8 @@ async def _build_faction_card(bot: Any, faction: Any, guild_id: str) -> Any | No
         content = await entity_post_content(
             entry_id, str(getattr(faction, "name", faction)), guild_id, bot
         )
+        if len(content) == 3:  # no content service fallback (content_posts.py)
+            content = (*content, "")
         card = faction_card(faction, content, tags=[], facts=[])
     except Exception:
         logger.debug("faction card render failed (%s)", entry_id, exc_info=True)
