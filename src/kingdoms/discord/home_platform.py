@@ -62,8 +62,8 @@ class DiscordHomeChannelPlatform:
         Beta) — the player roles granted at acceptance unlock it. The
         read-only pinned policy stays.
         """
-        from kingdoms.discord.player_access import apply_player_gating
         from kingdoms.discord.pinned_views import apply_read_only_policy
+        from kingdoms.discord.player_access import apply_player_gating
 
         guild = await self._guild(guild_id)
         channel = guild.get_channel(int(channel_id)) if guild and channel_id.isdigit() else None

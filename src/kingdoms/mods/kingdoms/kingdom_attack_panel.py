@@ -1336,6 +1336,41 @@ async def _open_cover_step(
     await interaction.response.edit_message(content=str(strings["cover_question"]), view=view)
 
 
+def _attack_salon_overwrites(guild: Any) -> dict[Any, discord.PermissionOverwrite]:
+    """Build the attack salon's overwrite set (permissions-serveur-v1).
+
+    The attack salons are masked from @everyone like the rest of the
+    mod — the player roles (granted at acceptance) carry the view.
+    ⚠️ lesson Check 75: the set MUST carry an explicit guild.me entry
+    (the bot is no admin) or it locks itself out of its own salon.
+    """
+    overwrites: dict[Any, discord.PermissionOverwrite] = {}
+    everyone = getattr(guild, "default_role", None)
+    if everyone is not None:
+        overwrites[everyone] = discord.PermissionOverwrite(
+            view_channel=False,
+            send_messages=False,
+            read_message_history=False,
+        )
+    for role_name in ("Kingdoms Lord", "Kingdoms King", "Kingdoms Admin"):
+        role = discord.utils.get(getattr(guild, "roles", []), name=role_name)
+        if role is not None:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=False,
+                read_message_history=True,
+            )
+    me = getattr(guild, "me", None)
+    if me is not None:
+        overwrites[me] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_messages=True,
+        )
+    return overwrites
+
+
 async def _open_attack_salon_safe(guild: Any, wiring: Any, strings: dict[str, str], attack: Any) -> None:
     """Open the attack's OWN salon and pin its base message (b).
 
@@ -1360,33 +1395,7 @@ async def _open_attack_salon_safe(guild: Any, wiring: Any, strings: dict[str, st
     name = str(strings["attack_salon_title"]).format(
         attacker=shown_name, map=attack.map_key, kingdom=defender_name
     )[:100]
-    overwrites: dict[Any, discord.PermissionOverwrite] = {}
-    everyone = getattr(guild, "default_role", None)
-    if everyone is not None:
-        # permissions-serveur-v1 (Drasah 19/10): the attack salons are
-        # masked from @everyone like the rest of the mod — the player
-        # roles (granted at acceptance) carry the view.
-        overwrites[everyone] = discord.PermissionOverwrite(
-            view_channel=False,
-            send_messages=False,
-            read_message_history=False,
-        )
-    for role_name in ("Kingdoms Lord", "Kingdoms King", "Kingdoms Admin"):
-        role = discord.utils.get(getattr(guild, "roles", []), name=role_name)
-        if role is not None:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=False,
-                read_message_history=True,
-            )
-    me = getattr(guild, "me", None)
-    if me is not None:
-        overwrites[me] = discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            read_message_history=True,
-            manage_messages=True,
-        )
+    overwrites = _attack_salon_overwrites(guild)
     position = int(getattr(declare, "position", 0) or 0) + 1
     try:
         channel = await guild.create_text_channel(

@@ -38,19 +38,16 @@ async def _no_season() -> None:
     return None
 
 
-async def test_age_pin_renames_geopolitics_and_pins_the_message() -> None:
+async def test_age_pin_renames_geopolitics_and_pins_the_message(monkeypatch) -> None:
     """The Géopolitique salon carries the age emoji + the pinned age message."""
     import kingdoms.mods.kingdoms.kingdom_persistent as persistent
 
     guild = MockGuild()
     channel = await guild.create_text_channel("Géopolitique")
+    monkeypatch.setattr(persistent, "_wiring", lambda: SimpleNamespace(channel_service=None))
     # No wired ChannelService: the lookup falls back to the tolerant
     # slug match (the live name carries the emoji).
-    persistent._wiring = lambda: SimpleNamespace(channel_service=None)  # type: ignore[assignment]
-    try:
-        ok = await refresh_age_pin(guild, "fr", _age_service())
-    finally:
-        del persistent._wiring
+    ok = await refresh_age_pin(guild, "fr", _age_service())
     assert ok is True
     # The salon name carries the current age emoji.
     assert channel.name == "🗺️ Géopolitique 🌑"
@@ -62,19 +59,16 @@ async def test_age_pin_renames_geopolitics_and_pins_the_message() -> None:
     assert "Âge sombre" in message.content
 
 
-async def test_age_pin_edits_in_place_never_a_pile_of_pins() -> None:
+async def test_age_pin_edits_in_place_never_a_pile_of_pins(monkeypatch) -> None:
     """A re-run edits the marked message — no second message, no pile."""
     import kingdoms.mods.kingdoms.kingdom_persistent as persistent
 
     guild = MockGuild()
     channel = await guild.create_text_channel("🗺️ Géopolitique 🌑")
-    persistent._wiring = lambda: SimpleNamespace(channel_service=None)  # type: ignore[assignment]
-    try:
-        service = _age_service()
-        assert await refresh_age_pin(guild, "fr", service) is True
-        assert await refresh_age_pin(guild, "fr", service) is True
-    finally:
-        del persistent._wiring
+    monkeypatch.setattr(persistent, "_wiring", lambda: SimpleNamespace(channel_service=None))
+    service = _age_service()
+    assert await refresh_age_pin(guild, "fr", service) is True
+    assert await refresh_age_pin(guild, "fr", service) is True
     assert len(channel.messages) == 1
     assert channel.messages[0].edited is True
     # The renamed name is stable — no churn on a converged salon.
