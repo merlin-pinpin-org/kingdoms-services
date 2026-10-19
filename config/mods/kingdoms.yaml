@@ -30,39 +30,14 @@ channel_groups:
   - key: support
     display_name: Support
 channels:
-  - key: presentation
-    display_name: Présentation
-    description: Server presentation (admin-written)
-    group: general
-    kind: announce
-  - key: announce
-    display_name: Annonce
-    description: Announcements (admin-written)
-    group: general
-    kind: announce
-  - key: rules
-    display_name: Règles
-    description: The game rules
-    group: general
-    kind: forum
-  - key: season
-    display_name: Saison
-    description: Season talk
-    group: general
-  - key: update
-    display_name: Update
-    description: Patch notes (admin-written)
-    group: general
-    kind: announce
   - key: tavern
     display_name: Taverne
     description: Off-topic
     group: general
-  - key: suggestions
-    display_name: Suggestion
-    description: Player suggestions
-    group: general
-    kind: forum
+    # restructuration-serveur-v1 c+d (Drasah 19/10): presentation/announce/
+    # rules/season/update/suggestions are RETIRED — the pitch and the
+    # rules live in the Scriptorium's ephemeral buttons, the salons
+    # themselves disappear at the next provisioning.
   - key: apply
     display_name: Postuler
     description: The enrollment panel channel
@@ -94,18 +69,13 @@ channels:
     description: The current age and the age scale (fixed name — the age lives in the pinned message)
     group: kingdoms
     kind: announce
-  - key: patrol
-    display_name: Patrouille
-    description: Gaia patrol reports
-    group: gaia
   - key: territory
     display_name: Territoire
-    description: Territories and their cadastre effects
+    description: Territories and their cadastre effects — plus the Gaïa AI level (restructuration-serveur-v1 c, Drasah 19/10)
     group: gaia
-  - key: exploration
-    display_name: Exploration
-    description: Exploration reports
-    group: gaia
+    # restructuration-serveur-v1 c (Drasah 19/10): patrol (AI level)
+    # merged into this Territoire view; exploration is an EPHEMERAL FFA
+    # salon opened when a free-for-all manifests — both salons retire.
   - key: attack
     display_name: Déclarer une attaque
     description: The guided attack declaration panel

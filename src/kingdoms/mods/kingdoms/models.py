@@ -648,6 +648,14 @@ class FFAExplorationModel(BaseModel):
     no_shows: list[str] = Field(default_factory=list)
     """The registered participants absent from the game (72h lock)."""
     resolved_at: datetime | None = None
+    salon_id: str | None = None
+    """The ephemeral FFA salon (restructuration-serveur-v1 c, Drasah 19/10).
+
+    When the FFA manifests, a dedicated salon — same logic as the
+    per-attack salons — opens next to « Déclarer une attaque », carries
+    the operational announce/start messages and the « Aller explorer »
+    button, and is deleted once the FFA is over.
+    """
 
     def to_mongo(self) -> dict[str, Any]:
         """Convert to a MongoDB document."""

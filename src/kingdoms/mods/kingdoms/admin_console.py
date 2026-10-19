@@ -818,31 +818,22 @@ async def _cmd_beta(console: AdminConsole, args: list[str]) -> str:
 
 
 async def _cmd_regles(console: AdminConsole, args: list[str]) -> str:
-    """`regles` — rebuild the guide threads of the Règles forum.
+    """`regles` — pointer to the live guide of the Scriptorium.
 
-    guide-regles-v1 (Drasah 17/10/2026): after a salon reset, one
-    command re-creates (or refreshes) every guide thread with the LIVE
-    config values — the guide never lies. The refresh also runs at
-    every deploy; the command exists for the manual re-trigger.
+    restructuration-serveur-v1 d (Drasah 19/10): the Règles forum is
+    gone — the guide now lives in the « 📖 Règles » button of the
+    Scriptorium, which reads the LIVE config values at every click.
+    There is nothing to refresh anymore, so the command just answers
+    with a pointer (kept so existing admin muscle memory still works).
     """
-    kingdoms = getattr(console.bot, "kingdoms_service", None)
-    if kingdoms is None:
-        return CONSOLE_STRINGS["fr"]["not_wired"]
-    guild = getattr(console.current_message, "guild", None)
-    if guild is None:
-        return "usage : `regles` — la commande nécessite le salon (elle agit sur ce serveur)."
-    from kingdoms.mods.kingdoms.kingdom_guide import refresh_guide_forum
-
-    report = await refresh_guide_forum(guild, kingdoms)
-    if not report:
-        return "aucun forum « Règles » trouvé — crée le salon forum puis relance `regles`."
-    created = sum(1 for status in report.values() if status == "created")
-    updated = sum(1 for status in report.values() if status == "updated")
-    failed = sum(1 for status in report.values() if status == "failed")
-    lines = [f"📖 Guide du forum Règles : {created} créé(s), {updated} mis à jour."]
-    if failed:
-        lines.append(f"⚠️ {failed} échec(s) — voir les logs.")
-    return "\n".join(lines)
+    # restructuration-serveur-v1 d (Drasah 19/10): fixed answer, no
+    # forum rebuild — the guide data is fully live in the button.
+    return (
+        "📖 Le guide vit désormais dans le bouton « 📖 Règles » du "
+        "Scriptorium : les valeurs sont relues à chaque clic (100 % live), "
+        "rien à rafraîchir. Le forum Règles a été retiré "
+        "(restructuration-serveur-v1 d)."
+    )
 
 
 COMMANDES: dict[str, CommandSpec] = {
@@ -1030,8 +1021,8 @@ COMMANDES: dict[str, CommandSpec] = {
     ),
     "regles": CommandSpec(
         "regles",
-        "Redéployer les posts du guide dans le forum Règles (valeurs live)",
-        "Rebuild the guide threads of the Règles forum (live values)",
+        "Le guide vit dans le bouton « 📖 Règles » du Scriptorium (valeurs live)",
+        "The guide lives in the Scriptorium « 📖 Règles » button (live values)",
         "contenu",
         _cmd_regles,
     ),

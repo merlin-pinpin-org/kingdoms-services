@@ -463,6 +463,8 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "ffa_mode_one": "one lord per kingdom",
         "ffa_mode_free": "free slots",
+        # restructuration-serveur-v1 c (Drasah 19/10): the ephemeral FFA salon.
+        "ffa_salon_title": "🗺️ Exploration FFA",
         "market_err_no_points": "❌ The kingdom holds no marriage point.",
         "market_err_no_token": (
             "❌ No arranged marriage in stock — buy a token at the Market."
@@ -873,6 +875,8 @@ STRINGS: dict[str, dict[str, Any]] = {
         ),
         "ffa_mode_one": "1 seigneur par royaume",
         "ffa_mode_free": "places libres",
+        # restructuration-serveur-v1 c (Drasah 19/10): le salon FFA éphémère.
+        "ffa_salon_title": "🗺️ Exploration FFA",
         "market_err_no_points": "❌ Le royaume ne détient plus de point de mariage.",
         "market_err_no_token": (
             "❌ Aucun mariage arrangé en stock — achetez un jeton au Marché."
@@ -1853,6 +1857,8 @@ async def _deploy_channel_panel(
         await _deploy_market_panel(channel, locale, kingdoms_service)
         return "marché"
     if slug == "royaumes":
+        from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
+        from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
         from kingdoms.mods.kingdoms.kingdom_realms import (
             deploy_realms_panel,
             ensure_all_realm_structures,
@@ -1860,6 +1866,13 @@ async def _deploy_channel_panel(
 
         await ensure_all_realm_structures(channel.guild, kingdoms_service)
         await deploy_realms_panel(channel.guild, locale, kingdoms_service)
+        # restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category
+        # drops to ONE salon — its Territoire view (AI level live)
+        # deploys with the same pass.
+        try:
+            await deploy_gaia_content(channel.guild, _wiring(), locale)
+        except Exception:
+            logger.warning("KINGDOM PANELS: gaia content deploy failed", exc_info=True)
         return "royaumes"
     if slug == "machine-a-temps":
         from kingdoms.mods.kingdoms.kingdom_time_panel import deploy_time_panel

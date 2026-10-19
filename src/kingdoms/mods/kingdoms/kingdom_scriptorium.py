@@ -38,6 +38,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "topic_cadastre": "🗺️ Cadastre",
         "topic_diplomatie": "🤝 Diplomatie",
         "topic_seigneurie": "🛡️ Seigneurie",
+        # restructuration-serveur-v1 d (Drasah 19/10): the Règles forum
+        # and the Présentation salon disappear — both live here now.
+        "rules_button": "📖 Rules",
+        "presentation_button": "🎤 Presentation",
+        "rules_select_placeholder": "Choose a rules rubric…",
+        "presentation_ephemeral_title": "⚔️ Kingdoms — Season II",
         "cadastre_intro": (
             "🗺️ **What it's for**: the living inventory of the realm's territories. "
             "Pick your first land at enrollment, spot each land's bonus "
@@ -97,6 +103,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "topic_cadastre": "🗺️ Cadastre",
         "topic_diplomatie": "🤝 Diplomatie",
         "topic_seigneurie": "🛡️ Seigneurie",
+        # restructuration-serveur-v1 d (Drasah 19/10) : le forum Règles
+        # et le salon Présentation disparaissent — tout vit ici.
+        "rules_button": "📖 Règles",
+        "presentation_button": "🎤 Présentation",
+        "rules_select_placeholder": "Choisis une rubrique des règles…",
+        "presentation_ephemeral_title": "⚔️ Kingdoms — Saison II",
         "cadastre_intro": (
             "🗺️ **À quoi ça sert** : l'inventaire vivant des territoires du royaume. "
             "Choisis ta première terre à l'installation, repère le bonus de chaque "
@@ -628,11 +640,16 @@ class _RubricPager(discord.ui.View):
 
 
 def _scriptorium_view(strings: dict[str, str]) -> discord.ui.View:
-    """Build the persistent three-button view of the pinned sommaire."""
+    """Build the persistent sommaire view (3 rubrics + rules + pitch, d)."""
     view = discord.ui.View(timeout=None)
     view.add_item(KingdomScriptoriumButton("cadastre", strings["topic_cadastre"]))
     view.add_item(KingdomScriptoriumButton("diplomatie", strings["topic_diplomatie"]))
     view.add_item(KingdomScriptoriumButton("seigneurie", strings["topic_seigneurie"]))
+    # restructuration-serveur-v1 d (Drasah 19/10): the Règles forum and
+    # the Présentation salon disappear — their content lives here as
+    # ephemeral buttons (100 % live values, nothing to refresh).
+    view.add_item(KingdomRulesButton(strings["rules_button"]))
+    view.add_item(KingdomPresentationButton(strings["presentation_button"]))
     return view
 
 
@@ -796,6 +813,225 @@ class KingdomScriptoriumButton(
             _market_ttl(interaction, message)
         except Exception:
             logger.warning("SCRIPTORIUM: ephemeral send failed", exc_info=True)
+
+
+# ----------------------------------------------------------------------
+# The 📖 Règles / 🎤 Présentation ephemeral buttons (restructuration-serveur-v1 d)
+# ----------------------------------------------------------------------
+
+
+def _rules_pages(config: Any) -> tuple[list[tuple[str, str]], dict[str, list[str]]]:
+    """Return the guide rubrics as (select options, per-rubric pages).
+
+    restructuration-serveur-v1 d (Drasah 19/10): the guide data is the
+    SAME as the retired forum threads — ``guide_posts`` with 100 % live
+    config values. The ``-#`` marker lines were forum thread markers,
+    they are stripped for the ephemeral bubble; every rubric rides
+    ``_paginate`` so no page ever exceeds Discord's limit.
+    """
+    from kingdoms.mods.kingdoms.kingdom_guide import guide_posts
+
+    options: list[tuple[str, str]] = []
+    pages: dict[str, list[str]] = {}
+    for key, title, content in guide_posts(config):
+        if len(options) < 25:  # Discord's select ceiling
+            options.append((key, title))
+        lines = [line for line in content.split("\n") if not line.lstrip().startswith("-#")]
+        pages[key] = _paginate(lines)
+    return options, pages
+
+
+class _RulesGuideView(discord.ui.View):
+    """The ephemeral guide bubble: a rubric select + the page pager."""
+
+    def __init__(
+        self,
+        options: list[tuple[str, str]],
+        pages: dict[str, list[str]],
+        strings: dict[str, str],
+        current: str | None = None,
+        page: int = 0,
+    ) -> None:
+        super().__init__(timeout=600)
+        self._options = options
+        self._pages = pages
+        self._strings = strings
+        self._current = current or (options[0][0] if options else "")
+        self._page = max(0, page)
+        self._render()
+
+    def _render(self) -> None:
+        """Rebuild the items for the current (rubric, page) state."""
+        self.clear_items()
+        select: discord.ui.Select[Any] = discord.ui.Select(
+            placeholder=self._strings["rules_select_placeholder"][:100],
+            options=[
+                discord.SelectOption(label=title[:100], value=key) for key, title in self._options
+            ],
+        )
+        select.callback = self._on_select  # type: ignore[assignment]
+        self.add_item(select)
+        rubric_pages = self._pages.get(self._current) or [self._strings["unknown"]]
+        self._page = min(self._page, len(rubric_pages) - 1)
+        if len(rubric_pages) > 1:
+            prev_button: discord.ui.Button[Any] = discord.ui.Button(
+                label="◀️", style=discord.ButtonStyle.secondary, disabled=self._page == 0
+            )
+            prev_button.callback = self._on_turn(self._page - 1)  # type: ignore[method-assign]
+            self.add_item(prev_button)
+            counter: discord.ui.Button[Any] = discord.ui.Button(
+                label=f"{self._page + 1}/{len(rubric_pages)}",
+                style=discord.ButtonStyle.secondary,
+                disabled=True,
+            )
+            self.add_item(counter)
+            next_button: discord.ui.Button[Any] = discord.ui.Button(
+                label="▶️",
+                style=discord.ButtonStyle.secondary,
+                disabled=self._page >= len(rubric_pages) - 1,
+            )
+            next_button.callback = self._on_turn(self._page + 1)  # type: ignore[method-assign]
+            self.add_item(next_button)
+
+    def content(self) -> str:
+        """Return the current page's text."""
+        rubric_pages = self._pages.get(self._current) or [self._strings["unknown"]]
+        return rubric_pages[min(self._page, len(rubric_pages) - 1)]
+
+    def _on_select(self) -> Any:
+        async def on_choose(interaction: discord.Interaction) -> None:
+            # restructuration-serveur-v1 d (Drasah 19/10): the values ride
+            # interaction.data — a raw payload (cast, never an assert).
+            data = cast(dict[str, Any], getattr(interaction, "data", None) or {})
+            values = list(cast(list[str], data.get("values", []) or []))
+            key = str(values[0]) if values else self._current
+            view = _RulesGuideView(self._options, self._pages, self._strings, current=key, page=0)
+            await interaction.response.edit_message(content=view.content(), view=cast(Any, view))
+
+        return on_choose
+
+    def _on_turn(self, page: int) -> Any:
+        async def on_turn(interaction: discord.Interaction) -> None:
+            view = _RulesGuideView(
+                self._options, self._pages, self._strings, current=self._current, page=page
+            )
+            await interaction.response.edit_message(content=view.content(), view=cast(Any, view))
+
+        return on_turn
+
+
+class KingdomRulesButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:rules:open",
+):
+    """The restart-proof 📖 Règles button of the pinned sommaire (d).
+
+    restructuration-serveur-v1 d (Drasah 19/10): the Règles forum
+    disappears — the guide lives in this EPHEMERAL bubble with the 100 %
+    live config values (nothing to refresh, the button reads the config
+    at every click). The 10 rubriques ride a select + the pager.
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:rules:open",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRulesButton:
+        """Rebuild the rules button from the wire — THIS module's strings only."""
+        return cls(_strings(_locale(interaction))["rules_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral guide (select + pager, live values)."""
+        from kingdoms.mods.kingdoms.config import default_season_config
+        from kingdoms.mods.kingdoms.kingdom_persistent import _market_ttl, _wiring
+
+        strings = _strings(_locale(interaction))
+        try:
+            wiring = _wiring()
+            config = getattr(wiring.kingdoms_service, "config", None)
+        except Exception:
+            logger.warning("SCRIPTORIUM: rules wiring failed", exc_info=True)
+            config = None
+        if config is None:
+            config = default_season_config()
+        options, pages = _rules_pages(config)
+        if not options:
+            await interaction.response.send_message(strings["unknown"], ephemeral=True)
+            return
+        view = _RulesGuideView(options, pages, strings)
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            message = cast(
+                Any,
+                await interaction.followup.send(view.content(), ephemeral=True, view=cast(Any, view)),
+            )
+            _market_ttl(interaction, message)
+        except Exception:
+            logger.warning("SCRIPTORIUM: rules ephemeral send failed", exc_info=True)
+
+
+class KingdomPresentationButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:presentation:open",
+):
+    """The restart-proof 🎤 Présentation button of the pinned sommaire (d).
+
+    restructuration-serveur-v1 d (Drasah 19/10): the Présentation salon
+    disappears — the designer's pitch rides this EPHEMERAL bubble
+    (``PRESENTATION_MESSAGE``, the designer's text, paginated like the
+    rubrics when it ever exceeds the message limit).
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:presentation:open",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomPresentationButton:
+        """Rebuild the presentation button from the wire."""
+        return cls(_strings(_locale(interaction))["presentation_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral pitch (paginated, best effort)."""
+        from kingdoms.mods.kingdoms.kingdom_content import PRESENTATION_MESSAGE
+        from kingdoms.mods.kingdoms.kingdom_persistent import _market_ttl
+
+        pages = _paginate(PRESENTATION_MESSAGE.split("\n"))
+        view: discord.ui.View | None = _RubricPager(pages) if len(pages) > 1 else None
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            message = cast(
+                Any,
+                await interaction.followup.send(
+                    pages[0], ephemeral=True, view=cast(Any, view)
+                ),
+            )
+            _market_ttl(interaction, message)
+        except Exception:
+            logger.warning("SCRIPTORIUM: presentation ephemeral send failed", exc_info=True)
 
 
 # ----------------------------------------------------------------------

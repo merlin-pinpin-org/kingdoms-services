@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import unicodedata
-from typing import cast
+from typing import Any, cast
 
 import discord
 from discord import app_commands
@@ -124,13 +124,30 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     "cadastre",
     "delais-attaque",
     "attaques",
+    # restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category
+    # keeps ONE salon — the AI level moved into the Territoire view and
+    # the FFA lives in an ephemeral salon opened when it manifests.
+    "patrouille",
+    "exploration",
+    # restructuration-serveur-v1 d (Drasah 19/10): Général shrinks to
+    # the Taverne — the pitch and the rules moved into the Scriptorium's
+    # ephemeral 📖 Règles / 🎤 Présentation buttons.
+    "presentation",
+    "annonce",
+    "regles",
+    "saison",
+    "update",
+    "suggestion",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the
 retired Champs de bataille salons (restructuration-serveur-v1 b): the
 delays moved into the declare flow's « Itinéraire » line and the
 announcements into each attack's OWN salon (the per-attack salons carry
-long slugs, never the bare « attaques » — safe to purge)."""
+long slugs, never the bare « attaques » — safe to purge), the retired
+Gaïa salons (restructuration-serveur-v1 c) and the retired Général
+salons (restructuration-serveur-v1 d: rules/presentation live in the
+Scriptorium buttons; saison/update/annonce/suggestion go away)."""
 
 LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium")
 """The retired group categories — the epoch salon now lives under Kingdoms."""
@@ -147,8 +164,12 @@ KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
 async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
     """Delete the retired rubric salons (Seigneurs/Diplomatie/Cadastre)."""
     removed: list[str] = []
+    # restructuration-serveur-v1 d (Drasah 19/10): the retired « Règles »
+    # and « Suggestion » are FORUM channels — the purge pool must read
+    # guild.forums too, not only the text channels.
+    pool: list[Any] = [*guild.text_channels, *(getattr(guild, "forums", None) or [])]
     for slug in LEGACY_SALON_SLUGS:
-        for channel in [c for c in guild.text_channels if _slug(c.name) == slug]:
+        for channel in [c for c in pool if _slug(c.name) == slug]:
             if channel.id == epoch_channel_id:
                 continue
             try:

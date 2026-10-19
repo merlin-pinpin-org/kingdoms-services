@@ -4432,6 +4432,15 @@ async def _refresh_all_realm_views_safe(guild: discord.Guild | None, locale: str
     if guild is None:
         return
     await _repin_realm_views_safe(guild)
+    # restructuration-serveur-v1 c (Drasah 19/10): the Gaïa Territoire
+    # view carries the LIVE AI level — an age switch moves it with no
+    # click, so the Gaïa view re-renders with the same rule.
+    try:
+        from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
+
+        await deploy_gaia_content(guild, _wiring(), locale)
+    except Exception:
+        logger.warning("KINGDOM PERSISTENT: gaia view refresh failed", exc_info=True)
     await _refresh_realms_panel_safe(guild, locale)
     await _refresh_season_status_safe(guild, locale)
 

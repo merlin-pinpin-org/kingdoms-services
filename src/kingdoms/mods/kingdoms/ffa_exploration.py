@@ -199,6 +199,18 @@ class FFAExplorationService:
         await self._store.upsert_ffa(ffa.to_mongo())
         return ffa
 
+    async def record_salon(self, ffa: FFAExplorationModel, channel_id: int) -> FFAExplorationModel:
+        """Store the ephemeral FFA salon ref (restructuration-serveur-v1 c).
+
+        When the FFA manifests, the events loop opens a dedicated salon
+        (next to « Déclarer une attaque ») — the ref rides the document
+        so the start message and the end-of-FFA purge route by id, never
+        by name lookup.
+        """
+        ffa.salon_id = str(int(channel_id))
+        await self._store.upsert_ffa(ffa.to_mongo())
+        return ffa
+
     def due_start(self, ffa: FFAExplorationModel, now: datetime) -> bool:
         """Whether the FFA game is due to start."""
         if ffa.started or ffa.finished:

@@ -117,6 +117,9 @@ def _strings(locale: str) -> dict[str, str]:
             "territory_title": "🗺️ Territoire — {0}",
             "territory_count": "{0} territoire(s)",
             "territory_empty": "Aucun territoire pour le moment.",
+            # restructuration-serveur-v1 c (Drasah 19/10): le salon
+            # Patrouille disparaît — le niveau de l'IA vit ici.
+            "gaia_ai_level": "🤖 Niveau de l'IA Gaïa : {0}/5",
             "territory_guard": "🛡️ protégée jusqu'à {0}",
             "territory_note": "La Corruption transfère le territoire de salon (D58).",
             "territory_pending_body": (
@@ -238,6 +241,9 @@ def _strings(locale: str) -> dict[str, str]:
         "territory_title": "🗺️ Territory — {0}",
         "territory_count": "{0} territor(y|ies)",
         "territory_empty": "No territory yet.",
+        # restructuration-serveur-v1 c (Drasah 19/10): the Patrouille
+        # salon disappears — the AI level lives here.
+        "gaia_ai_level": "🤖 Gaïa AI level: {0}/5",
         "territory_guard": "🛡️ shielded until {0}",
         "territory_note": "Corruption moves the territory across salons (D58).",
         "territory_pending_body": (
@@ -839,6 +845,112 @@ def _build_territory_pending(
         f"{VIEW_MARKER_PREFIX}:territoire",
         discord.Colour.dark_grey(),
     )
+
+
+def _build_gaia_territory(
+    strings: dict[str, str],
+    kingdom: Any,
+    state: dict[str, Any],
+    ai_level: int,
+) -> Any:
+    """Build the Gaïa 🗺️ Territoire view (restructuration-serveur-v1 c).
+
+    The Gaïa category keeps ONE salon: the retired « Patrouille » info
+    (the AI level) is integrated here — Drasah 19/10, the level is read
+    LIVE from the season epoch (D18 scale, fallback 1), never hardcoded.
+    The territories carry the same guard/chantier/sacred badges as the
+    player-kingdom views.
+    """
+    import discord
+
+    now = game_now()
+    lines = [strings["gaia_ai_level"].format(int(ai_level))]
+    lines.append(strings["territory_count"].format(len(state["territories"])))
+    if not state["territories"]:
+        lines.append(strings["territory_empty"])
+    for territory in state["territories"]:
+        key = str(getattr(territory, "map_key", ""))
+        line = f"• **{state['map_names'].get(key, key)}**"
+        until = getattr(territory, "protected_until", None)
+        if until is not None and until > now:
+            line += f" {strings['territory_guard'].format(_lock_until_label(int(until.timestamp()), strings))}"
+        if bool(getattr(territory, "sacred", False)):
+            line += f" {strings['territory_sacred']}"
+        else:
+            cathedral_until = getattr(territory, "cathedral_until", None)
+            if cathedral_until is not None and cathedral_until > now:
+                line += (
+                    f" {strings['territory_chantier'].format(
+                        _lock_until_label(int(cathedral_until.timestamp()), strings)
+                    )}"
+                )
+        lines.append(line)
+    lines.append(strings["territory_note"])
+    return _panel_view(
+        strings["territory_title"].format(getattr(kingdom, "name", "") or "Gaïa"),
+        "\n".join(lines),
+        f"{VIEW_MARKER_PREFIX}:territoire-gaia",
+        discord.Colour.green(),
+    )
+
+
+async def deploy_gaia_content(
+    guild: discord.Guild,
+    wiring: Any,
+    locale: str = "fr",
+) -> dict[str, bool]:
+    """Deploy the Gaïa category's single view (the Territoire salon, c).
+
+    restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category drops
+    to ONE salon — the AI level lives in the Territoire view and the
+    FFA lives in its ephemeral salon. Best effort: a missing category,
+    salon or kingdom simply reports False, never raises.
+    """
+    from kingdoms.mods.kingdoms.kingdom_realms import GAIA_KINGDOM_DISPLAY, _find_realm_category
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    category = _find_realm_category(guild, GAIA_KINGDOM_DISPLAY)
+    if category is None:
+        return {}
+    service = getattr(wiring, "kingdoms_service", None)
+    if service is None:
+        return {}
+    try:
+        kingdoms = await service.kingdoms()
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: gaia kingdom read failed", exc_info=True)
+        return {}
+    kingdom = next((k for k in kingdoms if getattr(k, "is_gaia", False)), None)
+    if kingdom is None:
+        return {}
+    # The AI level is the LIVE season epoch's (D18 scale, fallback 1) —
+    # the same source as the attackers' Itinéraire/defense checks.
+    ai_level = 1
+    attacks_service = getattr(wiring, "attacks_service", None)
+    if attacks_service is not None:
+        try:
+            ai_level = int(await attacks_service.base_ai_level())
+        except Exception:
+            logger.warning("KINGDOM REALM CONTENT: gaia ai level read failed", exc_info=True)
+    channel = next(
+        (
+            c
+            for c in getattr(category, "channels", [])
+            if _slug(getattr(c, "name", "")) == "territoire"
+        ),
+        None,
+    )
+    if channel is None:
+        return {"territoire-gaia": False}
+    state = await _gather_state(kingdom, wiring)
+    strings = _strings(locale)
+    try:
+        view = _build_gaia_territory(strings, kingdom, state, ai_level)
+        return {"territoire-gaia": await _upsert_view(channel, "territoire-gaia", view)}
+    except Exception:
+        logger.warning("KINGDOM REALM CONTENT: gaia territory view failed", exc_info=True)
+        return {"territoire-gaia": False}
+
 
 
 def _build_church(

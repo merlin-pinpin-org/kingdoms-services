@@ -288,25 +288,21 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
         return False
 
 
-async def refresh_presentation(guild: discord.Guild) -> bool:
-    """Pin the designer's mod pitch in the Présentation channel."""
-    channel = _find_channel(guild, PRESENTATION_CHANNEL)
-    if channel is None:
-        return False
-    try:
-        content = f"{PRESENTATION_MESSAGE}\n{PRESENTATION_MARKER}"
-        return await _upsert_marked(channel, content, PRESENTATION_MARKER)
-    except Exception:
-        logger.warning("KINGDOM CONTENT: presentation refresh skipped", exc_info=True)
-        return False
+# restructuration-serveur-v1 d (Drasah 19/10): the Présentation salon
+# is retired — the pitch lives in the Scriptorium's ephemeral
+# 🎤 Présentation button (kingdom_scriptorium.KingdomPresentationButton).
 
 
 async def refresh_channel_descriptions(guild: discord.Guild) -> dict[str, str]:
-    """Set the designer descriptions of the Taverne and Règles channels."""
+    """Set the designer description of the Taverne channel.
+
+    restructuration-serveur-v1 d (Drasah 19/10): the Règles forum is
+    retired — its description entry left with the salon (the guide
+    lives in the Scriptorium's ephemeral 📖 Règles button).
+    """
     report: dict[str, str] = {}
     for name, target, description in (
         (TAVERNE_CHANNEL, "taverne", TAVERNE_DESCRIPTION),
-        (REGLES_FORUM, "règles", REGLES_DESCRIPTION),
     ):
         pool = [*guild.text_channels, *getattr(guild, "forums", [])]
         channel = next((c for c in pool if _slug(c.name) == _slug(name)), None)
@@ -378,7 +374,14 @@ async def announce_enrollment(
 
 
 async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_service: Any) -> dict[str, str]:
-    """Refresh every group-1 channel content; return a deploy-style report."""
+    """Refresh every group-1 channel content; return a deploy-style report.
+
+    restructuration-serveur-v1 d (Drasah 19/10): the Présentation salon
+    and the Règles forum are retired — the pitch and the guide live in
+    the Scriptorium's ephemeral 📖 Règles / 🎤 Présentation buttons
+    (100 % live at click time, nothing to refresh), so their refresh
+    passes left with the salons.
+    """
     report: dict[str, str] = {}
     try:
         if await refresh_epoch_channel(guild, locale, kingdoms_service):
@@ -386,20 +389,7 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
     except Exception:
         logger.warning("KINGDOM CONTENT: epoch deployment failed", exc_info=True)
     try:
-        if await refresh_presentation(guild):
-            report["présentation"] = "deployed"
-    except Exception:
-        logger.warning("KINGDOM CONTENT: presentation deployment failed", exc_info=True)
-    try:
         report.update(await refresh_channel_descriptions(guild))
     except Exception:
         logger.warning("KINGDOM CONTENT: channel descriptions deployment failed", exc_info=True)
-    try:
-        from kingdoms.mods.kingdoms.kingdom_guide import refresh_guide_forum
-
-        guide = await refresh_guide_forum(guild, kingdoms_service)
-        if guide:
-            report["guide"] = "deployed"
-    except Exception:
-        logger.warning("KINGDOM CONTENT: guide deployment failed", exc_info=True)
     return report

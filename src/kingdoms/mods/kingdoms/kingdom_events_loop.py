@@ -307,6 +307,100 @@ async def _resolve_explorations_safe(bot: Any) -> None:
                 )
 
 
+async def _ffa_salon(guild: Any, ffa: Any) -> Any:
+    """Return the FFA's ephemeral salon (restructuration-serveur-v1 c).
+
+    The ref rides ``ffa.salon_id`` — never a name lookup, exactly like
+    the per-attack salons (restructuration-serveur-v1 b).
+    """
+    if guild is None:
+        return None
+    channel_id = int(getattr(ffa, "salon_id", 0) or 0)
+    if not channel_id:
+        return None
+    return getattr(guild, "get_channel", lambda _id: None)(channel_id)
+
+
+async def _open_ffa_salon_safe(
+    guild: Any, ffa_service: Any, ffa: Any, strings: dict[str, Any], text: str, view: Any
+) -> None:
+    """Open the FFA's ephemeral salon and pin its base message (c).
+
+    restructuration-serveur-v1 c (Drasah 19/10): when a free-for-all
+    manifests, a dedicated salon — same logic as the per-attack salons —
+    opens right under « Déclarer une attaque » so the sidebar shows what
+    is being played. Visible to everyone, @everyone denied send (⚠️
+    lesson Check 75: the overwrite set carries an explicit guild.me
+    entry). The base message repeats the announcement with the
+    persistent « Aller explorer » button; the salon dies with the FFA.
+    """
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _declare_channel
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    declare = _declare_channel(guild)
+    if declare is None:
+        return
+    title = str(strings["ffa_salon_title"])
+    wanted = _slug(title)
+    # A leftover salon from a previous Saturday (or a wipe mid-week) is
+    # purged first — the name is fixed, so at most one lives at a time.
+    for channel in list(getattr(guild, "text_channels", []) or []):
+        if _slug(getattr(channel, "name", "")) == wanted:
+            try:
+                await channel.delete()
+            except Exception:
+                logger.warning("KINGDOMS EVENTS: leftover FFA salon purge failed", exc_info=True)
+    overwrites: dict[Any, Any] = {}
+    everyone = getattr(guild, "default_role", None)
+    if everyone is not None:
+        overwrites[everyone] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=False,
+            read_message_history=True,
+        )
+    me = getattr(guild, "me", None)
+    if me is not None:
+        overwrites[me] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_messages=True,
+        )
+    position = int(getattr(declare, "position", 0) or 0) + 1
+    try:
+        channel = await guild.create_text_channel(
+            title,
+            category=getattr(declare, "category", None),
+            position=position,
+            overwrites=overwrites,
+        )
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA salon creation failed", exc_info=True)
+        return
+    try:
+        await ffa_service.record_salon(ffa, int(channel.id))
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA salon ref not stored", exc_info=True)
+    try:
+        await channel.send(text, view=view)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA salon base message failed", exc_info=True)
+
+
+async def _ffa_salon_purge_safe(guild: Any, ffa: Any) -> None:
+    """Delete the FFA's ephemeral salon once the FFA is over (c)."""
+    channel = await _ffa_salon(guild, ffa)
+    if channel is None:
+        return
+    try:
+        await channel.delete()
+        logger.info("KINGDOMS EVENTS: FFA salon deleted (FFA over)")
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA salon deletion failed", exc_info=True)
+
+
 async def _ffa_announce_safe(bot: Any, ffa_service: Any, ffa: Any) -> None:
     """Announce the drawn FFA in each guild with the join button."""
     import discord
@@ -332,6 +426,12 @@ async def _ffa_announce_safe(bot: Any, ffa_service: Any, ffa: Any) -> None:
             await announce_geopolitics(guild, "", text, view=view)
         except Exception:
             logger.warning("KINGDOMS EVENTS: FFA announcement failed", exc_info=True)
+        # restructuration-serveur-v1 c (Drasah 19/10): the operational
+        # surface of the FFA also lives in its OWN ephemeral salon.
+        try:
+            await _open_ffa_salon_safe(guild, ffa_service, ffa, strings, text, view)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: FFA salon open failed", exc_info=True)
 
 
 async def _ffa_start_safe(bot: Any, ffa_service: Any, started: Any) -> None:
@@ -349,6 +449,14 @@ async def _ffa_start_safe(bot: Any, ffa_service: Any, started: Any) -> None:
             await announce_geopolitics(guild, "", text)
         except Exception:
             logger.warning("KINGDOMS EVENTS: FFA start announcement failed", exc_info=True)
+        # restructuration-serveur-v1 c: the start line also lands in the
+        # FFA's own salon (best effort — the salon may have died).
+        salon = await _ffa_salon(guild, started)
+        if salon is not None:
+            try:
+                await salon.send(text)
+            except Exception:
+                logger.warning("KINGDOMS EVENTS: FFA salon start message failed", exc_info=True)
 
 
 def _ffa_timezone(events_settings: Any) -> Any:
@@ -359,6 +467,38 @@ def _ffa_timezone(events_settings: Any) -> Any:
         return ZoneInfo(str(getattr(events_settings, "schedule_timezone", "UTC")))
     except Exception:
         return ZoneInfo("UTC")
+
+
+async def _purge_finished_ffa_salons_safe(bot: Any, ffa: Any) -> None:
+    """Delete the FFA's salon in every guild once the FFA is over (c).
+
+    restructuration-serveur-v1 c: the purge is idempotent — a dead ref
+    is a no-op — and best effort per guild.
+    """
+    for guild in list(getattr(bot, "guilds", []) or []):
+        try:
+            await _ffa_salon_purge_safe(guild, ffa)
+        except Exception:
+            logger.warning("KINGDOMS EVENTS: FFA salon purge failed", exc_info=True)
+
+
+async def _ffa_draw_safe(bot: Any, ffa_service: Any, now: Any) -> Any:
+    """Read (or draw) this Saturday's FFA document, None when disabled.
+
+    restructuration-serveur-v1 c (Drasah 19/10): extracted from the tick
+    so the tick stays under the complexity ceiling — the guards (service
+    present, ffa enabled, guilds, live draw) live here.
+    """
+    events_settings = getattr(getattr(ffa_service, "_config", None), "events", None)
+    if events_settings is None or not getattr(events_settings, "ffa_enabled", False):
+        return None
+    if not list(getattr(bot, "guilds", []) or []):
+        return None
+    try:
+        return await ffa_service.draw_or_get(now)
+    except Exception:
+        logger.warning("KINGDOMS EVENTS: FFA draw failed", exc_info=True)
+        return None
 
 
 async def _ffa_exploration_tick_safe(bot: Any) -> None:
@@ -373,19 +513,14 @@ async def _ffa_exploration_tick_safe(bot: Any) -> None:
     ffa_service = getattr(bot, "kingdoms_ffa_service", None)
     if ffa_service is None:
         return
-    events_settings = getattr(getattr(ffa_service, "_config", None), "events", None)
-    if events_settings is None or not getattr(events_settings, "ffa_enabled", False):
-        return
-    if not list(getattr(bot, "guilds", []) or []):
-        return
     now = game_now()
-    try:
-        ffa = await ffa_service.draw_or_get(now)
-    except Exception:
-        logger.warning("KINGDOMS EVENTS: FFA draw failed", exc_info=True)
-        return
+    ffa = await _ffa_draw_safe(bot, ffa_service, now)
     if ffa is None:
         return
+    # restructuration-serveur-v1 c: a finished FFA takes its ephemeral
+    # salon with it — the purge is idempotent (a dead ref is a no-op).
+    if getattr(ffa, "finished", False) and getattr(ffa, "salon_id", None):
+        await _purge_finished_ffa_salons_safe(bot, ffa)
     try:
         if ffa_service.due_announce(ffa, now):
             await _ffa_announce_safe(bot, ffa_service, ffa)
