@@ -16,6 +16,7 @@ entity-forum engine, so no game or mod is hardcoded here.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import discord
@@ -62,6 +63,8 @@ def _civ_post_layout(
     blocks.append(discord.ui.TextDisplay(footer(entry_id)))
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(0x5865F2)))
     return view
+
+logger = logging.getLogger("kingdoms.discord.factions_forum")
 
 
 async def _sorted_by_localized_name(factions: list[Any], guild_id: str, bot: Any) -> list[Any]:
@@ -143,6 +146,33 @@ def _game_data(bot: Any) -> Any | None:
         return None
 
 
+async def _build_faction_card(bot: Any, faction: Any, guild_id: str) -> Any | None:
+    """Render the faction's visual card (info_card) as a Discord file.
+
+    One image plus the civ's facts instead of a media-heavy layout.
+    Falls back to ``None`` (no attachment) when the render fails —
+    the post still carries its text view.
+    """
+    import os
+
+    import discord
+
+    from kingdoms.discord.visual_cards import faction_card
+
+    entry_id = str(getattr(faction, "id", ""))
+    try:
+        from kingdoms.discord.content_posts import entity_post_content
+
+        content = await entity_post_content(
+            entry_id, str(getattr(faction, "name", faction)), guild_id, bot
+        )
+        card = faction_card(faction, content, tags=[], facts=[])
+    except Exception:
+        logger.debug("faction card render failed (%s)", entry_id, exc_info=True)
+        return None
+    return discord.File(card.path, filename=os.path.basename(card.path))
+
+
 def factions_forum_spec(bot: Any) -> EntityForumSpec:
     """Build the factions forum spec wired onto the games service."""
 
@@ -188,6 +218,7 @@ def factions_forum_spec(bot: Any) -> EntityForumSpec:
         list_entities=list_factions,
         display_name_for=lambda faction, guild_id: _localized_faction_name(faction, guild_id, bot),
         build_post=build_post,
+        build_attachment=lambda faction, guild_id: _build_faction_card(bot, faction, guild_id),
         tree_scope_for=tree_scope_for,
         tree_channel_for=lambda faction: "civs",
     )

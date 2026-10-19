@@ -90,6 +90,7 @@ class EntityForumSpec:
     entity_name: Callable[[Any], str] = field(default=lambda entity: str(getattr(entity, "name", "")))
     display_name_for: Callable[[Any, str], Awaitable[str]] | None = None
     build_post: Callable[[Any, str], Awaitable[tuple[str, Any | None]]] | None = None
+    build_attachment: Callable[[Any, str], Awaitable[Any | None]] | None = None
 
 
 async def sync_entity_forum(guild_id: str, bot: Any, spec: EntityForumSpec) -> int:
@@ -165,8 +166,16 @@ async def _sync_one_forum(
     actions = 0
     for name, entity in wanted.items():
         content, view = await spec.build_post(entity, guild_id)
+        attachment = None
+        if spec.build_attachment is not None:
+            try:
+                attachment = await spec.build_attachment(entity, guild_id)
+            except Exception:
+                logger.debug("entity forum: attachment build failed (%s)", name, exc_info=True)
         if name not in existing:
-            await platform.create_map_post(guild_id, str(forum.id), name, content, view=view)
+            await platform.create_map_post(
+                guild_id, str(forum.id), name, content, view=view, attachment=attachment
+            )
             actions += 1
         else:
             await _refresh_post(existing[name], content, view)

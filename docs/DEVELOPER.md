@@ -22,6 +22,7 @@ this repo*.
 | `src/kingdoms/modsdk/` | The modder SDK — declarative entities/actions/menus ([docs/DEVELOPMENT/MODSDK.md](DEVELOPMENT/MODSDK.md)) |
 | `config/` | YAML configs, `config/locales/` (i18n), `config/mods/` |
 | `docs/DEVELOPMENT/pydoc/` | Generated technical docs — regenerate with `make docs` (freshness-checked on every PR) |
+| `docs/DEVELOPMENT/visual-cards.md` | Visual cards: one generated image instead of heavy embeds/views (decision table, builders, sending) |
 | `contracts/` | gRPC contracts between processes (ADR-0020); stubs in `src/kingdoms/rpc_generated/`, regenerated with `make contracts` |
 | `src/kingdoms/core_process/` | svc-core process entrypoint (ADR-0020) |
 | `tests/` | Unit + integration tests, `tests/mocks/` (MockDiscord) |

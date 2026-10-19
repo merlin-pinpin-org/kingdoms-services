@@ -187,8 +187,13 @@ class DiscordChannelsPlatform:
         content: str,
         tags: list[str] | None = None,
         view: discord.ui.View | discord.ui.LayoutView | None = None,
+        attachment: Any | None = None,
     ) -> str:
-        """Create one forum post (thread), optionally with a view; return its id."""
+        """Create one forum post (thread), optionally with a view; return its id.
+
+        ``attachment`` is a :class:`discord.File` (e.g. a rendered visual
+        card) sent with the starter message.
+        """
         guild = await self._guild(guild_id)
         if guild is None:
             raise RuntimeError(f"guild {guild_id} not reachable")
@@ -200,6 +205,8 @@ class DiscordChannelsPlatform:
         kwargs: dict[str, Any] = {"applied_tags": applied}
         if view is not None:
             kwargs["view"] = view
+        if attachment is not None:
+            kwargs["file"] = attachment
         # A components-v2 layout carries its own text: Discord rejects a
         # message that sends both a view and a content string (50035).
         content_kwarg: dict[str, Any] = {} if isinstance(view, discord.ui.LayoutView) else {"content": content}
