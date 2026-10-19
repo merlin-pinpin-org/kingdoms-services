@@ -1,1 +1,208 @@
-IiIiS2luZ2RvbXMgbW9kIGZvdW5kYXRpb25zIOKAlCB1bml0IHRlc3RzIChUMSwga2luZ2RvbXMtc2VydmljZXMjMTU2KS4KCkNvdmVycyB0aGUgdHdvIGFjY2VwdGFuY2UgY3JpdGVyaWEgdGVzdGFibGUgd2l0aG91dCBEaXNjb3JkOiB0aGUKc2Vhc29uIGNvbmZpZyBpcyBkYXRhIChjaGFuZ2luZyBpdCBjaGFuZ2VzIGJlaGF2aW9yLCBub3QgY29kZSkgYW5kIHRoZQpzZWFzb24tc3RhdGUgYm91bmRhcnkgKG1vZGVscyByb3VuZC10cmlwLCB0ZWNoIGludmFyaWFudHMgRDM2KS4iIiIKCmZyb20gX19mdXR1cmVfXyBpbXBvcnQgYW5ub3RhdGlvbnMKCmZyb20gZGF0ZXRpbWUgaW1wb3J0IFVUQywgZGF0ZXRpbWUKZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgppbXBvcnQgcHl0ZXN0Cgpmcm9tIGtpbmdkb21zLmNvcmUuc2VydmljZXMubW9kX3JlZ2lzdHJ5IGltcG9ydCBsb2FkX21vZF9kZWZpbml0aW9ucwpmcm9tIGtpbmdkb21zLm1vZHMua2luZ2RvbXMuY29uZmlnIGltcG9ydCAoCiAgICBkZWZhdWx0X3NlYXNvbl9jb25maWcsCiAgICBsb2FkX3NlYXNvbl9jb25maWcsCikKZnJvbSBraW5nZG9tcy5tb2RzLmtpbmdkb21zLm1vZGVscyBpbXBvcnQgKAogICAgR0FJQV9LSU5HRE9NX0tFWSwKICAgIEtpbmdkb21Nb2RlbCwKICAgIEtpbmdkb21UeXBlLAogICAgTG9yZE1vZGVsLAogICAgTG9yZFJvbGUsCiAgICBTZWFzb25TdGF0ZSwKICAgIFRlY2hub2xvZ3lTdGF0ZSwKICAgIFRlcnJpdG9yeU1vZGVsLAopCgpSRVBPX1JPT1QgPSBQYXRoKF9fZmlsZV9fKS5yZXNvbHZlKCkucGFyZW50c1syXQoKCkBweXRlc3QuZml4dHVyZSgpCmRlZiBzZWFzb25fY29uZmlnKCkgLT4gb2JqZWN0OgogICAgcmV0dXJuIGRlZmF1bHRfc2Vhc29uX2NvbmZpZygpCgoKY2xhc3MgVGVzdE1vZERlY2xhcmF0aW9uOgogICAgIiIiVGhlIG1vZCBkZWNsYXJhdGlvbiB2YWxpZGF0ZXMgYW5kIGRlY2xhcmVzIHRoZSBkb2N1bWVudGVkCiAgICBzdXJmYWNlcy9yb2xlcyAoZG9jcy9NT0RTL2tpbmdkb21zL0VOVklST05NRU5ULm1kKS4iIiIKCiAgICBkZWYgdGVzdF9kZWNsYXJhdGlvbl9sb2Fkc19hbmRfdmFsaWRhdGVzKHNlbGYpIC0+IE5vbmU6CiAgICAgICAgZGVmcyA9IGxvYWRfbW9kX2RlZmluaXRpb25zKFJFUE9fUk9PVCAvICJjb25maWciKQogICAgICAgIGtpbmdkb21zID0gZGVmc1sia2luZ2RvbXMiXQogICAgICAgIGFzc2VydCBraW5nZG9tcy5lbmFibGVkIGlzIFRydWUgICMgVDIgZW5yb2xsbWVudCBsYW5kcyAoa2luZ2RvbXMtc2VydmljZXMjMTU3KQogICAgICAgIGFzc2VydCB7Yy5rZXkgZm9yIGMgaW4ga2luZ2RvbXMuY2hhbm5lbF9jYXRlZ29yaWVzfSA9PSB7CiAgICAgICAgICAgICJhbm5vdW5jZSIsCiAgICAgICAgICAgICJhcHBsaWNhdGlvbnMiLAogICAgICAgICAgICAiYXBwbHkiLAogICAgICAgICAgICAiYXR0YWNrIiwKICAgICAgICAgICAgImJ1ZyIsCiAgICAgICAgICAgICJkaXN0cmlidXRvciIsCiAgICAgICAgICAgICJjb25zb2xlIiwgICMgYWRtaW4tY29uc29sZS12MTogdGhlIPCfm6AgY29uc29sZS1hZG1pbiBzYWxvbgogICAgICAgICAgICAiZXBvY2giLAogICAgICAgICAgICAiZXhwbG9yYXRpb24iLAogICAgICAgICAgICAiZ2VvcG9saXRpY3MiLAogICAgICAgICAgICAibWFya2V0IiwKICAgICAgICAgICAgInBhdHJvbCIsCiAgICAgICAgICAgICJwcmVzZW50YXRpb24iLAogICAgICAgICAgICAicXVlc3Rpb24iLAogICAgICAgICAgICAicmVhbG1zIiwKICAgICAgICAgICAgInJlcXVlc3RzIiwKICAgICAgICAgICAgInJ1bGVzIiwKICAgICAgICAgICAgInNlYXNvbiIsCiAgICAgICAgICAgICJzZWFzb25fbWFuYWdlbWVudCIsCiAgICAgICAgICAgICJzZXR0aW5ncyIsCiAgICAgICAgICAgICJzY3JpcHRvcml1bSIsCiAgICAgICAgICAgICJzdWdnZXN0aW9ucyIsCiAgICAgICAgICAgICJ0YWxrcyIsCiAgICAgICAgICAgICJ0YXZlcm4iLAogICAgICAgICAgICAidGVycml0b3J5IiwKICAgICAgICAgICAgInRpbWVfbWFjaGluZSIsCiAgICAgICAgICAgICJ1cGRhdGUiLAogICAgICAgIH0KICAgICAgICBhc3NlcnQge3Iua2V5IGZvciByIGluIGtpbmdkb21zLnJvbGVzfSA9PSB7CiAgICAgICAgICAgICJraW5nZG9tc19raW5nIiwKICAgICAgICAgICAgImtpbmdkb21zX2xvcmQiLAogICAgICAgICAgICAia2luZ2RvbXNfYWRtaW4iLAogICAgICAgICAgICAia2luZ2RvbXNfbG9ja2VkIiwKICAgICAgICB9CgoKY2xhc3MgVGVzdFNlYXNvbkNvbmZpZzoKICAgICIiIlRoZSBzZWFzb24gY29uZmlnIGlzIGRhdGE6IFNlYXNvbiBJSSBkZWZhdWx0cywgYWRtaW4tb3ZlcnJpZGFibGUKICAgIHdpdGhvdXQgYSBjb2RlIGNoYW5nZSAocmVmZXJlbmNlIMKnMjcvwqcyOCwgRDkpLiIiIgoKICAgIGRlZiB0ZXN0X2RlZmF1bHRzX2FyZV9zZWFzb25faWkoc2VsZiwgc2Vhc29uX2NvbmZpZykgLT4gTm9uZToKICAgICAgICBhc3NlcnQgc2Vhc29uX2NvbmZpZy53ZWVrcyA9PSA0CiAgICAgICAgYXNzZXJ0IHNlYXNvbl9jb25maWcua2luZ2RvbXNfY291bnQgPT0gMgogICAgICAgIGFzc2VydCBzZWFzb25fY29uZmlnLmxvcmRzX3Blcl9raW5nZG9tID09IDQKICAgICAgICBhc3NlcnQgc2Vhc29uX2NvbmZpZy50ZXJyaXRvcmllc19wZXJfa2luZ2RvbSA9PSA1CiAgICAgICAgYXNzZXJ0IHNlYXNvbl9jb25maWcuZ2FpYV90ZXJyaXRvcmllcyA9PSA4CiAgICAgICAgYXNzZXJ0IHNlYXNvbl9jb25maWcuZ2Fycmlzb25fZW5hYmxlZCBpcyBGYWxzZQoKICAgIGRlZiB0ZXN0X2RlZmF1bHRfYWdlc19mb2xsb3dfZDE4KHNlbGYsIHNlYXNvbl9jb25maWcpIC0+IE5vbmU6CiAgICAgICAgbGV2ZWxzID0gW2FnZS5nYWlhX2FpX2xldmVsIGZvciBhZ2UgaW4gc2Vhc29uX2NvbmZpZy5hZ2VzXQogICAgICAgIGFzc2VydCBsZXZlbHMgPT0gWzIsIDMsIDUsIDVdCiAgICAgICAgYXNzZXJ0IFthZ2UuZXh0cmFfbWFycmlhZ2VzIGZvciBhZ2UgaW4gc2Vhc29uX2NvbmZpZy5hZ2VzXSA9PSBbMSwgMSwgMSwgMV0KICAgICAgICBhc3NlcnQgW2FnZS50ZWNoX3BvaW50cyBmb3IgYWdlIGluIHNlYXNvbl9jb25maWcuYWdlc10gPT0gWzAsIDEsIDIsIDJdCgogICAgZGVmIHRlc3RfZGVmYXVsdF90ZWNobm9sb2d5X2Nvc3RzX2ZvbGxvd19yZWZlcmVuY2Uoc2VsZiwgc2Vhc29uX2NvbmZpZykgLT4gTm9uZToKICAgICAgICB0ZWNoID0gc2Vhc29uX2NvbmZpZy50ZWNobm9sb2dpZXMKICAgICAgICBhc3NlcnQgdGVjaC5lbWJ1c2NhZGUgPT0gMgogICAgICAgIGFzc2VydCB0ZWNoLmNvcnJ1cHRpb24gPT0gNAogICAgICAgIGFzc2VydCB0ZWNoLm1hcmlhZ2VfYXJyYW5nZSA9PSAzCgogICAgZGVmIHRlc3RfYWRtaW5fb3ZlcnJpZGVfd2l0aG91dF9jb2RlKHNlbGYsIHRtcF9wYXRoKSAtPiBOb25lOgogICAgICAgIHNlYXNvbl9maWxlID0gdG1wX3BhdGggLyAia2luZ2RvbXMiIC8gInNlYXNvbi55YW1sIgogICAgICAgIHNlYXNvbl9maWxlLnBhcmVudC5ta2RpcigpCiAgICAgICAgc2Vhc29uX2ZpbGUud3JpdGVfdGV4dCgia2luZ2RvbXNfY291bnQ6IDNcbndlZWtzOiA2XG4iKQogICAgICAgIGNvbmZpZyA9IGxvYWRfc2Vhc29uX2NvbmZpZyh0bXBfcGF0aCkKICAgICAgICBhc3NlcnQgY29uZmlnLmtpbmdkb21zX2NvdW50ID09IDMKICAgICAgICBhc3NlcnQgY29uZmlnLndlZWtzID09IDYKICAgICAgICBhc3NlcnQgY29uZmlnLmxvcmRzX3Blcl9raW5nZG9tID09IDQgICMgdW50b3VjaGVkIGRlZmF1bHQKCiAgICBkZWYgdGVzdF9taXNzaW5nX2ZpbGVfZ2l2ZXNfZGVmYXVsdHMoc2VsZiwgdG1wX3BhdGgpIC0+IE5vbmU6CiAgICAgICAgYXNzZXJ0IGxvYWRfc2Vhc29uX2NvbmZpZyh0bXBfcGF0aCkgPT0gZGVmYXVsdF9zZWFzb25fY29uZmlnKCkKCiAgICBkZWYgdGVzdF9pbnZhbGlkX292ZXJyaWRlX2ZhaWxzX2xvdWRseShzZWxmLCB0bXBfcGF0aCkgLT4gTm9uZToKICAgICAgICBzZWFzb25fZmlsZSA9IHRtcF9wYXRoIC8gImtpbmdkb21zIiAvICJzZWFzb24ueWFtbCIKICAgICAgICBzZWFzb25fZmlsZS5wYXJlbnQubWtkaXIoKQogICAgICAgIHNlYXNvbl9maWxlLndyaXRlX3RleHQoImtpbmdkb21zX2NvdW50OiAtMVxuIikKICAgICAgICB3aXRoIHB5dGVzdC5yYWlzZXMoRXhjZXB0aW9uLCBtYXRjaD0ia2luZ2RvbXNfY291bnQiKToKICAgICAgICAgICAgbG9hZF9zZWFzb25fY29uZmlnKHRtcF9wYXRoKQoKCmNsYXNzIFRlc3RTZWFzb25Nb2RlbHM6CiAgICAiIiJTZWFzb24tc3RhdGUgbW9kZWxzOiByb3VuZC10cmlwLCBHYcOvYSBpbnZhcmlhbnRzIChEMzIpLCB0ZWNoCiAgICBpbnZhcmlhbnRzIChEMzYpLiIiIgoKICAgIGRlZiB0ZXN0X2tpbmdkb21fcm91bmRfdHJpcChzZWxmKSAtPiBOb25lOgogICAgICAgIGtpbmdkb20gPSBLaW5nZG9tTW9kZWwoCiAgICAgICAgICAgIF9pZD0iay1hIiwKICAgICAgICAgICAgc2Vhc29uX2lkPSJzMSIsCiAgICAgICAgICAgIHR5cGU9S2luZ2RvbVR5cGUuUExBWUVSLAogICAgICAgICAgICBuYW1lPSJSb3lhdW1lIEEiLAogICAgICAgICAgICBtYXJyaWFnZV9jYXBhY2l0eT0xLAogICAgICAgICkKICAgICAgICByZWJ1aWx0ID0gS2luZ2RvbU1vZGVsLmZyb21fbW9uZ28oa2luZ2RvbS50b19tb25nbygpKQogICAgICAgIGFzc2VydCByZWJ1aWx0ID09IGtpbmdkb20KICAgICAgICBhc3NlcnQgcmVidWlsdC5pc19nYWlhIGlzIEZhbHNlCgogICAgZGVmIHRlc3RfZ2FpYV9raW5nZG9tX2lzX2RldGVjdGFibGUoc2VsZikgLT4gTm9uZToKICAgICAgICBnYWlhID0gS2luZ2RvbU1vZGVsKAogICAgICAgICAgICBfaWQ9R0FJQV9LSU5HRE9NX0tFWSwKICAgICAgICAgICAgc2Vhc29uX2lkPSJzMSIsCiAgICAgICAgICAgIHR5cGU9S2luZ2RvbVR5cGUuR0FJQSwKICAgICAgICAgICAgbmFtZT0iR2HDr2EiLAogICAgICAgICkKICAgICAgICBhc3NlcnQgZ2FpYS5pc19nYWlhIGlzIFRydWUKCiAgICBkZWYgdGVzdF9sb3JkX3JvdW5kX3RyaXBfd2l0aF93ZWVrbHlfYnVkZ2V0cyhzZWxmKSAtPiBOb25lOgogICAgICAgIGxvcmQgPSBMb3JkTW9kZWwoCiAgICAgICAgICAgIF9pZD0icC0xIiwKICAgICAgICAgICAgc2Vhc29uX2lkPSJzMSIsCiAgICAgICAgICAgIGtpbmdkb21faWQ9ImstYSIsCiAgICAgICAgICAgIHJvbGU9TG9yZFJvbGUuS0lORywKICAgICAgICAgICAgZGlzcGxheV9uYW1lPSJBbGRyaWMiLAogICAgICAgICkKICAgICAgICByZWJ1aWx0ID0gTG9yZE1vZGVsLmZyb21fbW9uZ28obG9yZC50b19tb25nbygpKQogICAgICAgIGFzc2VydCByZWJ1aWx0ID09IGxvcmQKICAgICAgICBhc3NlcnQgcmVidWlsdC5hdHRhY2tfdXNlZCA9PSAwCgogICAgZGVmIHRlc3RfdGVycml0b3J5X3JvdW5kX3RyaXAoc2VsZikgLT4gTm9uZToKICAgICAgICB0ZXJyaXRvcnkgPSBUZXJyaXRvcnlNb2RlbCgKICAgICAgICAgICAgX2lkPSJ0LTEiLAogICAgICAgICAgICBzZWFzb25faWQ9InMxIiwKICAgICAgICAgICAgbWFwX2tleT0iYXJhYmlhIiwKICAgICAgICAgICAgb3duZXJfa2luZ2RvbV9pZD1HQUlBX0tJTkdET01fS0VZLAogICAgICAgICAgICBkcmF3bl9hdD1kYXRldGltZSgyMDI2LCAxMCwgNCwgdHppbmZvPVVUQyksCiAgICAgICAgKQogICAgICAgIGFzc2VydCBUZXJyaXRvcnlNb2RlbC5mcm9tX21vbmdvKHRlcnJpdG9yeS50b19tb25nbygpKSA9PSB0ZXJyaXRvcnkKCiAgICBkZWYgdGVzdF9zZWFzb25fc3RhdGVfcm91bmRfdHJpcChzZWxmKSAtPiBOb25lOgogICAgICAgIHN0YXRlID0gU2Vhc29uU3RhdGUoCiAgICAgICAgICAgIF9pZD0iczEiLAogICAgICAgICAgICBzdGFydGVkX2F0PWRhdGV0aW1lKDIwMjYsIDEwLCAxLCB0emluZm89VVRDKSwKICAgICAgICAgICAgd2Vla3M9NCwKICAgICAgICAgICAgY3VycmVudF9hZ2Vfa2V5PSJkYXJrX2FnZSIsCiAgICAgICAgKQogICAgICAgIGFzc2VydCBTZWFzb25TdGF0ZS5mcm9tX21vbmdvKHN0YXRlLnRvX21vbmdvKCkpID09IHN0YXRlCgogICAgZGVmIHRlc3RfdGVjaG5vbG9neV9zcGVuZF9lbmZvcmNlc19saW1pdChzZWxmKSAtPiBOb25lOgogICAgICAgIHRlY2ggPSBUZWNobm9sb2d5U3RhdGUoCiAgICAgICAgICAgIF9pZD0iay1hIiwKICAgICAgICAgICAgc2Vhc29uX2lkPSJzMSIsCiAgICAgICAgICAgIHRlY2hfcG9pbnRzPTUsCiAgICAgICAgICAgIHB1cmNoYXNlcz17fSwKICAgICAgICApCiAgICAgICAgYXNzZXJ0IHRlY2guc3BlbmQoImNvcnJ1cHRpb24iLCA0LCBsaW1pdD0xKSBpcyBUcnVlCiAgICAgICAgYXNzZXJ0IHRlY2gudGVjaF9wb2ludHMgPT0gMQogICAgICAgIGFzc2VydCB0ZWNoLnB1cmNoYXNlcyA9PSB7ImNvcnJ1cHRpb24iOiAxfQogICAgICAgICMgTGltaXQgcmVhY2hlZCAoRDM2KTogYSBzZWNvbmQgcHVyY2hhc2UgaXMgcmVmdXNlZCBldmVuIGlmCiAgICAgICAgIyB0aGUgcG9pbnRzIHdlcmUgdGhlcmUuCiAgICAgICAgYXNzZXJ0IHRlY2guc3BlbmQoImNvcnJ1cHRpb24iLCA0LCBsaW1pdD0xKSBpcyBGYWxzZQoKICAgIGRlZiB0ZXN0X3RlY2hub2xvZ3lfc3BlbmRfZW5mb3JjZXNfYWZmb3JkYWJpbGl0eShzZWxmKSAtPiBOb25lOgogICAgICAgIHRlY2ggPSBUZWNobm9sb2d5U3RhdGUoX2lkPSJrLWEiLCBzZWFzb25faWQ9InMxIiwgdGVjaF9wb2ludHM9MSkKICAgICAgICBhc3NlcnQgdGVjaC5zcGVuZCgiZW1idXNjYWRlIiwgMiwgbGltaXQ9MCkgaXMgRmFsc2UKICAgICAgICBhc3NlcnQgdGVjaC50ZWNoX3BvaW50cyA9PSAxCgogICAgZGVmIHRlc3RfdGVjaG5vbG9neV96ZXJvX2xpbWl0X2lzX3VubGltaXRlZChzZWxmKSAtPiBOb25lOgogICAgICAgIHRlY2ggPSBUZWNobm9sb2d5U3RhdGUoX2lkPSJrLWEiLCBzZWFzb25faWQ9InMxIiwgdGVjaF9wb2ludHM9MykKICAgICAgICBhc3NlcnQgdGVjaC5zcGVuZCgidHJhcXVlbmFyZCIsIDEsIGxpbWl0PTApIGlzIFRydWUKICAgICAgICBhc3NlcnQgdGVjaC5zcGVuZCgidHJhcXVlbmFyZCIsIDEsIGxpbWl0PTApIGlzIFRydWUKICAgICAgICBhc3NlcnQgdGVjaC5zcGVuZCgidHJhcXVlbmFyZCIsIDEsIGxpbWl0PTApIGlzIFRydWUKICAgICAgICAjIE5vdCBsaW1pdGVkICgwID0gdW5saW1pdGVkKSBidXQgbm93IGJyb2tlLgogICAgICAgIGFzc2VydCB0ZWNoLnNwZW5kKCJ0cmFxdWVuYXJkIiwgMSwgbGltaXQ9MCkgaXMgRmFsc2UK
+"""Kingdoms mod foundations — unit tests (T1, kingdoms-services#156).
+
+Covers the two acceptance criteria testable without Discord: the
+season config is data (changing it changes behavior, not code) and the
+season-state boundary (models round-trip, tech invariants D36)."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+
+from kingdoms.core.services.mod_registry import load_mod_definitions
+from kingdoms.mods.kingdoms.config import (
+    default_season_config,
+    load_season_config,
+)
+from kingdoms.mods.kingdoms.models import (
+    GAIA_KINGDOM_KEY,
+    KingdomModel,
+    KingdomType,
+    LordModel,
+    LordRole,
+    SeasonState,
+    TechnologyState,
+    TerritoryModel,
+)
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture()
+def season_config() -> object:
+    return default_season_config()
+
+
+class TestModDeclaration:
+    """The mod declaration validates and declares the documented
+    surfaces/roles (docs/MODS/kingdoms/ENVIRONMENT.md)."""
+
+    def test_declaration_loads_and_validates(self) -> None:
+        defs = load_mod_definitions(REPO_ROOT / "config")
+        kingdoms = defs["kingdoms"]
+        assert kingdoms.enabled is True  # T2 enrollment lands (kingdoms-services#157)
+        assert {c.key for c in kingdoms.channel_categories} == {
+            "announce",
+            "applications",
+            "apply",
+            "attack",
+            "bug",
+            "distributor",
+            "console",  # admin-console-v1: the 🛠 console-admin salon
+            "epoch",
+            "exploration",
+            "geopolitics",
+            "market",
+            "patrol",
+            "presentation",
+            "question",
+            "realms",
+            "requests",
+            "rules",
+            "season",
+            "season_management",
+            "settings",
+            "scriptorium",
+            "suggestions",
+            "talks",
+            "tavern",
+            "territory",
+            "time_machine",
+            "update",
+        }
+        assert {r.key for r in kingdoms.roles} == {
+            "kingdoms_king",
+            "kingdoms_lord",
+            "kingdoms_admin",
+            "kingdoms_locked",
+        }
+
+
+class TestSeasonConfig:
+    """The season config is data: Season II defaults, admin-overridable
+    without a code change (reference §27/§28, D9)."""
+
+    def test_defaults_are_season_ii(self, season_config) -> None:
+        assert season_config.weeks == 4
+        assert season_config.kingdoms_count == 2
+        assert season_config.lords_per_kingdom == 4
+        assert season_config.territories_per_kingdom == 5
+        assert season_config.gaia_territories == 8
+        assert season_config.garrison_enabled is False
+
+    def test_default_ages_follow_d18(self, season_config) -> None:
+        levels = [age.gaia_ai_level for age in season_config.ages]
+        assert levels == [2, 3, 5, 5]
+        assert [age.extra_marriages for age in season_config.ages] == [1, 1, 1, 1]
+        assert [age.tech_points for age in season_config.ages] == [0, 1, 2, 2]
+
+    def test_default_technology_costs_follow_reference(self, season_config) -> None:
+        tech = season_config.technologies
+        assert tech.embuscade == 2
+        assert tech.corruption == 4
+        assert tech.mariage_arrange == 3
+
+    def test_admin_override_without_code(self, tmp_path) -> None:
+        season_file = tmp_path / "kingdoms" / "season.yaml"
+        season_file.parent.mkdir()
+        season_file.write_text("kingdoms_count: 3\nweeks: 6\n")
+        config = load_season_config(tmp_path)
+        assert config.kingdoms_count == 3
+        assert config.weeks == 6
+        assert config.lords_per_kingdom == 4  # untouched default
+
+    def test_missing_file_gives_defaults(self, tmp_path) -> None:
+        assert load_season_config(tmp_path) == default_season_config()
+
+    def test_invalid_override_fails_loudly(self, tmp_path) -> None:
+        season_file = tmp_path / "kingdoms" / "season.yaml"
+        season_file.parent.mkdir()
+        season_file.write_text("kingdoms_count: -1\n")
+        with pytest.raises(Exception, match="kingdoms_count"):
+            load_season_config(tmp_path)
+
+
+class TestSeasonModels:
+    """Season-state models: round-trip, Gaïa invariants (D32), tech
+    invariants (D36)."""
+
+    def test_kingdom_round_trip(self) -> None:
+        kingdom = KingdomModel(
+            _id="k-a",
+            season_id="s1",
+            type=KingdomType.PLAYER,
+            name="Royaume A",
+            marriage_capacity=1,
+        )
+        rebuilt = KingdomModel.from_mongo(kingdom.to_mongo())
+        assert rebuilt == kingdom
+        assert rebuilt.is_gaia is False
+
+    def test_gaia_kingdom_is_detectable(self) -> None:
+        gaia = KingdomModel(
+            _id=GAIA_KINGDOM_KEY,
+            season_id="s1",
+            type=KingdomType.GAIA,
+            name="Gaïa",
+        )
+        assert gaia.is_gaia is True
+
+    def test_lord_round_trip_with_weekly_budgets(self) -> None:
+        lord = LordModel(
+            _id="p-1",
+            season_id="s1",
+            kingdom_id="k-a",
+            role=LordRole.KING,
+            display_name="Aldric",
+        )
+        rebuilt = LordModel.from_mongo(lord.to_mongo())
+        assert rebuilt == lord
+        assert rebuilt.attack_used == 0
+
+    def test_territory_round_trip(self) -> None:
+        territory = TerritoryModel(
+            _id="t-1",
+            season_id="s1",
+            map_key="arabia",
+            owner_kingdom_id=GAIA_KINGDOM_KEY,
+            drawn_at=datetime(2026, 10, 4, tzinfo=UTC),
+        )
+        assert TerritoryModel.from_mongo(territory.to_mongo()) == territory
+
+    def test_season_state_round_trip(self) -> None:
+        state = SeasonState(
+            _id="s1",
+            started_at=datetime(2026, 10, 1, tzinfo=UTC),
+            weeks=4,
+            current_age_key="dark_age",
+        )
+        assert SeasonState.from_mongo(state.to_mongo()) == state
+
+    def test_technology_spend_enforces_limit(self) -> None:
+        tech = TechnologyState(
+            _id="k-a",
+            season_id="s1",
+            tech_points=5,
+            purchases={},
+        )
+        assert tech.spend("corruption", 4, limit=1) is True
+        assert tech.tech_points == 1
+        assert tech.purchases == {"corruption": 1}
+        # Limit reached (D36): a second purchase is refused even if
+        # the points were there.
+        assert tech.spend("corruption", 4, limit=1) is False
+
+    def test_technology_spend_enforces_affordability(self) -> None:
+        tech = TechnologyState(_id="k-a", season_id="s1", tech_points=1)
+        assert tech.spend("embuscade", 2, limit=0) is False
+        assert tech.tech_points == 1
+
+    def test_technology_zero_limit_is_unlimited(self) -> None:
+        tech = TechnologyState(_id="k-a", season_id="s1", tech_points=3)
+        assert tech.spend("traquenard", 1, limit=0) is True
+        assert tech.spend("traquenard", 1, limit=0) is True
+        assert tech.spend("traquenard", 1, limit=0) is True
+        # Not limited (0 = unlimited) but now broke.
+        assert tech.spend("traquenard", 1, limit=0) is False
