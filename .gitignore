@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# visual cards runtime cache (rendered per environment, never committed)
+data/visual_cards/
