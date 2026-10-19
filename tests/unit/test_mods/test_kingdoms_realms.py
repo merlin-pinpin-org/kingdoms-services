@@ -106,6 +106,9 @@ async def test_ensure_realm_structure_creates_category_and_salons() -> None:
     assert len(category.channels) == len(REALM_SALONS)
     names = {channel.name for channel in category.channels}
     assert {"Territoire", "Alliances", "Paroisse"} <= names
+    # restructuration-serveur-v1 (Drasah 19/10): Remparts/Seigneurs/
+    # Pigeon-Voyageur are no longer salons (ephemeral buttons or none).
+    assert not names & {"🧱 Remparts", "Seigneurs", "Pigeon-Voyageur"}
     # the public salons are readable by every kingdoms_lord, the private ones are not
     territoire = next(c for c in category.channels if c.name == "Territoire")
     assert territoire.permission_overwrite_for(lord_role) is not None
@@ -347,19 +350,23 @@ async def test_ensure_realm_structure_renames_the_legacy_eglise_salon() -> None:
     assert len(names) == len(REALM_SALONS)
 
 
-async def test_ensure_realm_structure_renames_the_legacy_patrouille_salon() -> None:
-    """Drasah 2026-10-14 (marche-v2 article 7): a pre-rename « Patrouille »
-    salon is adopted and renamed « 🧱 Remparts » — never duplicated."""
+async def test_ensure_realm_structure_removes_the_retired_salons() -> None:
+    """Drasah 19/10 (restructuration-serveur-v1): the Remparts/Seigneurs/
+    Pigeon-Voyageur salons are retired — a guild that still carries them
+    gets them DELETED at the next provisioning pass."""
     guild = MockGuild()
     kingdom = _Kingdom("k-1", "Avalon", "approved")
     category = await guild.create_category(realm_category_name("Avalon"))
-    await guild.create_text_channel("Patrouille", category=category)
+    await guild.create_text_channel("🧱 Remparts", category=category)
+    await guild.create_text_channel("Seigneurs", category=category)
+    await guild.create_text_channel("Pigeon-Voyageur", category=category)
 
     await ensure_realm_structure(guild, kingdom, [])
 
     names = [channel.name for channel in category.channels]
-    assert names.count("🧱 Remparts") == 1
-    assert "Patrouille" not in names  # renamed in place, not duplicated
+    assert "🧱 Remparts" not in names
+    assert "Seigneurs" not in names
+    assert "Pigeon-Voyageur" not in names
     assert len(names) == len(REALM_SALONS)
 
 

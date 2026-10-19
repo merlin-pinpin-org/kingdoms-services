@@ -1,6 +1,6 @@
 """Kingdoms per-realm salon state views — unit tests (v1, D70).
 
-Each of the 6 deployed views must land pinned in its salon, be
+Each of the 3 deployed views must land pinned in its salon, be
 idempotent (a re-deploy edits the marked message, never a duplicate),
 and render the live service data behind defensive lookups. The Salle
 du Conseil stays empty by design and Alliances keeps its Draft
@@ -8,19 +8,27 @@ starter.
 """
 from __future__ import annotations
 
+import re
 import time
-from typing import ClassVar
+from typing import Any, ClassVar
 
+import discord
 import pytest
 
 from kingdoms.mods.kingdoms.diplomacy import _pick_promise
+from kingdoms.mods.kingdoms.kingdom_persistent import (
+    KingdomRempartsOpenButton,
+    KingdomSeigneurieOpenButton,
+    KingdomsPanelWiring,
+    register_kingdoms_panel_wiring,
+)
 from kingdoms.mods.kingdoms.kingdom_realm_content import (
     VIEW_MARKER_PREFIX,
     deploy_realm_content,
 )
 from kingdoms.mods.kingdoms.kingdom_realms import ensure_realm_structure
 from kingdoms.mods.kingdoms.panel_messages import message_text
-from tests.mocks.discord_mock import MockGuild
+from tests.mocks.discord_mock import MockGuild, MockInteraction, MockUser
 
 pytestmark = pytest.mark.asyncio
 
@@ -165,32 +173,42 @@ def _ids(view) -> set:
     return found
 
 
-async def test_all_six_views_land_in_their_salons() -> None:
+def _view_text(view) -> str:
+    """The concatenated TextDisplay content of a Components V2 view."""
+    chunks: list[str] = []
+    stack = [view]
+    while stack:
+        node = stack.pop()
+        content = getattr(node, "content", None)
+        if content:
+            chunks.append(str(content))
+        stack.extend(getattr(node, "children", []) or [])
+    return "\n".join(chunks)
+
+
+async def test_all_three_views_land_in_their_salons() -> None:
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
 
     results = await _deploy(guild)
 
+    # restructuration-serveur-v1 (Drasah 19/10): Remparts and Seigneurie
+    # are ephemeral BUTTONS now, the Pigeon-Voyageur salon had no wiring.
     assert results == {
         "le-royaume": True,
-        "seigneurs": True,
-        "patrouille": True,
         "territoire": True,
         "eglise": True,
-        "pigeon-voyageur": True,
     }
-    for salon in (
-        "Le-Royaume",
-        "Seigneurs",
-        "🧱 Remparts",
-        "Territoire",
-        "Paroisse",
-        "Pigeon-Voyageur",
-    ):
+    for salon in ("Le-Royaume", "Territoire", "Paroisse"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
     # the Salle du Conseil stays empty (the kingdom's discussion salon)
     assert len(_live(_channel(guild, "Salle du Conseil"))) == 0
+    # the overview carries the two new ephemeral open buttons
+    overview = _live(_channel(guild, "Le-Royaume"))[0]
+    ids = _ids(overview.view)
+    assert "kingdoms:remparts:open" in ids
+    assert "kingdoms:seigneurie:open" in ids
 
 
 async def test_overview_renders_the_live_data() -> None:
@@ -206,39 +224,51 @@ async def test_overview_renders_the_live_data() -> None:
 
 
 async def test_roster_lists_members_with_marriages_and_budgets() -> None:
-    guild = MockGuild()
-    await ensure_realm_structure(guild, _Kingdom(), [])
-    await _deploy(guild)
+    """restructuration-serveur-v1: the roster opens as an EPHEMERAL view
+    from the Seigneurie button — its content is unchanged plus the
+    public locks (marriage), never the Corbeau suivi."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import (
+        _build_roster,
+        _gather_state,
+        _strings,
+    )
 
-    content = _text(_live(_channel(guild, "Seigneurs"))[0])
+    state = await _gather_state(_Kingdom(), _Wiring())
+    content = _view_text(_build_roster(_strings("fr"), _Kingdom(), state))
     assert "👑 **Arthur**" in content
     assert "🎖️ **Luc**" in content
     assert "💍 Aztèques" in content
     # Drasah 15/10: the roster shows the REMAINING weekly budgets
     # (Arthur used 1 attack and 2 defenses of his 2/3 weekly quotas).
     assert "⚔️ 1/2 · 🛡️ 1/3" in content
+    # Drasah 19/10: the public marriage lock shows its end time.
+    assert "🔒 verrou mariage" in content
 
 
 async def test_remparts_view_shows_patrols_and_the_guard_button() -> None:
-    """marche-v2 article 7: the renamed 🧱 Remparts salon keeps the patrol
-    slots and gains the Garde Royale line + the King's buy button."""
-    guild = MockGuild()
-    await ensure_realm_structure(guild, _Kingdom(), [])
-    await _deploy(guild)
+    """restructuration-serveur-v1: the Remparts view keeps the patrol
+    slots, the Garde Royale lines and the King's placement buttons — it
+    now opens as an EPHEMERAL view from the Le-Royaume button."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import (
+        _build_patrol,
+        _gather_state,
+        _strings,
+    )
 
-    channel = _channel(guild, "🧱 Remparts")
-    content = _text(_live(channel)[0])
+    state = await _gather_state(_Kingdom(), _Wiring())
+    view = _build_patrol(_strings("fr"), _Kingdom(), state)
+    content = _view_text(view)
     assert "Patrouille 1" in content
     assert "02h00 → 04h00" in content  # slot 1 placed at 02h (remparts-v2)
     assert "Patrouille 2" in content
     assert "verrouillée" in content  # slot 2 still locked (market first)
-    assert "🧱 Remparts" in content
     assert "Gardes Royales" in content
     assert "En réserve : 1" in content  # one guard token in stock
-    message = _live(channel)[0]
-    assert "kingdoms:remparts:guard" in _ids(message.view)
-    assert "kingdoms:remparts:patrouille:1" in _ids(message.view)
-    assert "kingdoms:remparts:patrouille:2" in _ids(message.view)
+    ids = _ids(view)
+    assert "kingdoms:remparts:guard" in ids
+    assert "kingdoms:remparts:patrouille:1" in ids
+    assert "kingdoms:remparts:patrouille:2" in ids
+    assert "kingdoms:attack:defense-manager" in ids
 
 
 async def test_territory_view_lists_owned_maps_with_display_names() -> None:
@@ -290,8 +320,15 @@ async def test_territory_view_shields_the_guarded_map_with_its_end_time() -> Non
     assert "🛡️" in content
     assert "protégée jusqu'à" in content
 
-    # The Remparts view carries the same guard line.
-    remparts = _text(_live(_channel(guild, "🧱 Remparts"))[0])
+    # The ephemeral Remparts view carries the same guard line.
+    from kingdoms.mods.kingdoms.kingdom_realm_content import (
+        _build_patrol,
+        _gather_state,
+        _strings,
+    )
+
+    state = await _gather_state(_Kingdom(), _GuardedWiring())
+    remparts = _view_text(_build_patrol(_strings("fr"), _Kingdom(), state))
     assert "🛡️ **Arabie**" in remparts
     assert "protégée jusqu'à" in remparts
 
@@ -343,14 +380,7 @@ async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
     await _deploy(guild)
     await _deploy(guild)
 
-    for salon in (
-        "Le-Royaume",
-        "Seigneurs",
-        "🧱 Remparts",
-        "Territoire",
-        "Paroisse",
-        "Pigeon-Voyageur",
-    ):
+    for salon in ("Le-Royaume", "Territoire", "Paroisse"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
 
@@ -407,3 +437,96 @@ async def test_setup_phase_hides_the_territories() -> None:
     # the other salons render normally
     overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
     assert "Avalon" in overview
+
+
+class _ButtonKingdomsService(_KingdomsService):
+    """Service behind the open buttons: one king (id 111) + his kingdom."""
+
+    async def lords(self) -> list:
+        return [_Lord(id="111", role="king", display_name="Arthur")]
+
+    async def kingdoms(self) -> list:
+        return [_Kingdom()]
+
+
+def _wire_buttons(service: object | None) -> None:
+    register_kingdoms_panel_wiring(
+        KingdomsPanelWiring(
+            kingdoms_service=service,
+            territories_service=_TerritoriesService(),
+            economy_service=_EconomyService(),
+            attacks_service=_AttacksService(),
+        )
+    )
+
+
+def _open_match(custom_id: str) -> Any:
+    """A truthy re.Match for the from_custom_id rebuild (pattern unused)."""
+    found = re.match(r"kingdoms:[a-z]+:open", custom_id)
+    assert found is not None
+    return found
+
+
+async def test_open_buttons_rebuild_from_the_wire() -> None:
+    """restart-proof labels: 🧱 Remparts / 🛡️ Seigneurie in French,
+    🧱 Ramparts / 🛡️ Lordship in English."""
+    fr = await KingdomRempartsOpenButton.from_custom_id(
+        MockInteraction(locale="fr"),  # type: ignore[arg-type]
+        discord.ui.Button(),  # type: ignore[arg-type]
+        _open_match("kingdoms:remparts:open"),  # type: ignore[arg-type]
+    )
+    assert fr.item.label == "🧱 Remparts"
+    assert fr.item.custom_id == "kingdoms:remparts:open"
+
+    en = await KingdomSeigneurieOpenButton.from_custom_id(
+        MockInteraction(locale="en-US"),  # type: ignore[arg-type]
+        discord.ui.Button(),  # type: ignore[arg-type]
+        _open_match("kingdoms:seigneurie:open"),  # type: ignore[arg-type]
+    )
+    assert en.item.label == "🛡️ Lordship"
+    assert en.item.custom_id == "kingdoms:seigneurie:open"
+
+
+async def test_remparts_button_opens_the_ephemeral_patrol_view() -> None:
+    _wire_buttons(_ButtonKingdomsService())
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+
+    await KingdomRempartsOpenButton("🧱 Remparts").callback(interaction)
+
+    assert interaction.response.ephemeral is True
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    content = _view_text(message.view)
+    assert "Patrouille 1" in content
+    assert "Gardes Royales" in content
+    # the persistent patrol/guard/defense buttons ride the ephemeral view
+    assert "kingdoms:remparts:patrouille:1" in _ids(message.view)
+    assert "kingdoms:attack:defense-manager" in _ids(message.view)
+
+
+async def test_seigneurie_button_opens_the_ephemeral_roster() -> None:
+    _wire_buttons(_ButtonKingdomsService())
+    interaction: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+
+    await KingdomSeigneurieOpenButton("🛡️ Seigneurie").callback(interaction)
+
+    assert interaction.response.ephemeral is True
+    message = interaction.response.message
+    assert message is not None and message.view is not None
+    content = _view_text(message.view)
+    assert "👑 **Arthur**" in content
+    assert "⚔️ 1/2 · 🛡️ 1/3" in content  # the remaining weekly budgets
+
+
+async def test_open_buttons_refuse_strangers_and_lost_services() -> None:
+    """A non-lord gets the not_lord echo; a dead service gets the
+    market_no_service echo — both ephemeral, never a crash."""
+    _wire_buttons(_ButtonKingdomsService())
+    stranger: Any = MockInteraction(user=MockUser(id=999), locale="fr")
+    await KingdomRempartsOpenButton("🧱 Remparts").callback(stranger)
+    assert "Tu ne fais partie d'aucun royaume." in (stranger.response.message.content or "")
+
+    _wire_buttons(None)
+    orphan: Any = MockInteraction(user=MockUser(id=111), locale="fr")
+    await KingdomSeigneurieOpenButton("🛡️ Seigneurie").callback(orphan)
+    assert "Le marché n'est pas disponible" in (orphan.response.message.content or "")
