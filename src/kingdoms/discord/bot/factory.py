@@ -725,8 +725,16 @@ class KingdomsBot(discord.Client):
                 logger.warning("GUILD ACCESS read failed (guild %s) — best-effort", guild_id, exc_info=True)
                 return
 
+        guild = self.get_guild(int(guild_id)) if guild_id.isdigit() else None
         for mod_name, definition in registry.enabled().items():
             if access is not None and mod_name not in granted:
+                continue
+            if definition.is_private() and not await self._mod_privacy_satisfied(definition, guild):
+                logger.info(
+                    "MOD %s SKIPPED (guild %s) — private mod, no owner or bot-admin in the guild",
+                    mod_name,
+                    guild_id,
+                )
                 continue
             try:
                 await channel_service.setup_mod_channels(guild_id, mod_name)
@@ -740,6 +748,18 @@ class KingdomsBot(discord.Client):
                 )
             except Exception:
                 logger.warning("MOD %s provisioning failed (guild %s) — best-effort", mod_name, guild_id, exc_info=True)
+
+    async def _mod_privacy_satisfied(self, definition: Any, guild: discord.Guild | None) -> bool:
+        """Place a private mod only where an owner or a bot admin is a member."""
+        if guild is None:
+            return False
+        bot_admins = set(getattr(self.status_service, "bot_admins", ()) or ())
+        allowed = bot_admins | set(definition.owner_ids)
+        try:
+            members = await guild.chunk() if not guild.chunked else guild.members
+        except Exception:
+            members = guild.members
+        return any(str(m.id) in allowed for m in members)
 
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
         """Recreate a deleted managed channel immediately (self-healing).

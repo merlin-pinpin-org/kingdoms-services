@@ -131,7 +131,7 @@ en:
       language_btn: Language
       games_btn: Games
       mods_btn: Mods
-      ensure_btn: Rebuild all
+      ensure_btn: Create missing channels
       channel_access_everyone: '👁️ Read: @everyone
 
         ✍️ Write: @everyone'
@@ -464,5 +464,5 @@ en:
       heading_actions: 🎩 Actions
       btn_add_map: Add a map
       btn_create_pool: Create a map pool
-      btn_ensure: Rebuild all
+      btn_ensure: Create missing channels
       bot_home_description: The bot's operation — logs, administration, decisions.

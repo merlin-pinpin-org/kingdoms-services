@@ -64,9 +64,10 @@ async def _guild_locale(interaction: discord.Interaction) -> str:
 
 
 async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
-    """Re-provision one scope's declared channels/roles, best-effort.
+    """Re-provision one scope's declared channels, best-effort.
 
-    Returns a human outcome line for the ephemeral answer.
+    Returns a human outcome: the scope's channels, listed like the
+    home notices (one bullet per channel, its link and access band).
     """
     from kingdoms.core.services.i18n import DEFAULT_LOCALE
     from kingdoms.discord.ui.panels import registered_scopes
@@ -98,14 +99,19 @@ async def _ensure_scope(bot: Any, guild_id: str, scope: str) -> str:
         await persist_resolutions(guild_id, scope, resolved)
     except Exception:
         logger.warning("ADMIN TREE: ensure failed (scope %s, guild %s)", scope, guild_id, exc_info=True)
-        return "Le re-provisionning a échoué — voir les logs du bot."
+        return "La création des salons a échoué — voir les logs du bot."
     from kingdoms.discord.pinned_views import refresh_registered_pins
 
     await refresh_registered_pins(guild_id)
-    return (
-        f"Périmètre `{scope}` re-provisionné ({len(resolved)} points de gestion) "
-        "— les menus épinglés sont rafraîchis."
-    )
+    from kingdoms.discord.scope_pins import _ACCESS_LABELS
+
+    lines: list[str] = [f"\U0001f527 **{scope}** — salons vérifiés/créés :"]
+    for decl in spec.channels:
+        channel_id = resolved.get(decl.key, "")
+        where = f"<#{channel_id}>" if channel_id else "\u274c absent"
+        access = _ACCESS_LABELS.get(decl.access, decl.access)
+        lines.append(f"\u2022 {where} — {access}")
+    return "\n".join(lines)
 
 
 class TreeOpenButton(
@@ -194,7 +200,7 @@ class TreeEnsureButton(
 ):
     """Re-provision one scope's channels (and mod/game roles), on demand."""
 
-    def __init__(self, scope: str, label: str = "Tout regénérer", emoji: str = "\U0001f527") -> None:
+    def __init__(self, scope: str, label: str = "Create missing channels", emoji: str = "\U0001f527") -> None:
         self.scope = scope
         super().__init__(
             discord.ui.Button(
@@ -259,13 +265,13 @@ async def build_admin_menu(
         row.add_item(TreeOpenButton(section, label, emoji))
     view.add_item(row)
     ensure_row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Tout regénérer")))
+    ensure_row.add_item(TreeEnsureButton("bot", await _label("admin_tree.ensure_btn", "Create missing channels")))
     view.add_item(ensure_row)
     view.add_item(discord.ui.TextDisplay(footer("view:bot:admin")))
     return view
 
 
-def ensure_button(scope: str, label: str = "Tout regénérer") -> TreeEnsureButton:
+def ensure_button(scope: str, label: str = "Create missing channels") -> TreeEnsureButton:
     """Build an ensure button for one scope (the scope admin menus)."""
     return TreeEnsureButton(scope, label)
 

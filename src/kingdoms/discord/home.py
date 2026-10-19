@@ -806,6 +806,24 @@ async def _view_mods_for_guild(interaction: discord.Interaction, guild_id: str) 
     await interaction.followup.send(view=await _mods_layout(interaction.client, guild_id, interaction), ephemeral=True)
 
 
+def _mod_visible_to(
+    bot: Any, mod: str, user_id: str | None
+) -> bool:
+    """Whether a mod is visible to one user.
+
+    Public mods always are; private mods only to their owners and the
+    bot admins (click-time guards apply on top for actions).
+    """
+    registry = getattr(bot, "registry", None)
+    definition = registry.enabled().get(mod) if registry is not None else None
+    if definition is None or not definition.is_private():
+        return True
+    if not user_id:
+        return False
+    admins = set(getattr(getattr(bot, "status_service", None), "bot_admins", ()) or ())
+    return str(user_id) in admins or definition.owned_by(str(user_id))
+
+
 async def _mods_layout(
     bot: Any, guild_id: str, interaction: Any = None
 ) -> discord.ui.LayoutView:
@@ -822,8 +840,14 @@ async def _mods_layout(
             logger.warning("MODS VIEW access read failed", exc_info=True)
     if service is None:
         granted = tuple(all_mods)
+    viewer = (
+        str(getattr(interaction.user, "id", "") or "")
+        if interaction is not None
+        else None
+    )
+    visible = tuple(mod for mod in (granted or all_mods) if _mod_visible_to(bot, mod, viewer))
     lines: list[str] = []
-    for mod in (granted or all_mods)[:25]:
+    for mod in visible[:25]:
         channels: list[str] = []
         general = await _tree_channel_link(guild_id, f"mods/{mod}", "general")
         if general:
@@ -1013,8 +1037,12 @@ async def _view_admin_for_guild(interaction: discord.Interaction, guild_id: str)
 
 
 async def _view_mod(interaction: discord.Interaction, mod: str) -> None:
-    """Route to a mod's home view builder."""
+    """Route to a mod's home view builder (private mods: owners/admins)."""
     bot = interaction.client
+    viewer = str(getattr(interaction.user, "id", "") or "")
+    if not _mod_visible_to(bot, mod, viewer):
+        await interaction.response.send_message(await reply(interaction, "no_home_view"), ephemeral=True)
+        return
     builder = getattr(bot, "mod_home_builders", {}).get(mod)
     if builder is None:
         await interaction.response.send_message(await reply(interaction, "no_home_view"), ephemeral=True)

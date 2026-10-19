@@ -131,7 +131,7 @@ fr:
       language_btn: Langue
       games_btn: Jeux
       mods_btn: Mods
-      ensure_btn: Tout regénérer
+      ensure_btn: Créer les salons manquants
       channel_access_everyone: '👁️ Lecture : @everyone
 
         ✍️ Écriture : @everyone'
@@ -473,5 +473,5 @@ fr:
       heading_actions: 🎩 Actions
       btn_add_map: Ajouter une map
       btn_create_pool: Créer un map pool
-      btn_ensure: Tout regénérer
+      btn_ensure: Créer les salons manquants
       bot_home_description: L'exploitation du bot — logs, administration, décisions.
