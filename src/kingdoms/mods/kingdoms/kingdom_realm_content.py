@@ -109,6 +109,11 @@ def _strings(locale: str) -> dict[str, str]:
             "remparts_ai": "🤖 Bot de défense (IA) : **{0}**/5",
             "remparts_reinforced": "💪 Patrouilles Renforcées (créneaux de 3h)",
             "roster_exploring": "🗺️ exploration jusqu'à {0}",
+            "roster_marriage_lock": "🔒 verrou mariage jusqu'à {0}",
+            "roster_ffa_lock": "🚫 FFA verrouillé jusqu'à {0}",
+            "remparts_open_button": "🧱 Remparts",
+            "not_lord": "Tu ne fais partie d'aucun royaume.",
+            "seigneurie_open_button": "🛡️ Seigneurie",
             "territory_title": "🗺️ Territoire — {0}",
             "territory_count": "{0} territoire(s)",
             "territory_empty": "Aucun territoire pour le moment.",
@@ -169,12 +174,6 @@ def _strings(locale: str) -> dict[str, str]:
             ),
             "lock_days": "lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche",
             "lock_time_fmt": "{0} {1}h{2}",
-            "carrier_title": "🕊️ Pigeon-Voyageur — {0}",
-            "carrier_body": (
-                "Ce salon recevra les rappels du Roi (D69) : achat de patrouille,"
-                " mariages scellés, fenêtre de protection, changement d'époque…"
-                " Catalogue de 14 messages en préparation."
-            ),
         }
     return {
         "overview_title": "🏰 {0}",
@@ -231,6 +230,11 @@ def _strings(locale: str) -> dict[str, str]:
             "remparts_ai": "🤖 Defense bot (AI): **{0}**/5",
             "remparts_reinforced": "💪 Reinforced Patrols (3h slots)",
             "roster_exploring": "🗺️ exploring until {0}",
+            "roster_marriage_lock": "🔒 marriage lock until {0}",
+            "roster_ffa_lock": "🚫 FFA locked until {0}",
+            "remparts_open_button": "🧱 Ramparts",
+            "seigneurie_open_button": "🛡️ Lordship",
+            "not_lord": "You are not part of any kingdom.",
         "territory_title": "🗺️ Territory — {0}",
         "territory_count": "{0} territor(y|ies)",
         "territory_empty": "No territory yet.",
@@ -290,12 +294,6 @@ def _strings(locale: str) -> dict[str, str]:
         ),
         "lock_days": "Mon|Tue|Wed|Thu|Fri|Sat|Sun",
         "lock_time_fmt": "{0} {1}:{2}",
-        "carrier_title": "🕊️ Carrier Pigeon — {0}",
-        "carrier_body": (
-            "This salon will carry the King's reminders (D69): patrol purchase,"
-            " sealed marriages, protection window, epoch change… A catalogue of"
-            " 14 messages is in preparation."
-        ),
     }
 
 
@@ -342,13 +340,14 @@ async def deploy_realm_content(
     phase = await _season_phase(getattr(wiring, "kingdoms_service", None))
     state = await _gather_state(kingdom, wiring)
     strings = _strings(locale)
+    # Drasah 19/10 (restructuration-serveur-v1): seigneurs/patrouille/
+    # pigeon-voyageur are no longer salons — Remparts and Seigneurie
+    # open from the Le-Royaume buttons (ephemeral), the carrier had no
+    # wiring at all.
     builders: dict[str, Any] = {
         "le-royaume": _build_overview,
-        "seigneurs": _build_roster,
-        "patrouille": _build_patrol,
         "territoire": _build_territory if phase != "setup" else _build_territory_pending,
         "eglise": _build_church,
-        "pigeon-voyageur": _build_carrier,
     }
     results: dict[str, bool] = {}
     for key, builder in builders.items():
@@ -624,6 +623,15 @@ def _build_overview(
     buttons.append(
         KingdomVoliereButton(_voliere_strings(voliere_locale)["voliere_button"])
     )
+    # Drasah 19/10 (restructuration-serveur-v1): Remparts and Seigneurie
+    # leave the salon world — they open as ephemeral views from here.
+    from kingdoms.mods.kingdoms.kingdom_persistent import (
+        KingdomRempartsOpenButton,
+        KingdomSeigneurieOpenButton,
+    )
+
+    buttons.append(KingdomRempartsOpenButton(strings["remparts_open_button"]))
+    buttons.append(KingdomSeigneurieOpenButton(strings["seigneurie_open_button"]))
     return _panel_view_with_buttons(
         strings["overview_title"].format(getattr(kingdom, "name", "")),
         body,
@@ -664,6 +672,15 @@ def _build_roster(
             exploring = int(getattr(member, "exploration_locked_until", 0) or 0)
             if exploring > int(game_now().timestamp()):
                 line += f" {strings['roster_exploring'].format(_lock_until_label(exploring, strings))}"
+            # Drasah 19/10 (restructuration-serveur-v1): the roster shows
+            # the public locks too — marriage and FFA no-show. The Corbeau
+            # « suivi » is NEVER displayed (espionnage secret).
+            marriage_lock = int(getattr(member, "marriage_locked_until", 0) or 0)
+            if marriage_lock > int(game_now().timestamp()):
+                line += f" {strings['roster_marriage_lock'].format(_lock_until_label(marriage_lock, strings))}"
+            ffa_lock = int(getattr(member, "ffa_locked_until", 0) or 0)
+            if ffa_lock > int(game_now().timestamp()):
+                line += f" {strings['roster_ffa_lock'].format(_lock_until_label(ffa_lock, strings))}"
             if getattr(member, "left", False):
                 line += f" {strings['left_badge']}"
             lines.append(line)
@@ -1009,21 +1026,6 @@ def _panel_view_with_buttons(
     view.add_item(container)
     return view
 
-
-def _build_carrier(
-    strings: dict[str, str],
-    kingdom: Any,
-    state: dict[str, Any],
-) -> Any:
-    """Build the 🕊️ Pigeon-Voyageur placeholder (D69 catalogue à venir)."""
-    import discord
-
-    return _panel_view(
-        strings["carrier_title"].format(getattr(kingdom, "name", "")),
-        strings["carrier_body"],
-        f"{VIEW_MARKER_PREFIX}:pigeon-voyageur",
-        discord.Colour.light_grey(),
-    )
 
 
 async def _upsert_view(channel: Any, key: str, view: Any) -> bool:

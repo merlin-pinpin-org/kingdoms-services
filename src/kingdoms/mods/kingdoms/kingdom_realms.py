@@ -35,12 +35,18 @@ REALMS_PANEL_MARKER = "kingdoms:panel:royaumes"
 REALMS_CHANNEL = "Royaumes"
 REALM_SALONS: tuple[tuple[str, str], ...] = (
     ("salle-du-conseil", "Salle du Conseil"),
-    ("patrouille", "🧱 Remparts"),
-    ("seigneurs", "Seigneurs"),
     ("le-royaume", "Le-Royaume"),
     ("territoire", "Territoire"),
     ("alliances", "Alliances"),
     ("eglise", "Paroisse"),
+)
+# Drasah 19/10 (restructuration-serveur-v1): the realm shrinks to 5
+# salons — Remparts and Seigneurie become EPHEMERAL BUTTONS on the
+# Le-Royaume view, the Pigeon-Voyageur salon had no wiring at all.
+# These three are DELETED at the next provisioning pass.
+REMOVED_REALM_SALONS: tuple[tuple[str, str], ...] = (
+    ("remparts", "🧱 Remparts"),
+    ("seigneurs", "Seigneurs"),
     ("pigeon-voyageur", "Pigeon-Voyageur"),
 )
 # Drasah 2026-10-11: the salon « Église » is renamed « Paroisse » (the
@@ -391,6 +397,24 @@ async def ensure_realm_structure(
             await channel.set_permissions(
                 lord_role, view_channel=True, send_messages=False, read_message_history=True
             )
+
+    # Drasah 19/10 (restructuration-serveur-v1): purge the salons that
+    # became ephemeral buttons (or had no wiring) — best effort.
+    for _key, _name in REMOVED_REALM_SALONS:
+        doomed = next(
+            (
+                c
+                for c in getattr(category, "channels", [])
+                if _slug(getattr(c, "name", "")) == _slug(_name)
+            ),
+            None,
+        )
+        if doomed is not None:
+            try:
+                await doomed.delete()
+                logger.info("KINGDOM REALMS: removed salon %s", _name)
+            except Exception:
+                logger.warning("KINGDOM REALMS: salon removal failed (%s)", _name, exc_info=True)
 
     return category
 
