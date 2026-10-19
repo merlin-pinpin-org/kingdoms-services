@@ -28,7 +28,6 @@ logger = logging.getLogger("kingdoms.kingdom")
 
 MOD_NAME = "kingdoms"
 
-
 def _slug(name: str) -> str:
     """Normalize a channel/category name the way Discord does.
 
@@ -39,7 +38,6 @@ def _slug(name: str) -> str:
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return without_accents.replace(" ", "-").strip("-")
 
-
 def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
     """Find a category by its Discord slug (read-only lookup)."""
     wanted = _slug(name)
@@ -47,7 +45,6 @@ def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel |
         if _slug(getattr(category, "name", "")) == wanted:
             return category  # type: ignore[no-any-return]
     return None
-
 
 def _find_channel(
     guild: discord.Guild, category: discord.CategoryChannel | None, name: str
@@ -59,7 +56,6 @@ def _find_channel(
         if _slug(channel.name) == wanted and (category is None or channel.category_id == category.id):
             return channel  # type: ignore[no-any-return]
     return None
-
 
 EPOCH_CATEGORY = "Époque"
 """The group that holds the renameable current-age channel (kingdoms#138):
@@ -138,6 +134,9 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     "saison",
     "update",
     "suggestion",
+    # restructuration-serveur-v1 e (Drasah 19/10): the general group
+    # disappears ENTIRELY — the Taverne leaves with its category.
+    "taverne",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the
@@ -145,12 +144,16 @@ retired Champs de bataille salons (restructuration-serveur-v1 b): the
 delays moved into the declare flow's « Itinéraire » line and the
 announcements into each attack's OWN salon (the per-attack salons carry
 long slugs, never the bare « attaques » — safe to purge), the retired
-Gaïa salons (restructuration-serveur-v1 c) and the retired Général
-salons (restructuration-serveur-v1 d: rules/presentation live in the
-Scriptorium buttons; saison/update/annonce/suggestion go away)."""
+Gaïa salons (restructuration-serveur-v1 c), the retired Général salons
+(restructuration-serveur-v1 d: rules/presentation live in the
+Scriptorium buttons; saison/update/annonce/suggestion go away) and the
+Taverne (restructuration-serveur-v1 e: the general group is gone)."""
 
-LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium")
-"""The retired group categories — the epoch salon now lives under Kingdoms."""
+LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium", "Général")
+"""The retired group categories — the epoch salon now lives under
+Kingdoms, and the general group disappeared entirely
+(restructuration-serveur-v1 e, Drasah 19/10: Taverne + the vocal go
+with the category)."""
 
 LEGACY_BATTLE_CATEGORY_NAMES: tuple[str, ...] = ("Champs de bataille", "Battlefields")
 """The battle-room duplicate categories (battle-room-categorie-v1,
@@ -303,7 +306,7 @@ def register_kingdom_command(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
 ) -> None:
-    """Register the /kingdom bootstrap command (admin only) on the tree."""
+    """Register the /kingdom bootstrap command (admin only) on the tree.
 
     @tree.command(
         name=localized("commands.kingdom_name", "kingdom"),
