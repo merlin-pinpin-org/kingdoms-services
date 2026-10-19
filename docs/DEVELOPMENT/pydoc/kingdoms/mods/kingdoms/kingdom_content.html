@@ -41,7 +41,11 @@ not&nbsp;the&nbsp;bot&nbsp;UI.</span></p>
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_enrollment"><strong>announce_enrollment</strong></a>(guild: 'discord.Guild', locale: 'str', display_name: 'str', kingdom_name: 'str | None', is_king: 'bool') -&gt; 'None'</dt><dd><span class="code">Announce&nbsp;one&nbsp;validated&nbsp;enrollment&nbsp;in&nbsp;Géopolitique&nbsp;(best&nbsp;effort).</span></dd></dl>
  <dl><dt>async <a name="-announce_geopolitics"><strong>announce_geopolitics</strong></a>(guild: 'discord.Guild', locale: 'str', text: 'str', view: 'discord.ui.View | None' = None) -&gt; 'bool'</dt><dd><span class="code">Send&nbsp;one&nbsp;announcement&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;channel&nbsp;(best&nbsp;effort).</span></dd></dl>
- <dl><dt>async <a name="-refresh_channel_descriptions"><strong>refresh_channel_descriptions</strong></a>(guild: 'discord.Guild') -&gt; 'dict[str, str]'</dt><dd><span class="code">Set&nbsp;the&nbsp;designer&nbsp;descriptions&nbsp;of&nbsp;the&nbsp;Taverne&nbsp;and&nbsp;Règles&nbsp;channels.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_channel_descriptions"><strong>refresh_channel_descriptions</strong></a>(guild: 'discord.Guild') -&gt; 'dict[str, str]'</dt><dd><span class="code">Set&nbsp;the&nbsp;designer&nbsp;description&nbsp;of&nbsp;the&nbsp;Taverne&nbsp;channel.<br>
+&nbsp;<br>
+restructuration-serveur-v1&nbsp;d&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;Règles&nbsp;forum&nbsp;is<br>
+retired&nbsp;—&nbsp;its&nbsp;description&nbsp;entry&nbsp;left&nbsp;with&nbsp;the&nbsp;salon&nbsp;(the&nbsp;guide<br>
+lives&nbsp;in&nbsp;the&nbsp;Scriptorium's&nbsp;ephemeral&nbsp;📖&nbsp;Règles&nbsp;button).</span></dd></dl>
  <dl><dt>async <a name="-refresh_epoch_channel"><strong>refresh_epoch_channel</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;current&nbsp;age&nbsp;in&nbsp;the&nbsp;fixed-name&nbsp;🏺&nbsp;Âge&nbsp;salon&nbsp;(kingdoms-patch).<br>
 &nbsp;<br>
 The&nbsp;channel&nbsp;is&nbsp;NO&nbsp;LONGER&nbsp;renamed&nbsp;at&nbsp;each&nbsp;age&nbsp;switch&nbsp;(Drasah's<br>
@@ -50,8 +54,13 @@ current&nbsp;age,&nbsp;the&nbsp;Wednesday-midnight&nbsp;countdown&nbsp;and&nbsp;
 live&nbsp;in&nbsp;the&nbsp;pinned&nbsp;message.&nbsp;A&nbsp;legacy&nbsp;«&nbsp;Âge&nbsp;sombre&nbsp;»&nbsp;channel&nbsp;(or&nbsp;a<br>
 channel&nbsp;stranded&nbsp;in&nbsp;the&nbsp;legacy&nbsp;Époque&nbsp;category)&nbsp;is&nbsp;migrated&nbsp;once:<br>
 renamed&nbsp;and&nbsp;moved&nbsp;under&nbsp;Kingdoms.</span></dd></dl>
- <dl><dt>async <a name="-refresh_presentation"><strong>refresh_presentation</strong></a>(guild: 'discord.Guild') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;designer's&nbsp;mod&nbsp;pitch&nbsp;in&nbsp;the&nbsp;Présentation&nbsp;channel.</span></dd></dl>
- <dl><dt>async <a name="-refresh_salons_content"><strong>refresh_salons_content</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'dict[str, str]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;group-1&nbsp;channel&nbsp;content;&nbsp;return&nbsp;a&nbsp;deploy-style&nbsp;report.</span></dd></dl>
+ <dl><dt>async <a name="-refresh_salons_content"><strong>refresh_salons_content</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'dict[str, str]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;group-1&nbsp;channel&nbsp;content;&nbsp;return&nbsp;a&nbsp;deploy-style&nbsp;report.<br>
+&nbsp;<br>
+restructuration-serveur-v1&nbsp;d&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;Présentation&nbsp;salon<br>
+and&nbsp;the&nbsp;Règles&nbsp;forum&nbsp;are&nbsp;retired&nbsp;—&nbsp;the&nbsp;pitch&nbsp;and&nbsp;the&nbsp;guide&nbsp;live&nbsp;in<br>
+the&nbsp;Scriptorium's&nbsp;ephemeral&nbsp;📖&nbsp;Règles&nbsp;/&nbsp;🎤&nbsp;Présentation&nbsp;buttons<br>
+(100&nbsp;%&nbsp;live&nbsp;at&nbsp;click&nbsp;time,&nbsp;nothing&nbsp;to&nbsp;refresh),&nbsp;so&nbsp;their&nbsp;refresh<br>
+passes&nbsp;left&nbsp;with&nbsp;the&nbsp;salons.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

@@ -116,15 +116,11 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
-<dl><dt><a name="FFAError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
-
 <dl><dt><a name="FFAError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="FFAError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="FFAError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
-
-<dl><dt><a name="FFAError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="FFAError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -198,6 +194,13 @@ the&nbsp;following&nbsp;Sunday&nbsp;23:30).</span></dd></dl>
 &nbsp;<br>
 Exposed&nbsp;for&nbsp;the&nbsp;panel&nbsp;views&nbsp;and&nbsp;the&nbsp;join&nbsp;button&nbsp;notes.</span></dd></dl>
 
+<dl><dt>async <a name="FFAExplorationService-record_salon"><strong>record_salon</strong></a>(self, ffa: 'FFAExplorationModel', channel_id: 'int') -&gt; 'FFAExplorationModel'</dt><dd><span class="code">Store&nbsp;the&nbsp;ephemeral&nbsp;FFA&nbsp;salon&nbsp;ref&nbsp;(restructuration-serveur-v1&nbsp;c).<br>
+&nbsp;<br>
+When&nbsp;the&nbsp;FFA&nbsp;manifests,&nbsp;the&nbsp;events&nbsp;loop&nbsp;opens&nbsp;a&nbsp;dedicated&nbsp;salon<br>
+(next&nbsp;to&nbsp;«&nbsp;Déclarer&nbsp;une&nbsp;attaque&nbsp;»)&nbsp;—&nbsp;the&nbsp;ref&nbsp;rides&nbsp;the&nbsp;document<br>
+so&nbsp;the&nbsp;start&nbsp;message&nbsp;and&nbsp;the&nbsp;end-of-FFA&nbsp;purge&nbsp;route&nbsp;by&nbsp;id,&nbsp;never<br>
+by&nbsp;name&nbsp;lookup.</span></dd></dl>
+
 <dl><dt>async <a name="FFAExplorationService-start_due"><strong>start_due</strong></a>(self, now: 'datetime | None' = None) -&gt; 'FFAExplorationModel | None'</dt><dd><span class="code">Flip&nbsp;the&nbsp;due&nbsp;FFA&nbsp;to&nbsp;started;&nbsp;return&nbsp;it&nbsp;when&nbsp;it&nbsp;just&nbsp;started.</span></dd></dl>
 
 <hr>
@@ -261,15 +264,11 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
-<dl><dt><a name="FFAFullError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
-
 <dl><dt><a name="FFAFullError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="FFAFullError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="FFAFullError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
-
-<dl><dt><a name="FFAFullError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="FFAFullError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -348,15 +347,11 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
-<dl><dt><a name="FFAKingdomFullError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
-
 <dl><dt><a name="FFAKingdomFullError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="FFAKingdomFullError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="FFAKingdomFullError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
-
-<dl><dt><a name="FFAKingdomFullError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="FFAKingdomFullError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
@@ -435,15 +430,11 @@ Static methods inherited from <a href="builtins.html#Exception">builtins.Excepti
 
 <hr>
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
-<dl><dt><a name="FFANotOpenError-__delattr__"><strong>__delattr__</strong></a>(self, name, /)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
-
 <dl><dt><a name="FFANotOpenError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
 <dl><dt><a name="FFANotOpenError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="FFANotOpenError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
-
-<dl><dt><a name="FFANotOpenError-__setattr__"><strong>__setattr__</strong></a>(self, name, value, /)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
 
 <dl><dt><a name="FFANotOpenError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 

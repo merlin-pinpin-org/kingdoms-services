@@ -38,7 +38,13 @@ carries&nbsp;its&nbsp;own&nbsp;(in&nbsp;kingdom_realms).&nbsp;Once&nbsp;the&nbsp
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-deploy_realm_content"><strong>deploy_realm_content</strong></a>(guild: 'discord.Guild', kingdom: 'Any', wiring: 'Any', locale: 'str' = 'fr') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Deploy&nbsp;every&nbsp;realm&nbsp;state&nbsp;view&nbsp;of&nbsp;one&nbsp;kingdom&nbsp;(idempotent).<br>
+<td class="singlecolumn"><dl><dt>async <a name="-deploy_gaia_content"><strong>deploy_gaia_content</strong></a>(guild: 'discord.Guild', wiring: 'Any', locale: 'str' = 'fr') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Deploy&nbsp;the&nbsp;Gaïa&nbsp;category's&nbsp;single&nbsp;view&nbsp;(the&nbsp;Territoire&nbsp;salon,&nbsp;c).<br>
+&nbsp;<br>
+restructuration-serveur-v1&nbsp;c&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;Gaïa&nbsp;category&nbsp;drops<br>
+to&nbsp;ONE&nbsp;salon&nbsp;—&nbsp;the&nbsp;AI&nbsp;level&nbsp;lives&nbsp;in&nbsp;the&nbsp;Territoire&nbsp;view&nbsp;and&nbsp;the<br>
+FFA&nbsp;lives&nbsp;in&nbsp;its&nbsp;ephemeral&nbsp;salon.&nbsp;Best&nbsp;effort:&nbsp;a&nbsp;missing&nbsp;category,<br>
+salon&nbsp;or&nbsp;kingdom&nbsp;simply&nbsp;reports&nbsp;False,&nbsp;never&nbsp;raises.</span></dd></dl>
+ <dl><dt>async <a name="-deploy_realm_content"><strong>deploy_realm_content</strong></a>(guild: 'discord.Guild', kingdom: 'Any', wiring: 'Any', locale: 'str' = 'fr') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Deploy&nbsp;every&nbsp;realm&nbsp;state&nbsp;view&nbsp;of&nbsp;one&nbsp;kingdom&nbsp;(idempotent).<br>
 &nbsp;<br>
 Returns&nbsp;the&nbsp;per-salon&nbsp;outcome;&nbsp;each&nbsp;view&nbsp;fails&nbsp;alone&nbsp;(best-effort,<br>
 like&nbsp;every&nbsp;provisioning&nbsp;path&nbsp;—&nbsp;a&nbsp;broken&nbsp;view&nbsp;never&nbsp;blocks&nbsp;the<br>
