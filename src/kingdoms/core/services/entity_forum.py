@@ -166,12 +166,7 @@ async def _sync_one_forum(
     actions = 0
     for name, entity in wanted.items():
         content, view = await spec.build_post(entity, guild_id)
-        attachment = None
-        if spec.build_attachment is not None:
-            try:
-                attachment = await spec.build_attachment(entity, guild_id)
-            except Exception:
-                logger.debug("entity forum: attachment build failed (%s)", name, exc_info=True)
+        attachment = await _build_entity_attachment(spec, entity, guild_id, name)
         if name not in existing:
             await platform.create_map_post(
                 guild_id, str(forum.id), name, content, view=view, attachment=attachment
@@ -184,6 +179,19 @@ async def _sync_one_forum(
             await thread.delete(reason=f"kingdoms: entity {name} no longer exists")
             actions += 1
     return actions
+
+
+
+
+async def _build_entity_attachment(spec: EntityForumSpec, entity: Any, guild_id: str, name: str) -> Any | None:
+    """Build one entity's optional card attachment (best-effort, None on failure)."""
+    if spec.build_attachment is None:
+        return None
+    try:
+        return await spec.build_attachment(entity, guild_id)
+    except Exception:
+        logger.debug("entity forum: attachment build failed (%s)", name, exc_info=True)
+        return None
 
 
 async def _refresh_post(thread: Any, content: str, view: Any | None) -> None:

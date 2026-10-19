@@ -91,7 +91,7 @@ class CardRegenerateButton(
         super().__init__(
             discord.ui.Button(
                 label="Régénérer la fiche",
-                emoji="🔄",
+                emoji="♻️",
                 style=discord.ButtonStyle.primary,
                 custom_id=f"{_NS}:regen:{kind}:{payload}"[:100],
             )
