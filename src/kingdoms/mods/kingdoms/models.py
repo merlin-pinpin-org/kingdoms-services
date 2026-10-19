@@ -369,7 +369,10 @@ class AttackState(StrEnum):
     (attaques-score-v1) is the RDV itself — the pick & ban resolved,
     the score phase (Prêt, declarations, dispute) is open; ``expired``
     applied the no-defense outcome; ``resolved`` carries the final
-    winner (capture or conservation) and never moves again.
+    winner (capture or conservation) and never moves again;
+    ``cancelled`` (restructuration-serveur-v1 b, Drasah 19/10) is the
+    declarant's withdrawal inside the 10-minute window — final too,
+    budgets refunded, the attack salon purged.
     """
 
     DECLARED = "declared"
@@ -377,6 +380,7 @@ class AttackState(StrEnum):
     MEETING = "meeting"
     EXPIRED = "expired"
     RESOLVED = "resolved"
+    CANCELLED = "cancelled"  # restructuration-serveur-v1 b (Drasah 19/10)
 
 
 class AttackModel(BaseModel):
@@ -451,7 +455,8 @@ class AttackModel(BaseModel):
     @property
     def is_over(self) -> bool:
         """Whether the attack reached a final state."""
-        return self.state in (AttackState.RESOLVED, AttackState.EXPIRED)
+        # restructuration-serveur-v1 b (Drasah 19/10): CANCELLED is final too.
+        return self.state in (AttackState.RESOLVED, AttackState.EXPIRED, AttackState.CANCELLED)
 
 
 class SeasonState(BaseModel):
