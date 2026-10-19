@@ -2,18 +2,15 @@
 
 Best-effort refreshers that keep the designer's channels alive with
 the T2 service only: the fixed-name 🏺 Âge channel carries the current
-age plus the next age-switch countdown, the Géopolitique channel
-receives the enrollment announcements, the Présentation announce
-channel pins the designer's pitch of the mod, and the Taverne/Règles
-channels get their designer descriptions.
+age plus the next age-switch countdown and the Géopolitique channel
+receives the enrollment announcements.
 
 Every refresher is marker-based (edit the marked message when present,
 post otherwise) and never raises: a missing channel or service simply
 skips the refresh, exactly like ``refresh_season_status``.
 
-Designer-authored content (the mod pitch, the Taverne and Règles
-descriptions) is French-only by decision — it is the designer's voice,
-not the bot UI.
+Designer-authored content (the mod pitch) is French-only by
+decision — it is the designer's voice, not the bot UI.
 """
 
 from __future__ import annotations
@@ -36,7 +33,6 @@ AGE_CHANNEL = "🏺 Âge"
 KINGDOMS_CATEGORY = "Kingdoms"
 GEOPOLITICS_CHANNEL = "Géopolitique"
 PRESENTATION_CHANNEL = "Présentation"
-TAVERNE_CHANNEL = "Taverne"
 REGLES_FORUM = "Règles"
 
 # The designer's pitch of the mod (form corrected, content alpha —
@@ -75,8 +71,6 @@ Ici, dans la **Saison II** de Kingdoms, il n'est possible d'attaquer que du vend
 
 N'hésite pas, pour en savoir plus, à consulter les règles !
 """
-
-TAVERNE_DESCRIPTION = "La taverne du serveur — discussions libres autour d'un chaudron."
 
 REGLES_DESCRIPTION = (
     "Les règles complètes du mod Kingdoms — Saison II. À lire avant de s'inscrire.\n"
@@ -288,37 +282,6 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
         return False
 
 
-# restructuration-serveur-v1 d (Drasah 19/10): the Présentation salon
-# is retired — the pitch lives in the Scriptorium's ephemeral
-# 🎤 Présentation button (kingdom_scriptorium.KingdomPresentationButton).
-
-
-async def refresh_channel_descriptions(guild: discord.Guild) -> dict[str, str]:
-    """Set the designer description of the Taverne channel.
-
-    restructuration-serveur-v1 d (Drasah 19/10): the Règles forum is
-    retired — its description entry left with the salon (the guide
-    lives in the Scriptorium's ephemeral 📖 Règles button).
-    """
-    report: dict[str, str] = {}
-    for name, target, description in (
-        (TAVERNE_CHANNEL, "taverne", TAVERNE_DESCRIPTION),
-    ):
-        pool = [*guild.text_channels, *getattr(guild, "forums", [])]
-        channel = next((c for c in pool if _slug(c.name) == _slug(name)), None)
-        if channel is None:
-            continue
-        if getattr(channel, "topic", None) == description:
-            report[target] = "deployed"
-            continue
-        try:
-            await channel.edit(topic=description, reason="kingdoms: designer channel description")
-            report[target] = "deployed"
-        except Exception:
-            logger.warning("KINGDOM CONTENT: channel description failed", exc_info=True)
-    return report
-
-
 async def _announce_geopolitics_message(
     guild: discord.Guild, text: str, view: discord.ui.View | None = None
 ) -> discord.Message | None:
@@ -380,7 +343,9 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
     and the Règles forum are retired — the pitch and the guide live in
     the Scriptorium's ephemeral 📖 Règles / 🎤 Présentation buttons
     (100 % live at click time, nothing to refresh), so their refresh
-    passes left with the salons.
+    passes left with the salons, and so did the designer channel
+    descriptions (restructuration-serveur-v1 e: the Taverne is gone with
+    the general group — nothing left to describe).
     """
     report: dict[str, str] = {}
     try:
@@ -388,8 +353,4 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
             report["époque"] = "deployed"
     except Exception:
         logger.warning("KINGDOM CONTENT: epoch deployment failed", exc_info=True)
-    try:
-        report.update(await refresh_channel_descriptions(guild))
-    except Exception:
-        logger.warning("KINGDOM CONTENT: channel descriptions deployment failed", exc_info=True)
     return report
