@@ -73,6 +73,15 @@ structure&nbsp;(«&nbsp;Royaume&nbsp;Gaïa&nbsp;»,&nbsp;kept&nbsp;unconditional
 Called&nbsp;after&nbsp;a&nbsp;season&nbsp;launch&nbsp;(imposed&nbsp;kingdoms&nbsp;are&nbsp;approved&nbsp;up<br>
 front),&nbsp;after&nbsp;an&nbsp;admin&nbsp;creates&nbsp;a&nbsp;kingdom,&nbsp;and&nbsp;at&nbsp;panel&nbsp;deployment<br>
 so&nbsp;a&nbsp;re-install&nbsp;heals&nbsp;any&nbsp;missing&nbsp;category.</span></dd></dl>
+ <dl><dt>async <a name="-ensure_member_realm_access"><strong>ensure_member_realm_access</strong></a>(guild: 'discord.Guild', kingdom: 'Any', member_id: 'int') -&gt; 'bool'</dt><dd><span class="code">Guarantee&nbsp;one&nbsp;member's&nbsp;view/history&nbsp;overwrites&nbsp;on&nbsp;their&nbsp;realm&nbsp;category.<br>
+&nbsp;<br>
+Drasah's&nbsp;live&nbsp;incident&nbsp;(2026-10-18):&nbsp;a&nbsp;King&nbsp;who&nbsp;claimed&nbsp;an&nbsp;admin-<br>
+created&nbsp;throne&nbsp;had&nbsp;no&nbsp;access&nbsp;to&nbsp;his&nbsp;own&nbsp;category&nbsp;—&nbsp;the&nbsp;blanket<br>
+``ensure_all_realm_structures``&nbsp;re-sync&nbsp;skipped&nbsp;him&nbsp;silently&nbsp;when<br>
+the&nbsp;member&nbsp;lookup&nbsp;failed&nbsp;inside&nbsp;``_realm_overwrites``.&nbsp;This<br>
+targeted&nbsp;pass&nbsp;runs&nbsp;AFTER&nbsp;the&nbsp;re-sync:&nbsp;it&nbsp;reads&nbsp;the&nbsp;live&nbsp;overwrites<br>
+and&nbsp;grants&nbsp;the&nbsp;missing&nbsp;member&nbsp;overwrite&nbsp;directly,&nbsp;logging&nbsp;loudly<br>
+instead&nbsp;of&nbsp;failing&nbsp;silently.</span></dd></dl>
  <dl><dt>async <a name="-ensure_realm_structure"><strong>ensure_realm_structure</strong></a>(guild: 'discord.Guild', kingdom: 'Any', member_ids: 'list[int]') -&gt; 'discord.CategoryChannel'</dt><dd><span class="code">Provision&nbsp;(idempotently)&nbsp;the&nbsp;«&nbsp;Royaume&nbsp;[Nom]&nbsp;»&nbsp;category&nbsp;and&nbsp;salons.<br>
 &nbsp;<br>
 Adopts&nbsp;the&nbsp;existing&nbsp;category/salons&nbsp;by&nbsp;slug,&nbsp;then&nbsp;re-syncs&nbsp;the<br>
@@ -99,9 +108,10 @@ bot&nbsp;view&nbsp;+&nbsp;manage&nbsp;first&nbsp;makes&nbsp;every&nbsp;delete&nb
 <strong>PUBLIC_REALM_SALONS</strong> = {'alliances', 'territoire'}<br>
 <strong>REALMS_CHANNEL</strong> = 'Royaumes'<br>
 <strong>REALMS_PANEL_MARKER</strong> = 'kingdoms:panel:royaumes'<br>
-<strong>REALM_SALONS</strong> = (('salle-du-conseil', 'Salle du Conseil'), ('patrouille', '🧱 Remparts'), ('seigneurs', 'Seigneurs'), ('le-royaume', 'Le-Royaume'), ('territoire', 'Territoire'), ('alliances', 'Alliances'), ('eglise', 'Paroisse'), ('pigeon-voyageur', 'Pigeon-Voyageur'))<br>
+<strong>REALM_SALONS</strong> = (('salle-du-conseil', 'Salle du Conseil'), ('le-royaume', 'Le-Royaume'), ('territoire', 'Territoire'), ('alliances', 'Alliances'), ('eglise', 'Paroisse'))<br>
+<strong>REMOVED_REALM_SALONS</strong> = (('remparts', '🧱 Remparts'), ('seigneurs', 'Seigneurs'), ('pigeon-voyageur', 'Pigeon-Voyageur'))<br>
 <strong>STATUS_EMOJI</strong> = {'approved': '✅', 'pending': '⏳', 'refused': '❌'}<br>
 <strong>STRINGS</strong> = {'en': {'realms_approve_button': '✅ Validate', 'realms_approved': 'Validated', 'realms_cancelled': 'Cancelled.', 'realms_delete_button': '🗑️ Delete', 'realms_delete_cancel_button': 'Cancel', 'realms_delete_confirm_button': '🗑️ Delete for good', 'realms_delete_confirm_hint': 'This removes the kingdom, its members, its terri...s. The refusal trace does not survive a deletion.', 'realms_delete_confirm_title': 'Delete the kingdom?', 'realms_deleted': 'Kingdom deleted.', 'realms_done': 'Done.', ...}, 'fr': {'realms_approve_button': '✅ Valider', 'realms_approved': 'Validé', 'realms_cancelled': 'Annulé.', 'realms_delete_button': '🗑️ Supprimer', 'realms_delete_cancel_button': 'Annuler', 'realms_delete_confirm_button': '🗑️ Supprimer définitivement', 'realms_delete_confirm_hint': 'Cela supprime le royaume, ses membres, ses terri...iscord. Aucune trace ne survit à une suppression.', 'realms_delete_confirm_title': 'Supprimer le royaume ?', 'realms_deleted': 'Royaume supprimé.', 'realms_done': "C'est fait.", ...}}<br>
-<strong>__annotations__</strong> = {'LEGACY_REALM_SALON_NAMES': 'dict[str, str]', 'REALM_SALONS': 'tuple[tuple[str, str], ...]', 'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'LEGACY_REALM_SALON_NAMES': 'dict[str, str]', 'REALM_SALONS': 'tuple[tuple[str, str], ...]', 'REMOVED_REALM_SALONS': 'tuple[tuple[str, str], ...]', 'STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom_realms (WARNING)&gt;</td></tr></table>
 </body></html>
