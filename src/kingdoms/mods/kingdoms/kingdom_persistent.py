@@ -40,8 +40,10 @@ __all__ = [
     "KingdomMarketModal",
     "KingdomMarketTechButton",
     "KingdomProfileButton",
+    "KingdomRempartsOpenButton",
     "KingdomRequestButton",
     "KingdomRoleInfoButton",
+    "KingdomSeigneurieOpenButton",
     "KingdomsPanelWiring",
     "register_kingdoms_panel_bot",
 ]
@@ -142,6 +144,8 @@ def register_kingdoms_persistent_items(bot: discord.Client) -> None:
     bot.add_dynamic_items(
         KingdomVoliereButton,
         KingdomTheftButton,
+        KingdomRempartsOpenButton,
+        KingdomSeigneurieOpenButton,
         KingdomSeigneurieButton,
         KingdomSeigneurieSelect,
         KingdomAttackDeclareButton,
@@ -1314,6 +1318,128 @@ class KingdomMarketActionButton(
                 wiring=wiring,
                 king=king,
             )
+        )
+
+
+class KingdomRempartsOpenButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:remparts:open",
+):
+    """The restart-proof « 🧱 Remparts » ephemeral button (restructuration-serveur-v1).
+
+    Drasah 19/10: the realm loses the Remparts SALON — the view (AI
+    level, Patrouille 1/2, Gardes Royales + reserve, the three
+    King-only placement buttons and the defense manager) opens as an
+    EPHEMERAL view from the Le-Royaume panel.
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:remparts:open",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomRempartsOpenButton:
+        """Rebuild from the wire (merged strings — leçon Check 30)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale)["remparts_open_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral Remparts view of the clicker's kingdom."""
+        from kingdoms.mods.kingdoms.kingdom_realm_content import _build_patrol, _gather_state
+
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or getattr(lord, "left", False):
+            await interaction.response.send_message(strings["not_lord"], ephemeral=True)
+            return
+        kingdoms = await wiring.kingdoms_service.kingdoms()
+        kingdom = next(
+            (k for k in kingdoms if str(k.id) == str(getattr(lord, "kingdom_id", None))),
+            None,
+        )
+        if kingdom is None:
+            await interaction.response.send_message(strings["not_lord"], ephemeral=True)
+            return
+        state = await _gather_state(kingdom, wiring)
+        await interaction.response.send_message(
+            view=_build_patrol(strings, kingdom, state), ephemeral=True
+        )
+
+
+class KingdomSeigneurieOpenButton(
+    discord.ui.DynamicItem[discord.ui.Button[Any]],
+    template=r"kingdoms:seigneurie:open",
+):
+    """The restart-proof « 🛡️ Seigneurie » ephemeral button (restructuration-serveur-v1).
+
+    Drasah 19/10: the realm loses the Seigneurs SALON — the roster of
+    ONE'S OWN kingdom (role, marriage, budgets, public locks) opens as
+    an EPHEMERAL view from the Le-Royaume panel. The Corbeau « suivi »
+    is NEVER displayed (espionnage secret — règle Drasah 19/10).
+    """
+
+    def __init__(self, label: str) -> None:
+        super().__init__(
+            discord.ui.Button(
+                label=label[:80],
+                custom_id="kingdoms:seigneurie:open",
+                style=discord.ButtonStyle.secondary,
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Item[Any],
+        match: re.Match[str],
+        /,
+    ) -> KingdomSeigneurieOpenButton:
+        """Rebuild from the wire (merged strings — leçon Check 30)."""
+        locale = str(interaction.locale) if interaction.locale else "en"
+        return cls(_strings(locale)["seigneurie_open_button"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Open the ephemeral Seigneurie roster of the clicker's kingdom."""
+        from kingdoms.mods.kingdoms.kingdom_realm_content import _build_roster, _gather_state
+
+        locale = str(interaction.locale) if interaction.locale else "en"
+        strings = _strings(locale)
+        wiring = _wiring()
+        if wiring.kingdoms_service is None:
+            await interaction.response.send_message(strings["market_no_service"], ephemeral=True)
+            return
+        lord = await _lord_of(wiring.kingdoms_service, str(interaction.user.id))
+        if lord is None or getattr(lord, "left", False):
+            await interaction.response.send_message(strings["not_lord"], ephemeral=True)
+            return
+        kingdoms = await wiring.kingdoms_service.kingdoms()
+        kingdom = next(
+            (k for k in kingdoms if str(k.id) == str(getattr(lord, "kingdom_id", None))),
+            None,
+        )
+        if kingdom is None:
+            await interaction.response.send_message(strings["not_lord"], ephemeral=True)
+            return
+        state = await _gather_state(kingdom, wiring)
+        await interaction.response.send_message(
+            view=_build_roster(strings, kingdom, state), ephemeral=True
         )
 
 
