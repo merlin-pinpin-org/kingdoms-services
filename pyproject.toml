@@ -89,4 +89,5 @@ module = ["kingdoms.rpc_generated.*", "kingdoms.core.rpc.*", "kingdoms.core_proc
 disable_error_code = ["no-untyped-def", "attr-defined", "no-untyped-call", "import-untyped", "name-defined", "type-arg", "arg-type", "assignment", "return-value"]
 
 [tool.uv.sources]
-visual-generator = { path = "../github__merlin-pinpin-org__visual-generator" }
+# Pinned archive of the lib's main (becomes the PyPI/GitHub release once published)
+visual-generator = { url = "https://github.com/merlin-pinpin-org/visual-generator/archive/e92d719cbfda23cd9a13724053b434f3d0e944fb.tar.gz" }
