@@ -40,7 +40,13 @@ from kingdoms.discord.ui import (
     GREEN,
 )
 from kingdoms.mods.kingdoms.game_clock import game_now
-from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
+from kingdoms.mods.kingdoms.panel_messages import (
+    NO_MENTIONS,
+    channel_messages,
+    message_text,
+    message_text_squashed,
+    view_text,
+)
 from kingdoms.mods.kingdoms.snapshot import season_label
 
 logger = logging.getLogger("kingdoms.kingdom_panels")
@@ -1714,14 +1720,28 @@ async def _deploy_market_panel(
     locale: str,
     kingdoms_service: Any,
 ) -> None:
-    """Remove the old market panel then pin a fresh one."""
-    for message in await channel_messages(channel):
-        if MARKET_PANEL_MARKER in message_text(message):
+    """Edit the market panel in place, or pin a fresh one (vues-silencieuses-v1)."""
+    view = await build_market_panel(locale, kingdoms_service)
+    marked: list[Any] = [
+        message
+        for message in await channel_messages(channel)
+        if MARKET_PANEL_MARKER in message_text(message)
+    ]
+    if marked:
+        for duplicate in marked[1:]:
             try:
-                await message.delete()
+                await duplicate.delete()
             except Exception:
-                logger.warning("KINGDOM PANELS: old market panel removal failed", exc_info=True)
-    await channel.send(view=await build_market_panel(locale, kingdoms_service))
+                logger.warning("KINGDOM PANELS: market duplicate purge failed", exc_info=True)
+        existing = marked[0]
+        if message_text_squashed(existing) == view_text(view):
+            return
+        try:
+            await existing.edit(view=view)
+            return
+        except Exception:
+            logger.warning("KINGDOM PANELS: market panel edit failed, resending", exc_info=True)
+    await channel.send(view=view, allowed_mentions=NO_MENTIONS)
 
 
 async def refresh_season_status(
@@ -1775,12 +1795,21 @@ async def _deploy_settings_panel(
     guild_id: str,
     bot_admins: tuple[str, ...],
 ) -> None:
-    """Remove every stale settings message (old locale/timezone panel included), then pin the fresh one."""
+    """Edit the settings panel in place, or pin a fresh one (vues-silencieuses-v1).
+
+    Stale legacy settings messages (old locale/timezone panel, componentless
+    leftovers) are still purged, but a properly marked panel is now edited
+    in place with an identity guard instead of delete+send.
+    """
+    view = await build_settings_panel(logs_service, guild_id, "system", bot_admins)
+    marked: list[Any] = []
     for message in await channel_messages(channel):
         text = message_text(message)
+        if SETTINGS_PANEL_MARKER in text:
+            marked.append(message)
+            continue
         stale = (
-            SETTINGS_PANEL_MARKER in text
-            or "kingdoms:settings:" in text
+            "kingdoms:settings:" in text
             or (
                 getattr(message, "author", None) is not None
                 and bool(getattr(message.author, "bot", False))
@@ -1795,7 +1824,21 @@ async def _deploy_settings_panel(
                 await message.delete()
             except Exception:
                 logger.warning("KINGDOM PANELS: old settings panel removal failed", exc_info=True)
-    await channel.send(view=await build_settings_panel(logs_service, guild_id, "system", bot_admins))
+    if marked:
+        for duplicate in marked[1:]:
+            try:
+                await duplicate.delete()
+            except Exception:
+                logger.warning("KINGDOM PANELS: settings duplicate purge failed", exc_info=True)
+        existing = marked[0]
+        if message_text_squashed(existing) == view_text(view):
+            return
+        try:
+            await existing.edit(view=view)
+            return
+        except Exception:
+            logger.warning("KINGDOM PANELS: settings panel edit failed, resending", exc_info=True)
+    await channel.send(view=view, allowed_mentions=NO_MENTIONS)
 
 
 async def _deploy_apply_panel(
@@ -1826,6 +1869,7 @@ async def _deploy_apply_panel(
             guild_id,
             kingdoms_service,
         ),
+        allowed_mentions=NO_MENTIONS,
         **kwargs,
     )
 

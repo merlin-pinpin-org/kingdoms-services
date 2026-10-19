@@ -23,7 +23,13 @@ from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from kingdoms.mods.kingdoms.game_clock import game_now
-from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
+from kingdoms.mods.kingdoms.panel_messages import (
+    NO_MENTIONS,
+    channel_messages,
+    message_text,
+    message_text_squashed,
+    view_text,
+)
 
 if TYPE_CHECKING:
     import discord
@@ -1141,13 +1147,36 @@ def _panel_view_with_buttons(
 
 
 async def _upsert_view(channel: Any, key: str, view: Any) -> bool:
-    """Replace the marked panel in place, or send it once (never duplicate)."""
+    """Edit the marked panel in place, or send it once (never duplicate).
+
+    vues-silencieuses-v1 (Drasah 19/10): the marked message is now edited in
+    place instead of delete+send, with an identity guard so an unchanged view
+    costs zero API calls. Duplicates are purged, and a failed edit falls back
+    to a fresh send.
+    """
     marker = f"{VIEW_MARKER_PREFIX}:{key}"
-    for message in await channel_messages(channel):
-        if marker in message_text(message):
+    marked: list[Any] = [
+        message
+        for message in await channel_messages(channel)
+        if marker in message_text(message)
+    ]
+    if marked:
+        for duplicate in marked[1:]:
             try:
-                await message.delete()
+                await duplicate.delete()
             except Exception:
-                logger.warning("KINGDOM REALM CONTENT: view %s removal failed", key, exc_info=True)
-    await channel.send(view=view)
+                logger.warning(
+                    "KINGDOM REALM CONTENT: view %s duplicate purge failed", key, exc_info=True
+                )
+        existing = marked[0]
+        if message_text_squashed(existing) == view_text(view):
+            return True
+        try:
+            await existing.edit(view=view)
+            return True
+        except Exception:
+            logger.warning(
+                "KINGDOM REALM CONTENT: view %s edit failed, resending", key, exc_info=True
+            )
+    await channel.send(view=view, allowed_mentions=NO_MENTIONS)
     return True

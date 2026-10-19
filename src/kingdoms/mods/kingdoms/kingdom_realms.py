@@ -27,7 +27,7 @@ from typing import Any
 import discord
 
 from kingdoms.mods.kingdoms.kingdom_setup import _slug
-from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
+from kingdoms.mods.kingdoms.panel_messages import NO_MENTIONS, channel_messages, message_text
 
 logger = logging.getLogger("kingdoms.kingdom_realms")
 
@@ -622,7 +622,7 @@ async def deploy_realms_panel(
                 await message.delete()
             except Exception:
                 logger.warning("KINGDOM REALMS: old panel removal failed", exc_info=True)
-    await channel.send(view=build_realms_panel(locale, kingdoms, lords))
+    await channel.send(view=build_realms_panel(locale, kingdoms, lords), allowed_mentions=NO_MENTIONS)
     return True
 
 
@@ -686,6 +686,40 @@ DRAFT_STARTER_MARKER = "kingdoms:realm:draft-starter"
 ALLIANCES_PENDING_MARKER = "kingdoms:realm:alliances-pending"
 
 
+async def _split_marked_and_stale(
+    channel: Any, marker: str, stale_marker: str
+) -> tuple[list[Any], list[Any]]:
+    """Split the channel's marked messages from the stale ones.
+
+    vues-silencieuses-v1: a marker conflict (e.g. the setup placeholder
+    dying at the draft reveal, or an older duplicate) is returned as the
+    stale side; the caller keeps the FIRST marked message.
+    """
+    marked: list[Any] = []
+    stale: list[Any] = []
+    for message in await channel_messages(channel):
+        text = message_text(message)
+        if marker in text:
+            marked.append(message)
+        elif stale_marker in text:
+            stale.append(message)
+    return marked, stale
+
+
+async def _purge_marked_duplicates(marked: list[Any], label: str) -> None:
+    """vues-silencieuses-v1: keep the first marked message, delete the rest.
+
+    Legacy duplicates (an older double send, a pre-marker incident) must
+    never survive a refresh — the FIRST marked message keeps its pin
+    slot, the others are swept.
+    """
+    for duplicate in marked[1:]:
+        try:
+            await duplicate.delete()
+        except Exception:
+            logger.warning("KINGDOM REALMS: %s duplicate purge failed", label, exc_info=True)
+
+
 async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_service: Any) -> bool:
     """Pin the kingdom's starter draft in its Alliances salon (idempotent).
 
@@ -710,20 +744,23 @@ async def announce_draft_starter(guild: discord.Guild, kingdom: Any, kingdoms_se
         lines.append(f"• **{names.get(str(civ_key), str(civ_key))}**")
     lines += ["", f"-# {DRAFT_STARTER_MARKER}"]
     content = "\n".join(lines)
-    for message in await channel_messages(channel):
-        if DRAFT_STARTER_MARKER in message_text(message):
-            try:
-                await message.edit(content=content)
-            except Exception:
-                logger.warning("KINGDOM REALMS: draft refresh failed", exc_info=True)
+    marked, stale = await _split_marked_and_stale(channel, DRAFT_STARTER_MARKER, ALLIANCES_PENDING_MARKER)
+    for message in stale:
+        try:
+            await message.delete()
+        except Exception:
+            logger.warning("KINGDOM REALMS: placeholder removal failed", exc_info=True)
+    if marked:
+        await _purge_marked_duplicates(marked, "draft starter")
+        existing = marked[0]
+        if (getattr(existing, "content", "") or "") == content:
             return True
-        if ALLIANCES_PENDING_MARKER in message_text(message):
-            # the placeholder of the setup phase dies at the reveal
-            try:
-                await message.delete()
-            except Exception:
-                logger.warning("KINGDOM REALMS: placeholder removal failed", exc_info=True)
-    await channel.send(content)
+        try:
+            await existing.edit(content=content)
+            return True
+        except Exception:
+            logger.warning("KINGDOM REALMS: draft refresh failed, resending", exc_info=True)
+    await channel.send(content, allowed_mentions=NO_MENTIONS)
     return True
 
 
@@ -756,16 +793,20 @@ async def announce_alliances_placeholder(guild: discord.Guild, kingdom: Any) -> 
             f"-# {ALLIANCES_PENDING_MARKER}",
         ]
     )
-    for message in await channel_messages(channel):
-        if ALLIANCES_PENDING_MARKER in message_text(message):
-            try:
-                await message.edit(content=content)
-            except Exception:
-                logger.warning("KINGDOM REALMS: placeholder refresh failed", exc_info=True)
+    marked, conflict = await _split_marked_and_stale(channel, ALLIANCES_PENDING_MARKER, DRAFT_STARTER_MARKER)
+    if conflict:
+        # the draft was already revealed (e.g. the phase moved back or a
+        # legacy message): leave it alone, never hide content
+        return True
+    if marked:
+        await _purge_marked_duplicates(marked, "alliances placeholder")
+        existing = marked[0]
+        if (getattr(existing, "content", "") or "") == content:
             return True
-        if DRAFT_STARTER_MARKER in message_text(message):
-            # the draft was already revealed (e.g. the phase moved back
-            # or a legacy message): leave it alone, never hide content
+        try:
+            await existing.edit(content=content)
             return True
-    await channel.send(content)
+        except Exception:
+            logger.warning("KINGDOM REALMS: placeholder refresh failed, resending", exc_info=True)
+    await channel.send(content, allowed_mentions=NO_MENTIONS)
     return True
