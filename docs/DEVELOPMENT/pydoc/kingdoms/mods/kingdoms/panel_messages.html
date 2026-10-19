@@ -18,6 +18,13 @@ these&nbsp;helpers,&nbsp;otherwise&nbsp;the&nbsp;old&nbsp;message&nbsp;is&nbsp;n
 and&nbsp;each&nbsp;re-deployment&nbsp;duplicates&nbsp;the&nbsp;pinned&nbsp;message&nbsp;(kingdoms#244).</span></p>
 <p>
 <table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="discord.html">discord</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
@@ -32,5 +39,25 @@ panels&nbsp;of&nbsp;every&nbsp;kingdoms&nbsp;channel&nbsp;with&nbsp;room&nbsp;to
 A&nbsp;Components&nbsp;V2&nbsp;message&nbsp;carries&nbsp;an&nbsp;empty&nbsp;``content``:&nbsp;its&nbsp;text&nbsp;lives<br>
 inside&nbsp;the&nbsp;view's&nbsp;``TextDisplay``&nbsp;items,&nbsp;so&nbsp;the&nbsp;tree&nbsp;is&nbsp;walked&nbsp;to<br>
 collect&nbsp;every&nbsp;string&nbsp;(markers&nbsp;ride&nbsp;there).</span></dd></dl>
-</td></tr></table>
+ <dl><dt><a name="-message_text_squashed"><strong>message_text_squashed</strong></a>(message: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;:func:`message_text`&nbsp;collapsed&nbsp;through&nbsp;:func:`_squash`.<br>
+&nbsp;<br>
+vues-silencieuses-v1:&nbsp;this&nbsp;is&nbsp;the&nbsp;LIVE&nbsp;side&nbsp;of&nbsp;the&nbsp;identity&nbsp;guard&nbsp;—<br>
+it&nbsp;reads&nbsp;equal&nbsp;to&nbsp;:func:`view_text`&nbsp;when&nbsp;the&nbsp;deployed&nbsp;content&nbsp;did<br>
+not&nbsp;change.</span></dd></dl>
+ <dl><dt><a name="-view_text"><strong>view_text</strong></a>(view: 'Any') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;text&nbsp;a&nbsp;Components&nbsp;V2&nbsp;``LayoutView``&nbsp;would&nbsp;carry&nbsp;once&nbsp;sent.<br>
+&nbsp;<br>
+vues-silencieuses-v1:&nbsp;the&nbsp;identity&nbsp;guard&nbsp;of&nbsp;the&nbsp;edit-in-place<br>
+refreshes&nbsp;compares&nbsp;the&nbsp;LIVE&nbsp;message's&nbsp;squashed&nbsp;:func:`message_text`<br>
+with&nbsp;the&nbsp;FRESH&nbsp;view's&nbsp;text&nbsp;—&nbsp;same&nbsp;LIFO&nbsp;walk&nbsp;over&nbsp;the&nbsp;children&nbsp;tree,<br>
+same&nbsp;``\\n``&nbsp;join,&nbsp;both&nbsp;sides&nbsp;collapsed&nbsp;through&nbsp;:func:`_squash`,<br>
+so&nbsp;a&nbsp;message&nbsp;and&nbsp;its&nbsp;replacement&nbsp;view&nbsp;read&nbsp;equal&nbsp;exactly&nbsp;when<br>
+nothing&nbsp;changed&nbsp;(the&nbsp;marker&nbsp;rides&nbsp;both).</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>NO_MENTIONS</strong> = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)<br>
+<strong>__annotations__</strong> = {'NO_MENTIONS': 'discord.AllowedMentions'}</td></tr></table>
 </body></html>
