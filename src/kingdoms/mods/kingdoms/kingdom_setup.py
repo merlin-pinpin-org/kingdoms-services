@@ -28,6 +28,7 @@ logger = logging.getLogger("kingdoms.kingdom")
 
 MOD_NAME = "kingdoms"
 
+
 def _slug(name: str) -> str:
     """Normalize a channel/category name the way Discord does.
 
@@ -38,6 +39,7 @@ def _slug(name: str) -> str:
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return without_accents.replace(" ", "-").strip("-")
 
+
 def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
     """Find a category by its Discord slug (read-only lookup)."""
     wanted = _slug(name)
@@ -45,6 +47,7 @@ def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel |
         if _slug(getattr(category, "name", "")) == wanted:
             return category  # type: ignore[no-any-return]
     return None
+
 
 def _find_channel(
     guild: discord.Guild, category: discord.CategoryChannel | None, name: str
@@ -56,6 +59,7 @@ def _find_channel(
         if _slug(channel.name) == wanted and (category is None or channel.category_id == category.id):
             return channel  # type: ignore[no-any-return]
     return None
+
 
 EPOCH_CATEGORY = "Époque"
 """The group that holds the renameable current-age channel (kingdoms#138):
@@ -306,7 +310,7 @@ def register_kingdom_command(
     tree: app_commands.CommandTree[discord.Client],
     bot_admins: tuple[str, ...] = (),
 ) -> None:
-    """Register the /kingdom bootstrap command (admin only) on the tree.
+    """Register the /kingdom bootstrap command (admin only) on the tree."""
 
     @tree.command(
         name=localized("commands.kingdom_name", "kingdom"),
