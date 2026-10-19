@@ -12,9 +12,10 @@
     <p><span class="code">Kingdoms&nbsp;mod&nbsp;—&nbsp;salons-first&nbsp;live&nbsp;content&nbsp;(kingdoms#138,&nbsp;group&nbsp;1).<br>
 &nbsp;<br>
 Best-effort&nbsp;refreshers&nbsp;that&nbsp;keep&nbsp;the&nbsp;designer's&nbsp;channels&nbsp;alive&nbsp;with<br>
-the&nbsp;T2&nbsp;service&nbsp;only:&nbsp;the&nbsp;fixed-name&nbsp;🏺&nbsp;Âge&nbsp;channel&nbsp;carries&nbsp;the&nbsp;current<br>
-age&nbsp;plus&nbsp;the&nbsp;next&nbsp;age-switch&nbsp;countdown&nbsp;and&nbsp;the&nbsp;Géopolitique&nbsp;channel<br>
-receives&nbsp;the&nbsp;enrollment&nbsp;announcements.<br>
+the&nbsp;T2&nbsp;service&nbsp;only:&nbsp;permissions-serveur-v1&nbsp;(Drasah&nbsp;19/10)&nbsp;the&nbsp;age<br>
+lives&nbsp;in&nbsp;Géopolitique&nbsp;(the&nbsp;salon&nbsp;name&nbsp;carries&nbsp;the&nbsp;age&nbsp;emoji&nbsp;and&nbsp;its<br>
+marked&nbsp;message&nbsp;is&nbsp;pinned)&nbsp;and&nbsp;the&nbsp;Géopolitique&nbsp;channel&nbsp;receives&nbsp;the<br>
+enrollment&nbsp;announcements.<br>
 &nbsp;<br>
 Every&nbsp;refresher&nbsp;is&nbsp;marker-based&nbsp;(edit&nbsp;the&nbsp;marked&nbsp;message&nbsp;when&nbsp;present,<br>
 post&nbsp;otherwise)&nbsp;and&nbsp;never&nbsp;raises:&nbsp;a&nbsp;missing&nbsp;channel&nbsp;or&nbsp;service&nbsp;simply<br>
@@ -38,14 +39,14 @@ decision&nbsp;—&nbsp;it&nbsp;is&nbsp;the&nbsp;designer's&nbsp;voice,&nbsp;not&
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>async <a name="-announce_enrollment"><strong>announce_enrollment</strong></a>(guild: 'discord.Guild', locale: 'str', display_name: 'str', kingdom_name: 'str | None', is_king: 'bool') -&gt; 'None'</dt><dd><span class="code">Announce&nbsp;one&nbsp;validated&nbsp;enrollment&nbsp;in&nbsp;Géopolitique&nbsp;(best&nbsp;effort).</span></dd></dl>
  <dl><dt>async <a name="-announce_geopolitics"><strong>announce_geopolitics</strong></a>(guild: 'discord.Guild', locale: 'str', text: 'str', view: 'discord.ui.View | None' = None) -&gt; 'bool'</dt><dd><span class="code">Send&nbsp;one&nbsp;announcement&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;channel&nbsp;(best&nbsp;effort).</span></dd></dl>
- <dl><dt>async <a name="-refresh_epoch_channel"><strong>refresh_epoch_channel</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;current&nbsp;age&nbsp;in&nbsp;the&nbsp;fixed-name&nbsp;🏺&nbsp;Âge&nbsp;salon&nbsp;(kingdoms-patch).<br>
+ <dl><dt>async <a name="-refresh_age_pin"><strong>refresh_age_pin</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'bool'</dt><dd><span class="code">Pin&nbsp;the&nbsp;current&nbsp;age&nbsp;in&nbsp;the&nbsp;Géopolitique&nbsp;salon&nbsp;(permissions-serveur-v1).<br>
 &nbsp;<br>
-The&nbsp;channel&nbsp;is&nbsp;NO&nbsp;LONGER&nbsp;renamed&nbsp;at&nbsp;each&nbsp;age&nbsp;switch&nbsp;(Drasah's<br>
-restructuration-royaume&nbsp;decision):&nbsp;the&nbsp;name&nbsp;stays&nbsp;«&nbsp;🏺&nbsp;Âge&nbsp;»,&nbsp;the<br>
-current&nbsp;age,&nbsp;the&nbsp;Wednesday-midnight&nbsp;countdown&nbsp;and&nbsp;the&nbsp;age&nbsp;scale<br>
-live&nbsp;in&nbsp;the&nbsp;pinned&nbsp;message.&nbsp;A&nbsp;legacy&nbsp;«&nbsp;Âge&nbsp;sombre&nbsp;»&nbsp;channel&nbsp;(or&nbsp;a<br>
-channel&nbsp;stranded&nbsp;in&nbsp;the&nbsp;legacy&nbsp;Époque&nbsp;category)&nbsp;is&nbsp;migrated&nbsp;once:<br>
-renamed&nbsp;and&nbsp;moved&nbsp;under&nbsp;Kingdoms.</span></dd></dl>
+Drasah&nbsp;19/10:&nbsp;the&nbsp;dedicated&nbsp;🏺&nbsp;Âge&nbsp;salon&nbsp;is&nbsp;GONE&nbsp;—&nbsp;the&nbsp;age&nbsp;lives&nbsp;in<br>
+Géopolitique.&nbsp;The&nbsp;salon's&nbsp;NAME&nbsp;carries&nbsp;the&nbsp;current&nbsp;age&nbsp;emoji<br>
+(«&nbsp;🗺️&nbsp;Géopolitique&nbsp;🌑&nbsp;»,&nbsp;renamed&nbsp;at&nbsp;every&nbsp;age&nbsp;switch)&nbsp;and&nbsp;the<br>
+marked&nbsp;message&nbsp;(age,&nbsp;Wednesday-midnight&nbsp;countdown,&nbsp;age&nbsp;scale)&nbsp;is<br>
+PINNED&nbsp;—&nbsp;one&nbsp;message&nbsp;per&nbsp;marker,&nbsp;edited&nbsp;in&nbsp;place,&nbsp;never&nbsp;a&nbsp;pile&nbsp;of<br>
+pins.&nbsp;Idempotent:&nbsp;re-running&nbsp;renames&nbsp;nothing&nbsp;and&nbsp;edits&nbsp;in&nbsp;place.</span></dd></dl>
  <dl><dt>async <a name="-refresh_salons_content"><strong>refresh_salons_content</strong></a>(guild: 'discord.Guild', locale: 'str', kingdoms_service: 'Any') -&gt; 'dict[str, str]'</dt><dd><span class="code">Refresh&nbsp;every&nbsp;group-1&nbsp;channel&nbsp;content;&nbsp;return&nbsp;a&nbsp;deploy-style&nbsp;report.<br>
 &nbsp;<br>
 restructuration-serveur-v1&nbsp;d&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;Présentation&nbsp;salon<br>
@@ -62,8 +63,10 @@ the&nbsp;general&nbsp;group&nbsp;—&nbsp;nothing&nbsp;left&nbsp;to&nbsp;describ
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>AGE_CHANNEL</strong> = '🏺 Âge'<br>
+<strong>AGE_EMOJIS</strong> = {'castle_age': '⛪', 'dark_age': '🌑', 'feudal_age': '🏰', 'imperial_age': '👑'}<br>
 <strong>EPOCH_FALLBACK_CHANNEL</strong> = '🏺 Âge'<br>
 <strong>EPOCH_MARKER</strong> = 'kingdoms:epoch:status'<br>
+<strong>GEOPOLITICS_BASE_NAME</strong> = '🗺️ Géopolitique'<br>
 <strong>GEOPOLITICS_CHANNEL</strong> = 'Géopolitique'<br>
 <strong>KINGDOMS_CATEGORY</strong> = 'Kingdoms'<br>
 <strong>PRESENTATION_CHANNEL</strong> = 'Présentation'<br>
@@ -72,6 +75,6 @@ the&nbsp;general&nbsp;group&nbsp;—&nbsp;nothing&nbsp;left&nbsp;to&nbsp;describ
 <strong>REGLES_DESCRIPTION</strong> = 'Les règles complètes du mod Kingdoms — Saison II...tre · 🏆 Fin de saison · ⚖️ Fair-play &amp; sanctions.'<br>
 <strong>REGLES_FORUM</strong> = 'Règles'<br>
 <strong>STRINGS</strong> = {'en': {'age_next': '⏭️ Next age switch: Wednesday {day}/{month} at {hour}h{minute} (Paris)', 'age_scale': 'Age scale', 'epoch_bonus_marriage': 'Bonus marriages', 'epoch_bonus_tech': 'Tech points per cycle', 'epoch_gaia_ai': 'Gaïa AI level', 'epoch_hint': 'The age switches automatically on Wednesday at midnight.', 'epoch_progress': 'Season — cycle {}/{}', 'epoch_title': '🕰️ Current age', 'geo_founded': '🏛️ The kingdom **{}** has been founded by {} — long live the {}!', 'geo_joined': '⚔️ {} has joined the kingdom **{}** as a Lord.', ...}, 'fr': {'age_next': "⏭️ Prochain passage d'âge : mercredi {day}/{month} à {hour}h{minute} (Paris)", 'age_scale': 'Échelle des âges', 'epoch_bonus_marriage': 'Mariages bonus', 'epoch_bonus_tech': 'Points de tech par cycle', 'epoch_gaia_ai': "Niveau d'IA Gaïa", 'epoch_hint': "L'époque bascule automatiquement le mercredi à minuit.", 'epoch_progress': 'Saison — cycle {}/{}', 'epoch_title': '🕰️ Époque actuelle', 'geo_founded': '🏛️ Le royaume **{}** a été fondé par {} — longue vie au {} !', 'geo_joined': '⚔️ {} a rejoint le royaume **{}** en tant que Seigneur.', ...}}<br>
-<strong>__annotations__</strong> = {'STRINGS': 'dict[str, dict[str, str]]'}<br>
+<strong>__annotations__</strong> = {'AGE_EMOJIS': 'dict[str, str]', 'STRINGS': 'dict[str, dict[str, str]]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom_content (WARNING)&gt;</td></tr></table>
 </body></html>

@@ -40,9 +40,10 @@ provisioning&nbsp;it.</span></p>
 <td class="singlecolumn"><dl><dt><a name="-build_setup_report_view"><strong>build_setup_report_view</strong></a>(created: 'list[str]', adopted: 'list[str]', locale: 'str' = 'en') -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;bootstrap&nbsp;report&nbsp;layout&nbsp;(what&nbsp;was&nbsp;created&nbsp;vs&nbsp;adopted).</span></dd></dl>
  <dl><dt>async <a name="-cleanup_legacy_structure"><strong>cleanup_legacy_structure</strong></a>(guild: 'discord.Guild', epoch_id: 'str' = '') -&gt; 'list[str]'</dt><dd><span class="code">Retire&nbsp;the&nbsp;pre-restructuration&nbsp;salons&nbsp;and&nbsp;categories&nbsp;(best&nbsp;effort).<br>
 &nbsp;<br>
-Idempotent:&nbsp;missing&nbsp;salons/categories&nbsp;are&nbsp;simply&nbsp;skipped,&nbsp;the&nbsp;epoch<br>
-channel&nbsp;is&nbsp;NEVER&nbsp;touched&nbsp;(it&nbsp;keeps&nbsp;its&nbsp;declared&nbsp;key,&nbsp;its&nbsp;name&nbsp;and<br>
-category&nbsp;are&nbsp;managed&nbsp;by&nbsp;``refresh_epoch_channel``).&nbsp;Returns&nbsp;the<br>
+Idempotent:&nbsp;missing&nbsp;salons/categories&nbsp;are&nbsp;simply&nbsp;skipped.&nbsp;The<br>
+``epoch_id``&nbsp;spare&nbsp;is&nbsp;a&nbsp;legacy&nbsp;no-op&nbsp;kept&nbsp;for&nbsp;the&nbsp;call&nbsp;sites'<br>
+signature&nbsp;(permissions-serveur-v1:&nbsp;the&nbsp;🏺&nbsp;Âge&nbsp;salon&nbsp;is&nbsp;retired&nbsp;like<br>
+the&nbsp;other&nbsp;legacy&nbsp;salons&nbsp;—&nbsp;nothing&nbsp;is&nbsp;spared&nbsp;anymore).&nbsp;Returns&nbsp;the<br>
 display&nbsp;names&nbsp;of&nbsp;what&nbsp;was&nbsp;removed.</span></dd></dl>
  <dl><dt>async <a name="-provision_structure"><strong>provision_structure</strong></a>(guild: 'discord.Guild') -&gt; 'tuple[list[str], list[str]]'</dt><dd><span class="code">Provision&nbsp;the&nbsp;declared&nbsp;salons-first&nbsp;structure&nbsp;through&nbsp;the&nbsp;core.<br>
 &nbsp;<br>
@@ -59,12 +60,11 @@ are&nbsp;adopted&nbsp;(never&nbsp;duplicated);&nbsp;re-running&nbsp;is&nbsp;safe
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BLURPLE</strong> = 5793266<br>
-<strong>EPOCH_CATEGORY</strong> = 'Époque'<br>
 <strong>EPOCH_CHANNEL_KEY</strong> = 'epoch'<br>
-<strong>KINGDOMS_CATEGORY_ORDER</strong> = ('📜 Scriptorium', 'Marché', 'Géopolitique', '🏺 Âge')<br>
+<strong>KINGDOMS_CATEGORY_ORDER</strong> = ('📜 Scriptorium', 'Marché', 'Géopolitique')<br>
 <strong>LEGACY_BATTLE_CATEGORY_NAMES</strong> = ('Champs de bataille', 'Battlefields')<br>
 <strong>LEGACY_CATEGORY_NAMES</strong> = ('Époque', 'Scriptorium', 'Général')<br>
-<strong>LEGACY_SALON_SLUGS</strong> = ('seigneurs', 'diplomatie', 'cadastre', 'delais-attaque', 'attaques', 'patrouille', 'exploration', 'presentation', 'annonce', 'regles', 'saison', 'update', 'suggestion', 'taverne')<br>
+<strong>LEGACY_SALON_SLUGS</strong> = ('seigneurs', 'diplomatie', 'cadastre', 'delais-attaque', 'attaques', 'patrouille', 'exploration', 'presentation', 'annonce', 'regles', 'saison', 'update', 'suggestion', 'taverne', '🏺-age')<br>
 <strong>MOD_NAME</strong> = 'kingdoms'<br>
 <strong>__annotations__</strong> = {'KINGDOMS_CATEGORY_ORDER': 'tuple[str, ...]', 'LEGACY_BATTLE_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_CATEGORY_NAMES': 'tuple[str, ...]', 'LEGACY_SALON_SLUGS': 'tuple[str, ...]'}<br>
 <strong>logger</strong> = &lt;Logger kingdoms.kingdom (WARNING)&gt;</td></tr></table>

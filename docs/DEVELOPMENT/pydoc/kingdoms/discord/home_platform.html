@@ -11,10 +11,11 @@
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/home_platform.py">SOURCE_ROOT/discord/home_platform.py</a></td></tr></table>
     <p><span class="code">discord.py&nbsp;platform&nbsp;seam&nbsp;for&nbsp;the&nbsp;🏛-kingdoms-home&nbsp;managed&nbsp;channel.<br>
 &nbsp;<br>
-The&nbsp;home&nbsp;channel&nbsp;is&nbsp;the&nbsp;guild's&nbsp;front&nbsp;door:&nbsp;public&nbsp;by&nbsp;design&nbsp;(the<br>
-pinned&nbsp;menu's&nbsp;buttons&nbsp;answer&nbsp;ephemerally,&nbsp;guarded&nbsp;at&nbsp;click&nbsp;time),&nbsp;so<br>
-unlike&nbsp;the&nbsp;admin&nbsp;channel&nbsp;its&nbsp;policy&nbsp;applies&nbsp;no&nbsp;visibility&nbsp;restriction&nbsp;—<br>
-a&nbsp;read&nbsp;of&nbsp;the&nbsp;home&nbsp;grants&nbsp;nothing.</span></p>
+The&nbsp;home&nbsp;channel's&nbsp;pinned&nbsp;menu's&nbsp;buttons&nbsp;answer&nbsp;ephemerally,&nbsp;guarded&nbsp;at<br>
+click&nbsp;time.&nbsp;permissions-serveur-v1&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;channel&nbsp;is&nbsp;now<br>
+masked&nbsp;for&nbsp;@everyone&nbsp;like&nbsp;the&nbsp;rest&nbsp;of&nbsp;the&nbsp;mod&nbsp;—&nbsp;the&nbsp;player&nbsp;roles<br>
+(granted&nbsp;at&nbsp;acceptance)&nbsp;carry&nbsp;the&nbsp;view;&nbsp;the&nbsp;read-only&nbsp;pinned&nbsp;policy<br>
+stays.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -50,7 +51,12 @@ discord.py&nbsp;implementation&nbsp;of&nbsp;the&nbsp;managed-channel&nbsp;seam&n
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="DiscordHomeChannelPlatform-__init__"><strong>__init__</strong></a>(self, bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt>async <a name="DiscordHomeChannelPlatform-apply_policy"><strong>apply_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;pinned&nbsp;read-only&nbsp;default:&nbsp;public&nbsp;to&nbsp;read,&nbsp;closed&nbsp;to&nbsp;write.</span></dd></dl>
+<dl><dt>async <a name="DiscordHomeChannelPlatform-apply_policy"><strong>apply_policy</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'None'</dt><dd><span class="code">Apply&nbsp;the&nbsp;pinned&nbsp;read-only&nbsp;default&nbsp;+&nbsp;the&nbsp;player&nbsp;gating.<br>
+&nbsp;<br>
+permissions-serveur-v1&nbsp;(Drasah&nbsp;19/10):&nbsp;the&nbsp;home&nbsp;channel&nbsp;is&nbsp;now<br>
+masked&nbsp;for&nbsp;@everyone&nbsp;(a&nbsp;newcomer&nbsp;sees&nbsp;only&nbsp;Conscription&nbsp;and<br>
+Beta)&nbsp;—&nbsp;the&nbsp;player&nbsp;roles&nbsp;granted&nbsp;at&nbsp;acceptance&nbsp;unlock&nbsp;it.&nbsp;The<br>
+read-only&nbsp;pinned&nbsp;policy&nbsp;stays.</span></dd></dl>
 
 <dl><dt>async <a name="DiscordHomeChannelPlatform-channel_exists"><strong>channel_exists</strong></a>(self, guild_id: 'str', channel_id: 'str') -&gt; 'bool'</dt><dd><span class="code">Whether&nbsp;the&nbsp;channel&nbsp;still&nbsp;exists&nbsp;on&nbsp;the&nbsp;platform.</span></dd></dl>
 
