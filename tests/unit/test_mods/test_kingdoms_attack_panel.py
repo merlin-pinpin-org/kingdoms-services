@@ -1002,10 +1002,12 @@ async def test_room_and_ready_custom_ids_fit_the_discord_limit() -> None:
 
 async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     """Drasah 18/10 v2: at T the meeting opens a battle room — role,
-    voice channel under « Champs de bataille », a text-in-voice message
-    with each player's SHUFFLED civs + the URL/result buttons, and the
-    room refs stored for the presence tracking."""
-    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room, _strings
+    voice channel under the provisioned « Champs de Bataille » category
+    (battle-room-categorie-v1: the category is NEVER created here), a
+    text-in-voice message with each player's SHUFFLED civs + the
+    URL/result buttons, and the room refs stored for the presence
+    tracking."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
 
     bundle = ScoreBundle()
     await bundle.launch_season()
@@ -1013,9 +1015,15 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     attack, _aquitaine, _bourgogne = await bundle.meeting()
     _wiring(bundle)
     guild = MockGuild()
+    # battle-room-categorie-v1: the room joins the PROVISIONED category
+    # — the declare salon lives in the battlefield group, the attack
+    # salon sits next to it.
+    battlefield = await guild.create_category("Champs de Bataille")
+    declare = await guild.create_text_channel("Déclarer une attaque", category=battlefield)
+    assert declare is not None
     # restructuration-serveur-v1 b: the meeting message lives in the
     # ATTACK SALON — record it BEFORE the room opens.
-    salon = await guild.create_text_channel("salon d'attaque")
+    salon = await guild.create_text_channel("salon d'attaque", category=battlefield)
     await bundle.attacks.record_attack_channel(attack.id, salon.id)
     bot = _FakeBot(bundle)
     bot.guilds = [guild]  # type: ignore[assignment]
@@ -1034,8 +1042,11 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     room = guild.get_channel(int(room_id))
     assert room is not None
     assert room.user_limit == 2
-    assert room.category is not None
-    assert room.category.name == _strings("fr")["room_category"]
+    # battle-room-categorie-v1: the room sits in the PROVISIONED
+    # category — and NO category was ever created (the legacy flow
+    # created a « Champs de bataille » duplicate here).
+    assert room.category is battlefield
+    assert [c.name for c in guild.categories] == ["Champs de Bataille"]
     # Check 75 live: the @everyone deny locked the bot out of its own
     # room (403 50001 on the text-in-voice message) — the bot must carry
     # its own overwrites on the channel it creates.
@@ -1081,6 +1092,52 @@ async def test_score_due_opens_the_battle_room_with_shuffled_civs() -> None:
     assert any(cid.startswith("kingdoms:attack:room:ready:") for cid in refreshed)
     assert not any(cid.startswith("kingdoms:attack:room:result:") for cid in refreshed)
     assert "4242" in str(salon.messages[0].content or "")
+
+
+async def test_battle_room_never_creates_a_category() -> None:
+    """battle-room-categorie-v1 (Drasah 19/10): the legacy room flow
+    created a « Champs de bataille » category duplicate (its exact-name
+    lookup never matched the provisioned « Champs de Bataille »). With
+    no category at all the room lands at the guild root — NEVER a new
+    category."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _open_battle_room
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    bot.guilds = [guild]  # type: ignore[assignment]
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    room = guild.get_channel(int(fresh.score["room_channel_id"]))
+    assert room is not None
+    # No category anywhere: the room sits at the guild root and the
+    # flow NEVER created one.
+    assert room.category is None
+    assert guild.categories == []
+
+
+async def test_battle_room_joins_the_category_of_the_declare_salon() -> None:
+    """battle-room-categorie-v1: the room resolves the battlefield
+    category through the declare salon's own category — the two live
+    in the same provisioned group, whatever the category's name."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import _battlefield_category
+
+    guild = MockGuild()
+    assert _battlefield_category(guild) is None
+    battlefield = await guild.create_category("Champs de Bataille")
+    await guild.create_text_channel("Déclarer une attaque", category=battlefield)
+    assert _battlefield_category(guild) is battlefield
+    # A lone category without any declare salon still matches by slug.
+    guild2 = MockGuild()
+    other = await guild2.create_category("Champs de Bataille")
+    assert _battlefield_category(guild2) is other
 
 
 async def test_battle_room_text_post_failure_still_grants_roles_and_dms(

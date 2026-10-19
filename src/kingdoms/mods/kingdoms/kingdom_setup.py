@@ -152,6 +152,14 @@ Scriptorium buttons; saison/update/annonce/suggestion go away)."""
 LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium")
 """The retired group categories — the epoch salon now lives under Kingdoms."""
 
+LEGACY_BATTLE_CATEGORY_NAMES: tuple[str, ...] = ("Champs de bataille", "Battlefields")
+"""The battle-room duplicate categories (battle-room-categorie-v1,
+Drasah 19/10): the old room flow created one at the first battle — its
+exact-name lookup on « Champs de bataille » never matched the
+provisioned « Champs de Bataille ». EXACT names only: the provisioned
+category's display name is « Champs de Bataille » and must be spared
+(its slug is case-insensitively identical to the duplicate's)."""
+
 KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
     "📜 Scriptorium",
     "Marché",
@@ -203,6 +211,34 @@ async def _cleanup_legacy_categories(guild: discord.Guild, epoch_channel_id: int
     return removed
 
 
+async def _cleanup_legacy_battle_categories(guild: discord.Guild) -> list[str]:
+    """Delete the battle-room duplicate categories (children first).
+
+    battle-room-categorie-v1 (Drasah 19/10): the old room flow created
+    a « Champs de bataille » duplicate at the first battle (an exact
+    lookup that never matched the provisioned « Champs de Bataille »).
+    The duplicate only ever held battle voice rooms — its children go
+    with it. EXACT name match only: the provisioned « Champs de
+    Bataille » (different case) is never touched.
+    """
+    removed: list[str] = []
+    for category in list(getattr(guild, "categories", []) or []):
+        if str(getattr(category, "name", "")) not in LEGACY_BATTLE_CATEGORY_NAMES:
+            continue
+        for channel in list(getattr(category, "channels", []) or []):
+            try:
+                await channel.delete()
+                removed.append(str(channel.name))
+            except Exception:
+                logger.warning("KINGDOM SETUP: legacy battle room removal failed", exc_info=True)
+        try:
+            await category.delete()
+            removed.append(str(category.name))
+        except Exception:
+            logger.warning("KINGDOM SETUP: legacy battle category removal failed", exc_info=True)
+    return removed
+
+
 async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
     """Force Drasah's order of the four Kingdoms-category salons."""
     category = _find_category(guild, "Kingdoms")
@@ -229,6 +265,7 @@ async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> 
     epoch_channel_id = int(epoch_id) if epoch_id.isdigit() else 0
     removed = await _cleanup_legacy_salons(guild, epoch_channel_id)
     removed += await _cleanup_legacy_categories(guild, epoch_channel_id)
+    removed += await _cleanup_legacy_battle_categories(guild)
     await _reorder_kingdoms_salons(guild)
     return removed
 

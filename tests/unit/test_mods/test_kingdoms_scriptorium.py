@@ -282,6 +282,30 @@ async def test_cleanup_legacy_structure_retires_salons_and_categories() -> None:
     assert "🏺 Âge" in remaining
 
 
+async def test_cleanup_removes_the_battle_room_duplicate_category() -> None:
+    """battle-room-categorie-v1 (Drasah 19/10): the « Champs de
+    bataille » duplicate created by the old room flow goes away
+    (children first) — the provisioned « Champs de Bataille » and its
+    salons are NEVER touched (their slug is case-insensitively
+    identical, the match is exact-name only)."""
+    from kingdoms.mods.kingdoms.kingdom_setup import cleanup_legacy_structure
+    from tests.mocks.discord_mock import MockGuild
+
+    guild = MockGuild()
+    provisioned = await guild.create_category("Champs de Bataille")
+    declare = await guild.create_text_channel("Déclarer une attaque", category=provisioned)
+    dup = await guild.create_category("Champs de bataille")
+    await guild.create_voice_channel("Arabia — A 🆚 B", category=dup)
+    removed = await cleanup_legacy_structure(guild)
+    # The duplicate (and the battle voice room it held) is gone.
+    assert "Champs de bataille" in removed
+    assert "Arabia — A 🆚 B" in removed
+    assert [c.name for c in guild.categories] == ["Champs de Bataille"]
+    # The provisioned category and its declare salon are untouched.
+    assert guild.get_channel(provisioned.id) is not None
+    assert guild.get_channel(declare.id) is not None
+
+
 # ----------------------------------------------------------------------
 # restructuration-serveur-v1 d (Drasah 19/10): the 📖 Règles and
 # 🎤 Présentation buttons replace the retired forum/salon.

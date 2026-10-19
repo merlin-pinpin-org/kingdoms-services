@@ -217,7 +217,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_not_player": "❌ Seuls les deux joueurs du match peuvent agir ici.",
         "ready_button": "✅ Prêt — confirme ta présence",
         "ready_done": "✅ Présence confirmée — rejoins le salon de la bataille à l'heure du RDV.",
-        "room_category": "Champs de bataille",
         "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Bataille {map}",
         "room_body": (
@@ -503,7 +502,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "sab_not_player": "❌ Only the two players of the match may act here.",
         "ready_button": "✅ Ready — confirm your presence",
         "ready_done": "✅ Presence confirmed — join the battle room at the meeting time.",
-        "room_category": "Battlefields",
         "room_title": "{map} — {attacker} 🆚 {defender}",
         "room_role": "Battle {map}",
         "room_body": (
@@ -648,6 +646,37 @@ def _declare_channel(guild: discord.Guild | None) -> discord.TextChannel | None:
     wanted = _slug(DECLARE_CHANNEL_NAME)
     channels = [c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) in (wanted, "attaquer")]
     return next((c for c in channels if _slug(c.name) == wanted), channels[0] if channels else None)
+
+
+def _battlefield_category(guild: Any) -> Any:
+    """Return the provisioned « Champs de Bataille » category (never create).
+
+    battle-room-categorie-v1 (Drasah 19/10): the battle room used to look
+    its category up by an EXACT match on the hardcoded « Champs de
+    bataille » — never equal to the provisioned « Champs de Bataille »
+    (capital B) — so it CREATED a duplicate category at the first battle.
+    The category now resolves through the declare salon's own category
+    (both live in the battlefield group), falling back to a slug match.
+    Nothing is ever created here: a missing category means a warning and
+    a room at the guild root.
+    """
+    from kingdoms.mods.kingdoms.kingdom_setup import _slug
+
+    if guild is None:
+        return None
+    declare = _declare_channel(guild)
+    category = getattr(declare, "category", None) if declare is not None else None
+    if category is not None:
+        return category
+    wanted = {"champs-de-bataille", "battlefields"}
+    return next(
+        (
+            item
+            for item in getattr(guild, "categories", [])
+            if _slug(str(getattr(item, "name", ""))) in wanted
+        ),
+        None,
+    )
 
 
 def _attack_salon(guild: Any, attack: Any) -> Any:
@@ -2949,10 +2978,12 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
     """Open the battle room of a meeting (Drasah 18/10 v2).
 
     A dedicated role (given to both players), a voice channel under
-    the « Champs de bataille » category (user_limit 2, access locked
-    to the role) and a text-in-voice message carrying the SHUFFLED
-    civilizations of each player + the persistent URL/result buttons.
-    Both players get a DM pointing at the room.
+    the provisioned « Champs de Bataille » category (user_limit 2,
+    access locked to the role — battle-room-categorie-v1: the
+    category is never created here) and a text-in-voice message
+    carrying the SHUFFLED civilizations of each player + the
+    persistent URL/result buttons. Both players get a DM pointing at
+    the room.
     """
     strings = _strings(locale)
     score = attack.score or {}
@@ -2962,12 +2993,15 @@ async def _open_battle_room(bot: Any, guild: Any, attack: Any, kingdoms_service:
         attacker = await _lord_name(kingdoms_service, attack.attacker_lord_id)
         defender = await _lord_name(kingdoms_service, attack.defender_lord_id)
         role = await guild.create_role(name=strings["room_role"].format(map=attack.map_key)[:100])
-        category = next(
-            (item for item in getattr(guild, "categories", []) if str(item.name) == strings["room_category"]),
-            None,
-        )
+        # battle-room-categorie-v1 (Drasah 19/10): the room joins the
+        # PROVISIONED « Champs de Bataille » category — never a new one
+        # (the legacy exact match on « Champs de bataille » missed the
+        # provisioned « Champs de Bataille » and created a duplicate).
+        category = _battlefield_category(guild)
         if category is None:
-            category = await guild.create_category(strings["room_category"])
+            logger.warning(
+                "KINGDOM ATTACK: battlefield category not found — battle room created at the guild root"
+            )
         channel = await guild.create_voice_channel(
             strings["room_title"].format(map=attack.map_key, attacker=attacker, defender=defender)[:100],
             category=category,
