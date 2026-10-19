@@ -564,6 +564,11 @@ class MockCategoryChannel(discord.CategoryChannel):
         """Apply the edit fields the realm provisioning uses (in-memory)."""
         if "name" in kwargs:
             self.name = kwargs["name"]
+        # ordre-salons-v1 (Drasah 19/10): the sidebar-order pass edits
+        # the category position (beta → conscription → … → realms →
+        # admin → profils) — record it like the live API would.
+        if "position" in kwargs:
+            self.position = kwargs["position"]
         overwrites = kwargs.get("overwrites")
         if overwrites is not None:
             self._overwrites = {}

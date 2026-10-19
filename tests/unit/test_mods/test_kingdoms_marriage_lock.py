@@ -410,7 +410,7 @@ async def _deployed_view(lords: list[_ViewLord]) -> str:
     channel = next(
         c
         for c in guild.categories[0].channels
-        if c.name.lower() == "paroisse"
+        if c.name.lower() == "⛪ paroisse"
     )
     live = [m for m in channel.messages if not getattr(m, "deleted", False)]
     return message_text(live[0])

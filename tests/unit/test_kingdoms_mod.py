@@ -53,12 +53,10 @@ class TestModDeclaration:
             "applications",
             "apply",
             "attack",
-            "bug",
             "distributor",
             "console",  # admin-console-v1: the 🛠 console-admin salon
             "geopolitics",
             "market",
-            "question",
             "realms",
             "requests",
             "season_management",

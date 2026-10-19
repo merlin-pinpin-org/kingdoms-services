@@ -39,10 +39,10 @@ async def test_reset_sweep_deletes_realm_salons_too() -> None:
     conscription = await guild.create_category("Conscription")
     realm = await guild.create_category("Royaume Avalon")
     await guild.create_text_channel("Patrouille", category=realm)  # realm salon, declared name
-    await guild.create_text_channel("Territoire", category=realm)
+    await guild.create_text_channel("🗺️ territoire", category=realm)
     await guild.create_text_channel("Patrouille", category=conscription)  # declared salon
     await guild.create_text_channel("Patrouille")  # top-level, declared name
-    await guild.create_text_channel("Le-Royaume")  # root-level realm-salon leftover
+    await guild.create_text_channel("🏰 le-royaume")  # root-level realm-salon leftover
 
     deleted = await _delete_matching_channels(guild, STRUCTURE)
 
@@ -162,7 +162,7 @@ async def test_draft_starter_pinned_in_alliances_idempotently() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     assert await announce_draft_starter(guild, _Kingdom(), _Service()) is True
     category = guild.categories[0]
-    alliances = next(c for c in category.channels if c.name == "Alliances")
+    alliances = next(c for c in category.channels if c.name == "🤝 alliances")
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1
     assert "Draft starter" in live[0].content and "Aztèques" in live[0].content
@@ -217,7 +217,7 @@ async def test_validation_seam_writes_the_alliances_message_in_both_phases() -> 
     guild = MockGuild()
     await ensure_realm_structure(guild, _Kingdom(), [])
     category = guild.categories[0]
-    alliances = next(c for c in category.channels if c.name == "Alliances")
+    alliances = next(c for c in category.channels if c.name == "🤝 alliances")
 
     # setup phase: the secret placeholder, never the draft
     assert await _announce_realm_alliances(guild, _Kingdom(), _Service("setup")) is True

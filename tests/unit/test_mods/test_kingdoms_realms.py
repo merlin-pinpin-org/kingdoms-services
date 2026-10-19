@@ -105,14 +105,14 @@ async def test_ensure_realm_structure_creates_category_and_salons() -> None:
     assert category.name == realm_category_name("Avalon")
     assert len(category.channels) == len(REALM_SALONS)
     names = {channel.name for channel in category.channels}
-    assert {"Territoire", "Alliances", "Paroisse"} <= names
+    assert {"🗺️ territoire", "🤝 alliances", "⛪ paroisse"} <= names
     # restructuration-serveur-v1 (Drasah 19/10): Remparts/Seigneurs/
     # Pigeon-Voyageur are no longer salons (ephemeral buttons or none).
     assert not names & {"🧱 Remparts", "Seigneurs", "Pigeon-Voyageur"}
     # the public salons are readable by every kingdoms_lord, the private ones are not
-    territoire = next(c for c in category.channels if c.name == "Territoire")
+    territoire = next(c for c in category.channels if c.name == "🗺️ territoire")
     assert territoire.permission_overwrite_for(lord_role) is not None
-    prive = next(c for c in category.channels if c.name == "Salle du Conseil")
+    prive = next(c for c in category.channels if c.name == "💬 salle du conseil")
     assert prive.permission_overwrite_for(lord_role) is None
 
 
@@ -300,7 +300,7 @@ async def test_setup_phase_pins_the_alliances_placeholder_not_the_draft() -> Non
     guild = MockGuild()
     await ensure_all_realm_structures(guild, _PhaseKingdomsService("setup"))
     category = guild.categories[0]
-    alliances = next(c for c in category.channels if c.name == "Alliances")
+    alliances = next(c for c in category.channels if c.name == "🤝 alliances")
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1
     text = message_text(live[0])
@@ -324,7 +324,7 @@ async def test_started_phase_announces_the_draft_and_kills_the_placeholder() -> 
     started_service = _PhaseKingdomsService("started")
     await ensure_all_realm_structures(guild, started_service)
     category = guild.categories[0]
-    alliances = next(c for c in category.channels if c.name == "Alliances")
+    alliances = next(c for c in category.channels if c.name == "🤝 alliances")
     live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
     assert len(live) == 1  # the placeholder was deleted, the draft pinned
     text = message_text(live[0])
@@ -345,7 +345,7 @@ async def test_ensure_realm_structure_renames_the_legacy_eglise_salon() -> None:
     await ensure_realm_structure(guild, kingdom, [])
 
     names = [channel.name for channel in category.channels]
-    assert names.count("Paroisse") == 1
+    assert names.count("⛪ paroisse") == 1
     assert "Église" not in names  # renamed in place, not duplicated
     assert len(names) == len(REALM_SALONS)
 

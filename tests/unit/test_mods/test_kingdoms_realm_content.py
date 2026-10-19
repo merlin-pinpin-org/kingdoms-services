@@ -199,13 +199,13 @@ async def test_all_three_views_land_in_their_salons() -> None:
         "territoire": True,
         "eglise": True,
     }
-    for salon in ("Le-Royaume", "Territoire", "Paroisse"):
+    for salon in ("🏰 le-royaume", "🗺️ territoire", "⛪ paroisse"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
     # the Salle du Conseil stays empty (the kingdom's discussion salon)
-    assert len(_live(_channel(guild, "Salle du Conseil"))) == 0
+    assert len(_live(_channel(guild, "💬 salle du conseil"))) == 0
     # the overview carries the two new ephemeral open buttons
-    overview = _live(_channel(guild, "Le-Royaume"))[0]
+    overview = _live(_channel(guild, "🏰 le-royaume"))[0]
     ids = _ids(overview.view)
     assert "kingdoms:remparts:open" in ids
     assert "kingdoms:seigneurie:open" in ids
@@ -216,7 +216,7 @@ async def test_overview_renders_the_live_data() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _text(_live(_channel(guild, "Le-Royaume"))[0])
+    content = _text(_live(_channel(guild, "🏰 le-royaume"))[0])
     assert "Avalon" in content
     assert "Arthur + **1** seigneur" in content
     assert "7 ⚙️" in content
@@ -276,7 +276,7 @@ async def test_territory_view_lists_owned_maps_with_display_names() -> None:
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _text(_live(_channel(guild, "Territoire"))[0])
+    content = _text(_live(_channel(guild, "🗺️ territoire"))[0])
     assert "**Arabie**" in content
     assert "1 territoire" in content
     # No active guard: the map wears no 🛡️ badge.
@@ -315,7 +315,7 @@ async def test_territory_view_shields_the_guarded_map_with_its_end_time() -> Non
     await ensure_realm_structure(guild, _Kingdom(), [])
     await deploy_realm_content(guild, _Kingdom(), _GuardedWiring())
 
-    content = _text(_live(_channel(guild, "Territoire"))[0])
+    content = _text(_live(_channel(guild, "🗺️ territoire"))[0])
     assert "**Arabie**" in content
     assert "🛡️" in content
     assert "protégée jusqu'à" in content
@@ -343,7 +343,7 @@ async def test_church_view_shows_the_fidèles_the_palier_ladder_and_the_legend()
     await ensure_realm_structure(guild, _Kingdom(), [])
     await _deploy(guild)
 
-    content = _text(_live(_channel(guild, "Paroisse"))[0])
+    content = _text(_live(_channel(guild, "⛪ paroisse"))[0])
     # ⛪ the stocks live in the title — palier, marriage points, tokens
     assert "⛪ Paroisse — Avalon · ⛪ Chapelle · 💍 3 · 💰 1" in content
     # ✨ the palier block — every kingdom sees its current tier
@@ -380,7 +380,7 @@ async def test_views_are_idempotent_no_duplicates_on_redeploy() -> None:
     await _deploy(guild)
     await _deploy(guild)
 
-    for salon in ("Le-Royaume", "Territoire", "Paroisse"):
+    for salon in ("🏰 le-royaume", "🗺️ territoire", "⛪ paroisse"):
         channel = _channel(guild, salon)
         assert len(_live(channel)) == 1, salon
 
@@ -398,7 +398,7 @@ async def test_deploy_survives_missing_services() -> None:
     results = await deploy_realm_content(guild, _Kingdom(), _BareWiring())
 
     assert all(results.values())
-    overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
+    overview = _text(_live(_channel(guild, "🏰 le-royaume"))[0])
     assert "Avalon" in overview  # the sheet renders from the kingdom alone
     assert "5 ⚙️" in overview  # wallet falls back to tech_points_bank
 
@@ -431,11 +431,11 @@ async def test_setup_phase_hides_the_territories() -> None:
     results = await deploy_realm_content(guild, _Kingdom(), _SetupWiring())
 
     assert results["territoire"] is True
-    content = _text(_live(_channel(guild, "Territoire"))[0])
+    content = _text(_live(_channel(guild, "🗺️ territoire"))[0])
     assert "tirage aléatoire" in content
     assert "Arabie" not in content  # the owned map is NOT revealed
     # the other salons render normally
-    overview = _text(_live(_channel(guild, "Le-Royaume"))[0])
+    overview = _text(_live(_channel(guild, "🏰 le-royaume"))[0])
     assert "Avalon" in overview
 
 
@@ -593,7 +593,7 @@ async def test_deploy_gaia_content_pins_the_single_territory_view() -> None:
 
     assert results == {"territoire-gaia": True}
     salon = next(
-        c for c in guild.text_channels if c.name == "Territoire" and c.category and c.category.name == "Royaume Gaïa"
+        c for c in guild.text_channels if c.name == "🗺️ territoire" and c.category and c.category.name == "🏰 Gaïa"
     )
     live = _live(salon)
     assert len(live) == 1

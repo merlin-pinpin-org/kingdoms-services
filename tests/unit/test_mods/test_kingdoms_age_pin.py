@@ -50,7 +50,7 @@ async def test_age_pin_renames_geopolitics_and_pins_the_message(monkeypatch) -> 
     ok = await refresh_age_pin(guild, "fr", _age_service())
     assert ok is True
     # The salon name carries the current age emoji.
-    assert channel.name == "🗺️ Géopolitique 🌑"
+    assert channel.name == "🌍 géopolitique 🌑"
     # One pinned message carrying the marker.
     assert len(channel.messages) == 1
     message = channel.messages[0]
@@ -64,7 +64,7 @@ async def test_age_pin_edits_in_place_never_a_pile_of_pins(monkeypatch) -> None:
     import kingdoms.mods.kingdoms.kingdom_persistent as persistent
 
     guild = MockGuild()
-    channel = await guild.create_text_channel("🗺️ Géopolitique 🌑")
+    channel = await guild.create_text_channel("🌍 géopolitique 🌑")
     monkeypatch.setattr(persistent, "_wiring", lambda: SimpleNamespace(channel_service=None))
     service = _age_service()
     assert await refresh_age_pin(guild, "fr", service) is True
@@ -72,4 +72,4 @@ async def test_age_pin_edits_in_place_never_a_pile_of_pins(monkeypatch) -> None:
     assert len(channel.messages) == 1
     assert channel.messages[0].edited is True
     # The renamed name is stable — no churn on a converged salon.
-    assert channel.name == "🗺️ Géopolitique 🌑"
+    assert channel.name == "🌍 géopolitique 🌑"
