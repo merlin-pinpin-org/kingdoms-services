@@ -530,3 +530,121 @@ async def test_open_buttons_refuse_strangers_and_lost_services() -> None:
     orphan: Any = MockInteraction(user=MockUser(id=111), locale="fr")
     await KingdomSeigneurieOpenButton("🛡️ Seigneurie").callback(orphan)
     assert "Le marché n'est pas disponible" in (orphan.response.message.content or "")
+
+
+# ----------------------------------------------------------------------
+# restructuration-serveur-v1 c (Drasah 19/10): the Gaïa category drops
+# to ONE salon — the AI level rides the Territoire view.
+# ----------------------------------------------------------------------
+
+
+class _GaiaKingdom:
+    id: ClassVar[str] = "k-gaia"
+    name: ClassVar[str] = "Gaïa"
+    validation: ClassVar[str] = "approved"
+    is_gaia: ClassVar[bool] = True
+    civilizations: ClassVar[list[str]] = []
+    secured_civilizations: ClassVar[list[str]] = []
+    marriage_capacity: ClassVar[int] = 0
+    marriage_points: ClassVar[int] = 0
+    arranged_marriage_stock: ClassVar[int] = 0
+    parish_tier: ClassVar[int] = 0
+    tech_points_bank: ClassVar[int] = 0
+
+
+class _GaiaKingdomsService(_KingdomsService):
+    async def kingdoms(self) -> list:
+        return [_GaiaKingdom()]
+
+
+class _Level4AttacksService(_AttacksService):
+    async def base_ai_level(self) -> int:
+        return 4
+
+
+class _GaiaTerritory(_Territory):
+    """A territory owned by Gaïa (the filter rides owner_kingdom_id)."""
+
+    def __init__(self, map_key: str, protected_until: object = None, sacred: bool = False) -> None:
+        super().__init__(map_key, protected_until=protected_until)
+        self.owner_kingdom_id = "k-gaia"
+        self.sacred = sacred
+
+
+class _GaiaTerritoriesService:
+    async def territories(self) -> list:
+        return [_GaiaTerritory("arabia")]
+
+
+class _GaiaWiring(_Wiring):
+    kingdoms_service = _GaiaKingdomsService()
+    attacks_service = _Level4AttacksService()
+    territories_service = _GaiaTerritoriesService()
+
+
+async def test_deploy_gaia_content_pins_the_single_territory_view() -> None:
+    """The Gaïa category carries ONE view: the Territoire salon (c)."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
+
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _GaiaKingdom(), [])
+
+    results = await deploy_gaia_content(guild, _GaiaWiring(), "fr")
+
+    assert results == {"territoire-gaia": True}
+    salon = next(
+        c for c in guild.text_channels if c.name == "Territoire" and c.category and c.category.name == "Royaume Gaïa"
+    )
+    live = _live(salon)
+    assert len(live) == 1
+    content = _text(live[0])
+    assert f"{VIEW_MARKER_PREFIX}:territoire-gaia" in content
+    # the retired Patrouille info (AI level) is integrated, LIVE (4/5)
+    assert "Niveau de l'IA Gaïa : 4/5" in content
+    assert "Arabie" in content  # the owned territory line
+    # idempotent: a re-deploy edits in place, never a duplicate
+    assert await deploy_gaia_content(guild, _GaiaWiring(), "fr") == {
+        "territoire-gaia": True
+    }
+    assert len(_live(salon)) == 1
+
+
+async def test_deploy_gaia_content_survives_missing_surfaces() -> None:
+    """No category / no Gaïa kingdom / missing salon: never raises."""
+    from kingdoms.mods.kingdoms.kingdom_realm_content import deploy_gaia_content
+
+    assert await deploy_gaia_content(MockGuild(), _GaiaWiring(), "fr") == {}
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+    # a non-Gaïa kingdoms() list: no Gaïa view to deploy
+    assert await deploy_gaia_content(guild, _Wiring(), "fr") == {}
+    # wiring without a kingdoms service: no-op
+    assert await deploy_gaia_content(guild, KingdomsPanelWiring(), "fr") == {}
+
+
+async def test_deploy_gaia_content_reads_the_territory_badges() -> None:
+    """The Gaïa territory lines carry the guard/sacred badges like the players'."""
+    from datetime import UTC, datetime, timedelta
+
+    until = datetime.now(UTC) + timedelta(hours=1)
+    from kingdoms.mods.kingdoms.kingdom_realm_content import (
+        _build_gaia_territory,
+        _gather_state,
+        _strings,
+    )
+
+    class _GuardedTerritories:
+        async def territories(self) -> list:
+            return [
+                _GaiaTerritory("arabia", protected_until=until),
+                _GaiaTerritory("sacred_map", sacred=True),
+            ]
+
+    class _Wiring2(_GaiaWiring):
+        territories_service = _GuardedTerritories()
+
+    state = await _gather_state(_GaiaKingdom(), _Wiring2())
+    content = _view_text(_build_gaia_territory(_strings("fr"), _GaiaKingdom(), state, 2))
+    assert "Niveau de l'IA Gaïa : 2/5" in content
+    assert "🛡️" in content  # the guarded line
+    assert "Lieu sacré" in content or "sacré" in content.lower()

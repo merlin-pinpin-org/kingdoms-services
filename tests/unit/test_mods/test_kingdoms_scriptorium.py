@@ -280,3 +280,142 @@ async def test_cleanup_legacy_structure_retires_salons_and_categories() -> None:
     assert "Diplomatie" not in remaining
     assert "Cadastre" not in remaining
     assert "🏺 Âge" in remaining
+
+
+# ----------------------------------------------------------------------
+# restructuration-serveur-v1 d (Drasah 19/10): the 📖 Règles and
+# 🎤 Présentation buttons replace the retired forum/salon.
+# ----------------------------------------------------------------------
+
+_SELECT_TYPE = __import__("discord").ui.Select  # the rubric select of the bubble
+
+
+def test_sommaire_carries_the_rules_and_presentation_buttons() -> None:
+    """The pinned sommaire now carries the 5 buttons (3 rubrics + 2 d)."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import (
+        KingdomPresentationButton,
+        KingdomRulesButton,
+        _scriptorium_view,
+        _strings,
+    )
+
+    view = _scriptorium_view(_strings("fr"))
+    ids = [item.custom_id for item in view.children]
+    assert "kingdoms:rules:open" in ids
+    assert "kingdoms:presentation:open" in ids
+    labels = [
+        getattr(getattr(item, "item", item), "label", None) for item in view.children
+    ]
+    assert any(label and "Règles" in label for label in labels)
+    assert any(label and "Présentation" in label for label in labels)
+    # The buttons are restart-proof DynamicItems with stable custom ids.
+    rules = next(
+        item for item in view.children if item.custom_id == "kingdoms:rules:open"
+    )
+    assert isinstance(rules, KingdomRulesButton)
+    presentation = next(
+        item for item in view.children
+        if item.custom_id == "kingdoms:presentation:open"
+    )
+    assert isinstance(presentation, KingdomPresentationButton)
+
+
+def test_rules_pages_serve_the_live_guide_without_forum_markers() -> None:
+    """_rules_pages keeps the 10 rubrics, strips the -# markers, paginates."""
+    from kingdoms.mods.kingdoms.config import default_season_config
+    from kingdoms.mods.kingdoms.kingdom_guide import GUIDE_MARKER_PREFIX
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _rules_pages
+
+    options, pages = _rules_pages(default_season_config())
+    assert len(options) == 10
+    assert len(options) <= 25  # Discord's select ceiling
+    keys = {key for key, _title in options}
+    assert set(pages) == keys
+    for _key, title in options:
+        assert title and len(title) <= 100
+    for _key, rubric_pages in pages.items():
+        assert rubric_pages
+        for page in rubric_pages:
+            assert len(page) <= 1800
+            for line in page.split("\n"):
+                assert not line.lstrip().startswith("-#")
+                assert GUIDE_MARKER_PREFIX not in line
+
+
+async def test_rules_button_opens_the_ephemeral_guide_bubble() -> None:
+    """The 📖 Règles button serves the live guide without any wiring."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import KingdomRulesButton
+
+    button = KingdomRulesButton("📖 Règles")
+    interaction = MockInteraction(
+        user=MockUser(id="u"), locale="fr", custom_id="kingdoms:rules:open"
+    )
+    await button.callback(interaction)  # type: ignore[arg-type]
+    assert interaction.response.deferred is True
+    assert len(interaction.followup.messages) == 1
+    message = interaction.followup.messages[0]
+    assert message.view is not None
+    # The bubble leads with the first rubric's first page (Bienvenue).
+    assert message.content
+    children = list(message.view.children)
+    assert children and isinstance(children[0], _SELECT_TYPE)
+
+async def test_rules_button_rebuilds_in_both_locales() -> None:
+    """The rules button rebuilds from its custom id in fr and en."""
+    import re as _re
+
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import KingdomRulesButton
+
+    match = _re.search(r"kingdoms:rules:open", "kingdoms:rules:open")
+    assert match is not None
+    for locale in ("fr", "en-US"):
+        interaction = MockInteraction(user=MockUser(id="u"), locale=locale)  # type: ignore[arg-type]
+        button = await KingdomRulesButton.from_custom_id(
+            interaction, type("Item", (), {})(), match  # type: ignore[arg-type]
+        )
+        assert button.item.custom_id == "kingdoms:rules:open"
+        assert button.item.label
+
+
+async def test_presentation_button_opens_the_pitch() -> None:
+    """The 🎤 Présentation button serves the designer's pitch ephemerally."""
+    from kingdoms.mods.kingdoms.kingdom_content import PRESENTATION_MESSAGE
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import KingdomPresentationButton
+
+    button = KingdomPresentationButton("🎤 Présentation")
+    interaction = MockInteraction(
+        user=MockUser(id="u"), locale="fr", custom_id="kingdoms:presentation:open"
+    )
+    await button.callback(interaction)  # type: ignore[arg-type]
+    assert interaction.response.deferred is True
+    assert len(interaction.followup.messages) == 1
+    message = interaction.followup.messages[0]
+    assert message.content
+    assert message.content in PRESENTATION_MESSAGE or message.content.startswith(
+        PRESENTATION_MESSAGE[:40]
+    )
+
+
+async def test_rules_guide_view_pager_turns_pages_bounded() -> None:
+    """The guide view pages a long rubric with ⬅️/counter/➡️ re-renders."""
+    from kingdoms.mods.kingdoms.kingdom_scriptorium import _RulesGuideView, _strings
+
+    options = [("a", "Rubrique A"), ("b", "Rubrique B")]
+    pages = {
+        "a": ["page 1", "page 2", "page 3"],
+        "b": ["seule"],
+    }
+    view = _RulesGuideView(options, pages, _strings("fr"))
+    assert view.content() == "page 1"
+    buttons = [item for item in view.children if hasattr(item, "label")]
+    labels = [item.label for item in buttons]
+    assert "◀️" in labels and "▶️" in labels and "1/3" in labels
+    next_button = next(item for item in buttons if item.label == "▶️")
+    assert next_button.disabled is False
+    prev_button = next(item for item in buttons if item.label == "◀️")
+    assert prev_button.disabled is True
+    # Turning to page 2 re-renders via edit_message.
+    turn = MockInteraction(user=MockUser(id="u"), locale="fr")
+    await next_button.callback(turn)  # type: ignore[arg-type]
+    assert turn.response.message is not None
+    assert turn.response.message.content == "page 2"

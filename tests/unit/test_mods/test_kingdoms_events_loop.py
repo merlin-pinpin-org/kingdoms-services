@@ -222,3 +222,92 @@ async def test_scheduler_snapshots_each_replayed_slot() -> None:
     assert events.hooked == ["cycle"]
     assert time_service.snapshots == [{"label": "avant cycle", "moment": "cycle"}]
     await stop_kingdoms_event_scheduler()
+
+
+# ----------------------------------------------------------------------
+# restructuration-serveur-v1 c (Drasah 19/10): the FFA's own ephemeral
+# salon — opens under « Déclarer une attaque », purged with the FFA.
+# ----------------------------------------------------------------------
+
+
+class _FfaService:
+    """A fake FFA service recording the salon ref."""
+
+    def __init__(self) -> None:
+        self.recorded: list[tuple[Any, int]] = []
+
+    async def record_salon(self, ffa: Any, channel_id: int) -> None:
+        self.recorded.append((ffa, channel_id))
+
+
+class _Ffa:
+    def __init__(self, salon_id: int | None = None, finished: bool = False) -> None:
+        self.salon_id = salon_id
+        self.finished = finished
+
+
+async def test_ffa_salon_opens_under_the_declare_channel() -> None:
+    """_open_ffa_salon_safe creates the salon + base message + ref (c)."""
+    import discord
+
+    from kingdoms.mods.kingdoms.kingdom_events_loop import _open_ffa_salon_safe
+    from tests.mocks.discord_mock import MockGuild
+
+    guild = MockGuild()
+    declare = await guild.create_text_channel("Déclarer une attaque")
+    service = _FfaService()
+    ffa = _Ffa()
+    view = discord.ui.View(timeout=None)
+    await _open_ffa_salon_safe(
+        guild, service, ffa, {"ffa_salon_title": "🗺️ Exploration FFA"}, "go", view
+    )
+    salons = [c for c in guild.text_channels if c.name == "🗺️ Exploration FFA"]
+    assert len(salons) == 1
+    salon = salons[0]
+    # the salon sits right under « Déclarer une attaque »
+    assert salon.category == declare.category
+    # the ref rides ffa.salon_id, and @everyone cannot write (Check 75)
+    assert service.recorded == [(ffa, salon.id)]
+    everyone_overwrite = salon.overwrites.get(guild.default_role)
+    assert everyone_overwrite is not None
+    assert everyone_overwrite.view_channel is True
+    assert everyone_overwrite.send_messages is False
+    me_overwrite = salon.overwrites.get(guild.me)
+    assert me_overwrite is not None and me_overwrite.send_messages is True
+    # the base message repeats the announcement with the join view
+    assert len(salon.messages) == 1
+    assert salon.messages[0].content == "go"
+    assert salon.messages[0].view is view
+
+
+async def test_ffa_salon_purges_a_leftover_before_reopening() -> None:
+    """A stale same-slug salon from last Saturday never survives."""
+    from kingdoms.mods.kingdoms.kingdom_events_loop import _open_ffa_salon_safe
+    from tests.mocks.discord_mock import MockGuild
+
+    guild = MockGuild()
+    await guild.create_text_channel("Déclarer une attaque")
+    leftover = await guild.create_text_channel("🗺️ Exploration FFA")
+    await _open_ffa_salon_safe(
+        guild, _FfaService(), _Ffa(), {"ffa_salon_title": "🗺️ Exploration FFA"}, "go", None
+    )
+    salons = [c for c in guild.text_channels if c.name == "🗺️ Exploration FFA"]
+    assert len(salons) == 1
+    assert salons[0] is not leftover  # the leftover was deleted, not adopted
+
+
+async def test_ffa_salon_purge_is_idempotent_and_ref_driven() -> None:
+    """The purge deletes the salon by its ref, then no-ops."""
+    from kingdoms.mods.kingdoms.kingdom_events_loop import _ffa_salon_purge_safe
+    from tests.mocks.discord_mock import MockGuild
+
+    guild = MockGuild()
+    await guild.create_text_channel("Déclarer une attaque")
+    salon = await guild.create_text_channel("🗺️ Exploration FFA")
+    ffa = _Ffa(salon_id=salon.id, finished=True)
+    await _ffa_salon_purge_safe(guild, ffa)
+    assert salon.id not in {c.id for c in guild.text_channels}
+    # a second pass (dead ref) is a no-op, and no ref means no purge
+    await _ffa_salon_purge_safe(guild, ffa)
+    await _ffa_salon_purge_safe(guild, _Ffa(salon_id=None))
+    await _ffa_salon_purge_safe(None, ffa)

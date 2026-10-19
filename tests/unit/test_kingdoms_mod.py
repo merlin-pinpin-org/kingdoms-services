@@ -43,8 +43,11 @@ class TestModDeclaration:
         defs = load_mod_definitions(REPO_ROOT / "config")
         kingdoms = defs["kingdoms"]
         assert kingdoms.enabled is True  # T2 enrollment lands (kingdoms-services#157)
+        # restructuration-serveur-v1 c+d (Drasah 19/10): the announce,
+        # exploration, patrol, presentation, rules, season, suggestions
+        # and update salons are gone (Gaïa keeps a single territory
+        # salon; the general group keeps only the Taverne).
         assert {c.key for c in kingdoms.channel_categories} == {
-            "announce",
             "applications",
             "apply",
             "attack",
@@ -52,25 +55,18 @@ class TestModDeclaration:
             "distributor",
             "console",  # admin-console-v1: the 🛠 console-admin salon
             "epoch",
-            "exploration",
             "geopolitics",
             "market",
-            "patrol",
-            "presentation",
             "question",
             "realms",
             "requests",
-            "rules",
-            "season",
             "season_management",
             "settings",
             "scriptorium",
-            "suggestions",
             "talks",
             "tavern",
             "territory",
             "time_machine",
-            "update",
         }
         assert {r.key for r in kingdoms.roles} == {
             "kingdoms_king",
