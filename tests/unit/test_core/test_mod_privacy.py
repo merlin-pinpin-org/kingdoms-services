@@ -52,15 +52,11 @@ def test_private_mod_declares_owners(tmp_path: Path) -> None:
     assert not definition.owned_by("111222333444555667")
 
 
-def test_private_mod_without_owners_fails_loudly() -> None:
-    mods = Path("/tmp/km-broken/mods")
-    if mods.exists():
-        for stale in mods.iterdir():
-            stale.unlink()
-    mods.mkdir(parents=True, exist_ok=True)
-    (mods / "kingdoms.yaml").write_text(
+def test_private_mod_without_owners_fails_loudly(tmp_path: Path) -> None:
+    (tmp_path / "mods").mkdir()
+    (tmp_path / "mods" / "kingdoms.yaml").write_text(
         PRIVATE.replace('  - "111222333444555666"\n', "").replace('  - "999888777666555444"\n', ""),
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="owner_discord_ids"):
-        load_mod_definitions(mods.parent)
+        load_mod_definitions(tmp_path)
