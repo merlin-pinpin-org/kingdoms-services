@@ -51,6 +51,37 @@ def _ensure_dirs() -> None:
     os.makedirs(CARDS_DIR, exist_ok=True)
 
 
+def _cached_image(url: str) -> str:
+    """Download one image URL into the assets cache; return the local path.
+
+    The library renders local files only; content images (civ crests,
+    map thumbnails) arrive as URLs. Cached under a stable hash of the
+    URL, so a synced post never re-downloads an unchanged image. A
+    download failure returns the URL unchanged — the render then fails
+    closed and the post falls back to its layout view.
+    """
+    import hashlib
+
+    if not url.startswith(("http://", "https://")):
+        return url
+    digest = hashlib.sha256(url.encode()).hexdigest()[:16]
+    ext = os.path.splitext(url.split("?")[0])[1] or ".png"
+    path = os.path.join(ASSETS_DIR, f"{digest}{ext}")
+    if os.path.isfile(path) and os.path.getsize(path) > 0:
+        return path
+    import httpx
+
+    try:
+        r = httpx.get(url, timeout=15.0, follow_redirects=True)
+        r.raise_for_status()
+    except Exception:
+        logger.debug("visual card image download failed (%s)", url, exc_info=True)
+        return url
+    with open(path, "wb") as fh:
+        fh.write(r.content)
+    return path
+
+
 def _render(visual: dict[str, Any]) -> str:
     """Render one library visual to a file, return the absolute path.
 
@@ -92,7 +123,7 @@ def faction_card(
         "sections": sections,
     }
     if image:
-        sections["image"] = image
+        sections["image"] = _cached_image(image)
     if summary and not facts:
         # the summary carries the facts; when no facts table is given,
         # keep the text readable on the card as a single column
@@ -120,7 +151,7 @@ def map_card(
         "title": str(getattr(map_entry, "name", slug)),
         "subtitle": "Map",
         "tags": tags[:6],
-        "images": images[:4],
+        "images": [_cached_image(u) for u in images[:4]],
         "facts": facts[:5],
         "description": description,
         "footer": str(getattr(map_entry, "id", slug)),
@@ -154,7 +185,7 @@ def player_card(
         "footer": f"user:{slug}",
     }
     if avatar_url:
-        sections["image"] = avatar_url
+        sections["image"] = _cached_image(avatar_url)
         sections["image_caption"] = "Avatar"
     visual: dict[str, Any] = {
         "template": "info_card",

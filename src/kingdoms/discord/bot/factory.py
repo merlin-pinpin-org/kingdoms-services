@@ -208,6 +208,10 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.guild_access_request import register_guild_access_request_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
         register_pool_flow_items(self)
+        from kingdoms.discord.visual_card_views import register_visual_card_items
+        register_visual_card_items(self)
+        from kingdoms.discord.visual_card_views import register_visual_card_items
+        register_visual_card_items(self)
         register_admin_dm_items(self)
         register_guild_access_request_items(self)
 

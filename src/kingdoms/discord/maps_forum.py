@@ -87,8 +87,9 @@ async def sync_maps_forum(guild_id: str, game_key: str, bot: Any, service: Any =
         if entry.resource_url:
             content = f"{content}\n{entry.resource_url}"
         content = f"{content}\n\n{footer(entry.id)}"
+        attachment = await _build_map_card(entry, guild_id, bot, service)
         thread_id = await platform.create_map_post(
-            guild_id, forum_id, entry.name, content, view=view
+            guild_id, forum_id, entry.name, content, view=view, attachment=attachment
         )
         await service.set_map_forum_message(entry.id, thread_id)
         created += 1
@@ -125,6 +126,51 @@ async def _map_pools_link(service: Any, entry: Any, guild_id: str, bot: Any = No
         else:
             lines.append(f"- {pool.name}")
     return lines
+
+async def _build_map_card(
+    entry: Any,
+    guild_id: str,
+    bot: Any,
+    service: Any,
+) -> Any | None:
+    """Render the map's visual card (media_card) from the real MapModel.
+
+    Images come from the content service (stored image) and the entry's
+    ``resource_url``; tags list the pools containing the map; the
+    description is synthesized from the stored summary, never dumped.
+    Falls back to ``None`` when the render fails — the post keeps its
+    layout view.
+    """
+    import os
+
+    import discord
+
+    from kingdoms.discord.visual_cards import map_card
+
+    try:
+        from kingdoms.discord.content_posts import entity_post_content
+
+        content = await entity_post_content(entry.id, "", guild_id, bot)
+        if len(content) == 4:
+            _, summary, _source, image = content
+        else:  # no content service: 3-tuple fallback (content_posts.py)
+            _, summary, image = content
+        pools = await service.list_map_pools(entry.game_key, guild_id=guild_id)
+        pool_names = [p.name for p in pools if entry.id in p.map_ids][:4]
+        images = [u for u in (image, entry.resource_url) if u][:4]
+        description = (summary or entry.description or "").strip()
+        card = map_card(
+            entry,
+            images=images,
+            tags=[f"Pool {n}" for n in pool_names],
+            facts=[["Jeu", entry.game_key]],
+            description=description,
+        )
+    except Exception:
+        logger.debug("map card render failed (%s)", entry.id, exc_info=True)
+        return None
+    return discord.File(card.path, filename=os.path.basename(card.path))
+
 
 def _map_post_view(
     map_id: str,
