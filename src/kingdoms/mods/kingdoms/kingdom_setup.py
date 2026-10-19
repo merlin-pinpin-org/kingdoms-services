@@ -29,15 +29,37 @@ logger = logging.getLogger("kingdoms.kingdom")
 MOD_NAME = "kingdoms"
 
 
+_SMALL_CAPS = str.maketrans(
+    {
+        "ᴀ": "a", "ʙ": "b", "ᴄ": "c", "ᴅ": "d", "ᴇ": "e", "ꜰ": "f",
+        "ɢ": "g", "ʜ": "h", "ɪ": "i", "ᴋ": "k", "ʟ": "l", "ᴍ": "m",
+        "ɴ": "n", "ᴏ": "o", "ᴘ": "p", "ʀ": "r", "ᴛ": "t", "ᴜ": "u",
+        "ᴠ": "v", "ᴡ": "w", "ʏ": "y", "ᴢ": "z", "ǫ": "q",
+    }
+)
+"""ordre-salons-v1 (Drasah 19/10): the charte's small caps fold to plain
+letters so a decorative category name (« ✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ ») slugs exactly
+like its plain legacy form (« Conscription »)."""
+
+
 def _slug(name: str) -> str:
-    """Normalize a channel/category name the way Discord does.
+    """Normalize a channel/category name to its structural slug.
 
     Discord lowercases, strips accents and turns spaces into dashes:
-    "Âge sombre" is stored as "age-sombre".
+    "Âge sombre" is stored as "age-sombre". ordre-salons-v1 (Drasah
+    19/10): the charte decorates salon/category names with an emoji
+    prefix and small caps — the LOOKUP slug must ignore the decoration
+    or every rename breaks the adoption-by-slug. Anything that is not
+    an ASCII letter, digit or dash is dropped, so "🛒 marché" and
+    "Marché" slug identically ("marche") before and after the charte.
     """
-    decomposed = unicodedata.normalize("NFKD", name.lower())
+    translated = name.translate(_SMALL_CAPS)
+    decomposed = unicodedata.normalize("NFKD", translated.lower())
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    return without_accents.replace(" ", "-").strip("-")
+    kept = "".join(
+        ch if (ch.isascii() and (ch.isalnum() or ch in "- ")) else "" for ch in without_accents
+    )
+    return kept.replace(" ", "-").strip("-")
 
 
 def _find_category(guild: discord.Guild, name: str) -> discord.CategoryChannel | None:
@@ -95,6 +117,231 @@ async def _enforce_admin_category_deny(guild: discord.Guild) -> None:
         logger.warning("KINGDOM SETUP: admin category deny failed", exc_info=True)
 
 
+_CHARTE_CATEGORY_DISPLAY: dict[str, str] = {
+    "profils": "👤 ᴘʀᴏꜰɪʟs",
+    "conscription": "✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ",
+    "kingdoms": "🏰 ᴋɪɴɢᴅᴏᴍs",
+    "gaia": "🏰 ɢᴀɪᴀ",
+    "champs-de-bataille": "⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ",
+    "admin": "⚙️ ᴀᴅᴍɪɴ",
+}
+"""ordre-salons-v1 (Drasah 19/10): the grimoire charte — categories in
+small caps with an emoji. Keyed by decoration-blind slug so a category
+renamed by hand back to its plain form is re-caught by the next pass."""
+
+_CHARTE_CHANNEL_DISPLAY: dict[str, str] = {
+    "postuler": "📝 postuler",
+    "candidatures": "📥 candidatures",
+    "royaumes": "👑 royaumes",
+    "scriptorium": "📜 scriptorium",
+    "marche": "🛒 marché",
+    # no geopolitics here: its live name is owned by refresh_age_pin
+    # (the age emoji is dynamic) — the charte must never fight it.
+    "territoire": "🗺️ territoire",
+    "declarer-une-attaque": "⚔️ déclarer une attaque",
+    "pourparlers": "🕊️ pourparlers",
+    "parametres": "⚙️ paramètres",
+    "gestion-saison": "🗓️ gestion saison",
+    "machine-a-temps": "⏱️ machine à temps",
+    "distributeur": "🎁 distributeur",
+    "console": "🛠 console-admin",
+    "demandes": "📬 demandes",
+}
+"""ordre-salons-v1: the charte's salon display names (lowercase + one
+emoji). Applied ONLY to salons living inside a structure category — a
+realm salon named « Territoire » is renamed by kingdom_realms, never
+here (its display happens to match anyway)."""
+
+_CHARTE_TOPICS: dict[str, str] = {
+    "postuler": "Le banc des recrues — chaque seigneur commence ici. Postule et rejoins un royaume.",
+    "candidatures": "Les parchemins de candidature, triés par les hérauts du royaume.",
+    "royaumes": "Le grand livre des royaumes — fondations, validations et refus.",
+    "scriptorium": "La bibliothèque du royaume : cadastre, diplomatie et seigneurie y sont consignés.",
+    "marche": "Les marchands croisent le fer — ressources, trocs et étals du royaume.",
+    "territoire": "Les terres de Gaïa — son niveau d'éveil et le cadastre du monde.",
+    "declarer-une-attaque": "Le pas des bannières — déclare ta guerre, seigneur.",
+    "pourparlers": "Sous la tente blanche : les négociations entre royaumes en guerre.",
+    "parametres": "Les réglages du mod — réservés aux mains qui tirent les ficelles.",
+    "gestion-saison": "Le sablier des saisons — ouverture, clôture et bascule.",
+    "machine-a-temps": "Le mécanisme d'horloger — avancer l'âge du monde à des fins de test.",
+    "distributeur": "La réserve secrète — distribuer des éléments à un royaume (test).",
+    "console": "La console du forgeron — commandes de test, réponses sur place.",
+    "demandes": "Les requêtes des seigneurs : modifications et départs.",
+}
+"""ordre-salons-v1: one micro-lore topic per structure salon. Keyed by
+decoration-blind slug; applied idempotently (edit only on diff)."""
+
+_CHARTE_DIVIDER_NAME = "┈┈ ✦ ┈┈"
+"""ordre-salons-v1: the decorative divider salon (mute, read-only) —
+its name slugs to the empty string, so it can never collide with a
+declared channel."""
+
+_CONSCRIPTION_ROLE_CANDIDATES: tuple[tuple[str, ...], ...] = (
+    ("kingdoms_lord", "Kingdoms Lord"),
+    ("kingdoms_king", "Kingdoms King"),
+)
+
+
+async def _apply_structure_charte(guild: discord.Guild) -> None:
+    """Rename the LIVE structure to the charte display names (idempotent).
+
+    ordre-salons-v1 (Drasah 19/10): the core ChannelService adopts
+    CATEGORIES by name — this pass must run BEFORE
+    ``provision_mod_channels`` so the live « Conscription » becomes
+    « ✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ » and the core adopts it (both slug to
+    « conscription »), instead of creating a duplicate (the Check 87
+    bug class). Salons are resolved by id in db, but renaming them here
+    keeps a hard-reset's fresh provisioning and the live guild in
+    sync. Geopolitique is skipped: its name carries the dynamic age
+    emoji and belongs to ``refresh_age_pin``.
+    """
+    for category in list(getattr(guild, "categories", []) or []):
+        naked = _slug(getattr(category, "name", ""))
+        display = _CHARTE_CATEGORY_DISPLAY.get(naked)
+        if display is not None and str(getattr(category, "name", "")) != display:
+            try:
+                await category.edit(name=display)
+                logger.info("KINGDOM SETUP: category renamed to charte %r", display)
+            except Exception:
+                logger.warning("KINGDOM SETUP: category charte rename failed", exc_info=True)
+    for channel in [*guild.text_channels, *(getattr(guild, "forums", None) or [])]:
+        category = getattr(channel, "category", None)
+        if category is None or _slug(getattr(category, "name", "")) not in _CHARTE_CATEGORY_DISPLAY:
+            continue
+        naked = _slug(getattr(channel, "name", ""))
+        display = _CHARTE_CHANNEL_DISPLAY.get(naked)
+        if display is not None and str(channel.name) != display:
+            try:
+                await channel.edit(name=display)
+                logger.info("KINGDOM SETUP: salon renamed to charte %r", display)
+            except Exception:
+                logger.warning("KINGDOM SETUP: salon charte rename failed", exc_info=True)
+
+
+async def _hide_conscription_from_players(guild: discord.Guild) -> None:
+    """Deny the Conscription category to validated players (idempotent).
+
+    ordre-salons-v1 (Drasah 19/10): once a player is accepted
+    (Kingdoms Lord / Kingdoms King), Conscription is dead weight for
+    him — the category is hidden from both player roles. The deny is
+    additive on the roles, so it survives every re-provisioning.
+    """
+    category = _find_category(guild, "Conscription")
+    if category is None:
+        return
+    roles = list(getattr(guild, "roles", []) or [])
+    for candidates in _CONSCRIPTION_ROLE_CANDIDATES:
+        role = next((r for r in roles if str(getattr(r, "name", "")) in candidates), None)
+        if role is None:
+            continue
+        try:
+            await category.set_permissions(role, overwrite=discord.PermissionOverwrite(view_channel=False))
+        except Exception:
+            logger.warning("KINGDOM SETUP: conscription hide failed", exc_info=True)
+
+
+async def _ensure_charte_dividers(guild: discord.Guild) -> None:
+    """Keep one decorative divider in Conscription and Battlefield (idempotent).
+
+    ordre-salons-v1: the « ┈┈ ✦ ┈┈ » salon separates the panel zone
+    from the war zone inside the two game categories. Mute: @everyone
+    is denied send (the divider is scenery, not a salon to write in).
+    """
+    for group in ("conscription", "champs-de-bataille"):
+        category = _find_category(guild, _CHARTE_CATEGORY_DISPLAY[group])
+        if category is None:
+            continue
+        divider = next(
+            (
+                c
+                for c in getattr(category, "channels", []) or []
+                if _slug(getattr(c, "name", "")) == ""
+            ),
+            None,
+        )
+        if divider is None:
+            try:
+                divider = await guild.create_text_channel(_CHARTE_DIVIDER_NAME, category=category)
+            except Exception:
+                logger.warning("KINGDOM SETUP: divider creation failed (%s)", group, exc_info=True)
+                continue
+        everyone = getattr(guild, "default_role", None)
+        if everyone is not None:
+            try:
+                await divider.set_permissions(
+                    everyone,
+                    overwrite=discord.PermissionOverwrite(
+                        view_channel=True, send_messages=False
+                    ),
+                )
+            except Exception:
+                logger.warning("KINGDOM SETUP: divider mute failed", exc_info=True)
+
+
+async def _apply_charte_topics(guild: discord.Guild) -> None:
+    """Apply the micro-lore topics (idempotent — edit only on diff)."""
+    for channel in [*guild.text_channels, *(getattr(guild, "forums", None) or [])]:
+        category = getattr(channel, "category", None)
+        if category is None or _slug(getattr(category, "name", "")) not in _CHARTE_CATEGORY_DISPLAY:
+            continue
+        topic = _CHARTE_TOPICS.get(_slug(getattr(channel, "name", "")))
+        if topic is None or getattr(channel, "topic", None) == topic:
+            continue
+        try:
+            await channel.edit(topic=topic)
+        except Exception:
+            logger.warning("KINGDOM SETUP: topic charte failed", exc_info=True)
+
+
+async def _enforce_category_order(guild: discord.Guild) -> None:
+    """Force Drasah's sidebar order (idempotent, best effort).
+
+    ordre-salons-v1 (Drasah 19/10): Beta → Conscription → Champs de
+    Bataille → Kingdoms → Gaïa → the player realms (current relative
+    order preserved) → Admin ALWAYS behind the last realm → Profils
+    at the very bottom. Beta is Drasah's hand-made category (skipped
+    silently when absent). A freshly created realm category falls to
+    the bottom of Discord's sidebar — this pass re-runs after every
+    realm provisioning to push Admin (and Profils) back in place.
+    """
+    categories = list(getattr(guild, "categories", []) or [])
+    structure_slugs = set(_CHARTE_CATEGORY_DISPLAY)
+    by_slug: dict[str, discord.CategoryChannel] = {}
+    realms: list[discord.CategoryChannel] = []
+    for category in categories:
+        raw_name = str(getattr(category, "name", ""))
+        slug = _slug(raw_name)
+        is_realm = raw_name.startswith("🏰 ") and slug not in structure_slugs and slug != "gaia"
+        if is_realm:
+            realms.append(category)
+        elif slug not in by_slug:
+            by_slug[slug] = category
+    # the realms keep their current relative order (Discord drops a
+    # fresh category at the bottom of the sidebar)
+    realms.sort(key=lambda c: getattr(c, "position", 0))
+    ordered: list[discord.CategoryChannel] = [
+        by_slug[slug]
+        for slug in ("beta", "conscription", "champs-de-bataille", "kingdoms", "gaia")
+        if slug in by_slug
+    ]
+    ordered += realms
+    if "admin" in by_slug:
+        ordered.append(by_slug["admin"])  # ALWAYS behind the last realm
+    for position, category in enumerate(ordered):
+        if getattr(category, "position", 0) != position:
+            try:
+                await category.edit(position=position)
+            except Exception:
+                logger.warning("KINGDOM SETUP: category order failed", exc_info=True)
+    # Profils reads LAST — below everything, realms and admin included.
+    profiles = by_slug.get("profils")
+    if profiles is not None and getattr(profiles, "position", 0) != len(ordered):
+        try:
+            await profiles.edit(position=len(ordered))
+        except Exception:
+            logger.warning("KINGDOM SETUP: profiles bottom order failed", exc_info=True)
+
+
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
     """Provision the declared salons-first structure through the core.
 
@@ -103,6 +350,11 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     kinds, admin-only flags and positions are data. Existing channels
     are adopted (never duplicated); re-running is safe. Returns the
     (created, adopted) display paths from the provision report.
+
+    ordre-salons-v1 (Drasah 19/10): the charte pass renames the LIVE
+    structure to the declared display names BEFORE the core provisions —
+    the core adopts categories by name, so renaming after (or never)
+    would duplicate every decorated category (the Check 87 bug class).
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
 
@@ -110,6 +362,7 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     channel_service = wiring.channel_service
     if channel_service is None:
         raise RuntimeError("the ChannelService is not wired — the salons-first bootstrap needs the platform services")
+    await _apply_structure_charte(guild)
     report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
     # permissions-serveur-v1: the Admin category stays hidden from
     # non-admins even when it was adopted long before the flag.
@@ -122,6 +375,14 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
 
         await ensure_console_welcome(console_channel)
     await cleanup_legacy_structure(guild)
+    # ordre-salons-v1 (Drasah 19/10): the sidebar reads like the game —
+    # conscription hides from validated players, the decorative
+    # dividers, the micro-lore topics and the category order apply on
+    # every provisioning pass (idempotent, best effort).
+    await _hide_conscription_from_players(guild)
+    await _ensure_charte_dividers(guild)
+    await _apply_charte_topics(guild)
+    await _enforce_category_order(guild)
     return list(report.created), list(report.adopted)
 
 
@@ -150,7 +411,14 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     "taverne",
     # permissions-serveur-v1 (Drasah 19/10): the dedicated 🏺 Âge salon
     # retires — the age (emoji + pinned message) lives in Géopolitique.
-    "🏺-age",
+    # ordre-salons-v1: the slug is decoration-blind — the retired salon
+    # « 🏺 Âge » now slugs to « age ».
+    "age",
+    # ordre-salons-v1 (Drasah 19/10): the Support group retires — the
+    # question / signaler-un-bug forums read as admin duplicates and
+    # the anonymous Pigeon handles their absence gracefully.
+    "question",
+    "signaler-un-bug",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the
@@ -163,7 +431,7 @@ Gaïa salons (restructuration-serveur-v1 c), the retired Général salons
 Scriptorium buttons; saison/update/annonce/suggestion go away) and the
 Taverne (restructuration-serveur-v1 e: the general group is gone)."""
 
-LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium", "Général")
+LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium", "Général", "Support")
 """The retired group categories — the epoch salon now lives under
 Kingdoms (then retired with it — permissions-serveur-v1), and the
 general group disappeared entirely
@@ -179,9 +447,9 @@ category's display name is « Champs de Bataille » and must be spared
 (its slug is case-insensitively identical to the duplicate's)."""
 
 KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
-    "📜 Scriptorium",
-    "Marché",
-    "Géopolitique",
+    "📜 scriptorium",
+    "🛒 marché",
+    "🌍 géopolitique",
 )
 """Drasah's chosen order of the Kingdoms-category salons
 (permissions-serveur-v1: the 🏺 Âge salon retired — the age lives in

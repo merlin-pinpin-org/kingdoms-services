@@ -39,7 +39,9 @@ REGLES_FORUM = "Règles"
 # permissions-serveur-v1 (Drasah 19/10): the 🏺 Âge salon is gone — the
 # Géopolitique salon's NAME carries the current age emoji (renamed at
 # every age switch) and its marked message is the pinned age message.
-GEOPOLITICS_BASE_NAME = "🗺️ Géopolitique"
+# ordre-salons-v1: the base name joins the grimoire charte (🌍 instead
+# of 🗺️, lowercase) — it slugs identically so the adoption survives.
+GEOPOLITICS_BASE_NAME = "🌍 géopolitique"
 AGE_EMOJIS: dict[str, str] = {
     "dark_age": "🌑",
     "feudal_age": "🏰",

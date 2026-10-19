@@ -34,12 +34,17 @@ logger = logging.getLogger("kingdoms.kingdom_realms")
 REALMS_PANEL_MARKER = "kingdoms:panel:royaumes"
 REALMS_CHANNEL = "Royaumes"
 REALM_SALONS: tuple[tuple[str, str], ...] = (
-    ("salle-du-conseil", "Salle du Conseil"),
-    ("le-royaume", "Le-Royaume"),
-    ("territoire", "Territoire"),
-    ("alliances", "Alliances"),
-    ("eglise", "Paroisse"),
+    ("salle-du-conseil", "💬 salle du conseil"),
+    ("le-royaume", "🏰 le-royaume"),
+    ("territoire", "🗺️ territoire"),
+    ("alliances", "🤝 alliances"),
+    ("eglise", "⛪ paroisse"),
 )
+# ordre-salons-v1 (Drasah 19/10): the grimoire charte reaches the realm
+# salons — lowercase + one emoji, and the lookups stay decoration-blind
+# (kingdom_setup._slug), so panels and content keep resolving after
+# the rename. The adoption below renames a live pre-patch salon to the
+# charte display (never duplicates it).
 # Drasah 19/10 (restructuration-serveur-v1): the realm shrinks to 5
 # salons — Remparts and Seigneurie become EPHEMERAL BUTTONS on the
 # Le-Royaume view, the Pigeon-Voyageur salon had no wiring at all.
@@ -121,8 +126,15 @@ GAIA_KINGDOM_DISPLAY = "Gaïa"
 
 
 def realm_category_name(kingdom_name: str) -> str:
-    """Return the display name of a kingdom's category: « Royaume [Nom] »."""
-    return f"Royaume {kingdom_name}"
+    """Return the display name of a kingdom's category: « 🏰 [Nom] ».
+
+    ordre-salons-v1 (Drasah 19/10): the grimoire charte — a realm
+    category carries the same 🏰 as the structure's Kingdoms/Gaïa
+    categories, so it slugs to the bare kingdom name. The legacy
+    « Royaume [Nom] » form is still adopted (dual match in
+    ``_find_realm_category``) and renamed at the next provisioning.
+    """
+    return f"🏰 {kingdom_name}"
 
 
 def _realm_status_lines(
@@ -221,10 +233,17 @@ def build_realms_panel(locale: str, kingdoms: list[Any], lords: list[Any]) -> di
 
 
 def _find_realm_category(guild: discord.Guild, kingdom_name: str) -> discord.CategoryChannel | None:
-    """Find a kingdom's category by slug (read-only lookup)."""
+    """Find a kingdom's category by slug (read-only lookup).
+
+    ordre-salons-v1: dual match — the charte « 🏰 Nom » (naked slug)
+    and the legacy « Royaume Nom » (slug « royaume-nom ») resolve to
+    the same category, so a pre-patch realm is adopted then renamed.
+    """
     wanted = _slug(realm_category_name(kingdom_name))
+    legacy = _slug(f"Royaume {kingdom_name}")
     for category in getattr(guild, "categories", []):
-        if _slug(getattr(category, "name", "")) == wanted:
+        slug = _slug(getattr(category, "name", ""))
+        if slug == wanted or slug == legacy:
             return category  # type: ignore[no-any-return]
     return None
 
@@ -338,6 +357,43 @@ async def grant_bot_access_to_category(guild: discord.Guild, category: Any) -> N
         logger.warning("KINGDOM REALMS: bot access grant failed", exc_info=True)
 
 
+async def _adopt_realm_salon(
+    guild: discord.Guild,
+    category: Any,
+    key: str,
+    name: str,
+) -> Any | None:
+    """Find a realm salon (or its legacy name) and rename it to the charte.
+
+    ordre-salons-v1 (Drasah 19/10): adoption is decoration-blind
+    (``_slug``), so a pre-patch « Territoire » is found by the charte
+    name « 🗺️ territoire » and RENAMED, never duplicated. The legacy
+    Église/Patrouille renames keep working through
+    ``LEGACY_REALM_SALON_NAMES``.
+    """
+    existing = next(
+        (c for c in getattr(category, "channels", []) if _slug(getattr(c, "name", "")) == _slug(name)),
+        None,
+    )
+    if existing is None and key in LEGACY_REALM_SALON_NAMES:
+        legacy_name = LEGACY_REALM_SALON_NAMES[key]
+        existing = next(
+            (
+                c
+                for c in getattr(category, "channels", [])
+                if _slug(getattr(c, "name", "")) == _slug(legacy_name)
+            ),
+            None,
+        )
+    if existing is not None and str(getattr(existing, "name", "")) != name:
+        try:
+            await existing.edit(name=name)
+            logger.info("KINGDOM REALMS: salon renamed to charte %s", name)
+        except Exception:
+            logger.warning("KINGDOM REALMS: salon charte rename failed", exc_info=True)
+    return existing
+
+
 async def ensure_realm_structure(
     guild: discord.Guild,
     kingdom: Any,
@@ -358,36 +414,22 @@ async def ensure_realm_structure(
         )
         logger.info("KINGDOM REALMS: category %s created for %s", display, kingdom.id)
     else:
+        # ordre-salons-v1: an adopted legacy « Royaume Nom » category is
+        # renamed to the charte display (idempotent — no API call once
+        # the name already reads right).
+        if str(getattr(category, "name", "")) != display:
+            try:
+                await category.edit(name=display)
+                logger.info("KINGDOM REALMS: category renamed to %s", display)
+            except Exception:
+                logger.warning("KINGDOM REALMS: category charte rename failed", exc_info=True)
         await _apply_realm_overwrites(guild, category, member_ids)
     lord_role = _member_role(guild, "kingdoms_lord")
 
     for key, name in REALM_SALONS:
-        existing = next(
-            (
-                c
-                for c in getattr(category, "channels", [])
-                if _slug(getattr(c, "name", "")) == _slug(name)
-            ),
-            None,
-        )
-        if existing is None and key in LEGACY_REALM_SALON_NAMES:
-            # adopt the pre-rename salon (Église → Paroisse, Patrouille
-            # → 🧱 Remparts) by renaming it
-            legacy = next(
-                (
-                    c
-                    for c in getattr(category, "channels", [])
-                    if _slug(getattr(c, "name", "")) == _slug(LEGACY_REALM_SALON_NAMES[key])
-                ),
-                None,
-            )
-            if legacy is not None:
-                try:
-                    await legacy.edit(name=name)
-                    logger.info("KINGDOM REALMS: salon renamed %s -> %s", LEGACY_REALM_SALON_NAMES[key], name)
-                    existing = legacy
-                except Exception:
-                    logger.warning("KINGDOM REALMS: salon rename failed", exc_info=True)
+        # ordre-salons-v1: adoption is decoration-blind and renames the
+        # live salon to the charte display (never duplicates it).
+        existing = await _adopt_realm_salon(guild, category, key, name)
         channel = (
             existing if existing is not None else await guild.create_text_channel(name, category=category)
         )
@@ -415,6 +457,16 @@ async def ensure_realm_structure(
                 logger.info("KINGDOM REALMS: removed salon %s", _name)
             except Exception:
                 logger.warning("KINGDOM REALMS: salon removal failed (%s)", _name, exc_info=True)
+
+    # ordre-salons-v1 (Drasah 19/10): a freshly created realm category
+    # falls to the bottom of the sidebar — re-apply Drasah's order so
+    # Admin (and Profils) stay behind the last realm, as decreed.
+    try:
+        from kingdoms.mods.kingdoms.kingdom_setup import _enforce_category_order
+
+        await _enforce_category_order(guild)
+    except Exception:
+        logger.warning("KINGDOM REALMS: category order re-apply failed", exc_info=True)
 
     return category
 
@@ -489,17 +541,28 @@ async def delete_orphan_realm_categories(guild: discord.Guild, kingdoms: Any) ->
     matches a current kingdom's name, or when it is Gaïa's own declared
     structure (« Royaume Gaïa », kept unconditionally).
     """
-    # Gaïa's declared structure (« Royaume Gaïa ») slugs to the same
-    # ``royaume-`` prefix as the player realms — it must NEVER be swept
-    # as an orphan (Drasah's live incident 2026-10-11: the category and
-    # its three salons vanished after a launch). It is kept even when
-    # the kingdoms list is unavailable.
+    # Gaïa's declared structure (« 🏰 ɢᴀɪᴀ », slugging to « gaia ») must
+    # NEVER be swept as an orphan (Drasah's live incident 2026-10-11:
+    # the category and its three salons vanished after a launch). It is
+    # kept even when the kingdoms list is unavailable. ordre-salons-v1:
+    # the keep set covers the charte form AND the legacy « Royaume Gaïa ».
     keep = {_slug(realm_category_name(GAIA_KINGDOM_DISPLAY))}
+    keep |= {_slug(f"Royaume {GAIA_KINGDOM_DISPLAY}")}
     keep |= {_slug(realm_category_name(k.name)) for k in kingdoms if not k.is_gaia}
+    keep |= {_slug(f"Royaume {k.name}") for k in kingdoms if not k.is_gaia}
+    # ordre-salons-v1: the charte realm categories are « 🏰 Nom » — the
+    # 🏰 prefix also covers the structure categories: their naked slugs
+    # are exempt, gaia is kept above.
+    structure_exempt = {"kingdoms", "gaia"}
     deleted = 0
     for category in list(getattr(guild, "categories", [])):
-        slug = _slug(getattr(category, "name", ""))
-        if not slug.startswith("royaume-") or slug in keep:
+        raw_name = str(getattr(category, "name", ""))
+        slug = _slug(raw_name)
+        is_realm = (
+            slug.startswith("royaume-")
+            or (raw_name.startswith("🏰 ") and slug not in structure_exempt)
+        )
+        if not is_realm or slug in keep:
             continue
         try:
             await grant_bot_access_to_category(guild, category)

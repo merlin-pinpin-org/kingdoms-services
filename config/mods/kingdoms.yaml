@@ -13,32 +13,30 @@ seasonal: true
 settings: {}
 channel_groups:
   - key: profiles
-    display_name: Profils
+    display_name: 👤 ᴘʀᴏꜰɪʟs
   # restructuration-serveur-v1 e (Drasah 19/10): the general group is
   # GONE ENTIRELY (Taverne + the vocal) — nothing is kept or moved.
   - key: conscription
-    display_name: Conscription
+    display_name: ✒️ ᴄᴏɴsᴄʀɪᴘᴛɪᴏɴ
   - key: kingdoms
-    display_name: Kingdoms
+    display_name: 🏰 ᴋɪɴɢᴅᴏᴍs
   - key: gaia
-    display_name: Royaume Gaïa
+    display_name: 🏰 ɢᴀɪᴀ
   - key: battlefield
-    display_name: Champs de Bataille
+    display_name: ⚔️ ᴄʜᴀᴍᴘs ᴅᴇ ʙᴀᴛᴀɪʟʟᴇ
   - key: admin
-    display_name: Admin
+    display_name: ⚙️ ᴀᴅᴍɪɴ
     admin_only: true
-  - key: support
-    display_name: Support
 channels:
   # restructuration-serveur-v1 e (Drasah 19/10): the general group and
   # its Taverne are RETIRED — the category disappears at the next
   # provisioning (the legacy cleanup sweeps both).
   - key: apply
-    display_name: Postuler
+    display_name: 📝 postuler
     description: The enrollment panel channel
     group: conscription
   - key: applications
-    display_name: Candidatures
+    display_name: 📥 candidatures
     description: Submitted applications (admin only)
     group: conscription
     admin_only: true
@@ -46,7 +44,7 @@ channels:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: realms
-    display_name: Royaumes
+    display_name: 👑 royaumes
     description: Kingdom validation panel (admin only)
     group: conscription
     admin_only: true
@@ -54,7 +52,7 @@ channels:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: scriptorium
-    display_name: 📜 Scriptorium
+    display_name: 📜 scriptorium
     description: Sommaire — Cadastre, Diplomatie, Seigneurie (ephemeral rubrics)
     group: kingdoms
     # permissions-serveur-v1 (Drasah 19/10): a newcomer sees only
@@ -64,14 +62,14 @@ channels:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: market
-    display_name: Marché
+    display_name: 🛒 marché
     description: Kingdoms market (trades and resources)
     group: kingdoms
     access:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: geopolitics
-    display_name: Géopolitique
+    display_name: 🌍 géopolitique
     description: Announcements, treaties and political rules
     group: kingdoms
     # permissions-serveur-v1: the pinned age message lives here (the
@@ -80,7 +78,7 @@ channels:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: territory
-    display_name: Territoire
+    display_name: 🗺️ territoire
     description: Territories and their cadastre effects — plus the Gaïa AI level (restructuration-serveur-v1 c, Drasah 19/10)
     group: gaia
     # restructuration-serveur-v1 c (Drasah 19/10): patrol (AI level)
@@ -90,14 +88,14 @@ channels:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: attack
-    display_name: Déclarer une attaque
+    display_name: ⚔️ déclarer une attaque
     description: The guided attack declaration panel
     group: battlefield
     access:
       everyone_view: false
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: talks
-    display_name: Pourparlers
+    display_name: 🕊️ pourparlers
     description: War negotiations
     group: battlefield
     access:
@@ -105,7 +103,7 @@ channels:
       view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
       post: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: settings
-    display_name: Paramètres
+    display_name: ⚙️ paramètres
     description: Mod settings panel channel
     group: admin
     # permissions-serveur-v1: the admin category and its salons are
@@ -116,14 +114,14 @@ channels:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: season_management
-    display_name: Gestion saison
+    display_name: 🗓️ gestion saison
     description: Season management (admin only)
     group: admin
     access:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: time_machine
-    display_name: Machine à temps
+    display_name: ⏱️ machine à temps
     description: Game-clock test panel — fast-forward and snapshots (admin only)
     group: admin
     admin_only: true
@@ -131,7 +129,7 @@ channels:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: distributor
-    display_name: Distributeur
+    display_name: 🎁 distributeur
     description: Admin test injector — hand elements to a kingdom (admin only)
     group: admin
     admin_only: true
@@ -147,28 +145,16 @@ channels:
       everyone_view: false
       view: [Kingdoms Admin]
   - key: requests
-    display_name: Demandes
+    display_name: 📬 demandes
     description: Edit/leave requests (admin only)
     group: admin
     access:
       everyone_view: false
       view: [Kingdoms Admin]
-  - key: question
-    display_name: Question
-    description: Player questions
-    group: support
-    kind: forum
-    access:
-      everyone_view: false
-      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
-  - key: bug
-    display_name: Signaler un Bug
-    description: Bug reports
-    group: support
-    kind: forum
-    access:
-      everyone_view: false
-      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
+  # ordre-salons-v1 (Drasah 19/10): the Support group (question /
+  # signaler-un-bug forums) is RETIRED — it read as a duplicate of the
+  # admin salons; the anonymous Pigeon already handles a missing
+  # question salon gracefully. Both slugs join LEGACY_SALON_SLUGS.
 roles:
   - key: kingdoms_king
     display_name: Kingdoms King

@@ -4279,9 +4279,16 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
         in_epoch = (
             category is not None and _slug(getattr(category, "name", "")) == _slug("Époque")
         )
+        # ordre-salons-v1 (Drasah 19/10): the realm categories now read
+        # « 🏰 Nom » — the detection keeps the legacy « royaume- » slug
+        # AND matches the charte's 🏰 prefix (the declared structure
+        # categories are caught by structure_names below either way).
         in_realm = (
             category is not None
-            and _slug(getattr(category, "name", "")).startswith("royaume-")
+            and (
+                _slug(getattr(category, "name", "")).startswith("royaume-")
+                or str(getattr(category, "name", "")).startswith("🏰 ")
+            )
         )
         # realm salons die with their kingdom; orphans at the guild root
         # (leftovers of an older reset) match a realm salon slug
@@ -4289,8 +4296,13 @@ async def _delete_matching_channels(guild: discord.Guild, structure_names: set[s
             category is None and _slug(channel.name) in realm_slugs
         )
         name = _slug(channel.name)
+        # ordre-salons-v1: the decorative dividers (« ┈┈ ✦ ┈┈ ») slug to
+        # the empty string — sweep them so a reinstall never duplicates
+        # them or leaves them orphaned at the guild root.
+        divider = category is None and name == ""
         if (
-            in_epoch
+            divider
+            or in_epoch
             or in_realm
             or realm_leftover
             or (not in_realm and (name in structure_names or name.startswith("profil-")))
@@ -4317,7 +4329,14 @@ async def _delete_matching_categories(guild: discord.Guild, structure_names: set
     deleted = 0
     for category in list(getattr(guild, "categories", [])):
         slug = _slug(category.name)
-        if slug in structure_names or slug.startswith("royaume-"):
+        raw_name = str(getattr(category, "name", ""))
+        # ordre-salons-v1 (Drasah 19/10): the realm categories now read
+        # « 🏰 Nom » — keep sweeping the legacy « royaume- » slugs AND
+        # the charte 🏰 prefix (a reset purges the whole structure).
+        is_match = slug in structure_names or slug.startswith("royaume-")
+        if not is_match and raw_name.startswith("🏰 "):
+            is_match = True
+        if is_match:
             try:
                 await grant_bot_access_to_category(guild, category)
                 # deleting a category leaves its channels orphaned at the
