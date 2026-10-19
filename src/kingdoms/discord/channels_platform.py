@@ -192,7 +192,10 @@ class DiscordChannelsPlatform:
         if guild is None or not channel_id.isdigit():
             return
         channel = guild.get_channel(int(channel_id))
-        if not isinstance(channel, discord.TextChannel):
+        # permissions-serveur-v1: the declared access policies cover the
+        # Support forums too (kind: forum) — both channel types carry
+        # the same set_permissions seam.
+        if not isinstance(channel, (discord.TextChannel, discord.ForumChannel)):
             return
         if bool(policy.get("bot_overwrite", True)):
             await channel.set_permissions(

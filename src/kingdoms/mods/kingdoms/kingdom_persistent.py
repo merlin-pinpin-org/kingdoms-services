@@ -3845,6 +3845,14 @@ async def _refresh_season_status_safe(guild: discord.Guild, locale: str) -> None
             if season is not None:
                 progress = season_label(season, wiring.kingdoms_service.config, locale=locale)
         await refresh_season_status(guild, locale, kingdoms=names, queued=queued, progress=progress)
+        # permissions-serveur-v1: the age pin (Géopolitique name emoji
+        # + pinned message) follows every mutation — the age switch,
+        # the season launches and the machine-à-temps jumps ride the
+        # same refresh hook (best effort, never blocks the caller).
+        if wiring.kingdoms_service is not None:
+            from kingdoms.mods.kingdoms.kingdom_content import refresh_age_pin
+
+            await refresh_age_pin(guild, locale, wiring.kingdoms_service)
     except Exception:
         logger.info("KINGDOMS: season status refresh skipped", exc_info=True)
 

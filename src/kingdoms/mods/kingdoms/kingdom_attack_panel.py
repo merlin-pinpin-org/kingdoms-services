@@ -708,14 +708,16 @@ def _geopolitics_channel(guild: Any) -> Any:
     """Return the guild's « Géopolitique » recap salon (None when absent).
 
     Drasah 18/10 v5: the conquest recaps land there.
+    permissions-serveur-v1: the salon's name now carries the current
+    age emoji (« 🗺️ Géopolitique 🌑 ») — the match is on the stable
+    « geopolitique » part of the slug, never the full name.
     """
     from kingdoms.mods.kingdoms.kingdom_setup import _slug
 
     if guild is None:
         return None
-    wanted = _slug(GEOPOLITICS_CHANNEL_NAME)
     return next(
-        (c for c in getattr(guild, "text_channels", []) if _slug(getattr(c, "name", "")) == wanted),
+        (c for c in getattr(guild, "text_channels", []) if "geopolitique" in _slug(getattr(c, "name", ""))),
         None,
     )
 
@@ -1361,11 +1363,22 @@ async def _open_attack_salon_safe(guild: Any, wiring: Any, strings: dict[str, st
     overwrites: dict[Any, discord.PermissionOverwrite] = {}
     everyone = getattr(guild, "default_role", None)
     if everyone is not None:
+        # permissions-serveur-v1 (Drasah 19/10): the attack salons are
+        # masked from @everyone like the rest of the mod — the player
+        # roles (granted at acceptance) carry the view.
         overwrites[everyone] = discord.PermissionOverwrite(
-            view_channel=True,
+            view_channel=False,
             send_messages=False,
-            read_message_history=True,
+            read_message_history=False,
         )
+    for role_name in ("Kingdoms Lord", "Kingdoms King", "Kingdoms Admin"):
+        role = discord.utils.get(getattr(guild, "roles", []), name=role_name)
+        if role is not None:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=False,
+                read_message_history=True,
+            )
     me = getattr(guild, "me", None)
     if me is not None:
         overwrites[me] = discord.PermissionOverwrite(

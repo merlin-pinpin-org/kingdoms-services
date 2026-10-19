@@ -1,9 +1,10 @@
 """Kingdoms mod — salons-first live content (kingdoms#138, group 1).
 
 Best-effort refreshers that keep the designer's channels alive with
-the T2 service only: the fixed-name 🏺 Âge channel carries the current
-age plus the next age-switch countdown and the Géopolitique channel
-receives the enrollment announcements.
+the T2 service only: permissions-serveur-v1 (Drasah 19/10) the age
+lives in Géopolitique (the salon name carries the age emoji and its
+marked message is pinned) and the Géopolitique channel receives the
+enrollment announcements.
 
 Every refresher is marker-based (edit the marked message when present,
 post otherwise) and never raises: a missing channel or service simply
@@ -29,11 +30,28 @@ logger = logging.getLogger("kingdoms.kingdom_content")
 EPOCH_MARKER = "kingdoms:epoch:status"
 PRESENTATION_MARKER = "kingdoms:presentation"
 EPOCH_FALLBACK_CHANNEL = "🏺 Âge"
-AGE_CHANNEL = "🏺 Âge"
-KINGDOMS_CATEGORY = "Kingdoms"
-GEOPOLITICS_CHANNEL = "Géopolitique"
+AGE_CHANNEL = "🏺 Âge"  # permissions-serveur-v1: retired salon, legacy constant
+KINGDOMS_CATEGORY = "Kingdoms"  # legacy: the age salon no longer moves
+GEOPOLITICS_CHANNEL = "Géopolitique"  # the bare base name (the live name carries the age emoji)
 PRESENTATION_CHANNEL = "Présentation"
 REGLES_FORUM = "Règles"
+
+# permissions-serveur-v1 (Drasah 19/10): the 🏺 Âge salon is gone — the
+# Géopolitique salon's NAME carries the current age emoji (renamed at
+# every age switch) and its marked message is the pinned age message.
+GEOPOLITICS_BASE_NAME = "🗺️ Géopolitique"
+AGE_EMOJIS: dict[str, str] = {
+    "dark_age": "🌑",
+    "feudal_age": "🏰",
+    "castle_age": "⛪",
+    "imperial_age": "👑",
+}
+
+
+def _geopolitics_age_name(age_key: Any) -> str:
+    """Render the Géopolitique salon name for one age (« 🗺️ Géopolitique 🌑 »)."""
+    emoji = AGE_EMOJIS.get(str(age_key or ""))
+    return f"{GEOPOLITICS_BASE_NAME} {emoji}" if emoji else GEOPOLITICS_BASE_NAME
 
 # The designer's pitch of the mod (form corrected, content alpha —
 # kingdoms#138). Pinned in the Présentation announce channel.
@@ -125,36 +143,41 @@ def _find_channel(guild: discord.Guild, name: str) -> Any:
     return None
 
 
-async def _epoch_channel(guild: discord.Guild) -> Any:
-    """Return the fixed-name 🏺 Âge channel (kingdoms-patch restructuration-royaume).
+async def _geopolitics_live_channel(guild: discord.Guild) -> Any:
+    """Return the Géopolitique salon (service anchor, name-tolerant fallback).
 
-    The channel keeps its declared key (``kingdoms:epoch`` — the DB
-    resolution adopts the old « Âge sombre » channel), but its NAME is
-    now FIXED: the current age lives in the pinned message, not in the
-    channel name. The stable anchor is the wired ChannelService's
-    resolution; the declared display name is the fallback.
+    permissions-serveur-v1 (Drasah 19/10): the salon's NAME carries the
+    current age emoji (« 🗺️ Géopolitique 🌑 ») and is renamed at every
+    age switch — the stable anchor is the wired ChannelService's
+    ``kingdoms:geopolitics`` resolution; the fallback matches any text
+    channel whose slug contains « geopolitique ».
     """
     from kingdoms.mods.kingdoms.kingdom_persistent import _wiring
-    from kingdoms.mods.kingdoms.kingdom_setup import EPOCH_CHANNEL_KEY, MOD_NAME
+    from kingdoms.mods.kingdoms.kingdom_setup import MOD_NAME
 
     wiring = _wiring()
     if wiring.channel_service is not None:
         try:
             resolved_channel = await wiring.channel_service.get_channel_for_category(
-                str(guild.id), f"{MOD_NAME}:{EPOCH_CHANNEL_KEY}"
+                str(guild.id), f"{MOD_NAME}:geopolitics"
             )
         except Exception:
-            logger.warning("KINGDOM CONTENT: epoch channel lookup failed", exc_info=True)
+            logger.warning("KINGDOM CONTENT: geopolitics channel lookup failed", exc_info=True)
             resolved_channel = None
         if resolved_channel is not None and resolved_channel.id.isdigit():
             channel = guild.get_channel(int(resolved_channel.id))
             if channel is not None:
                 return channel
-    return _find_channel(guild, EPOCH_FALLBACK_CHANNEL)
+    return next((c for c in guild.text_channels if "geopolitique" in _slug(getattr(c, "name", ""))), None)
 
 
-async def _upsert_marked(channel: Any, content: str, marker: str) -> bool:
-    """Edit the marked message of one channel, or post it when missing."""
+async def _upsert_marked(channel: Any, content: str, marker: str, *, pin: bool = False) -> bool:
+    """Edit the marked message of one channel, or post it when missing.
+
+    permissions-serveur-v1: with ``pin`` the freshly posted message is
+    pinned once (best effort) — the edit path never re-pins (the
+    message keeps its pin through the edits).
+    """
     from kingdoms.mods.kingdoms.panel_messages import channel_messages, message_text
 
     for message in await channel_messages(channel):
@@ -164,7 +187,12 @@ async def _upsert_marked(channel: Any, content: str, marker: str) -> bool:
             except Exception:
                 logger.warning("KINGDOM CONTENT: marked refresh failed", exc_info=True)
             return True
-    await channel.send(content)
+    message = await channel.send(content)
+    if pin:
+        try:
+            await message.pin()
+        except Exception:
+            logger.warning("KINGDOM CONTENT: marked message pin failed", exc_info=True)
     return True
 
 
@@ -212,7 +240,7 @@ def _epoch_content(
     ages: list[Any],
     next_switch: datetime,
 ) -> str:
-    """Build the pinned 🏺 Âge message body (age, countdown, scale)."""
+    """Build the pinned Géopolitique age message body (age, countdown, scale)."""
     lines = [
         f"# {strings['epoch_title']} : {display}",
     ]
@@ -241,19 +269,19 @@ def _epoch_content(
     return "\n".join(lines)
 
 
-async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_service: Any) -> bool:
-    """Pin the current age in the fixed-name 🏺 Âge salon (kingdoms-patch).
+async def refresh_age_pin(guild: discord.Guild, locale: str, kingdoms_service: Any) -> bool:
+    """Pin the current age in the Géopolitique salon (permissions-serveur-v1).
 
-    The channel is NO LONGER renamed at each age switch (Drasah's
-    restructuration-royaume decision): the name stays « 🏺 Âge », the
-    current age, the Wednesday-midnight countdown and the age scale
-    live in the pinned message. A legacy « Âge sombre » channel (or a
-    channel stranded in the legacy Époque category) is migrated once:
-    renamed and moved under Kingdoms.
+    Drasah 19/10: the dedicated 🏺 Âge salon is GONE — the age lives in
+    Géopolitique. The salon's NAME carries the current age emoji
+    (« 🗺️ Géopolitique 🌑 », renamed at every age switch) and the
+    marked message (age, Wednesday-midnight countdown, age scale) is
+    PINNED — one message per marker, edited in place, never a pile of
+    pins. Idempotent: re-running renames nothing and edits in place.
     """
     if kingdoms_service is None:
         return False
-    channel = await _epoch_channel(guild)
+    channel = await _geopolitics_live_channel(guild)
     if channel is None:
         return False
     try:
@@ -268,17 +296,12 @@ async def refresh_epoch_channel(guild: discord.Guild, locale: str, kingdoms_serv
             ages,
             _next_age_switch(game_now()),
         )
-        if _slug(channel.name) != _slug(AGE_CHANNEL):
-            await channel.edit(name=AGE_CHANNEL, reason="kingdoms: fixed Âge salon name")
-        category = next(
-            (c for c in getattr(guild, "categories", []) if _slug(getattr(c, "name", "")) == _slug(KINGDOMS_CATEGORY)),
-            None,
-        )
-        if category is not None and getattr(channel, "category_id", None) != category.id:
-            await channel.edit(category=category, reason="kingdoms: move Âge under Kingdoms")
-        return await _upsert_marked(channel, content, EPOCH_MARKER)
+        wanted_name = _geopolitics_age_name(getattr(age, "key", None))
+        if str(getattr(channel, "name", "")) != wanted_name:
+            await channel.edit(name=wanted_name, reason="kingdoms: geopolitics age emoji")
+        return await _upsert_marked(channel, content, EPOCH_MARKER, pin=True)
     except Exception:
-        logger.warning("KINGDOM CONTENT: epoch refresh skipped", exc_info=True)
+        logger.warning("KINGDOM CONTENT: age pin refresh skipped", exc_info=True)
         return False
 
 
@@ -295,7 +318,7 @@ async def _announce_geopolitics_message(
     effort: a missing channel or a refused send returns None and
     never raises.
     """
-    channel = _find_channel(guild, GEOPOLITICS_CHANNEL)
+    channel = await _geopolitics_live_channel(guild)
     if channel is None:
         return None
     try:
@@ -349,8 +372,8 @@ async def refresh_salons_content(guild: discord.Guild, locale: str, kingdoms_ser
     """
     report: dict[str, str] = {}
     try:
-        if await refresh_epoch_channel(guild, locale, kingdoms_service):
-            report["époque"] = "deployed"
+        if await refresh_age_pin(guild, locale, kingdoms_service):
+            report["âge"] = "deployed"
     except Exception:
-        logger.warning("KINGDOM CONTENT: epoch deployment failed", exc_info=True)
+        logger.warning("KINGDOM CONTENT: age pin deployment failed", exc_info=True)
     return report

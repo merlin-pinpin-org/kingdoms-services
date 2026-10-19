@@ -200,7 +200,8 @@ def guide_posts(config: Any) -> list[tuple[str, str, str]]:
                 "• **Territoires** — votre cadastre : chaque territoire détenu, ses effets, "
                 "les attaques en cours ;\n"
                 "• **Marché** — réservé au Roi : trésor, achats, jetons ;\n"
-                "• **🏺 Âge** — l'âge actuel de la saison et le prochain passage.\n\n"
+                "• **Géopolitique** — l'âge actuel de la saison (message épinglé, "
+                "l'emoji du salon suit l'âge) et le prochain passage.\n\n"
                 "➡️ Prochaine étape : 👑 Roi et Seigneurs."
             ),
         ),

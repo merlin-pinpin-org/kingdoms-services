@@ -42,28 +42,43 @@ channels:
     description: Submitted applications (admin only)
     group: conscription
     admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: realms
     display_name: Royaumes
     description: Kingdom validation panel (admin only)
     group: conscription
     admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: scriptorium
     display_name: 📜 Scriptorium
     description: Sommaire — Cadastre, Diplomatie, Seigneurie (ephemeral rubrics)
     group: kingdoms
+    # permissions-serveur-v1 (Drasah 19/10): a newcomer sees only
+    # Conscription and Beta — every other salon denies @everyone and
+    # unlocks through the player roles (granted at acceptance).
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: market
     display_name: Marché
     description: Kingdoms market (trades and resources)
     group: kingdoms
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: geopolitics
     display_name: Géopolitique
     description: Announcements, treaties and political rules
     group: kingdoms
-  - key: epoch
-    display_name: 🏺 Âge
-    description: The current age and the age scale (fixed name — the age lives in the pinned message)
-    group: kingdoms
-    kind: announce
+    # permissions-serveur-v1: the pinned age message lives here (the
+    # dedicated 🏺 Âge salon is gone — its name now carries the age emoji).
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: territory
     display_name: Territoire
     description: Territories and their cadastre effects — plus the Gaïa AI level (restructuration-serveur-v1 c, Drasah 19/10)
@@ -71,51 +86,89 @@ channels:
     # restructuration-serveur-v1 c (Drasah 19/10): patrol (AI level)
     # merged into this Territoire view; exploration is an EPHEMERAL FFA
     # salon opened when a free-for-all manifests — both salons retire.
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: attack
     display_name: Déclarer une attaque
     description: The guided attack declaration panel
     group: battlefield
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: talks
     display_name: Pourparlers
     description: War negotiations
     group: battlefield
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
+      post: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: settings
     display_name: Paramètres
     description: Mod settings panel channel
     group: admin
+    # permissions-serveur-v1: the admin category and its salons are
+    # admin-only — an explicit access block keeps the provisioning's
+    # policy application from re-granting @everyone view (the default
+    # policy is everyone_view: true).
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: season_management
     display_name: Gestion saison
     description: Season management (admin only)
     group: admin
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: time_machine
     display_name: Machine à temps
     description: Game-clock test panel — fast-forward and snapshots (admin only)
     group: admin
     admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: distributor
     display_name: Distributeur
     description: Admin test injector — hand elements to a kingdom (admin only)
     group: admin
     admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: console
     display_name: 🛠 console-admin
     description: The admin test console — text commands, answers in the salon (admin only)
     group: admin
     admin_only: true
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: requests
     display_name: Demandes
     description: Edit/leave requests (admin only)
     group: admin
+    access:
+      everyone_view: false
+      view: [Kingdoms Admin]
   - key: question
     display_name: Question
     description: Player questions
     group: support
     kind: forum
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
   - key: bug
     display_name: Signaler un Bug
     description: Bug reports
     group: support
     kind: forum
+    access:
+      everyone_view: false
+      view: [Kingdoms Lord, Kingdoms King, Kingdoms Admin]
 roles:
   - key: kingdoms_king
     display_name: Kingdoms King

@@ -47,6 +47,8 @@ class TestModDeclaration:
         # exploration, patrol, presentation, rules, season, suggestions,
         # update and tavern salons are gone (Gaïa keeps a single
         # territory salon; the general group is gone entirely).
+        # permissions-serveur-v1 (Drasah 19/10): the epoch salon retires
+        # too — the age lives in Géopolitique (pinned message + emoji).
         assert {c.key for c in kingdoms.channel_categories} == {
             "applications",
             "apply",
@@ -54,7 +56,6 @@ class TestModDeclaration:
             "bug",
             "distributor",
             "console",  # admin-console-v1: the 🛠 console-admin salon
-            "epoch",
             "geopolitics",
             "market",
             "question",
@@ -73,6 +74,34 @@ class TestModDeclaration:
             "kingdoms_admin",
             "kingdoms_locked",
         }
+
+    def test_access_policies_declared(self) -> None:
+        """permissions-serveur-v1 (Drasah 19/10): the gating is DECLARED.
+
+        A newcomer sees only Conscription and Beta — every other salon
+        denies @everyone and unlocks through the player roles (granted
+        at acceptance); the admin salons open only to Kingdoms Admin.
+        """
+        defs = load_mod_definitions(REPO_ROOT / "config")
+        channels = {c.key: c for c in defs["kingdoms"].channel_categories}
+        # The player salons: everyone denied, unlocked by the roles.
+        for key in ("scriptorium", "market", "geopolitics", "territory", "attack"):
+            policy = channels[key].access
+            assert policy is not None
+            assert policy.everyone_view is False
+            assert "Kingdoms Lord" in policy.view
+            assert "Kingdoms Admin" in policy.view
+        # The talks salon also carries post rights.
+        talks = channels["talks"].access
+        assert talks is not None and "Kingdoms King" in talks.post
+        # The admin salons: admin-only view.
+        for key in ("settings", "season_management", "time_machine", "distributor", "console"):
+            policy = channels[key].access
+            assert policy is not None
+            assert policy.everyone_view is False
+            assert list(policy.view) == ["Kingdoms Admin"]
+        # The conscription path stays public: a newcomer must see it.
+        assert channels["apply"].access is None or channels["apply"].access.everyone_view is True
 
 
 class TestSeasonConfig:

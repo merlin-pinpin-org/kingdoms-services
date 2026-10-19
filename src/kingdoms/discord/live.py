@@ -339,17 +339,34 @@ async def ensure_live_dashboard_channel(guild: discord.Guild) -> discord.TextCha
     A legacy ``live-dashboard`` channel (pre-icon) is renamed in place —
     the message registry keeps pointing at the same channel id, so the
     registered dashboard message survives the rename.
+    permissions-serveur-v1 (Drasah 19/10): the channel is masked for
+    @everyone like the rest of the mod — the player roles carry the
+    view; the gating is re-applied on every resolve (idempotent).
     """
-    for channel in guild.text_channels:
-        if channel.name == LIVE_CHANNEL_NAME:
-            return channel
-    for channel in guild.text_channels:
-        if channel.name == LIVE_LEGACY_CHANNEL_NAME:
-            await channel.edit(
-                name=LIVE_CHANNEL_NAME, reason="Kingdoms: live dashboard channel icon (#147)"
-            )
-            return channel
-    return await guild.create_text_channel(LIVE_CHANNEL_NAME, reason="Kingdoms live test dashboard (#147)")
+    from kingdoms.discord.player_access import apply_player_gating
+
+    channel: discord.TextChannel | None = None
+    for candidate in guild.text_channels:
+        if candidate.name == LIVE_CHANNEL_NAME:
+            channel = candidate
+            break
+    if channel is None:
+        for candidate in guild.text_channels:
+            if candidate.name == LIVE_LEGACY_CHANNEL_NAME:
+                await candidate.edit(
+                    name=LIVE_CHANNEL_NAME, reason="Kingdoms: live dashboard channel icon (#147)"
+                )
+                channel = candidate
+                break
+    if channel is None:
+        channel = await guild.create_text_channel(
+            LIVE_CHANNEL_NAME, reason="Kingdoms live test dashboard (#147)"
+        )
+    try:
+        await apply_player_gating(guild, channel)
+    except Exception:
+        logger.warning("LIVE DASHBOARD: player gating failed", exc_info=True)
+    return channel
 
 
 async def ensure_live_dashboard(

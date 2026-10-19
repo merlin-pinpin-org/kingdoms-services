@@ -1,9 +1,10 @@
 """discord.py platform seam for the 🏛-kingdoms-home managed channel.
 
-The home channel is the guild's front door: public by design (the
-pinned menu's buttons answer ephemerally, guarded at click time), so
-unlike the admin channel its policy applies no visibility restriction —
-a read of the home grants nothing.
+The home channel's pinned menu's buttons answer ephemerally, guarded at
+click time. permissions-serveur-v1 (Drasah 19/10): the channel is now
+masked for @everyone like the rest of the mod — the player roles
+(granted at acceptance) carry the view; the read-only pinned policy
+stays.
 """
 from __future__ import annotations
 
@@ -54,12 +55,24 @@ class DiscordHomeChannelPlatform:
         return guild.get_channel(int(channel_id)) is not None
 
     async def apply_policy(self, guild_id: str, channel_id: str) -> None:
-        """Apply the pinned read-only default: public to read, closed to write."""
+        """Apply the pinned read-only default + the player gating.
+
+        permissions-serveur-v1 (Drasah 19/10): the home channel is now
+        masked for @everyone (a newcomer sees only Conscription and
+        Beta) — the player roles granted at acceptance unlock it. The
+        read-only pinned policy stays.
+        """
+        from kingdoms.discord.player_access import apply_player_gating
         from kingdoms.discord.pinned_views import apply_read_only_policy
 
         guild = await self._guild(guild_id)
         channel = guild.get_channel(int(channel_id)) if guild and channel_id.isdigit() else None
         await apply_read_only_policy(guild, channel, "home", guild_id)
+        if guild is not None and isinstance(channel, discord.TextChannel):
+            try:
+                await apply_player_gating(guild, channel)
+            except Exception:
+                logger.warning("HOME CHANNEL: player gating failed", exc_info=True)
 
     async def send_layout(self, guild_id: str, channel_id: str, layout: Any) -> str:
         """Send a layout (a discord.py view) to the channel; the message id."""

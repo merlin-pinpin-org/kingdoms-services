@@ -61,30 +61,38 @@ def _find_channel(
     return None
 
 
-EPOCH_CATEGORY = "Époque"
-"""The group that holds the renameable current-age channel (kingdoms#138):
-the channel is renamed at each age switch, so the core adopts it by group
-(``adopt: group_single`` in the declaration), whatever its name."""
-
 EPOCH_CHANNEL_KEY = "epoch"
+"""permissions-serveur-v1 (Drasah 19/10): the dedicated 🏺 Âge salon is
+RETIRED — the age lives in Géopolitique (name emoji + pinned message).
+The key stays ONLY as the declared-channel lookups' legacy: the channel
+is swept by ``LEGACY_SALON_SLUGS`` at the next provisioning."""
 
 
-async def _enforce_epoch_overwrites(guild: discord.Guild, channel: discord.TextChannel) -> None:
-    """Make the epoch channel read-only for @everyone (best effort).
+async def _enforce_admin_category_deny(guild: discord.Guild) -> None:
+    """Hide the Admin category from non-admins (best effort, idempotent).
 
-    Decision (lecture stricte): the bot writes the current age, the
-    players read it. Enforcement is idempotent and re-applied at every
-    bootstrap so adopted channels converge too.
+    permissions-serveur-v1 (Drasah 19/10): the admin category must be
+    masked for @everyone. Creation-time overwrites only apply to CREATED
+    categories — an adopted one (provisioned before the flag) keeps its
+    legacy overwrites, so the deny is re-applied at every bootstrap. The
+    bot keeps its explicit allow (lesson Check 75: it is no admin).
     """
+    category = _find_category(guild, "Admin")
+    if category is None:
+        return
     try:
-        overwrite = discord.PermissionOverwrite(view_channel=True, send_messages=False)
-        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+        await category.set_permissions(
+            guild.default_role, overwrite=discord.PermissionOverwrite(view_channel=False)
+        )
         if guild.me is not None:
-            await channel.set_permissions(
-                guild.me, overwrite=discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            await category.set_permissions(
+                guild.me,
+                overwrite=discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, manage_channels=True
+                ),
             )
     except Exception:
-        logger.warning("KINGDOM SETUP: epoch overwrites failed", exc_info=True)
+        logger.warning("KINGDOM SETUP: admin category deny failed", exc_info=True)
 
 
 async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str]]:
@@ -103,10 +111,9 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
     if channel_service is None:
         raise RuntimeError("the ChannelService is not wired — the salons-first bootstrap needs the platform services")
     report = await channel_service.provision_mod_channels(str(guild.id), MOD_NAME)
-    epoch_id = report.channel_ids.get(EPOCH_CHANNEL_KEY)
-    epoch_channel = guild.get_channel(int(epoch_id)) if epoch_id and epoch_id.isdigit() else None
-    if isinstance(epoch_channel, discord.TextChannel):
-        await _enforce_epoch_overwrites(guild, epoch_channel)
+    # permissions-serveur-v1: the Admin category stays hidden from
+    # non-admins even when it was adopted long before the flag.
+    await _enforce_admin_category_deny(guild)
     # admin-console-v1: the console salon gets its pinned welcome message.
     console_id = report.channel_ids.get("console")
     console_channel = guild.get_channel(int(console_id)) if console_id and console_id.isdigit() else None
@@ -114,7 +121,7 @@ async def provision_structure(guild: discord.Guild) -> tuple[list[str], list[str
         from kingdoms.mods.kingdoms.admin_console import ensure_console_welcome
 
         await ensure_console_welcome(console_channel)
-    await cleanup_legacy_structure(guild, str(epoch_id or ""))
+    await cleanup_legacy_structure(guild)
     return list(report.created), list(report.adopted)
 
 
@@ -141,6 +148,9 @@ LEGACY_SALON_SLUGS: tuple[str, ...] = (
     # restructuration-serveur-v1 e (Drasah 19/10): the general group
     # disappears ENTIRELY — the Taverne leaves with its category.
     "taverne",
+    # permissions-serveur-v1 (Drasah 19/10): the dedicated 🏺 Âge salon
+    # retires — the age (emoji + pinned message) lives in Géopolitique.
+    "🏺-age",
 )
 """The retired salons-first rubric salons (patch restructuration-royaume):
 their content moved into the Scriptorium ephemeral rubrics — plus the
@@ -155,7 +165,8 @@ Taverne (restructuration-serveur-v1 e: the general group is gone)."""
 
 LEGACY_CATEGORY_NAMES: tuple[str, ...] = ("Époque", "Scriptorium", "Général")
 """The retired group categories — the epoch salon now lives under
-Kingdoms, and the general group disappeared entirely
+Kingdoms (then retired with it — permissions-serveur-v1), and the
+general group disappeared entirely
 (restructuration-serveur-v1 e, Drasah 19/10: Taverne + the vocal go
 with the category)."""
 
@@ -171,9 +182,10 @@ KINGDOMS_CATEGORY_ORDER: tuple[str, ...] = (
     "📜 Scriptorium",
     "Marché",
     "Géopolitique",
-    "🏺 Âge",
 )
-"""Drasah's chosen order of the four Kingdoms-category salons."""
+"""Drasah's chosen order of the Kingdoms-category salons
+(permissions-serveur-v1: the 🏺 Âge salon retired — the age lives in
+Géopolitique's pinned message)."""
 
 
 async def _cleanup_legacy_salons(guild: discord.Guild, epoch_channel_id: int) -> list[str]:
@@ -264,9 +276,10 @@ async def _reorder_kingdoms_salons(guild: discord.Guild) -> None:
 async def cleanup_legacy_structure(guild: discord.Guild, epoch_id: str = "") -> list[str]:
     """Retire the pre-restructuration salons and categories (best effort).
 
-    Idempotent: missing salons/categories are simply skipped, the epoch
-    channel is NEVER touched (it keeps its declared key, its name and
-    category are managed by ``refresh_epoch_channel``). Returns the
+    Idempotent: missing salons/categories are simply skipped. The
+    ``epoch_id`` spare is a legacy no-op kept for the call sites'
+    signature (permissions-serveur-v1: the 🏺 Âge salon is retired like
+    the other legacy salons — nothing is spared anymore). Returns the
     display names of what was removed.
     """
     epoch_channel_id = int(epoch_id) if epoch_id.isdigit() else 0

@@ -214,12 +214,14 @@ async def test_declaration_opens_the_attack_salon() -> None:
     assert "vs" not in salon.name.lower()
     # Positioned right under the declare salon.
     assert salon.position == declare.position + 1
-    # Check 75: @everyone denied send, the bot carries its own overwrite.
+    # Check 75: the bot carries its own overwrite.
+    # permissions-serveur-v1 (Drasah 19/10): @everyone is denied VIEW
+    # too (a newcomer sees nothing) — the player roles carry the view.
     overwrites = dict(getattr(salon, "overwrites", {}) or {})
     everyone = overwrites.get(guild.default_role)
     assert everyone is not None
     assert everyone.send_messages is False
-    assert everyone.view_channel is True
+    assert everyone.view_channel is False
     mine = overwrites.get(guild.me)
     assert mine is not None
     assert mine.send_messages is True

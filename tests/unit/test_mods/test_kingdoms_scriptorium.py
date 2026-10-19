@@ -267,19 +267,22 @@ async def test_cleanup_legacy_structure_retires_salons_and_categories() -> None:
     from tests.mocks.discord_mock import MockGuild
 
     guild = MockGuild()
-    epoch = await guild.create_text_channel("🏺 Âge")
+    # permissions-serveur-v1 (Drasah 19/10): the 🏺 Âge salon retires
+    # like the other legacy salons (the age lives in Géopolitique).
+    await guild.create_text_channel("🏺 Âge")
     await guild.create_text_channel("Seigneurs")
     await guild.create_text_channel("Diplomatie")
     await guild.create_text_channel("Cadastre")
-    removed = await cleanup_legacy_structure(guild, str(epoch.id))
+    removed = await cleanup_legacy_structure(guild)
     assert "Seigneurs" in removed
     assert "Diplomatie" in removed
     assert "Cadastre" in removed
+    assert "🏺 Âge" in removed
     remaining = [c.name for c in guild.text_channels]
     assert "Seigneurs" not in remaining
     assert "Diplomatie" not in remaining
     assert "Cadastre" not in remaining
-    assert "🏺 Âge" in remaining
+    assert "🏺 Âge" not in remaining
 
 
 async def test_cleanup_removes_the_battle_room_duplicate_category() -> None:
