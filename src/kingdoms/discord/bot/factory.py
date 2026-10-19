@@ -210,7 +210,6 @@ class KingdomsBot(discord.Client):
         from kingdoms.discord.admin_dm_panel import register_admin_dm_items
         from kingdoms.discord.admin_tree import register_admin_tree_items
         from kingdoms.discord.entity_admin_menu import register_entity_admin_items
-        from kingdoms.discord.guild_access_request import register_guild_access_request_items
         from kingdoms.discord.guild_context import register_guild_context_items
         from kingdoms.discord.maps_pool_flow import register_pool_flow_items
 
@@ -222,7 +221,6 @@ class KingdomsBot(discord.Client):
         register_roles_admin_items(self)
         register_admin_dm_items(self)
         register_admin_tree_items(self)
-        register_guild_access_request_items(self)
 
         if self.state_service is not None:
             await self.state_service.start()
@@ -712,11 +710,10 @@ class KingdomsBot(discord.Client):
         mod_roles_service: ModRolesService,
         registry: ModRegistry,
     ) -> None:
-        """Provision channels and roles for the guild's granted mods (best-effort, idempotent).
+        """Provision channels and roles for the guild's mods (best-effort, idempotent).
 
-        Nothing is active by default: only the mods the guild was
-        granted through the access service (bot-admin DM approval) are
-        provisioned — the per-guild activation seam.
+        Every mod is active by default; the access service only ever
+        restricts (the future private-mod seam).
         """
         from kingdoms.discord.wiring import build_guild_access_service
 
@@ -727,9 +724,7 @@ class KingdomsBot(discord.Client):
             except Exception:
                 logger.warning("GUILD ACCESS read failed (guild %s) — best-effort", guild_id, exc_info=True)
                 return
-            if not granted:
-                logger.info("MODS SKIPPED (guild %s) — no access granted yet", guild_id)
-                return
+
         for mod_name, definition in registry.enabled().items():
             if access is not None and mod_name not in granted:
                 continue

@@ -9,22 +9,21 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="kingdoms.html" class="white">kingdoms</a>.<a href="kingdoms.discord.html" class="white">discord</a>.admin_tree</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:SOURCE_ROOT/discord/admin_tree.py">SOURCE_ROOT/discord/admin_tree.py</a></td></tr></table>
-    <p><span class="code">The&nbsp;new&nbsp;admin&nbsp;menu:&nbsp;language,&nbsp;tree&nbsp;channels,&nbsp;roles&nbsp;(the&nbsp;sessions'&nbsp;design).<br>
+    <p><span class="code">The&nbsp;admin&nbsp;menu:&nbsp;language,&nbsp;games,&nbsp;mods,&nbsp;and&nbsp;the&nbsp;provisioning&nbsp;ensure.<br>
 &nbsp;<br>
-One&nbsp;ephemeral&nbsp;menu,&nbsp;three&nbsp;sections,&nbsp;every&nbsp;item&nbsp;a&nbsp;DynamicItem&nbsp;(the&nbsp;§3b<br>
+One&nbsp;ephemeral&nbsp;menu,&nbsp;four&nbsp;openers,&nbsp;every&nbsp;item&nbsp;a&nbsp;DynamicItem&nbsp;(the&nbsp;§3b<br>
 reconstruction&nbsp;contract&nbsp;—&nbsp;a&nbsp;click&nbsp;is&nbsp;restart-proof):<br>
 &nbsp;<br>
--&nbsp;``admin:tree:lang``&nbsp;—&nbsp;the&nbsp;guild's&nbsp;language&nbsp;(select);<br>
--&nbsp;``admin:tree:channels``&nbsp;—&nbsp;the&nbsp;picker&nbsp;of&nbsp;every&nbsp;tree&nbsp;channel&nbsp;the&nbsp;bot<br>
-&nbsp;&nbsp;manages;&nbsp;the&nbsp;sub-menu&nbsp;shows&nbsp;the<br>
-&nbsp;&nbsp;channel's&nbsp;status&nbsp;and&nbsp;offers&nbsp;a&nbsp;reroute&nbsp;(a&nbsp;native&nbsp;channel&nbsp;select,<br>
-&nbsp;&nbsp;since&nbsp;Discord's&nbsp;ChannelSelect&nbsp;cannot&nbsp;be&nbsp;pre-filtered)&nbsp;and&nbsp;a<br>
-&nbsp;&nbsp;read-only&nbsp;lock&nbsp;toggle;<br>
--&nbsp;``admin:tree:roles``&nbsp;—&nbsp;the&nbsp;roles&nbsp;view&nbsp;(core&nbsp;+&nbsp;function&nbsp;mappings),<br>
-&nbsp;&nbsp;served&nbsp;by&nbsp;the&nbsp;existing&nbsp;roles&nbsp;surface.<br>
+-&nbsp;``admin:tree:lang``&nbsp;—&nbsp;the&nbsp;guild's&nbsp;language&nbsp;(modal&nbsp;select);<br>
+-&nbsp;``admin:tree:games``&nbsp;/&nbsp;``admin:tree:mods``&nbsp;—&nbsp;the&nbsp;scope&nbsp;admin&nbsp;menus<br>
+&nbsp;&nbsp;(the&nbsp;shared&nbsp;admin&nbsp;dispatches);<br>
+-&nbsp;``admin:tree:ensure:&lt;scope&gt;``&nbsp;—&nbsp;re-provision&nbsp;one&nbsp;scope's&nbsp;channels<br>
+&nbsp;&nbsp;(and&nbsp;the&nbsp;mod/game&nbsp;roles)&nbsp;and&nbsp;refresh&nbsp;the&nbsp;pinned&nbsp;menus.<br>
 &nbsp;<br>
-The&nbsp;access&nbsp;(games/mods)&nbsp;management&nbsp;lives&nbsp;in&nbsp;the&nbsp;scope&nbsp;admin&nbsp;menus<br>
-(``games/admin``,&nbsp;``mods/admin``)&nbsp;—&nbsp;never&nbsp;here.</span></p>
+The&nbsp;roles/channel-management&nbsp;views&nbsp;are&nbsp;gone:&nbsp;the&nbsp;tree&nbsp;is&nbsp;declared&nbsp;and<br>
+provisioned&nbsp;(panels_scopes&nbsp;+&nbsp;panels_provisioning),&nbsp;the&nbsp;admin&nbsp;surfaces<br>
+carry&nbsp;an&nbsp;ensure&nbsp;button&nbsp;instead,&nbsp;and&nbsp;the&nbsp;homes&nbsp;explain&nbsp;the&nbsp;layout&nbsp;in&nbsp;a<br>
+contextual&nbsp;notice.</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -40,14 +39,14 @@ The&nbsp;access&nbsp;(games/mods)&nbsp;management&nbsp;lives&nbsp;in&nbsp;the&nb
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>async <a name="-build_admin_menu"><strong>build_admin_menu</strong></a>(guild_id: 'str', locale: 'str', interaction: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;light&nbsp;admin&nbsp;menu:&nbsp;five&nbsp;opener&nbsp;buttons&nbsp;(DynamicItems).</span></dd></dl>
- <dl><dt><a name="-register_admin_tree_items"><strong>register_admin_tree_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;new&nbsp;admin&nbsp;menu's&nbsp;DynamicItems&nbsp;(every&nbsp;startup).</span></dd></dl>
+<td class="singlecolumn"><dl><dt>async <a name="-build_admin_menu"><strong>build_admin_menu</strong></a>(guild_id: 'str', locale: 'str', interaction: 'Any' = None) -&gt; 'discord.ui.LayoutView'</dt><dd><span class="code">Build&nbsp;the&nbsp;light&nbsp;admin&nbsp;menu:&nbsp;lang/games/mods&nbsp;openers&nbsp;+&nbsp;ensure.</span></dd></dl>
+ <dl><dt><a name="-ensure_button"><strong>ensure_button</strong></a>(scope: 'str', label: 'str' = 'Tout regénérer') -&gt; 'TreeEnsureButton'</dt><dd><span class="code">Build&nbsp;an&nbsp;ensure&nbsp;button&nbsp;for&nbsp;one&nbsp;scope&nbsp;(the&nbsp;scope&nbsp;admin&nbsp;menus).</span></dd></dl>
+ <dl><dt><a name="-register_admin_tree_items"><strong>register_admin_tree_items</strong></a>(bot: 'discord.Client') -&gt; 'None'</dt><dd><span class="code">Register&nbsp;the&nbsp;admin&nbsp;menu's&nbsp;DynamicItems&nbsp;(every&nbsp;startup).</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['build_admin_menu', 'register_admin_tree_items']<br>
-<strong>__annotations__</strong> = {'_PIN_ROLES': 'dict[str, str]'}</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['build_admin_menu', 'ensure_button', 'register_admin_tree_items']</td></tr></table>
 </body></html>

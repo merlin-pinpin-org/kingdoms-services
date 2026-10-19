@@ -107,8 +107,8 @@ fr:
       admin_btn_language: Langue
       admin_btn_channels: Salons
       admin_btn_roles: Rôles
-      admin_btn_games: Jeux (admin)
-      admin_btn_mods: Mods (admin)
+      admin_btn_games: Jeux
+      admin_btn_mods: Mods
       status_unavailable: Status indisponible.
       roster_unavailable: Roster indisponible (store non configuré).
       guild_not_found: Serveur introuvable.
@@ -129,10 +129,9 @@ fr:
       back_to_admin: Retour au menu admin
       admin_failed: Le panneau des rôles a échoué — voir les logs du bot.
       language_btn: Langue
-      channels_btn: Salons
-      roles_btn: Rôles
-      games_btn: Jeux (admin)
-      mods_btn: Mods (admin)
+      games_btn: Jeux
+      mods_btn: Mods
+      ensure_btn: Tout regénérer
       channel_access_everyone: '👁️ Lecture : @everyone
 
         ✍️ Écriture : @everyone'
@@ -467,8 +466,6 @@ fr:
       heading_perimeters: 📦 Périmètres
       heading_configuration: ⚙️ Configuration
       btn_list: Liste
-      btn_request_access: Demander l'accès
-      btn_channels_roles: Salons & rôles
       available_games: 'Jeux disponibles :'
       available_mods: 'Mods disponibles :'
       btn_mods: Mods
@@ -476,5 +473,5 @@ fr:
       heading_actions: 🎩 Actions
       btn_add_map: Ajouter une map
       btn_create_pool: Créer un map pool
-      btn_revoke_access: Retirer l'accès
+      btn_ensure: Tout regénérer
       bot_home_description: L'exploitation du bot — logs, administration, décisions.

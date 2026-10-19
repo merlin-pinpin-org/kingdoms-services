@@ -66,7 +66,8 @@ def build_menu(spec: MenuSpec) -> discord.ui.LayoutView:
             blocks.append(discord.ui.TextDisplay(f"## {section.heading_key}"))
         blocks.append(row)
     for line in spec.extra_lines:
-        blocks.append(discord.ui.TextDisplay(line))
+        if line:
+            blocks.append(discord.ui.TextDisplay(line))
     view = discord.ui.LayoutView(timeout=None)
     view.add_item(discord.ui.Container(*blocks, accent_colour=discord.Colour(ACCENT)))
     if spec.view_id:

@@ -56,6 +56,35 @@ def _tr(catalog: Any, key: str, locale: str, fallback: str = "") -> str:
     return rendered if rendered != key else (fallback or key)
 
 
+
+_ACCESS_LABELS = {
+    "public": "public (lecture + \u00e9criture pour tous)",
+    "readonly": "lecture seule (menus \u00e9pingl\u00e9s du bot uniquement)",
+    "admin": "admin (lecture + \u00e9criture pour les admins du bot)",
+}
+
+
+async def _tree_notice(guild_id: str, scope: str) -> str:
+    """One contextual line: the scope's channels (and access) from the tree.
+
+    The homes explain what the bot provisions instead of offering a
+    management view: the tree is declared (panels_scopes), the admins
+    carry the ensure button.
+    """
+    from kingdoms.discord.ui.panels import registered_scopes
+
+    spec = next((sp for sp in registered_scopes() if sp.scope == scope), None)
+    if spec is None:
+        return ""
+    lines: list[str] = ["\U0001f4cb **Salons de ce p\u00e9rim\u00e8tre** (g\u00e9n\u00e9r\u00e9s par le bot) :"]
+    for decl in spec.channels:
+        label = decl.label_key.rsplit(".", 1)[-1]
+        access = _ACCESS_LABELS.get(decl.access, decl.access)
+        lines.append(f"\u2022 {label} \u2014 {access}")
+    return "\n".join(lines)
+
+
+
 def _scope_channel(scope: str, key: str) -> Any:
     """Build a resolver for one tree channel (stored id only)."""
 
@@ -128,6 +157,7 @@ def _home_builder(bot: Any, scope: str) -> Any:
                 description=description,
                 view_id="view:home" if scope == "root" else scope_view_key(scope, "home"),
                 sections=sections,
+                extra_lines=(await _tree_notice(guild_id, scope),),
             )
         )
 
@@ -197,17 +227,9 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                 )
             )
         if scope in ("games", "mods"):
-            # the perimeter management: granted list, request, revoke,
-            # and the scope's own channels (the shared admin dispatches)
+            # the perimeter view + the provisioning ensure; the access
+            # request/revoke flow is gone (everything is active by default)
             kind = "games" if scope == "games" else "mods"
-            granted_line = await _granted_line(bot, guild_id, kind)
-            available_line = _tr(
-                catalog,
-                "ui.homes.available_" + kind,
-                locale,
-                "Jeux disponibles :" if kind == "games" else "Mods disponibles :",
-            )
-            extra = tuple(line for line in (granted_line, available_line) if line)
             list_view = "games" if scope == "games" else "mods"
             return build_menu(
                 MenuSpec(
@@ -216,9 +238,9 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                         catalog,
                         f"ui.homes.{kind}_admin_description",
                         locale,
-                        "Les p\u00e9rim\u00e8tres accord\u00e9s, les demandes d'acc\u00e8s et la configuration.",
+                        "Les p\u00e9rim\u00e8tres du serveur et leur configuration.",
                     ),
-                    extra_lines=extra,
+                    extra_lines=(await _tree_notice(guild_id, scope),),
                     view_id=scope_view_key(scope, "admin"),
                     sections=(
                         MenuSection(
@@ -229,25 +251,15 @@ def _admin_builder(bot: Any, scope: str) -> Any:
                                     _tr(catalog, "ui.homes.btn_list", locale, "Liste"),
                                     "\U0001f4cb",
                                 ),
-                                (
-                                    f"admin:access:open:{kind}:{guild_id}",
-                                    _tr(catalog, "ui.homes.btn_request_access", locale, "Demander l'acc\u00e8s"),
-                                    "\u2709\ufe0f",
-                                ),
-                                (
-                                    f"admin:access:revoke:{kind}:{guild_id}",
-                                    _tr(catalog, "ui.homes.btn_revoke_access", locale, "Retirer l'acc\u00e8s"),
-                                    "\U0001f5d1",
-                                ),
                             ),
                         ),
                         MenuSection(
                             heading_key=_tr(catalog, "ui.homes.heading_configuration", locale, "Configuration"),
                             buttons=(
                                 (
-                                    "admin:pin:button:roles",
-                                    _tr(catalog, "ui.homes.btn_channels_roles", locale, "Salons & r\u00f4les"),
-                                    "\U0001f6e0\ufe0f",
+                                    f"admin:tree:ensure:{scope}",
+                                    _tr(catalog, "ui.homes.btn_ensure", locale, "Tout reg\u00e9n\u00e9rer"),
+                                    "\U0001f527",
                                 ),
                             ),
                         ),
@@ -279,27 +291,6 @@ def _admin_builder(bot: Any, scope: str) -> Any:
     return _build
 
 
-
-
-async def _granted_line(bot: Any, guild_id: str, kind: str) -> str:
-    """Render the guild's granted games/mods as one menu line (empty when none)."""
-    from kingdoms.discord.wiring import build_guild_access_service
-
-    service = build_guild_access_service()
-    if service is None:
-        return ""
-    try:
-        if kind == "games":
-            granted = await service.enabled_games(guild_id)
-        else:
-            granted = await service.enabled_mods(guild_id)
-    except Exception:
-        logger.warning("SCOPE PINS: granted keys read failed (guild %s)", guild_id, exc_info=True)
-        return ""
-    if not granted:
-        return ""
-    listed = "\n".join(f"\u2022 **{key}**" for key in granted)
-    return listed
 
 
 def register_scope_pins(bot: Any, scopes: tuple[str, ...]) -> list[Any]:

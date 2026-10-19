@@ -107,8 +107,8 @@ en:
       admin_btn_language: Language
       admin_btn_channels: Channels
       admin_btn_roles: Roles
-      admin_btn_games: Games (admin)
-      admin_btn_mods: Mods (admin)
+      admin_btn_games: Games
+      admin_btn_mods: Mods
       status_unavailable: Status unavailable.
       roster_unavailable: Roster unavailable (store not configured).
       guild_not_found: Guild not found.
@@ -129,10 +129,9 @@ en:
       back_to_admin: Back to the admin menu
       admin_failed: The roles panel failed — see the bot logs.
       language_btn: Language
-      channels_btn: Channels
-      roles_btn: Roles
-      games_btn: Games (admin)
-      mods_btn: Mods (admin)
+      games_btn: Games
+      mods_btn: Mods
+      ensure_btn: Rebuild all
       channel_access_everyone: '👁️ Read: @everyone
 
         ✍️ Write: @everyone'
@@ -458,8 +457,6 @@ en:
       heading_perimeters: 📦 Perimeters
       heading_configuration: ⚙️ Configuration
       btn_list: List
-      btn_request_access: Request access
-      btn_channels_roles: Channels & roles
       available_games: 'Available games:'
       available_mods: 'Available mods:'
       btn_mods: Mods
@@ -467,5 +464,5 @@ en:
       heading_actions: 🎩 Actions
       btn_add_map: Add a map
       btn_create_pool: Create a map pool
-      btn_revoke_access: Revoke access
+      btn_ensure: Rebuild all
       bot_home_description: The bot's operation — logs, administration, decisions.

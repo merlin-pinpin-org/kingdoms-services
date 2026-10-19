@@ -1,10 +1,10 @@
 """GuildAccessService: which guild may use which games and mods (core).
 
-A bot admin is cross-guild: they administer the platform from DMs, not
-from any single guild's panel. Conversely, a guild never gets a game or
-mod by default — every registered guild must request access, and a bot
-admin approves it from the admin DM panel. This is the platform's
-isolation seam: nothing is active until explicitly granted.
+A bot admin is cross-guild: they administer the platform from DMs,
+not from any single guild's panel. By default **everything is active**:
+a guild with no access document gets the whole platform catalog. An
+access doc only ever *restricts* — the future private-mod seam (a mod
+needing explicit activation, like kingdoms).
 
 Storage: the ``guild_access`` Mongo collection, one document per guild
 (``guild:<id>``) carrying ``games`` and ``mods`` (lists of granted
@@ -69,14 +69,22 @@ class GuildAccessService:
         return doc
 
     async def enabled_games(self, guild_id: str) -> tuple[str, ...]:
-        """List the games granted to one guild."""
+        """List the games granted to one guild.
+
+        Default open: a guild with no access document (or no granted
+        game) gets the whole platform catalog \u2014 access docs only ever
+        *restrict* (the future private-mod seam). A stored non-empty
+        list keeps its meaning: exactly those games.
+        """
         access = await self.get(guild_id)
-        return tuple(access.get("games") or ())
+        granted = tuple(access.get("games") or ())
+        return granted or self._games
 
     async def enabled_mods(self, guild_id: str) -> tuple[str, ...]:
-        """List the mods granted to one guild."""
+        """List the mods granted to one guild (default: the whole catalog)."""
         access = await self.get(guild_id)
-        return tuple(access.get("mods") or ())
+        granted = tuple(access.get("mods") or ())
+        return granted or self._mods
 
     async def request_access(self, guild_id: str, keys: list[str]) -> dict[str, Any]:
         """Record a guild's request for games/mods (pending approval).

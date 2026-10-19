@@ -55,42 +55,16 @@ from kingdoms.discord.admin import (
 )
 from kingdoms.discord.ui import BLURPLE
 
-__all__ = [
-    "PIN_BACK_BUTTON_ID",
-    "PIN_CHANNEL_MENU_ID",
-    "PIN_LOCALE_SELECT_ID",
-    "PIN_ROLES_BUTTON_ID",
-    "PIN_VISIBILITY_SELECT_ID",
-    "PinBackButton",
-    "PinChannelMenu",
-    "PinLocaleSelect",
-    "PinReadOnlySelect",
-    "PinRolesButton",
-    "PinRouteSelect",
-    "PinVisibilitySelect",
-    "build_pin_channel_menu",
-    "build_pin_main_menu",
-    "pin_route_id",
-]
-
 PIN_LOCALE_SELECT_ID = "admin:pin:select:locale"
 PIN_CHANNEL_MENU_ID = "admin:pin:select:channel"
 PIN_VISIBILITY_SELECT_ID = "admin:pin:select:visibility"
 PIN_BACK_BUTTON_ID = "admin:pin:button:back"
-PIN_ROLES_BUTTON_ID = "admin:pin:button:roles"
 PIN_READ_ONLY_SELECT_ID = "admin:pin:select:read-only"
 
 
 def pin_route_id(category: str) -> str:
     """Return the routing select id of one managed-channel category."""
     return f"admin:pin:route:{category}"[:100]
-
-
-def _roles_row(label: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
-    """Wrap the roles button in its own ActionRow (Discord layout rule)."""
-    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(PinRolesButton(label))
-    return row
 
 
 def _select_row(item: discord.ui.DynamicItem[Any]) -> discord.ui.ActionRow[discord.ui.LayoutView]:
@@ -406,65 +380,6 @@ def spec_registry_resolver() -> dict[str, Any]:
     if not _CLIENT_REF:
         return {}
     return spec_registry(_CLIENT_REF[0])
-
-
-class PinRolesButton(
-    discord.ui.DynamicItem[discord.ui.Button[Any]],
-    template=r"admin:pin:button:roles",
-):
-    """The pinned roles section opener (core roles + mod-declared roles)."""
-
-    def __init__(self, label: str = "Rôles") -> None:
-        super().__init__(
-            discord.ui.Button(
-                label=label,
-                style=discord.ButtonStyle.primary,
-                custom_id=PIN_ROLES_BUTTON_ID,
-            )
-        )
-
-    @classmethod
-    async def from_custom_id(
-        cls,
-        interaction: discord.Interaction,
-        item: discord.ui.Item[Any],
-        match: re.Match[str],
-        /,
-    ) -> PinRolesButton:
-        """Rebuild the button from the wire."""
-        del interaction, item, match
-        return cls()
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Show the roles view through the persistent handler."""
-        from kingdoms.discord.admin_persistent import _handle_roles
-
-        await _handle_roles(interaction)
-
-
-async def _granted_games(guild_id: str) -> tuple[str, ...]:
-    """List the games granted to the guild (access-first, catalog fallback)."""
-    from kingdoms.discord.wiring import granted_game_keys
-
-    if not guild_id:
-        return ()
-    try:
-        from kingdoms.discord.admin_panel_games import _games_wiring
-
-        service = _games_wiring()
-        catalog = tuple(await service.list_game_keys()) if service is not None else ()
-    except Exception:
-        catalog = ()
-    return await granted_game_keys(guild_id, catalog)
-
-
-def _access_request_row(guild_id: str) -> discord.ui.ActionRow[discord.ui.LayoutView]:
-    """Build the access-request row (every guild admin may request)."""
-    from kingdoms.discord.guild_access_request import GuildAccessRequestButton
-
-    row: discord.ui.ActionRow[discord.ui.LayoutView] = discord.ui.ActionRow()
-    row.add_item(GuildAccessRequestButton(guild_id, kind="games"))
-    return row
 
 
 async def build_pin_main_menu(
