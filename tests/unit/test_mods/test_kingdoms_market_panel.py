@@ -564,3 +564,22 @@ def test_wiring_resolves_the_market_services_from_the_bot() -> None:
     assert wiring.territories_service == "territories"
     assert wiring.attacks_service == "attacks"
     assert wiring.diplomacy_service == "diplomacy"
+
+
+async def test_deploy_panels_edits_the_market_panel_in_place_idempotently() -> None:
+    """vues-silencieuses-v1: a re-deployment EDITS the pinned market panel
+    (identity guard → zero API call), never delete+send."""
+    guild = MockGuild()
+    channel = MockTextChannel(name="marché", guild=guild)
+    guild._channels[channel.id] = channel
+
+    await deploy_panels(guild, None)
+    first = channel.messages[-1]
+    first._edited = False  # reset the spy before the idempotent re-run
+
+    await deploy_panels(guild, None)
+
+    live = [m for m in channel.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert live[0] is first  # edited in place, never deleted and resent
+    assert first.edited is False  # unchanged panel → zero API call

@@ -415,3 +415,56 @@ async def test_ensure_member_realm_access_grants_the_missing_king_overwrite() ->
 
     # An unresolvable member cannot be healed but must not raise.
     assert await ensure_member_realm_access(guild, kingdom, 999999) is False
+
+
+async def test_draft_starter_identity_guard_costs_zero_api_calls() -> None:
+    """vues-silencieuses-v1: an unchanged draft starter is left untouched."""
+    from kingdoms.mods.kingdoms.kingdom_realms import ensure_all_realm_structures
+
+    guild = MockGuild()
+    _PhaseKingdom.civilizations = ["azteques"]
+    await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
+    alliances = next(
+        c for c in guild.categories[0].channels if c.name == "🤝 alliances"
+    )
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    first = live[0]
+    first._edited = False  # reset the spy before the idempotent re-run
+
+    await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
+
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1
+    assert live[0] is first
+    assert first.edited is False  # identical content → zero API call
+    _PhaseKingdom.civilizations = []
+
+
+async def test_draft_starter_edited_in_place_and_duplicates_purged() -> None:
+    """vues-silencieuses-v1: a changed draft EDITS the pinned message, and
+    legacy duplicates (double send from an older incident) are swept."""
+    from kingdoms.mods.kingdoms.kingdom_realms import (
+        DRAFT_STARTER_MARKER,
+        ensure_all_realm_structures,
+    )
+
+    guild = MockGuild()
+    _PhaseKingdom.civilizations = ["azteques"]
+    await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
+    alliances = next(
+        c for c in guild.categories[0].channels if c.name == "🤝 alliances"
+    )
+    first = next(m for m in alliances.messages if not getattr(m, "deleted", False))
+    first._edited = False
+    # simulate an older duplicate of the same announcement
+    await alliances.send(f"-# {DRAFT_STARTER_MARKER}")
+
+    _PhaseKingdom.civilizations = ["azteques", "britons"]
+    await ensure_all_realm_structures(guild, _PhaseKingdomsService("started"))
+
+    live = [m for m in alliances.messages if not getattr(m, "deleted", False)]
+    assert len(live) == 1  # the duplicate was purged
+    assert live[0] is first  # the ORIGINAL message keeps its slot
+    assert first.edited is True  # the changed draft landed via edit
+    _PhaseKingdom.civilizations = []

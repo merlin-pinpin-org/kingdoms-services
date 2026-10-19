@@ -648,3 +648,63 @@ async def test_deploy_gaia_content_reads_the_territory_badges() -> None:
     assert "Niveau de l'IA Gaïa : 2/5" in content
     assert "🛡️" in content  # the guarded line
     assert "Lieu sacré" in content or "sacré" in content.lower()
+
+
+async def test_views_are_edited_in_place_not_resent() -> None:
+    """vues-silencieuses-v1: a redeploy EDITS the pinned message, it does
+    not delete+send — the message object survives a re-deployment and the
+    changed content lands in the SAME message (no new pin slot used)."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+
+    await _deploy(guild)
+    channel = _channel(guild, "🏰 le-royaume")
+    first = _live(channel)[0]
+    first._edited = False  # reset the spy before the content-changing re-run
+
+    class _ChangedKingdom(_Kingdom):
+        civilizations: ClassVar[list[str]] = ["azteques", "britons"]
+
+    await deploy_realm_content(guild, _ChangedKingdom(), _Wiring())
+
+    live = _live(channel)
+    assert len(live) == 1
+    assert live[0] is first  # edited in place, never deleted and resent
+    assert first.edited is True  # the edit API call carried the new view
+
+
+async def test_unchanged_view_costs_zero_api_calls() -> None:
+    """vues-silencieuses-v1: the identity guard — a view whose text did not
+    change is left untouched (no edit, no send)."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+
+    await _deploy(guild)
+    channel = _channel(guild, "🏰 le-royaume")
+    first = _live(channel)[0]
+    first._edited = False  # reset the spy before the idempotent re-run
+
+    await _deploy(guild)
+
+    assert first.edited is False  # identical content → zero API call
+    assert len(_live(channel)) == 1
+
+
+async def test_duplicate_marked_views_are_purged_on_redeploy() -> None:
+    """vues-silencieuses-v1: legacy duplicates (e.g. a double send from an
+    older incident) are swept — only the first marked message survives."""
+    guild = MockGuild()
+    await ensure_realm_structure(guild, _Kingdom(), [])
+
+    await _deploy(guild)
+    channel = _channel(guild, "🏰 le-royaume")
+    first = _live(channel)[0]
+    # simulate an older duplicate: the same view sent twice
+    await channel.send(view=first.view)
+    assert len(_live(channel)) == 2
+
+    await _deploy(guild)
+
+    live = _live(channel)
+    assert len(live) == 1
+    assert live[0] is first  # the ORIGINAL message keeps its pin slot
