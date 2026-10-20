@@ -47,20 +47,40 @@ FALLBACKS: dict[str, str] = {
 class MessageCatalog:
     """Locale-aware message rendering over the yaml catalogs."""
 
-    def __init__(self, config_dir: Path | str = "config") -> None:
-        """Load every ``locales/*.yaml`` under the config directory."""
+    def __init__(self, config_dir: Path | str = "config", repo_root: Path | str | None = None) -> None:
+        """Load every ``locales/*.yaml`` catalog.
+
+        The config directory first, then the per-mod catalogs of the
+        modular layout (kingdoms#178): a modular mod keeps its locale
+        entries in ``modules/mods/<mod>/locales/`` and they merge after
+        the shared ones (same keys win per mod).
+        """
         self._sections: dict[str, dict[str, str]] = {}
         directory = Path(config_dir) / "locales"
         try:
             for path in sorted(directory.glob("*.yaml")):
-                locale = path.stem
-                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                entries = data.get(locale, {})
-                if isinstance(entries, dict):
-                    self._sections[locale] = self._flatten(entries)
+                self._load_locale_file(path)
+            if repo_root is not None:
+                modular_dir = Path(repo_root) / "modules" / "mods"
+                if modular_dir.is_dir():
+                    for mod_dir in sorted(p for p in modular_dir.iterdir() if p.is_dir()):
+                        mod_locales = mod_dir / "locales"
+                        if not mod_locales.is_dir():
+                            continue
+                        for path in sorted(mod_locales.glob("*.yaml")):
+                            self._load_locale_file(path)
         except Exception:
             logger.warning("LOCALE CATALOG LOAD FAILED (%s) — falling back to built-ins", directory)
             self._sections = {}
+
+    def _load_locale_file(self, path: Path) -> None:
+        """Merge one locale yaml file into the loaded sections."""
+        locale = path.stem
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        entries = data.get(locale, {})
+        if isinstance(entries, dict):
+            merged = {**self._sections.get(locale, {}), **self._flatten(entries)}
+            self._sections[locale] = merged
 
     @staticmethod
     def _flatten(entries: dict[str, Any], prefix: str = "") -> dict[str, str]:

@@ -119,30 +119,55 @@ def _parse_mod_yaml(data: dict[str, object], source: Path) -> ModDefinition:
     )
 
 
-def load_mod_definitions(config_dir: Path) -> ModDefs:
-    """Load and validate every mod declaration in a config directory.
+def _load_declaration(path: Path) -> ModDefinition:
+    """Parse and validate one mod YAML declaration."""
+    with open(path, encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: declaration must be a mapping")
+    return _parse_mod_yaml(data, path)
+
+
+def load_mod_definitions(config_dir: Path, repo_root: Path | None = None) -> ModDefs:
+    """Load and validate every mod declaration, legacy and modular.
+
+    Legacy: ``<config_dir>/mods/*.yaml``. Modular (kingdoms#178):
+    ``<repo_root>/modules/mods/*/mod.yaml`` — one self-contained dir per
+    mod. Legacy wins on id collision (the moving branch keeps priority
+    until its mechanical move lands).
 
     An invalid declaration raises: a broken mod must fail startup loudly,
     never load half-initialized (docs/architecture/mods.md).
     """
-    mods_dir = config_dir / "mods"
     definitions: ModDefs = {}
-    if not mods_dir.is_dir():
-        return definitions
-    for path in sorted(mods_dir.glob("*.yaml")):
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
-        if not isinstance(data, dict):
-            raise ValueError(f"{path}: declaration must be a mapping")
-        definition = _parse_mod_yaml(data, path)
-        definitions[definition.name] = definition
-        logger.info(
-            "Mod declared: %s (enabled=%s, %d channels, %d roles)",
-            definition.name,
-            definition.enabled,
-            len(definition.channel_categories),
-            len(definition.roles),
-        )
+    if repo_root is not None:
+        modular_dir = Path(repo_root) / "modules" / "mods"
+        if modular_dir.is_dir():
+            for mod_dir in sorted(p for p in modular_dir.iterdir() if p.is_dir()):
+                declaration = mod_dir / "mod.yaml"
+                if not declaration.is_file():
+                    continue
+                definition = _load_declaration(declaration)
+                definitions[definition.name] = definition
+                logger.info(
+                    "Mod declared (modular): %s (enabled=%s, %d channels, %d roles)",
+                    definition.name,
+                    definition.enabled,
+                    len(definition.channel_categories),
+                    len(definition.roles),
+                )
+    mods_dir = config_dir / "mods"
+    if mods_dir.is_dir():
+        for path in sorted(mods_dir.glob("*.yaml")):
+            definition = _load_declaration(path)
+            definitions[definition.name] = definition
+            logger.info(
+                "Mod declared: %s (enabled=%s, %d channels, %d roles)",
+                definition.name,
+                definition.enabled,
+                len(definition.channel_categories),
+                len(definition.roles),
+            )
     return definitions
 
 

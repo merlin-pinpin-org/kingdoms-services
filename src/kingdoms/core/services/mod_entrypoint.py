@@ -24,8 +24,12 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol
+
+from kingdoms.core.services.mod_layout import MODULAR_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +61,20 @@ class LoadedMod:
     has_close: bool
 
 
-def load_mod_package(name: str) -> LoadedMod:
-    """Import ``kingdoms.mods.<name>`` and detect its optional hooks.
+def load_mod_package(name: str, repo_root: Path | None = None) -> LoadedMod:
+    """Import the mod package and detect its optional hooks.
 
-    A missing package raises ImportError: a declared mod without its
-    package is a broken install and must fail loudly, never silently
-    disable.
+    Resolution (mod_layout, kingdoms#178): a modular mod imports as
+    ``kingdoms.mods.<name>`` from ``modules/mods/<name>/src/`` (the path
+    is prepended to ``sys.path`` once); a legacy mod imports the same
+    way from ``src/kingdoms/mods/<name>/``. A missing package raises
+    ImportError: a declared mod without its package is a broken
+    install and must fail loudly, never silently disable.
     """
+    if repo_root is not None:
+        modular_src = Path(repo_root) / MODULAR_ROOT / name / "src"
+        if modular_src.is_dir() and str(modular_src) not in sys.path:
+            sys.path.insert(0, str(modular_src))
     package = importlib.import_module(f"kingdoms.mods.{name}")
     return LoadedMod(
         name=name,
@@ -74,7 +85,7 @@ def load_mod_package(name: str) -> LoadedMod:
     )
 
 
-def register_mod(bot: Any, config: Any, name: str) -> bool:
+def register_mod(bot: Any, config: Any, name: str, repo_root: Path | None = None) -> bool:
     """Run one mod's ``register`` hook; False when absent or failed.
 
     Failures are logged and swallowed: a broken mod degrades to
@@ -82,7 +93,7 @@ def register_mod(bot: Any, config: Any, name: str) -> bool:
     per-mod provisioning loop.
     """
     try:
-        loaded = load_mod_package(name)
+        loaded = load_mod_package(name, repo_root=repo_root)
     except Exception:
         logger.exception("MOD %s entrypoint import failed — mod stays inactive", name)
         return False
@@ -98,10 +109,10 @@ def register_mod(bot: Any, config: Any, name: str) -> bool:
         return False
 
 
-def run_mod_hook(bot: Any, name: str, hook: str) -> None:
+def run_mod_hook(bot: Any, name: str, hook: str, repo_root: Path | None = None) -> None:
     """Run one optional mod hook (``setup_hook`` / ``close``), best-effort."""
     try:
-        loaded = load_mod_package(name)
+        loaded = load_mod_package(name, repo_root=repo_root)
     except Exception:
         return
     fn = getattr(loaded.package, hook, None)

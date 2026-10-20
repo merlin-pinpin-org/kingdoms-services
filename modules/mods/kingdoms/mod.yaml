@@ -1,0 +1,21 @@
+# Kingdoms mod declaration: AoE2 territory-conquest meta-game (Season II).
+# Game-bound BY DESIGN (docs/MODS/README.md, kingdoms repo): the mod may
+# hard-code the aoe2 game key, but never owns game data — the catalog is
+# owned by the core GameDataService and seasons by the core registry.
+#
+# REFERENCE EXAMPLE (docs/GUIDES/mod-init.md, kingdoms repo): this is the
+# real declaration of the kingdoms mod (currently developed on the
+# vibe/drasah/main integration branch) pinned here in the modular
+# layout — one self-contained directory per mod (kingdoms#178).
+id: kingdoms
+# false until the code moves from vibe/drasah/main into this directory
+# (kingdoms#178 mechanical move, accompanied with Drasah) — flip to true
+# in that same PR.
+enabled: false
+seasonal: true
+settings: {}
+channels: []
+roles: []
+workflows: []
+commands: []
+dependencies: []

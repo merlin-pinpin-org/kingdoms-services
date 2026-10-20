@@ -55,6 +55,17 @@ repo — the deploy procedure is owned by `kingdoms-infra`, not by the
 CLI. GPG/secret storage is deliberately out of scope: the CLI stores no
 secret, so there is nothing to encrypt.
 
+## mod — mod scaffolding (init, list)
+
+`kingdoms mod init <name>` generates a complete, self-contained mod
+directory (`modules/mods/<name>/`: declaration `mod.yaml`, package
+`src/<name>/` with the three lifecycle hooks, `locales/{en,fr}.yaml`,
+`tests/`, `README.md`) — nothing is improvised, nothing overwritten.
+`--seasonal` or `--permanent` picks the mod type (mandatory in the
+declaration). `kingdoms mod list` shows every declared mod and its
+layout (legacy or modular). Guide: docs/GUIDES/mod-init.md (kingdoms
+repo).
+
 ## runner — optional self-hosted GitHub Actions runner
 
 `kingdoms runner setup [owner/repo]` prints a security-first guide

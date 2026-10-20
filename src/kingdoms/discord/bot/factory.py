@@ -89,6 +89,7 @@ class BotConfig:
     deploy_env: str = ""
     log_level: str = "INFO"
     config_dir: Path = field(default_factory=lambda: Path("config"))
+    repo_root: Path = field(default_factory=lambda: Path("."))
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> BotConfig:
@@ -124,6 +125,7 @@ class BotConfig:
             announce_enabled=env.get("KINGDOMS_ANNOUNCE_ENABLED", "1"),
             deploy_env=env.get("KINGDOMS_DEPLOY_ENV", ""),
             log_level=env.get("LOG_LEVEL", "INFO"),
+            repo_root=Path(env.get("KINGDOMS_REPO_ROOT", ".")),
         )
 
 
@@ -144,7 +146,7 @@ class KingdomsBot(discord.Client):
         self.status_service = status
         self.registry = registry
         self.logs_service = logs
-        self.messages = MessageCatalog(config.config_dir)
+        self.messages = MessageCatalog(config.config_dir, repo_root=getattr(config, "repo_root", None))
         self.tree = app_commands.CommandTree(self)
         self._synced = False
         self.admin_channel_service: AdminChannelService | None = None
@@ -274,7 +276,7 @@ class KingdomsBot(discord.Client):
 
             if self.registry is not None:
                 for mod_name in self.registry.enabled():
-                    run_mod_hook(self, mod_name, "setup_hook")
+                    run_mod_hook(self, mod_name, "setup_hook", repo_root=self.config.repo_root)
         self._live_dashboard_task = _start_live_dashboard(self)
         if self._synced:
             return
@@ -525,7 +527,7 @@ class KingdomsBot(discord.Client):
 
         if self.registry is not None:
             for mod_name in self.registry.enabled():
-                run_mod_hook(self, mod_name, "close")
+                run_mod_hook(self, mod_name, "close", repo_root=self.config.repo_root)
         for task in (
             self._live_dashboard_task,
             self._maps_forum_task,
@@ -544,7 +546,8 @@ class KingdomsBot(discord.Client):
 def create_bot(config: BotConfig | None = None) -> KingdomsBot:
     """Build the Kingdoms bot: client, tree, core services and commands."""
     resolved = config or BotConfig.from_env()
-    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir)))
+    repo_root = Path(getattr(resolved, "repo_root", Path(".")))
+    registry = ModRegistry(load_mod_definitions(Path(resolved.config_dir), repo_root=repo_root))
     games_dir = Path(resolved.config_dir) / "games"
     games = tuple(sorted(entry.name for entry in games_dir.iterdir() if entry.is_dir())) if games_dir.is_dir() else ()
     status = StatusService(
@@ -651,7 +654,7 @@ def create_bot(config: BotConfig | None = None) -> KingdomsBot:
 
     set_guild_access_platform(games, tuple(registry.enabled()))
     for mod_name in registry.enabled():
-        register_mod(bot, resolved, mod_name)
+        register_mod(bot, resolved, mod_name, repo_root=repo_root)
     return bot
 
 
@@ -1001,7 +1004,7 @@ def _build_log_service(config: BotConfig, bot: KingdomsBot, state: StateService 
             database=MongoLogsDatabase(get_async_database()),
             platform=DiscordLogsPlatform(bot),
             state=state,
-            catalog=MessageCatalog(config.config_dir),
+            catalog=MessageCatalog(config.config_dir, repo_root=getattr(config, "repo_root", None)),
         )
     except Exception:
         logger.exception("LOG SERVICE WIRING FAILED — lifecycle logging disabled")
