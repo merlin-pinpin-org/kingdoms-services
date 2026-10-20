@@ -416,3 +416,22 @@ async def test_user_locale_observation(
     assert database.users["777"]["locale"] == "fr"
     await service.observe_user_locale("777", "de")
     assert await service.get_user_locale("777") == "fr", "unsupported locales never overwrite"
+
+
+@pytest.mark.asyncio
+async def test_guild_member_locale_majority(
+    service: LogService, database: FakeLogsDatabase, platform: FakeLogsPlatform
+) -> None:
+    """A non-Community guild's language falls back to the members' majority.
+
+    Discord hard-codes ``en-US`` for non-Community servers (no language
+    setting exists); the bot observes each member's client language at
+    interaction time and the guild renders in the majority.
+    """
+    assert await service.observed_guild_locale(GUILD) == "en", "no observation: English"
+    await service.observe_guild_member_locale(GUILD, "1", "fr")
+    await service.observe_guild_member_locale(GUILD, "2", "fr")
+    await service.observe_guild_member_locale(GUILD, "3", "en")
+    assert await service.observed_guild_locale(GUILD) == "fr", "the majority wins"
+    await service.observe_guild_member_locale(GUILD, "4", "de")
+    assert await service.observed_guild_locale(GUILD) == "fr", "unsupported never counts"

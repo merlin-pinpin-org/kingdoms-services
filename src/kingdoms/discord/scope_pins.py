@@ -85,7 +85,7 @@ async def _tree_notice(guild_id: str, scope: str, catalog: Any = None, locale: s
         label = _tr(catalog, decl.label_key, locale, decl.label_key.rsplit(".", 1)[-1])
         description = str(meta.get("description", ""))
         icon = "\U0001F9F5" if getattr(decl, "kind", "text") == "forum" else ""
-        lock = _LOCK if decl.access in ("admin", "readonly") else ""
+        lock = _LOCK if decl.access == "admin" else ""
         try:
             channel_id = await stored_channel_id(guild_id, scope, decl.key)
         except Exception:

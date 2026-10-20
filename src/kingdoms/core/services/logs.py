@@ -446,6 +446,44 @@ class LogService:
         except Exception:
             logger.debug("user locale observation failed (user %s)", user_id, exc_info=True)
 
+    async def observe_guild_member_locale(self, guild_id: str, user_id: str, locale: str) -> None:
+        """Record the client language one member was last seen using in a guild.
+
+        Only useful when Discord gives us nothing: a non-Community guild's
+        ``preferred_locale`` is a hard-coded ``en-US`` (not a setting), so
+        the guild's language falls back to the majority of its members'
+        observed client languages. Best-effort, never a managed setting.
+        """
+        if locale not in SUPPORTED_LOCALES:
+            return
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+            observed: dict[str, Any] = dict(settings.get("member_locales", {}) or {})
+            observed[user_id] = locale
+            # keep the store bounded: the 100 most recently seen members
+            if len(observed) > 100:
+                observed = dict(list(observed.items())[-100:])
+            settings["member_locales"] = observed
+            settings["updated_at"] = int(time.time())
+            await self._db.set_guild_settings(guild_id, settings)
+        except Exception:
+            logger.debug("guild member locale observation failed (guild %s)", guild_id, exc_info=True)
+
+    async def observed_guild_locale(self, guild_id: str) -> str:
+        """Return the majority observed client language of the members."""
+        try:
+            settings = await self._safe(self._db.get_guild_settings(guild_id)) or {}
+            observed: dict[str, str] = dict(settings.get("member_locales", {}) or {})
+        except Exception:
+            return "en"
+        if not observed:
+            return "en"
+        counts: dict[str, int] = {}
+        for locale in observed.values():
+            counts[locale] = counts.get(locale, 0) + 1
+        best = max(counts.items(), key=lambda kv: kv[1])[0]
+        return best if best in SUPPORTED_LOCALES else "en"
+
     async def get_user_locale(self, user_id: str) -> str:
         """Return the language the user was last seen using (en fallback)."""
         try:

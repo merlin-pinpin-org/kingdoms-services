@@ -828,12 +828,18 @@ class KingdomsBot(discord.Client):
 
         locale = normalize(getattr(interaction, "locale", None))
         user_id = str(getattr(getattr(interaction, "user", None), "id", "") or "")
+        guild_id = str(interaction.guild_id) if interaction.guild_id else ""
+        except_logger = logger.debug
         if user_id:
-            except_logger = logger.debug
             try:
                 await self.logs_service.observe_user_locale(user_id, locale)
             except Exception:
                 except_logger("user locale observation failed (user %s)", user_id, exc_info=True)
+        if guild_id and user_id:
+            try:
+                await self.logs_service.observe_guild_member_locale(guild_id, user_id, locale)
+            except Exception:
+                except_logger("guild member locale observation failed (guild %s)", guild_id, exc_info=True)
 
     async def on_tree_error(
         self,

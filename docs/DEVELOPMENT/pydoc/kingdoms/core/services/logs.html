@@ -160,6 +160,13 @@ Policy&nbsp;and&nbsp;stop&nbsp;messages&nbsp;are&nbsp;localized&nbsp;with&nbsp;t
 status):&nbsp;the&nbsp;platform&nbsp;pins&nbsp;it&nbsp;and&nbsp;unpins&nbsp;the&nbsp;previous&nbsp;one&nbsp;—<br>
 only&nbsp;the&nbsp;most&nbsp;recent&nbsp;boot&nbsp;status&nbsp;stays&nbsp;pinned.</span></dd></dl>
 
+<dl><dt>async <a name="LogService-observe_guild_member_locale"><strong>observe_guild_member_locale</strong></a>(self, guild_id: 'str', user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;client&nbsp;language&nbsp;one&nbsp;member&nbsp;was&nbsp;last&nbsp;seen&nbsp;using&nbsp;in&nbsp;a&nbsp;guild.<br>
+&nbsp;<br>
+Only&nbsp;useful&nbsp;when&nbsp;Discord&nbsp;gives&nbsp;us&nbsp;nothing:&nbsp;a&nbsp;non-Community&nbsp;guild's<br>
+``preferred_locale``&nbsp;is&nbsp;a&nbsp;hard-coded&nbsp;``en-US``&nbsp;(not&nbsp;a&nbsp;setting),&nbsp;so<br>
+the&nbsp;guild's&nbsp;language&nbsp;falls&nbsp;back&nbsp;to&nbsp;the&nbsp;majority&nbsp;of&nbsp;its&nbsp;members'<br>
+observed&nbsp;client&nbsp;languages.&nbsp;Best-effort,&nbsp;never&nbsp;a&nbsp;managed&nbsp;setting.</span></dd></dl>
+
 <dl><dt>async <a name="LogService-observe_user_locale"><strong>observe_user_locale</strong></a>(self, user_id: 'str', locale: 'str') -&gt; 'None'</dt><dd><span class="code">Record&nbsp;the&nbsp;Discord&nbsp;client&nbsp;language&nbsp;a&nbsp;user&nbsp;was&nbsp;last&nbsp;seen&nbsp;using.<br>
 &nbsp;<br>
 Observation,&nbsp;never&nbsp;a&nbsp;setting&nbsp;the&nbsp;user&nbsp;manages:&nbsp;Discord&nbsp;exposes<br>
@@ -167,6 +174,8 @@ a&nbsp;user's&nbsp;language&nbsp;only&nbsp;inside&nbsp;interactions,&nbsp;so&nbs
 refreshes&nbsp;it&nbsp;here&nbsp;(best-effort)&nbsp;and&nbsp;the&nbsp;interaction-free&nbsp;DMs<br>
 (boot&nbsp;status,&nbsp;crash&nbsp;reports)&nbsp;render&nbsp;in&nbsp;the&nbsp;language&nbsp;the&nbsp;user<br>
 was&nbsp;last&nbsp;seen&nbsp;speaking.</span></dd></dl>
+
+<dl><dt>async <a name="LogService-observed_guild_locale"><strong>observed_guild_locale</strong></a>(self, guild_id: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;majority&nbsp;observed&nbsp;client&nbsp;language&nbsp;of&nbsp;the&nbsp;members.</span></dd></dl>
 
 <dl><dt>async <a name="LogService-reapply_default_policy"><strong>reapply_default_policy</strong></a>(self, guild_id: 'str', by: 'str') -&gt; 'None'</dt><dd><span class="code">Reset&nbsp;the&nbsp;logs&nbsp;channel&nbsp;to&nbsp;the&nbsp;default&nbsp;admin-only&nbsp;policy;&nbsp;audited.</span></dd></dl>
 
