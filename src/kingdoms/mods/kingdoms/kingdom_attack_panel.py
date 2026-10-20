@@ -3146,7 +3146,134 @@ async def _cleanup_battle_rooms_safe(bot: Any, guild: Any, attacks_service: Any)
             played += await _cleanup_one_battle_room(bot, attacks_service, attack, score)
         if score.get("attack_channel_id") and not score.get("attack_salon_cleaned"):
             played += await _cleanup_one_attack_salon(guild, attacks_service, attack)
+    await _sweep_battle_room_leftovers_safe(bot, attacks_service, attacks)
     return played
+
+
+_BATTLE_ROLE_NAME_PREFIXES: tuple[str, ...] = ("Bataille ", "Battle ")
+"""The room-role name prefixes (FR/EN) — the orphan sweep's filter."""
+
+
+async def _sweep_battle_room_leftovers_safe(
+    bot: Any, attacks_service: Any, attacks: list[Any]
+) -> int:
+    """Delete the battle-room leftovers a flagged cleanup never deleted.
+
+    battle-role-sweep-v1 (Drasah 20/10, live lockout incident): the
+    cleanup marks a resolved meeting ``room_cleaned`` even when Discord
+    REFUSED the actual delete — the 20/10 permission lockout left every
+    room channel/role alive but flagged clean, never retried (the
+    orphan « Bataille … » roles Drasah saw pile up in the server). This
+    sweep re-runs the deletion on every RESOLVED meeting past its
+    cleanup delay, flag or not: a leftover channel or role is deleted
+    by its recorded id, and a battle role whose ref was never stored (a
+    record failure) is caught by its name claimed by no live meeting.
+    Idempotent: a clean guild touches nothing, a live meeting keeps
+    its room whatever its flag says.
+    """
+    delay_minutes = int(getattr(attacks_service, "room_cleanup_delay_minutes", 30) or 30)
+    due, keep_role_ids = _battle_room_sweep_due(attacks, delay_minutes, datetime.now(UTC))
+    swept = await _sweep_recorded_leftovers_safe(bot, due)
+    swept += await _sweep_orphan_battle_roles_safe(bot, keep_role_ids)
+    if swept:
+        logger.info("KINGDOM ATTACK: swept %d battle room leftover(s)", swept)
+    return swept
+
+
+def _battle_room_sweep_due(
+    attacks: list[Any], delay_minutes: int, now: datetime
+) -> tuple[list[Any], set[int]]:
+    """Return the overdue-resolved attacks and the live rooms' role ids.
+
+    An attack is due when it is over and past its cleanup delay (a
+    meeting without a resolution timestamp is overdue at once — the
+    same semantics as the cleanup pass). The keep-set holds every room
+    role id still claimed by a live or not-yet-due meeting: the orphan
+    name sweep never touches those.
+    """
+    keep_role_ids: set[int] = set()
+    due: list[Any] = []
+    for attack in attacks:
+        score = attack.score or {}
+        try:
+            role_id = int(score.get("room_role_id") or 0)
+        except (TypeError, ValueError):
+            role_id = 0
+        if role_id:
+            keep_role_ids.add(role_id)
+        if not attack.is_over:
+            continue
+        resolved_at = getattr(attack, "resolved_at", None)
+        deadline = resolved_at + timedelta(minutes=delay_minutes) if resolved_at is not None else None
+        if deadline is None or now >= deadline:
+            keep_role_ids.discard(role_id)
+            due.append(attack)
+    return due, keep_role_ids
+
+
+def _ref_as_int(score: dict[str, Any], key: str) -> int:
+    """Read one recorded room ref as an int (0 when absent/invalid)."""
+    try:
+        return int(score.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+async def _sweep_recorded_leftovers_safe(bot: Any, due: list[Any]) -> int:
+    """Re-delete the recorded room refs of every overdue-resolved meeting."""
+    swept = 0
+    for attack in due:
+        score = attack.score or {}
+        room_channel_id = _ref_as_int(score, "room_channel_id")
+        salon_channel_id = _ref_as_int(score, "attack_channel_id")
+        role_id = _ref_as_int(score, "room_role_id")
+        if not room_channel_id and not salon_channel_id and not role_id:
+            continue
+        try:
+            for guild in list(getattr(bot, "guilds", []) or []):
+                for channel_id in (room_channel_id, salon_channel_id):
+                    if not channel_id:
+                        continue
+                    channel = getattr(guild, "get_channel", lambda _id: None)(channel_id)
+                    if channel is not None and hasattr(channel, "delete"):
+                        await channel.delete()
+                        swept += 1
+                if role_id:
+                    role = getattr(guild, "get_role", lambda _id: None)(role_id)
+                    if role is not None and hasattr(role, "delete"):
+                        await role.delete()
+                        swept += 1
+        except Exception:
+            logger.warning("KINGDOM ATTACK: battle room leftover sweep failed", exc_info=True)
+    return swept
+
+
+async def _sweep_orphan_battle_roles_safe(bot: Any, keep_role_ids: set[int]) -> int:
+    """Delete the name-matched battle roles claimed by no live meeting.
+
+    The « Bataille … » / « Battle … » names are the mod's own room-role
+    pattern (FR/EN strings) — a leftover with no recorded ref (the ref
+    store failed at the room open) is swept; a claimed role is kept.
+    """
+    swept = 0
+    try:
+        for guild in list(getattr(bot, "guilds", []) or []):
+            for role in list(getattr(guild, "roles", []) or []):
+                name = str(getattr(role, "name", ""))
+                if not name.startswith(_BATTLE_ROLE_NAME_PREFIXES):
+                    continue
+                try:
+                    role_id = int(getattr(role, "id", 0) or 0)
+                except (TypeError, ValueError):
+                    continue
+                if role_id in keep_role_ids:
+                    continue  # claimed by a live (or not-yet-due) meeting
+                if hasattr(role, "delete"):
+                    await role.delete()
+                    swept += 1
+    except Exception:
+        logger.warning("KINGDOM ATTACK: battle role orphan sweep failed", exc_info=True)
+    return swept
 
 
 async def _cleanup_one_battle_room(bot: Any, attacks_service: Any, attack: Any, score: dict[str, Any]) -> int:

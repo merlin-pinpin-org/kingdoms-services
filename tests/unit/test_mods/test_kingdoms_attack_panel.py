@@ -1459,6 +1459,112 @@ async def test_cleanup_battle_rooms_waits_the_delay_after_the_resolution() -> No
     assert (cleaned.score or {}).get("attack_salon_cleaned")
 
 
+async def test_sweep_deletes_leftovers_of_a_flagged_clean_room() -> None:
+    """battle-role-sweep-v1 (Drasah 20/10, live lockout incident): the
+    cleanup flags the room ``room_cleaned`` even when Discord REFUSED
+    the delete — the leftover channel/role is flagged clean and never
+    retried. The sweep re-deletes by ref, flag or not."""
+    from datetime import UTC, datetime, timedelta
+
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _cleanup_battle_rooms_safe,
+        _open_battle_room,
+    )
+    from tests.mocks.discord_mock import MockRole
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    salon = await guild.create_text_channel("salon d'attaque")
+    await bundle.attacks.record_attack_channel(attack.id, salon.id)
+    bot = _FakeBot(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    room_id = int(fresh.score["room_channel_id"])
+    role_id = int(fresh.score["room_role_id"])
+    bot.guilds = [guild]
+
+    # The lockout simulation: the flags say cleaned, Discord refused.
+    await bundle.attacks.resolve(attack.id, aquitaine)
+    resolved = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    resolved.resolved_at = datetime.now(UTC) - timedelta(minutes=31)
+    await bundle.store.upsert_attack(resolved.to_mongo())
+    await bundle.attacks.mark_room_cleaned(attack.id)
+    await bundle.attacks.mark_attack_salon_cleaned(attack.id)
+    # The room role never disappears on its own in the mock: bind the
+    # in-memory delete like the real API would.
+    role = guild.get_role(role_id)
+    assert isinstance(role, MockRole)
+
+    def _bind_delete(target: MockRole) -> None:
+        async def _delete(*, reason: str | None = None) -> None:
+            guild._roles.pop(target.id, None)
+
+        target.delete = _delete  # type: ignore[method-assign]
+
+    if role is not None:
+        _bind_delete(role)
+
+    # The main pass skips everything (flags set) — the sweep deletes.
+    played = await _cleanup_battle_rooms_safe(bot, guild, bundle.attacks)
+    assert played == 0  # the flagged pass found nothing to do
+    assert guild.get_channel(room_id) is None
+    assert guild.get_channel(salon.id) is None
+    assert guild.get_role(role_id) is None
+    # Idempotent: a second sweep on the clean guild touches nothing.
+    assert await _cleanup_battle_rooms_safe(bot, guild, bundle.attacks) == 0
+
+
+async def test_sweep_keeps_a_live_room_and_deletes_orphan_battle_roles() -> None:
+    """battle-role-sweep-v1: a name-matching battle role claimed by NO
+    attack (a record failure at the room open) is swept; the role and
+    room of a LIVE meeting survive the sweep untouched."""
+    from kingdoms.mods.kingdoms.kingdom_attack_panel import (
+        _cleanup_battle_rooms_safe,
+        _open_battle_room,
+    )
+    from tests.mocks.discord_mock import MockRole
+
+    bundle = ScoreBundle()
+    await bundle.launch_season()
+    await bundle.draw(26)
+    attack, _aquitaine, _bourgogne = await bundle.open_meeting()
+    _wiring(bundle)
+    guild = MockGuild()
+    bot = _FakeBot(bundle)
+    attack = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    await _open_battle_room(bot, guild, attack, bundle.kingdoms, "fr")
+    fresh = next(a for a in await bundle.attacks.attacks() if a.id == attack.id)
+    live_role_id = int(fresh.score["room_role_id"])
+    live_room_id = int(fresh.score["room_channel_id"])
+    bot.guilds = [guild]
+
+    # An orphan: the « Bataille … » naming pattern, claimed by nothing.
+    orphan = await guild.create_role(name="Bataille orpheline")
+    decoy = await guild.create_role(name="Royaumes Lord")
+    for target in (orphan, decoy, guild.get_role(live_role_id)):
+        assert isinstance(target, MockRole)
+
+        def _bind_delete(t: MockRole) -> None:
+            async def _delete(*, reason: str | None = None) -> None:
+                guild._roles.pop(t.id, None)
+
+            t.delete = _delete  # type: ignore[method-assign]
+
+        _bind_delete(target)
+
+    played = await _cleanup_battle_rooms_safe(bot, guild, bundle.attacks)
+    assert played == 0  # the live meeting keeps everything
+    assert guild.get_channel(live_room_id) is not None
+    assert guild.get_role(live_role_id) is not None
+    assert guild.get_role(orphan.id) is None  # swept
+    assert guild.get_role(decoy.id) is not None  # never a battle role
+
+
 async def test_result_button_needs_both_ready_and_posts_the_conquest_recap() -> None:
     """v5: 🏆 refuses before both Prêt; the resolved match posts the
     Géopolitique conquest recap with its detail thread (game ID reused)."""
