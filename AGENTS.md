@@ -47,12 +47,20 @@ mods, YAML configs.
   with per-push confirmation, never force-push `main`) and
   *Integration branches* (never delete `vibe/<alias>/main`).
 - **No mod, no game, without a rostered owner (non-overridable):** a
-  session never creates `src/kingdoms/mods/<mod>/`, `config/mods/<mod>.yaml`,
-  `src/kingdoms/core/games/<game>/` or mod docs unless a `CONTRIBUTORS.md`
-  entry (kingdoms repo) claims it in its `owns` column — the roster entry
-  and its CODEOWNERS delegation come first. The contributors-sync workflow
-  flags orphan mods/games and CODEOWNERS drift automatically
+  session never creates `modules/mods/<mod>/`, `src/kingdoms/mods/<mod>/`,
+  `config/mods/<mod>.yaml`, `src/kingdoms/core/games/<game>/` or mod docs
+  unless a `CONTRIBUTORS.md` entry (kingdoms repo) claims it in its
+  `owns` column — the roster entry and its CODEOWNERS delegation come
+  first. The contributors-sync workflow flags orphan mods/games and
+  CODEOWNERS drift automatically
   (kingdoms repo, `check_ownership.py` under the protected `workflows/scripts/` path).
+- **Mod intake before any mod work:** a session creating a mod starts
+  with the [mod-intake
+  skill](https://github.com/merlin-pinpin-org/kingdoms/blob/main/.agents/skills/mod-intake/SKILL.md)
+  (intake questionnaire, reuse-first check against the core, `kingdoms
+  mod init` scaffold, conventions) — never improvised plumbing. The
+  canonical guide is the kingdoms repo
+  [docs/GUIDES/mod-init.md](https://github.com/merlin-pinpin-org/kingdoms/blob/main/docs/GUIDES/mod-init.md).
 - **UI SDK mandate:** never build `discord.ui` / `discord.Embed` objects
   directly in a feature — every view, embed or Components V2 layout
   is built through the SDK in `src/kingdoms/discord/ui`. The rules
