@@ -76,7 +76,12 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-load_mod_definitions"><strong>load_mod_definitions</strong></a>(config_dir: 'Path') -&gt; 'ModDefs'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;every&nbsp;mod&nbsp;declaration&nbsp;in&nbsp;a&nbsp;config&nbsp;directory.<br>
+<td class="singlecolumn"><dl><dt><a name="-load_mod_definitions"><strong>load_mod_definitions</strong></a>(config_dir: 'Path', repo_root: 'Path | None' = None) -&gt; 'ModDefs'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;every&nbsp;mod&nbsp;declaration,&nbsp;legacy&nbsp;and&nbsp;modular.<br>
+&nbsp;<br>
+Legacy:&nbsp;``&lt;config_dir&gt;/mods/*.yaml``.&nbsp;Modular&nbsp;(kingdoms#178):<br>
+``&lt;repo_root&gt;/modules/mods/*/mod.yaml``&nbsp;—&nbsp;one&nbsp;self-contained&nbsp;dir&nbsp;per<br>
+mod.&nbsp;Legacy&nbsp;wins&nbsp;on&nbsp;id&nbsp;collision&nbsp;(the&nbsp;moving&nbsp;branch&nbsp;keeps&nbsp;priority<br>
+until&nbsp;its&nbsp;mechanical&nbsp;move&nbsp;lands).<br>
 &nbsp;<br>
 An&nbsp;invalid&nbsp;declaration&nbsp;raises:&nbsp;a&nbsp;broken&nbsp;mod&nbsp;must&nbsp;fail&nbsp;startup&nbsp;loudly,<br>
 never&nbsp;load&nbsp;half-initialized&nbsp;(docs/architecture/mods.md).</span></dd></dl>

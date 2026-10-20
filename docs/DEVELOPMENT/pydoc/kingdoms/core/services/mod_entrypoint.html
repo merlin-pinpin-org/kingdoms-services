@@ -37,7 +37,8 @@ split&nbsp;rule&nbsp;—&nbsp;mod&nbsp;code&nbsp;stays&nbsp;minimal,&nbsp;the&nb
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="importlib.html">importlib</a><br>
 </td><td class="multicolumn"><a href="logging.html">logging</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -163,22 +164,26 @@ classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
     
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-load_mod_package"><strong>load_mod_package</strong></a>(name: 'str') -&gt; 'LoadedMod'</dt><dd><span class="code">Import&nbsp;``kingdoms.mods.&lt;name&gt;``&nbsp;and&nbsp;detect&nbsp;its&nbsp;optional&nbsp;hooks.<br>
+<td class="singlecolumn"><dl><dt><a name="-load_mod_package"><strong>load_mod_package</strong></a>(name: 'str', repo_root: 'Path | None' = None) -&gt; 'LoadedMod'</dt><dd><span class="code">Import&nbsp;the&nbsp;mod&nbsp;package&nbsp;and&nbsp;detect&nbsp;its&nbsp;optional&nbsp;hooks.<br>
 &nbsp;<br>
-A&nbsp;missing&nbsp;package&nbsp;raises&nbsp;ImportError:&nbsp;a&nbsp;declared&nbsp;mod&nbsp;without&nbsp;its<br>
-package&nbsp;is&nbsp;a&nbsp;broken&nbsp;install&nbsp;and&nbsp;must&nbsp;fail&nbsp;loudly,&nbsp;never&nbsp;silently<br>
-disable.</span></dd></dl>
- <dl><dt><a name="-register_mod"><strong>register_mod</strong></a>(bot: 'Any', config: 'Any', name: 'str') -&gt; 'bool'</dt><dd><span class="code">Run&nbsp;one&nbsp;mod's&nbsp;``register``&nbsp;hook;&nbsp;False&nbsp;when&nbsp;absent&nbsp;or&nbsp;failed.<br>
+Resolution&nbsp;(mod_layout,&nbsp;kingdoms#178):&nbsp;a&nbsp;modular&nbsp;mod&nbsp;imports&nbsp;as<br>
+``kingdoms.mods.&lt;name&gt;``&nbsp;from&nbsp;``modules/mods/&lt;name&gt;/src/``&nbsp;(the&nbsp;path<br>
+is&nbsp;prepended&nbsp;to&nbsp;``sys.path``&nbsp;once);&nbsp;a&nbsp;legacy&nbsp;mod&nbsp;imports&nbsp;the&nbsp;same<br>
+way&nbsp;from&nbsp;``src/kingdoms/mods/&lt;name&gt;/``.&nbsp;A&nbsp;missing&nbsp;package&nbsp;raises<br>
+ImportError:&nbsp;a&nbsp;declared&nbsp;mod&nbsp;without&nbsp;its&nbsp;package&nbsp;is&nbsp;a&nbsp;broken<br>
+install&nbsp;and&nbsp;must&nbsp;fail&nbsp;loudly,&nbsp;never&nbsp;silently&nbsp;disable.</span></dd></dl>
+ <dl><dt><a name="-register_mod"><strong>register_mod</strong></a>(bot: 'Any', config: 'Any', name: 'str', repo_root: 'Path | None' = None) -&gt; 'bool'</dt><dd><span class="code">Run&nbsp;one&nbsp;mod's&nbsp;``register``&nbsp;hook;&nbsp;False&nbsp;when&nbsp;absent&nbsp;or&nbsp;failed.<br>
 &nbsp;<br>
 Failures&nbsp;are&nbsp;logged&nbsp;and&nbsp;swallowed:&nbsp;a&nbsp;broken&nbsp;mod&nbsp;degrades&nbsp;to<br>
 "inactive"&nbsp;instead&nbsp;of&nbsp;taking&nbsp;the&nbsp;bot&nbsp;down&nbsp;—&nbsp;the&nbsp;same&nbsp;rule&nbsp;as&nbsp;the<br>
 per-mod&nbsp;provisioning&nbsp;loop.</span></dd></dl>
- <dl><dt><a name="-run_mod_hook"><strong>run_mod_hook</strong></a>(bot: 'Any', name: 'str', hook: 'str') -&gt; 'None'</dt><dd><span class="code">Run&nbsp;one&nbsp;optional&nbsp;mod&nbsp;hook&nbsp;(``setup_hook``&nbsp;/&nbsp;``close``),&nbsp;best-effort.</span></dd></dl>
+ <dl><dt><a name="-run_mod_hook"><strong>run_mod_hook</strong></a>(bot: 'Any', name: 'str', hook: 'str', repo_root: 'Path | None' = None) -&gt; 'None'</dt><dd><span class="code">Run&nbsp;one&nbsp;optional&nbsp;mod&nbsp;hook&nbsp;(``setup_hook``&nbsp;/&nbsp;``close``),&nbsp;best-effort.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
     
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>logger</strong> = &lt;Logger kingdoms.core.services.mod_entrypoint (WARNING)&gt;</td></tr></table>
+<td class="singlecolumn"><strong>MODULAR_ROOT</strong> = 'modules/mods'<br>
+<strong>logger</strong> = &lt;Logger kingdoms.core.services.mod_entrypoint (WARNING)&gt;</td></tr></table>
 </body></html>
